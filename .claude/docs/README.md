@@ -14,6 +14,7 @@
 | [`api-contract.md`](./api-contract.md) | 백엔드 `/api/v2` 규약·권한·상태·API 색인, v1 인증 API, 알림 문구 |
 | [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 200개(자동 추출) |
 | [`plan.md`](./plan.md) | 24개 Phase, 선행 관계, API 배정 |
+| [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
 | [`directory-structure.md`](./directory-structure.md) | 폴더, 라우트, 계층 규칙 |
 | [`storyboard.md`](./storyboard.md) | 화면 흐름 + 호출 API + Phase |
 | [`patterns.md`](./patterns.md) | 구현 패턴(§1~§10 공통, §11~§23 화면) |
@@ -89,6 +90,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 | 토스 송금 링크(`supertoss://send?…`)가 열리는지, 은행명 값이 맞는지 | 토스 앱이 깔린 기기 | P7 |
 | v1 본문 실데이터가 `marked`로 제대로 렌더되는지 | 백엔드 데이터 샘플 | P5b |
 | 실제로 들어오는 v1 경로 | nginx 접근 로그(CloudWatch) | P15 |
+| 배포 관련 8건(이미지 크기·메모리, 카카오 JS 키가 환경별로 같은지, GHCR 공개 패키지 등) | [`deploy-plan.md`](./deploy-plan.md) §9 | P0, P4b |
 
 ### 디자인 대기
 

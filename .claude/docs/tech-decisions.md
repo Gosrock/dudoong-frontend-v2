@@ -359,7 +359,7 @@ Vitest(단위) + Storybook(UI 스모크) + agent-browser(인터랙티브 검증)
 
 ## 11. CI/CD
 
-GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 이미지를 Docker Hub에 올리고, 배포는 Deploy 저장소의 compose 파일에서 태그를 올려 한다(§25). `next build`는 lint를 하지 않으므로 CI에 lint 단계를 둔다. 태그 기반 릴리스는 v1 방식을 따른다.
+GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). `main` 머지마다 이미지를 만들어 GHCR에 올리고, 버전 태그는 다시 빌드하지 않고 같은 이미지에 붙인다. 배포는 Deploy 저장소의 compose 파일에서 태그를 올려 한다(§25). `next build`는 lint를 하지 않으므로 CI에 lint 단계를 둔다. 자세한 것은 [`deploy-plan.md`](./deploy-plan.md).
 
 - 호스팅 센터 수정도 전체 재배포다. 티켓 오픈 시간대 배포는 피한다.
 
@@ -367,7 +367,7 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 
 zod로 빌드 타임 검증. 서버 전용(`env/server.ts`)과 공개(`env/client.ts`)를 파일로 나눈다. `NEXT_PUBLIC_*`는 리터럴로 하나씩 참조한다(객체 스프레드는 인라인되지 않는다). `next.config.ts`에서 두 모듈을 import해 누락 시 빌드를 실패시킨다.
 
-필요한 값: 서버 내부용 API 주소(운영은 `http://localhost:8080`), 사이트 origin(공유 링크·OG용), 카카오 JS 키. 브라우저용 API 주소는 상대 경로 `/api`라 값이 필요 없다. 토스페이먼츠 키는 없다. front 컨테이너에는 `.env`가 주입되지 않으므로 전부 빌드 때 굽는다(§25).
+필요한 값: 서버 내부용 API 주소(운영은 `http://localhost:8080`), 사이트 origin(공유 링크·OG용), 카카오 JS 키. 브라우저용 API 주소는 상대 경로 `/api`라 값이 필요 없다. 토스페이먼츠 키는 없다. 환경마다 다른 값은 이미지에 넣지 않는다 — 스테이징과 운영이 같은 이미지를 쓴다. 서버용 API 주소는 런타임에 읽고(두 환경 모두 같은 호스트), 사이트 origin은 값으로 두지 않고 브라우저는 `location.origin`, 서버는 요청의 `Host` 헤더로 만든다. 빌드 때 굽는 것은 카카오 JS 키 하나다([`deploy-plan.md`](./deploy-plan.md) §4).
 
 ## 13. 에러와 로깅
 
@@ -868,13 +868,15 @@ nginx 경로 분기(`nginx/site.conf`):
 | **nginx가 `/api`로 시작하는 요청을 전부 백엔드로 보낸다** | Next Route Handler를 `/api/…` 아래에 두면 브라우저에서 닿지 않는다. 지금 설계에는 Route Handler가 없지만, 만들게 되면 `/api` 밖(예: `/fe-api`)에 둔다 |
 | 서버가 1대, front 컨테이너도 1개 | 서버 캐시를 쓰지 않아 인스턴스 수와 무관하다. 나중에 캐시를 붙이고 인스턴스를 늘리면 호스트의 Redis를 공유 저장소로 쓸 수 있다 |
 | 백엔드가 같은 호스트의 8080이다 | 서버에서 도는 조회는 nginx를 거치지 않고 `http://localhost:8080/api/v2`로 부른다 |
-| front 컨테이너에 `.env`가 주입되지 않는다 | 환경변수는 이미지 빌드 때 굽는다(v1과 같음). 서버 전용 값은 사실상 백엔드 주소 하나다 |
-| 호스트 네트워크 | standalone 서버를 `HOSTNAME=127.0.0.1`, `PORT=3000`으로 띄워 3000 포트가 밖에 열리지 않게 한다 |
+| front 컨테이너에 `.env`가 주입되지 않는다 | 환경마다 다른 값을 두지 않아 이미지 하나를 두 환경이 쓴다. 필요해지면 compose의 `environment:`로 준다([`deploy-plan.md`](./deploy-plan.md) §4) |
+| 호스트 네트워크 | standalone 서버를 `HOSTNAME=127.0.0.1`, `PORT=3000`으로 띄워 3000 포트가 밖에 열리지 않게 한다. nginx의 `proxy_pass`도 `127.0.0.1:3000`으로 맞춘다 |
 | nginx가 `X-Frame-Options: DENY`, HSTS 등을 붙이고 `X-Forwarded-Host`를 지운다 | 앱에서 보안 헤더를 중복으로 넣지 않는다. 절대 URL이 필요하면 `Host` 헤더나 환경변수를 쓴다 |
 | 배포하면 컨테이너가 교체된다 | 수 초간 끊긴다(v1도 같음). 티켓 오픈 시간대 배포는 피한다 |
 | front의 stdout이 CloudWatch로 간다 | §13의 구조화 로그가 그대로 수집된다 |
 
 ### 컷오버 때 Deploy 저장소에서 바꿀 것
+
+컷오버 전에 미리 넣을 수 있는 변경(front 헬스체크, 스테이징 단독 배포 등)을 포함한 전체 목록은 [`deploy-plan.md`](./deploy-plan.md) §6에 있다.
 
 1. `docker-compose.*.yml`: `admin` 서비스 삭제, `front` 이미지를 v2로 교체, nginx의 `depends_on`에서 `admin` 제거
 2. `nginx/site.conf`: `location /admin/` 블록 삭제 → `/admin/*`이 front로 가고 Next `redirects()`가 `/hosting/*`으로 보낸다(§22의 표)

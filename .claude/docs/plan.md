@@ -77,7 +77,8 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - 단일 Next 16 앱(App Router, `output: 'standalone'`, Cache Components는 기본값대로 켬), `src/{app,features,ui,api,utils,env}`, 라우트 그룹 `(public)` / `(app)` / `hosting`
 - TS `strict` + `noUncheckedIndexedAccess`, alias `@/*`
 - vanilla-extract 연결(`@vanilla-extract/next-plugin`, `unstable_turbopack: { mode: 'auto' }`)
-- Dockerfile(멀티 스테이지, `HOSTNAME=127.0.0.1` `PORT=3000`), 개발용 `rewrites`(`/api` → dev API), PR 게이트(`next typegen` → typecheck · lint · vitest)
+- Dockerfile(멀티 스테이지, `HOSTNAME=127.0.0.1` `PORT=3000`), `/healthz`, `deploymentId`, 이미지 빌드 워크플로(GHCR) — [`deploy-plan.md`](./deploy-plan.md) D1
+- 개발용 `rewrites`(`/api` → dev API), PR 게이트(`next typegen` → typecheck · lint · vitest)
 - env zod 검증(`env/server.ts` · `env/client.ts`), 구조화 stdout 로그
 - ESLint(flat config) + Prettier + husky + lint-staged. 프로젝트 고유 규칙(계층, `ky` 직접 import 금지 등)은 [`tech-decisions.md`](./tech-decisions.md) §24
 - Vitest + Testing Library + MSW, Storybook

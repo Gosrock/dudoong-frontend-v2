@@ -8,8 +8,9 @@
 
 ```
 dudoong-frontend-v2/
-├─ next.config.ts              # output:'standalone', vanilla-extract 플러그인, redirects(/admin/* → /hosting/*, 없앤 v1 라우트), 개발용 rewrites(/api → dev API)
-├─ Dockerfile
+├─ next.config.ts              # output:'standalone', deploymentId, vanilla-extract 플러그인, redirects(/admin/* → /hosting/*, 없앤 v1 라우트), 개발용 rewrites(/api → dev API)
+├─ Dockerfile                  # 멀티 스테이지, standalone 산출물만 (deploy-plan.md §3)
+├─ .dockerignore
 ├─ package.json                # packageManager · engines 핀, 스크립트
 ├─ pnpm-lock.yaml
 ├─ tsconfig.json               # @/* → src/*
@@ -25,7 +26,8 @@ dudoong-frontend-v2/
 │  ├─ pull_request_template.md
 │  └─ workflows/
 │     ├─ pr-gate.yml           # typecheck → lint → test
-│     └─ deploy.yml
+│     ├─ image.yml             # main 머지 → GHCR에 sha 태그 이미지
+│     └─ release.yml           # 버전 태그 → 같은 이미지에 태그 추가(재빌드 없음)
 ├─ scripts/
 │  └─ check-crawler.mjs        # 실제 카카오 UA로 OG가 <head>에 있는지 확인
 ├─ public/                     # term.html · privacy.html (v1에서 이전)
