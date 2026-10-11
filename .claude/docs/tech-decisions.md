@@ -119,7 +119,7 @@ App Router는 데이터 조회가 필요한 메타 태그를 `<head>`가 나간 
 | `/gifts/[giftToken]` | `(public)` | 불필요 | 선물 랜딩(GG-3), `generateMetadata`. 백엔드 `linkPath` |
 | `/events` *(제안)* | `(app)` | 불필요 | 공연 리스트(GP-2). 필터는 URL 쿼리 |
 | `/events/[eventId]/checkout` *(제안)* | `(app)` | 필수 | 체크아웃(G11/O-0) |
-| `/ticket` | `(app)` | 필수 | 티켓탭. 카드·QR·전체화면은 내부 상태 |
+| `/tickets` | `(app)` | 필수 | 티켓탭. 카드·QR·전체화면은 내부 상태. v1의 `/ticket`에서 바꿨다 |
 | `/check-in` | `(app)` | 필수 | 셀프 체크인(PQ-5). 백엔드 `qrPath` |
 | `/orders`, `/orders/[orderUuid]` | `(app)` | 필수 | 주문내역·상세. v1의 `/history`에서 바꿨다 |
 | `/mypage`, `/mypage/following`, `/mypage/archive`, `/mypage/notifications` | `(app)` | 필수 | |
@@ -128,7 +128,7 @@ App Router는 데이터 조회가 필요한 메타 태그를 `<head>`가 나간 
 
 - *(제안)* 은 FE가 새로 정한 경로다.
 - 관객용 헤더·내비게이션은 `(public)`과 `(app)`이 같은 컴포넌트를 쓴다. 그룹을 나눈 이유는 Suspense 유무뿐이다.
-- 없앤 v1 라우트: `book/option`, `book/order`, `/pay/*`, `/history`(→ `/orders`), `/history/mycoupon`, `/ticket/[id]`, `/ticket/qr`, `/home`(→ `/`), `/admin/*`(→ `/hosting/*`).
+- 없앤 v1 라우트: `book/option`, `book/order`, `/pay/*`, `/history`(→ `/orders`), `/history/mycoupon`, `/ticket`(→ `/tickets`), `/ticket/[id]`, `/ticket/qr`, `/home`(→ `/`), `/admin/*`(→ `/hosting/*`).
 - 클라이언트 컴포넌트도 빌드 때(정적 셸)와 서버 렌더 때 한 번 실행된다. `window`를 렌더 중에 만지는 것(에디터, QR 스캐너)은 `next/dynamic({ ssr: false })`로 감싼다.
 
 ## 4. 데이터
@@ -684,7 +684,7 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 | `/history` | `/orders` | 이름 변경 |
 | `/history/[orderId]` | `/orders/[orderUuid]` | v1 `orderId`도 주문 uuid라 값은 그대로 넘긴다 |
 | `/history/mycoupon` | `/mypage` | 쿠폰 없음 |
-| `/ticket/[id]` · `/ticket/qr` | `/ticket` | v1 `id`는 주문 uuid |
+| `/ticket` · `/ticket/[id]` · `/ticket/qr` | `/tickets` | v1 `id`는 주문 uuid |
 | `/mypage`, `/login`, `/login/expired`, `/kakao/callback` | 그대로 | |
 | `/meta/term` · `/meta/privacy` | 그대로 | v1은 `public/term.html`·`privacy.html`로 rewrite한다. **정적 파일을 옮겨 와야 한다** |
 | `/admin` | `/hosting` | |
@@ -870,7 +870,7 @@ nginx 경로 분기(`nginx/site.conf`):
 
 운영 쿠키는 `SameSite=Strict`다. 브라우저는 **다른 사이트에서 넘어오는 첫 페이지 요청**에 Strict 쿠키를 싣지 않는다. 그 페이지가 뜬 뒤에 나가는 API 호출은 같은 사이트 요청이라 쿠키가 실린다.
 
-그래서 서버(`proxy.ts`)에서 "쿠키가 없으면 로그인으로 보낸다"를 하면, 로그인한 사용자가 외부 링크로 `/ticket`이나 `/hosting`에 들어올 때 로그인 화면으로 잘못 튕긴다. **로그인 게이트는 서버가 아니라 브라우저에서 한다**(§4 인증). `proxy.ts`는 두지 않는다.
+그래서 서버(`proxy.ts`)에서 "쿠키가 없으면 로그인으로 보낸다"를 하면, 로그인한 사용자가 외부 링크로 `/tickets`나 `/hosting`에 들어올 때 로그인 화면으로 잘못 튕긴다. **로그인 게이트는 서버가 아니라 브라우저에서 한다**(§4 인증). `proxy.ts`는 두지 않는다.
 
 이 동작은 브라우저의 쿠키 규칙에서 추론한 것이고 실제 환경에서 재현하지는 않았다. 스테이징에서 확인한다(P4b). 스테이징 쿠키는 `Lax`라 운영과 다르게 동작할 수 있다는 점도 같이 본다.
 

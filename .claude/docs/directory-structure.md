@@ -60,7 +60,7 @@ src/app/
 │  ├─ events/
 │  │  ├─ page.tsx                      # P5a  공연 리스트
 │  │  └─ [eventId]/checkout/page.tsx   # P7   체크아웃
-│  ├─ ticket/page.tsx                  # P8   티켓탭
+│  ├─ tickets/page.tsx                 # P8   티켓탭
 │  ├─ check-in/page.tsx                # P8c  셀프 체크인
 │  ├─ orders/
 │  │  ├─ page.tsx                      # P9   주문내역
@@ -101,7 +101,7 @@ Route Handler는 없다. 만들게 되면 nginx가 `/api`를 전부 백엔드로
 
 **호스트 홈은 `/hosts/[hostId]` 하나다.** 비로그인·관객·멤버·매니저·마스터가 같은 화면을 보고 `myRole`에 따라 버튼이 달라진다. 설정과 멤버 관리만 호스팅 센터에 있다.
 
-**없앤 v1 라우트**: `/home`(→ `/`), `/events/[eventId]/book/option`·`book/order`, `/pay/*`, `/history`(→ `/orders`), `/history/mycoupon`, `/ticket/[id]`, `/ticket/qr`, `/admin/*`(→ `/hosting/*`).
+**없앤 v1 라우트**: `/home`(→ `/`), `/events/[eventId]/book/option`·`book/order`, `/pay/*`, `/history`(→ `/orders`), `/ticket`(→ `/tickets`), `/history/mycoupon`, `/ticket/[id]`, `/ticket/qr`, `/admin/*`(→ `/hosting/*`).
 
 ## `src/features/` — 화면 구현
 
