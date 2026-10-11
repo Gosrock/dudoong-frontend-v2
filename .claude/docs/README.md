@@ -101,6 +101,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 - 티켓 폼 기본값(무제한 + 재고 공개 — 서버가 거부하는 조합), 은행 선택 UI
 - 진행 중 공연 배지, 회원 탈퇴 메뉴, 옵션 수정 화면 잠금 표시
 - 주문내역 필터, 관심 호스트 필터 선택지
+- 보낸·받은 선물 내역 화면 — API(GG-7)는 있는데 Figma에 화면이 있는지 확인하지 못했다. 있으면 `/mypage/gifts`
 
 ### 지켜볼 것
 
@@ -114,4 +115,4 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 
 ### 구현하면서 정할 것
 
-신규 라우트 경로(`/events`, `/events/[eventId]/checkout`, `/hosts/[hostId]`, `/mypage/following`, `/mypage/archive`)는 제안대로 진행한다. 주문 완료 화면의 라우트, 쿼리 `staleTime` 기본값, 날짜·토스트·파일 선택·캐러셀을 라이브러리로 할지, `commitlint` 도입 여부는 해당 Phase에서 정한다.
+라우트 경로는 [`tech-decisions.md`](./tech-decisions.md) §3과 [`directory-structure.md`](./directory-structure.md)에 정리돼 있다(2026-10-12 검토). 주문 완료 화면의 라우트, 쿼리 `staleTime` 기본값, 날짜·토스트·파일 선택·캐러셀을 라이브러리로 할지, `commitlint` 도입 여부는 해당 Phase에서 정한다.

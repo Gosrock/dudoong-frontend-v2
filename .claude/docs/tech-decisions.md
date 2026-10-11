@@ -122,11 +122,27 @@ App Router는 데이터 조회가 필요한 메타 태그를 `<head>`가 나간 
 | `/tickets` | `(app)` | 필수 | 티켓탭. 카드·QR·전체화면은 내부 상태. v1의 `/ticket`에서 바꿨다 |
 | `/check-in` | `(app)` | 필수 | 셀프 체크인(PQ-5). 백엔드 `qrPath` |
 | `/orders`, `/orders/[orderUuid]` | `(app)` | 필수 | 주문내역·상세. v1의 `/history`에서 바꿨다 |
-| `/mypage`, `/mypage/following`, `/mypage/archive`, `/mypage/notifications` | `(app)` | 필수 | |
+| `/mypage` | `(app)` | 필수 | 마이페이지. 프로필 편집(닉네임·이미지)도 이 화면 안에서 한다 |
+| `/mypage/following`, `/mypage/archive` | `(app)` | 필수 | 관심 호스트, 관람 공연 아카이빙 |
+| `/mypage/notifications` | `(app)` | 필수 | 알림함. 호스팅 센터의 알림 벨도 여기로 온다(알림함은 하나다) |
+| `/mypage/gifts` *(보류)* | `(app)` | 필수 | 보낸·받은 선물 내역(GG-7). Figma에 화면이 있을 때만 만든다 |
 | `/login`, `/login/expired`, `/kakao/callback` | `(app)` | 불필요 | |
-| `/hosting/**` | `hosting` | 필수 | 호스팅 센터 전체 |
+| `/hosting/**` | `hosting` | 필수 | 호스팅 센터 전체. 경로는 [`directory-structure.md`](./directory-structure.md) |
 
 - *(제안)* 은 FE가 새로 정한 경로다.
+- **화면 안 상태 중 주소에 남기는 것**: 새로고침·뒤로가기·알림에서의 진입이 필요한 것만 쿼리에 둔다.
+
+  | 화면 | 쿼리 | 이유 |
+  |---|---|---|
+  | 공연 리스트 | `?keyword=&tagIds=&includePast=` | 필터 공유·복구 |
+  | 체크아웃 | `?ticketItemId=&quantity=` | 상세에서 고른 티켓 전달 |
+  | 간편 공연 만들기 | `?step=2` | 뒤로가기 |
+  | 예매자 관리 | `?tab=orders\|tickets\|refunds` | 새로고침 시 탭 유지 |
+  | 예매자 관리의 주문 상세 모달 | `?order={orderUuid}` | 호스트가 받은 주문 알림에서 바로 열기 |
+
+  그 밖의 모달·바텀시트·티켓 카드 위치는 주소에 남기지 않는다.
+- `/hosting/events/[eventId]`는 `dashboard`로 리다이렉트한다.
+- 공연 관리의 `info`(기본 정보)·`detail`(상세 정보)은 화면 메뉴 이름을 따른 것이다. 백엔드 용어인 "섹션"은 주소에 쓰지 않는다.
 - 관객용 헤더·내비게이션은 `(public)`과 `(app)`이 같은 컴포넌트를 쓴다. 그룹을 나눈 이유는 Suspense 유무뿐이다.
 - 없앤 v1 라우트: `book/option`, `book/order`, `/pay/*`, `/history`(→ `/orders`), `/history/mycoupon`, `/ticket`(→ `/tickets`), `/ticket/[id]`, `/ticket/qr`, `/home`(→ `/`), `/admin/*`(→ `/hosting/*`).
 - 클라이언트 컴포넌트도 빌드 때(정적 셸)와 서버 렌더 때 한 번 실행된다. `window`를 렌더 중에 만지는 것(에디터, QR 스캐너)은 `next/dynamic({ ssr: false })`로 감싼다.

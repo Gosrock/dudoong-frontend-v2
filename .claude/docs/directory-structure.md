@@ -66,10 +66,10 @@ src/app/
 │  │  ├─ page.tsx                      # P9   주문내역
 │  │  └─ [orderUuid]/page.tsx          # P9   주문상세
 │  ├─ mypage/
-│  │  ├─ page.tsx                      # P9
+│  │  ├─ page.tsx                      # P9   마이페이지 (프로필 편집 포함)
 │  │  ├─ following/page.tsx            # P9   관심 호스트
 │  │  ├─ archive/page.tsx              # P9   관람 공연 아카이빙
-│  │  └─ notifications/page.tsx        # P9b
+│  │  └─ notifications/page.tsx        # P9b  알림함 — 호스팅 센터의 알림 벨도 여기로
 │  ├─ login/[[...state]]/page.tsx      # P4b  /login, /login/expired
 │  └─ kakao/callback/page.tsx          # P4b
 │
@@ -83,6 +83,7 @@ src/app/
 │  │  ├─ settings/page.tsx             # P10b 호스트 설정
 │  │  └─ members/page.tsx              # P10b 멤버
 │  └─ events/[eventId]/
+│     ├─ page.tsx                      # P11  dashboard로 리다이렉트
 │     ├─ layout.tsx                    # P11  사이드메뉴 (등록 상태별 항목)
 │     ├─ dashboard/page.tsx            # P11(체크리스트) + P13a(등록 후 통계)
 │     ├─ info/page.tsx                 # P11  기본 정보
@@ -92,7 +93,7 @@ src/app/
 │     │  ├─ page.tsx                   # P12
 │     │  ├─ new/page.tsx               # P12
 │     │  └─ [ticketItemId]/page.tsx    # P12
-│     ├─ guests/page.tsx               # P13a 주문 탭 / 발급된 티켓 탭 / 환불
+│     ├─ guests/page.tsx               # P13a 주문 / 발급된 티켓 / 환불 — ?tab=, 주문 상세 모달은 ?order=
 │     └─ qr/page.tsx                   # P13b
 ```
 
