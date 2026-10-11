@@ -121,14 +121,14 @@ App Router는 데이터 조회가 필요한 메타 태그를 `<head>`가 나간 
 | `/events/[eventId]/checkout` *(제안)* | `(app)` | 필수 | 체크아웃(G11/O-0) |
 | `/ticket` | `(app)` | 필수 | 티켓탭. 카드·QR·전체화면은 내부 상태 |
 | `/check-in` | `(app)` | 필수 | 셀프 체크인(PQ-5). 백엔드 `qrPath` |
-| `/history`, `/history/[orderUuid]` | `(app)` | 필수 | 주문내역·상세 |
+| `/orders`, `/orders/[orderUuid]` | `(app)` | 필수 | 주문내역·상세. v1의 `/history`에서 바꿨다 |
 | `/mypage`, `/mypage/following`, `/mypage/archive`, `/mypage/notifications` | `(app)` | 필수 | |
 | `/login`, `/login/expired`, `/kakao/callback` | `(app)` | 불필요 | |
 | `/hosting/**` | `hosting` | 필수 | 호스팅 센터 전체 |
 
 - *(제안)* 은 FE가 새로 정한 경로다.
 - 관객용 헤더·내비게이션은 `(public)`과 `(app)`이 같은 컴포넌트를 쓴다. 그룹을 나눈 이유는 Suspense 유무뿐이다.
-- 없앤 v1 라우트: `book/option`, `book/order`, `/pay/*`, `/history/mycoupon`, `/ticket/[id]`, `/ticket/qr`, `/home`(→ `/`), `/admin/*`(→ `/hosting/*`).
+- 없앤 v1 라우트: `book/option`, `book/order`, `/pay/*`, `/history`(→ `/orders`), `/history/mycoupon`, `/ticket/[id]`, `/ticket/qr`, `/home`(→ `/`), `/admin/*`(→ `/hosting/*`).
 - 클라이언트 컴포넌트도 빌드 때(정적 셸)와 서버 렌더 때 한 번 실행된다. `window`를 렌더 중에 만지는 것(에디터, QR 스캐너)은 `next/dynamic({ ssr: false })`로 감싼다.
 
 ## 4. 데이터
@@ -680,8 +680,9 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 | `/home` | `/` | |
 | `/events/[eventId]` | 그대로 | 카카오로 유통된 주 경로 |
 | `/events/[eventId]/book/option` · `book/order` | `/events/[eventId]` | |
-| `/pay/confirm` · `/pay/success` · `/pay/fail` | `/history` | PG 없음 |
-| `/history`, `/history/[orderId]` | 그대로 | v1 `orderId`도 주문 uuid |
+| `/pay/confirm` · `/pay/success` · `/pay/fail` | `/orders` | PG 없음 |
+| `/history` | `/orders` | 이름 변경 |
+| `/history/[orderId]` | `/orders/[orderUuid]` | v1 `orderId`도 주문 uuid라 값은 그대로 넘긴다 |
 | `/history/mycoupon` | `/mypage` | 쿠폰 없음 |
 | `/ticket/[id]` · `/ticket/qr` | `/ticket` | v1 `id`는 주문 uuid |
 | `/mypage`, `/login`, `/login/expired`, `/kakao/callback` | 그대로 | |
