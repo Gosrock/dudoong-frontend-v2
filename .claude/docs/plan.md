@@ -5,7 +5,7 @@
 
 ## 개요
 
-공연 티켓팅 서비스 FE 전면 재작성. **Next 16 앱 하나**(App Router)에 관객 화면(`(audience)`)과 호스팅 센터(`/hosting`)가 같이 있다. 공개·공유 화면은 서버에서 렌더하고 캐시하며, 로그인 뒤 조작 화면은 클라이언트에서 조회한다.
+공연 티켓팅 서비스 FE 전면 재작성. **Next 16 앱 하나**(App Router)에 관객 화면(`(public)`·`(app)`)과 호스팅 센터(`/hosting`)가 같이 있다. 공개·공유 화면은 서버에서 렌더하고 캐시하며, 로그인 뒤 조작 화면은 클라이언트에서 조회한다.
 
 **Phase는 도메인 단위다.** 실제 구현 티켓은 각 Phase 착수 시점에 `phase-N-spec.md`로 쪼갠다(1~5파일 / ~300줄 / 독립 typecheck 통과 단위).
 
@@ -24,7 +24,7 @@
 | 셀프 체크인 | 딥링크 필요 여부 미정 | `/check-in?token=…` 확정 — P8c 신설 |
 | 호스트 삭제 · 초대 대기 | 포함 | 백엔드에 없음 — 제외 |
 | 앱 구조 | pnpm 모노레포, Next 앱 2개(`ticket`/`admin`), `packages/{ui,api,utils}` | 단일 Next 앱, 폴더 계층 |
-| 라우터 | Pages Router | App Router(Cache Components 끔) |
+| 라우터 | Pages Router | App Router(Cache Components 켬, 서버 캐시 없음) |
 | 스타일 | emotion | vanilla-extract |
 | `/` | v1 마케팅 랜딩 | 공연홈 |
 | 호스트 홈 | 호스팅 센터 화면 | 관객 쪽 공개 화면 하나(`myRole`별 뷰) |
@@ -62,7 +62,6 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 | S3 | 공연 상세·섹션 | P5b ↔ P11 | `features/shared/section-viewer`를 미리보기가 재사용 |
 | S4 | QR · 체크인 | P8·P8c ↔ P13b | QR 값 = 티켓 uuid. `check-in` 스키마의 `result` enum과 결과 화면 공유 |
 | S5 | 주문 · 환불 | P9 ↔ P13a | `order` 스키마 공유. 사용자 상태와 호스트 상태 분류가 다르다 |
-| S6 | 공연·호스트 캐시 무효화 | P11·P10b → P5b | 같은 앱의 `/fe-api/revalidate`. 저장·등록·삭제 성공 뒤 호출 |
 | S7 | 알림함 | P9b ↔ P10a | `features/shared/notification` |
 | S8 | 호스트 홈 | P5c ↔ P10b | `features/shared/host-home`. 한 화면이 `myRole`로 분기 |
 
@@ -75,7 +74,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 **목표**: 이후 Phase가 밟을 지반이 실제로 작동함을 수직 슬라이스 하나로 증명한다.
 
 **산출물 A — 골격**
-- 단일 Next 16 앱(App Router, `output: 'standalone'`, `cacheComponents: false`), `src/{app,features,ui,server,api,utils,env}`
+- 단일 Next 16 앱(App Router, `output: 'standalone'`, Cache Components는 기본값대로 켬), `src/{app,features,ui,api,utils,env}`, 라우트 그룹 `(public)` / `(app)` / `hosting`
 - TS `strict` + `noUncheckedIndexedAccess`, alias `@/*`
 - vanilla-extract 연결(`@vanilla-extract/next-plugin`, `unstable_turbopack: { mode: 'auto' }`)
 - Dockerfile(멀티 스테이지, `HOSTNAME=127.0.0.1` `PORT=3000`), 개발용 `rewrites`(`/api` → dev API), PR 게이트(`next typegen` → typecheck · lint · vitest)
@@ -84,8 +83,9 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - Vitest + Testing Library + MSW, Storybook
 - `CLAUDE.md`, `.env.example`, PR 템플릿, `public/term.html`·`privacy.html`(v1에서 이전)
 
-**산출물 B — 스파이크**: 설계의 전제는 2026-10-11~12에 돌려 확인했다([`tech-decisions.md`](./tech-decisions.md) §21·§22 — 캐시와 태그 무효화, 토큰 미전송, 카카오 UA의 OG 위치, 404 상태 코드, vanilla-extract 개발 서버와 Storybook). P0에서는 같은 것을 실제 저장소에서 다시 통과시키고, 남은 하나를 본다.
-1. 운영 쿠키 `SameSite=Strict`에서 카카오 로그인 복귀 직후 요청에 쿠키가 실리는지(스테이징 필요)
+**산출물 B — 스파이크**: 설계의 전제는 2026-10-11~12에 돌려 확인했다([`tech-decisions.md`](./tech-decisions.md) §21·§22·§26). 다만 전체 구성(ky + vanilla-extract + `<Prefetch>`)은 Cache Components를 끈 상태로, 켠 상태는 축소 구성으로만 확인했다. P0에서 채운다.
+1. **Cache Components를 켠 전체 구성**에서 빌드·개발 서버·`<Prefetch>`·토큰 미전송·실제 카카오 UA의 OG 위치·404가 §26과 같게 나오는지
+2. 운영 쿠키 `SameSite=Strict`에서 외부 링크 진입과 카카오 로그인 복귀(스테이징 필요)
 
 **산출물 C — 의존성 확정**
 
@@ -153,9 +153,8 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - 날짜 변환(`yyyy.MM.dd HH:mm` ↔ `Date`, KST 고정)
 - `select`/`dependsOn` 헬퍼, queryKey 컨벤션, `staleTime` 기본값
 - 엑셀 응답(래퍼 없는 blob) 호출 경로
-- `api` 객체(`get` / `post` / `patch` / `put` / `delete` / `cached.get` / `download`): 호출 + 응답 래퍼 해제 + zod 파싱. `cached.get`은 60초 + 경로 기반 자동 태그
+- `api` 객체(`get` / `post` / `patch` / `put` / `delete` / `download`): 호출 + 응답 래퍼 해제 + zod 파싱
 - `src/api/server/`: `serverQuery`(요청별 QueryClient, 404 → `notFound()`), `<Prefetch>`
-- `revalidate(path)`
 
 **산출물 B — 도메인 슬라이스**: [`api-contract.md`](./api-contract.md) §5의 82개를 도메인별 `schema.ts` · `queries.ts`로 옮긴다. P3는 코어와 **공개 GET 10개 + 세션**까지, 나머지는 각 기능 Phase가 채운다.
 
@@ -170,7 +169,6 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] 공개 GET 10개 스키마가 dev 서버 실제 응답을 파싱
 - [ ] MSW로 백엔드 없이 기동
 - [ ] 금액 계산 경계값(0원, 옵션 가산, 수량 상한)
-- [ ] `api.cached.get`으로 조회한 쿼리가 서버에서 캐시되고 `revalidate(path)`로 지워짐, `api.get`은 캐시되지 않음
 - [ ] 서버에서 도는 조회에 토큰이 붙지 않음
 
 ### P4a — 세션 · 401 처리 (게이트)
@@ -200,7 +198,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P5a — 관객 셸 + 공연홈 + 공연 리스트
 
-**포함**: `(audience)/layout.tsx`, GlobalNav(햄버거, 로그인/비로그인), `not-found`·`error`. **공연홈 `/`**(GP-1: 배너 · 캐러셀 · 두둥 소개, `<Prefetch>` + 60초 캐시). **공연 리스트 `/events`**(GP-2 + GE-11: 검색, 태그 필터 드롭다운 1개·4분류, 지난공연 토글, 무한 스크롤).
+**포함**: `(public)`·`(app)` 레이아웃, GlobalNav(햄버거, 로그인/비로그인), `not-found`·`error`. **공연홈 `/`**(GP-1: 배너 · 캐러셀 · 두둥 소개, `<Prefetch>`). **공연 리스트 `/events`**(GP-2 + GE-11: 검색, 태그 필터 드롭다운 1개·4분류, 지난공연 토글, 무한 스크롤).
 
 **선행**: P2, P4a · **API**: GP-1 GP-2 GE-11
 
@@ -209,49 +207,44 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] 태그 필터·검색어가 URL에 반영되고 새로고침·뒤로가기에서 복구
 - [ ] 하이드레이션 경고 0
 
-### P5b — 공연 상세 + 섹션 뷰어 + 공유 + 캐시 무효화
+### P5b — 공연 상세 + 섹션 뷰어 + 공유
 
-**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(`api.cached.get`, 60초 + 태그 `events/{id}`), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. **`/fe-api/revalidate` Route Handler**(호출자 권한 확인 후 `revalidateTag(tag, { expire: 0 })`). 크롤러 계약 스크립트.
+**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(`instant = false`, 서버 캐시 없음), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. 크롤러 계약 스크립트.
 
 **선행**: P5a · **API**: GP-3 GE-5
 
 **핵심 리스크**
-1. 이 라우트에 `loading.tsx`를 두면 `notFound()`가 Suspense 안에서 불려 200이 된다
-2. 5xx를 캐시하지 않는다(throw)
-3. 등록 전에 열린 URL은 404가 캐시된다 — 등록(PE-8)도 무효화 대상
-4. `displayStatus`·`dDay`는 시간으로 바뀐다 — TTL에 맡기거나 클라이언트에서 계산
-5. Route Handler를 `/api` 아래에 두면 nginx가 백엔드로 보내 닿지 않는다 — `/fe-api`에 둔다
+1. 이 라우트 위에 `<Suspense>`나 `loading.tsx`가 있으면 `notFound()`가 200으로 나간다 — `(public)` 그룹에 둔다
+2. 5xx는 throw해서 `error.tsx`로 보낸다
+3. 요청마다 백엔드를 부른다. 티켓 오픈 때 부하가 문제 되면 이 조회에만 캐시를 붙인다(tech-decisions §2)
 
 **완료 기준**
-- [ ] **실제 카카오 UA**(`facebookexternalhit/1.1; kakaotalk-scrap/1.0; …`)로 캐시 없는 첫 요청 → OG가 `<head>`에 있음(스크립트)
+- [ ] **실제 카카오 UA**(`facebookexternalhit/1.1; kakaotalk-scrap/1.0; …`)로 요청 → OG가 `<head>`에 있음(스크립트)
 - [ ] 카카오 공유 디버거에서 미리보기 확인
-- [ ] 없는·준비중 공연이 브라우저에 404
-- [ ] API 5xx 시 빈 페이지가 캐시되지 않음
+- [ ] 없는·준비중 공연이 크롤러 UA에 404, 브라우저에는 not-found 화면
 - [ ] v1 실데이터 본문 샘플(MARKDOWN·HTML)이 뷰어에서 정상 렌더 + XSS 페이로드 차단
-- [ ] `/fe-api/revalidate` 호출 → 다음 요청에 새 내용, 권한 없는 호출은 거절
 - [ ] 응답 HTML에 재고 값 없음
 
 ### P5c — 호스트 홈(공개) · 관심 호스트
 
-**포함**: 호스트 홈 `/hosts/[hostId]`(GH-3 + GH-14) — 호스트 정보, 연락처, 공연 리스트는 `<Prefetch>`로 조회(`api.cached.get`, 태그 `hosts/{id}`). `myRole`·`isFollowing`은 브라우저가 같은 쿼리를 쿠키와 함께 다시 조회해 관심(♡) PH-13과 관리 버튼(설정·멤버·새 공연)을 그린다. `features/shared/host-home`(S8).
+**포함**: 호스트 홈 `/hosts/[hostId]`(GH-3 + GH-14) — 호스트 정보, 연락처, 공연 리스트는 `<Prefetch>`로 조회. `myRole`·`isFollowing`은 브라우저가 같은 쿼리를 쿠키와 함께 다시 조회해 관심(♡) PH-13과 관리 버튼(설정·멤버·새 공연)을 그린다. `features/shared/host-home`(S8).
 
 **선행**: P5a · **API**: GH-3 GH-14 PH-13
 
 **완료 기준**
 - [ ] 비로그인·관객·일반 멤버·매니저·마스터 시점 렌더
-- [ ] 서버 조회에 토큰이 붙지 않고, 사용자별 값이 캐시된 HTML에 없음
+- [ ] 서버 조회에 토큰이 붙지 않음
 - [ ] ♡ 연타에도 상태 일치(같은 요청 재전송 200)
 
 ### P6 — 티켓 선택
 
-**포함**: 공연 상세 안의 티켓 선택(GP-5). 티켓 종류 선택 → 인라인 수량 스테퍼. 잔여·매진·구매 가능 표시(`remaining`·`isSoldOut`·`isPurchasable`), 1주문 1종류 안내. 서버 캐시에 넣지 않고 클라이언트에서 `staleTime:0`.
+**포함**: 공연 상세 안의 티켓 선택(GP-5). 티켓 종류 선택 → 인라인 수량 스테퍼. 잔여·매진·구매 가능 표시(`remaining`·`isSoldOut`·`isPurchasable`), 1주문 1종류 안내. 서버에서 조회하지 않고 브라우저에서 `staleTime:0`.
 
 **선행**: P5b · **API**: GP-5
 
 **완료 기준**
 - [ ] 매진·판매 불가·PAST 공연 분기 렌더
 - [ ] 수량 상한 = `purchaseLimit`(없으면 잔여)
-- [ ] 서버가 렌더한 상세 HTML에 재고 값 미포함
 
 ### P7 — 체크아웃 · 주문 생성
 
@@ -288,7 +281,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 **선행**: P8, P4b · **API**: PG-1 PG-8 DG-2 GG-3 PG-4 PG-5 PG-6 GG-7 GG-7a
 
-**핵심 리스크**: 랜딩은 캐시하면 안 된다(상태가 바뀐다). 비로그인 → 로그인 → 복귀 후 **명시적 수락**. 수락·반환 뒤 uuid가 바뀌므로 캐시된 티켓 쿼리를 전부 무효화한다.
+**핵심 리스크**: 비로그인 → 로그인 → 복귀 후 **명시적 수락**. 수락·반환 뒤 uuid가 바뀌므로 캐시된 티켓 쿼리를 전부 무효화한다.
 
 **완료 기준**
 - [ ] `viewState` 7종 화면
@@ -344,7 +337,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P10b — 호스트 홈 · 설정 · 멤버
 
-**포함**: 호스트 설정(PH-4: 이름·소개·연락처·이미지), 멤버 목록(GH-6), 멤버 초대(PH-7, 복수·즉시 추가), 역할 변경(PH-10), 삭제(DH-11), 마스터 양도(PH-12), 권한 가이드 표. 설정 저장 시 호스트 캐시 무효화(S6). 호스트 홈 화면 자체는 P5c.
+**포함**: 호스트 설정(PH-4: 이름·소개·연락처·이미지), 멤버 목록(GH-6), 멤버 초대(PH-7, 복수·즉시 추가), 역할 변경(PH-10), 삭제(DH-11), 마스터 양도(PH-12), 권한 가이드 표. 호스트 홈 화면 자체는 P5c.
 
 **선행**: P10a, P5c · **API**: PH-4 GH-6 PH-7 PH-10 DH-11 PH-12
 
@@ -356,9 +349,9 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P11 — 공연 생성 · 체크리스트 · 기본 정보 · 섹션 편집 · 등록
 
-**포함**: 간편 공연 만들기 2단계(호스트 선택 → 공연 만들기, PE-2, `?step=` + 지역 상태). 공연 스코프 레이아웃(GE-3, 사이드메뉴는 등록 상태에 따라 항목이 다름). 대시보드 — 준비중은 체크리스트(GE-7) + [공연 등록하기](PE-8, 확인 팝업). 기본 정보(PE-4: 포스터·이름·일정·장소·문의처·태그·티켓 여부). 상세 정보(GE-5/PE-6: 섹션 탭 편집, **Tiptap**, 본문 이미지 PE-10 `SECTION`). 미리보기(`section-viewer` 재사용). 삭제(DE-9). 미저장 이탈 경고. **S6 호출자**.
+**포함**: 간편 공연 만들기 2단계(호스트 선택 → 공연 만들기, PE-2, `?step=` + 지역 상태). 공연 스코프 레이아웃(GE-3, 사이드메뉴는 등록 상태에 따라 항목이 다름). 대시보드 — 준비중은 체크리스트(GE-7) + [공연 등록하기](PE-8, 확인 팝업). 기본 정보(PE-4: 포스터·이름·일정·장소·문의처·태그·티켓 여부). 상세 정보(GE-5/PE-6: 섹션 탭 편집, **Tiptap**, 본문 이미지 PE-10 `SECTION`). 미리보기(`section-viewer` 재사용). 삭제(DE-9). 미저장 이탈 경고.
 
-**선행**: P10a, P5b(무효화 Route Handler) · **API**: PE-2 GE-3 PE-4 PE-10 GE-11 GE-5 PE-6 GE-7 PE-8 DE-9
+**선행**: P10a, P5b(섹션 뷰어) · **API**: PE-2 GE-3 PE-4 PE-10 GE-11 GE-5 PE-6 GE-7 PE-8 DE-9
 
 **완료 기준**
 - [ ] 만들기 → 기본 정보 → 섹션 → 등록까지 완주
@@ -366,11 +359,11 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] 장소 수정 시 `detailAddress`를 함께 보냄
 - [ ] 섹션 저장은 전체 교체(빠진 섹션 삭제)임을 UI가 반영
 - [ ] 일반 멤버는 읽기 전용 화면
-- [ ] 저장·등록·삭제 시 공연 상세가 다음 요청에 갱신(S6), 무효화 실패해도 저장은 성공
+- [ ] 저장·등록 뒤 공연 상세를 열면 바로 반영돼 있음
 
 ### P12 — 티켓 · 옵션 관리
 
-**포함**: 티켓 관리 목록(G10/T-1), 티켓 폼(P10/T-2 생성 · P10/T-3 수정 — 계좌의 은행은 목록에서 고르게 해 토스 송금 링크에 쓸 수 있는 값으로 고정), ⋮ 메뉴(수정·삭제·판매 중단·재개), 옵션 추가 모달(기존 옵션 재사용 / 직접 만들기 P10/O-2), 옵션 상세·수정·삭제, 티켓에 옵션 붙이기·떼기(P10/O-5). 옵션 가이드·관리자 승인 가이드 팝오버. 티켓은 캐시 대상이 아니라 무효화하지 않는다.
+**포함**: 티켓 관리 목록(G10/T-1), 티켓 폼(P10/T-2 생성 · P10/T-3 수정 — 계좌의 은행은 목록에서 고르게 해 토스 송금 링크에 쓸 수 있는 값으로 고정), ⋮ 메뉴(수정·삭제·판매 중단·재개), 옵션 추가 모달(기존 옵션 재사용 / 직접 만들기 P10/O-2), 옵션 상세·수정·삭제, 티켓에 옵션 붙이기·떼기(P10/O-5). 옵션 가이드·관리자 승인 가이드 팝오버.
 
 **선행**: P11 · **API**: 10/T-1~T-6, 10/O-1~O-5
 
@@ -408,7 +401,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P14 — 통합 하드닝
 
-**포함**: 성능(LCP/TTFB/번들, 공연 상세 캐시 히트율), 보안(오픈 리다이렉트, 토큰 취급, 로그 PII, 선물 토큰·QR 유출 경로), 접근성, 회귀(S1~S8 통합 시나리오), 부하(티켓 오픈 순간), 레거시 URL.
+**포함**: 성능(LCP/TTFB/번들, 티켓 오픈 시 공연 상세의 백엔드 부하 — 캐시가 필요한지 여기서 판단), 보안(오픈 리다이렉트, 토큰 취급, 로그 PII, 선물 토큰·QR 유출 경로), 접근성, 회귀(공유 지점(S1~S8) 통합 시나리오), 부하(티켓 오픈 순간), 레거시 URL.
 
 **선행**: 전 기능 Phase
 
@@ -429,7 +422,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 | P4a | 세션 · 401 처리 | 공통 | P1, P3 |
 | P4b | 인증 실구현 | 공통 | P4a |
 | P5a | 관객 셸 + 공연홈 + 리스트 | 관객 | P2, P4a |
-| P5b | 공연 상세 + 섹션 뷰어 + 공유 + 캐시 무효화 | 관객 | P5a |
+| P5b | 공연 상세 + 섹션 뷰어 + 공유 | 관객 | P5a |
 | P5c | 호스트 홈 · 관심 호스트 | 관객 | P5a |
 | P6 | 티켓 선택 | 관객 | P5b |
 | P7 | 체크아웃 · 주문 생성 | 관객 | P6, P4b |

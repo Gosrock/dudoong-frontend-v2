@@ -4,13 +4,13 @@
 
 ## 한 줄 요약
 
-**Next 16 앱 하나(App Router, vanilla-extract)** 로 관객 화면과 호스팅 센터를 같이 만든다. 공개·공유 화면은 서버에서 조회해 렌더·캐시하고, 로그인 뒤 조작 화면은 클라이언트에서 조회한다. 조회 정의(`queryOptions`)는 한 벌을 양쪽이 같이 쓴다. 백엔드 `/api/v2` 82개는 이미 구현돼 있다.
+**Next 16 앱 하나(App Router, vanilla-extract)** 로 관객 화면과 호스팅 센터를 같이 만든다. 공개·공유 화면은 서버에서 조회해 렌더하고(캐시 없음), 로그인 뒤 조작 화면은 클라이언트에서 조회한다. 조회 정의(`queryOptions`)는 한 벌을 양쪽이 같이 쓴다. 백엔드 `/api/v2` 82개는 이미 구현돼 있다.
 
 ## 문서
 
 | 문서 | 내용 |
 |---|---|
-| [`tech-decisions.md`](./tech-decisions.md) | 기술 결정(§0~§20), 검증·조사 기록(§21~§23), 도구 세팅(§24), 배포 인프라(§25) |
+| [`tech-decisions.md`](./tech-decisions.md) | 기술 결정(§0~§20), 검증·조사 기록(§21~§23·§26), 도구 세팅(§24), 배포 인프라(§25) |
 | [`api-contract.md`](./api-contract.md) | 백엔드 `/api/v2` 규약·권한·상태·API 색인, v1 인증 API, 알림 문구 |
 | [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 200개(자동 추출) |
 | [`plan.md`](./plan.md) | 24개 Phase, 선행 관계, API 배정 |
@@ -35,7 +35,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 |---|---|
 | 2026-08~09 | FE 설계 원본(모노레포, Next 앱 2개, Pages Router, emotion) |
 | 2026-10-11 | 백엔드 v2 문서 반영 — 계약 확정, PG·쿠폰·Q&A 등 범위 제외, 관심 호스트·아카이빙·셀프 체크인 추가 |
-| 2026-10-12 | 구조 변경 — 단일 Next 앱, App Router(Cache Components 끔), vanilla-extract, `/` = 공연홈, 호스팅 센터는 `/hosting`, 호스트 홈은 관객 쪽 화면 하나. 조회 정의 공유(`queryOptions` + `<Prefetch>`), `api` 객체, 경로 기반 캐시 태그. 스파이크·백엔드 코드·배포 저장소로 미확정 항목 대부분 해소 |
+| 2026-10-12 | 구조 변경 — 단일 Next 앱, App Router(Cache Components 켬, 서버 캐시 없음), vanilla-extract, `/` = 공연홈, 호스팅 센터는 `/hosting`, 호스트 홈은 관객 쪽 화면 하나. 조회 정의 공유(`queryOptions` + `<Prefetch>`), `api` 객체. 스파이크·백엔드 코드·배포 저장소로 미확정 항목 대부분 해소 |
 
 ## 원본 위치
 

@@ -164,7 +164,7 @@ tossinsu-desktop은 `remotes/*.ts`에 `queryOptions`/`mutationOptions`를 조회
 export const hostDetailQuery = (hostId: string) =>
   queryOptions({
     queryKey: ['hosts', hostId],
-    queryFn: () => api.cached.get(`hosts/${hostId}`, HostDetailSchema),
+    queryFn: () => api.get(`hosts/${hostId}`, HostDetailSchema),
     staleTime: 0,                       // 브라우저가 쿠키와 함께 다시 조회해 myRole을 채운다
   });
 
@@ -177,7 +177,6 @@ export const addHostMembersMutation = (hostId: string) =>
 
 - `{대상}Query` / `{동작}Mutation`. 도메인 객체로 묶지 않는다.
 - queryKey는 경로를 쪼갠 모양. 손으로 쓴다.
-- 캐시할 조회만 `api.cached.get`, 나머지는 `api.get`.
 - `mutationOptions`에는 `mutationFn`만. 후속 동작은 화면의 `onSuccess`에.
 - `@tanstack/react-query` v5는 `queryOptions`와 `mutationOptions`를 둘 다 제공한다. 자체 래퍼를 만들지 않는다.
 
@@ -446,16 +445,16 @@ infiniteQueryOptions({
 - 없는 태그 id로 `Event_400_23`이 오면 GE-11을 다시 받아 필터를 초기화한다.
 - 검색어는 50자에서 입력을 막는다. debounce 후 URL 반영.
 
-## 14. P5b — 공연 상세: 서버 캐시 · 섹션 · 공유
+## 14. P5b — 공연 상세: 서버 조회 · 섹션 · 공유
 
-- 서버가 렌더하는 HTML에는 GP-3 + GE-5만 담는다. 티켓 잔여(GP-5)는 클라이언트 컴포넌트가 따로 조회한다.
-- 라우트 파일이 `<Prefetch queries={[eventDetailQuery(id), eventSectionsQuery(id)]}>`로 조회하고, 화면은 `useSuspenseQuery`로 같은 쿼리를 읽는다. 두 쿼리는 `api.cached.get`(60초 + 태그 `events/{id}`)이다. 서버에서는 토큰이 붙지 않는다.
-- 404(준비중·삭제·없음)는 `serverQuery`가 `notFound()`로 바꾼다. 이 라우트에 `loading.tsx`를 두지 않는다(Suspense 안에서 불리면 200이 된다). 5xx는 throw해서 캐시되지 않게 한다.
+- 서버에서는 GP-3 + GE-5만 조회한다. 티켓 잔여(GP-5)는 브라우저가 따로 조회한다.
+- 라우트 파일이 `<Prefetch queries={[eventDetailQuery(id), eventSectionsQuery(id)]}>`로 조회하고, 화면은 `useSuspenseQuery`로 같은 쿼리를 읽는다. 서버 캐시는 없다 — 요청마다 백엔드를 부른다. 서버에서는 토큰이 붙지 않는다. 라우트 파일에 `export const instant = false`를 둔다.
+- 404(준비중·삭제·없음)는 `serverQuery`가 `notFound()`로 바꾼다. 이 라우트 위에 `<Suspense>`나 `loading.tsx`를 두지 않는다(경계 안에서 불리면 200이 된다). 5xx는 throw해서 `error.tsx`로 보낸다.
 - `generateMetadata`도 `serverQuery(eventDetailQuery(id))`를 쓴다(요청당 QueryClient가 같아 조회는 한 번).
 - **섹션 탭**: 서버 섹션이 있으면 그대로, 없으면 기본 4탭 라벨을 프론트가 그리고 빈 상태를 보여 준다.
 - **섹션 뷰어**(`features/shared/section-viewer`): `contentFormat`으로 렌더러를 고른다(`HTML` → sanitize 후 렌더 / `MARKDOWN` → 마크다운 렌더 후 같은 sanitize). 클라이언트 컴포넌트다(`isomorphic-dompurify`는 서버 렌더와 브라우저 양쪽에서 돈다). 미리보기가 같은 컴포넌트를 쓴다.
 - 문의처는 GP-3이 준다(공연 문의처, 없으면 호스트 연락처). 연락처 `type` 6종 → 아이콘·링크 매핑은 한 곳에서.
-- `displayStatus`·`dDay`는 시간으로 바뀐다. 캐시 TTL(60초) 안에서 어긋날 수 있다는 것을 감안하고, 구매 가능 여부는 캐시된 값이 아니라 GP-5의 `isPurchasable`로 판단한다.
+- `displayStatus`·`dDay`는 서버가 요청 시점에 계산해 준다. 구매 가능 여부는 GP-5의 `isPurchasable`로 판단한다.
 - **카카오 공유**: `features/shared/kakao-share`가 SDK 준비를 소유한다. 실패하면 `copyText(canonicalUrl)` 폴백. OG 태그는 `generateMetadata`가 서버에서 넣는다 — 크롤러는 SDK를 실행하지 않는다.
 - **크롤러 확인은 실제 카카오 UA로 한다**: `facebookexternalhit/1.1; kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984`. `kakaotalk-scrap`만 보내면 Next가 크롤러로 인식하지 못해 OG가 `<body>`로 나간다(tech-decisions §2).
 

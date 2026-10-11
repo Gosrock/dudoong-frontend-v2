@@ -40,7 +40,7 @@ dudoong-frontend-v2/
 
 ## `src/app/` — 라우트
 
-라우트 파일은 얇게 둔다. 레이아웃, 메타데이터, `<Prefetch>`, 화면 컴포넌트 조립까지만 한다. **서버 컴포넌트는 라우트 파일뿐이고**, 화면 구현(`src/features`)은 전부 클라이언트 컴포넌트다.
+라우트 그룹은 조회 방식으로 나눈다(tech-decisions §3). 라우트 파일은 얇게 둔다. 레이아웃, 메타데이터, `<Prefetch>`, 화면 컴포넌트 조립까지만 한다. **서버 컴포넌트는 라우트 파일뿐이고**, 화면 구현(`src/features`)은 전부 클라이언트 컴포넌트다.
 
 ```
 src/app/
@@ -48,33 +48,33 @@ src/app/
 ├─ providers.tsx                       # 'use client' — QueryClientProvider(서버 렌더마다 새 것, 브라우저는 하나), OverlayProvider
 ├─ not-found.tsx / error.tsx / global-error.tsx
 │
-├─ (audience)/                         # 관객 — GlobalNav 레이아웃
-│  ├─ layout.tsx
-│  ├─ page.tsx                         # P5a  공연홈 (Prefetch, 캐시)
+├─ (public)/                           # 서버 조회 화면 — Suspense·loading.tsx를 두지 않는다. 각 page에 instant = false
+│  ├─ layout.tsx                       # 관객 헤더·내비게이션
+│  ├─ page.tsx                         # P5a  공연홈
+│  ├─ events/[eventId]/page.tsx        # P5b  공연 상세 + generateMetadata
+│  ├─ hosts/[hostId]/page.tsx          # P5c  호스트 홈 — 사용자별 값은 브라우저가 재조회
+│  └─ gifts/[giftToken]/page.tsx       # P8b  선물 랜딩 + generateMetadata
+│
+├─ (app)/                              # 클라이언트 조회 화면
+│  ├─ layout.tsx                       # 관객 헤더·내비게이션 + <Suspense> + 로그인 게이트(보호 경로)
 │  ├─ events/
-│  │  ├─ page.tsx                      # P5a  공연 리스트 (클라이언트 조회)
-│  │  └─ [eventId]/
-│  │     ├─ page.tsx                   # P5b  공연 상세 (Prefetch, 캐시 + 태그) + generateMetadata
-│  │     └─ checkout/page.tsx          # P7   체크아웃
-│  ├─ hosts/[hostId]/page.tsx          # P5c  호스트 홈 (Prefetch, 캐시) — 사용자별 값은 브라우저가 재조회
+│  │  ├─ page.tsx                      # P5a  공연 리스트
+│  │  └─ [eventId]/checkout/page.tsx   # P7   체크아웃
 │  ├─ ticket/page.tsx                  # P8   티켓탭
-│  ├─ gifts/[giftToken]/page.tsx       # P8b  선물 랜딩 (Prefetch, 캐시 없음) + generateMetadata
 │  ├─ check-in/page.tsx                # P8c  셀프 체크인
 │  ├─ history/
 │  │  ├─ page.tsx                      # P9   주문내역
 │  │  └─ [orderUuid]/page.tsx          # P9   주문상세
-│  └─ mypage/
-│     ├─ page.tsx                      # P9
-│     ├─ following/page.tsx            # P9   관심 호스트
-│     ├─ archive/page.tsx              # P9   관람 공연 아카이빙
-│     └─ notifications/page.tsx        # P9b
-│
-├─ (auth)/
+│  ├─ mypage/
+│  │  ├─ page.tsx                      # P9
+│  │  ├─ following/page.tsx            # P9   관심 호스트
+│  │  ├─ archive/page.tsx              # P9   관람 공연 아카이빙
+│  │  └─ notifications/page.tsx        # P9b
 │  ├─ login/[[...state]]/page.tsx      # P4b  /login, /login/expired
 │  └─ kakao/callback/page.tsx          # P4b
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
-│  ├─ layout.tsx                       # P10a 헤더, 알림 벨
+│  ├─ layout.tsx                       # P10a 헤더, 알림 벨, <Suspense>, 로그인 게이트
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색)
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기
@@ -94,10 +94,10 @@ src/app/
 │     │  └─ [ticketItemId]/page.tsx    # P12
 │     ├─ guests/page.tsx               # P13a 주문 탭 / 발급된 티켓 탭 / 환불
 │     └─ qr/page.tsx                   # P13b
-│
-└─ fe-api/                             # Route Handler. nginx가 /api를 전부 백엔드로 보내므로 /api 아래에 두지 않는다
-   └─ revalidate/route.ts              # P5b  공연·호스트 캐시 무효화 (호출자 권한 확인)
 ```
+
+Route Handler는 없다. 만들게 되면 nginx가 `/api`를 전부 백엔드로 보내므로 `/api` 밖에 둔다.
+
 
 **호스트 홈은 `/hosts/[hostId]` 하나다.** 비로그인·관객·멤버·매니저·마스터가 같은 화면을 보고 `myRole`에 따라 버튼이 달라진다. 설정과 멤버 관리만 호스팅 센터에 있다.
 
@@ -168,17 +168,15 @@ src/ui/
 
 ```
 src/api/
-├─ http.ts                     # api 객체 — get / post / patch / put / delete / cached.get / download
+├─ http.ts                     # api 객체 — get / post / patch / put / delete / download
 ├─ client.ts                   # ky 인스턴스(내부) — 응답 래퍼 해제, ApiError, 401 재발급 후 재시도
 ├─ errors.ts                   # ApiError{status, code, reason}, getErrorCode
-├─ revalidate.ts               # revalidate(path) — /fe-api/revalidate 호출
 ├─ server/                     # 'server-only' — 라우트 파일에서만 쓴다
 │  ├─ serverQuery.ts           # 요청별 QueryClient + fetchQuery + 404 → notFound()
 │  └─ Prefetch.tsx             # 조회 → dehydrate → HydrationBoundary
 ├─ shared/
 │  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼
 │  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
-│  ├─ tags.ts                  # 경로 → 계층 태그
 │  └─ enums.ts
 ├─ auth/  me/  host/  event/  ticket-item/  option/
 ├─ order/                      # + price.ts (금액 계산 순수함수)
