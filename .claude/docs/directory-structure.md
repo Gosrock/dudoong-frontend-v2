@@ -138,8 +138,7 @@ src/features/
    ├─ checkin-result/          # P8c · P13b  result → 화면
    ├─ upload/                  # P10a 발급 → S3 PUT → key
    ├─ permission/              # can(role, action)
-   ├─ kakao-share/             # P5b · P8b
-   └─ analytics/               # P5a  GA4
+   └─ kakao-share/             # P5b · P8b
 ```
 
 ## `src/ui/` — 디자인 시스템 (P1, P2)

@@ -343,7 +343,7 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 
 zod로 빌드 타임 검증. 서버 전용(`env/server.ts`)과 공개(`env/client.ts`)를 파일로 나눈다. `NEXT_PUBLIC_*`는 리터럴로 하나씩 참조한다(객체 스프레드는 인라인되지 않는다). `next.config.ts`에서 두 모듈을 import해 누락 시 빌드를 실패시킨다.
 
-필요한 값: 서버 내부용 API 주소(운영은 `http://localhost:8080`), 사이트 origin(공유 링크·OG용), GA ID, 카카오 JS 키. 브라우저용 API 주소는 상대 경로 `/api`라 값이 필요 없다. 토스페이먼츠 키는 없다. front 컨테이너에는 `.env`가 주입되지 않으므로 전부 빌드 때 굽는다(§25).
+필요한 값: 서버 내부용 API 주소(운영은 `http://localhost:8080`), 사이트 origin(공유 링크·OG용), 카카오 JS 키. 브라우저용 API 주소는 상대 경로 `/api`라 값이 필요 없다. 토스페이먼츠 키는 없다. front 컨테이너에는 `.env`가 주입되지 않으므로 전부 빌드 때 굽는다(§25).
 
 ## 13. 에러와 로깅
 
@@ -534,7 +534,6 @@ const FormSchema = z.discriminatedUnion('mode', [
 - 1인 제한: 화면은 이미 산 수량을 모른다. `Order_400_15` · `Ticket_Item_400_6`이 오면 안내하고 수량을 줄이게 한다.
 - 계좌 복사는 `copyText()`.
 - 주문 완료 후 뒤로가기로 체크아웃에 돌아와 다시 제출하지 못하게 `replace`로 이동한다.
-- GA4 `purchase`는 주문 생성 성공 응답의 `orderUuid`를 `transaction_id`로 한 번만 보낸다. 승인 대기 주문을 구매로 셀지는 측정 정책으로 정한다.
 
 ### 응답 헤더 주의
 
