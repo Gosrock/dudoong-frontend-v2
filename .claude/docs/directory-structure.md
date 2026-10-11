@@ -8,7 +8,7 @@
 
 ```
 dudoong-frontend-v2/
-├─ next.config.ts              # output:'standalone', vanilla-extract 플러그인, redirects(/admin/* → /hosting/*, 없앤 v1 라우트)
+├─ next.config.ts              # output:'standalone', vanilla-extract 플러그인, redirects(/admin/* → /hosting/*, 없앤 v1 라우트), 개발용 rewrites(/api → dev API)
 ├─ Dockerfile
 ├─ package.json                # packageManager · engines 핀, 스크립트
 ├─ pnpm-lock.yaml
@@ -30,7 +30,6 @@ dudoong-frontend-v2/
 │  └─ check-crawler.mjs        # 실제 카카오 UA로 OG가 <head>에 있는지 확인
 ├─ public/                     # term.html · privacy.html (v1에서 이전)
 └─ src/
-   ├─ proxy.ts                 # 보호 경로 게이트만
    ├─ app/
    ├─ features/
    ├─ ui/
@@ -96,7 +95,7 @@ src/app/
 │     ├─ guests/page.tsx               # P13a 주문 탭 / 발급된 티켓 탭 / 환불
 │     └─ qr/page.tsx                   # P13b
 │
-└─ api/
+└─ fe-api/                             # Route Handler. nginx가 /api를 전부 백엔드로 보내므로 /api 아래에 두지 않는다
    └─ revalidate/route.ts              # P5b  공연·호스트 캐시 무효화 (호출자 권한 확인)
 ```
 
@@ -173,7 +172,7 @@ src/api/
 ├─ http.ts                     # api 객체 — get / post / patch / put / delete / cached.get / download
 ├─ client.ts                   # ky 인스턴스(내부) — 응답 래퍼 해제, ApiError, 401 재발급 후 재시도
 ├─ errors.ts                   # ApiError{status, code, reason}, getErrorCode
-├─ revalidate.ts               # revalidate(path) — /api/revalidate 호출
+├─ revalidate.ts               # revalidate(path) — /fe-api/revalidate 호출
 ├─ server/                     # 'server-only' — 라우트 파일에서만 쓴다
 │  ├─ serverQuery.ts           # 요청별 QueryClient + fetchQuery + 404 → notFound()
 │  └─ Prefetch.tsx             # 조회 → dehydrate → HydrationBoundary

@@ -151,7 +151,7 @@ ky 인스턴스를 감싼 얇은 객체 하나다(`src/api/http.ts`). "호출 �
 | `events/123/sections` | `events`, `events/123`, `events/123/sections` |
 | `hosts/5/events` | `hosts`, `hosts/5`, `hosts/5/events` |
 
-무효화는 상위 경로 하나로 한다: `revalidate('events/123')`이면 상세와 섹션이 같이 지워진다. `revalidate()`는 브라우저에서 같은 앱의 `/api/revalidate`를 부르는 함수이고, Route Handler가 권한을 확인한 뒤 `revalidateTag(tag, { expire: 0 })`를 실행한다.
+무효화는 상위 경로 하나로 한다: `revalidate('events/123')`이면 상세와 섹션이 같이 지워진다. `revalidate()`는 브라우저에서 같은 앱의 `/fe-api/revalidate`를 부르는 함수이고, Route Handler가 권한을 확인한 뒤 `revalidateTag(tag, { expire: 0 })`를 실행한다.
 
 | 규칙 | 이유 |
 |---|---|
@@ -162,7 +162,7 @@ ky 인스턴스를 감싼 얇은 객체 하나다(`src/api/http.ts`). "호출 �
 | 무효화가 실패해도 저장은 성공으로 처리한다 | 60초 뒤에는 반영된다 |
 | 선물 랜딩은 `api.get`(캐시 없음)으로 조회한다 | 상태가 바뀐다 |
 
-**여러 인스턴스**: `revalidateTag`와 캐시는 인스턴스 로컬이다. 인스턴스가 둘 이상이면 공유 캐시 핸들러(`cacheHandler`, Redis 등)가 필요하다. 인프라 확인 전 기본 가정은 단일 인스턴스다.
+**인스턴스**: `revalidateTag`와 캐시는 인스턴스 로컬이다. 지금 인프라는 서버 1대·front 컨테이너 1개라 그대로 된다(§25). 늘리게 되면 공유 캐시 핸들러(`cacheHandler`)가 필요하다.
 
 ### 서버에서 쓰기 — `<Prefetch>`
 
@@ -231,9 +231,10 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 
 ### 인증
 
+- API는 프론트와 같은 출처(`/api/v2/…`)다. 브라우저는 상대 경로로 부르고, 서버에서 도는 조회는 `http://localhost:8080/api/v2`로 부른다(§25).
 - 인증 API는 v1 그대로다. 서버는 `Authorization: Bearer`를 먼저 보고 없으면 액세스 토큰 쿠키를 읽는다.
 - **JS로 토큰 쿠키를 읽지 않는다.** 브라우저 요청은 쿠키 자동 전송(`credentials: 'include'`)에 맡긴다. 백엔드가 쿠키를 HttpOnly로 바꾸는 전제 조건이다.
-- **`proxy.ts`는 보호 경로(`/hosting`, `/ticket`, `/history`, `/mypage`, `/check-in`, 체크아웃)에만 건다.** 공개 캐시 페이지 앞에 재발급 호출이 끼지 않게 한다. 하는 일은 쿠키가 없을 때 `/login?redirect=…`로 보내는 것뿐이다.
+- **로그인 게이트는 브라우저에서 한다. `proxy.ts`는 두지 않는다.** 보호 화면의 레이아웃이 세션 쿼리(GM-1)를 보고, 401이면 `/login?redirect=…`로 보낸다. 서버에서 쿠키 유무로 막지 않는 이유는 운영 쿠키가 `SameSite=Strict`라 외부 링크로 들어온 첫 요청에는 쿠키가 실리지 않기 때문이다(§25). 공개 캐시 페이지 앞에 인증 처리가 끼지 않는다는 이점도 있다.
 - 재발급은 클라이언트에서 한다: API가 `AUTH_401_1`을 주면 `POST /api/v1/auth/token/refresh`를 한 번만(동시 요청은 하나로 묶어) 부르고 원래 요청을 재시도한다. `GLOBAL_401_1`이나 재발급 실패는 `/login/expired?redirect=…`.
 - **토큰 쿠키는 백엔드가 세팅한다.** 로그인·재발급 응답에 `Set-Cookie`로 액세스·리프레시 토큰이 함께 온다(만료 시간 = 토큰 수명). 본문에도 같은 값이 있지만 FE는 쓰지 않는다. FE가 쿠키를 쓰는 코드는 없다(백엔드 코드에서 확인, §23).
 - **리프레시 토큰은 사용자당 하나만 저장된다**(§23). 재발급하면 이전 리프레시 토큰은 무효다. 한 브라우저 안의 동시 401은 재발급 1회로 묶고, 여러 탭이 동시에 재발급하는 경우는 실패한 탭이 쿠키의 새 토큰으로 한 번 더 시도한다. 다른 기기에서 로그인하면 이쪽 세션은 액세스 토큰 만료 뒤 끊긴다 — 백엔드에 의도인지 확인 중.
@@ -333,7 +334,7 @@ Vitest(단위) + Storybook(UI 스모크) + agent-browser(인터랙티브 검증)
 
 ## 11. CI/CD
 
-GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). `next build`는 lint를 하지 않으므로 CI에 lint 단계를 둔다. 태그 기반 릴리스는 v1 방식을 따른다.
+GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 이미지를 Docker Hub에 올리고, 배포는 Deploy 저장소의 compose 파일에서 태그를 올려 한다(§25). `next build`는 lint를 하지 않으므로 CI에 lint 단계를 둔다. 태그 기반 릴리스는 v1 방식을 따른다.
 
 - 배포하면 실행 중 쌓인 페이지 캐시가 비워진다. 공유 캐시 핸들러를 쓰면 유지된다.
 - 호스팅 센터 수정도 전체 재배포다. 티켓 오픈 시간대 배포는 피한다.
@@ -342,7 +343,7 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 
 zod로 빌드 타임 검증. 서버 전용(`env/server.ts`)과 공개(`env/client.ts`)를 파일로 나눈다. `NEXT_PUBLIC_*`는 리터럴로 하나씩 참조한다(객체 스프레드는 인라인되지 않는다). `next.config.ts`에서 두 모듈을 import해 누락 시 빌드를 실패시킨다.
 
-필요한 값: API base URL(서버 내부용 / 브라우저용), GA ID, 카카오 JS 키, 무효화 Route Handler가 쓸 값. 토스페이먼츠 키는 없다.
+필요한 값: 서버 내부용 API 주소(운영은 `http://localhost:8080`), 사이트 origin(공유 링크·OG용), GA ID, 카카오 JS 키. 브라우저용 API 주소는 상대 경로 `/api`라 값이 필요 없다. 토스페이먼츠 키는 없다. front 컨테이너에는 `.env`가 주입되지 않으므로 전부 빌드 때 굽는다(§25).
 
 ## 13. 에러와 로깅
 
@@ -700,6 +701,10 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 | #758(일반 멤버 개인정보 가림, 엑셀 M+) | 미구현(이슈 열림). 입금자명은 이슈 본문에 "포함 여부 검토"로 남아 있다 | 이슈 #758 |
 | #776(HttpOnly 등) | 미구현(이슈 열림). 조건은 "프론트 B단계 배포" | 이슈 #776 |
 | DB 스키마 V001~ 실행 | staging·prod 실행 기록이 비어 있다 | `db/migration/V001…sql` |
+| 로컬 개발 서버에서 dev API를 쿠키 인증으로 부를 수 있나 | 된다. 스테이징·dev의 CORS 허용 출처에 `http://localhost:3000`이 있고 쿠키는 `SameSite=None`이다. **포트는 3000**(5173은 v1 호스트 어드민으로 취급) | `WebOriginPolicy.kt`, `CookieHelper.kt`, `KakaoRedirectPolicy.kt` |
+| 카카오 콜백 주소 | `{출처}/kakao/callback`. 요청 Referer의 경로가 `/admin`으로 시작할 때만 `/admin/kakao/callback` — v2에서는 해당 없음 | `KakaoRedirectPolicy.kt` |
+| 은행 목록·토스 송금 링크 | 백엔드에 없다 | 전체 검색 |
+| 에러 코드 전체 | 13개 도메인 200개 → [`error-codes.md`](./error-codes.md) | `*ErrorCode` enum |
 
 코드를 읽다 새로 알게 된 것:
 
@@ -798,6 +803,65 @@ PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint
 
 **넣지 않기로 한 것**: Turborepo, 원격 캐시, 번들 분석 상시 실행, 커버리지 기준. 필요해지면 추가한다.
 
+## 25. 배포 인프라 (2026-10-12)
+
+`Gosrock/DuDoong-Deploy`(`eee6e93`, 2026-10-10)를 읽었다. 프론트 쪽 구성은 바꿀 수 있다.
+
+### 지금 구조
+
+운영 서버 1대(스테이징도 1대, 평소 꺼 둠)에서 docker-compose로 전부 띄운다. 컨테이너는 호스트 네트워크를 쓴다.
+
+| 컨테이너 | 포트 | 이미지 |
+|---|---|---|
+| nginx | 80 / 443 (TLS 종료, HTTP/2) | `water0641/dudoong-nginx` |
+| backend | 8080 | `water0641/dudoong-api` |
+| front (v1 관객) | 3000 | `david0218/dudoong-ticket` |
+| admin (v1 호스트, nginx 정적 서빙) | 3100 | `david0218/dudoong-admin` |
+| internal-admin (운영 어드민) | 3200 | `water0641/dudoong-internal-admin` |
+| redis | 6379 (127.0.0.1만) | `redis:alpine` |
+
+nginx 경로 분기(`nginx/site.conf`):
+
+| 경로 | 보내는 곳 |
+|---|---|
+| `/api` | backend 8080 |
+| `/internal-api` | backend 8080 |
+| `/internal-admin/` | 3200 |
+| `/admin/` | 3100 |
+| `/` | 3000 |
+
+배포: Deploy 저장소의 compose 파일에서 이미지 태그를 올려 `main`에 머지 → 스테이징(켜져 있을 때) → 운영 순으로 `docker-compose pull && up -d`. 헬스체크는 백엔드만 본다. front·nginx·backend의 stdout은 CloudWatch(`dudoong-prod`)로 간다.
+
+### 설계에 주는 영향
+
+| 사실 | 영향 |
+|---|---|
+| **API가 프론트와 같은 출처다**(`https://dudoong.com/api/…`) | 브라우저는 상대 경로 `/api/v2/…`로 부른다. CORS가 필요 없고 쿠키는 퍼스트파티다. 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 운영과 같은 모양을 만든다 |
+| **nginx가 `/api`로 시작하는 요청을 전부 백엔드로 보낸다** | Next Route Handler를 `/api/…` 아래에 두면 브라우저에서 닿지 않는다. 캐시 무효화 엔드포인트는 **`/fe-api/revalidate`** 에 둔다 |
+| 서버가 1대, front 컨테이너도 1개 | 캐시·태그 무효화가 한 곳에만 있다. 공유 캐시 핸들러는 필요 없다. 인스턴스를 늘리게 되면 그때 호스트의 Redis를 쓸 수 있다 |
+| 백엔드가 같은 호스트의 8080이다 | 서버에서 도는 조회는 nginx를 거치지 않고 `http://localhost:8080/api/v2`로 부른다 |
+| front 컨테이너에 `.env`가 주입되지 않는다 | 환경변수는 이미지 빌드 때 굽는다(v1과 같음). 서버 전용 값은 사실상 백엔드 주소 하나다 |
+| 호스트 네트워크 | standalone 서버를 `HOSTNAME=127.0.0.1`, `PORT=3000`으로 띄워 3000 포트가 밖에 열리지 않게 한다 |
+| nginx가 `X-Frame-Options: DENY`, HSTS 등을 붙이고 `X-Forwarded-Host`를 지운다 | 앱에서 보안 헤더를 중복으로 넣지 않는다. 절대 URL이 필요하면 `Host` 헤더나 환경변수를 쓴다 |
+| 배포하면 컨테이너가 교체된다 | 캐시가 비워지고 수 초간 끊긴다(v1도 같음). 티켓 오픈 시간대 배포는 피한다 |
+| front의 stdout이 CloudWatch로 간다 | §13의 구조화 로그가 그대로 수집된다 |
+
+### 컷오버 때 Deploy 저장소에서 바꿀 것
+
+1. `docker-compose.*.yml`: `admin` 서비스 삭제, `front` 이미지를 v2로 교체, nginx의 `depends_on`에서 `admin` 제거
+2. `nginx/site.conf`: `location /admin/` 블록 삭제 → `/admin/*`이 front로 가고 Next `redirects()`가 `/hosting/*`으로 보낸다(§22의 표)
+3. nginx 이미지 버전 올리기
+
+호스팅 센터만 먼저 여는 단계적 전환을 하려면 nginx에 `location /hosting`을 추가해 v2 컨테이너(다른 포트)로 보내는 방법이 있다. 한 번에 바꾸면 위 세 가지로 끝난다.
+
+### 로그인 게이트와 `SameSite=Strict`
+
+운영 쿠키는 `SameSite=Strict`다. 브라우저는 **다른 사이트에서 넘어오는 첫 페이지 요청**에 Strict 쿠키를 싣지 않는다. 그 페이지가 뜬 뒤에 나가는 API 호출은 같은 사이트 요청이라 쿠키가 실린다.
+
+그래서 서버(`proxy.ts`)에서 "쿠키가 없으면 로그인으로 보낸다"를 하면, 로그인한 사용자가 외부 링크로 `/ticket`이나 `/hosting`에 들어올 때 로그인 화면으로 잘못 튕긴다. **로그인 게이트는 서버가 아니라 브라우저에서 한다**(§4 인증). `proxy.ts`는 두지 않는다.
+
+이 동작은 브라우저의 쿠키 규칙에서 추론한 것이고 실제 환경에서 재현하지는 않았다. 스테이징에서 확인한다(P4b). 스테이징 쿠키는 `Lax`라 운영과 다르게 동작할 수 있다는 점도 같이 본다.
+
 ## 핵심 결정 요약
 
 | 항목 | 결정 | 한 줄 근거 |
@@ -806,13 +870,13 @@ PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint
 | 2. 라우터 | App Router, Cache Components 끔 | emotion을 버리면 Pages Router를 고를 이유가 없다. 새 캐시 모델의 이득은 쓰지 않고 제약만 진다 |
 | 3. 렌더 | 공개·공유 화면은 서버(캐시), 조작 화면은 클라이언트 | 서버 렌더가 필요한 화면이 3~4개뿐 |
 | 4. 데이터 | `queryOptions` 한 벌을 서버(`<Prefetch>`)와 브라우저가 공유. `api.cached.get`은 60초 + 경로 기반 자동 태그. 서버 컴포넌트는 라우트 파일만 | 공개 GET + 만료 토큰 = 401, 사용자별 값이 캐시에 섞이면 안 된다 |
-| 4-b. 인증 | v1 OAuth, JS로 쿠키 안 읽음, 재발급은 클라이언트 단일 지점, `proxy.ts`는 보호 경로 게이트만 | 공개 캐시 페이지 앞에 재발급이 끼지 않게 |
+| 4-b. 인증 | v1 OAuth, JS로 쿠키 안 읽음, 재발급과 로그인 게이트 모두 브라우저에서. `proxy.ts` 없음 | 운영 쿠키가 `SameSite=Strict`라 서버 게이트가 외부 링크 진입을 잘못 막는다 |
 | 5. 상태 | 전역 상태 라이브러리 없음 | v1 전역 상태는 전부 서버 상태·오버레이·지역 상태였다 |
 | 6. 스타일 | vanilla-extract(+ recipes, sprinkles) | 제로 런타임, 서버 컴포넌트 동작, 토큰 타입 검사, emotion과 가까운 작성 방식 |
 | 7. 폼 | react-hook-form + zod | |
 | 8. 계층 | `app → features → ui → api → utils`, eslint 강제 | 패키지 경계를 폴더 경계로 대체 |
 | 10. 테스트 | Vitest + Storybook + agent-browser + 크롤러 계약 스크립트 | CI E2E 없음 |
-| 11. 배포 | Dockerfile 하나, standalone | |
+| 11. 배포 | Dockerfile 하나, standalone. 서버 1대의 docker-compose에 v1 front·admin 대신 들어간다 | API는 같은 출처(`/api`), Next Route Handler는 `/fe-api` |
 | 13. 에러 | 외부 수집 없음, 구조화 로그 | |
 | 14. 반응형 | sprinkles 조건부 값, 같은 DOM 원칙 | |
 | 16. 라이브러리 교체 | `antd`→TanStack Table, `react-qr-reader`→`@yudiel/react-qr-scanner`, `react-spring-bottom-sheet`→`vaul`. `react-beautiful-dnd`는 대체 없이 제거 | 옵션은 id 순 고정이라 드래그 UI가 없다 |

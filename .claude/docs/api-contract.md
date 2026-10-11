@@ -41,7 +41,7 @@
 |---|---|---|
 | 401 `AUTH_401_1` | 만료 | 재발급 후 재시도 |
 | 401 `GLOBAL_401_1` | 잘못된 토큰 | 재로그인 |
-| 403 | 호스트 권한 실패만(멤버 아님·역할 부족). `code`는 `HOST_400_1·2·4·6·7·11` | **HTTP 상태로 분기**, `code`로 사유 구분 |
+| 403 | 호스트 권한 실패만. 대상 코드는 6개: 멤버 아님(`FORBIDDEN_HOST`), 매니저 아님, 마스터 아님, 초대 수락 전, 파트너 아님, 매니저가 매니저를 다루려 함. `code` 문자열은 `HOST_400_*` 그대로다 | **HTTP 상태로 분기**, `code`로 사유 구분. 전체 코드는 [`error-codes.md`](./error-codes.md) |
 | 404 | 없는 리소스 + 남의 리소스 + 다른 공연 소속 + 비공개(준비중·삭제) 공연 | 존재를 숨기는 응답이므로 "찾을 수 없어요" |
 
 예외: 체크인 PQ-2는 항상 200 + `result`. PQ-5의 같은 공연 남의 티켓(400 `IssuedTicket_400_1`)과 10/O-5 본문의 다른 공연 `optionId`(400)는 #758에서 정리 예정.
@@ -78,7 +78,7 @@
 2. `presignedUrl`로 S3에 PUT.
 3. 저장 API에 받은 `key`를 그대로 보낸다(PH-4, PE-4, PM-2). `""` = 기본 이미지. 섹션 본문 이미지는 받은 `url`을 HTML에 넣는다.
 
-발급은 **사용자당 분당 30회** 제한이다. 화면에서 반복 호출하지 않는다.
+발급은 **사용자당 분당 30회** 제한이다. 화면에서 반복 호출하지 않는다. 확장자는 `JPEG` · `JPG` · `PNG`만 받고, `JPG`로 보내도 key는 `.jpeg`로 발급된다.
 
 ### API ID 표기
 
@@ -118,8 +118,8 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | 공연 저장 상태 | `PREPARING` → `OPEN` → `CALCULATING` · `CLOSED`, `DELETED`. OPEN → PREPARING은 호스트가 못 한다 |
 | 공연 `displayStatus` | `PREPARING` · `UPCOMING`(`dDay` 값 있음, 당일 0) · `ONGOING` · `PAST` |
 | 티켓 `payType` | `DUDOONG`(계좌송금, 승인 항상 ON, 계좌 필수) · `FREE`(승인 ON/OFF) · `PRICE`(기존 PG, 조회만) |
-| 티켓 `saleState` | `BEFORE_SALE` · `SOLD` · `SUSPENDED` 등. **잠금 판정은 `isSold \|\| hasPendingOrders`** |
-| 옵션 `type` | `SUBJECTIVE`(주관식) · `YES_NO`(네·아니오 + 네 추가금 `yesAdditionalPrice`) |
+| 티켓 `saleState` | `BEFORE_SALE` · `SOLD` · `SUSPENDED`(이 3개가 전부). **잠금 판정은 `isSold \|\| hasPendingOrders`** |
+| 옵션 `type` | `SUBJECTIVE`(주관식) · `YES_NO`(네·아니오 + 네 추가금 `yesAdditionalPrice`). 응답에는 v1 옵션의 `MULTIPLE_CHOICE`도 올 수 있다 — v2에서 만들 수는 없고 표시만 한다 |
 | `paymentChannel` | `BANK_TRANSFER` · `TOSS_TRANSFER` · `FREE` |
 | 주문 상태(호스트) | `PENDING_APPROVE` · `APPROVED` · `REFUSED` · `CANCELED` · `FAILED` |
 | 주문 상태(사용자) | `PENDING_APPROVE` · `APPROVED` · `REFUSED` · `CANCELED` · `REFUNDED` |
@@ -129,7 +129,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | 선물 랜딩 `viewState` | `AVAILABLE` · `ALREADY_ACCEPTED` · `REJECTED` · `RETURNED` · `CANCELED` · `OWN_LINK` · `EXPIRED` |
 | 내 티켓 `state` | `PENDING_APPROVE` · `REFUSED` · `APPROVED` · `GIFT_PENDING` · `GIFT_EXPIRED` · `GIFT_SENT` · `RECEIVED` · `ENTERED` · `CANCELED` · `REFUND_REQUESTED` · `REFUNDED` |
 | 티켓 `giftState` | 내 티켓: `NONE` · `PENDING` · `SENT` · `RECEIVED` / 호스트 발급 티켓: `NONE` · `PENDING` · `ACCEPTED` |
-| 입장 `entrance` | `BEFORE` · `DONE`(되돌리는 API 없음) |
+| 입장 `entrance` | `BEFORE` · `DONE`(되돌리는 API 없음) · `CANCELED`(취소된 티켓) |
 | 체크인 `result` | `ENTERED` · `ALREADY_ENTERED` · `OTHER_EVENT` · `CANCELED` · `GIFT_PENDING` · `SELECT_TICKET`(셀프 전용) |
 | 연락처 `type` | `PHONE` · `EMAIL` · `INSTAGRAM` · `OPEN_CHAT` · `YOUTUBE` · `ETC` |
 | 태그 분류 | `EVENT_TYPE` · `GENRE` · `AREA` · `TEAM` (22종, 시드로만 관리) |
@@ -365,3 +365,82 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 - 테스트: Kotlin 통합 1,773개 통과, 실 MySQL E2E 337개 통과. v2 operation 82개 모두 통합 테스트가 호출한다.
 - Figma 전수검사 3차: 서버 미구현 0. 디자인 요청으로 분류된 요소가 다수(디자이너 확인 25건의 근거).
 - 테스트 공백: GG-7a E2E 없음, `Event_400_20` · `Order_400_26`은 테스트에서 확인된 적 없음.
+
+## 9. v1 인증 API
+
+v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24aa595`)의 `AuthController`에서 옮겼다. 경로는 `/api/v1/auth` 아래다. 필수 여부와 정확한 타입은 Swagger로 확인한다.
+
+### 카카오 로그인 흐름
+
+| # | 호출 | 결과 |
+|---|---|---|
+| 1 | `GET /oauth/kakao/link` | `{link}` + `state` 쿠키(HttpOnly). 카카오 인증 화면 주소 |
+| 2 | 사용자가 카카오에서 동의 | 카카오가 `{기준 주소}/kakao/callback?code=…&state=…`로 돌려보낸다 |
+| 3 | `GET /oauth/kakao?code=…&state=…` | `{accessToken, refreshToken, idToken}` — **카카오의** 토큰이다 |
+| 4 | `POST /oauth/kakao/register/valid` `{idToken}` | `{canRegister}` — 신규 사용자인지 |
+| 5a | 기존 사용자: `POST /oauth/kakao/login` `{idToken}` | `TokenAndUserResponse` + `Set-Cookie`(두둥 토큰 2개) |
+| 5b | 신규 사용자: `POST /oauth/kakao/info` `{accessToken}`으로 카카오 프로필을 받아 가입 폼을 채우고, `POST /oauth/kakao/register` `{idToken, email, phoneNumber, profileImage, name, marketingAgree}` | `TokenAndUserResponse` + `Set-Cookie` |
+
+- `TokenAndUserResponse` = `{accessToken, accessTokenAge, refreshToken, refreshTokenAge, userProfile{id, profileImage, name}}`. 본문의 토큰은 FE가 쓰지 않는다 — 쿠키로 온다.
+- 토큰을 쿼리스트링으로 보내는 옛 방식(`?id_token=`)은 전환 기간에만 받는다. v2 FE는 처음부터 본문으로 보낸다.
+- **`redirect_uri`는 백엔드가 요청의 Referer로 고른다.** 허용 목록 중 Referer의 출처와 같은 것을 쓰고, 경로가 `/admin`으로 시작하면 `{출처}/admin/kakao/callback`, 아니면 `{출처}/kakao/callback`이다. v2는 로그인 화면이 `/login` 하나라 항상 `/kakao/callback`으로 온다. 호스팅 센터(`/hosting`)에서 로그인으로 넘어가도 경로가 `/admin`이 아니므로 같다.
+- 1번과 3번은 `state` 쿠키를 주고받으므로 `credentials: 'include'`로 부른다.
+
+### 그 밖
+
+| 호출 | 내용 |
+|---|---|
+| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie` |
+| `POST /logout` | 쿠키 삭제. 익명 상태에서도 200 |
+| `DELETE /me` | 회원 탈퇴 + 쿠키 삭제. 마스터인 호스트가 있으면 400 `USER_400_6` |
+
+### 환경별 설정
+
+| | 운영 | 스테이징 | 로컬·dev |
+|---|---|---|---|
+| 쿠키 | `.dudoong.com`, `SameSite=Strict`, `Secure` | host-only, `Lax`, `Secure` | domain 없음, `SameSite=None`, `Secure` |
+| CORS 허용 출처 | `https://dudoong.com`, `https://internal-admin.dudoong.com` | `https://staging.dudoong.com`, `http://localhost:3000`, `http://localhost:5173` | 운영 + 스테이징 목록 전부 |
+| 카카오 콜백 기준 주소 | 운영 목록 | 스테이징 + 로컬 | 로컬 + 스테이징 |
+
+- 로컬 개발은 **포트 3000**을 쓴다. 5173은 백엔드가 v1 호스트 어드민으로 보고 콜백을 `/admin/kakao/callback`으로 잡는다.
+- 운영·스테이징에서 API는 프론트와 **같은 출처**다(nginx가 `/api`를 백엔드로 보낸다). 브라우저는 상대 경로 `/api/v2/…`로 부른다.
+- 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 같은 모양으로 쓴다. dev API를 직접 부르면 쿠키가 서드파티 쿠키(`SameSite=None`)가 되어 브라우저 설정에 따라 막힌다.
+- 액세스 토큰 수명 기본 3600초, 리프레시 토큰도 기본 3600초(env로 바뀜). 리프레시 토큰은 사용자당 하나만 유효하다.
+
+## 10. 알림 문구 (주문·호스트)
+
+서버가 `title`·`body`를 완성해서 준다. FE는 그대로 표시하고, 아이콘·카테고리·이동 화면만 `type`으로 정한다.
+
+| `type` | `title` | `extra` |
+|---|---|---|
+| `HOST_MEMBER_ADDED` | 호스트 멤버로 추가되었어요 | `hostName`, `role` |
+| `ORDER_PENDING_APPROVE` | 새 주문이 승인을 기다리고 있어요 | `eventName`, `orderNo` |
+| `ORDER_APPROVED` | 티켓 주문이 승인되었습니다! | 같음 |
+| `ORDER_REFUSED` | 티켓 주문이 거절되었습니다 | 같음. 본문 끝에 사유, 필요하면 "주문상세에서 환불 계좌를 입력해 주세요." |
+| `ORDER_REFUND_REQUESTED` | 주문자가 환불을 요청했어요 | 같음 |
+| `ORDER_CANCELED_BY_USER` | 주문자가 주문을 취소했어요 | 같음 |
+| `ORDER_CANCELED_BY_HOST` | 티켓 주문이 취소되었습니다 | 같음 |
+| `ORDER_REFUND_COMPLETED` | 환불이 완료되었습니다 | 같음 |
+| `REFUND_ACCOUNT_CHANGED` | 환불 계좌가 변경되었어요 | 같음 |
+
+선물 알림 6종의 본문은 §6 선물 절과 백엔드 통합 기획서 F7에 있다.
+
+## 11. 필드 명세가 있는 곳
+
+필드 단위 명세는 이 문서에 옮기지 않았다. 아래에서 찾는다.
+
+1. Swagger: 서버의 `/swagger-ui/index.html`(로그인 필요)
+2. 백엔드 저장소 `Gosrock/DuDoong-Backend`의 `DuDoong-Api/src/main/kotlin/band/gosrock/api/v2/{영역}/dto/` — 요청·응답 DTO. 필드마다 `@Schema(description)`이 붙어 있다
+3. 같은 저장소의 `…/api/v2/README.md` — v2 규약 원문
+
+| 영역 폴더 | 담긴 것 |
+|---|---|
+| `host` | 호스트 홈·설정·멤버·팔로우·이미지 |
+| `event` | 공연 생성·기본 정보·섹션·체크리스트·탐색(홈·리스트·상세) |
+| `tag` | 태그 |
+| `ticket` | 티켓 관리·옵션 |
+| `operation` | 대시보드·주문·환불·발급 티켓·체크인 |
+| `order` | 체크아웃·내 주문·취소·환불 계좌 |
+| `gift` | 내 티켓·선물 |
+| `mypage` | 프로필·관심 호스트·아카이빙 |
+| `notification` | 알림 |

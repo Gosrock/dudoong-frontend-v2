@@ -62,7 +62,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 | S3 | 공연 상세·섹션 | P5b ↔ P11 | `features/shared/section-viewer`를 미리보기가 재사용 |
 | S4 | QR · 체크인 | P8·P8c ↔ P13b | QR 값 = 티켓 uuid. `check-in` 스키마의 `result` enum과 결과 화면 공유 |
 | S5 | 주문 · 환불 | P9 ↔ P13a | `order` 스키마 공유. 사용자 상태와 호스트 상태 분류가 다르다 |
-| S6 | 공연·호스트 캐시 무효화 | P11·P10b → P5b | 같은 앱의 `/api/revalidate`. 저장·등록·삭제 성공 뒤 호출 |
+| S6 | 공연·호스트 캐시 무효화 | P11·P10b → P5b | 같은 앱의 `/fe-api/revalidate`. 저장·등록·삭제 성공 뒤 호출 |
 | S7 | 알림함 | P9b ↔ P10a | `features/shared/notification` |
 | S8 | 호스트 홈 | P5c ↔ P10b | `features/shared/host-home`. 한 화면이 `myRole`로 분기 |
 
@@ -78,7 +78,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - 단일 Next 16 앱(App Router, `output: 'standalone'`, `cacheComponents: false`), `src/{app,features,ui,server,api,utils,env}`
 - TS `strict` + `noUncheckedIndexedAccess`, alias `@/*`
 - vanilla-extract 연결(`@vanilla-extract/next-plugin`, `unstable_turbopack: { mode: 'auto' }`)
-- Dockerfile(멀티 스테이지), PR 게이트(`next typegen` → typecheck · lint · vitest)
+- Dockerfile(멀티 스테이지, `HOSTNAME=127.0.0.1` `PORT=3000`), 개발용 `rewrites`(`/api` → dev API), PR 게이트(`next typegen` → typecheck · lint · vitest)
 - env zod 검증(`env/server.ts` · `env/client.ts`), 구조화 stdout 로그
 - ESLint(flat config) + Prettier + husky + lint-staged. 프로젝트 고유 규칙(계층, `ky` 직접 import 금지 등)은 [`tech-decisions.md`](./tech-decisions.md) §24
 - Vitest + Testing Library + MSW, Storybook
@@ -106,7 +106,6 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 | 날짜·파일 선택·토스트·캐러셀 | v1이 쓰던 것(`react-datepicker`, `react-drag-drop-files`, `react-toastify`, `swiper`)은 React 19에서 문제없다. 라이브러리로 갈지 자체 구현할지만 정한다 | P2, P5a |
 
 **산출물 D — 외부 확인(첫날 착수)**
-1. 인스턴스 수와 공유 캐시 저장소(Redis 등) 사용 가능 여부
 2. 리다이렉트 표는 tech-decisions §22에 있다. 실제로 유통된 URL이 무엇인지(접근 로그)만 확인한다
 3. 백엔드 V001~V011 실행 일정, v1 FE와 병행 운영 가능 여부
 4. 리프레시 토큰이 사용자당 하나인 것이 의도인지, 운영의 리프레시 토큰 수명
@@ -176,7 +175,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P4a — 세션 · 401 처리 (게이트)
 
-**포함**: 세션 쿼리(GM-1). 401 정책 — `AUTH_401_1`은 재발급 후 재시도(동시 요청은 재발급 1회로 묶음), `GLOBAL_401_1`·재발급 실패는 `/login/expired`. **공개 화면에서 401이 오면 토큰 없이 재요청.** `proxy.ts`(보호 경로에 쿠키가 없으면 `/login?redirect=…`). `redirect` 파라미터 검증(같은 origin 상대 경로만). mock 세션 3상태(로그인 · 비로그인 · 만료).
+**포함**: 세션 쿼리(GM-1). 401 정책 — `AUTH_401_1`은 재발급 후 재시도(동시 요청은 재발급 1회로 묶음), `GLOBAL_401_1`·재발급 실패는 `/login/expired`. **공개 화면에서 401이 오면 토큰 없이 재요청.** 보호 화면의 로그인 게이트(레이아웃이 세션 쿼리를 보고 401이면 `/login?redirect=…` — 서버에서 쿠키로 막지 않는다, tech-decisions §25). `redirect` 파라미터 검증(같은 origin 상대 경로만). mock 세션 3상태(로그인 · 비로그인 · 만료).
 
 **선행**: P1, P3
 
@@ -184,11 +183,11 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] mock 3상태에서 보호 화면·공개 화면 진입이 설계대로 분기
 - [ ] 동시 401 N건에서 재발급 1회
 - [ ] 공개 GET + 만료 토큰 → 익명 재요청
-- [ ] `proxy.ts`가 공개 캐시 페이지 요청에 실행되지 않음
+- [ ] 보호 화면에 비로그인으로 들어오면 로그인으로 이동하고, 로그인 뒤 원래 화면으로 돌아옴
 
 ### P4b — 인증 실구현: OAuth · 재발급 · 로그인 화면
 
-**포함**: v1 카카오 OAuth 연동(link → callback → login/register), 재발급(`POST /api/v1/auth/token/refresh`), 로그아웃, 로그인·콜백 화면(1벌), 회원가입 오버레이. 토큰은 JS로 읽지 않고 쿠키 자동 전송에 맡긴다. refresh는 본문·쿠키로, 카카오 토큰은 본문으로, `state` 전달.
+**포함**: v1 카카오 OAuth 연동(흐름과 요청·응답은 [`api-contract.md`](./api-contract.md) §9), 재발급(`POST /api/v1/auth/token/refresh`), 로그아웃, 로그인·콜백 화면(1벌), 회원가입 오버레이. 토큰은 JS로 읽지 않고 쿠키 자동 전송에 맡긴다. refresh는 본문·쿠키로, 카카오 토큰은 본문으로, `state` 전달.
 
 **선행**: P4a
 
@@ -213,7 +212,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P5b — 공연 상세 + 섹션 뷰어 + 공유 + 캐시 무효화
 
-**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(`api.cached.get`, 60초 + 태그 `events/{id}`), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. **`/api/revalidate` Route Handler**(호출자 권한 확인 후 `revalidateTag(tag, { expire: 0 })`). 크롤러 계약 스크립트.
+**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(`api.cached.get`, 60초 + 태그 `events/{id}`), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. **`/fe-api/revalidate` Route Handler**(호출자 권한 확인 후 `revalidateTag(tag, { expire: 0 })`). 크롤러 계약 스크립트.
 
 **선행**: P5a · **API**: GP-3 GE-5
 
@@ -222,7 +221,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 2. 5xx를 캐시하지 않는다(throw)
 3. 등록 전에 열린 URL은 404가 캐시된다 — 등록(PE-8)도 무효화 대상
 4. `displayStatus`·`dDay`는 시간으로 바뀐다 — TTL에 맡기거나 클라이언트에서 계산
-5. 인스턴스가 여럿이면 무효화가 한 대에만 적용된다(P0-D 결과에 따라 캐시 핸들러)
+5. Route Handler를 `/api` 아래에 두면 nginx가 백엔드로 보내 닿지 않는다 — `/fe-api`에 둔다
 
 **완료 기준**
 - [ ] **실제 카카오 UA**(`facebookexternalhit/1.1; kakaotalk-scrap/1.0; …`)로 캐시 없는 첫 요청 → OG가 `<head>`에 있음(스크립트)
@@ -230,7 +229,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] 없는·준비중 공연이 브라우저에 404
 - [ ] API 5xx 시 빈 페이지가 캐시되지 않음
 - [ ] v1 실데이터 본문 샘플(MARKDOWN·HTML)이 뷰어에서 정상 렌더 + XSS 페이로드 차단
-- [ ] `/api/revalidate` 호출 → 다음 요청에 새 내용, 권한 없는 호출은 거절
+- [ ] `/fe-api/revalidate` 호출 → 다음 요청에 새 내용, 권한 없는 호출은 거절
 - [ ] 응답 HTML에 재고 값 없음
 
 ### P5c — 호스트 홈(공개) · 관심 호스트
@@ -416,7 +415,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P15 — 컷오버 & 롤백
 
-**포함**: URL 연속성(기존 공유 링크, 없어진 라우트와 `/admin/*` 301), 도메인·엣지 전환(v1의 Node 컨테이너 + nginx 컨테이너 → 컨테이너 하나), 컷오버 순서(카나리 → 전량. 앱이 하나라 호스팅 센터만 먼저 여는 방식은 경로 단위 라우팅으로만 가능), 프리즈 윈도우, 롤백 경로, 리허설. 데이터는 v1·v2가 같은 테이블을 쓰므로 FE 이관 대상이 아니다 — 백엔드 V001~V011 실행과 순서만 맞춘다.
+**포함**: URL 연속성(기존 공유 링크, 없어진 라우트와 `/admin/*` 301). Deploy 저장소 변경(tech-decisions §25): compose에서 `admin` 서비스 삭제·`front` 이미지 교체, nginx `location /admin/` 삭제. 컷오버 순서(스테이징 → 운영. 호스팅 센터만 먼저 열려면 nginx에 `/hosting` 분기를 임시로 추가), 프리즈 윈도우(진행 중·임박 공연 없는 시간대), 롤백(compose의 이미지 태그와 nginx 설정을 되돌림), 리허설. 데이터는 v1·v2가 같은 테이블을 쓰므로 FE 이관 대상이 아니다 — 백엔드 V001~V011 실행과 순서만 맞춘다.
 
 **선행**: P14
 
