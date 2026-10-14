@@ -131,7 +131,7 @@ Figma 128:2583~2709는 거절된 주문에도, 498:703은 선물중 티켓이 �
 [햄버거]  454:556                                P5a(셸)
    ├─ 소속 호스트 아바타 줄  GM-1 hosts(최대 10) · hostCount   (없으면 "아직 두둥에서 호스트가 없어요.")
    ├─ 빠른 공연 만들기 → /hosting/new/events · 빠른 호스트 만들기 → /hosting/new/hosts
-   ├─ AD 배너 · 서비스 업데이트 노트  (목적지 미정 — README 기획 P4)
+   ├─ AD 배너 · 서비스 업데이트 노트  (목적지 미정 — [`design-requests.md`](./design-requests.md) Q4)
    ├─ 프로필  GM-1 / PM-2 / PM-3                 P9
    ├─ 주문내역  G11/O-2 → 주문상세  G11/O-3      P9    128:2772
    ├─ 관심 호스트  GM-4 (+ 해제 PH-13 DELETE)    P9    249:554
@@ -227,7 +227,7 @@ Figma 128:2583~2709는 거절된 주문에도, 498:703은 선물중 티켓이 �
    콜백: 성공 → dd:session 새 값 → location.assign(redirect)  (하드 이동)
          USER_403_1 → "이용이 제한된 계정이에요"  (정지 계정. 탈퇴자는 재가입 흐름)
          AUTH_400_1 → 로그인 처음부터   (state 누락·쿠키 만료는 #776 전까지 통과)
-         401 → "잠시 후 다시 시도해 주세요"   (낡은 액세스 쿠키 — README B6)
+         401 → "잠시 후 다시 시도해 주세요"   (낡은 액세스 쿠키 — [`backend-questions.md`](./backend-questions.md) B6)
          신규 판정 → [회원가입 오버레이]
 
 API 호출 → 401
