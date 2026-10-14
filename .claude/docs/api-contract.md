@@ -19,9 +19,10 @@
 - 재발급 `POST /api/v1/auth/token/refresh`(본문 `{refreshToken}` 또는 쿠키), 로그아웃 `POST /api/v1/auth/logout`, 탈퇴 `DELETE /api/v1/auth/me`.
 - 토큰은 `Authorization: Bearer` 헤더를 먼저 보고, 없으면 액세스 토큰 쿠키를 읽는다.
 - 사용자 id는 토큰에서 채운다. 요청에 `userId`를 보내지 않는다.
-- 공개(비로그인) GET은 10개뿐이다: GP-1 GP-2 GP-3 GP-5 GE-5 GE-11 GH-3 GH-14 GG-3 SYS-1. 나머지 72개는 비로그인이면 401 `AUTH_403_2`(아래 표).
-- **공개 GET이라도 만료·잘못된 토큰이 붙으면 401**이다. 공개 화면에서는 토큰 없이 다시 부른다.
-- 정지·탈퇴 계정의 토큰은 익명으로 처리된다(보호 경로 401, 공개 경로는 그대로).
+- 공개(비로그인) GET은 10개다: GP-1 GP-2 GP-3 GP-5 GE-5 GE-11 GH-3 GH-14 GG-3 SYS-1. 화면에서 쓰는 것은 SYS-1을 뺀 9개다. 나머지 72개는 비로그인이면 401 `AUTH_403_2`(아래 표).
+- **공개 GET이라도 만료·잘못된 토큰이 붙으면 401**이다. 그래서 FE는 공개 GET을 처음부터 쿠키 없이(`credentials: 'omit'`) 부른다.
+- **JWT 필터는 경로와 상관없이 붙은 토큰을 먼저 검사한다.** 재발급·로그인·로그아웃(`permitAll`)도 만료·잘못된 액세스 쿠키가 있으면 컨트롤러에 가기 전에 401 `AUTH_401_1`·`GLOBAL_401_1`이다(`JwtTokenFilter` → `JwtTokenProvider.getJws` → `JwtExceptionFilter`). §9 참고.
+- 정지·탈퇴 계정의 토큰은 익명으로 처리된다(보호 경로 401 `AUTH_403_2`, 공개 경로는 그대로).
 - 로그인·재발급 응답이 `Set-Cookie`로 `accessToken`·`refreshToken`을 내려 준다(만료 = 토큰 수명, 액세스 기본 3600초). 리프레시 토큰은 사용자당 하나만 유효하다.
 - 쿠키: 운영은 `.dudoong.com`·`SameSite=Strict`, 스테이징은 host-only·`Lax`, 로컬·dev는 `SameSite=None`. 현재 `auth.cookie.http-only=false`이고 프론트 전환(Front #338 B단계) 뒤 HttpOnly로 바뀐다.
 
@@ -44,8 +45,8 @@
 | 401 `AUTH_403_2` | **토큰이 없다**(쿠키가 만료돼 사라진 경우 포함), 또는 정지·탈퇴 계정(유효한 토큰이 있어도 익명으로 처리된다). 본문 `status`는 403인데 HTTP는 401이다 | 재발급 후 재시도, 실패하면 세션 없음 |
 | 403 | 호스트 권한 실패만. 대상 코드는 6개: 멤버 아님(`FORBIDDEN_HOST`), 매니저 아님, 마스터 아님, 초대 수락 전, 파트너 아님, 매니저가 매니저를 다루려 함. `code` 문자열은 `HOST_400_*` 그대로다 | **HTTP 상태로 분기**, `code`로 사유 구분. 전체 코드는 [`error-codes.md`](./error-codes.md) |
 | 403 `AUTH_403_2` | 로그인했지만 시스템 역할이 부족하다(`/internal-api` 등). v2 화면에서는 생기지 않는다 | — |
-| 403 `AUTH_403_3` | 허용되지 않은 출처(`CookieOriginFilter`, #763). 쿠키 인증 + POST·PUT·PATCH·DELETE + Origin과 Referer가 허용 목록 밖일 때. 재발급·로그아웃은 예외. 지금은 `auth.origin-check.enforce=false`(기록만)라 나지 않는다 | 같은 출처 fetch는 Origin을 보내므로 정상 흐름에서는 생기지 않는다. 오면 일반 403 |
-| 403 `USER_403_1` | 정지·탈퇴 계정이 로그인·재발급하려 함(`User.login()`) | 로그인이면 "이용이 제한된 계정이에요", 재발급이면 세션 상실 |
+| 403 `AUTH_403_3` | 허용되지 않은 출처(`CookieOriginFilter`, #763). 쿠키 인증(`Authorization: Bearer` 헤더가 없고 accessToken 쿠키가 있음 — 쿠키 유효성은 보지 않는다) + POST·PUT·PATCH·DELETE + **Origin(없으면 Referer의 출처)이 허용 목록 밖**일 때. Bearer 헤더가 있으면 검사하지 않는다. 경로 끝이 `/v1/auth/token/refresh`·`/v1/auth/logout`이면 예외. 허용 목록은 CORS와 같다(§9 환경별 설정 — 로컬·dev 목록의 로컬 주소는 `localhost:3000`·`5173`뿐이라 로컬 FE는 3000번이어야 한다). 지금은 `auth.origin-check.enforce=false`(기록만)라 나지 않는다 | 같은 출처 fetch는 Origin을 보내므로 정상 흐름에서는 생기지 않는다. 오면 일반 403 |
+| 403 `USER_403_1` | **정지 계정**이 로그인·재발급하려 함(`User.login()`은 `NORMAL`이 아니면 예외). 탈퇴한 사람은 탈퇴 때 oid에 접두어가 붙어(`OauthInfo.withDrawOauthInfo()`) 기존 사용자를 찾지 못하므로 가입 흐름(`canRegister=true`)으로 가고, 재발급은 탈퇴 때 리프레시 토큰이 지워져 보통 `AUTH_403_1`이다 | 로그인이면 "이용이 제한된 계정이에요", 재발급이면 세션 상실 |
 | 404 | 없는 리소스 + 남의 리소스 + 다른 공연 소속 + 비공개(준비중·삭제) 공연 | 존재를 숨기는 응답이므로 "찾을 수 없어요" |
 
 **코드가 아니라 HTTP 401이면 재발급을 시도한다.** 액세스 토큰 쿠키는 만료 = 토큰 수명이라, 만료되면 쿠키가 사라져 `AUTH_401_1`이 아니라 `AUTH_403_2`(토큰 없음)가 온다. 본문 `status`와 HTTP 상태가 다른 응답이 있으므로 분기는 HTTP 상태로 한다(백엔드 `SecurityConfig`의 `authenticationEntryPoint`, `JwtExceptionFilter`).
@@ -393,20 +394,21 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 | 2 | 사용자가 카카오에서 동의 | 카카오가 `{기준 주소}/kakao/callback?code=…&state=…`로 돌려보낸다 |
 | 3 | `GET /oauth/kakao?code=…&state=…` | `{accessToken, refreshToken, idToken}` — **카카오의** 토큰이다 |
 | 4 | `POST /oauth/kakao/register/valid` `{idToken}` | `{canRegister}` — 신규 사용자인지 |
-| 5a | 기존 사용자: `POST /oauth/kakao/login` `{idToken}` | `TokenAndUserResponse` + `Set-Cookie`(두둥 토큰 2개). 정지·탈퇴 계정은 403 `USER_403_1` |
+| 5a | 기존 사용자: `POST /oauth/kakao/login` `{idToken}` | `TokenAndUserResponse` + `Set-Cookie`(두둥 토큰 2개). 정지 계정은 403 `USER_403_1`(탈퇴한 사람은 4번에서 `canRegister=true`라 5b로 간다) |
 | 5b | 신규 사용자: `POST /oauth/kakao/info` `{accessToken}`으로 카카오 프로필을 받아 가입 폼을 채우고, `POST /oauth/kakao/register` `{idToken, email, phoneNumber, profileImage, name, marketingAgree}` | `TokenAndUserResponse` + `Set-Cookie` |
 
 - `TokenAndUserResponse` = `{accessToken, accessTokenAge, refreshToken, refreshTokenAge, userProfile{id, profileImage, name}}`. 본문의 토큰은 FE가 쓰지 않는다 — 쿠키로 온다.
 - 토큰을 쿼리스트링으로 보내는 옛 방식(`?id_token=`)은 전환 기간에만 받는다. v2 FE는 처음부터 본문으로 보낸다.
 - **`redirect_uri`는 백엔드가 요청의 Referer로 고른다.** 허용 목록 중 Referer의 출처와 같은 것을 쓰고, 경로가 `/admin`으로 시작하면 `{출처}/admin/kakao/callback`, 아니면 `{출처}/kakao/callback`이다. v2는 로그인 화면이 `/login` 하나라 항상 `/kakao/callback`으로 온다. 호스팅 센터(`/hosting`)에서 로그인으로 넘어가도 경로가 `/admin`이 아니므로 같다.
-- 1번과 3번은 `state` 쿠키를 주고받으므로 `credentials: 'include'`로 부른다. `state`가 맞지 않거나 만료되면 400 `AUTH_400_1` — 로그인을 처음부터 다시 시작한다(#763).
+- 1번과 3번은 `state` 쿠키를 주고받으므로 `credentials: 'include'`로 부른다. 파라미터와 쿠키가 **둘 다 있는데 다르면** 400 `AUTH_400_1` — 로그인을 처음부터 다시 시작한다(#763). 값이 없거나 쿠키가 만료돼(Max-Age 600초) 사라진 경우는 지금 경고 로그만 남기고 통과한다(`OauthStateHelper.verify`, `stateRequired=false`). #776(state 필수)부터 이 경우도 `AUTH_400_1`이다.
+- **만료·잘못된 액세스 쿠키가 남아 있으면 1·3·5번도 JWT 필터에서 401**이다(§1). FE는 "잠시 후 다시 시도해 주세요"로 안내한다(patterns §24 P4b).
 
 ### 그 밖
 
 | 호출 | 내용 |
 |---|---|
-| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·다른 기기에서 재발급돼 덮어써짐)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지·탈퇴 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`). **FE는 재발급의 HTTP 401·403을 코드와 상관없이 세션 상실로 보고, 5xx·네트워크 오류는 일시 오류로 본다**(patterns §5-1) |
-| `POST /logout` | 쿠키 삭제. 익명 상태에서도 200 |
+| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·다른 기기에서 재발급돼 덮어써짐)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`), 사용자 행이 없으면 404 `USER_404_1`, 잘못된 본문이면 400. **만료·잘못된 액세스 쿠키가 같이 실리면 JWT 필터가 컨트롤러 앞에서 401 `AUTH_401_1`·`GLOBAL_401_1`을 낸다** — 리프레시 토큰이 살아 있어도 재발급이 실패한다(쿠키 Max-Age가 JWT 만료보다 조금 늦게 끝나는 짧은 구간, 서명 키가 다른 쿠키). FE 판정: 2xx 성공 / 401 `AUTH_401_1`·`GLOBAL_401_1`은 약 1초 뒤 한 번 더 시도, 또 401이면 세션 상실 / 그 밖의 4xx 세션 상실 / 5xx·네트워크·타임아웃 일시 오류(patterns §5-1). 테스트(`TokenCookieCorsIntegrationTest`)는 유효한 액세스 쿠키로만 확인한다 |
+| `POST /logout` | 쿠키 삭제. 토큰이 없거나 유효하면 200(익명은 userId 0으로 쿠키만 지운다). **만료·잘못된 액세스 쿠키가 있으면 JWT 필터가 401을 내고 쿠키를 지우지 않는다.** FE는 응답과 상관없이(401·5xx 포함) 로컬 정리(`queryClient.clear()`, `dd:session` 제거) 후 이동한다 |
 | `DELETE /me` | 회원 탈퇴 + 쿠키 삭제. 마스터인 호스트가 있으면 400 `USER_400_6` |
 
 ### 환경별 설정
@@ -417,10 +419,11 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 | CORS 허용 출처 | `https://dudoong.com`, `https://internal-admin.dudoong.com` | `https://staging.dudoong.com`, `http://localhost:3000`, `http://localhost:5173` | 운영 + 스테이징 목록 전부 |
 | 카카오 콜백 기준 주소 | 운영 목록 | 스테이징 + 로컬 | 로컬 + 스테이징 |
 
-- 로컬 개발은 **포트 3000**을 쓴다. 5173은 백엔드가 v1 호스트 어드민으로 보고 콜백을 `/admin/kakao/callback`으로 잡는다.
+- 로컬 개발은 **포트 3000**을 쓴다. 5173은 백엔드가 v1 호스트 어드민으로 보고 콜백을 `/admin/kakao/callback`으로 잡는다. Origin 검사(`AUTH_403_3`)의 허용 목록도 이 표를 따르므로 다른 포트는 enforce가 켜지면 변경 요청이 막힌다.
+- 로컬에서 rewrite 대상을 dev ↔ staging으로 바꾸면 서명 키가 다른 액세스 쿠키(local 수명 86400초)가 남아 로그인·로그아웃까지 401이 된다. 브라우저에서 쿠키를 지우고 다시 로그인한다. 운영에서 서명 키를 교체할 때도 같은 현상이 생긴다 — README 백엔드 질문 B6.
 - 운영·스테이징에서 API는 프론트와 **같은 출처**다(nginx가 `/api`를 백엔드로 보낸다). 브라우저는 상대 경로 `/api/v2/…`로 부른다.
 - 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 같은 모양으로 쓴다. dev API를 직접 부르면 쿠키가 서드파티 쿠키(`SameSite=None`)가 되어 브라우저 설정에 따라 막힌다.
-- FE 처리 규칙(401 → 재발급 한 번, 탭 간 직렬화, 세션 쿼리는 익명으로 귀결, 공개 GET은 쿠키 없이)은 [`tech-decisions.md`](./tech-decisions.md) §4 인증과 [`patterns.md`](./patterns.md) §5에 있다. 인증 API는 `/api/v1/auth` 아래라 v2 `api` 객체가 아니라 별도 `authApi` 인스턴스로 부른다. `authApi`에는 401 가로채기가 없다(재발급 호출이 다시 재발급을 부르지 않게).
+- FE 처리 규칙(`dd:session`이 있을 때만 401 → 재발급 한 번, 탭 간 직렬화, 세션 쿼리 결과 셋, 공개 GET은 쿠키 없이)은 [`tech-decisions.md`](./tech-decisions.md) §4 인증과 [`patterns.md`](./patterns.md) §5에 있다. 인증 API는 `/api/v1/auth` 아래라 v2 `api` 객체가 아니라 별도 `authApi` 인스턴스로 부른다. `authApi`에는 401 가로채기가 없다(재발급 호출이 다시 재발급을 부르지 않게).
 - 액세스 토큰 수명 기본 3600초, 리프레시 토큰도 기본 3600초(env로 바뀜). 리프레시 토큰은 사용자당 하나만 유효하다.
 
 ## 10. 알림 문구 (주문·호스트)

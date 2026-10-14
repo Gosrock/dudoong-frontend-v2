@@ -106,8 +106,10 @@ PG-1 → [링크 생성 완료]  455:8935
 (관객)                                           (호스트)
 [주문상세]  G11/O-3                P9   128:2263 / 498:703
    │ 주문취소 (canCancel)
-   │    canCancel=false + 선물 대기·완료 티켓(giftState PENDING·SENT) → 버튼 자리에
-   │    "선물을 먼저 취소하거나 돌려받아 주세요" (경합으로 Order_400_24가 와도 같은 문구 + 다시 읽기)
+   │    선물 때문에 막힌 경우만 버튼 자리에 "선물을 먼저 취소하거나 돌려받아 주세요"
+   │      조건: canCancel=false · status APPROVED · event.displayStatus UPCOMING
+   │            · 입장(DONE) 티켓 없음 · giftState PENDING/SENT 티켓 있음(entrance CANCELED 제외)
+   │      (경합으로 Order_400_24가 와도 같은 문구 + 다시 읽기)
    ▼
 유료: [환불 계좌 시트] → P11/O-4 ────────────▶  알림 ORDER_REFUND_REQUESTED
 무료: P11/O-4                                   [환불 탭]  GF-1 (Figma 없음, FE 잠정) P13a
@@ -121,7 +123,7 @@ PG-1 → [링크 생성 완료]  455:8935
    └─ 입금 미확인(DEPOSIT_UNCONFIRMED) 거절은 refundAccountRequired=false (입력은 가능). 0원 주문은 대상 아님
 ```
 
-Figma 128:2583~2709는 거절된 주문에도 [주문취소]를 그렸다. 거절된 주문은 `canCancel=false`라 버튼을 숨긴다.
+Figma 128:2583~2709는 거절된 주문에도, 498:703은 선물중 티켓이 있는 주문에도 [주문취소]를 그렸다. 둘 다 `canCancel=false`라 버튼을 숨기고, 498:703은 위 선물 안내를 보여 준다. 승인 대기 주문(128:2263)에는 아직 발급된 티켓이 없으므로 티켓번호·티켓상태 줄 대신 `lines`의 옵션 응답만 그린다.
 
 ## E. 마이페이지 · 알림 (관객)
 
@@ -159,7 +161,7 @@ Figma 128:2583~2709는 거절된 주문에도 [주문취소]를 그렸다. 거�
    │    ├─ 역할 변경  PH-10   (마스터)
    │    ├─ 삭제  DH-11
    │    └─ 마스터 양도  PH-12   503:32075
-   └─ 공연 리스트  GH-14 (멤버는 브라우저에서 다시 조회 → 준비중 공연 포함, 카드는 /hosting/events/{id})
+   └─ 공연 리스트  GH-14 (브라우저 useInfiniteQuery. 멤버는 viewer 키로 조회 → 준비중 공연 포함, 카드는 /hosting/events/{id})
 ```
 
 호스트 홈은 관객도 보는 공개 화면(`/hosts/[hostId]`, P5c)이고 `myRole`에 따라 설정·멤버·새 공연 버튼이 보인다. `myRole`·`isFollowing`은 서버 조회 결과와 키를 나눈 viewer 쿼리에서 읽는다(서버 조회에는 토큰이 없다). 멤버 수·개설일은 GH-3, 멤버 아바타는 `myRole`이 있을 때 GH-6. 설정과 멤버 화면만 호스팅 센터(`/hosting/hosts/[hostId]/…`, P10b)에 있다.
@@ -177,9 +179,11 @@ Figma 128:2583~2709는 거절된 주문에도 [주문취소]를 그렸다. 거�
 
    ├─ 대시보드
    │    준비중: 체크리스트  GE-7   424:9741       P11   (hasTicket=false면 ③ 면제)
+   │            ├─ 다 채우면 "등록 준비 완료" 모달  424:11318
    │            └─ 공연 등록하기 → 확인 팝업 424:9837 → PE-8
-   │                 → GE-3 · GE-1 무효화 → 등록 후 대시보드 + "공연이 등록되었습니다." 토스트  424:11427
-   │    등록 후: 통계  GD-1   424:11361           P13a
+   │                 → GE-3 · GE-1만 무효화 → 체크리스트 모드 종료 + "공연이 등록되었습니다." 토스트  424:11427
+   │                   (등록 후 통계는 P13a 전까지 빈 자리)
+   │    등록 후: 통계  GD-1   424:11361           P13a   (입장 현황 분모 = 발급 수 issuedCount, Figma의 50은 쓰지 않음)
    ├─ 기본 정보  PE-4 (+ PE-10 포스터, GE-11 태그)   424:9918     P11
    │    ├─ 장소: 주소 찾기(Daum 우편번호) → 카카오 Geocoder 좌표 → 공연장 이름 · 상세주소
    │    └─ 등록 후 저장 → "예매자에게 꼭 안내해 주세요" 팝업
@@ -194,9 +198,10 @@ Figma 128:2583~2709는 거절된 주문에도 [주문취소]를 그렸다. 거�
    │         └─ 상세 · 수정 P10/O-3 · 삭제 D10/O-4   424:10455 / 424:10517
    │              (수정에서 응답 형식은 읽기 전용. 상세에 삭제 입구가 없어 FE 잠정으로 모달 하단 [삭제])
    ├─ 예매자 관리                                 P13a
-   │    ├─ 주문 탭  GR-1   424:11710
-   │    │    ├─ 상세  GR-2   503:27255   ?order= — 열기 push, 닫기 back(앱이 연 것) / replace(알림·새로고침 진입)
+   │    ├─ 주문 탭  GR-1   424:11710   상태 탭: 전체 · 승인대기 · 승인 완료 · 승인 거절 · 취소 (FE 잠정, FAILED 숨김)
+   │    │    ├─ 상세  GR-2   503:27255   ?order= — 열기·닫기 모두 replace(뒤로가기는 화면을 떠남). 404면 모달 닫고 목록 다시 읽기
    │    │    ├─ 승인 PR-3 · 거절 PR-4(424:12165) · 승인 후 취소 PR-5
+   │    │    │    시작 후: 승인 Event_400_5·6, 거절·취소 Order_400_9 → 버튼 비활성
    │    │    └─ 엑셀  GR-6
    │    ├─ 발급된 티켓 탭  GI-1   424:12014
    │    │    ├─ 상세  GI-2   503:27502
@@ -210,27 +215,41 @@ Figma 128:2583~2709는 거절된 주문에도 [주문취소]를 그렸다. 거�
 ## H. 인증
 
 ```
-[보호 화면 접근] → 세션 확정 전엔 children 안 그림 → 익명?
-        │                                   └─예──▶ dd:hadSession 있음? ─예─▶ [/login/expired?redirect=…]
-        │아니오                                                         └아니오▶ [/login?redirect=…]
-        ▼                                                                         │ 카카오 OAuth (v1)
-   화면 렌더 → API 호출                                                           ▼
-        │                                                    콜백: USER_403_1 → "이용이 제한된 계정이에요"
-   401(코드 무관)                                                  AUTH_400_1 → 로그인 처음부터
-        ▼                                                          신규 판정 → [회원가입 오버레이]
-   navigator.locks 획득                                            성공 → dd:hadSession 세움 → 원래 경로
+세션 플래그 dd:session = 로그인할 때마다 새로 만든 무작위 값(localStorage)
+
+[보호 화면 접근] → GM-1 결과는 셋
+   ├─ pending → 스켈레톤 (children 안 그림)
+   ├─ 세션    → 화면 렌더
+   ├─ null    → 항상 [/login?redirect=…]   (게이트는 /login/expired로 보내지 않는다)
+   └─ throw   → 전체 화면 재시도(AsyncBoundary), 이동 없음   ← GM-1 5xx·네트워크, 재발급 일시 오류
+
+[/login] → 카카오 OAuth (v1)
+   콜백: 성공 → dd:session 새 값 → location.assign(redirect)  (하드 이동)
+         USER_403_1 → "이용이 제한된 계정이에요"  (정지 계정. 탈퇴자는 재가입 흐름)
+         AUTH_400_1 → 로그인 처음부터   (state 누락·쿠키 만료는 #776 전까지 통과)
+         401 → "잠시 후 다시 시도해 주세요"   (낡은 액세스 쿠키 — README B6)
+         신규 판정 → [회원가입 오버레이]
+
+API 호출 → 401
+   ├─ dd:session 없음 → ApiError(401) 그대로 (재발급·이동 없음)
+   └─ dd:session 있음 → navigator.locks 획득 (signal: 15초, 끊기면 일시 오류)
         ├─ dd:refreshedAt > 요청 시각(다른 탭이 재발급함) → 바로 재시도
-        └─ 재발급(authApi, 타임아웃)
-             ├─ 성공 → dd:refreshedAt 기록 → 재시도
-             ├─ 5xx · 네트워크 · 타임아웃 → 세션 유지, 원 요청 에러
-             └─ 401 · 403(USER_403_1 포함) → 세션 상실
-                  queryClient.clear() → dd:hadSession 지움
+        └─ 재발급(authApi, 401 가로채기 없음, 타임아웃 10초)
+             ├─ 2xx → dd:refreshedAt 기록 → 재시도
+             ├─ 401 AUTH_401_1 · GLOBAL_401_1 → 1초 뒤 한 번 더
+             ├─ 5xx · 네트워크 · 타임아웃 → 세션 유지, 재발급 응답의 에러를 던짐
+             └─ 401 · 403 · 그 밖의 4xx → 세션 상실: SessionLostError (토스트·에러 화면 없음)
+                  onSessionLost (한 번만): queryClient.clear() → dd:session 지움
                   ├─ (protected) · /hosting → [/login/expired?redirect=…]
                   └─ 공개 화면 · /events · /login → 같은 주소 새로고침(익명으로 다시 그림)
 
+다른 탭: storage 이벤트로 dd:session이 사라지거나 바뀜 → clear() → 보호 영역이면 /login?redirect=…, 아니면 새로고침
+bfcache: pageshow(persisted)에서 dd:session이 로드 때와 다르면 새로고침
+로그아웃: 응답과 상관없이(401·5xx 포함) 로컬 정리 후 이동. 진행 중 mutation이 있으면 버튼 비활성
+
 공개 화면: 서버 조회는 토큰을 붙이지 않고, 공개 GET은 브라우저에서도 쿠키 없이(credentials: 'omit') 보낸다.
-세션 쿼리(GM-1)의 401은 익명(null)으로 끝나고 이동하지 않는다. dd:hadSession이 없으면 재발급도 시도하지 않는다.
-api는 이동하지 않는다. 이동은 게이트와 세션 상실 처리만 한다.
+익명이 확정된 사용자별 버튼(♡ · 선물 수락)은 요청 없이 /login?redirect=<현재 주소> 링크다.
+api는 이동하지 않는다. 이동은 게이트, onSessionLost, 탭 사이 감시만 한다.
 ```
 
 ## 화면 → Phase
