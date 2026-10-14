@@ -3,6 +3,7 @@
 > `Gosrock/DuDoong-Backend` `dev`(`24aa595`, 2026-10-10)의 `*ErrorCode` enum에서 자동 추출했다. 13개 도메인, 200개 코드.
 > v1·v2가 같은 enum을 쓴다. `reason`은 서버가 내려 주는 문장이고, 화면 문구는 `code`로 분기해 FE가 정한다([`api-contract.md`](./api-contract.md) §1).
 > HTTP 열은 enum에 적힌 값이다. **v2에서 호스트 권한 실패 코드는 enum이 400이어도 실제 응답은 403이다**(아래 표시).
+> **`AUTH_403_2`는 토큰이 없을 때(쿠키 만료 포함)와 정지·탈퇴 계정일 때 HTTP 401로 온다**(본문 `status`는 403). 역할 부족일 때만 HTTP 403이다. `AUTH_403_1`(재발급 실패)은 쿠키를 지우지 않는다. 분기는 HTTP 상태로 한다([`api-contract.md`](./api-contract.md) §1).
 
 ## AdminErrorCode
 
@@ -23,7 +24,7 @@
 | `GLOBAL_400_1` | 400 | 검증 오류 | `ARGUMENT_NOT_VALID_ERROR` |
 | `AUTH_401_1` | 401 | 인증 시간이 만료되었습니다. 인증토큰을 재 발급 해주세요 | `TOKEN_EXPIRED` |
 | `AUTH_403_1` | 403 | 인증 시간이 만료되었습니다. 재 로그인 해주세요. | `REFRESH_TOKEN_EXPIRED` |
-| `AUTH_403_2` | 403 | 알맞은 accessToken을 넣어주세요. | `ACCESS_TOKEN_NOT_EXIST` |
+| `AUTH_403_2` | 403 (토큰 없음은 **401**) | 알맞은 accessToken을 넣어주세요. | `ACCESS_TOKEN_NOT_EXIST` |
 | `AUTH_403_3` | 403 | 허용되지 않은 출처의 요청입니다. | `ORIGIN_NOT_ALLOWED` |
 | `AUTH_400_1` | 400 | 로그인 요청이 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요. | `OAUTH_STATE_MISMATCH` |
 | `GLOBAL_401_1` | 401 | 잘못된 토큰입니다. 재 로그인 해주세요 | `INVALID_TOKEN` |

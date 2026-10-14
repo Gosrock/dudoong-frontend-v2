@@ -93,19 +93,22 @@ CMD ["node", "server.js"]
 - 실행 이미지에 pnpm, 소스, devDependencies가 없다. root가 아닌 `node` 사용자로 돈다.
 - `.dockerignore`: `.git`, `node_modules`, `.next`, `.claude`, `.env*`, 스토리·테스트 산출물.
 - `next.config.ts`: `output: 'standalone'`, `deploymentId: process.env.GIT_SHA`.
+- builder 스테이지에는 `API_INTERNAL_URL`이 없다. 서버 값은 빌드가 아니라 서버 시작 때(`src/instrumentation.ts`의 `register()`) 검증하므로 빌드는 이 값 없이 통과해야 한다. 빌드 때 검증하는 것은 `NEXT_PUBLIC_KAKAO_JS_KEY` 하나다(tech-decisions §12).
 
 **`deploymentId`.** 배포하면 옛 JS 청크가 서버에서 사라진다. 배포 전에 열어 둔 탭이 화면을 이동하다 없는 청크를 요청하면 깨진다. `deploymentId`를 주면 Next가 버전이 달라진 것을 알아채고 전체 새로고침으로 넘어간다. 체크아웃 도중 배포가 나가는 경우가 여기 해당한다.
+
+한계도 있다. 전체 새로고침이라 `useState` 같은 컴포넌트 상태와 입력 중인 폼 값은 사라진다(Next 문서 self-hosting #version-skew). 그래서 주문 완료 화면은 메모리의 응답이 아니라 주소(`/orders/[orderUuid]?created=1`)로 다시 그릴 수 있게 했다(tech-decisions §3). 또 화면 이동 없이 불러오는 지연 청크(`next/dynamic`)의 404는 이 기능이 막지 못한다 — 옛 청크를 서버에 남겨 두는 기능이 아니다. 에디터·QR 스캐너를 여는 순간 배포가 겹치면 그 부분만 깨질 수 있고, 경계(`AsyncBoundary`)의 재시도로 새로고침을 안내한다.
 
 **이미지 최적화(`next/image`).** 포스터는 호스트가 올린 원본이라 그대로 내려보내기엔 크다. `next/image`를 쓰되 변환 결과가 컨테이너 안(`.next/cache/images`)에 쌓여 배포마다 사라지는 점, 변환이 CPU·메모리를 쓰는 점을 P0에서 스테이징 서버 사양으로 본다. 부담이 크면 `deviceSizes`를 v1처럼 두세 개로 줄이고, 그래도 크면 캐시 폴더를 볼륨으로 뺀다.
 
 ## 4. 환경변수 — 이미지 하나를 스테이징과 운영이 같이 쓴다
 
-§12의 "전부 빌드 때 굽는다"를 고친다. **환경마다 다른 값을 이미지에 넣지 않는다.**
+**환경마다 다른 값을 이미지에 넣지 않는다.** 값 목록과 검증 시점은 tech-decisions §12가 원본이다.
 
 | 값 | 어디서 | 환경별 차이 |
 |---|---|---|
 | 브라우저용 API 주소 | 상대 경로 `/api/v2` | 없음 |
-| 서버용 API 주소 | Dockerfile `ENV`(기본 `http://localhost:8080/api/v2`). 런타임에 읽는다 | 없음(두 서버 모두 같은 호스트) |
+| 서버용 API 주소 `API_INTERNAL_URL` | Dockerfile runner 스테이지 `ENV`(기본 `http://localhost:8080/api/v2`). 런타임에 읽고 서버 시작 때 검증한다 | 없음(두 서버 모두 같은 호스트) |
 | 카카오 JS 키 | 빌드 인자 → `NEXT_PUBLIC_*` | 없음(v1도 같은 값으로 두 환경을 빌드한다) — 확인 필요 |
 | 사이트 origin | 브라우저는 `location.origin`, 서버는 요청의 `Host` 헤더(nginx가 그대로 넘긴다) | 값을 두지 않는다 |
 
@@ -185,4 +188,6 @@ D2는 백엔드 마이그레이션(V001~V011)이 스테이징에 실행돼 있�
 | 5 | `next/image` 변환이 스테이징 서버 사양에서 감당되는지 | D2 |
 | 6 | 카카오 JS 키가 스테이징과 운영에서 같은지 — 다르면 §4의 "이미지 하나"가 깨지므로 키를 서버에서 내려주는 방식으로 바꾼다 | D1 전 |
 | 7 | 조직이 GHCR 공개 패키지를 허용하는지 | D1 |
+| 9 | `isomorphic-dompurify`가 띄우는 jsdom의 메모리 — 섹션 10개짜리 공연 상세를 연속으로 열 때의 RSS, jsdom이 standalone 산출물에 빠지지 않고 기동되는지. 부담이 크면 `sanitize-html`로 바꾼다(tech-decisions §17) | D1 |
+| 10 | nginx 버퍼링 — 호스팅 센터의 정적 셸이 먼저 흘러 나가는지. Next 문서는 nginx 뒤에서 스트리밍하려면 `X-Accel-Buffering: no`가 필요하다고 한다(self-hosting #streaming-and-suspense). 필요하면 `next.config.ts`의 `headers()`로 `/hosting/:path*`에 붙인다. 공개 화면은 어차피 블로킹이라 영향이 없다 | D2 |
 | 8 | 배포 중 front가 꺼져 있는 시간(초) | D2 |
