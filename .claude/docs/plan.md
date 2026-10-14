@@ -129,23 +129,30 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P1 — `src/ui` 기반: 토큰 · 프리미티브 · 반응형
 
-**포함**: 토큰(`tokens.css.ts` — color/typography/space/radius/zIndex), 전역 스타일·reset·폰트, sprinkles(조건 `mobile`/`desktop` + 토큰 유틸리티). 프리미티브 `Flex`(`Flex.Center` 등) · `Spacing` · `Text`(typography prop, `as`로 시맨틱 태그만 분리) · `Divider` · `Container` · `Button`(recipes). `useMediaQueries`. 아이콘 파이프라인. Storybook. 루트 `Providers`(QueryClient, `OverlayProvider`).
+**근거**: [`design-system.md`](./design-system.md) §1·§2 — Figma 디자인 시스템 파일의 토큰·텍스트 스타일·그리드. 시작할 때 Figma를 다시 읽어 그 문서를 갱신한다.
+
+**포함**: 토큰(`tokens.css.ts` — color(Atomic 원시 값 + 의미 색, `createThemeContract`로 라이트·다크 두 벌)/typography(텍스트 스타일 21개)/space(`Space/7~10`은 데스크탑에서 커짐)/radius/zIndex), 폰트(Pretendard, Saira Condensed, Kartrider — 라이선스 확인 뒤), 전역 스타일·reset·폰트, sprinkles(조건 `mobile`/`desktop` + 토큰 유틸리티). 프리미티브 `Flex`(`Flex.Center` 등) · `Spacing` · `Text`(typography prop, `as`로 시맨틱 태그만 분리) · `Divider` · `Container` · `Button`(recipes). `useMediaQueries`. 아이콘 파이프라인. Storybook. 루트 `Providers`(QueryClient, `OverlayProvider`).
 
 **선행**: P0 · **병렬**: P3
 
 **완료 기준**
+- [ ] 브레이크포인트 확정(design-system §2 — 후보 desktop ≥ 1024px), 간격 토큰의 Mobile/Desktop 전환이 같은 기준을 씀
+- [ ] 아이콘 58종(`ic`)이 `<Icon name size variant />`로 렌더
 - [ ] 토큰·프리미티브 스토리
 - [ ] 화면 코드에서 스타일을 쓰는 세 방법(프리미티브 / `sprinkles()` / `.css.ts`)의 예제 스토리
 - [ ] `src/ui` 공개 API에 vanilla-extract 타입 미노출
 
 ### P2 — `src/ui` 컴포넌트: 폼 · 오버레이 · 피드백
 
+**근거**: [`design-system.md`](./design-system.md) §3·§4 — 컴포넌트 목록, 출처(shadcn 변형/자체), 동작 라이브러리, props 제안. **동작은 Radix 프리미티브(헤드리스), 모양은 vanilla-extract**(Select·Checkbox·RadioGroup·Switch·Tabs·Collapsible·Popover). 토스트는 `sonner` unstyled.
+
 **포함**: 폼(Input/TextArea/Dropdown/SelectButton/Counter/DropZone/ToggleButton/TagButton/DatePicker/TimePicker). 클라이언트 조회 화면용 공용 404 · 403 안내 컴포넌트(서버 조회 화면은 `notFound()`) — P5a·P9·P10a가 같이 쓴다. `<AsyncBoundary>`(Suspense + 에러 경계 + `QueryErrorResetBoundary` 재시도 UI — 게이트의 오류 화면도 이것을 쓴다). `app/OverlayRouteReset.tsx`(경로가 바뀌면 `overlay.unmountAll()`, 자체 `<Suspense fallback={null}>` 안의 말단 컴포넌트). 링크 이동 표시 `LinkProgress` — 카드 `<Link>` 안의 고정 크기 인라인 표시(100ms 지연 페이드). `useLinkStatus`는 `Link` 아래에서만 동작하고 프리페치된 경로는 건너뛰므로 전역 상단 막대로 만들지 않는다. 오버레이(BottomSheet/Modal/Popup, PC=Modal · Mobile=Sheet 분기, 상태는 `overlay-kit`). `EasyOverlay`(async 확인 + 자동 close). 피드백(Toast/Loader/Skeleton/EmptyState). 표시(Accordion/Header/Footer/NavBar/Profile/Tag/ListHeader). `DataTable`.
 
 **선행**: P1 · **병렬**: P3
 
 **완료 기준**
-- [ ] 컴포넌트 스토리
+- [ ] 컴포넌트 스토리 — Figma 변형 전부(design-system §4)
+- [ ] Radix 기반 컴포넌트의 키보드 조작(방향키·스페이스·Esc)과 스크린리더 이름 확인
 - [ ] 바텀시트·모달 iOS Safari 스크롤 락·키보드 회피 스모크
 - [ ] RHF `register` 직결 / `Controller` 필요 컴포넌트 표 확정
 - [ ] 결정: 모바일에서 바텀시트가 열린 채 뒤로가기를 누르면 시트만 닫을지(히스토리 항목 추가) 화면을 떠날지. "닫는다"로 정하면 시트와 `?order=` 오버레이를 함께 `window.history.pushState({...history.state, ddOverlay: 1}, '', url)` 방식으로 바꾼다(`router.push`로는 history state 표시를 남길 수 없다)

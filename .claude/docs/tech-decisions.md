@@ -394,6 +394,8 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 - 스타일과 토큰을 TS로 쓴다. 토큰 이름을 틀리면 타입 에러가 난다.
 - emotion의 객체 스타일 + 테마와 작성 방식이 가장 가깝다. 이전 판 `patterns.md`의 `Flex`·`Spacing`·표시/숨김 패턴을 거의 그대로 옮길 수 있다.
 
+**컴포넌트**: 동작은 Radix 프리미티브(헤드리스), 모양은 vanilla-extract. shadcn/ui 코드는 가져오지 않고 구조 참고로만 쓴다. 토큰·컴포넌트 목록과 구현 규칙은 [`design-system.md`](./design-system.md).
+
 **검토한 대안**: Tailwind v4(연결 위험이 가장 낮지만 토큰이 문자열이고 작성 방식이 다르다), StyleX(공식 연결이 Babel 설정을 요구해 Next 컴파일러가 SWC에서 Babel로 바뀐다, 0.19로 1.0 이전).
 
 ### 구성
@@ -516,6 +518,8 @@ Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 | `zod` | 스키마 | 폼·API·env 공용 |
 | `es-toolkit` | 배열·객체 유틸, debounce 등 | |
 | `overlay-kit` | 오버레이 상태 | 규칙은 §5 |
+| Radix 프리미티브(`@radix-ui/react-select`·`-checkbox`·`-radio-group`·`-switch`·`-tabs`·`-collapsible`·`-popover`) | 컴포넌트 동작(키보드·포커스·접근성) | 모양은 vanilla-extract. P0에서 React 19 호환·유지보수 확인, 문제가 있으면 Base UI([`design-system.md`](./design-system.md)) |
+| `sonner` | 토스트 | unstyled 모드 + vanilla-extract |
 | `marked` + `isomorphic-dompurify` | 섹션 본문 렌더(MARKDOWN → HTML → sanitize) | 서버 메모리 주의(§17) |
 | 다음 우편번호(Postcode) + 카카오맵 JS `services.Geocoder` | 공연 장소 입력: 주소 검색 → `address`, 좌표 변환 → `latitude`·`longitude` | 호스팅 기본 정보(P11). PE-4가 좌표를 필수로 받는다. 카카오 JS 키·도메인 등록 필요 |
 

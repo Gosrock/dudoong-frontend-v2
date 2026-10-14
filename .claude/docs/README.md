@@ -14,6 +14,7 @@
 | [`api-contract.md`](./api-contract.md) | 백엔드 `/api/v2` 규약·권한·상태·API 색인, v1 인증 API, 알림 문구 |
 | [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 200개(자동 추출) |
 | [`plan.md`](./plan.md) | 24개 Phase, 선행 관계, API 배정 |
+| [`design-system.md`](./design-system.md) | 디자인 시스템(토큰·그리드·폰트·아이콘)과 컴포넌트 구현 결정(Radix + vanilla-extract, 컴포넌트별 출처·props) |
 | [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문, Figma와 서버 차이 |
 | [`backend-questions.md`](./backend-questions.md) | 백엔드 질문과 지켜보는 변경 |
 | [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
