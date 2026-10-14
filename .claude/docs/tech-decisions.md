@@ -113,16 +113,19 @@ app/
 │  ├─ (public)/layout.tsx         export const instant = false. Suspense·loading.tsx 없음
 │  └─ (app)/layout.tsx            <Suspense>
 │     └─ (protected)/layout.tsx   로그인 게이트
-└─ hosting/layout.tsx             <Suspense> + 로그인 게이트 + 사이드메뉴
+└─ hosting/layout.tsx             <Suspense> + 로그인 게이트
+   └─ events/[eventId]/layout.tsx 공연 어드민 사이드메뉴(GE-3)
 ```
 
 | 그룹 | 조회 | 레이아웃 |
 |---|---|---|
-| `(audience)` | — | 공통 헤더. 헤더 안에서 `usePathname()`·`useSearchParams()`를 쓰는 부분은 자체 `<Suspense>`로 감싼다(`(app)` 쪽 빌드 실패 방지, P0에서 확인) |
+| `(audience)` | — | 공통 헤더. 경로를 읽는 부분은 아래 "경로를 읽는 컴포넌트" 규칙을 따른다 |
 | `(public)` | 서버(`<Prefetch>`) | Suspense·`loading.tsx` **없음**, `instant = false` 한 곳 |
 | `(app)` | 클라이언트 | `<Suspense>` |
 | `(app)/(protected)` | 클라이언트 | 로그인 게이트(§4 인증) |
-| `hosting` | 클라이언트 | `<Suspense>` + 로그인 게이트 |
+| `hosting` | 클라이언트 | `<Suspense>` + 로그인 게이트. 공연 어드민 사이드메뉴는 `hosting/events/[eventId]/layout.tsx` |
+
+**경로를 읽는 컴포넌트.** Cache Components에서 `usePathname()`은 `generateStaticParams`가 없는 동적 파라미터 경로에서 suspend하고, 위에 Suspense가 없으면 빌드가 실패한다([Next 문서](https://nextjs.org/docs/app/api-reference/functions/use-pathname)). 그렇다고 children을 감싸는 Provider·레이아웃에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404가 200으로 굳는다(§2). 그래서 **`usePathname()`·`useSearchParams()`를 쓰는 컴포넌트는 children을 감싸지 않는 말단 컴포넌트로 두고, 형제 위치의 자체 `<Suspense>`로 감싼다.** 헤더의 활성 메뉴 표시, 경로가 바뀔 때 오버레이를 닫는 `<OverlayRouteReset />`(§5)이 여기에 해당한다. P0 상태 코드 표(§2)는 이 컴포넌트들을 넣은 최종 헤더로 채운다.
 
 보호 경로를 목록으로 판정하지 않고 폴더로 나눈다. 게이트가 필요 없는 `/events`, `/login`, `/login/expired`, `/kakao/callback`은 `(protected)` 밖에 둔다.
 
@@ -161,12 +164,12 @@ app/
   | 예매자 관리의 주문 상세 모달 | `?order={orderUuid}` | 호스트가 받은 주문 알림에서 바로 열기 |
 
   그 밖의 모달·바텀시트·티켓 카드 위치는 주소에 남기지 않는다.
-- `/hosting/events/[eventId]`는 `dashboard`로 리다이렉트한다.
+- `/hosting/events/[eventId]`는 `dashboard`로 리다이렉트한다. 페이지 파일을 두지 않고 `next.config.ts`의 `redirects()`로 한다.
 - 공연 관리의 `info`(기본 정보)·`detail`(상세 정보)은 화면 메뉴 이름을 따른 것이다. 백엔드 용어인 "섹션"은 주소에 쓰지 않는다.
 - 관객용 헤더·내비게이션은 `(audience)` 레이아웃 하나에 있다. `(public)`과 `(app)`을 나눈 이유는 Suspense 유무뿐이다.
 - 없앤 v1 라우트: `book/option`, `book/order`, `/pay/*`, `/history`(→ `/orders`), `/history/mycoupon`, `/ticket`(→ `/tickets`), `/ticket/[id]`, `/ticket/qr`, `/home`(→ `/`), `/admin/*`(→ `/hosting/*`).
 - 클라이언트 컴포넌트도 빌드 때(정적 셸)와 서버 렌더 때 한 번 실행된다. `window`를 렌더 중에 만지는 것(에디터, QR 스캐너)은 `next/dynamic({ ssr: false })`로 감싼다.
-- **클라이언트 조회 화면의 `useSuspenseQuery`가 서버에서 실행되는지 P0에서 확인한다.** Next 가이드는 Cache Components에서 클라이언트 컴포넌트도 프리렌더된다고 쓰고, 상위 표는 `useSuspenseQuery`를 "하이드레이션 뒤 브라우저 요청"으로 분류한다. 서버에서 돈다면 보호 API가 쿠키 없이 401을 받고 브라우저 전용 재발급 코드가 서버에서 돈다. 확인 기준: 프리페치 없는 `useSuspenseQuery` 페이지(`/tickets`, `/hosting/events/[id]/…` 형태)를 열 때 백엔드 접근 로그에 Next 서버발 호출이 0건. 보호 화면은 게이트가 세션 확정 전에 children을 그리지 않아 막힌다. `/events`처럼 게이트가 없는 클라이언트 화면은 결과에 따라 `useQuery`로 정한다.
+- **클라이언트 조회 화면의 `useSuspenseQuery`가 서버에서 실행되는지 P0에서 확인한다.** Next 가이드는 Cache Components에서 클라이언트 컴포넌트도 프리렌더된다고 쓰고, 상위 표는 `useSuspenseQuery`를 "하이드레이션 뒤 브라우저 요청"으로 분류한다. 서버에서 돈다면 보호 API가 쿠키 없이 401을 받고 브라우저 전용 재발급 코드가 서버에서 돈다. 확인 기준: 프리페치 없는 `useSuspenseQuery` 페이지(`/tickets`, `/hosting/events/[id]/…` 형태)를 열 때 백엔드 접근 로그에 Next 서버발 호출이 0건. 보호 화면은 게이트가 세션 확정 전에 children을 그리지 않아 막힌다. **게이트가 없는 `(app)` 화면(`/events`, `/login/*`, `/kakao/callback`)은 결과와 상관없이 `useQuery`만 쓴다**(2회차에서 확정). P0 확인은 보호 화면에 대한 검증으로 남는다.
 
 ## 4. 데이터
 
@@ -179,7 +182,7 @@ app/
 export const eventDetailQuery = (id: string) =>
   queryOptions({
     queryKey: ['events', id],
-    queryFn: () => api.get(`events/${id}`, EventDetailSchema),
+    queryFn: () => api.get(`events/${id}`, EventDetailSchema, { public: true }),   // 공개 GET(GP-3)
   });
 
 export const eventTicketsQuery = (id: string) =>
@@ -197,18 +200,18 @@ export const updateEventBasicMutation = (eventId: string) =>
 
 ### `api` 객체
 
-ky 인스턴스를 감싼 얇은 객체 하나다(`src/api/http.ts`). "호출 → 응답 래퍼 해제 → zod 파싱"을 묶어 Promise를 돌려준다.
+**`src/api/client.ts`는 ky 인스턴스(v2·v1 인증)와 응답 래퍼 해제·에러 변환·401 가로채기를, `src/api/http.ts`는 그 위의 `api`·`authApi` 객체를 둔다.** `api` 객체는 "호출 → 응답 래퍼 해제 → zod 파싱"을 묶어 Promise를 돌려준다.
 
 | 메서드 | 용도 |
 |---|---|
-| `api.get(path, schema, options?)` | 조회. 공개 GET은 `{ public: true }`를 준다(401이면 `credentials: 'omit'`로 한 번 다시 요청) |
+| `api.get(path, schema, options?)` | 조회. 공개 GET은 `{ public: true }`를 준다 — **항상 `credentials: 'omit'`로 보낸다**(쿠키를 싣지 않으므로 401 재요청이 없다. 사용자별 값은 viewer 쿼리가 따로 받는다) |
 | `api.post / patch / put / delete(path, schema, body?, options?)` | 변경. 백엔드는 변경 응답으로도 값을 주므로 똑같이 파싱한다 |
 | `api.download(path, params?)` | 파일(엑셀). 파싱하지 않는다 |
 
-인스턴스는 둘이다. `api`는 `/api/v2`, `authApi`는 v1 인증(`/api/v1/auth`: 로그인 콜백, 재발급, 로그아웃, 탈퇴)이다. 같은 래퍼 해제·에러 변환을 쓴다.
+객체는 둘이다. `api`는 `/api/v2`, `authApi`는 v1 인증(`/api/v1/auth`: 로그인 콜백, 재발급, 로그아웃, 탈퇴)이다. 같은 래퍼 해제·에러 변환을 쓴다. **`authApi`에는 401 가로채기(재발급·재시도)가 없다** — 재발급 호출이 다시 재발급을 부르면 같은 이름의 Web Lock을 다시 요청해 영원히 기다린다(같은 실행 컨텍스트의 같은 잠금 요청도 큐에 쌓인다, [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)).
 
 - `queryOptions`/`mutationOptions`와 queryKey는 손으로 쓴다. 더 감싸지 않는다.
-- queryKey는 경로를 쪼갠 모양으로 맞춘다(`events/123/sections` → `['events', '123', 'sections']`). 파라미터는 마지막 원소.
+- queryKey는 경로를 쪼갠 모양으로 맞춘다(`events/123/sections` → `['events', '123', 'sections']`). 순서는 **리소스 → `'viewer'`(있으면) → `'infinite'`(있으면) → 파라미터 객체(마지막)**다. 예: `['hosts', id, 'events', 'viewer', 'infinite', { size }]`.
 - `mutationOptions`에는 `mutationFn`만 둔다. `onSuccess`(캐시 반영, 토스트, 이동)는 화면마다 달라 화면에서 쓴다.
 - 의존값이 없으면 `skipToken`(또는 `useQuery`의 `enabled`)을 쓰고, 파생 값은 호출부에서 `select` 옵션으로 만든다. 이를 위한 헬퍼는 두지 않는다.
 
@@ -216,7 +219,7 @@ ky 인스턴스를 감싼 얇은 객체 하나다(`src/api/http.ts`). "호출 �
 
 | 대상 | 규칙 |
 |---|---|
-| 응답 enum | 열린 타입으로 받는다(`z.enum([...]).or(z.string())` 또는 `.catch('UNKNOWN')`). 백엔드가 값을 하나 늘려도 화면의 기본 분기까지 간다 |
+| 응답 enum | `z.enum([...]).catch(ctx => { 구조화 로그(경로 패턴·issue 경로); return 'UNKNOWN' })` **한 가지로만** 쓴다. 리터럴 타입이 유지되고(`.or(z.string())`은 `string`으로 뭉개져 완전성 검사를 잃는다), 백엔드가 값을 하나 늘려도 화면의 `UNKNOWN` 분기까지 간다. 모든 enum 매핑에 `UNKNOWN` 분기를 둔다 |
 | 응답 객체 | 기본 동작(모르는 키 제거). `.strict()`를 쓰지 않는다 |
 | 파싱 실패 | 개발·테스트는 throw. 운영은 구조화 로그(요청 경로 패턴과 zod issue의 경로만, 값은 넣지 않음)를 남기고 throw |
 | 요청(폼) 스키마 | 엄격하게 둔다 |
@@ -248,31 +251,32 @@ export default async function Page({ params }: Props) {
 | | 하는 일 |
 |---|---|
 | `serverQuery(options)` | `fetchQuery` + 백엔드 404 → `notFound()`. 5xx는 throw → `error.tsx` |
-| `<Prefetch queries>` | `serverQuery`로 조회 → `dehydrate` → `HydrationBoundary` |
+| `<Prefetch queries infiniteQueries>` | `serverQuery`로 조회 → `dehydrate` → `HydrationBoundary`. 무한 스크롤 목록(GH-14 등)은 `infiniteQueries`로 받아 첫 페이지만 `fetchInfiniteQuery`로 가져온다 |
 
 - `generateMetadata`와 `Page`가 같은 쿼리를 불러도 조회는 한 번이다.
 - **서버에서 도는 조회에는 토큰이 붙지 않는다.** 서버의 `fetch`에는 브라우저 쿠키가 자동으로 실리지 않는다. 공개 GET에 만료 토큰이 붙으면 401이 오는 문제가 여기서 막힌다. `src/api/server/`에서 `cookies()`를 읽지 않는 것이 규칙이다.
 - **사용자별 값은 별도 쿼리(viewer)로 받는다.** 서버가 토큰 없이 받은 값과 브라우저가 쿠키로 받은 값을 같은 queryKey에 두면, 첫 진입에 익명 값으로 조작 가능한 화면(빈 ♡, 보낸 본인에게 수락 버튼)이 먼저 뜨고, 다시 들어올 때 서버가 내려 준 익명 데이터가 캐시의 인증 데이터를 덮는다. 그래서 키를 나눈다.
 
-  | 쿼리 | 키 | 조회 | 화면이 읽는 것 |
-  |---|---|---|---|
-  | `hostDetailQuery(id)` | `['hosts', id]` | 서버 프리페치, `staleTime` 30초 | 공개 필드 |
-  | `hostViewerQuery(id)` | `['hosts', id, 'viewer']` | 같은 엔드포인트, 프리페치 안 함, 세션이 있을 때만(`enabled`), `staleTime` 0 | `myRole`, `isFollowing` |
-  | `hostEventsViewerQuery(id)` | `['hosts', id, 'events', 'viewer']` | GH-14, 같은 조건 | 멤버에게만 보이는 준비중 공연 포함 목록 |
-  | `giftLandingQuery(token)` / `giftLandingViewerQuery(token)` | `['gifts', token]` / `['gifts', token, 'viewer']` | 같은 방식 | viewer: `isReceiver`, 사용자에 따라 달라지는 `viewState`(`OWN_LINK` 등) |
+  | 쿼리 | 키 | 조회 | 화면이 읽는 것 | 확정 전 대기 영역 |
+  |---|---|---|---|---|
+  | `hostDetailQuery(id)` | `['hosts', id]` | 서버 프리페치, `staleTime` 30초 | 공개 필드 | — |
+  | `hostViewerQuery(id)` | `['hosts', id, 'viewer']` | 같은 엔드포인트, 프리페치 안 함, 세션이 있을 때만(`enabled`), `staleTime` 0 | `myRole`, `isFollowing` | 팔로우·설정·멤버 버튼 자리(비활성 자리표시) |
+  | `hostEventsViewerQuery(id)` | `['hosts', id, 'events', 'viewer', 'infinite', params]` | GH-14, 같은 조건 | 멤버에게만 보이는 준비중 공연 포함 목록 | 공개 목록을 먼저 그리고, `myRole`이 확정되기 전에는 목록 위 "준비중" 자리를 비워 둔다. 멤버로 확정되면 viewer 목록으로 교체 |
+  | `giftLandingQuery(token)` / `giftLandingViewerQuery(token)` | `['gifts', token]` / `['gifts', token, 'viewer']` | 같은 방식 | viewer: `isReceiver`, 사용자에 따라 달라지는 `viewState`(`OWN_LINK` 등) | **상태 영역 전체**를 스켈레톤으로 둔다. 공개 값으로는 OG와 공연 요약만 그린다(`viewState`가 화면 전체를 정하므로 버튼만 막으면 깜빡인다) |
 
   - 사용자에 따라 달라지는 버튼(팔로우, 설정·멤버, 선물 수락·거절)은 viewer 쿼리가 확정되거나 익명이 확정된 뒤에만 활성화한다. 그 전에는 비활성 자리표시를 그린다.
-  - 변경(팔로우 PH-13, 선물 수락 등)의 `setQueryData`·무효화 대상은 viewer 키다.
+  - 변경(팔로우 PH-13, 선물 수락 등)의 `setQueryData`·무효화 대상은 viewer 키다. 같은 필드가 공개 키에도 있으면(예: 팔로워 수 — GH-3에 있는지는 미확인) 공개 키도 `invalidateQueries`한다.
+  - viewer 쿼리는 세션(GM-1) 확정을 기다리므로 GM-1 → viewer가 직렬이다. 받아들인 비용이다.
   - 비용은 로그인 사용자에 한해 같은 엔드포인트 1회 추가 호출이다.
 - 그 밖의 서버 조회 쿼리는 넘겨받은 직후 다시 조회하지 않게 `staleTime` 30초를 준다.
-- **`(public)` 화면에서 프리페치하지 않은 쿼리(GP-5 잔여 등)는 `useQuery`만 쓴다.** 그 그룹에는 Suspense가 없어 `useSuspenseQuery`를 쓰면 화면 전체가 멈춘다.
+- **`(public)` 화면에서 프리페치하지 않은 쿼리(GP-5 잔여, viewer 쿼리 등)는 `useQuery`만 쓴다.** 그 그룹에는 Suspense가 없어 `useSuspenseQuery`를 쓰면 화면 전체가 멈춘다.
 - **서버 조회 라우트 위에는 `<Suspense>`도 `loading.tsx`도 두지 않는다.** 경계 안에서 `notFound()`가 불리면 상태 코드가 200으로 굳는다. `(public)` 그룹을 따로 둔 이유다(§2·§3).
 
 ### 브라우저에서 쓰기
 
 - `api` 객체가 응답 래퍼 `{success, status, data, timeStamp}`를 벗기고 실패를 `ApiError{status, code, reason}`로 바꾼다.
 - 변경 응답이 "화면을 다시 그릴 값"이므로 `setQueryData`로 바로 반영한다.
-- 클라이언트 조회 화면의 데이터 경계는 `src/ui`의 `<AsyncBoundary>`(Suspense + ErrorBoundary + 재시도 버튼) 하나로 쓴다.
+- 클라이언트 조회 화면의 데이터 경계는 `src/ui`의 `<AsyncBoundary>` 하나로 쓴다. `QueryErrorResetBoundary` + ErrorBoundary + Suspense + 재시도 버튼이다. 재시도 버튼이 `reset()`을 불러야 실패한 쿼리가 다시 조회된다.
 
 ```tsx
 const { mutate } = useMutation({
@@ -306,8 +310,11 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 | 서버 프리페치 쿼리 `staleTime` | 30초 | 넘겨받은 직후 다시 조회하지 않게. Next 가이드 예시도 30초 |
 | 조작 화면 쿼리 `staleTime` | 0(기본) | 최신이 중요하다. 태그 목록처럼 잘 안 바뀌는 것만 길게 준다 |
 | viewer 쿼리 `staleTime` | 0 | 위 표 |
+| 세션 쿼리(GM-1) `staleTime` | 5분. `refetchOnWindowFocus`는 켠다 | 헤더·게이트·햄버거·체크아웃 입금자명이 마운트될 때마다 다시 조회하지 않게. 로그인·로그아웃·프로필 수정 뒤에는 명시적으로 갱신한다 |
 | 폼 화면 | RHF는 `defaultValues`로 한 번만 초기화한다 | `refetchOnWindowFocus`로 쿼리가 다시 와도 편집 중인 값을 덮지 않는다 |
-| 전역 `QueryCache`/`MutationCache` `onError` | 구조화 로그 + 명령형 `toast()` | 화면이 직접 처리하는 mutation은 `meta: { handled: true }`로 전역 토스트를 끈다. 이중 토스트를 막는다 |
+| 전역 `QueryCache.onError` | 구조화 로그. 토스트는 **`query.state.data !== undefined`(배경 재조회 실패)일 때만** | 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다. 토스트까지 띄우면 에러 화면과 겹친다 |
+| 전역 `MutationCache.onError` | 구조화 로그 + 명령형 `toast(reason)`. `meta.handled`이거나 `meta.handledCodes`에 에러 코드가 있으면 토스트를 생략한다 | 전역 `onError`는 화면의 `onError`보다 **먼저** 실행된다(TanStack `mutation.ts`). 그래서 화면이 "처리했다"고 사후에 알릴 수 없고, 화면이 처리할 코드를 `meta: { handledCodes: ['Order_400_22'] }`처럼 미리 적는다. 나머지는 전역 토스트에 맡긴다 |
+| 세션 상실로 이어진 401·403 | 토스트하지 않는다 | 이동·다시 그리기가 결과를 보여 준다 |
 
 `<Prefetch>`, `serverQuery`, 토큰 미전송, 404 처리는 구현해 돌려 확인했다(§22·§26). ky 2.x의 기본 URL 옵션은 `prefix`/`baseUrl`이고, 에러 변환은 훅이 아니라 `api` 객체 안에서 한다.
 
@@ -320,23 +327,29 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 - **토큰 쿠키는 백엔드가 세팅한다.** 로그인·재발급 응답에 `Set-Cookie`로 액세스·리프레시 토큰이 함께 온다(만료 시간 = 토큰 수명). 본문에도 같은 값이 있지만 FE는 쓰지 않는다. FE가 쿠키를 쓰는 코드는 없다(백엔드 코드에서 확인, §23).
 - **리프레시 토큰은 사용자당 하나만 저장된다**(§23). 재발급하면 이전 리프레시 토큰은 무효다. 다른 기기에서 로그인하면 이쪽 세션은 액세스 토큰 만료 뒤 끊긴다 — 백엔드에 의도인지 확인 중.
 
-**401 처리 규칙.** 액세스 토큰 쿠키는 토큰과 같이 만료되므로, 만료 뒤의 요청은 "만료 토큰"(`AUTH_401_1`)이 아니라 "토큰 없음"으로 간다. 그래서 재발급 조건을 코드로 가리지 않는다.
+**401 처리 규칙.** 액세스 토큰 쿠키는 토큰과 같이 만료되므로, 만료 뒤의 요청은 "만료 토큰"(`AUTH_401_1`)이 아니라 "토큰 없음"(HTTP 401 `AUTH_403_2`)으로 간다. 그래서 재발급 조건을 코드로 가리지 않고 HTTP 상태로 본다.
 
 | 상황 | 처리 |
 |---|---|
-| 보호 요청의 401(코드 무관) | 재발급을 한 번 시도 → 성공하면 원래 요청을 재시도, 실패하면 "세션 없음" |
-| 재발급 직렬화 | `navigator.locks.request('dudoong-auth-refresh', …)`로 탭 사이에서도 한 번에 하나. 잠금을 얻은 뒤 원래 요청을 먼저 한 번 재시도해 다른 탭이 이미 갱신했는지 보고, 여전히 401일 때만 `POST /api/v1/auth/token/refresh`. Web Locks가 없으면 탭 안의 동시 요청만 하나로 묶는다 |
-| 세션 쿼리(GM-1)의 최종 401 | throw하지 않고 `null`(익명)로 끝낸다. 공개 화면 헤더도 GM-1을 부르므로 익명 방문자의 401은 정상이다 |
-| 공개 GET의 401 | `{ public: true }` 표시된 요청은 `credentials: 'omit'`으로 한 번 다시 요청한다 |
-| 리다이렉트 | `api`는 이동하지 않는다. 이동은 게이트만 한다 |
-| 게이트 | 세션이 확정된 뒤에만 children을 렌더한다. pending이면 스켈레톤. 익명이면 `/login?redirect=…` |
-| 세션 있음 → 없음, 로그아웃 | `queryClient.clear()` 후 `location.assign()`(하드 이동). 이전 사용자의 캐시가 남지 않는다 |
-| `/login/expired` | 직전에 세션이 있었을 때만 보낸다. 한 번도 로그인하지 않은 사용자는 `/login` |
+| 보호 요청(`api`)의 401(코드 무관) | 재발급을 한 번 시도 → 성공하면 원래 요청을 재시도, 세션 상실이면 `onSessionLost`, 일시 오류면 원래 요청의 에러를 던진다 |
+| 재발급 직렬화 | `navigator.locks.request('dudoong-auth-refresh', …)`로 탭 사이에서도 한 번에 하나. 잠금 안에서 `localStorage`의 `dd:refreshedAt`이 **원래 요청을 보낸 시각보다 뒤면** 다른 탭이 이미 갱신한 것이므로 재발급 없이 바로 재시도한다. 아니면 `authApi`로 `POST /api/v1/auth/token/refresh`를 한 번 부르고(타임아웃 10초), 성공하면 `dd:refreshedAt`을 기록한다. Web Locks가 없으면 탭 안의 동시 요청만 하나로 묶는다 |
+| 재발급 결과 판정 | 2xx = 성공. **HTTP 401·403 = 세션 상실**(`AUTH_403_1`, 정지·탈퇴 계정의 `USER_403_1` 포함). **5xx·네트워크 오류·타임아웃 = 일시 오류** — 세션은 유지하고 원래 요청의 에러로 던진다(백엔드 재기동 중 배포마다 로그인 사용자 전원이 튕기지 않게) |
+| `authApi` | 401 가로채기가 없다(재발급이 재발급을 부르는 교착 방지). 응답을 위 판정대로 해석한다 |
+| 세션 쿼리(GM-1)의 401 | throw하지 않고 `null`(익명)로 끝낸다. **`dd:hadSession` 플래그가 없으면 재발급을 시도하지 않는다** — 익명 방문자의 GM-1 한 번이 401 → 잠금 → 재발급 403까지 3~4건으로 늘어나는 것을 막는다. 플래그가 있으면 위 규칙대로 재발급을 시도한다 |
+| `dd:hadSession` | `localStorage` 플래그. 로그인 성공·GM-1 성공 때 세우고, 세션 상실·로그아웃 때 지운다. 저장소 접근이 실패하면 "없음"으로 본다 |
+| 공개 GET | `{ public: true }`는 항상 `credentials: 'omit'`. 401이 오지 않는다 |
+| 이동 | `src/api`는 이동하지 않는다. 이동은 게이트와 `onSessionLost`가 한다 |
+| 게이트 | 세션이 확정된 뒤에만 children을 렌더한다. pending이면 스켈레톤. 익명이면 `dd:hadSession`이 있으면 `/login/expired?redirect=…`, 없으면 `/login?redirect=…` |
+| `onSessionLost` | `queryClient.clear()` → `dd:hadSession` 제거 → 현재 위치로 이동을 정한다. `(protected)`·`/hosting`이면 `location.assign('/login/expired?redirect=' + 현재 경로)`, 그 밖(공개 화면, `/events`, `/login`)이면 `location.reload()` — 익명으로 볼 수 있는 화면에서 사용자를 내보내지 않고 같은 주소를 익명으로 다시 그린다. 공개 화면 안의 보호 액션(팔로우, 선물 수락)이 세션을 잃은 경우도 이쪽이다 |
+| 로그아웃 | `authApi` 로그아웃 → `onSessionLost`와 같은 정리 후 `location.assign('/')`. 진행 중인 변경이 있으면(`useIsMutating() > 0`) 버튼을 비활성으로 둔다 — 하드 이동이 진행 중인 POST(주문 생성 등)를 끊지 않게 |
+| 뒤로가기 캐시(bfcache) | 루트의 `pageshow` 핸들러가 `event.persisted`이고 `dd:hadSession`이 페이지 로드 때와 다르면 `location.reload()`한다. 로그아웃 뒤 뒤로가기로 이전 사용자 화면이 복원되는 것을 막는다(대상이 되는지는 미확인) |
+| 로그인 콜백 | `USER_403_1` → "이용이 제한된 계정이에요" 안내. `AUTH_400_1`(OAuth `state` 불일치) → 로그인을 처음부터 다시 시작 |
 
-- **소유**: `src/api`는 `ApiError`만 던지고 주입 지점 `setAuthHandlers({ refresh, onSessionLost })` 하나를 연다. 재발급 호출과 세션 상실 처리(캐시 비우기, 이동)는 `features/shared/auth`가 등록한다. `src/api`는 `features`도 라우터도 import하지 않는다(§8).
-- 게이트가 세션 확정 전에 children을 그리지 않으므로, 보호 화면의 쿼리가 게이트보다 먼저 나가 `/login/expired`로 가는 경합이 없다.
+- **소유**: `src/api`는 `ApiError`만 던지고 주입 지점 `setAuthHandlers({ refresh, onSessionLost })` 하나를 연다(`client.ts`의 401 가로채기가 부른다). 재발급 호출(`authApi`)과 세션 상실 처리(캐시 비우기, 플래그, 이동)는 `features/shared/auth`가 등록한다. `src/api`는 `features`도 라우터도 import하지 않는다(§8).
+- 게이트가 세션 확정 전에 children을 그리지 않으므로, 보호 화면의 쿼리가 게이트보다 먼저 나가는 경합이 없다.
 - `redirect` 파라미터는 같은 origin의 상대 경로일 때만 따른다.
 - **백엔드 코드로 확인(2026-10-14)**: 토큰이 없으면 HTTP 401 + `AUTH_403_2`(본문 `status`는 403), 만료 토큰은 401 `AUTH_401_1`, 잘못된 토큰은 401 `GLOBAL_401_1`이다. 쿠키 만료 = 토큰 수명이라 실제로는 `AUTH_403_2`가 가장 흔하다. 그래서 분기는 코드가 아니라 HTTP 상태로 한다. 재발급 실패는 HTTP 403 `AUTH_403_1`이고 백엔드가 쿠키를 지우지 않는다 — 세션 상실 처리는 FE가 한다(api-contract §1·§9).
+- **Origin 검사는 이미 들어가 있다**(#763, `CookieOriginFilter`). 기본은 report-only이고, 켜지면 쿠키 인증 + POST·PUT·PATCH·DELETE + Origin·Referer가 허용 목록 밖일 때 403 `AUTH_403_3`이다(재발급·로그아웃 제외). 같은 출처 fetch는 Origin을 보내므로 정상 흐름에서는 생기지 않는다. #776은 이것을 켜는 것과 HttpOnly 전환이다.
 - 로컬·dev 프로필의 쿠키는 `SameSite=None`, 스테이징은 host-only·`Lax`, 운영은 `.dudoong.com`·`Strict`다. CORS 허용 출처는 운영 `https://dudoong.com`, 스테이징 `https://staging.dudoong.com`·localhost다.
 - **확인 필요**: 운영 쿠키가 `SameSite=Strict`다. 다른 사이트에서 넘어온 첫 요청(카카오 로그인 복귀 등)에는 쿠키가 안 실릴 수 있다. 서버에서 로그인 여부로 분기하는 곳을 최소로 두는 이유이기도 하다.
 
@@ -355,9 +368,11 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 
 | 경우 | 방법 |
 |---|---|
-| 주소로 여는 오버레이(`?order={orderUuid}` 주문 상세) | `overlay.open`을 쓰지 않는다. 페이지가 쿼리 값을 보고 선언적으로 렌더하고, 닫기는 `router.replace`로 쿼리를 지운다. 뒤로가기·알림 진입이 저절로 맞는다 |
+| 주소로 여는 오버레이(`?order={orderUuid}` 주문 상세) | `overlay.open`을 쓰지 않는다. 페이지가 쿼리 값을 보고 선언적으로 렌더한다. **열기**: 화면 안에서 열 때는 `router.push`로 쿼리를 더하고 history state에 "앱이 열었다"를 표시한다. **닫기**: 표시가 있으면 `router.back()`, 없으면(알림·새로고침·외부 링크로 진입) `router.replace`로 그 쿼리만 지운다. 다른 쿼리(`?tab=`)는 보존한다. push로 열고 replace로 닫으면 같은 목록이 히스토리에 두 번 남아 뒤로가기 한 번이 헛돈다 |
 | 데이터를 읽는 오버레이 | 루트 `OverlayProvider`에서 렌더되어 라우트의 Suspense·`error.tsx` 밖이다. 안에 `<AsyncBoundary>`를 둔다 |
-| 경로 이동 | 경로가 바뀌면 `overlay.unmountAll()`을 호출한다(열린 오버레이가 다음 화면에 남지 않게) |
+| 경로 이동 | 경로가 바뀌면 `overlay.unmountAll()`을 부른다. 이 일을 하는 `<OverlayRouteReset />`은 children을 감싸지 않는 말단 컴포넌트로 루트 Provider 옆에 두고, 자체 `<Suspense fallback={null}>`로 감싼다(§3 "경로를 읽는 컴포넌트") |
+| 바텀시트가 열린 채 뒤로가기(모바일) | 뒤로가기 = 시트 닫기로 할지 P2에서 정한다. 정하기 전까지는 경로 이동으로 처리되어 `unmountAll`로 닫힌다 |
+| `EasyOverlay`의 변경 실패 | 오버레이를 유지하고 전역 토스트에 맡긴다. 문구가 다를 때만 `meta.handledCodes`로 화면이 처리한다(§4) |
 
 다단계 플로우 라이브러리는 두지 않는다. 공연 만들기 2단계(P11)는 `?step=` 쿼리 + 지역 상태로 만든다. 체크아웃은 한 화면 안의 섹션이고, 선물 보내기는 바텀시트 2장이다.
 
@@ -446,13 +461,15 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 
 ## 12. 환경변수
 
-서버 전용(`env/server.ts`)과 공개(`env/client.ts`)를 파일로 나누고 zod로 검증한다. `NEXT_PUBLIC_*`는 리터럴로 하나씩 참조한다(객체 스프레드는 인라인되지 않는다).
+검증 장치를 늘리지 않는다. 빌드 때 꼭 있어야 하는 값 하나만 zod로 검증한다(`env/client.ts`). `NEXT_PUBLIC_*`는 리터럴로 하나씩 참조한다(객체 스프레드는 인라인되지 않는다).
 
 | 값 | 이름 | 언제 정해지나 | 검증 |
 |---|---|---|---|
 | 카카오 JS 키 | `NEXT_PUBLIC_KAKAO_JS_KEY` | 빌드(인라인) | 빌드 때 — `next.config.ts`가 `env/client.ts`를 import해 누락 시 빌드 실패 |
-| 서버 내부용 API 주소 | `API_INTERNAL_URL`(기본 `http://localhost:8080/api/v2`) | 런타임 | 서버 시작 때 — `instrumentation.ts`의 `register()`에서. Docker 빌드 스테이지에는 이 값이 없다 |
+| 서버 내부용 API 주소 | `API_INTERNAL_URL` | 런타임 | 없음. `src/api/http.ts`의 서버 분기가 **호출할 때** `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`를 읽는다(모듈 최상위에서 읽지 않는다). 기본값이 운영·스테이징 값과 같아 보통 비워 둔다. 바꿀 때는 compose의 `environment:`로 준다 |
 
+- `instrumentation.ts`와 `env/server.ts`는 두지 않는다. 기본값이 있는 값에 "누락 시 기동 실패"는 의미가 없고, `http.ts`가 서버 전용 모듈을 import하면 브라우저 번들에 섞이거나 `server-only`로 빌드가 깨진다(1회차 설계를 2회차에서 되돌렸다).
+- `next.config.ts`가 `env/client.ts`를 import하므로 `next dev`·`next typegen`(CI)에서도 카카오 키가 필요할 수 있다(미확인). `.env.example`과 CI 변수에 적어 둔다.
 - 브라우저용 API 주소는 상대 경로 `/api/v2`(인증은 `/api/v1/auth`)라 값이 필요 없다. 토스페이먼츠 키는 없다.
 - 사이트 origin은 값으로 두지 않는다. 브라우저는 `location.origin`, 서버는 요청의 `Host` 헤더로 만든다.
 - 환경마다 다른 값은 이미지에 넣지 않는다 — 스테이징과 운영이 같은 이미지를 쓴다([`deploy-plan.md`](./deploy-plan.md) §4).
@@ -462,11 +479,11 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 
 - 라우트별 `error.tsx` + 루트 `global-error.tsx`. 금전 경로(체크아웃)에는 맥락 있는 문구의 경계를 따로 둔다.
-- `QueryCache`/`MutationCache`의 `onError`에서 구조화 로그 + 명령형 `toast()`(훅이 아니다). 화면이 직접 처리하면 `meta: { handled: true }`로 끈다. 화면을 대체해야 하는 실패만 `throwOnError`.
+- `QueryCache`/`MutationCache`의 `onError`에서 구조화 로그 + 명령형 `toast()`(훅이 아니다). 토스트 조건은 §4 QueryClient 표: 조회는 배경 재조회 실패일 때만, 변경은 `meta.handled`·`meta.handledCodes`에 없을 때만, 세션 상실로 이어진 401·403은 띄우지 않는다. 화면을 대체해야 하는 실패만 `throwOnError`.
 - `serverQuery`는 구조화 JSON을 stdout에 남긴다. 계좌번호·입금자명·토큰은 넣지 않는다. **경로는 라우트 패턴으로 남긴다**(`gifts/:token`, `check-in?token=:token`) — 선물·체크인 토큰이 경로와 쿼리에 실린다.
 - nginx 접근 로그는 쿼리스트링을 지우고 경로까지 남긴다(Deploy `nginx.conf`). 경로에 있는 `giftToken`은 남는다 — 로그 보존 기간과 접근 권한은 P14 보안 항목에서 본다.
 
-**포기한 것**: 프로덕션 장애의 실시간 알림. 필요해지면 `onError`와 `instrumentation`에 연결만 추가하면 된다.
+**포기한 것**: 프로덕션 장애의 실시간 알림. 필요해지면 `onError`에 연결만 추가하면 된다.
 
 ## 14. 반응형
 
@@ -720,7 +737,7 @@ Next 16.4.0 · React 19.3 · standalone 빌드 · 모의 백엔드로 두 구성
 - `htmlLimitedBots: /.*/`(모든 UA에 스트리밍 메타데이터 끄기)를 넣고 빌드 산출물에 반영된 것까지 확인했는데, 목록 밖 UA의 첫 요청 결과가 바뀌지 않았다. 다른 사용자들은 효과가 있다고 보고한다(vercel/next.js #79313). 원인 미확인. 카카오는 기본 목록으로 해결되므로 이 설정에 의존하지 않는다.
 - `notFound()`가 크롤러 UA에 HTTP 200으로 나갔다. 브라우저 UA는 404.
 
-**독립 검토의 지적 중 설계에 반영한 것**: 시간 의존 필드 때문에 TTL 병행(§4), 등록 시점 무효화(§4), 무효화 엔드포인트 인증(§4), `proxy.ts` 범위 축소(§4), 서버 조회에 쿠키 금지(§4), 다중 인스턴스 캐시 핸들러(§4), `SameSite=Strict` 확인(§4).
+**독립 검토의 지적 중 설계에 반영한 것**: 시간 의존 필드 때문에 TTL 병행, 등록 시점 무효화, 무효화 엔드포인트 인증, 다중 인스턴스 캐시 핸들러 *(서버 캐시 폐기로 무효, §2)*, `proxy.ts` 범위 축소 *(`proxy.ts` 자체를 두지 않기로 해 무효, §4)*, 서버 조회에 쿠키 금지(§4), `SameSite=Strict` 확인(§4).
 
 ## 22. 조사 결과 (2026-10-12)
 
@@ -1024,7 +1041,7 @@ nginx 경로 분기(`nginx/site.conf`):
 | 오버레이 규칙(주소 연동은 선언적, 내부 `AsyncBoundary`, 이동 시 `unmountAll`) | §5 |
 | `@suspensive/react-query` 제거 → `<AsyncBoundary>` | §15 |
 | 장소 입력(우편번호 + 카카오 Geocoder) 추가, "지도 제외" 범위를 관객 상세로 좁힘 | §15 |
-| env — 빌드 검증은 카카오 키만, 서버 값은 `instrumentation.ts`에서, 이름 `API_INTERNAL_URL`, `api`/`authApi` | §4, §12 |
+| env — 빌드 검증은 카카오 키만, 서버 값은 `instrumentation.ts`에서(2회차에서 없앰, §28), 이름 `API_INTERNAL_URL`, `api`/`authApi` | §4, §12 |
 | `isomorphic-dompurify`(jsdom) 메모리 측정, 대안 `sanitize-html` | §17 |
 | §2 안의 404 서술 모순 정리, P0 확인 표(Suspense × UA × 404/5xx) | §2 |
 | 서버 캐시·인스턴스 여럿 전제, `cache: 'no-store'`, `SerializedStyles`, §16 결론의 `@dnd-kit` 잔재 정리 | 요구사항, §16, §20, §24 |
@@ -1035,9 +1052,49 @@ nginx 경로 분기(`nginx/site.conf`):
 |---|---|
 | 카카오 UA가 Next 내장 봇 목록에 걸리는 것 | 팀 스파이크 기록뿐. P5b 카카오 공유 디버거 |
 | 켠 구성에서 Suspense 없이도 브라우저가 200인 이유 | 문서에 설명 없음. P0 표 |
-| TanStack `hydrate`가 캐시의 더 오래된 쿼리를 덮어쓰는 조건 | viewer 분리로 영향은 막았다. P0에서 확인 |
 | `@vanilla-extract/next-plugin`의 `unstable_turbopack: { mode: 'auto' }` 옵션 이름 | §22 스파이크에서 썼으나 공식 문서로는 미확인. P0에서 설치 버전 README로 확인 |
 | `useSuspenseQuery`가 클라이언트 조회 화면에서 서버 호출을 일으키는지 | P0(§3) |
+
+2회차에서 확인: TanStack `HydrationBoundary`는 캐시에 이미 있는 쿼리를 **dehydrate된 `dataUpdatedAt`이 더 새로울 때만**, 렌더 뒤 effect에서 덮어쓴다([소스](https://github.com/TanStack/query/blob/main/packages/react-query/src/HydrationBoundary.tsx)). 다시 들어올 때 서버가 새로 받은 익명 값이 캐시의 인증 값보다 새로우므로 덮어쓴다 — viewer 분리가 실제로 필요하다. 401 코드는 백엔드 코드로 확인했다(§4).
+
+## 28. 검토 2회차 (2026-10-15)
+
+1회차에서 새로 쓴 설계를 다시 검토했다. 이 문서에서 바꾼 것:
+
+| 바꾼 것 | 위치 |
+|---|---|
+| 세션 상실의 기준과 이동 — 재발급 응답이 401·403일 때만 세션 상실(5xx·네트워크는 일시 오류로 세션 유지), `onSessionLost`는 보호 화면이면 `/login/expired`, 공개 화면이면 같은 주소를 익명으로 `reload` | §4 인증 |
+| `dd:hadSession` 플래그 — 익명 방문자의 GM-1은 재발급을 시도하지 않음, `/login`과 `/login/expired`를 가름. 세션 쿼리 `staleTime` 5분 | §4 |
+| 탭 간 재발급 확인을 `dd:refreshedAt` 비교로 단순화(잠금 안에서 원래 요청을 재시도하지 않음), 재발급 타임아웃 10초 | §4 |
+| `authApi`에는 401 가로채기 없음(Web Locks 재진입 교착 방지). 로그인 콜백의 `USER_403_1`·`AUTH_400_1` 처리 | §4 |
+| `{ public: true }`는 항상 `credentials: 'omit'` | §4 |
+| 로그아웃은 진행 중 변경이 있으면 비활성, `pageshow` bfcache 재검사 | §4 |
+| 경로를 읽는 컴포넌트는 children을 감싸지 않는 말단 + 자체 Suspense, `<OverlayRouteReset />` | §3, §5 |
+| 게이트 없는 `(app)` 화면은 `useQuery`만 | §3 |
+| `/hosting/events/[eventId]` 리다이렉트는 `redirects()`로, 공연 어드민 사이드메뉴는 `hosting/events/[eventId]/layout.tsx` | §3 |
+| 토스트 — 조회는 배경 재조회 실패만, 변경은 `meta.handledCodes`, 세션 상실은 토스트 없음 | §4, §13 |
+| 주소로 여는 오버레이 — push로 열고 연 주체에 따라 back/replace로 닫음, 다른 쿼리 보존 | §5 |
+| viewer 표에 "확정 전 대기 영역"(선물 랜딩은 상태 영역 전체 스켈레톤), 공개 키 무효화 | §4 |
+| `<Prefetch>`가 `infiniteQueries`도 받음, queryKey 순서(리소스 → viewer → infinite → 파라미터) | §4 |
+| zod 열린 enum은 `.catch` + `UNKNOWN` 한 가지 | §4 |
+| `<AsyncBoundary>`에 `QueryErrorResetBoundary` 포함 | §4 |
+| `client.ts`(ky·래퍼 해제·401) / `http.ts`(`api`·`authApi`) 역할 정리 | §4 |
+| env — `instrumentation.ts`·`env/server.ts` 제거, `http.ts`가 호출할 때 읽음 | §12 |
+| Origin 검사(#763)는 이미 report-only로 들어가 있음 | §4 |
+| §21 끝의 캐시 설계 항목을 무효로 표시 | §21 |
+
+여전히 확인하지 못한 것:
+
+| 항목 | 확인 방법 |
+|---|---|
+| `useLinkStatus`의 실제 동작 | P5a |
+| `instant = false` 라우트로 가는 `<Link>` 프리페치가 백엔드를 부르는지 | P0(§3) |
+| 헤더의 형제 Suspense가 `(public)` 상태 코드에 영향을 주는지 | P0 상태 코드 표(§2) |
+| `useSuspenseQuery`가 빌드·서버 렌더에서 실행되는지 | P0(§3) |
+| 백엔드 JWT 필터가 재발급 엔드포인트 앞에서 401을 내는지(잘못된 액세스 쿠키가 실렸을 때) | 백엔드 코드 또는 P4b |
+| `next typegen`·`next dev`가 `next.config.ts`를 로드해 카카오 키를 요구하는지 | P0 |
+| 정적 셸 경로가 bfcache 대상이 되는지 | P4b |
+| GH-3에 팔로워 수 같은 공개 필드가 있는지(팔로우 뒤 공개 키 무효화 필요 여부) | P5c, Swagger |
 
 ## 핵심 결정 요약
 
@@ -1046,15 +1103,15 @@ nginx 경로 분기(`nginx/site.conf`):
 | 1. 앱 구조 | 단일 Next 앱, 모노레포·패키지 없음 | 런타임이 같아졌고 관객·호스트에 걸친 화면이 많다 |
 | 2. 라우터 | App Router, Cache Components 켬(기본값), 서버 캐시 없음 | emotion을 버리면 Pages Router를 고를 이유가 없다. 트래픽상 캐시의 이득이 없고 따라오는 복잡도가 크다 |
 | 3. 렌더 | `(audience)` 공통 헤더 아래 `(public)`(서버 조회, Suspense 없음) / `(app)`(클라이언트 조회, 그 안의 `(protected)`에 게이트), `hosting` | 서버 조회가 필요한 화면이 4개뿐. 크롤러에 404를 지키려면 Suspense 밖이어야 한다(켠 구성의 브라우저는 200, P0에서 표로 재확인) |
-| 4. 데이터 | `queryOptions` 한 벌을 서버(`<Prefetch>`)와 브라우저가 공유. 사용자별 값은 viewer 쿼리로 분리. `api`·`authApi`. 서버 컴포넌트는 라우트 파일만 | 서버에서 도는 조회에는 토큰이 붙지 않는다 |
-| 4-b. 인증 | v1 OAuth, JS로 쿠키 안 읽음, 401이면 코드 무관 재발급(탭 간 Web Locks), 게이트만 이동. `proxy.ts` 없음 | 운영 쿠키가 `SameSite=Strict`라 서버 게이트가 외부 링크 진입을 잘못 막는다 |
+| 4. 데이터 | `queryOptions` 한 벌을 서버(`<Prefetch>`, 무한 목록 포함)와 브라우저가 공유. 사용자별 값은 viewer 쿼리로 분리. `api`·`authApi`. 응답 enum은 `.catch` → `UNKNOWN`. 서버 컴포넌트는 라우트 파일만 | 서버에서 도는 조회에는 토큰이 붙지 않는다. 같은 키에 두면 익명 값이 인증 값을 덮는다 |
+| 4-b. 인증 | v1 OAuth, JS로 쿠키 안 읽음, 401이면 코드 무관 재발급(탭 간 Web Locks, `authApi`는 가로채기 없음). 재발급이 401·403일 때만 세션 상실 — 보호 화면은 `/login/expired`, 공개 화면은 익명으로 다시 그림. `dd:hadSession`으로 익명 방문자의 재발급 생략. `proxy.ts` 없음 | 운영 쿠키가 `SameSite=Strict`라 서버 게이트가 외부 링크 진입을 잘못 막는다. 배포 중 502로 로그인 사용자가 튕기지 않게 |
 | 5. 상태 | 전역 상태 라이브러리 없음 | v1 전역 상태는 전부 서버 상태·오버레이·지역 상태였다 |
 | 6. 스타일 | vanilla-extract(+ recipes, sprinkles) | 제로 런타임, 서버 컴포넌트 동작, 토큰 타입 검사, emotion과 가까운 작성 방식 |
 | 7. 폼 | react-hook-form + zod | |
 | 8. 계층 | `app → features → ui → api → utils`, eslint 강제 | 패키지 경계를 폴더 경계로 대체 |
 | 10. 테스트 | Vitest + Storybook + agent-browser + 크롤러 계약 스크립트 | CI E2E 없음 |
 | 11. 배포 | Dockerfile 하나, standalone. 서버 1대의 docker-compose에 v1 front·admin 대신 들어간다 | API는 같은 출처(`/api`) |
-| 13. 에러 | 외부 수집 없음, 구조화 로그 | |
+| 13. 에러 | 외부 수집 없음, 구조화 로그. 토스트는 배경 재조회 실패·처리 안 한 변경 실패만(`meta.handledCodes`) | 에러 화면과 토스트가 겹치지 않게 |
 | 14. 반응형 | sprinkles 조건부 값, 같은 DOM 원칙 | |
 | 16. 라이브러리 교체 | `antd`→TanStack Table, `react-qr-reader`→`@yudiel/react-qr-scanner`, `react-spring-bottom-sheet`→`vaul`. `react-beautiful-dnd`는 대체 없이 제거 | 옵션은 id 순 고정이라 드래그 UI가 없다 |
 | 17. 에디터 | Tiptap, 섹션 1~10개, 뷰어는 HTML·MARKDOWN 렌더러 + sanitize | |

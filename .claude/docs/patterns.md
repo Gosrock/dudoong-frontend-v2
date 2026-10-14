@@ -1,6 +1,6 @@
 # DuDoong-Front v2 — 구현 패턴
 
-> 2026-10-14 개정. §1~§3(반응형 · 텍스트 · 레이아웃)은 vanilla-extract 기준이다. §4~§10(조회 · API 클라이언트 · 오버레이 · 계층 · 네이밍)은 tossinsu-desktop 인용을 지우고 DuDoong 규칙만 남겼다. §11 이후는 화면 패턴, §24는 화면별 에러 처리다.
+> 2026-10-14 개정. §1~§3(반응형 · 텍스트 · 레이아웃)은 vanilla-extract 기준이다. §4~§10(조회 · API 클라이언트 · 오버레이 · 계층 · 네이밍)은 tossinsu-desktop 인용을 지우고 DuDoong 규칙만 남겼다. §11 이후는 화면 패턴, §24는 화면별 에러 처리다. 2026-10-15 검토 2회차: 세션 상실·에러 토스트·URL 오버레이·zod enum 규칙을 확정하고 §24를 기획서 표 기준으로 채웠다.
 > 근거 문서: [`tech-decisions.md`](./tech-decisions.md), [`plan.md`](./plan.md), [`directory-structure.md`](./directory-structure.md), [`api-contract.md`](./api-contract.md)
 
 ---
@@ -182,7 +182,7 @@ export const addHostMembersMutation = (hostId: string) =>
 ```
 
 - 이름은 `{대상}Query` / `{동작}Mutation`. 도메인 객체로 묶지 않는다.
-- queryKey는 경로를 쪼갠 모양으로 손으로 쓴다. 파라미터는 마지막 원소.
+- queryKey는 경로를 쪼갠 모양으로 손으로 쓴다. `viewer`는 리소스 바로 뒤, `infinite`는 그 뒤, 파라미터는 마지막 원소다. 예: `['hosts', id, 'events', 'viewer', 'infinite', params]`.
 - `mutationOptions`에는 `mutationFn`만. 캐시 반영·토스트·이동은 화면의 `onSuccess`에.
 - 의존값이 없으면 `skipToken`(또는 `useQuery`의 `enabled`). 파생 값은 호출부의 `select` 옵션. 헬퍼를 만들지 않는다.
 - `useQuery(xxxQuery())`를 감싸기만 하는 훅을 만들지 않는다. 여러 쿼리를 합쳐 파생 상태를 만들 때만 훅을 둔다.
@@ -198,13 +198,21 @@ export const addHostMembersMutation = (hostId: string) =>
 | 화면이 읽는 것 | 공개 필드 | 사용자별 필드 |
 
 - 사용자에 따라 달라지는 버튼은 viewer가 확정되거나 익명이 확정된 뒤에만 활성화한다. 그 전에는 비활성 자리표시.
-- 변경의 `setQueryData`·무효화 대상은 viewer 키다.
+- 세션 쿼리(GM-1)가 확정된 뒤 viewer를 부르므로 요청이 직렬이 된다. 받아들인 비용이다.
+- 변경의 `setQueryData`·무효화 대상은 viewer 키다. 공개 키에도 같은 필드가 있으면 공개 키도 `invalidateQueries`한다.
+- 확인 전에 기다리는 영역을 화면마다 정한다.
+
+| 화면 | 공개 값으로 그리는 것 | 세션·viewer가 확정될 때까지 기다리는 것 |
+|---|---|---|
+| 선물 랜딩 | OG, 공연 요약 | 상태 영역 전체(`viewState`·`isReceiver`에 따른 본문과 버튼)를 스켈레톤으로 |
+| 호스트 홈 | 소개, 연락처, 공개 공연 목록 | ♡ 상태, 설정·멤버 버튼, "준비중" 공연 자리(비워 두었다가 멤버일 때 viewer 목록으로 교체) |
 
 ### 4-3. 경계
 
 | 화면 | 규칙 |
 |---|---|
-| `(app)` · `hosting` | 데이터 경계는 `src/ui`의 `<AsyncBoundary>`(Suspense + ErrorBoundary + 재시도) 하나로 감싼다. `@suspensive/react-query`는 쓰지 않는다 |
+| `(protected)` · `hosting` | 데이터 경계는 `src/ui`의 `<AsyncBoundary>`(`QueryErrorResetBoundary` + Suspense + ErrorBoundary + 재시도) 하나로 감싼다. `@suspensive/react-query`는 쓰지 않는다 |
+| 게이트 없는 `(app)` 화면(`/events`, `/login`, `/kakao/callback`) | `useQuery`만 쓴다. 서버 렌더에서 조회가 돌지 않게 한다 |
 | `(public)` | 프리페치한 쿼리만 `useSuspenseQuery`. 프리페치하지 않은 쿼리(GP-5 등)는 `useQuery`. 이 그룹에는 Suspense가 없다 |
 | 오버레이 안 | 루트에서 렌더돼 라우트 경계 밖이다. 데이터를 읽는 오버레이는 안에 `<AsyncBoundary>`를 둔다 |
 
@@ -215,23 +223,38 @@ export const addHostMembersMutation = (hostId: string) =>
 | query `retry` | 5xx·네트워크 오류만 1회 |
 | mutation `retry` | 없음 |
 | 서버 프리페치 쿼리 | `staleTime` 30초 |
-| 조작 화면 · viewer · 세션 쿼리 | `staleTime` 0 |
+| 세션 쿼리(GM-1) | `staleTime` 5분. 로그인·로그아웃·프로필 수정 때 직접 갱신. `refetchOnWindowFocus`는 켠다 |
+| 조작 화면 · viewer 쿼리 | `staleTime` 0 |
+| 무한 목록 프리페치 | `<Prefetch infiniteQueries>` — 첫 페이지만 `fetchInfiniteQuery` |
 | 폼 | RHF `defaultValues`로 한 번만 초기화. 다시 온 쿼리가 편집 중인 값을 덮지 않는다 |
 
+### 4-5. 에러 토스트
+
+| 대상 | 규칙 |
+|---|---|
+| `QueryCache.onError` | `query.state.data !== undefined`일 때(배경 재조회 실패)만 토스트. 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다 |
+| `MutationCache.onError` | `meta.handled`이거나 `meta.handledCodes`에 코드가 있으면 토스트하지 않는다. 그 밖은 `reason` 토스트 |
+| 세션 상실로 끝난 401 | 토스트하지 않는다 |
+
+```ts
+useMutation({ ...createOrderMutation(), meta: { handledCodes: ['Order_400_22', 'Order_400_23'] }, onError: … });
+```
+
+전역 `MutationCache.onError`는 화면의 `onError`보다 **먼저** 실행된다(TanStack `mutation.ts`). 화면이 "이 에러는 처리했다"를 실행 중에 알릴 수 없으므로 처리할 코드를 `meta`에 미리 적는다.
 ---
 
 ## 5. API 클라이언트
 
-`src/api/http.ts`의 ky 인스턴스를 감싼 객체 둘이다.
+`src/api/client.ts`에 ky 인스턴스·래퍼 해제·401 처리를 두고, `src/api/http.ts`가 그 위에 객체 둘을 연다.
 
 | 객체 | 경로 | 기본 주소 |
 |---|---|---|
 | `api` | `/api/v2` | 브라우저는 상대 경로, 서버는 `API_INTERNAL_URL`(`http://localhost:8080/api/v2`) |
-| `authApi` | `/api/v1/auth` | 브라우저 전용(로그인 콜백, 재발급, 로그아웃, 탈퇴) |
+| `authApi` | `/api/v1/auth` | 브라우저 전용(로그인 콜백, 재발급, 로그아웃, 탈퇴). **401 가로채기(재발급·재시도)가 없다** |
 
 ```ts
 // 개념 — 훅(afterResponse)이 아니라 객체 안에서 처리한다(ky 2.x 훅 방식은 스파이크에서 실패, tech-decisions §22)
-const res = await http(path, { throwHttpErrors: false, credentials: 'include', … });   // 공개 GET의 401 재요청만 'omit'
+const res = await http(path, { throwHttpErrors: false, credentials: isPublic ? 'omit' : 'include', … });
 const body = await res.json();
 if (!body.success) throw new ApiError(res.status, body.code, body.reason);   // 상태는 본문이 아니라 HTTP
 return parse(schema, body.data);                                              // zod 정책은 tech-decisions §4
@@ -239,20 +262,31 @@ return parse(schema, body.data);                                              //
 
 - 에러는 `ApiError{status, code, reason}` 하나다. `status`는 **HTTP 상태**다. 본문 `status`와 다른 응답이 있다(토큰 없음 401의 본문은 403, api-contract §1).
 - 화면에서 코드를 꺼낼 때는 `getErrorCode(e: unknown): string | null`. 네트워크 오류·파싱 실패에서도 throw하지 않는다.
+- **응답 enum은 한 가지 방식으로만 연다**: `z.enum([...]).catch((ctx) => { logParseIssue(ctx); return 'UNKNOWN' as const })`. 리터럴 타입이 유지되고, 모르는 값은 경로·issue 경로만 로그로 남긴다(값은 남기지 않는다). 상태·타입을 화면으로 바꾸는 매핑에는 모두 `UNKNOWN` 분기를 둔다. `.or(z.string())`은 쓰지 않는다(타입이 `string`으로 합쳐져 완전성 검사를 잃는다).
 - `src/api`는 리다이렉트도 토스트도 하지 않는다. 던지기만 한다.
+- 서버 쪽 기본 주소는 호출 시점에 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`로 읽는다(모듈 최상위에서 읽지 않는다). `env/server.ts`를 import하지 않으므로 브라우저 번들에 서버 코드가 섞이지 않는다.
 
 ### 5-1. 401 처리
 
 | 상황 | 처리 |
 |---|---|
-| 보호 요청의 401(코드 무관) | 재발급을 한 번 시도 → 성공하면 원 요청 재시도, 실패하면 "세션 없음" |
-| 재발급 | `navigator.locks.request('dudoong-auth-refresh')`로 탭 간 직렬화. 잠금을 얻으면 원 요청을 먼저 다시 보내 다른 탭이 이미 갱신했는지 본다. 그래도 401이면 재발급. Web Locks가 없으면 탭 안 single-flight만 |
-| 세션 쿼리(GM-1)의 최종 401 | throw하지 않고 `null`(익명)로 끝난다 |
-| 공개 GET(`{ public: true }`)의 401 | `credentials: 'omit'`로 한 번 다시 요청 |
-| 리다이렉트 | `api`가 아니라 로그인 게이트만 한다. `/login/expired`는 직전에 세션이 있었을 때만 |
-| 세션 있음 → 없음, 로그아웃 | `queryClient.clear()` 후 `location.assign()`(하드 이동) |
+| 보호 요청의 401(코드 무관) | 재발급을 한 번 시도 → 성공하면 원 요청 재시도 |
+| 재발급 직렬화 | `navigator.locks.request('dudoong-auth-refresh')`로 탭 간 직렬화. 잠금 안에서 `localStorage`의 `dd:refreshedAt`이 원 요청을 보낸 시각보다 뒤면 다른 탭이 이미 갱신한 것이므로 재발급 없이 원 요청만 다시 보낸다. 아니면 `authApi`로 재발급을 한 번(타임아웃 명시) 부르고, 성공하면 `dd:refreshedAt`을 기록한다. Web Locks가 없으면 탭 안 single-flight만 |
+| 재발급 결과 | 2xx = 성공. **HTTP 401·403(`AUTH_403_1`, 정지·탈퇴 `USER_403_1` 포함) = 세션 상실.** 5xx·네트워크 오류 = 일시 오류 — 원 요청의 에러로 던지고 세션은 유지한다(백엔드 재기동 중 전원 로그아웃 방지) |
+| 세션 쿼리(GM-1)의 401 | `dd:hadSession`이 없으면 재발급 없이 바로 `null`(익명). 있으면 위 순서를 거쳐 실패 시 `null`. throw하지 않는다 |
+| 공개 GET(`{ public: true }`) | 항상 `credentials: 'omit'`. 401이 올 일이 없다 |
+| `authApi` | 401 가로채기 없음. 잠금 안에서 재발급을 부르므로 같은 잠금을 다시 요청하는 교착이 생기지 않는다 |
+| 로그인 콜백 | `USER_403_1` → "이용이 제한된 계정이에요" 안내, `AUTH_400_1`(OAuth `state` 불일치) → 로그인 다시 시작 |
 
-재발급과 "세션 없음" 통지는 `src/api`가 `setAuthHandlers({ refresh, onSessionLost })`로 주입받는다. 등록은 `features/shared/auth`가 한다. 그래서 `src/api`가 `features`나 라우터를 import하지 않는다.
+**세션 상실(`onSessionLost`)이 하는 일** — 순서대로:
+
+1. `queryClient.clear()`
+2. `localStorage`의 `dd:hadSession` 제거
+3. 현재 위치에 따라 이동: `(protected)` 또는 `/hosting` 아래면 `location.assign('/login/expired?redirect=' + 현재경로)`, 그 밖(공개 화면·`/events`·`/login`)이면 `location.reload()` — 같은 주소에서 익명으로 다시 그린다
+
+- `dd:hadSession`은 로그인 성공·GM-1 성공 때 세우고 세션 상실·로그아웃 때 지운다. 같은 플래그로 `/login/expired`(있었음)와 `/login`(없었음)을 가른다. 저장소 접근이 실패하면 플래그 없음으로 본다.
+- 이동은 `src/api`가 하지 않는다. `src/api`는 `setAuthHandlers({ refresh, onSessionLost })`로 주입받고, 등록은 `features/shared/auth`가 한다. 그래서 `src/api`가 `features`나 라우터를 import하지 않는다. 로그인 게이트는 `(protected)`·`hosting` 레이아웃에서 세션이 `null`이면 `/login?redirect=…`로 보낸다.
+- 로그아웃 버튼은 `useIsMutating() > 0`이면 비활성이다. 루트에 `pageshow` 핸들러를 두고, `event.persisted`이면서 세션 플래그가 페이지 로드 때와 다르면 `location.reload()`한다(로그아웃 뒤 뒤로가기로 이전 사용자 화면이 복원되는 것 방지).
 
 ### 5-2. 로그
 
@@ -263,9 +297,14 @@ return parse(schema, body.data);                                              //
 ## 6. 오버레이 — `overlay-kit`
 
 - 확인·시트·모달은 `overlay-kit` 하나로 연다. `window.confirm()`을 쓰지 않는다.
-- **"확인 누르면 서버 호출 후 닫힘"은 `src/ui`의 `EasyOverlay`로 쓴다.** `onConfirm`(Promise)이 도는 동안 버튼을 잠그고, 성공하면 닫고, 실패하면 오버레이를 유지한다. 실패 토스트는 화면이 띄우고 그 mutation에 `meta: { handled: true }`를 준다. 1차 소비처는 P13a(승인·거절·취소·환불 완료)와 P8b(선물 보내기·회수·반환·거절).
-- **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다. 닫기 = `router.replace`(쿼리 제거). 뒤로가기·새로고침·알림 진입이 저절로 맞는다.
-- 경로가 바뀌면 `overlay.unmountAll()`을 호출한다(루트 레이아웃의 경로 감시 한 곳). 열린 오버레이가 다른 화면에 남지 않는다.
+- **"확인 누르면 서버 호출 후 닫힘"은 `src/ui`의 `EasyOverlay`로 쓴다.** `onConfirm`(Promise)이 도는 동안 버튼을 잠그고, 성공하면 닫고, 실패하면 오버레이를 유지한다. 실패 토스트는 기본적으로 전역 토스트(§4-5)에 맡긴다. 문구를 화면이 따로 정해야 하는 코드만 `meta.handledCodes`에 넣고 화면이 처리한다. 1차 소비처는 P13a(승인·거절·취소·환불 완료)와 P8b(선물 보내기·회수·반환·거절).
+- **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다.
+  - 화면 안에서 열 때: `router.push(?order=…)`, history state에 "앱이 열었다"는 표시를 남긴다.
+  - 닫을 때: 표시가 있으면 `router.back()`, 없으면(알림·새로고침·공유 링크로 진입) `router.replace`로 그 파라미터만 지운다. 다른 쿼리(`?tab=`)는 남긴다.
+  - 열린 상태의 뒤로가기는 모달을 닫는다. 닫은 뒤 뒤로가기가 헛돌지 않는다.
+- 경로가 바뀌면 `overlay.unmountAll()`을 호출한다. 이 감시는 루트 `Providers`의 children을 감싸지 않는 말단 컴포넌트 `<OverlayRouteReset />`이 하고, 형제 위치의 `<Suspense fallback={null}>` 안에 둔다.
+- **`usePathname`·`useSearchParams`를 쓰는 컴포넌트는 children을 감싸지 않는 말단으로 두고 자체 `<Suspense fallback={null}>`로 감싼다.** Cache Components에서 이 훅은 `generateStaticParams`가 없는 동적 경로에서 suspend하고, Suspense가 없으면 빌드가 실패한다. children을 감싸는 위치에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404 상태 코드가 깨진다(tech-decisions §2).
+- 바텀시트가 열린 채 모바일 뒤로가기를 누르면 화면이 이동하고 시트는 `unmountAll`로 닫힌다. "뒤로가기 = 시트 닫기"로 할지는 P2에서 정한다.
 
 ---
 
@@ -338,7 +377,7 @@ src/app → src/features → src/ui → src/api → src/utils
 | 화면 문구는 `code`로 분기하고 `reason`은 폴백으로만 쓴다 | `reason`은 서버 문장이라 화면 맥락과 안 맞을 수 있다 |
 | 403은 HTTP 상태로 먼저 분기한다 | 호스트 권한 실패의 `code`가 `HOST_400_*`라 `code`의 숫자만 보면 400으로 오인한다 |
 | 400 "이미 처리됨" 계열은 최신 상태를 다시 읽는다 | 409가 없다. 승인·거절·취소·선물 전이가 모두 이 패턴 |
-| 공개 GET에서 401이 오면 토큰을 떼고 한 번 더 요청한다(`{ public: true }`, §5-1) | 공개 GET도 만료·잘못된 토큰이 붙으면 401 |
+| 공개 GET은 `{ public: true }`로 쿠키 없이 보낸다(§5-1) | 공개 GET도 만료·잘못된 토큰이 붙으면 401이다. 공개 값은 원래 익명 값이다 |
 | 클라이언트 조회의 403·404는 공용 화면으로 보낸다 | 403 = "권한이 없어요"(호스팅 센터의 다른 호스트 공연 등), 404 = "찾을 수 없어요"(남의 주문 등). 서버 조회의 404는 `notFound()`(§14) |
 | 변경 응답으로 캐시를 바로 채운다(`setQueryData`) | 변경 응답이 "화면을 다시 그릴 값"(수정된 리소스 · 남은 목록)이다 |
 | 날짜는 표시 직전에만 변환한다 | 요청·응답 모두 `yyyy.MM.dd HH:mm` 문자열 |
@@ -364,6 +403,7 @@ infiniteQueryOptions({
 - 알림함(GN-1)은 `totalElements`가 `null`이다. 건수를 쓰는 UI를 만들지 않는다.
 - 페이지 방식이라 스크롤 도중 새 항목이 끼면 중복이 생길 수 있다. 렌더 전에 id로 중복을 제거한다.
 - 필터가 바뀌면 새 queryKey의 첫 페이지부터 읽는다.
+- `(public)`의 무한 목록(호스트 홈 GH-14)은 라우트 파일이 `<Prefetch infiniteQueries={[…]}>`로 첫 페이지만 가져온다. 다음 페이지부터는 브라우저가 읽는다. 멤버용 viewer 목록은 `['hosts', id, 'events', 'viewer', 'infinite', params]`로 따로 둔다(§4-2).
 
 ## 13. P5a — 태그 필터와 검색
 
@@ -481,6 +521,7 @@ useEffect(() => {
 ## 20. P9 — 주문상세 · 취소 · 환불 계좌
 
 - 버튼 노출은 서버 플래그로만: 주문취소 = `canCancel`, 환불 계좌 입구 = `canEditRefundAccount`, 입력 유도 = `refundAccountRequired`.
+- **선물 때문에 취소할 수 없을 때의 안내**: `canCancel=false`이고 `issuedTickets[].giftState`에 선물 대기·선물 완료가 있으면 [주문취소] 자리에 "선물을 먼저 취소하거나 돌려받아 주세요"를 보인다. 이 경우 버튼이 처음부터 숨어 `Order_400_24`가 오지 않으므로, 안내가 없으면 사용자가 이유를 알 수 없다.
 - 사용자 주문 상태 5종 × `refundStatus` 3종을 한 매핑에서 라벨로 바꾼다.
 - 유료 취소는 환불 계좌 시트가 필수(`Order_400_25`), 무료는 확인만.
 - 본인 환불 계좌는 `maskedAccountNumber`로만 온다. 수정 화면은 전체를 다시 입력받는다.
@@ -488,7 +529,7 @@ useEffect(() => {
 - 입금 미확인 거절(`DEPOSIT_UNCONFIRMED`)은 `refundAccountRequired=false`라 입력을 유도하지 않는다. 입구(`canEditRefundAccount`)는 그대로 둔다.
 - 거절 사유: `reasonType`별 고정 문구는 프론트가 가진다. `ETC`만 호스트가 쓴 `reasonText`.
 - 옵션 표시: `lines`가 1개면 "모든 티켓에 같은 옵션", 여러 개면 티켓별. 선물 상태는 `issuedTickets[]`에서 읽는다.
-- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다.
+- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다(`useQuery`, 시트를 열 때). 시트 컴포넌트는 공연 상세(P5b)와 같은 것을 쓴다.
 
 ## 21. P9b · P10a — 알림
 
@@ -523,8 +564,11 @@ useEffect(() => {
 - 이미지: 발급(분당 30회 제한) → S3 PUT → 폼 값에 `key` 보관 → 저장 API에 `key`. 저장 전에는 서버에 반영되지 않는다. 발급된 URL은 3분 유효라 고른 직후 올린다. PUT이 실패하면 발급부터 다시 한다.
 - 장소: "주소 찾기"(다음 우편번호) → 고른 주소를 카카오맵 `services.Geocoder`로 좌표 변환 → `place{name, address, latitude, longitude, detailAddress}`. 좌표를 못 얻으면 저장하지 않고 다른 주소를 고르게 한다.
 - 옵션 설명은 필수다(서버 `@NotBlank`).
+- **옵션 응답 형식은 만든 뒤 바꿀 수 없다.** 수정 요청(P10/O-3)에 `type` 필드가 없다. Figma 수정 화면(`424:10517`)은 형식 버튼이 편집 가능하게 그려져 있지만 수정 화면에서는 읽기 전용으로 그린다.
+- 옵션 삭제(D10/O-4)의 입구가 Figma 옵션 상세(`424:10455`)에 없다. 디자인이 오기 전까지 상세 모달 하단에 [삭제]를 둔다(잠긴 옵션이면 숨김).
+- **공연 등록(PE-8) 뒤**: 응답이 `{eventId, status, displayStatus}`뿐이라 `setQueryData`로 화면을 채울 수 없다. GE-3(사이드메뉴 항목)·GE-1(공연준비 홈)·GE-7을 무효화하고, 대시보드를 등록 후 모드(GD-1)로 바꾼 뒤 "공연이 등록되었습니다." 토스트(`424:11427`).
 - 미저장 이탈: 변경이 있으면 메뉴 이동·뒤로가기에서 확인(`503:22904`).
-- 승인 실패(PR-3): 에러를 보여 주고 주문은 승인 대기로 남는다는 것과 거절로 정리하는 길을 함께 안내한다.
+- 승인 실패(PR-3): 에러를 보여 주고 주문은 승인 대기로 남는다는 것과 거절로 정리하는 길을 함께 안내한다. 코드별 문구는 §24 P13a 행.
 - 엑셀: 응답이 래퍼 없는 xlsx다. blob으로 받아 저장한다. JSON 파서를 태우지 않는다.
 
 ## 24. 화면별 에러 처리
@@ -533,18 +577,32 @@ useEffect(() => {
 
 | Phase | 화면 | 코드 | 처리 |
 |---|---|---|---|
+| P4b | 로그인 콜백 | `USER_403_1` | 정지·탈퇴 계정. "이용이 제한된 계정이에요" 안내(재발급에서 오면 세션 상실, §5-1) |
+| P4b | 로그인 콜백 | `AUTH_400_1` | OAuth `state` 불일치·만료. 로그인을 처음부터 다시 시작 |
+| 공통 | 변경 요청 | `AUTH_403_3` | 허용되지 않은 출처. 백엔드가 enforce를 켜야 나고, 같은 출처 fetch는 Origin을 보내므로 정상 흐름에서는 생기지 않는다. 오면 일반 403 화면 |
 | P5a | 공연 리스트 | `Event_400_23` | 없는 태그. GE-11을 다시 받아 필터 초기화(§13) |
 | P7 | 체크아웃 | `Event_400_5` · `Event_400_6` | 오픈 전·시작 후. 구매 버튼 비활성 + 상세로 돌려보냄 |
-| P7 | 체크아웃 | `Order_400_22` | 입금자명 칸 오류 |
+| P7 | 체크아웃 | `Order_400_15` | 승인형 1인 제한(승인 대기 포함). "이미 신청한 주문이 승인될 때까지 기다려 주세요" + 수량 줄이기 |
+| P7 | 체크아웃 | `Ticket_Item_400_6` | 1인 제한(발급 기준). 안내 + 수량 줄이기 |
+| P7 | 체크아웃 | `Ticket_Item_400_1` | 재고 부족(승인 대기 포함). GP-5를 다시 읽어 잔여·상한 갱신 |
+| P7 | 체크아웃 | `Ticket_Item_400_10` · 404 `Ticket_Item_404_1` · `Event_404_1` | 판매 중이 아님 · 다른 공연 티켓 · 비공개 공연. 티켓 선택으로 돌려보냄 |
+| P7 | 체크아웃 | `Order_400_22` · `Order_400_23` | 입금자명 칸 오류 · 옵션 답변 오류(폼 상단 표시, tech-decisions §18) |
+| P7 | 체크아웃 | `Order_400_26` | 같은 무료 선착순 주문 처리 중. "잠시 후 주문내역을 확인해 주세요" + `/orders`로 이동 |
 | P8 | 티켓 상세 | `IssuedTicket_404_1` | 선물로 넘어갔거나 uuid가 바뀜. 티켓탭 목록 다시 읽기(§17) |
 | P8b | 선물 보내기 | `Gift_400_1` | `canGift`로 버튼을 미리 숨긴다. 오면 G11/T-2 다시 읽기 |
 | P8b | 선물 보내기 | `Gift_400_2` | 이미 선물 중. 기존 링크 화면(§18) |
-| P8b | 선물 랜딩 | `Gift_400_4` · `Gift_400_5` · `Gift_400_6` | 각각 `OWN_LINK` · `EXPIRED` · `CANCELED` 화면으로. GG-3을 다시 읽는다 |
+| P8b | 선물 랜딩 | `Gift_400_4` · `Gift_400_5` | 각각 `OWN_LINK` · `EXPIRED` 화면으로. GG-3을 다시 읽는다 |
+| P8b | 선물 랜딩 | `Gift_400_6` | 원 주문·티켓이 정상 아님(방어용). GG-3을 먼저 다시 읽고, 그래도 대기면 `CANCELED`와 같은 화면 |
+| P8b | 수락·거절·회수·메모 | `Gift_400_3` | 이미 처리된 선물(동시 수락, 보낸 사람 회수와 경합). 받는 쪽은 GG-3, 보낸 쪽은 G11/T-2를 다시 읽어 상태 화면으로 |
+| P8b | 메모 | `Gift_400_9` | 메모 50자 초과(앞뒤 공백 제외). 칸 오류 |
+| P8b | 선물 랜딩 | 404 `Gift_404_1` | "선물을 찾을 수 없어요" |
 | P8b | 선물 반환 | `Gift_400_7` | 반환할 수 없는 티켓. G11/T-2 다시 읽기 |
 | P8c | 셀프 체크인 | `Event_400_26` | 잘못된 체크인 QR |
 | P8c | 셀프 체크인 | `Event_400_5` | OPEN이 아닌 공연(정산중 포함). "호스트에게 티켓 QR을 직접 보여 주세요"(§19) |
 | P8c | 셀프 체크인 | `IssuedTicket_400_1` | 같은 공연의 남의 티켓. "내 티켓이 아니에요" |
-| P9 | 주문 취소 | `Order_400_5` · `Order_400_24` | 취소할 수 없는 상태. G11/O-3 다시 읽기(`canCancel`이 꺼진다) |
+| P9 | 주문 취소 | `Order_400_5` | 이미 취소·거절됨. G11/O-3 다시 읽기 |
+| P9 | 주문 취소 | `Order_400_24` | 입장·선물 대기·선물 완료 티켓이 있음. G11/O-3 다시 읽기 + 원인이 선물이면 "선물을 먼저 취소하거나 돌려받아 주세요"(§20). 정상 흐름에서는 `canCancel`로 미리 숨고 같은 문구를 버튼 자리에 보인다 |
+| P9 | 주문 취소 | `Event_400_5` | 공연이 OPEN이 아님. `canCancel`로 미리 숨는다. 오면 G11/O-3 다시 읽기 |
 | P9 | 주문 취소 | `Order_400_9` | 공연 시작 후. [주문취소]는 `canCancel`로 이미 숨는다 |
 | P9 | 주문 취소 | `Order_400_25` | 유료 취소에 환불 계좌 없음. 계좌 시트를 연다 |
 | P9 | 환불 계좌 | `Order_400_27` · `Order_400_28` | 입력할 수 없는 주문 · 이미 환불 완료. G11/O-3 다시 읽기 |
@@ -556,6 +614,12 @@ useEffect(() => {
 | P10b | 멤버 초대 | `HOST_400_13` · `14` · `15` | 미가입 · 중복 · 이미 멤버. 사유의 이메일을 해당 줄에 표시 |
 | P10b | 멤버 초대 | `HOST_400_18` | 같은 이메일 계정이 여럿. "두둥에 문의해 주세요" |
 | P10b | 멤버 관리 | `HOST_404_2` | 이미 없는 멤버. 멤버 목록 다시 읽기 |
+| P11 | 기본 정보 | `Event_400_2` | 시작 ≥ 종료. 일정 칸 오류(FE는 "종료 ≤ 시작이면 다음 날"로 계산하므로 날짜 계산 버그를 의심) |
+| P11 | 기본 정보 | `Event_400_17` | 정산중·지난 공연 수정. 수정 화면을 읽기 전용으로 |
+| P11 | 기본 정보 | `Event_400_18` | 등록 후 티켓 여부 변경. 등록 후에는 토글을 잠근다 |
+| P11 | 기본 정보 | `Event_400_20` · `Event_400_23` | 문의처 형식 · 없는 태그. 해당 칸 오류 |
+| P11 | 기본 정보 | `Event_400_22` | 이 공연에 발급한 포스터 key가 아님. 업로드를 처음부터 |
+| P11 | 공연 삭제 | `Event_400_19` | 준비중이 아닌 공연. 등록 후 카드에는 ⋮ 삭제를 두지 않는다. 오면 목록 다시 읽기 |
 | P11 | 기본 정보 | `Event_400_24` | "등록된 공연은 지금 이후로만 바꿀 수 있어요" |
 | P11 | 상세 정보 | `Event_400_21` | 섹션 형식(1~10개, 제목 20자, 본문 20,000자) |
 | P11 | 공연 등록 | `Event_400_7` | 조건 미충족. GE-7을 다시 읽어 빠진 항목 표시 |
@@ -563,15 +627,25 @@ useEffect(() => {
 | P11 | 기본 정보 | `Event_400_25` | 유효 티켓이 있는데 "티켓 없음"으로 바꾸려 함. 토글 칸 오류 |
 | P12 | 티켓 폼 | `Ticket_Item_400_3` | 가격(두둥 1원 이상, 무료 0원) |
 | P12 | 티켓 폼 | `Ticket_Item_400_12` | 티켓 없음 공연. 추가 버튼을 미리 숨긴다 |
-| P12 | 티켓 폼 | `Ticket_Item_400_15` | 무제한 + 재고 공개. 폼에서 미리 막는다(§23) |
+| P12 | 티켓 폼 | `Ticket_Item_400_15` | 입력 조합 오류 — 무제한 + 재고 공개, 같은 필드에 값과 `clear` 동시, `clear` 대상에 명시적 `null`. 폼에서 미리 막고 비우기는 `clear`로만(§23) |
+| P12 | 티켓 폼 | `Ticket_Item_400_14` | 잠긴 티켓의 잠긴 필드 변경·수량 감소. 해당 칸을 비활성으로 그린다 |
+| P12 | 티켓 폼 | `Ticket_Item_400_8` · `Ticket_Item_400_13` | 두둥 티켓인데 계좌 없음 · 판매 기간 오류. 해당 칸 오류 |
+| P12 | 티켓 삭제 | `Ticket_Item_400_7` | 잠긴 티켓. ⋮ 메뉴에서 삭제 대신 판매 중단을 보인다 |
+| P12 | 옵션 폼 | `Option_Group_400_6` | 설명 50자 초과(바뀐 때만 검증). 글자 수 표시 |
+| P12 | 옵션 수정·삭제 | `Option_Group_400_5` · `Option_Group_400_2` | 잠긴 티켓에 붙은 옵션. 이름·설명 밖 수정과 삭제를 막고 잠금 표시 |
+| P12 | 옵션 붙이기 | `Option_Group_400_1` | 다른 공연의 옵션. 옵션 풀 다시 읽기 |
+| P12 | 티켓·옵션 | 404 `Ticket_Item_404_1` · `Option_Group_404_1` | 없거나 다른 공연. 목록 새로고침 |
 | P12 | 옵션 붙이기 | `Item_Option_Group_400_2` | 잠긴 티켓. ⊗를 미리 숨긴다 |
 | P12 | 옵션 붙이기 | `Item_Option_Group_400_4` | 무료 티켓에 유료 옵션. 선택지에서 미리 뺀다 |
 | P13a | 주문 상세 | `Order_400_3` | 이미 처리된 주문. GR-2 다시 읽기 |
 | P13a | 승인 | `Order_400_14` | 탈퇴한 주문자. "거절로 정리해 주세요" |
+| P13a | 승인 | `Ticket_Item_400_1` | 재고 부족. "승인할 수 없어요. 거절로 정리해 주세요". 주문은 승인 대기로 남는다 |
+| P13a | 승인 | `Ticket_Item_400_6` | 1인 제한. 주문은 승인 대기로 남는다는 안내 + 거절로 정리하는 길 |
+| P13a | 거절 · 승인 후 취소 | `Order_400_5` · `Order_400_9` | 거절·취소할 수 없는 상태 · 공연 시작 후. 시작 후에는 승인·거절·취소 버튼 비활성. 오면 GR-2 다시 읽기 |
 | P13a | 거절 | `Order_400_18` | 사유 오류(`ETC`는 문구 필수, 20자). 시트에서 미리 검증 |
 | P13a | 환불 완료 | `Order_400_17` | 환불 요청 상태가 아님. [환불 완료]는 `refundStatus=REQUESTED`일 때만 |
 | P13a | 엑셀 | `Order_400_19` · `IssuedTicket_400_7` | 1만 행 초과. 필터를 좁히라고 안내 |
 | P13b | 호스트 스캔 | `Event_400_27` | OPEN·정산중이 아닌 공연 |
 
-표의 코드는 모두 `error-codes.md`에 있는 것을 확인했다(2026-10-14). 셀프 체크인의 `Event_400_5`는 백엔드 `V2CheckInDomainService.selfCheckIn` → `Event.validateNotOpenStatus()` → `EventNotOpenException`(`EVENT_NOT_OPEN`)에서 확인했다.
+표의 코드는 모두 `error-codes.md`에 있는 것을 확인했다(2026-10-14, 2회차 추가분 2026-10-15). 처리 문구는 백엔드 통합 기획서 각 장의 "프론트 처리" 열을 따른다. 화면에서 직접 처리하는 코드는 그 mutation의 `meta.handledCodes`에 넣는다(§4-5). 셀프 체크인의 `Event_400_5`는 백엔드 `V2CheckInDomainService.selfCheckIn` → `Event.validateNotOpenStatus()` → `EventNotOpenException`(`EVENT_NOT_OPEN`)에서 확인했다.
 

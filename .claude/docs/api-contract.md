@@ -41,9 +41,11 @@
 |---|---|---|
 | 401 `AUTH_401_1` | 토큰이 만료됐다 | 재발급 후 재시도 |
 | 401 `GLOBAL_401_1` | 토큰 형식·서명이 잘못됐다 | 재발급 후 재시도, 실패하면 세션 없음 |
-| 401 `AUTH_403_2` | **토큰이 없다**(쿠키가 만료돼 사라진 경우 포함), 또는 정지·탈퇴 계정. 본문 `status`는 403인데 HTTP는 401이다 | 재발급 후 재시도, 실패하면 세션 없음 |
+| 401 `AUTH_403_2` | **토큰이 없다**(쿠키가 만료돼 사라진 경우 포함), 또는 정지·탈퇴 계정(유효한 토큰이 있어도 익명으로 처리된다). 본문 `status`는 403인데 HTTP는 401이다 | 재발급 후 재시도, 실패하면 세션 없음 |
 | 403 | 호스트 권한 실패만. 대상 코드는 6개: 멤버 아님(`FORBIDDEN_HOST`), 매니저 아님, 마스터 아님, 초대 수락 전, 파트너 아님, 매니저가 매니저를 다루려 함. `code` 문자열은 `HOST_400_*` 그대로다 | **HTTP 상태로 분기**, `code`로 사유 구분. 전체 코드는 [`error-codes.md`](./error-codes.md) |
 | 403 `AUTH_403_2` | 로그인했지만 시스템 역할이 부족하다(`/internal-api` 등). v2 화면에서는 생기지 않는다 | — |
+| 403 `AUTH_403_3` | 허용되지 않은 출처(`CookieOriginFilter`, #763). 쿠키 인증 + POST·PUT·PATCH·DELETE + Origin과 Referer가 허용 목록 밖일 때. 재발급·로그아웃은 예외. 지금은 `auth.origin-check.enforce=false`(기록만)라 나지 않는다 | 같은 출처 fetch는 Origin을 보내므로 정상 흐름에서는 생기지 않는다. 오면 일반 403 |
+| 403 `USER_403_1` | 정지·탈퇴 계정이 로그인·재발급하려 함(`User.login()`) | 로그인이면 "이용이 제한된 계정이에요", 재발급이면 세션 상실 |
 | 404 | 없는 리소스 + 남의 리소스 + 다른 공연 소속 + 비공개(준비중·삭제) 공연 | 존재를 숨기는 응답이므로 "찾을 수 없어요" |
 
 **코드가 아니라 HTTP 401이면 재발급을 시도한다.** 액세스 토큰 쿠키는 만료 = 토큰 수명이라, 만료되면 쿠키가 사라져 `AUTH_401_1`이 아니라 `AUTH_403_2`(토큰 없음)가 온다. 본문 `status`와 HTTP 상태가 다른 응답이 있으므로 분기는 HTTP 상태로 한다(백엔드 `SecurityConfig`의 `authenticationEntryPoint`, `JwtExceptionFilter`).
@@ -370,7 +372,8 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | 이슈 | 내용 | FE 영향 |
 |---|---|---|
 | #758 | 엑셀 M+, 일반 멤버에게 구매자 연락처·이메일 가림, 403·404 통일 | 엑셀 버튼을 `myRole`로 숨김, 가려진 값 표시 |
-| #776 | Origin 검사 차단, OAuth `state` 필수, 토큰 쿠키 HttpOnly | JS로 토큰 쿠키를 읽지 않는 구조가 전제 |
+| #763 | **반영됨(dev).** Origin 검사(`CookieOriginFilter`, report-only — `AUTH_403_3`는 enforce를 켜야 난다), OAuth `state` 발급·검증(`OauthStateHelper`, 불일치 `AUTH_400_1`, 빈 값은 전환 기간이라 허용) | 콜백에서 `AUTH_400_1`이면 로그인을 다시 시작 |
+| #776 | Origin 검사 enforce 켜기, OAuth `state` 필수, 토큰 쿠키 HttpOnly | JS로 토큰 쿠키를 읽지 않는 구조가 전제 |
 
 ## 8. API 안내서(10-09)에만 있는 정보
 
@@ -390,19 +393,19 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 | 2 | 사용자가 카카오에서 동의 | 카카오가 `{기준 주소}/kakao/callback?code=…&state=…`로 돌려보낸다 |
 | 3 | `GET /oauth/kakao?code=…&state=…` | `{accessToken, refreshToken, idToken}` — **카카오의** 토큰이다 |
 | 4 | `POST /oauth/kakao/register/valid` `{idToken}` | `{canRegister}` — 신규 사용자인지 |
-| 5a | 기존 사용자: `POST /oauth/kakao/login` `{idToken}` | `TokenAndUserResponse` + `Set-Cookie`(두둥 토큰 2개) |
+| 5a | 기존 사용자: `POST /oauth/kakao/login` `{idToken}` | `TokenAndUserResponse` + `Set-Cookie`(두둥 토큰 2개). 정지·탈퇴 계정은 403 `USER_403_1` |
 | 5b | 신규 사용자: `POST /oauth/kakao/info` `{accessToken}`으로 카카오 프로필을 받아 가입 폼을 채우고, `POST /oauth/kakao/register` `{idToken, email, phoneNumber, profileImage, name, marketingAgree}` | `TokenAndUserResponse` + `Set-Cookie` |
 
 - `TokenAndUserResponse` = `{accessToken, accessTokenAge, refreshToken, refreshTokenAge, userProfile{id, profileImage, name}}`. 본문의 토큰은 FE가 쓰지 않는다 — 쿠키로 온다.
 - 토큰을 쿼리스트링으로 보내는 옛 방식(`?id_token=`)은 전환 기간에만 받는다. v2 FE는 처음부터 본문으로 보낸다.
 - **`redirect_uri`는 백엔드가 요청의 Referer로 고른다.** 허용 목록 중 Referer의 출처와 같은 것을 쓰고, 경로가 `/admin`으로 시작하면 `{출처}/admin/kakao/callback`, 아니면 `{출처}/kakao/callback`이다. v2는 로그인 화면이 `/login` 하나라 항상 `/kakao/callback`으로 온다. 호스팅 센터(`/hosting`)에서 로그인으로 넘어가도 경로가 `/admin`이 아니므로 같다.
-- 1번과 3번은 `state` 쿠키를 주고받으므로 `credentials: 'include'`로 부른다.
+- 1번과 3번은 `state` 쿠키를 주고받으므로 `credentials: 'include'`로 부른다. `state`가 맞지 않거나 만료되면 400 `AUTH_400_1` — 로그인을 처음부터 다시 시작한다(#763).
 
 ### 그 밖
 
 | 호출 | 내용 |
 |---|---|
-| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·다른 기기에서 재발급돼 덮어써짐)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다** |
+| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·다른 기기에서 재발급돼 덮어써짐)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지·탈퇴 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`). **FE는 재발급의 HTTP 401·403을 코드와 상관없이 세션 상실로 보고, 5xx·네트워크 오류는 일시 오류로 본다**(patterns §5-1) |
 | `POST /logout` | 쿠키 삭제. 익명 상태에서도 200 |
 | `DELETE /me` | 회원 탈퇴 + 쿠키 삭제. 마스터인 호스트가 있으면 400 `USER_400_6` |
 
@@ -417,7 +420,7 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 - 로컬 개발은 **포트 3000**을 쓴다. 5173은 백엔드가 v1 호스트 어드민으로 보고 콜백을 `/admin/kakao/callback`으로 잡는다.
 - 운영·스테이징에서 API는 프론트와 **같은 출처**다(nginx가 `/api`를 백엔드로 보낸다). 브라우저는 상대 경로 `/api/v2/…`로 부른다.
 - 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 같은 모양으로 쓴다. dev API를 직접 부르면 쿠키가 서드파티 쿠키(`SameSite=None`)가 되어 브라우저 설정에 따라 막힌다.
-- FE 처리 규칙(401 → 재발급 한 번, 탭 간 직렬화, 세션 쿼리는 익명으로 귀결, 공개 GET 재요청)은 [`tech-decisions.md`](./tech-decisions.md) §4 인증과 [`patterns.md`](./patterns.md) §5에 있다. 인증 API는 `/api/v1/auth` 아래라 v2 `api` 객체가 아니라 별도 `authApi` 인스턴스로 부른다.
+- FE 처리 규칙(401 → 재발급 한 번, 탭 간 직렬화, 세션 쿼리는 익명으로 귀결, 공개 GET은 쿠키 없이)은 [`tech-decisions.md`](./tech-decisions.md) §4 인증과 [`patterns.md`](./patterns.md) §5에 있다. 인증 API는 `/api/v1/auth` 아래라 v2 `api` 객체가 아니라 별도 `authApi` 인스턴스로 부른다. `authApi`에는 401 가로채기가 없다(재발급 호출이 다시 재발급을 부르지 않게).
 - 액세스 토큰 수명 기본 3600초, 리프레시 토큰도 기본 3600초(env로 바뀜). 리프레시 토큰은 사용자당 하나만 유효하다.
 
 ## 10. 알림 문구 (주문·호스트)

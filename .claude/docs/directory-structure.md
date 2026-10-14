@@ -8,7 +8,7 @@
 
 ```
 dudoong-frontend-v2/
-├─ next.config.ts              # output:'standalone', deploymentId, vanilla-extract 플러그인, redirects(/admin/* → /hosting/*, 없앤 v1 라우트), 개발용 rewrites(/api → dev API)
+├─ next.config.ts              # output:'standalone', deploymentId, vanilla-extract 플러그인, redirects(/admin/* → /hosting/*, 없앤 v1 라우트, /hosting/events/:eventId → …/dashboard), 개발용 rewrites(/api → dev API)
 ├─ Dockerfile                  # 멀티 스테이지, standalone 산출물만 (deploy-plan.md §3)
 ├─ .dockerignore
 ├─ package.json                # packageManager · engines 핀, 스크립트
@@ -37,8 +37,7 @@ dudoong-frontend-v2/
    ├─ ui/
    ├─ api/
    ├─ utils/
-   ├─ env/                     # server.ts · client.ts
-   └─ instrumentation.ts       # register() — 서버 시작 때 env/server.ts 검증
+   └─ env/                     # client.ts — 빌드 때 검증하는 공개 값(카카오 키)
 ```
 
 ## `src/app/` — 라우트
@@ -48,12 +47,13 @@ dudoong-frontend-v2/
 ```
 src/app/
 ├─ layout.tsx                          # <html>, 전역 스타일, Providers(QueryClient, OverlayProvider)
-├─ providers.tsx                       # 'use client' — QueryClientProvider(서버 렌더마다 새 것, 브라우저는 하나), OverlayProvider, 경로 변경 시 overlay.unmountAll()
+├─ providers.tsx                       # 'use client' — QueryClientProvider(서버 렌더마다 새 것, 브라우저는 하나), OverlayProvider, pageshow(bfcache) 재검사. 경로는 읽지 않는다
+├─ OverlayRouteReset.tsx               # 'use client' 말단 — 경로가 바뀌면 overlay.unmountAll(). children을 감싸지 않고 layout.tsx에서 <Suspense fallback={null}>로 감싸 형제로 둔다
 ├─ not-found.tsx / error.tsx / global-error.tsx
 ├─ healthz/route.ts                    # P0   배포 헬스체크. 유일한 Route Handler. 백엔드를 부르지 않는다
 │
 ├─ (audience)/
-│  ├─ layout.tsx                       # P5a  관객 헤더·내비게이션(공통). usePathname·useSearchParams 쓰는 부분만 자체 <Suspense>
+│  ├─ layout.tsx                       # P5a  관객 헤더·내비게이션(공통). usePathname·useSearchParams 쓰는 부분은 children을 감싸지 않는 말단 + 자체 <Suspense>
 │  │
 │  ├─ (public)/                        # 서버 조회 화면 — Suspense·loading.tsx를 두지 않는다
 │  │  ├─ layout.tsx                    # export const instant = false (여기 한 곳)
@@ -63,7 +63,7 @@ src/app/
 │  │  └─ gifts/[giftToken]/page.tsx    # P8b  선물 랜딩 + generateMetadata — 사용자별 판정은 viewer 쿼리
 │  │
 │  └─ (app)/                           # 클라이언트 조회 화면
-│     ├─ layout.tsx                    # <Suspense>
+│     ├─ layout.tsx                    # <Suspense>. 게이트 없는 화면(이 폴더 바로 아래)은 useQuery만 쓴다
 │     ├─ events/page.tsx               # P5a  공연 리스트
 │     ├─ login/[[...state]]/page.tsx   # P4b  /login, /login/expired
 │     ├─ kakao/callback/page.tsx       # P4b
@@ -84,7 +84,7 @@ src/app/
 │           └─ gifts/page.tsx          # (보류) 보낸·받은 선물 내역 GG-7 — Figma에 화면이 있을 때만
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
-│  ├─ layout.tsx                       # P10a 헤더, 알림 벨, <Suspense>, 로그인 게이트
+│  ├─ layout.tsx                       # P10a 헤더, 알림 벨, <Suspense>, 로그인 게이트 (사이드메뉴는 events/[eventId]/layout.tsx)
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색)
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기
@@ -92,9 +92,8 @@ src/app/
 │  ├─ hosts/[hostId]/
 │  │  ├─ settings/page.tsx             # P10b 호스트 설정
 │  │  └─ members/page.tsx              # P10b 멤버
-│  └─ events/[eventId]/
-│     ├─ page.tsx                      # P11  dashboard로 리다이렉트
-│     ├─ layout.tsx                    # P11  사이드메뉴 (등록 상태별 항목)
+│  └─ events/[eventId]/                # page.tsx 없음 — next.config redirects()로 dashboard
+│     ├─ layout.tsx                    # P11  공연 어드민 사이드메뉴 (GE-3, 등록 상태별 항목)
 │     ├─ dashboard/page.tsx            # P11(체크리스트) + P13a(등록 후 통계)
 │     ├─ info/page.tsx                 # P11  기본 정보
 │     ├─ detail/page.tsx               # P11  상세 정보 (섹션 에디터)
@@ -144,12 +143,12 @@ src/features/
 │     └─ RefuseOrder/ CancelOrder/ IssuedTicketDetail/ CompleteRefund/
 │
 └─ shared/                     # 관객·호스팅 양쪽이 쓰는 것
-   ├─ auth/                    # P4a/P4b  세션 쿼리, 게이트, LoginPage, KakaoCallback, Register. setAuthHandlers({ refresh, onSessionLost }) 등록 — 재발급(Web Locks)과 세션 상실 처리의 단일 지점
+   ├─ auth/                    # P4a/P4b  세션 쿼리(staleTime 5분), 게이트, LoginPage, KakaoCallback, Register, dd:hadSession·dd:refreshedAt 플래그. setAuthHandlers({ refresh, onSessionLost }) 등록 — 재발급(Web Locks, authApi)과 세션 상실 처리(보호 화면은 /login/expired, 공개 화면은 reload)의 단일 지점
    ├─ host-home/               # P5c  HostHome — 공개 필드는 hostDetailQuery, myRole별 뷰는 hostViewerQuery
    ├─ section-viewer/          # P5b  HTML/마크다운 렌더 + sanitize (공연 상세 ↔ 미리보기), 클라이언트 컴포넌트
    ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑
    ├─ checkin-result/          # P8c · P13b  result → 화면
-   ├─ image-upload/            # P10a · P9  업로드 UI(DropZone 연결, 미리보기). 호출은 src/api/upload
+   ├─ image-upload/            # P9 · P10b · P11 (먼저 착수한 Phase)  업로드 UI(DropZone 연결, 미리보기). 호출은 src/api/upload
    ├─ permission/              # can(role, action)
    └─ kakao-share/             # P5b · P8b
 ```
@@ -172,7 +171,8 @@ src/ui/
    ├─ BottomSheet/ Modal/ Popup/ EasyOverlay/
    ├─ Toast/                   # 명령형 toast() — 훅이 아니어서 QueryCache.onError에서도 부른다
    ├─ Loader/ Skeleton/ EmptyState/ LinkProgress/   # LinkProgress: useLinkStatus 기반 이동 표시(공개 화면)
-   ├─ AsyncBoundary/           # Suspense + ErrorBoundary + 재시도
+   ├─ NotFoundView/ ForbiddenView/   # P2  클라이언트 조회 화면용 공용 404·403 안내 (P5a·P9·P10a가 쓴다)
+   ├─ AsyncBoundary/           # QueryErrorResetBoundary + ErrorBoundary + Suspense + 재시도(reset)
    ├─ Accordion/ Header/ Footer/ NavBar/ Profile/ Tag/ ListHeader/
    └─ DataTable/
 ```
@@ -183,14 +183,14 @@ src/ui/
 
 ```
 src/api/
-├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체 — get / post / patch / put / delete / download. get의 { public: true }
-├─ client.ts                   # ky 인스턴스(내부) — 응답 래퍼 해제, ApiError, zod 파싱 정책, 401이면 주입된 refresh 호출 후 재시도
+├─ client.ts                   # ky 인스턴스(v2 · v1 인증, 내부) — 응답 래퍼 해제, ApiError, zod 파싱 정책, 401 가로채기(v2만 — 주입된 refresh 호출 후 재시도. v1 인증 인스턴스에는 없다)
+├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체 — get / post / patch / put / delete / download. get의 { public: true }는 항상 credentials:'omit'. 서버 분기는 호출할 때 process.env.API_INTERNAL_URL ?? 기본값
 ├─ auth-handlers.ts            # setAuthHandlers({ refresh, onSessionLost }) — 등록은 features/shared/auth
 ├─ errors.ts                   # ApiError{status, code, reason}, getErrorCode
 ├─ upload.ts                   # P3  발급 → S3 PUT → key (호스트·공연·프로필 공용)
 ├─ server/                     # 'server-only' — 라우트 파일에서만 쓴다. src/api 중 유일하게 React(HydrationBoundary)·notFound를 쓴다
 │  ├─ serverQuery.ts           # 요청별 QueryClient + fetchQuery + 404 → notFound()
-│  └─ Prefetch.tsx             # 조회 → dehydrate → HydrationBoundary
+│  └─ Prefetch.tsx             # queries · infiniteQueries(첫 페이지만 fetchInfiniteQuery) → dehydrate → HydrationBoundary
 ├─ shared/
 │  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼
 │  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
@@ -203,7 +203,9 @@ src/api/
 
 서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery` — tech-decisions §4).
 
-`env/`: `client.ts`(`NEXT_PUBLIC_KAKAO_JS_KEY`, 빌드 때 검증), `server.ts`(`API_INTERNAL_URL`, 서버 시작 때 `instrumentation.ts`에서 검증). `src/instrumentation.ts`를 둔다(`src/` 폴더를 쓰면 그 안에 둔다).
+`env/`: `client.ts`(`NEXT_PUBLIC_KAKAO_JS_KEY`, 빌드 때 검증)만 둔다. 서버 값(`API_INTERNAL_URL`)은 `http.ts`가 호출할 때 기본값과 함께 읽으므로 검증 파일이 없다. `instrumentation.ts`도 두지 않는다(tech-decisions §12).
+
+queryKey 순서는 리소스 → `'viewer'` → `'infinite'` → 파라미터 객체다(예: `['hosts', id, 'events', 'viewer', 'infinite', { size }]`, tech-decisions §4).
 
 ## `src/utils/`
 
