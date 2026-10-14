@@ -137,7 +137,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 **완료 기준**
 - [ ] 브레이크포인트 확정(design-system §2 — 후보 desktop ≥ 1024px), 간격 토큰의 Mobile/Desktop 전환이 같은 기준을 씀
-- [ ] 아이콘 58종(`ic`)이 `<Icon name size variant />`로 렌더
+- [ ] 아이콘 44종(`ic`, 변형 58개)이 `<Icon name size variant />`로 렌더
 - [ ] 토큰·프리미티브 스토리
 - [ ] 화면 코드에서 스타일을 쓰는 세 방법(프리미티브 / `sprinkles()` / `.css.ts`)의 예제 스토리
 - [ ] `src/ui` 공개 API에 vanilla-extract 타입 미노출
