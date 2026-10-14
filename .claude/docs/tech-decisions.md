@@ -518,7 +518,7 @@ Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 | `zod` | 스키마 | 폼·API·env 공용 |
 | `es-toolkit` | 배열·객체 유틸, debounce 등 | |
 | `overlay-kit` | 오버레이 상태 | 규칙은 §5 |
-| Radix 프리미티브(`@radix-ui/react-select`·`-checkbox`·`-radio-group`·`-switch`·`-tabs`·`-collapsible`·`-popover`) | 컴포넌트 동작(키보드·포커스·접근성) | 모양은 vanilla-extract. P0에서 React 19 호환·유지보수 확인, 문제가 있으면 Base UI([`design-system.md`](./design-system.md)) |
+| Radix 프리미티브(`@radix-ui/react-select`·`-checkbox`·`-radio-group`·`-switch`·`-tabs`·`-collapsible`·`-popover`·`-dialog`·`-dropdown-menu`·`-tooltip`) | 컴포넌트 동작(키보드·포커스·접근성) | 모양은 vanilla-extract. P0에서 React 19 호환·유지보수 확인, 문제가 있으면 Base UI([`design-system.md`](./design-system.md)) |
 | `sonner` | 토스트 | unstyled 모드 + vanilla-extract |
 | `marked` + `isomorphic-dompurify` | 섹션 본문 렌더(MARKDOWN → HTML → sanitize) | 서버 메모리 주의(§17) |
 | 다음 우편번호(Postcode) + 카카오맵 JS `services.Geocoder` | 공연 장소 입력: 주소 검색 → `address`, 좌표 변환 → `latitude`·`longitude` | 호스팅 기본 정보(P11). PE-4가 좌표를 필수로 받는다. 카카오 JS 키·도메인 등록 필요 |

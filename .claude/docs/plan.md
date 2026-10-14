@@ -137,14 +137,14 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 **완료 기준**
 - [ ] 브레이크포인트 확정(design-system §2 — 후보 desktop ≥ 1024px), 간격 토큰의 Mobile/Desktop 전환이 같은 기준을 씀
-- [ ] 아이콘 44종(`ic`, 변형 58개)이 `<Icon name size variant />`로 렌더
+- [ ] 아이콘 44종(`ic`, 변형 58개)이 `<Icon name size variant />`로 렌더. Figma SVG 추출 결과를 PNG와 비교(`home`·`Ticket-alert` 보정, design-system §4), lucide 라이선스 고지
 - [ ] 토큰·프리미티브 스토리
 - [ ] 화면 코드에서 스타일을 쓰는 세 방법(프리미티브 / `sprinkles()` / `.css.ts`)의 예제 스토리
 - [ ] `src/ui` 공개 API에 vanilla-extract 타입 미노출
 
 ### P2 — `src/ui` 컴포넌트: 폼 · 오버레이 · 피드백
 
-**근거**: [`design-system.md`](./design-system.md) §3·§4 — 컴포넌트 목록, 출처(shadcn 변형/자체), 동작 라이브러리, props 제안. **동작은 Radix 프리미티브(헤드리스), 모양은 vanilla-extract**(Select·Checkbox·RadioGroup·Switch·Tabs·Collapsible·Popover). 토스트는 `sonner` unstyled.
+**근거**: [`design-system.md`](./design-system.md) §3·§4 — 컴포넌트 목록, 참고할 shadcn, 동작 라이브러리, props 제안, plan 이름과 Figma 이름의 대응(ToggleButton → Toggle, Profile → Avatar, Header → Top app bar, Accordion → list 펼침형). **동작은 Radix 프리미티브(헤드리스), 모양은 vanilla-extract**(Select·Checkbox·RadioGroup·Switch·Tabs·Collapsible·Popover·Dialog·DropdownMenu·Tooltip). `Header`(Figma Top app bar)는 관객·호스팅 공용이라 여기서 만든다. 토스트는 `sonner` unstyled.
 
 **포함**: 폼(Input/TextArea/Dropdown/SelectButton/Counter/DropZone/ToggleButton/TagButton/DatePicker/TimePicker). 클라이언트 조회 화면용 공용 404 · 403 안내 컴포넌트(서버 조회 화면은 `notFound()`) — P5a·P9·P10a가 같이 쓴다. `<AsyncBoundary>`(Suspense + 에러 경계 + `QueryErrorResetBoundary` 재시도 UI — 게이트의 오류 화면도 이것을 쓴다). `app/OverlayRouteReset.tsx`(경로가 바뀌면 `overlay.unmountAll()`, 자체 `<Suspense fallback={null}>` 안의 말단 컴포넌트). 링크 이동 표시 `LinkProgress` — 카드 `<Link>` 안의 고정 크기 인라인 표시(100ms 지연 페이드). `useLinkStatus`는 `Link` 아래에서만 동작하고 프리페치된 경로는 건너뛰므로 전역 상단 막대로 만들지 않는다. 오버레이(BottomSheet/Modal/Popup, PC=Modal · Mobile=Sheet 분기, 상태는 `overlay-kit`). `EasyOverlay`(async 확인 + 자동 close). 피드백(Toast/Loader/Skeleton/EmptyState). 표시(Accordion/Header/Footer/NavBar/Profile/Tag/ListHeader). `DataTable`.
 

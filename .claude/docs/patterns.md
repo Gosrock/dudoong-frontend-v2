@@ -16,7 +16,7 @@
 const responsive = defineProperties({
   conditions: {
     mobile: {},
-    desktop: { '@media': 'screen and (min-width: 768px)' },   // 값은 P1에서 확정(design-system §2, 후보 1024)
+    desktop: { '@media': 'screen and (min-width: 768px)' },   // 768은 임시값. P1에서 확정(design-system §2, 후보 1024)
   },
   defaultCondition: 'mobile',
   properties: {

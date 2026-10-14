@@ -163,17 +163,19 @@ src/ui/
 │  └─ global.css.ts            # reset, 폰트
 ├─ primitives/                 # Flex, Spacing, Text, Divider, Container
 ├─ hooks/useMediaQueries.ts
-├─ icons/
+├─ icons/                      # Figma ic 세트에서 뽑은 SVG → <Icon name size variant />. 라이선스 고지(lucide ISC) 포함
 └─ components/                 # 컴포넌트마다 Foo.tsx + Foo.css.ts + Foo.stories.tsx
-   ├─ Button/ IconButton/
-   ├─ Input/ TextArea/ Dropdown/ SelectButton/ Counter/ DropZone/ ToggleButton/ TagButton/
+   ├─ Button/ Fab/              # Fab: 56 원형 아이콘 버튼(Figma Button type=round). 아이콘만 있는 일반 버튼은 Button iconOnly
+   ├─ Input/ SearchField/ TextArea/ Dropdown/ SelectButton/ Counter/ DropZone/ TagButton/
+   ├─ Checkbox/ Radio/ Toggle/ Tabs/   # Radix Checkbox·RadioGroup·Switch·Tabs + vanilla-extract (design-system.md §3)
+   ├─ Badge/ Avatar/ FilterChip/ Chip/   # Chip: Ticket·Concert 상태, role, tag, money option
    ├─ DatePicker/ TimePicker/
    ├─ BottomSheet/ Modal/ Popup/ EasyOverlay/
    ├─ Toast/                   # 명령형 toast() — 훅이 아니어서 QueryCache.onError에서도 부른다
    ├─ Loader/ Skeleton/ EmptyState/ LinkProgress/   # LinkProgress: 카드 <Link> 안의 인라인 이동 표시(useLinkStatus, 100ms 지연)
    ├─ NotFoundView/ ForbiddenView/   # P2  클라이언트 조회 화면용 공용 404·403 안내 (P5a·P9·P10a가 쓴다)
    ├─ AsyncBoundary/           # P2  QueryErrorResetBoundary + ErrorBoundary + Suspense + 재시도(reset). SessionLostError는 fallback 없이 무시
-   ├─ Accordion/ Header/ Footer/ NavBar/ Profile/ Tag/ ListHeader/
+   ├─ Accordion/ Header/ Footer/ NavBar/ ListHeader/ InfoRow/   # Header = Figma Top app bar(관객·호스팅 공용). InfoRow = Figma list(라벨 + 값 행, 펼침형은 Accordion)
    └─ DataTable/
 ```
 
