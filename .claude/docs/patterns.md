@@ -453,7 +453,7 @@ infiniteQueryOptions({
 ## 14. P5b — 공연 상세: 서버 조회 · 섹션 · 공유
 
 - 서버에서는 GP-3 + GE-5만 조회한다. 티켓 잔여(GP-5)는 브라우저가 따로 조회한다.
-- 라우트 파일이 `<Prefetch queries={[eventDetailQuery(id), eventSectionsQuery(id)]}>`로 조회하고, 화면은 `useSuspenseQuery`로 같은 쿼리를 읽는다. 서버 캐시는 없다 — 요청마다 백엔드를 부른다. 서버에서는 토큰이 붙지 않는다. `export const instant = false`는 `(public)/layout.tsx` 한 곳에 있다(tech-decisions §4).
+- 라우트 파일이 `<Prefetch queries={[eventDetailQuery(id), eventSectionsQuery(id)]}>`로 조회하고, 화면은 `useSuspenseQuery`로 같은 쿼리를 읽는다. 서버 캐시는 없다 — 요청마다 백엔드를 부른다. 서버에서는 토큰이 붙지 않는다. `export const instant = false`는 `(public)/layout.tsx`와 각 `page.tsx`에 둔다(tech-decisions §2).
 - 404(준비중·삭제·없음)는 `serverQuery`가 `notFound()`로 바꾼다. 이 라우트 위에 `<Suspense>`나 `loading.tsx`를 두지 않는다(경계 안에서 불리면 200이 된다). 5xx는 throw해서 `error.tsx`로 보낸다.
 - `generateMetadata`도 `serverQuery(eventDetailQuery(id))`를 쓴다(요청당 QueryClient가 같아 조회는 한 번).
 - **섹션 탭**: 서버 섹션이 있으면 그대로, 없으면 기본 4탭 라벨을 프론트가 그리고 빈 상태를 보여 준다.
