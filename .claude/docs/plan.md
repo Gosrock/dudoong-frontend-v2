@@ -120,12 +120,12 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 **선행**: 없음
 
 **완료 기준**
-- [ ] `src/ui` 컴포넌트 1개 + `<Prefetch>`로 조회한 쿼리 1개(GE-11)를 `useSuspenseQuery`로 읽는 페이지를 Docker 이미지로 빌드해 서빙
-- [ ] 개발 서버에서 `.css.ts` 수정이 브라우저에 새로고침 없이 반영됨
-- [ ] 계층 규칙 위반 import가 lint에서 실패
-- [ ] 커밋 시 스테이징된 파일에 lint·format이 적용됨
-- [ ] 공개 env 누락 시 빌드 실패
-- [ ] typecheck · lint · test CI 게이트 동작
+- [~] `src/ui` 컴포넌트 1개 + `<Prefetch>`로 조회한 쿼리 1개(GE-11)를 `useSuspenseQuery`로 읽는 페이지를 Docker 이미지로 빌드해 서빙 — standalone 빌드·서빙은 확인, Docker 이미지는 CI 첫 실행에서(tech-decisions §31)
+- [~] 개발 서버에서 `.css.ts` 수정이 브라우저에 새로고침 없이 반영됨 — 재시작 없이 새 CSS가 나오는 것까지 확인, 브라우저 HMR은 P1
+- [x] 계층 규칙 위반 import가 lint에서 실패
+- [x] 커밋 시 스테이징된 파일에 lint·format이 적용됨
+- [x] 공개 env 누락 시 빌드 실패
+- [~] typecheck · lint · test CI 게이트 동작 — 로컬 통과, 워크플로 `pr-gate.yml`은 PR에서 첫 실행
 
 ### P1 — `src/ui` 기반: 토큰 · 프리미티브 · 반응형
 
@@ -261,7 +261,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P5b — 공연 상세 + 섹션 뷰어 + 공유
 
-**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(`instant = false`, 서버 캐시 없음), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. 크롤러 계약 스크립트.
+**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(페이지에 `instant = false`, 서버 캐시 없음), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. 크롤러 계약 스크립트.
 
 **GUI**([`gui-screens.md`](./gui-screens.md)): 공연상세 `29:1017` — 포스터, 제목, 해시태그, 일시 "(180분)" 표시(시작·종료로 FE가 계산), 장소 행, 호스트 행, 티켓 카드, 섹션 탭 4개(공연소개 · 예매안내 · 세트리스트 · 유의사항), 하단 [문의 아이콘 버튼](호스트 연락처 시트로 본다 — 미확인) + [티켓 구매하기]. 카카오 공유 버튼은 GUI에 없지만 계획대로 둔다. 매진·판매 불가·지난 공연 상태 화면은 없다.
 

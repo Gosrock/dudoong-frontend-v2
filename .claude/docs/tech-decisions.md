@@ -72,7 +72,7 @@ Cache Components는 Next 16의 기본 캐시·프리렌더 모델이다. 끄고 
 
 | 규칙 | 이유 |
 |---|---|
-| 서버 조회 라우트 묶음(`(public)/layout.tsx`)에 `export const instant = false`를 둔다 | 이 묶음을 **빈 정적 셸 검증과 즉시 이동 검증에서 뺀다**. 렌더 방식(요청마다 await해 내려 주는 것)은 바꾸지 않는다 — 검증 설정이다. 없으면 "캐시되지 않은 데이터를 프리렌더 중에 읽었다"는 빌드 에러가 난다. 레이아웃에 두면 아래 페이지 전부에 적용된다(Next 문서 `instant`: "To opt a route out of this validation, ensure the highest `instant` config in the route's tree is `false`") |
+| 서버 조회 라우트의 **`page.tsx`마다** `export const instant = false`를 둔다(`(public)/layout.tsx`에도 둔다) | **빈 정적 셸 검증과 즉시 이동 검증에서 뺀다**. 렌더 방식(요청마다 await해 내려 주는 것)은 바꾸지 않는다 — 검증 설정이다. 레이아웃의 `false`는 밖에서 그 레이아웃으로 **들어오는** 이동만 허용하고, 같은 레이아웃 아래 페이지끼리의 이동은 여전히 검증한다(설치본 문서 `instant.md` "Disabling instant"). P0 스파이크에서 레이아웃에만 두면 `next dev`가 "uncached data … outside of `<Suspense>`" 에러를 내고, 페이지에도 두면 사라지는 것을 확인했다(§31). 2회차 검토의 "레이아웃 한 곳" 결정을 되돌렸다 |
 | 클라이언트 화면 묶음의 레이아웃에 `<Suspense>`를 둔다 | 클라이언트 페이지가 `useParams()`·`useSearchParams()`를 읽으려면 위에 경계가 있어야 한다. 없으면 빌드 에러 |
 
 그리고 조용히 깨지는 것이 하나 있다. **서버 조회 라우트 위에 `<Suspense>`나 `loading.tsx`가 있으면 스트림이 먼저 시작돼 없는 공연이 404가 아니라 200으로 나간다**(Next 문서 `loading` #status-codes). 그래서 라우트 그룹을 나눈다(§3): 서버 조회 화면은 Suspense가 없는 그룹에, 클라이언트 화면은 Suspense가 있는 그룹에 둔다.
@@ -83,7 +83,7 @@ Cache Components는 Next 16의 기본 캐시·프리렌더 모델이다. 끄고 
 
 | 항목 | 켬 (채택) | 끔 |
 |---|---|---|
-| 추가 코드 | `(public)` 레이아웃에 `instant = false`, `(app)`·`hosting` 레이아웃 Suspense | 없음 |
+| 추가 코드 | `(public)` 레이아웃과 그 아래 `page.tsx`마다 `instant = false`, `(app)`·`hosting` 레이아웃 Suspense | 없음 |
 | 호스팅 센터 동적 경로 | 정적 셸 | 요청마다 서버 렌더 |
 | 실제 카카오 UA의 OG 위치 | `<head>` | `<head>` |
 | 없는 공연의 상태 코드 | 크롤러 404, **브라우저 200**(화면은 not-found, `noindex` 포함) | 둘 다 404 |
@@ -110,7 +110,7 @@ App Router는 데이터 조회가 필요한 메타 태그를 `<head>`가 나간 
 ```
 app/
 ├─ (audience)/layout.tsx          관객 헤더·내비게이션(공통). 이동해도 다시 마운트되지 않는다
-│  ├─ (public)/layout.tsx         export const instant = false. Suspense·loading.tsx 없음
+│  ├─ (public)/layout.tsx         export const instant = false(그 아래 page.tsx에도). Suspense·loading.tsx 없음
 │  └─ (app)/layout.tsx            <Suspense>
 │     └─ (protected)/layout.tsx   로그인 게이트
 └─ hosting/layout.tsx             <Suspense> + 로그인 게이트 + 셸(데스크탑 좌측 사이드바 / 모바일 헤더)
@@ -120,7 +120,7 @@ app/
 | 그룹 | 조회 | 레이아웃 |
 |---|---|---|
 | `(audience)` | — | 공통 헤더. 경로를 읽는 부분은 아래 "경로를 읽는 컴포넌트" 규칙을 따른다 |
-| `(public)` | 서버(`<Prefetch>`) | Suspense·`loading.tsx` **없음**, `instant = false` 한 곳 |
+| `(public)` | 서버(`<Prefetch>`) | Suspense·`loading.tsx` **없음**, `instant = false`를 레이아웃과 페이지마다 |
 | `(app)` | 클라이언트 | `<Suspense>` |
 | `(app)/(protected)` | 클라이언트 | 로그인 게이트(§4 인증) |
 | `hosting` | 클라이언트 | `<Suspense>` + 로그인 게이트(P4a의 게이트 컴포넌트를 그대로 쓴다, P10a) + 셸. 셸은 아래 "호스팅 센터 셸" |
@@ -244,7 +244,7 @@ export const updateEventBasicMutation = (eventId: string) =>
 
 ```tsx
 // app/(audience)/(public)/events/[eventId]/page.tsx
-// instant = false는 (public)/layout.tsx 한 곳에 있다
+export const instant = false; // 페이지마다 둔다(레이아웃만으로는 그룹 안 이동이 검증된다 — §2)
 export async function generateMetadata({ params }: Props) {
   const event = await serverQuery(eventDetailQuery((await params).eventId));
   return { title: event.name, openGraph: { title: event.name, images: [event.posterImageUrl] } };
@@ -1059,7 +1059,7 @@ nginx 경로 분기(`nginx/site.conf`):
 |---|---|
 | 401 처리를 표로 확정 — 코드 무관 재발급, 탭 간 `navigator.locks` 직렬화, GM-1 401은 익명, `api`는 이동하지 않음, 게이트는 세션 확정 뒤 렌더, 세션 상실 시 `queryClient.clear()` + 하드 이동, `setAuthHandlers` 주입 | §4 인증, §8 |
 | 사용자별 값을 viewer 쿼리로 분리(호스트 홈, GH-14 준비중 공연, 선물 랜딩) | §4, §20 |
-| 라우트 트리 — `(audience)` 공통 헤더, `(public)` 레이아웃 한 곳에 `instant = false`, `(app)/(protected)` 게이트 | §3 |
+| 라우트 트리 — `(audience)` 공통 헤더, `(public)` 레이아웃 한 곳에 `instant = false`(P0에서 "페이지마다"로 정정, §31), `(app)/(protected)` 게이트 | §3 |
 | 주문 완료 화면 = `/orders/[orderUuid]?created=1` | §3, §19 |
 | Route Handler는 `/healthz` 하나 | §3, §25 |
 | `(public)`의 비프리페치 쿼리는 `useQuery`, 공개 화면 이동 피드백(`useLinkStatus`) | §3, §4 |
@@ -1181,6 +1181,54 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 | GUI에 없는 입구는 계획대로 만든다([주문취소]·환불 계좌, 옵션 붙이기, 공유 버튼, 무료 [신청]) | plan P5b·P7·P9·P12 |
 | 공연 생성 뒤 이동은 GUI(홈 + 토스트)와 계획(대시보드)이 달라 디자인 확인 전까지 대시보드 | plan P10a |
 | 장소 아래 회색 박스(`329:7206`) — 지도 미리보기면 카카오맵 지도 SDK로 그린다(Geocoder와 같은 SDK) | plan P11, design-requests Q3 |
+
+## 31. P0 스캐폴딩과 스파이크 결과 (2026-10-16)
+
+브랜치 `feat/p0-scaffold`. Next 16.4.1 · React 19.3.1 · TanStack Query 5.104.3 · ky 2.2.0 · zod 4.6.7 · vanilla-extract(css 1.21.3, next-plugin 2.5.2) · ESLint 9.39 · TypeScript 5.9 · Vitest 5.0 · MSW 3.0 · Storybook 10.6 · pnpm 10.34.7.
+
+### 수직 슬라이스
+
+`(audience)/(public)/page.tsx`가 `<Prefetch queries={[eventTagsQuery()]}>`로 GE-11을 서버에서 조회하고, 클라이언트 컴포넌트 `TagList`가 `useSuspenseQuery`로 같은 쿼리를 읽어 `src/ui` `Button`으로 그린다. `next build` 결과 `/`는 동적(ƒ), `/healthz`는 정적(○)이다.
+
+### 스파이크 — 가짜 백엔드 + standalone 서버
+
+저장소 복사본에 실험 라우트를 붙여 standalone 서버(`HOSTNAME=127.0.0.1`)로 돌렸다. 실험 라우트는 저장소에 넣지 않았다.
+
+| 경우 | 카카오 UA | 브라우저 UA |
+|---|---|---|
+| 공연 있음, Suspense 없음 | 200, OG `<head>` | 200, OG `<head>` |
+| 없는 공연, Suspense 없음 | **404** | 200 + `noindex` |
+| 백엔드 500, Suspense 없음 | **500** | 200 |
+| 공연 있음, Suspense 있음 | 200, OG `<head>` | 200, OG **본문**(스트리밍) |
+| 없는 공연, Suspense 있음 | **200** | 200 |
+| 백엔드 500, Suspense 있음 | **200** | 200 |
+
+- **`(public)`에 Suspense를 두지 않는 규칙은 필요하다.** Suspense가 있으면 크롤러도 404·500 대신 200을 받는다. `(public)`/`(app)` 분리를 유지한다.
+- **서버 조회에 쿠키가 실리지 않는다.** 요청에 쿠키를 붙였는데 백엔드가 받은 17건 모두 쿠키가 없었다.
+- **클라이언트 조회 화면도 서버에서 백엔드를 부른다.** 프리페치 없이 `useSuspenseQuery`만 쓴 보호 화면에서 Next 서버발 호출이 생겼다. 게이트가 세션 확정 전 children을 그리지 않는 규칙(§4)이 실제로 필요하다.
+- **`instant = false`는 페이지마다 둔다**(§2 규칙 표).
+- 실패한 서버 조회는 캐시되지 않아 `generateMetadata`와 페이지가 각각 다시 부른다(500일 때 요청 하나에 백엔드 호출 1~2번). 정상 응답은 한 번만 부른다.
+- 메모리: standalone 유휴 RSS 약 163MB, 공연 상세 500회 요청 뒤 187MB. `isomorphic-dompurify`(jsdom)는 아직 넣지 않아 P5b에서 다시 잰다.
+- standalone 산출물 43MB.
+- `.css.ts` 변경 반영: 개발 서버에서 토큰 값을 바꾸면 다시 시작하지 않고 새 CSS가 나온다. 브라우저 HMR(새로고침 없음)은 브라우저로 보지 않았다.
+
+### 하지 못한 것
+
+| 항목 | 이유 | 언제 |
+|---|---|---|
+| Docker 이미지 빌드 | 이 컴퓨터에 Docker가 없다. Dockerfile·워크플로는 썼다 | GitHub Actions 첫 실행(`image.yml`) |
+| `<Link>` 프리페치가 `instant = false` 라우트에서 백엔드를 부르는지 | 브라우저가 필요하다 | P5a(공연홈 카드) |
+| 브라우저 HMR | 브라우저가 필요하다 | P1 |
+| 외부 확인(산출물 D) | 사람이 할 일 | 진행 중 |
+
+### 계획과 다르게 한 것
+
+- `eslint-plugin-boundaries` 7.x는 규칙 이름이 `boundaries/dependencies`, 옵션이 `policies`로 바뀌었다.
+- MSW 3.x는 `onUnhandledRequest`가 `onUnhandledFrame`이다.
+- 브라우저의 API 기준 주소를 `/api/v2`가 아니라 `${location.origin}/api/v2`로 만든다. ky가 만드는 `Request`가 절대 URL을 요구한다(테스트 환경에서 드러남). 동작은 같다.
+- 응답 enum은 `src/api/shared/open-enum.ts`의 `openEnum(name, values)` 한 가지로 연다.
+- 기존 `.gitignore`가 `term.html`·`privacy.html`을 무시하고 있어 지웠다.
+- Next 16.4.1의 `create-next-app` 기본값에 `partialPrefetching: true`가 들어 있어 그대로 켰다.
 
 ## 핵심 결정 요약
 

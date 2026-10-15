@@ -56,7 +56,7 @@ src/app/
 │  ├─ layout.tsx                       # P5a  관객 헤더·내비게이션(공통). usePathname·useSearchParams 쓰는 부분은 children을 감싸지 않는 말단 + 자체 <Suspense>
 │  │
 │  ├─ (public)/                        # 서버 조회 화면 — Suspense·loading.tsx를 두지 않는다
-│  │  ├─ layout.tsx                    # export const instant = false (여기 한 곳)
+│  │  ├─ layout.tsx                    # export const instant = false (아래 page.tsx에도 각각 둔다 — tech-decisions §2)
 │  │  ├─ page.tsx                      # P5a  공연홈
 │  │  ├─ events/[eventId]/page.tsx     # P5b  공연 상세 + generateMetadata
 │  │  ├─ hosts/[hostId]/page.tsx       # P5c  호스트 홈 — 사용자별 값은 viewer 쿼리
