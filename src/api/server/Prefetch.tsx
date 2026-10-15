@@ -16,6 +16,7 @@ import { getRequestQueryClient, serverQuery } from './serverQuery';
  */
 type AnyQuery = {
   queryKey: QueryKey;
+  // queryOptions() 결과 타입에서 queryFn이 선택 필드라 필수로 만들 수 없다. 빠지면 실행할 때 "Missing queryFn"
   queryFn?: unknown;
   // 무한 쿼리는 받지 않는다(첫 페이지 구조가 달라 브라우저 useInfiniteQuery가 깨진다 — tech-decisions §4)
   initialPageParam?: never;

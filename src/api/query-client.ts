@@ -8,9 +8,11 @@ import { ApiError } from './errors';
  */
 function shouldRetry(failureCount: number, error: unknown) {
   if (failureCount >= 1) return false;
-  if (error instanceof ApiError) return error.status >= 500 && error.code !== 'PARSE_ERROR';
-  // fetch의 네트워크 실패는 TypeError, ky 타임아웃은 TimeoutError
-  return error instanceof TypeError || (error instanceof Error && error.name === 'TimeoutError');
+  // 네트워크·타임아웃은 http.ts가 ApiError(0, 'NETWORK' | 'TIMEOUT')로 바꿔 던진다
+  if (error instanceof ApiError) {
+    return (error.status >= 500 || error.status === 0) && error.code !== 'PARSE_ERROR';
+  }
+  return false;
 }
 
 function makeQueryClient() {

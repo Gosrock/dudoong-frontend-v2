@@ -18,7 +18,7 @@ dudoong-frontend-v2/
 ├─ .prettierrc / .prettierignore / .editorconfig
 ├─ .nvmrc
 ├─ .env.example
-├─ vitest.config.ts
+├─ vitest.config.mts
 ├─ CLAUDE.md                   # 규칙 요약 + .claude/docs 안내
 ├─ .husky/pre-commit           # lint-staged
 ├─ .storybook/                 # react-vite + vanilla-extract
@@ -84,7 +84,7 @@ src/app/
 │           └─ gifts/page.tsx          # (보류) 보낸·받은 선물 내역 GG-7 — Figma에 화면이 있을 때만
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
-│  ├─ layout.tsx                       # P10a <Suspense>, 로그인 게이트, 셸 — 데스크탑 HostingSidebar(호스팅 홈·호스트 섹션·사용자) / 모바일 HostingHeader(`host title` 로고 헤더) + 드로어 + 알림 벨. 사이드바·헤더의 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
+│  ├─ layout.tsx                       # P10a <Suspense>, 로그인 게이트, 셸 — 데스크탑 HostingSidebar(호스팅 홈·호스트 섹션·사용자) / 모바일 HostingHeader(`host title` 로고 헤더, 벨 없음) + 드로어(알림 벨은 드로어 안 — design-requests Q17). 사이드바·헤더의 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색)
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기

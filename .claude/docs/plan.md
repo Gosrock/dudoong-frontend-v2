@@ -80,7 +80,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - vanilla-extract 연결(`@vanilla-extract/next-plugin`, `unstable_turbopack: { mode: 'auto' }`)
 - Dockerfile(멀티 스테이지, `HOSTNAME=127.0.0.1` `PORT=3000`), `/healthz`, `deploymentId`, 이미지 빌드 워크플로(GHCR) — [`deploy-plan.md`](./deploy-plan.md) D1. 스테이징 첫 배포(D2)는 P4b
 - 개발용 `rewrites`(`/api` → dev API), PR 게이트(`next typegen` → typecheck · lint · vitest)
-- 공개 env zod 검증(`env/client.ts`, 빌드 때). ky 인스턴스는 기준 주소 없이 만들고, `http.ts`가 요청마다 `prefix`를 넘긴다 — 서버(`typeof window === 'undefined'`)면 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`, 브라우저면 `/api/v2`(`instrumentation.ts`·`env/server.ts`는 두지 않는다). 구조화 stdout 로그
+- 공개 env zod 검증(`env/client.ts`, 빌드 때). ky 인스턴스는 기준 주소 없이 만들고, `http.ts`가 요청마다 `prefix`를 넘긴다 — 서버(`typeof window === 'undefined'`)면 `process.env.API_INTERNAL_URL || 'http://localhost:8080/api/v2'`(`/api/v2`로 끝나야 한다), 브라우저면 `${location.origin}/api/v2`(`instrumentation.ts`·`env/server.ts`는 두지 않는다). 구조화 stdout 로그
 - ESLint(flat config) + Prettier + husky + lint-staged. 프로젝트 고유 규칙(계층, `ky` 직접 import 금지 등)은 [`tech-decisions.md`](./tech-decisions.md) §24
 - Vitest + Testing Library + MSW, Storybook
 - `CLAUDE.md`, `.env.example`, PR 템플릿, `public/term.html`·`privacy.html`(v1에서 이전)
@@ -408,7 +408,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P10a — 호스팅 센터 셸 + 공연준비 홈 + 호스트 생성
 
-**포함**: `hosting/layout.tsx`(모바일은 헤더 — GUI 로컬 `host title`(`467:3169`, 햄버거 + "dudoong host" 로고). 제목형("호스팅 센터") 대안이 있어 확인 대기 — design-requests Q17, 데스크탑은 좌측 사이드바(tech-decisions §3), 알림 벨 — 누르면 `/mypage/notifications`, S7, **로그인 게이트** — P4a의 게이트를 그대로 쓴다), **공연준비 홈**(호스트 탭 GH-1 / 공연 탭 GE-1, 검색, 빈 상태, 무한 스크롤. 준비중 공연 카드의 ⋮ 삭제는 P11), **호스트 만들기**(PH-2 `{name, introduce, contacts}` — 이미지는 만든 뒤 설정에서), 비멤버가 호스트·공연 경로에 들어올 때의 403 안내(P2 공용 컴포넌트). `/admin/*` → `/hosting/*` 리다이렉트, `/hosting/events/[eventId]` → `…/dashboard`(둘 다 `next.config` `redirects()`).
+**포함**: `hosting/layout.tsx`(모바일은 헤더 — GUI 로컬 `host title`(`467:3169`, 햄버거 + "dudoong host" 로고). 제목형("호스팅 센터", 햄버거 없음 + 벨 + 아바타) 대안이 있어 확인 대기 — design-requests Q17, 데스크탑은 좌측 사이드바(tech-decisions §3), 알림 벨 — 로고형 헤더에는 벨 자리가 없어 **햄버거 드로어 안**에 둔다(관객 햄버거와 같다), 누르면 `/mypage/notifications`, S7, **로그인 게이트** — P4a의 게이트를 그대로 쓴다), **공연준비 홈**(호스트 탭 GH-1 / 공연 탭 GE-1, 검색, 빈 상태, 무한 스크롤. 준비중 공연 카드의 ⋮ 삭제는 P11), **호스트 만들기**(PH-2 `{name, introduce, contacts}` — 이미지는 만든 뒤 설정에서), 비멤버가 호스트·공연 경로에 들어올 때의 403 안내(P2 공용 컴포넌트). `/admin/*` → `/hosting/*` 리다이렉트, `/hosting/events/[eventId]` → `…/dashboard`(둘 다 `next.config` `redirects()`).
 
 **GUI**([`gui-screens.md`](./gui-screens.md) §2): 공연준비 홈 — 호스트 탭 빈 상태 `37:758`("두둥! 등록한 호스트가 없어요." + [새 호스트 만들기]) · 목록 `39:1503`, 공연 탭 목록 `329:11129`(Card list, 지난 공연 카드에도 ⋮가 그려져 있지만 계획대로 준비중 + 매니저 이상만), 공연 생성 직후 `298:2617`(토스트 "새로운 공연이 추가되었습니다!"). **공연을 만든 뒤 어디로 가는지가 GUI(홈 + 토스트)와 계획(대시보드)에서 다르다** — 디자인 확인 전까지 계획대로 대시보드로 보내고 토스트를 띄운다. 공연 탭 빈 상태·검색은 GUI에 없다. 호스트 만들기 `61:3484`(CTA가 "다음"이라 "만들기"로 할지 확인 — design-requests Q19, 이름 15자, 소개 — GUI placeholder는 100자지만 서버는 255자, 대표 연락처 드롭다운 + 유형별 placeholder: 전화 "-없이 입력해 주세요", 인스타 "@dudoong", 오픈채팅 "URL", 기타 "URL 혹은 텍스트 입력"). 연락처 유형에 서버의 `YOUTUBE`가 없다 — 목록에 "유튜브"를 더하고 placeholder는 "URL"로 한다(디자인 확인).
 

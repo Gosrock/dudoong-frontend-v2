@@ -27,7 +27,8 @@ export async function serverQuery<T, K extends QueryKey>(
     log('error', 'server_query.failed', {
       resource: String(options.queryKey[0]),
       status: e instanceof ApiError ? e.status : undefined,
-      code: e instanceof ApiError ? e.code : e instanceof Error ? e.name : 'unknown',
+      code:
+        e instanceof ApiError ? e.code : e instanceof Error ? `${e.name}: ${e.message}` : 'unknown',
     });
     throw e;
   }

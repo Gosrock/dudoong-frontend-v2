@@ -8,10 +8,16 @@ import { log } from '@/utils/log';
  * - 문자열이 아니거나 필드가 없으면 → 계약 위반이라 파싱 실패로 둔다(`PARSE_ERROR`)
  * 모든 매핑에는 UNKNOWN 분기를 둔다.
  */
+const warned = new Set<string>();
+
 export function openEnum<const T extends readonly [string, ...string[]]>(name: string, values: T) {
   return z.string().pipe(
     z.enum([...values, 'UNKNOWN']).catch(() => {
-      log('warn', 'api.unknown_enum', { name });
+      // 같은 enum은 프로세스(탭)마다 한 번만 남긴다 — 항목마다 반복되면 로그가 넘친다
+      if (!warned.has(name)) {
+        warned.add(name);
+        log('warn', 'api.unknown_enum', { name });
+      }
       return 'UNKNOWN' as const;
     }),
   );

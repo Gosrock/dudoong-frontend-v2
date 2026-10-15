@@ -132,7 +132,7 @@ app/
 | 폭 | 셸 | 위치 |
 |---|---|---|
 | 데스크탑 | **고정 좌측 사이드바**(폭 255): 로고 → "호스팅 홈" → 섹션 "공연"(대시보드 · 기본 정보 · 상세 정보 · 티켓 관리 · 예매자 관리 · QR 체크인 — 공연 안에 있을 때) → 섹션 "호스트"(소속 호스트) → 맨 아래 사용자(아바타 + 닉네임). 본문은 그 오른쪽. 대시보드만 우측 보조 패널(폭 392, 공연 일정·입장 현황)이 있다 | 사이드바 틀과 "호스팅 홈"·"호스트" 섹션은 `hosting/layout.tsx`. 공연 메뉴 항목은 `events/[eventId]/layout.tsx`가 GE-3(등록 상태별 항목)으로 채운다 |
-| 모바일 | 헤더(호스팅 홈은 로고 헤더 `host title` — 제목형 "호스팅 센터" 대안은 확인 대기(design-requests Q17), 공연 안에서는 햄버거 + 공연 전환 ▾ + 벨) + **햄버거 드로어**에 같은 메뉴 | 같은 레이아웃 파일이 폭에 따라 사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
+| 모바일 | 헤더(호스팅 홈은 로고 헤더 `host title` — 벨 자리가 없어 **알림 벨은 햄버거 드로어 안**에 둔다. 제목형 "호스팅 센터"(햄버거 없음 + 벨 + 아바타) 대안은 확인 대기(design-requests Q17). 공연 안에서는 햄버거 + 공연 전환 ▾ + 벨) + **햄버거 드로어**에 같은 메뉴 | 같은 레이아웃 파일이 폭에 따라 사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
 
 - 사이드바·헤더의 활성 메뉴 표시는 `usePathname()`을 쓰므로 **children을 감싸지 않는 말단 컴포넌트 + 자체 `<Suspense>`**(위 "경로를 읽는 컴포넌트")다.
 - GUI에 데스크탑 프레임은 1440 대시보드 하나뿐이다. 3단(255 + 793 + 392)은 1024에 들어가지 않으므로 1024~1279 배치(우측 패널을 본문 아래로)는 P1에서 브레이크포인트와 함께 정한다. 대시보드 외 화면(폼, 예매자 표)의 데스크탑 배치는 디자인을 기다린다 — 그 전까지 본문 칼럼 안에 모바일 폼을 최대 폭으로 둔다.
@@ -233,9 +233,9 @@ export const updateEventBasicMutation = (eventId: string) =>
 
 | 대상 | 규칙 |
 |---|---|
-| 응답 enum | `z.enum([...]).catch(ctx => { 구조화 로그(경로 패턴·issue 경로); return 'UNKNOWN' })` **한 가지로만** 쓴다. 리터럴 타입이 유지되고(`.or(z.string())`은 `string`으로 뭉개져 완전성 검사를 잃는다), 백엔드가 값을 하나 늘려도 화면의 `UNKNOWN` 분기까지 간다. 모든 enum 매핑에 `UNKNOWN` 분기를 둔다 |
+| 응답 enum | `src/api/shared/open-enum.ts`의 `openEnum(name, values)` **한 가지로만** 쓴다 — `z.string().pipe(z.enum([...values, 'UNKNOWN']).catch(() => 'UNKNOWN'))`. 문자열이지만 모르는 값은 `UNKNOWN`이 되고 enum 이름만 로그로 남긴다(같은 이름은 한 번만, 값은 남기지 않는다). 필드가 없거나 문자열이 아니면 계약 위반이라 파싱 실패(`PARSE_ERROR`)로 둔다. 리터럴 타입이 유지되고(`.or(z.string())`은 `string`으로 뭉개져 완전성 검사를 잃는다), 백엔드가 값을 하나 늘려도 화면의 `UNKNOWN` 분기까지 간다. 모든 enum 매핑에 `UNKNOWN` 분기를 둔다 |
 | 응답 객체 | 기본 동작(모르는 키 제거). `.strict()`를 쓰지 않는다 |
-| 파싱 실패 | 개발·테스트는 throw. 운영은 구조화 로그(요청 경로 패턴과 zod issue의 경로만, 값은 넣지 않음)를 남기고 throw |
+| 파싱 실패 | 개발·운영 모두 구조화 로그(`api.parse_failed` — 요청 라우트 패턴과 zod issue의 경로만, 값은 넣지 않음)를 남기고 `ApiError(status, 'PARSE_ERROR')`를 던진다. 재시도하지 않는다 |
 | 요청(폼) 스키마 | 엄격하게 둔다 |
 
 ### 서버에서 쓰기 — `<Prefetch>`
@@ -490,7 +490,8 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 | 값 | 이름 | 언제 정해지나 | 검증 |
 |---|---|---|---|
 | 카카오 JS 키 | `NEXT_PUBLIC_KAKAO_JS_KEY` | 빌드(인라인) | 빌드 때 — `next.config.ts`가 `env/client.ts`를 import해 누락 시 빌드 실패 |
-| 서버 내부용 API 주소 | `API_INTERNAL_URL` | 런타임 | 없음. `src/api/http.ts`의 서버 분기가 **호출할 때** `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`를 읽는다(모듈 최상위에서 읽지 않는다). 기본값이 운영·스테이징 값과 같아 보통 비워 둔다. 바꿀 때는 compose의 `environment:`로 준다 |
+| 서버 내부용 API 주소 | `API_INTERNAL_URL` | 런타임 | `/api/v2`로 끝나는지 요청할 때 검사(아니면 에러). `src/api/http.ts`의 서버 분기가 **호출할 때** `process.env.API_INTERNAL_URL || 'http://localhost:8080/api/v2'`를 읽는다(모듈 최상위에서 읽지 않는다, 빈 문자열도 기본값). 기본값이 운영·스테이징 값과 같아 보통 지정하지 않는다. 바꿀 때는 compose의 `environment:`로 준다 |
+| 로컬 개발 API 출처 | `DEV_API_ORIGIN` | `next dev`만 | 없음. 브라우저 요청 `/api/*`을 이 출처로 넘기는 rewrite. **서버 프리페치는 rewrite를 타지 않으므로 로컬에서는 `API_INTERNAL_URL=${DEV_API_ORIGIN}/api/v2`도 함께 준다**(P0 2회차 검증에서 확인 — 빼면 `/`가 500) |
 
 - `instrumentation.ts`와 `env/server.ts`는 두지 않는다. 기본값이 있는 값에 "누락 시 기동 실패"는 의미가 없고, `http.ts`가 서버 전용 모듈을 import하면 브라우저 번들에 섞이거나 `server-only`로 빌드가 깨진다(1회차 설계를 2회차에서 되돌렸다).
 - `next.config.ts`가 `env/client.ts`를 import하므로 `next dev`·`next typegen`(CI)에서도 카카오 키가 필요할 수 있다(미확인). `.env.example`과 CI 변수에 적어 둔다.
@@ -1254,6 +1255,25 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 | `.env.production` 등이 무시되지 않았다 | `.env*` + `!.env.example`, `.dockerignore`에 `*.tsbuildinfo` |
 
 테스트 9건(응답 래퍼 7, 재시도 규칙 2). `error.tsx`·`not-found.tsx`는 P5a 범위다.
+
+### 2회차 검증 뒤 고친 것
+
+| 문제 | 고침 |
+|---|---|
+| ky 2.2는 네트워크 오류를 `TypeError`가 아니라 `NetworkError`로 던져 재시도되지 않았다(1회차 테스트가 실제로 던지지 않는 `TypeError`로 검사해 가렸다) | `http.ts`가 ky의 `NetworkError`·`TimeoutError`를 `ApiError(0, 'NETWORK' \| 'TIMEOUT', 라우트 패턴)`으로 바꾼다. 재시도는 `status >= 500 \|\| status === 0`(PARSE_ERROR 제외) |
+| 파싱 실패 로그의 `route`와 Next가 찍는 ky 에러 메시지에 실제 경로(`gifts/<토큰>`)가 남았다 | 로그는 `routePattern()`(소문자 단어 세그먼트만 남기고 나머지는 `:param`). ky 에러는 URL 없는 `ApiError`로 바꿔 던진다 |
+| 기준 주소 계산 실패가 동기로 던져져 프리렌더 중 `Date.now()` 에러가 함께 찍혔다 | `request()`를 async로 바꿔 Promise 거절로 낸다 |
+| `API_INTERNAL_URL=`(빈 문자열)이면 500 | `\|\|`로 기본값 |
+| `authApi` 서버 주소가 경로 접두사를 버렸다 | `/api/v2` → `/api/v1/auth` 치환 |
+| `openEnum` 경고가 항목마다 반복됐다 | enum 이름별로 한 번만 |
+| `serverQuery` 비정형 실패 로그가 `Error`뿐이었다 | `이름: 메시지`(ky 에러는 이미 URL 없는 ApiError) |
+| `image.yml`의 `concurrency`가 대기 중인 중간 커밋 빌드를 취소해 sha 이미지가 빠질 수 있었다 | 빌드는 동시 제한 없이 커밋마다, `:main`은 별도 잡이 main 최신 커밋일 때만 `imagetools create`로 옮긴다 |
+| 로컬에서 `DEV_API_ORIGIN`만 주면 `/`가 500 | §12 표와 `.env.example`에 `API_INTERNAL_URL`도 함께 준다고 적었다 |
+| `engines`가 `>=22` | `22.x` |
+
+테스트 14건(응답 래퍼 7, 재시도 규칙 2, 서버 분기 Node 환경 5 — 닫힌 포트·접미사 누락·빈 문자열·authApi 경로·routePattern).
+
+**남은 것**: `<Prefetch>`가 `queryFn` 없는 객체를 타입에서 막지 못한다(`queryOptions()` 결과 타입에서 `queryFn`이 선택 필드). 상태 코드 표는 헤더 없는 셸로 채웠으므로, 헤더(`usePathname` 말단 + Suspense)가 생기는 P2·P5a에서 다시 채운다(§3 약속). Docker 베이스 이미지(`node:22-alpine`)는 태그를 고정하지 않았다 — 첫 CI 빌드에서 다이제스트를 확인해 고정한다.
 
 ## 핵심 결정 요약
 

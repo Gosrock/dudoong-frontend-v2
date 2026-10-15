@@ -153,7 +153,7 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 GUI 화면 파일에서 본 것(2026-10-15):
 - 숫자 폰트는 **Saira Condensed Bold**다. GUI 화면 대시보드의 공연명 숫자·통계 숫자(`329:7470`, `525:3580`, `525:4095` 등)에 실제로 쓰였고 메모 `295:1070`도 "Saira condensed"다. 메모 `315:2209` 한 곳만 "saira extra condensed"라고 적어 디자이너 확인만 남긴다([`design-requests.md`](./design-requests.md) 4절 Q14).
 - "폰트고민" 페이지가 제목 후보 6종(학교안심 곧은제목, Cafe24 PRO Slim, 넥슨 카트 고딕, 신라고딕, 서평원 꺾깎체, 뉴트로닉)을 비교했고 결론은 "카트라이더 + 숫자"다.
-- Inter·Geist는 shadcn류 원격 컴포넌트가 남은 흑백 주문상세 프레임(`331:11009` 섹션), 숨긴 Outline Button "Label"(`329:7498` 등), 삭제예정 체크아웃과 메모 레이어에만 있다. 구현은 Pretendard로 통일한다.
+- Inter·Geist는 흑백 주문상세 섹션 `331:11009`의 텍스트 전반(원격 컴포넌트 안팎), 작업용 `338:14624`, 회색 와이어 `338:15509`(Geist "미리보기"·"저장하기"), 숨긴 Outline Button "Label"(`329:7498` 등), 삭제예정 체크아웃, 메모 레이어에 있다(목록은 `gui-screens.md` §6). 구현은 Pretendard로 통일한다.
 
 ### 그림자와 스타일
 
@@ -295,7 +295,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | 폼 하단 고정 2버튼 바([미리보기] + [저장하기]) | `311:1633`, `525:4137` | P11 |
 | Input 글자 수 카운터("0/12", "0/30") | `584:4775` | P12 — Input "없는 상태"에 추가 |
 
-**로컬 헤더 2종.** Top app bar와 별도로 GUI 화면 파일에만 있다: `basic title`(`567:9967`, search/no search — 관객 로고 헤더), `host title`(`467:3169`, 호스팅 홈 로고 헤더 "dudoong host", 벨 없음 — 제목형 대안은 design-requests Q17). 코드는 `Header` 하나에 로고형 변형을 둔다.
+**로컬 헤더 2종.** Top app bar와 별도로 GUI 화면 파일에만 있다: `basic title`(`567:9967`, search/no search — 관객 로고 헤더), `host title`(`467:3169`, 메인은 `37:758` 안, 호스팅 홈 로고 헤더 "dudoong host", 벨 없음 — 벨은 햄버거 드로어 안에 둔다. 제목형 대안은 design-requests Q17). 코드는 `Header` 하나에 로고형 변형을 둔다.
 
 **`illust_dashboard`**(`14:1529`, 로컬)는 헤더가 아니라 통계 카드용 상태 아이콘 36×36 4종(승인대기·승인완료·승인 거절·환불 요청)이다. 인스턴스가 0개라 지금은 안 쓰인다. PC 대시보드 타임라인 일러스트는 컴포넌트가 아닌 벡터 그룹(`14:1462`)이다.
 
@@ -438,7 +438,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 |---|---|
 | 1회차(2026-10-15) | Button을 "shadcn 변형"으로 본 판단 철회(아이콘 자리는 자체 `ic/name=blank`). Input·Dropdown·Toast도 출처 단정 철회. 아이콘 58종 → 44종(변형 58). Avatar 변형 9개·40=45px. 원시 색 직접 사용, 없는 상태, 사용 메모, Sample GUI 원격 키트, 모서리 변수 오용 범위, 하드코딩 값 표 추가 |
 | 2회차(2026-10-15) | shadcn 흔적 재정리 — 아이콘 세트 선 굵기·Toast 테두리가 shadcn 키트 원격 변수에 묶여 있고 아이콘이 lucide 방식(둥근 선 2px)이라 lucide 바탕일 가능성. "원격 인스턴스 없음" 철회. `on Primary container` 용도(배경)와 대비 수치 정정, 아이콘 색 "직접 값" 정정(54/58은 변수). 다색 아이콘 `chat`·`gift` 12, 원시 색 표·모서리 표 보강(알약·원형 정리), Top app bar 말줄임과 공연 전환형, Ticket state chip 11가지 중 4가지, 없는 컴포넌트 15개·없는 상태 4개 추가, Button `variant` `subtle` → `tonal`, Filter Chip P2로 |
-
 | 3회차(2026-10-15) | 아이콘 출처 확정 — SVG 좌표 비교로 24 outline 37개 중 26개가 lucide와 같고 6개는 고친 것, 5개는 자체, filled 12는 lucide에 없음. `lucide-react`는 쓰지 않고 Figma SVG 한 경로 + 라이선스 고지. `info` 그림 정정(file-pen), SVG 추출이 깨지는 `home`·`Ticket-alert`, 다색 아이콘의 다크 모드 문제. Card list·example poster Phase P5a → P10a(호스팅 센터 카드), Top app bar P2 `Header`로. Ticket 칩 임시안 정정(`status/error` = `brand/accent`라 거절이 선물대기와 같아짐 → 칩 전용 토큰), Concert chip ONGOING, 상태 칩 대비 6건, 대시보드 상태 아이콘 색, plan P2와 대응 안 된 컴포넌트 6개 추가 |
 | GUI 반영(2026-10-15) | GUI 화면 파일 반영 — PC 대시보드 3단 레이아웃과 1024~1279 중간 배치 필요(§2), 없는 컴포넌트를 "GUI에 그려진 것"(18개)과 "여전히 없는 것"으로 나눔, GUI 새 패턴 11개, 로컬 헤더 3종, 숫자 폰트 이름 불일치(saira extra condensed), Inter·Geist는 잔재, Input 글자 수 카운터 |
 | GUI 검증 1회차(2026-10-16) | 숫자 폰트 정정 — GUI에 Saira Condensed가 실제로 쓰였다("쓰인 곳이 없다" 철회). `illust_dashboard`는 헤더가 아니라 미사용 상태 아이콘 4종(로컬 헤더 3종 → 2종). Inter·Geist 범위를 숨김·삭제예정·메모 레이어까지로 |
+| GUI 검증 2회차(2026-10-16) | `host title` 메인 컴포넌트가 `37:758` 안에 있다는 점 정정, 로고형 헤더는 벨이 없어 벨을 햄버거 드로어 안에 둔다(Q17), Inter·Geist 범위 정정, 이 검증 기록 표의 끊김 수정 |

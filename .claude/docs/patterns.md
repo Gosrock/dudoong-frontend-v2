@@ -267,27 +267,33 @@ useMutation({
 | 객체 | 경로 | 기본 주소 |
 |---|---|---|
 | `api` | `/api/v2` | 브라우저는 `${location.origin}/api/v2`, 서버는 `API_INTERNAL_URL`(`http://localhost:8080/api/v2`, `/api/v2`로 끝나야 한다) |
-| `authApi` | `/api/v1/auth` | 브라우저 전용(로그인 콜백, 재발급, 로그아웃, 탈퇴). **401 가로채기(재발급·재시도)가 없다** |
+| `authApi` | `/api/v1/auth` | 로그인 콜백, 재발급, 로그아웃, 탈퇴. 지금 쓰는 곳은 브라우저뿐이지만 서버 분기도 있다(`API_INTERNAL_URL`의 `/v2` → `/v1/auth`). **401 가로채기(재발급·재시도)가 없다** |
 
 ```ts
 // 개념 — 훅(afterResponse)이 아니라 객체 안에서 처리한다(ky 2.x 훅 방식은 스파이크에서 실패, tech-decisions §22)
+// 요약. 실제 코드는 src/api/http.ts · client.ts
 const prefix = typeof window === 'undefined'
-  ? (process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2')   // 요청마다 읽는다
-  : '/api/v2';
-const res = await http(path, { prefix, throwHttpErrors: false, credentials: isPublic ? 'omit' : 'include', … });
-const body = await res.json().catch(() => null);
-// JSON 파싱 실패 → NON_JSON(nginx HTML 502 등), 래퍼 모양이 아님 → BAD_ENVELOPE, 스키마 불일치 → PARSE_ERROR
-if (!body.success) throw new ApiError(res.status, body.code, body.reason);   // 상태는 본문이 아니라 HTTP
-return parse(schema, body.data);                                              // zod 정책은 tech-decisions §4
+  ? (process.env.API_INTERNAL_URL || 'http://localhost:8080/api/v2')   // 요청마다 읽는다, /api/v2로 끝나야 한다
+  : `${window.location.origin}/api/v2`;                                // ky의 Request가 절대 URL을 요구한다
+let res;
+try {
+  res = await kyBase(path, { prefix, credentials: isPublic ? 'omit' : 'include', … });  // throwHttpErrors: false
+} catch (e) {   // ky 에러 메시지에는 URL(토큰)이 들어 있다 → URL 없는 ApiError로
+  if (isTimeoutError(e)) throw new ApiError(0, 'TIMEOUT', routePattern(path));
+  if (isNetworkError(e)) throw new ApiError(0, 'NETWORK', routePattern(path));
+  throw e;
+}
+// unwrap: JSON 파싱 실패 → NON_JSON, 래퍼 모양 아님 → BAD_ENVELOPE, 실패 응답 → ApiError(HTTP 상태, code, reason),
+//         스키마 불일치 → 로그(라우트 패턴·issue 경로) 후 PARSE_ERROR
 ```
 
 - 에러는 `ApiError{status, code, reason}`와 그 하위 클래스 `SessionLostError`(§5-1)다. `status`는 언제나 **HTTP 상태**다. 본문 `status`와 다른 응답이 있다(토큰 없음 401의 본문은 403, api-contract §1).
 - **본문이 JSON이 아니면 `ApiError(res.status, 'NON_JSON', '')`**를 던진다. 래퍼 모양이 아니면 `BAD_ENVELOPE`, 스키마와 맞지 않으면 `PARSE_ERROR`(재시도하지 않는다 — 실제 코드는 `src/api/client.ts`). 백엔드 재기동 중 nginx가 돌려주는 HTML 502가 `SyntaxError`로 새면 "5xx만 재시도", "재발급 5xx = 일시 오류" 판정이 모두 깨진다. Vitest 대상(P3): HTML 502 → `ApiError{status: 502, code: 'NON_JSON'}`.
 - ky 인스턴스(`client.ts`)는 기준 주소 없이 만든다. `http.ts`가 요청마다 `prefix`를 넘긴다(서버 판정은 `typeof window === 'undefined'`). 인스턴스를 만들 때 주소를 고정하면 "호출 시점에 읽는다"가 깨진다.
 - 화면에서 코드를 꺼낼 때는 `getErrorCode(e: unknown): string | null`. 네트워크 오류·파싱 실패에서도 throw하지 않는다.
-- **응답 enum은 한 가지 방식으로만 연다**: `z.enum([...]).catch((ctx) => { logParseIssue(ctx); return 'UNKNOWN' as const })`. 리터럴 타입이 유지되고, 모르는 값은 경로·issue 경로만 로그로 남긴다(값은 남기지 않는다). 상태·타입을 화면으로 바꾸는 매핑에는 모두 `UNKNOWN` 분기를 둔다. `.or(z.string())`은 쓰지 않는다(타입이 `string`으로 합쳐져 완전성 검사를 잃는다).
+- **응답 enum은 `openEnum(name, values)` 한 가지로만 연다**(tech-decisions §4 zod 정책). 모르는 문자열은 `UNKNOWN`(enum 이름만 로그, 같은 이름은 한 번), 누락·비문자열은 `PARSE_ERROR`. 상태·타입을 화면으로 바꾸는 매핑에는 모두 `UNKNOWN` 분기를 둔다. `.or(z.string())`은 쓰지 않는다(타입이 `string`으로 합쳐져 완전성 검사를 잃는다).
 - `src/api`는 리다이렉트도 토스트도 하지 않는다. 던지기만 한다.
-- 서버 쪽 기본 주소는 호출 시점에 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`로 읽는다(모듈 최상위에서 읽지 않는다). 서버 전용 env 모듈이 없으므로 브라우저 번들에 서버 코드가 섞이지 않는다.
+- 서버 쪽 기본 주소는 호출 시점에 `process.env.API_INTERNAL_URL || 'http://localhost:8080/api/v2'`로 읽는다(모듈 최상위에서 읽지 않는다). 서버 전용 env 모듈이 없으므로 브라우저 번들에 서버 코드가 섞이지 않는다.
 
 ### 5-1. 401 처리
 
