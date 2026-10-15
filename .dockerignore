@@ -1,0 +1,15 @@
+.git
+.github
+.claude
+.husky
+.storybook
+node_modules
+.next
+coverage
+storybook-static
+**/*.stories.tsx
+**/*.test.ts
+**/*.test.tsx
+.env*
+!.env.example
+Dockerfile

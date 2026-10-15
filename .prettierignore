@@ -1,0 +1,8 @@
+.next
+out
+build
+coverage
+storybook-static
+pnpm-lock.yaml
+public/*.html
+.claude

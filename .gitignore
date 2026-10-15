@@ -43,3 +43,9 @@ coverage/
 .turbo/
 .vercel/
 .omc/
+
+# Next.js
+next-env.d.ts
+
+# Storybook
+storybook-static/

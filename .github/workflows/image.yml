@@ -1,0 +1,38 @@
+name: Image
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    # 서버가 ARM(t4g)이라 arm64만 만든다. ARM 러너에서 네이티브로 빌드한다(deploy-plan §5).
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - name: short sha
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            NEXT_PUBLIC_KAKAO_JS_KEY=${{ vars.NEXT_PUBLIC_KAKAO_JS_KEY }}
+            GIT_SHA=${{ github.sha }}
+          tags: |
+            ghcr.io/gosrock/dudoong-front:sha-${{ steps.sha.outputs.short }}
+            ghcr.io/gosrock/dudoong-front:main
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
