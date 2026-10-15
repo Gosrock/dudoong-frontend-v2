@@ -1,5 +1,7 @@
 # Figma 와이어프레임 구조 스냅샷
 
+> **2026-10-15**: 실제 화면 디자인은 "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)이고 [`gui-screens.md`](./gui-screens.md)에 정리했다. 이 문서는 옛 와이어프레임 관측 기록이다.
+
 > 이 문서는 Figma MCP(`mcp__figma-console__figma_*`, Desktop Plugin 브리지)로 조회한 결과를 캐시해둔 것이다.
 > **매번 Figma를 다시 읽지 않고 이 문서를 먼저 참고한다.** 단, 이 문서는 스냅샷이라 최신성 보장이 없다 — 실제 화면 디테일(레이아웃/카피/컴포넌트 속성)을 확정해야 하는 구현 단계에서는 반드시 `figma_get_component_for_development` 등으로 재조회해서 이 문서와 대조한다.
 >

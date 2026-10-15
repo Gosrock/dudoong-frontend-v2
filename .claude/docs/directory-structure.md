@@ -84,7 +84,7 @@ src/app/
 │           └─ gifts/page.tsx          # (보류) 보낸·받은 선물 내역 GG-7 — Figma에 화면이 있을 때만
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
-│  ├─ layout.tsx                       # P10a 헤더, 알림 벨, <Suspense>, 로그인 게이트 (사이드메뉴는 events/[eventId]/layout.tsx)
+│  ├─ layout.tsx                       # P10a <Suspense>, 로그인 게이트, 셸 — 데스크탑 HostingSidebar(호스팅 홈·호스트 섹션·사용자) / 모바일 HostingHeader(`host title` 로고 헤더) + 드로어 + 알림 벨. 사이드바·헤더의 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색)
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기
@@ -93,7 +93,7 @@ src/app/
 │  │  ├─ settings/page.tsx             # P10b 호스트 설정
 │  │  └─ members/page.tsx              # P10b 멤버
 │  └─ events/[eventId]/                # page.tsx 없음 — next.config redirects()로 dashboard
-│     ├─ layout.tsx                    # P11  공연 어드민 사이드메뉴 (GE-3, 등록 상태별 항목)
+│     ├─ layout.tsx                    # P11  공연 스코프 (GE-3) — 사이드바에 공연 메뉴 항목(등록 상태별), 모바일은 공연 전환 ▾ 헤더
 │     ├─ dashboard/page.tsx            # P11(체크리스트) + P13a(등록 후 통계)
 │     ├─ info/page.tsx                 # P11  기본 정보
 │     ├─ detail/page.tsx               # P11  상세 정보 (섹션 에디터)
@@ -131,6 +131,7 @@ src/features/
 │  └─ mypage/                  # P9   MyPage, Profile, OrderHistory(+ RefundAccountSheet), FollowingHosts, Archive
 │
 ├─ hosting/
+│  ├─ shell/                   # P10a HostingSidebar(+ SidebarItem = GUI `Component 1`), HostingHeader, EventSwitcherHeader(공연 전환 ▾), MobileDrawer
 │  ├─ home/                    # P10a PrepHome(HostTab, EventTab, Search)
 │  ├─ host/                    # P10a + P10b  CreateHost, HostSettings, HostMembers(InviteDialog, RoleMenu, TransferMasterDialog, PermissionGuide)
 │  ├─ event/                   # P11  NewEventWizard, EventLayout, Checklist, EventInfo(PlaceInput: 우편번호 + 카카오 Geocoder), EventDetailEditor(SectionTabs + Tiptap)
@@ -166,7 +167,7 @@ src/ui/
 ├─ icons/                      # Figma ic 세트에서 뽑은 SVG → <Icon name size variant />. 라이선스 고지(lucide ISC) 포함
 └─ components/                 # 컴포넌트마다 Foo.tsx + Foo.css.ts + Foo.stories.tsx
    ├─ Button/ Fab/              # Fab: 56 원형 아이콘 버튼(Figma Button type=round). 아이콘만 있는 일반 버튼은 Button iconOnly
-   ├─ Input/ SearchField/ TextArea/ Dropdown/ SelectButton/ Counter/ DropZone/ TagButton/
+   ├─ Input/ SearchField/ TextArea/ Dropdown/ SelectButton/ Counter/ DropZone/ TagButton/   # SelectButton = GUI 로컬 `Check Button`(예/아니오, 결제방식 선택)
    ├─ Checkbox/ Radio/ Toggle/ Tabs/   # Radix Checkbox·RadioGroup·Switch·Tabs + vanilla-extract (design-system.md §3)
    ├─ Badge/ Avatar/ FilterChip/ Chip/   # Chip: Ticket·Concert 상태, role, tag, money option
    ├─ DatePicker/ TimePicker/
@@ -175,7 +176,7 @@ src/ui/
    ├─ Loader/ Skeleton/ EmptyState/ LinkProgress/   # LinkProgress: 카드 <Link> 안의 인라인 이동 표시(useLinkStatus, 100ms 지연)
    ├─ NotFoundView/ ForbiddenView/   # P2  클라이언트 조회 화면용 공용 404·403 안내 (P5a·P9·P10a가 쓴다)
    ├─ AsyncBoundary/           # P2  QueryErrorResetBoundary + ErrorBoundary + Suspense + 재시도(reset). SessionLostError는 fallback 없이 무시
-   ├─ Accordion/ Header/ Footer/ NavBar/ ListHeader/ InfoRow/   # Header = Figma Top app bar(관객·호스팅 공용). InfoRow = Figma list(라벨 + 값 행, 펼침형은 Accordion)
+   ├─ Accordion/ Header/ Footer/ NavBar/ ListHeader/ InfoRow/   # Header = Figma Top app bar(관객·호스팅 공용, 뒤로가기·제목·공연 전환형). 로고 헤더(GUI 로컬 `basic title` 관객, `host title` 호스팅)는 각 셸이 Header의 변형으로 그린다. InfoRow = Figma list(라벨 + 값 행, 펼침형은 Accordion)
    └─ DataTable/
 ```
 

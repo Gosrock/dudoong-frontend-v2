@@ -113,8 +113,8 @@ app/
 │  ├─ (public)/layout.tsx         export const instant = false. Suspense·loading.tsx 없음
 │  └─ (app)/layout.tsx            <Suspense>
 │     └─ (protected)/layout.tsx   로그인 게이트
-└─ hosting/layout.tsx             <Suspense> + 로그인 게이트
-   └─ events/[eventId]/layout.tsx 공연 어드민 사이드메뉴(GE-3)
+└─ hosting/layout.tsx             <Suspense> + 로그인 게이트 + 셸(데스크탑 좌측 사이드바 / 모바일 헤더)
+   └─ events/[eventId]/layout.tsx 공연 스코프(GE-3) — 사이드바의 공연 메뉴 항목, 모바일 공연 전환 ▾ 헤더
 ```
 
 | 그룹 | 조회 | 레이아웃 |
@@ -123,9 +123,20 @@ app/
 | `(public)` | 서버(`<Prefetch>`) | Suspense·`loading.tsx` **없음**, `instant = false` 한 곳 |
 | `(app)` | 클라이언트 | `<Suspense>` |
 | `(app)/(protected)` | 클라이언트 | 로그인 게이트(§4 인증) |
-| `hosting` | 클라이언트 | `<Suspense>` + 로그인 게이트(P4a의 게이트 컴포넌트를 그대로 쓴다, P10a). 공연 어드민 사이드메뉴는 `hosting/events/[eventId]/layout.tsx` |
+| `hosting` | 클라이언트 | `<Suspense>` + 로그인 게이트(P4a의 게이트 컴포넌트를 그대로 쓴다, P10a) + 셸. 셸은 아래 "호스팅 센터 셸" |
 
 **경로를 읽는 컴포넌트.** Cache Components에서 `usePathname()`은 `generateStaticParams`가 없는 동적 파라미터 경로에서 suspend하고, 위에 Suspense가 없으면 빌드가 실패한다([Next 문서](https://nextjs.org/docs/app/api-reference/functions/use-pathname)). 그렇다고 children을 감싸는 Provider·레이아웃에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404가 200으로 굳는다(§2). 그래서 **`usePathname()`·`useSearchParams()`를 쓰는 컴포넌트는 children을 감싸지 않는 말단 컴포넌트로 두고, 형제 위치의 자체 `<Suspense>`로 감싼다.** 헤더의 활성 메뉴 표시, 경로가 바뀔 때 오버레이를 닫는 `<OverlayRouteReset />`(§5)이 여기에 해당한다. P0 상태 코드 표(§2)는 이 컴포넌트들을 넣은 최종 헤더로 채운다.
+
+**호스팅 센터 셸(GUI 반영, 2026-10-15).** GUI 화면 파일의 데스크탑 대시보드(`Desktop - 27`, 1440×1024)와 모바일 화면들([`gui-screens.md`](./gui-screens.md) §2·§3)을 따른다.
+
+| 폭 | 셸 | 위치 |
+|---|---|---|
+| 데스크탑 | **고정 좌측 사이드바**(폭 255): 로고 → "호스팅 홈" → 섹션 "공연"(대시보드 · 기본 정보 · 상세 정보 · 티켓 관리 · 예매자 관리 · QR 체크인 — 공연 안에 있을 때) → 섹션 "호스트"(소속 호스트) → 맨 아래 사용자(아바타 + 닉네임). 본문은 그 오른쪽. 대시보드만 우측 보조 패널(폭 392, 공연 일정·입장 현황)이 있다 | 사이드바 틀과 "호스팅 홈"·"호스트" 섹션은 `hosting/layout.tsx`. 공연 메뉴 항목은 `events/[eventId]/layout.tsx`가 GE-3(등록 상태별 항목)으로 채운다 |
+| 모바일 | 헤더(호스팅 홈은 로고 헤더 `host title`, 공연 안에서는 햄버거 + 공연 전환 ▾ + 벨) + **햄버거 드로어**에 같은 메뉴 | 같은 레이아웃 파일이 폭에 따라 사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
+
+- 사이드바·헤더의 활성 메뉴 표시는 `usePathname()`을 쓰므로 **children을 감싸지 않는 말단 컴포넌트 + 자체 `<Suspense>`**(위 "경로를 읽는 컴포넌트")다.
+- GUI에 데스크탑 프레임은 1440 대시보드 하나뿐이다. 3단(255 + 793 + 392)은 1024에 들어가지 않으므로 1024~1279 배치(우측 패널을 본문 아래로)는 P1에서 브레이크포인트와 함께 정한다. 대시보드 외 화면(폼, 예매자 표)의 데스크탑 배치는 디자인을 기다린다 — 그 전까지 본문 칼럼 안에 모바일 폼을 최대 폭으로 둔다.
+- 사이드바 메뉴 항목 컴포넌트는 GUI의 원격 `Component 1`(선택 true/false)이다. 디자인 시스템 목록에는 없다(design-system §3 "없는 컴포넌트").
 
 보호 경로를 목록으로 판정하지 않고 폴더로 나눈다. 게이트가 필요 없는 `/events`, `/login`, `/login/expired`, `/kakao/callback`은 `(protected)` 밖에 둔다.
 
@@ -1159,13 +1170,25 @@ nginx 경로 분기(`nginx/site.conf`):
 
 1·2회차는 빠진 것을 채웠고, 3회차는 구조를 바꾸는 지적 없이 문서 간 어긋남과 경계 상황을 닫았다. 상(上) 지적은 6 → 2 → 1로 줄었다.
 
+## 30. GUI 화면 반영 (2026-10-15)
+
+Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록과 GUI·서버 차이는 [`gui-screens.md`](./gui-screens.md)에 있다. 결정에 영향을 준 것만 적는다.
+
+| 바뀐 것 | 위치 |
+|---|---|
+| 호스팅 센터 데스크탑 셸 = 고정 좌측 사이드바(`Desktop - 27`). 모바일은 헤더 + 햄버거 드로어 + 공연 전환 ▾. 1024~1279 배치는 P1 | §3 "호스팅 센터 셸", plan P1·P10a·P11 |
+| GUI가 서버 계약과 다른 곳은 서버 기준으로 만든다(체크아웃 예매번호·티켓번호 제거, 은행명 추가, 할인금액 제거, v2에 없는 리마인드 알림 제외, 티켓 폼 라벨·기본값, 호스트 삭제 숨김, 입장 분모 = 발급 수) | plan P7·P9·P9b·P10b·P12·P13a, gui-screens §4 |
+| GUI에 없는 입구는 계획대로 만든다([주문취소]·환불 계좌, 옵션 붙이기, 공유 버튼, 무료 [신청]) | plan P5b·P7·P9·P12 |
+| 공연 생성 뒤 이동은 GUI(홈 + 토스트)와 계획(대시보드)이 달라 디자인 확인 전까지 대시보드 | plan P10a |
+| 장소 아래 회색 박스(`329:7206`) — 지도 미리보기면 카카오맵 지도 SDK로 그린다(Geocoder와 같은 SDK) | plan P11, design-requests Q3 |
+
 ## 핵심 결정 요약
 
 | 항목 | 결정 | 한 줄 근거 |
 |---|---|---|
 | 1. 앱 구조 | 단일 Next 앱, 모노레포·패키지 없음 | 런타임이 같아졌고 관객·호스트에 걸친 화면이 많다 |
 | 2. 라우터 | App Router, Cache Components 켬(기본값), 서버 캐시 없음 | emotion을 버리면 Pages Router를 고를 이유가 없다. 트래픽상 캐시의 이득이 없고 따라오는 복잡도가 크다 |
-| 3. 렌더 | `(audience)` 공통 헤더 아래 `(public)`(서버 조회, Suspense 없음) / `(app)`(클라이언트 조회, 그 안의 `(protected)`에 게이트), `hosting` | 서버 조회가 필요한 화면이 4개뿐. 크롤러에 404를 지키려면 Suspense 밖이어야 한다(켠 구성의 브라우저는 200, P0에서 표로 재확인) |
+| 3. 렌더 | `(audience)` 공통 헤더 아래 `(public)`(서버 조회, Suspense 없음) / `(app)`(클라이언트 조회, 그 안의 `(protected)`에 게이트), `hosting`(데스크탑 좌측 사이드바 / 모바일 헤더 + 드로어 셸, §30) | 서버 조회가 필요한 화면이 4개뿐. 크롤러에 404를 지키려면 Suspense 밖이어야 한다(켠 구성의 브라우저는 200, P0에서 표로 재확인) |
 | 4. 데이터 | `queryOptions` 한 벌을 서버(`<Prefetch>`, 무한 목록 제외)와 브라우저가 공유. 사용자별 값은 viewer 쿼리로 분리. `api`·`authApi`. 응답 enum은 `.catch` → `UNKNOWN`. 서버 컴포넌트는 라우트 파일만 | 서버에서 도는 조회에는 토큰이 붙지 않는다. 같은 키에 두면 익명 값이 인증 값을 덮는다 |
 | 4-b. 인증 | v1 OAuth, JS로 쿠키 안 읽음, 401이면 코드 무관 재발급(탭 간 Web Locks, `authApi`는 가로채기 없음). 재발급이 4xx일 때만 세션 상실(5xx·네트워크는 유지) — 보호 화면은 `/login/expired`, 공개 화면은 익명으로 다시 그림. `dd:session` 값으로 익명 방문자의 재발급 생략·탭 간 로그아웃 동기화. `proxy.ts` 없음 | 운영 쿠키가 `SameSite=Strict`라 서버 게이트가 외부 링크 진입을 잘못 막는다. 배포 중 502로 로그인 사용자가 튕기지 않게 |
 | 5. 상태 | 전역 상태 라이브러리 없음 | v1 전역 상태는 전부 서버 상태·오버레이·지역 상태였다 |
