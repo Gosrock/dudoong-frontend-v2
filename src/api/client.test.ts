@@ -1,8 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import { z } from 'zod';
 
-import { server } from '@/mocks/server';
-
+import { server } from './__mocks__/server';
 import { ApiError } from './errors';
 import { api } from './http';
 
@@ -58,5 +57,34 @@ describe('api', () => {
     await expect(api.get('tags', TagGroupsSchema)).resolves.toEqual([
       { category: 'UNKNOWN', tags: [] },
     ]);
+  });
+});
+
+describe('api 엣지 케이스', () => {
+  it('본문이 null이면 BAD_ENVELOPE(TypeError가 새지 않는다)', async () => {
+    server.use(http.get('*/api/v2/echo', () => HttpResponse.json(null)));
+    await expect(api.get('echo', Echo)).rejects.toMatchObject({
+      status: 200,
+      code: 'BAD_ENVELOPE',
+    });
+  });
+
+  it('스키마와 맞지 않으면 PARSE_ERROR', async () => {
+    server.use(
+      http.get('*/api/v2/echo', () =>
+        HttpResponse.json({ success: true, status: 200, data: { value: 'x' }, timeStamp: '' }),
+      ),
+    );
+    await expect(api.get('echo', Echo)).rejects.toMatchObject({ code: 'PARSE_ERROR' });
+  });
+
+  it('enum 필드가 없으면 UNKNOWN으로 삼키지 않고 PARSE_ERROR', async () => {
+    const { TagGroupsSchema } = await import('./event/schema');
+    server.use(
+      http.get('*/api/v2/tags', () =>
+        HttpResponse.json({ success: true, status: 200, data: [{ tags: [] }], timeStamp: '' }),
+      ),
+    );
+    await expect(api.get('tags', TagGroupsSchema)).rejects.toMatchObject({ code: 'PARSE_ERROR' });
   });
 });

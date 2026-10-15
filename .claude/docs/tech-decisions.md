@@ -132,7 +132,7 @@ app/
 | 폭 | 셸 | 위치 |
 |---|---|---|
 | 데스크탑 | **고정 좌측 사이드바**(폭 255): 로고 → "호스팅 홈" → 섹션 "공연"(대시보드 · 기본 정보 · 상세 정보 · 티켓 관리 · 예매자 관리 · QR 체크인 — 공연 안에 있을 때) → 섹션 "호스트"(소속 호스트) → 맨 아래 사용자(아바타 + 닉네임). 본문은 그 오른쪽. 대시보드만 우측 보조 패널(폭 392, 공연 일정·입장 현황)이 있다 | 사이드바 틀과 "호스팅 홈"·"호스트" 섹션은 `hosting/layout.tsx`. 공연 메뉴 항목은 `events/[eventId]/layout.tsx`가 GE-3(등록 상태별 항목)으로 채운다 |
-| 모바일 | 헤더(호스팅 홈은 로고 헤더 `host title`, 공연 안에서는 햄버거 + 공연 전환 ▾ + 벨) + **햄버거 드로어**에 같은 메뉴 | 같은 레이아웃 파일이 폭에 따라 사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
+| 모바일 | 헤더(호스팅 홈은 로고 헤더 `host title` — 제목형 "호스팅 센터" 대안은 확인 대기(design-requests Q17), 공연 안에서는 햄버거 + 공연 전환 ▾ + 벨) + **햄버거 드로어**에 같은 메뉴 | 같은 레이아웃 파일이 폭에 따라 사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
 
 - 사이드바·헤더의 활성 메뉴 표시는 `usePathname()`을 쓰므로 **children을 감싸지 않는 말단 컴포넌트 + 자체 `<Suspense>`**(위 "경로를 읽는 컴포넌트")다.
 - GUI에 데스크탑 프레임은 1440 대시보드 하나뿐이다. 3단(255 + 793 + 392)은 1024에 들어가지 않으므로 1024~1279 배치(우측 패널을 본문 아래로)는 P1에서 브레이크포인트와 함께 정한다. 대시보드 외 화면(폼, 예매자 표)의 데스크탑 배치는 디자인을 기다린다 — 그 전까지 본문 칼럼 안에 모바일 폼을 최대 폭으로 둔다.
@@ -213,8 +213,8 @@ export const updateEventBasicMutation = (eventId: string) =>
 
 **`src/api/client.ts`는 ky 인스턴스(v2·v1 인증)와 응답 래퍼 해제·에러 변환·401 가로채기를, `src/api/http.ts`는 그 위의 `api`·`authApi` 객체를 둔다.** `api` 객체는 "호출 → 응답 래퍼 해제 → zod 파싱"을 묶어 Promise를 돌려준다.
 
-- **ky 인스턴스는 기준 주소 없이 만들고, `http.ts`가 요청마다 `prefix`를 넘긴다.** 브라우저는 `/api/v2`(또는 `/api/v1/auth`), 서버(`typeof window === 'undefined'`)는 호출 시점에 읽은 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`다(§12). 인스턴스를 만들 때 주소를 고정하면 런타임에 읽는 env가 깨진다.
-- **`ApiError.status`는 언제나 HTTP 상태다.** 본문이 JSON이 아니면(백엔드 재기동 중 nginx가 내는 HTML 502 등) `ApiError(res.status, 'NON_JSON', '')`를 던진다. 재시도·일시 오류 판정이 전부 `status`에 기대므로, 파싱 실패가 `SyntaxError`로 새어 나가면 판정이 깨진다. Vitest 대상이다(§10).
+- **ky 인스턴스는 기준 주소 없이 만들고, `http.ts`가 요청마다 `prefix`를 넘긴다.** 브라우저는 `${location.origin}/api/v2`(또는 `/api/v1/auth`) — 같은 출처지만 ky의 `Request`가 절대 URL을 요구한다, 서버(`typeof window === 'undefined'`)는 호출 시점에 읽은 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`다(§12). 인스턴스를 만들 때 주소를 고정하면 런타임에 읽는 env가 깨진다.
+- **`ApiError.status`는 언제나 HTTP 상태다.** 본문이 JSON이 아니면(백엔드 재기동 중 nginx가 내는 HTML 502 등) `ApiError(res.status, 'NON_JSON', '')`를 던진다. 본문이 JSON이 아니면 `NON_JSON`, JSON이지만 래퍼 모양이 아니면(`null` 등) `BAD_ENVELOPE`, 스키마와 맞지 않으면 구조화 로그(경로·issue 경로, 값 없음) 후 `PARSE_ERROR`. 재시도는 5xx·네트워크 오류만이고 `PARSE_ERROR`는 재시도하지 않는다(§31). 재시도·일시 오류 판정이 전부 `status`에 기대므로, 파싱 실패가 `SyntaxError`로 새어 나가면 판정이 깨진다. Vitest 대상이다(§10).
 
 | 메서드 | 용도 |
 |---|---|
@@ -494,7 +494,9 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 
 - `instrumentation.ts`와 `env/server.ts`는 두지 않는다. 기본값이 있는 값에 "누락 시 기동 실패"는 의미가 없고, `http.ts`가 서버 전용 모듈을 import하면 브라우저 번들에 섞이거나 `server-only`로 빌드가 깨진다(1회차 설계를 2회차에서 되돌렸다).
 - `next.config.ts`가 `env/client.ts`를 import하므로 `next dev`·`next typegen`(CI)에서도 카카오 키가 필요할 수 있다(미확인). `.env.example`과 CI 변수에 적어 둔다.
-- 브라우저용 API 주소는 상대 경로 `/api/v2`(인증은 `/api/v1/auth`)라 값이 필요 없다. 토스페이먼츠 키는 없다.
+- 브라우저용 API 주소는 같은 출처(`${location.origin}/api/v2`, 인증은 `/api/v1/auth`)라 값이 필요 없다. 토스페이먼츠 키는 없다.
+- `API_INTERNAL_URL`은 `/api/v2`로 끝나야 한다(끝의 `/`는 지운다). 아니면 요청할 때 바로 에러를 던진다 — 접미사를 빠뜨리면 모든 공개 페이지가 조용히 404(→ `notFound()`)가 되고 카카오가 그 404를 캐시하기 때문이다. `authApi`의 서버 주소는 이 값의 origin에 `/api/v1/auth`를 붙인다.
+- 키 없이 `pnpm typecheck`(`next typegen`)를 돌리면 `next.config.ts`가 `env/client.ts`를 불러 실패한다(P0에서 확인). CI는 자리 값을 넣는다.
 - 사이트 origin은 값으로 두지 않는다. 브라우저는 `location.origin`, 서버는 요청의 `Host` 헤더로 만든다.
 - 환경마다 다른 값은 이미지에 넣지 않는다 — 스테이징과 운영이 같은 이미지를 쓴다([`deploy-plan.md`](./deploy-plan.md) §4).
 
@@ -678,7 +680,7 @@ const FormSchema = z.discriminatedUnion('mode', [
 |---|---|---|
 | 두둥(`DUDOONG`) | `BANK_TRANSFER` | 계좌·예금주 표시 + 복사 → "입금하셨나요?" 모달 → 주문 생성 |
 | 두둥(`DUDOONG`) | `TOSS_TRANSFER` | 토스 송금 링크로 이동 → 돌아와서 "입금하셨나요?" 모달 → 주문 생성 |
-| 무료(`FREE`) | `FREE` | 결제 정보·방식 없이 [신청] → 주문 생성 |
+| 무료(`FREE`) | `FREE` | 결제 정보·방식 없이 [신청하기] → 주문 생성 |
 
 ### 흐름
 
@@ -1178,7 +1180,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 |---|---|
 | 호스팅 센터 데스크탑 셸 = 고정 좌측 사이드바(`Desktop - 27`). 모바일은 헤더 + 햄버거 드로어 + 공연 전환 ▾. 1024~1279 배치는 P1 | §3 "호스팅 센터 셸", plan P1·P10a·P11 |
 | GUI가 서버 계약과 다른 곳은 서버 기준으로 만든다(체크아웃 예매번호·티켓번호 제거, 은행명 추가, 할인금액 제거, v2에 없는 리마인드 알림 제외, 티켓 폼 라벨·기본값, 호스트 삭제 숨김, 입장 분모 = 발급 수) | plan P7·P9·P9b·P10b·P12·P13a, gui-screens §4 |
-| GUI에 없는 입구는 계획대로 만든다([주문취소]·환불 계좌, 옵션 붙이기, 공유 버튼, 무료 [신청]) | plan P5b·P7·P9·P12 |
+| GUI에 없는 입구는 계획대로 만든다([주문취소]·환불 계좌, 옵션 붙이기, 공유 버튼, 무료 [신청하기]) | plan P5b·P7·P9·P12 |
 | 공연 생성 뒤 이동은 GUI(홈 + 토스트)와 계획(대시보드)이 달라 디자인 확인 전까지 대시보드 | plan P10a |
 | 장소 아래 회색 박스(`329:7206`) — 지도 미리보기면 카카오맵 지도 SDK로 그린다(Geocoder와 같은 SDK) | plan P11, design-requests Q3 |
 
@@ -1229,6 +1231,29 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 - 응답 enum은 `src/api/shared/open-enum.ts`의 `openEnum(name, values)` 한 가지로 연다.
 - 기존 `.gitignore`가 `term.html`·`privacy.html`을 무시하고 있어 지웠다.
 - Next 16.4.1의 `create-next-app` 기본값에 `partialPrefetching: true`가 들어 있어 그대로 켰다.
+- mock은 `src/api/__mocks__/`(directory-structure대로). `vitest.config.mts`(ESM 설정).
+- Dockerfile은 deploy-plan §3 원본에 `pnpm install --ignore-scripts`(빌드 스크립트 없이 설치해도 standalone에 sharp가 들어가는 것을 확인), `HEALTHCHECK`(`/healthz`), runner의 `NEXT_TELEMETRY_DISABLED`를 더했다. `HOSTNAME=127.0.0.1`이라 로컬에서 `docker run -p 3000:3000`으로는 접속되지 않는다 — 확인할 때는 `--network host` 또는 `-e HOSTNAME=0.0.0.0`.
+- `release.yml`(버전 태그 재사용, deploy-plan D3)을 P0에 미리 넣었다. 태그는 그 커밋의 Image 워크플로가 끝난 뒤 푸시한다. `pr-gate.yml`은 `main` 푸시에서도 돈다.
+- `check:crawler` 스크립트는 P5b에서 만든다.
+- `poweredByHeader: false`, `/meta/term`·`/meta/privacy` → `public/*.html` rewrite(운영 포함). `/admin/*` 리다이렉트는 경로별 표(§22)대로 P10a에서 넣는다.
+
+### 1회차 검증 뒤 고친 것
+
+| 문제 | 고침 |
+|---|---|
+| 파싱 실패(ZodError)가 `ApiError`가 아니어서 재시도되고 코드가 없었다 | `safeParse` → 로그 → `ApiError(status, 'PARSE_ERROR')`. 재시도 화이트리스트(5xx `ApiError`, `TypeError`, ky `TimeoutError`) |
+| 본문이 `null`·원시값이면 `TypeError`가 샜다 | `BAD_ENVELOPE` |
+| `API_INTERNAL_URL` 접미사를 빠뜨리면 공개 페이지가 조용히 404 | `/api/v2`로 끝나지 않으면 에러 |
+| `openEnum`이 필드 누락까지 `UNKNOWN`으로 삼키고 로그 경로가 비었다 | 문자열만 열린 enum, 누락은 `PARSE_ERROR`. 로그는 enum 이름만 |
+| UNKNOWN 그룹이 둘이면 React key 중복 | 순서를 key에 섞고 라벨 타입을 enum으로 좁힘 |
+| 수동 실행이 다른 브랜치에서 `:main`을 덮어쓸 수 있었다, 동시 빌드 | `:main`은 main에서만(metadata-action), `concurrency`, OCI 라벨 |
+| `<Prefetch>`가 무한 쿼리를 받았다 | 타입에서 `initialPageParam`·`getNextPageParam`을 막음 |
+| QueryClient 기본 `staleTime` 30초가 모든 쿼리에 | 기본 0, 공개 쿼리는 `queryOptions`에서 30초 |
+| `serverQuery` 실패 로그가 없었다 | 리소스 이름·status·code만 로그. Next 내부 신호(`unstable_rethrow`)는 로그 없이 다시 던짐 |
+| 등록되지 않은 폴더·`ky/*` 깊은 경로가 lint를 우회 | `boundaries/no-unknown-files`, `ky/*` 패턴 |
+| `.env.production` 등이 무시되지 않았다 | `.env*` + `!.env.example`, `.dockerignore`에 `*.tsbuildinfo` |
+
+테스트 9건(응답 래퍼 7, 재시도 규칙 2). `error.tsx`·`not-found.tsx`는 P5a 범위다.
 
 ## 핵심 결정 요약
 

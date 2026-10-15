@@ -13,13 +13,14 @@ const devApiOrigin = process.env.DEV_API_ORIGIN;
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,
   // 배포 사이 버전 불일치를 감지해 하드 내비게이션으로 넘긴다(deploy-plan §3).
   deploymentId: process.env.GIT_SHA,
   async redirects() {
+    // `/admin/*` 경로별 리다이렉트(tech-decisions §22 표)는 P10a에서 넣는다.
     return [
-      { source: '/admin/:path*', destination: '/hosting/:path*', permanent: true },
       {
         source: '/hosting/events/:eventId',
         destination: '/hosting/events/:eventId/dashboard',
@@ -28,8 +29,13 @@ const nextConfig: NextConfig = {
     ];
   },
   async rewrites() {
-    if (process.env.NODE_ENV !== 'development' || !devApiOrigin) return [];
-    return [{ source: '/api/:path*', destination: `${devApiOrigin}/api/:path*` }];
+    // v1과 같은 약관 경로(tech-decisions §22 "그대로")
+    const legal = [
+      { source: '/meta/term', destination: '/term.html' },
+      { source: '/meta/privacy', destination: '/privacy.html' },
+    ];
+    if (process.env.NODE_ENV !== 'development' || !devApiOrigin) return legal;
+    return [...legal, { source: '/api/:path*', destination: `${devApiOrigin}/api/:path*` }];
   },
 };
 

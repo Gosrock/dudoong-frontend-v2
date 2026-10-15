@@ -32,6 +32,8 @@ export default defineConfig([
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      // 계층 요소로 등록되지 않은 폴더(src/lib 등)가 검사를 우회하지 못하게 한다
+      'boundaries/no-unknown-files': 'error',
       'boundaries/dependencies': [
         'error',
         {
@@ -113,7 +115,10 @@ export default defineConfig([
       ],
       'no-restricted-imports': [
         'error',
-        { paths: [{ name: 'ky', message: 'ky는 src/api 안에서만 쓴다. 화면은 api 객체를 쓴다.' }] },
+        {
+          paths: [{ name: 'ky', message: 'ky는 src/api 안에서만 쓴다. 화면은 api 객체를 쓴다.' }],
+          patterns: [{ group: ['ky/*'], message: 'ky는 src/api 안에서만 쓴다.' }],
+        },
       ],
     },
   },

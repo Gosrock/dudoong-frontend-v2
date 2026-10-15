@@ -57,6 +57,7 @@
 
 ```dockerfile
 # syntax=docker/dockerfile:1
+# 실제 파일은 저장소 루트의 Dockerfile(P0에서 만듦). 원본 대비 --ignore-scripts, HEALTHCHECK, runner의 NEXT_TELEMETRY_DISABLED를 더했다(tech-decisions §31).
 FROM node:22-alpine AS base
 RUN corepack enable
 
@@ -64,12 +65,13 @@ FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --ignore-scripts
 
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# 공개 값만 빌드 인자로 받는다(이미지가 공개된다). 서버 값(API_INTERNAL_URL)은 런타임에 읽는다.
 ARG NEXT_PUBLIC_KAKAO_JS_KEY
 ARG GIT_SHA
 ENV NEXT_PUBLIC_KAKAO_JS_KEY=$NEXT_PUBLIC_KAKAO_JS_KEY \
@@ -79,12 +81,15 @@ RUN --mount=type=cache,target=/app/.next/cache pnpm build
 
 FROM node:22-alpine AS runner
 WORKDIR /app
-ENV NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3000
+# 3000을 루프백에만 연다. nginx가 127.0.0.1:3000으로 넘긴다(deploy-plan §6).
+ENV NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3000 NEXT_TELEMETRY_DISABLED=1
 COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/.next/standalone ./
 COPY --from=builder --chown=node:node /app/.next/static ./.next/static
 USER node
 EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+  CMD wget -qO- http://127.0.0.1:3000/healthz || exit 1
 CMD ["node", "server.js"]
 ```
 
@@ -92,7 +97,7 @@ CMD ["node", "server.js"]
 - 실행 이미지에 pnpm, 소스, devDependencies가 없다. root가 아닌 `node` 사용자로 돈다.
 - `.dockerignore`: `.git`, `node_modules`, `.next`, `.claude`, `.env*`, 스토리·테스트 산출물.
 - `next.config.ts`: `output: 'standalone'`, `deploymentId: process.env.GIT_SHA`.
-- 이미지 어디에도 `API_INTERNAL_URL`을 넣지 않는다. `src/api/http.ts`가 호출할 때 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`를 읽고, 그 기본값이 운영·스테이징 값과 같다. 바꿔야 하면 compose의 `environment:`로 준다. 빌드 때 검증하는 것은 `NEXT_PUBLIC_KAKAO_JS_KEY` 하나다(tech-decisions §12).
+- 이미지 어디에도 `API_INTERNAL_URL`을 넣지 않는다. `src/api/http.ts`가 호출할 때 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`를 읽고, 그 기본값이 운영·스테이징 값과 같다. 값은 `/api/v2`로 끝나야 하고, 아니면 요청할 때 에러를 던진다. 바꿔야 하면 compose의 `environment:`로 준다. 빌드 때 검증하는 것은 `NEXT_PUBLIC_KAKAO_JS_KEY` 하나다(tech-decisions §12).
 
 **`deploymentId`.** 배포하면 옛 JS 청크가 서버에서 사라진다. 배포 전에 열어 둔 탭이 화면을 이동하다 없는 청크를 요청하면 깨진다. `deploymentId`를 주면 Next가 버전이 달라진 것을 알아채고 전체 새로고침으로 넘어간다. 체크아웃 도중 배포가 나가는 경우가 여기 해당한다.
 
@@ -106,7 +111,7 @@ CMD ["node", "server.js"]
 
 | 값 | 어디서 | 환경별 차이 |
 |---|---|---|
-| 브라우저용 API 주소 | 상대 경로 `/api/v2` | 없음 |
+| 브라우저용 API 주소 | 같은 출처 `${location.origin}/api/v2` | 없음 |
 | 서버용 API 주소 `API_INTERNAL_URL` | 코드의 기본값(`http://localhost:8080/api/v2`). 호출할 때 읽으므로 compose `environment:`로 덮어쓸 수 있다 | 없음(두 서버 모두 같은 호스트) |
 | 카카오 JS 키 | 빌드 인자 → `NEXT_PUBLIC_*` | 없음(v1도 같은 값으로 두 환경을 빌드한다) — 확인 필요 |
 | 사이트 origin | 브라우저는 `location.origin`, 서버는 요청의 `Host` 헤더(nginx가 그대로 넘긴다) | 값을 두지 않는다 |
@@ -190,4 +195,4 @@ D2는 백엔드 마이그레이션(V001~V011)이 스테이징에 실행돼 있�
 | 8 | 배포 중 front가 꺼져 있는 시간(초) | D2 |
 | 9 | `isomorphic-dompurify`가 띄우는 jsdom의 메모리 — 섹션 10개짜리 공연 상세를 연속으로 열 때의 RSS, jsdom이 standalone 산출물에 빠지지 않고 기동되는지. 부담이 크면 `sanitize-html`로 바꾼다(tech-decisions §17) | D1 |
 | 10 | nginx 버퍼링 — 호스팅 센터의 정적 셸이 먼저 흘러 나가는지. Next 문서는 nginx 뒤에서 스트리밍하려면 `X-Accel-Buffering: no`가 필요하다고 한다(self-hosting #streaming-and-suspense). 필요하면 `next.config.ts`의 `headers()`로 `/hosting/:path*`에 붙인다. 공개 화면은 어차피 블로킹이라 영향이 없다 | D2 |
-| 11 | `next typegen`(CI)과 `next build`가 `next.config.ts`의 카카오 키 검증 때문에 CI 변수를 요구하는지 — 요구하면 PR 게이트에도 GitHub variable을 넘긴다 | D1 |
+| 11 | ~~`next typegen`(CI)과 `next build`가 카카오 키를 요구하는지~~ — **확인됨(P0)**: 둘 다 요구한다. PR 게이트는 자리 값(`ci-placeholder`), 이미지 빌드는 GitHub variable을 넘긴다 | D1 |

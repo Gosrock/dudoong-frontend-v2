@@ -7,5 +7,6 @@ import { TagGroupsSchema } from './schema';
 export const eventTagsQuery = () =>
   queryOptions({
     queryKey: ['tags'],
+    staleTime: 30_000,
     queryFn: ({ signal }) => api.get('tags', TagGroupsSchema, { public: true, signal }),
   });

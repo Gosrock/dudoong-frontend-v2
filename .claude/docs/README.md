@@ -75,7 +75,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 ### 물어야 하는 것
 
 - **백엔드 질문 6건(B1~B6)과 지켜보는 항목** → [`backend-questions.md`](./backend-questions.md)
-- **기획 질문 5건(Q1~Q5)** → [`design-requests.md`](./design-requests.md) §2
+- **기획 질문 18건(Q1~Q19, Q14는 해결)** → [`design-requests.md`](./design-requests.md) §2
 
 ### 실제 환경에서 확인할 것
 
