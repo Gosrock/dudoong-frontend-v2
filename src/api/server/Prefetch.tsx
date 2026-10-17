@@ -35,7 +35,13 @@ export async function Prefetch({
   children: ReactNode;
 }) {
   await Promise.all(
-    queries.map((q) => serverQuery(q as FetchQueryOptions<unknown, Error, unknown, QueryKey>)),
+    queries.map((q) => {
+      // queryFn이 빠지면 TanStack이 queryKey(토큰 포함)를 메시지에 담아 던진다 — 리소스 이름만 담아 먼저 막는다
+      if (typeof q.queryFn !== 'function') {
+        throw new Error(`Prefetch: queryFn 없음 (${String(q.queryKey[0])})`);
+      }
+      return serverQuery(q as FetchQueryOptions<unknown, Error, unknown, QueryKey>);
+    }),
   );
   return (
     <HydrationBoundary state={dehydrate(getRequestQueryClient())}>{children}</HydrationBoundary>

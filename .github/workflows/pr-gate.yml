@@ -24,3 +24,5 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      # Cache Components 규칙 위반(instant=false 누락, Suspense 밖 비캐시 데이터)은 build에서만 드러난다
+      - run: pnpm build

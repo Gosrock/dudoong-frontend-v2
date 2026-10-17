@@ -1,7 +1,7 @@
 import { isNetworkError, isTimeoutError, type Options } from 'ky';
 import type { z } from 'zod';
 
-import { kyBase, unwrap } from './client';
+import { kyBase, REQUEST_TIMEOUT_MS, unwrap } from './client';
 import { ApiError } from './errors';
 
 const isServer = typeof window === 'undefined';
@@ -25,16 +25,45 @@ const prefixV2 = () => (isServer ? internalV2() : `${window.location.origin}/api
 const prefixV1Auth = () =>
   isServer ? internalV2().replace(/\/v2$/, '/v1/auth') : `${window.location.origin}/api/v1/auth`;
 
+/** 바로 다음 세그먼트가 토큰인 리소스. 토큰은 모양과 상관없이 가린다. */
+const TOKEN_PARENTS = new Set(['gifts']);
+
 /**
- * 로그용 라우트 패턴. id·토큰처럼 보이는 세그먼트를 `:param`으로 가린다(tech-decisions §13).
- * 소문자 단어와 하이픈만으로 된 세그먼트(`events`, `ticket-items`)만 그대로 둔다.
+ * 로그용 라우트 패턴. id·토큰처럼 보이는 세그먼트를 `:param`으로 가리고 쿼리스트링은 버린다(tech-decisions §13).
+ * 소문자 단어와 하이픈만으로 된 세그먼트(`events`, `ticket-items`)만 남기되, 토큰 리소스 바로 뒤는 항상 가린다.
  */
 export function routePattern(path: string) {
-  return path
-    .split('?')[0]!
-    .split('/')
-    .map((seg) => (/^[a-z][a-z-]*$/.test(seg) ? seg : ':param'))
+  const segs = path.split('?')[0]!.split('/');
+  return segs
+    .map((seg, i) => {
+      const prev = segs[i - 1];
+      if (prev !== undefined && TOKEN_PARENTS.has(prev)) return ':param';
+      return /^[a-z][a-z-]*$/.test(seg) ? seg : ':param';
+    })
     .join('/');
+}
+
+/** 본문 읽기에도 시간 제한을 건다. 끊기면 NETWORK, 시간을 넘기면 TIMEOUT, 호출자가 취소하면 그 사유를 던진다. */
+async function readBody(res: Response, deadline: number, route: string, signal?: AbortSignal) {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => {
+        void res.body?.cancel();
+        reject(new ApiError(0, 'TIMEOUT', '', route));
+      },
+      Math.max(0, deadline - performance.now()),
+    );
+  });
+  try {
+    return await Promise.race([res.text(), timeout]);
+  } catch (e) {
+    if (signal?.aborted) throw signal.reason;
+    if (e instanceof ApiError) throw e;
+    throw new ApiError(0, 'NETWORK', '', route);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 type CallOptions = {
@@ -57,6 +86,8 @@ async function request<T>(
   opts: CallOptions = {},
 ): Promise<T> {
   const route = `${method.toUpperCase()} ${routePattern(path)}`;
+  // Date.now()는 Cache Components 프리렌더에서 금지된다 — 시간 측정은 performance.now()
+  const deadline = performance.now() + REQUEST_TIMEOUT_MS;
   let res: Response;
   try {
     res = await kyBase(path, {
@@ -68,11 +99,12 @@ async function request<T>(
       credentials: opts.public ? 'omit' : 'include',
     });
   } catch (e) {
-    if (isTimeoutError(e)) throw new ApiError(0, 'TIMEOUT', route);
-    if (isNetworkError(e)) throw new ApiError(0, 'NETWORK', route);
+    if (isTimeoutError(e)) throw new ApiError(0, 'TIMEOUT', '', route);
+    if (isNetworkError(e)) throw new ApiError(0, 'NETWORK', '', route);
     throw e;
   }
-  return unwrap(res, schema, route);
+  const text = await readBody(res, deadline, route, opts.signal);
+  return unwrap(res, text, schema, route);
 }
 
 /** `/api/v2` 호출. 화면과 조회 정의는 ky를 직접 쓰지 않고 이 객체만 쓴다. */

@@ -97,7 +97,7 @@ CMD ["node", "server.js"]
 - 실행 이미지에 pnpm, 소스, devDependencies가 없다. root가 아닌 `node` 사용자로 돈다.
 - `.dockerignore`: `.git`, `node_modules`, `.next`, `.claude`, `.env*`, 스토리·테스트 산출물.
 - `next.config.ts`: `output: 'standalone'`, `deploymentId: process.env.GIT_SHA`.
-- 이미지 어디에도 `API_INTERNAL_URL`을 넣지 않는다. `src/api/http.ts`가 호출할 때 `process.env.API_INTERNAL_URL ?? 'http://localhost:8080/api/v2'`를 읽고, 그 기본값이 운영·스테이징 값과 같다. 값은 `/api/v2`로 끝나야 하고, 아니면 요청할 때 에러를 던진다. 바꿔야 하면 compose의 `environment:`로 준다. 빌드 때 검증하는 것은 `NEXT_PUBLIC_KAKAO_JS_KEY` 하나다(tech-decisions §12).
+- 이미지 어디에도 `API_INTERNAL_URL`을 넣지 않는다. `src/api/http.ts`가 호출할 때 `process.env.API_INTERNAL_URL || 'http://localhost:8080/api/v2'`를 읽고(빈 문자열도 기본값), 그 기본값이 운영·스테이징 값과 같다. 값은 `/api/v2`로 끝나야 하고, 아니면 요청할 때 에러를 던진다. 바꿔야 하면 compose의 `environment:`로 준다. 빌드 때 검증하는 것은 `NEXT_PUBLIC_KAKAO_JS_KEY` 하나다(tech-decisions §12).
 
 **`deploymentId`.** 배포하면 옛 JS 청크가 서버에서 사라진다. 배포 전에 열어 둔 탭이 화면을 이동하다 없는 청크를 요청하면 깨진다. `deploymentId`를 주면 Next가 버전이 달라진 것을 알아채고 전체 새로고침으로 넘어간다. 체크아웃 도중 배포가 나가는 경우가 여기 해당한다.
 

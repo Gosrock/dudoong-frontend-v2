@@ -242,7 +242,7 @@ export const addHostMembersMutation = (hostId: string) =>
 화면이 직접 처리하는 코드는 **`handleCodes` 헬퍼로 한 곳에 적는다.** 코드 목록과 처리 함수를 따로 쓰면 둘이 어긋날 때 에러가 아무 피드백 없이 삼켜진다.
 
 ```ts
-// src/ui/handleCodes.ts — 개념
+// src/api/handle-codes.ts — 개념(tech-decisions §4, directory-structure)
 export const handleCodes = (map: Record<string, (e: ApiError) => void>) => ({
   meta: { handledCodes: Object.keys(map) },
   onError: (e: unknown) => { const c = getErrorCode(e); if (c && map[c]) map[c](e as ApiError); },
@@ -279,10 +279,11 @@ let res;
 try {
   res = await kyBase(path, { prefix, credentials: isPublic ? 'omit' : 'include', … });  // throwHttpErrors: false
 } catch (e) {   // ky 에러 메시지에는 URL(토큰)이 들어 있다 → URL 없는 ApiError로
-  if (isTimeoutError(e)) throw new ApiError(0, 'TIMEOUT', routePattern(path));
-  if (isNetworkError(e)) throw new ApiError(0, 'NETWORK', routePattern(path));
+  if (isTimeoutError(e)) throw new ApiError(0, 'TIMEOUT', '', route);   // reason은 비우고 route(`GET gifts/:param`)는 따로
+  if (isNetworkError(e)) throw new ApiError(0, 'NETWORK', '', route);
   throw e;
 }
+// 본문은 마감 시각 안에서 읽는다(끊김 NETWORK, 시간 초과 TIMEOUT)
 // unwrap: JSON 파싱 실패 → NON_JSON, 래퍼 모양 아님 → BAD_ENVELOPE, 실패 응답 → ApiError(HTTP 상태, code, reason),
 //         스키마 불일치 → 로그(라우트 패턴·issue 경로) 후 PARSE_ERROR
 ```
@@ -330,7 +331,7 @@ try {
 
 ### 5-2. 로그
 
-서버 로그(`serverQuery`, 파싱 실패)에 남기는 경로는 라우트 패턴이다(`gifts/:token`, `check-in?token=:token`). 실제 토큰이 든 경로·쿼리를 남기지 않는다. 계좌번호·입금자명·토큰은 값으로도 넣지 않는다.
+서버 로그(`serverQuery`, 파싱 실패)에 남기는 경로는 `routePattern()`의 라우트 패턴이다(예: `GET gifts/:param`, 쿼리스트링은 버린다). 실제 토큰이 든 경로·쿼리를 남기지 않는다. 계좌번호·입금자명·토큰은 값으로도 넣지 않는다.
 
 ---
 

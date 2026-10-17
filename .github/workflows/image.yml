@@ -42,6 +42,7 @@ jobs:
 
   promote-main:
     # :main은 main 브랜치에서, 그 커밋이 아직 main의 최신일 때만 옮긴다(늦게 끝난 빌드가 되돌리지 않게).
+    # 다음 커밋의 빌드가 실패하면 그 앞 커밋도 :main이 되지 않는다 — 실패를 고친 커밋이 :main이 된다(의도).
     needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest

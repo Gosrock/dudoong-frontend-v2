@@ -131,7 +131,7 @@ app/
 
 | 폭 | 셸 | 위치 |
 |---|---|---|
-| 데스크탑 | **고정 좌측 사이드바**(폭 255): 로고 → "호스팅 홈" → 섹션 "공연"(대시보드 · 기본 정보 · 상세 정보 · 티켓 관리 · 예매자 관리 · QR 체크인 — 공연 안에 있을 때) → 섹션 "호스트"(소속 호스트) → 맨 아래 사용자(아바타 + 닉네임). 본문은 그 오른쪽. 대시보드만 우측 보조 패널(폭 392, 공연 일정·입장 현황)이 있다 | 사이드바 틀과 "호스팅 홈"·"호스트" 섹션은 `hosting/layout.tsx`. 공연 메뉴 항목은 `events/[eventId]/layout.tsx`가 GE-3(등록 상태별 항목)으로 채운다 |
+| 데스크탑 | **고정 좌측 사이드바**(폭 255): 로고 → "호스팅 홈" → 섹션 "공연"(대시보드 · 기본 정보 · 상세 정보 · 티켓 관리 · 예매자 관리 · QR 체크인 — 공연 안에 있을 때) → 섹션 "호스트"(소속 호스트) → 맨 아래 사용자(아바타 + 닉네임, **알림 벨은 이 줄에** — GUI 사이드바의 `notification` 아이콘은 메뉴 자리표시라 실제 벨이 없다, design-requests §1). 본문은 그 오른쪽. 대시보드만 우측 보조 패널(폭 392, 공연 일정·입장 현황)이 있다 | 사이드바 틀과 "호스팅 홈"·"호스트" 섹션은 `hosting/layout.tsx`. 공연 메뉴 항목은 `events/[eventId]/layout.tsx`가 GE-3(등록 상태별 항목)으로 채운다 |
 | 모바일 | 헤더(호스팅 홈은 로고 헤더 `host title` — 벨 자리가 없어 **알림 벨은 햄버거 드로어 안**에 둔다. 제목형 "호스팅 센터"(햄버거 없음 + 벨 + 아바타) 대안은 확인 대기(design-requests Q17). 공연 안에서는 햄버거 + 공연 전환 ▾ + 벨) + **햄버거 드로어**에 같은 메뉴 | 같은 레이아웃 파일이 폭에 따라 사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
 
 - 사이드바·헤더의 활성 메뉴 표시는 `usePathname()`을 쓰므로 **children을 감싸지 않는 말단 컴포넌트 + 자체 `<Suspense>`**(위 "경로를 읽는 컴포넌트")다.
@@ -328,14 +328,14 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 | 세션 쿼리(GM-1) `staleTime` | 5분. `refetchOnWindowFocus`는 켠다 | 헤더·게이트·햄버거·체크아웃 입금자명이 마운트될 때마다 다시 조회하지 않게. 포커스 재조회는 stale일 때만 일어나므로(TanStack `queryObserver.shouldFetchOn`) 5분 안에는 다시 부르지 않는다. 다른 탭의 로그아웃·계정 전환은 `storage` 이벤트로 따로 잡는다(인증 표). 로그인·로그아웃·프로필 수정 뒤에는 명시적으로 갱신한다 |
 | 폼 화면 | RHF는 `defaultValues`로 한 번만 초기화한다 | `refetchOnWindowFocus`로 쿼리가 다시 와도 편집 중인 값을 덮지 않는다 |
 | 전역 `QueryCache.onError` | 구조화 로그. 토스트는 **`query.state.data !== undefined`(배경 재조회 실패)일 때만**. 무한 목록의 다음 페이지 실패(`fetchNextPage`)는 제외하고, 토스트 id를 고정해 여러 쿼리가 한꺼번에 실패해도 하나만 띄운다 | 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다. 다음 페이지 실패는 목록 하단 재시도가 맡는다(patterns §12) |
-| 전역 `MutationCache.onError` | 구조화 로그 + 명령형 `toast(reason)`. `meta.handled`이거나 `meta.handledCodes`에 에러 코드가 있으면 토스트를 생략한다 | 전역 `onError`는 화면의 `onError`보다 **먼저** 실행된다(TanStack `mutation.ts`). 화면이 사후에 "처리했다"고 표시하고 전역이 한 틱 뒤 확인하는 방법도 있지만 타이밍에 기대므로 쓰지 않는다. 대신 **헬퍼 `handleCodes({ Order_400_22: e => …, Order_400_23: e => … })`가 `{ meta: { handledCodes }, onError }`를 한 번에 만든다**(`src/api/handle-codes.ts`). 코드 목록을 한 곳에만 쓰게 해, `meta`에만 넣고 분기를 빠뜨려 에러가 조용히 삼켜지는 것을 막는다. 사용: `useMutation({ ...mutation, ...handleCodes(map) })` |
+| 전역 `MutationCache.onError` | 구조화 로그 + 명령형 `toast(reason)`(`reason`이 비면 — 네트워크·타임아웃·파싱 실패 — 고정 문구). `meta.handled`이거나 `meta.handledCodes`에 에러 코드가 있으면 토스트를 생략한다 | 전역 `onError`는 화면의 `onError`보다 **먼저** 실행된다(TanStack `mutation.ts`). 화면이 사후에 "처리했다"고 표시하고 전역이 한 틱 뒤 확인하는 방법도 있지만 타이밍에 기대므로 쓰지 않는다. 대신 **헬퍼 `handleCodes({ Order_400_22: e => …, Order_400_23: e => … })`가 `{ meta: { handledCodes }, onError }`를 한 번에 만든다**(`src/api/handle-codes.ts`). 코드 목록을 한 곳에만 쓰게 해, `meta`에만 넣고 분기를 빠뜨려 에러가 조용히 삼켜지는 것을 막는다. 사용: `useMutation({ ...mutation, ...handleCodes(map) })` |
 | `SessionLostError` | 토스트·에러 화면 모두 무시한다 | 세션 상실이면 `client.ts`가 `ApiError`의 하위 클래스인 이 에러를 던진다. 이동·다시 그리기가 결과를 보여 주므로 하드 이동 직전에 토스트나 에러 화면이 깜빡이지 않게 Query/MutationCache `onError`, `<AsyncBoundary>`, 게이트가 이것을 거른다 |
 
 `<Prefetch>`, `serverQuery`, 토큰 미전송, 404 처리는 구현해 돌려 확인했다(§22·§26). ky 2.x의 기본 URL 옵션은 `prefix`/`baseUrl`이고, 에러 변환은 훅이 아니라 `api` 객체 안에서 한다.
 
 ### 인증
 
-- API는 프론트와 같은 출처(`/api/v2/…`)다. 브라우저는 상대 경로로 부르고, 서버에서 도는 조회는 `http://localhost:8080/api/v2`로 부른다(§25).
+- API는 프론트와 같은 출처(`/api/v2/…`)다. 브라우저는 같은 출처(`${location.origin}/api/v2`)로 부르고, 서버에서 도는 조회는 `http://localhost:8080/api/v2`로 부른다(§25).
 - 인증 API는 v1 그대로다. 서버는 `Authorization: Bearer`를 먼저 보고 없으면 액세스 토큰 쿠키를 읽는다.
 - **JS로 토큰 쿠키를 읽지 않는다.** 브라우저 요청은 쿠키 자동 전송(`credentials: 'include'`)에 맡긴다. 백엔드가 쿠키를 HttpOnly로 바꾸는 전제 조건이다.
 - **로그인 게이트는 브라우저에서 한다. `proxy.ts`는 두지 않는다.** 서버에서 쿠키 유무로 막지 않는 이유는 운영 쿠키가 `SameSite=Strict`라 외부 링크로 들어온 첫 요청에는 쿠키가 실리지 않기 때문이다(§25). 공개 화면 앞에 인증 처리가 끼지 않는다는 이점도 있다.
@@ -494,9 +494,8 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 | 로컬 개발 API 출처 | `DEV_API_ORIGIN` | `next dev`만 | 없음. 브라우저 요청 `/api/*`을 이 출처로 넘기는 rewrite. **서버 프리페치는 rewrite를 타지 않으므로 로컬에서는 `API_INTERNAL_URL=${DEV_API_ORIGIN}/api/v2`도 함께 준다**(P0 2회차 검증에서 확인 — 빼면 `/`가 500) |
 
 - `instrumentation.ts`와 `env/server.ts`는 두지 않는다. 기본값이 있는 값에 "누락 시 기동 실패"는 의미가 없고, `http.ts`가 서버 전용 모듈을 import하면 브라우저 번들에 섞이거나 `server-only`로 빌드가 깨진다(1회차 설계를 2회차에서 되돌렸다).
-- `next.config.ts`가 `env/client.ts`를 import하므로 `next dev`·`next typegen`(CI)에서도 카카오 키가 필요할 수 있다(미확인). `.env.example`과 CI 변수에 적어 둔다.
 - 브라우저용 API 주소는 같은 출처(`${location.origin}/api/v2`, 인증은 `/api/v1/auth`)라 값이 필요 없다. 토스페이먼츠 키는 없다.
-- `API_INTERNAL_URL`은 `/api/v2`로 끝나야 한다(끝의 `/`는 지운다). 아니면 요청할 때 바로 에러를 던진다 — 접미사를 빠뜨리면 모든 공개 페이지가 조용히 404(→ `notFound()`)가 되고 카카오가 그 404를 캐시하기 때문이다. `authApi`의 서버 주소는 이 값의 origin에 `/api/v1/auth`를 붙인다.
+- `API_INTERNAL_URL`은 `/api/v2`로 끝나야 한다(끝의 `/`는 지운다). 아니면 요청할 때 바로 에러를 던진다 — 접미사를 빠뜨리면 모든 공개 페이지가 조용히 404(→ `notFound()`)가 되고 카카오가 그 404를 캐시하기 때문이다. `authApi`의 서버 주소는 이 값의 `/v2`를 `/v1/auth`로 바꾼다(경로 접두사 유지).
 - 키 없이 `pnpm typecheck`(`next typegen`)를 돌리면 `next.config.ts`가 `env/client.ts`를 불러 실패한다(P0에서 확인). CI는 자리 값을 넣는다.
 - 사이트 origin은 값으로 두지 않는다. 브라우저는 `location.origin`, 서버는 요청의 `Host` 헤더로 만든다.
 - 환경마다 다른 값은 이미지에 넣지 않는다 — 스테이징과 운영이 같은 이미지를 쓴다([`deploy-plan.md`](./deploy-plan.md) §4).
@@ -507,7 +506,7 @@ Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 
 - 라우트별 `error.tsx` + 루트 `global-error.tsx`. 금전 경로(체크아웃)에는 맥락 있는 문구의 경계를 따로 둔다.
 - `QueryCache`/`MutationCache`의 `onError`에서 구조화 로그 + 명령형 `toast()`(훅이 아니다). 토스트 조건은 §4 QueryClient 표: 조회는 배경 재조회 실패일 때만(다음 페이지 실패 제외, 고정 id로 중복 합침), 변경은 `handleCodes`로 화면이 처리한 코드가 아닐 때만, `SessionLostError`는 띄우지 않는다. 화면을 대체해야 하는 실패만 `throwOnError`.
-- `serverQuery`는 구조화 JSON을 stdout에 남긴다. 계좌번호·입금자명·토큰은 넣지 않는다. **경로는 라우트 패턴으로 남긴다**(`gifts/:token`, `check-in?token=:token`) — 선물·체크인 토큰이 경로와 쿼리에 실린다.
+- `serverQuery`는 구조화 JSON을 stdout에 남긴다. 계좌번호·입금자명·토큰은 넣지 않는다. **경로는 라우트 패턴으로 남긴다** — `routePattern()`이 소문자 단어 세그먼트만 남기고 나머지와 `gifts` 바로 뒤 세그먼트를 `:param`으로 가리며 쿼리스트링은 버린다(예: `GET gifts/:param`). `serverQuery` 로그는 리소스 이름(queryKey 첫 원소)·status·code·route만, `ApiError`가 아닌 에러는 이름만 남긴다(메시지에 queryKey·env 값이 들어 있을 수 있다).
 - nginx 접근 로그는 쿼리스트링을 지우고 경로까지 남긴다(Deploy `nginx.conf`). 경로에 있는 `giftToken`은 남는다 — 로그 보존 기간과 접근 권한은 P14 보안 항목에서 본다.
 
 **포기한 것**: 프로덕션 장애의 실시간 알림. 필요해지면 `onError`에 연결만 추가하면 된다.
@@ -1005,7 +1004,7 @@ nginx 경로 분기(`nginx/site.conf`):
 
 | 사실 | 영향 |
 |---|---|
-| **API가 프론트와 같은 출처다**(`https://dudoong.com/api/…`) | 브라우저는 상대 경로 `/api/v2/…`로 부른다. CORS가 필요 없고 쿠키는 퍼스트파티다. 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 운영과 같은 모양을 만든다 |
+| **API가 프론트와 같은 출처다**(`https://dudoong.com/api/…`) | 브라우저는 같은 출처(`${location.origin}/api/v2/…`)로 부른다. CORS가 필요 없고 쿠키는 퍼스트파티다. 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 운영과 같은 모양을 만든다 |
 | **nginx가 `/api`로 시작하는 요청을 전부 백엔드로 보낸다** | Next Route Handler를 `/api/…` 아래에 두면 브라우저에서 닿지 않는다. 지금 Route Handler는 `/healthz` 하나이고, 더 만들게 되면 `/api` 밖에 둔다 |
 | 서버가 1대, front 컨테이너도 1개 | 서버 캐시를 쓰지 않아 인스턴스 수와 무관하다. 나중에 캐시를 붙이고 인스턴스를 늘리면 호스트의 Redis를 공유 저장소로 쓸 수 있다 |
 | 백엔드가 같은 호스트의 8080이다 | 서버에서 도는 조회는 nginx를 거치지 않고 `http://localhost:8080/api/v2`로 부른다 |
@@ -1175,15 +1174,16 @@ nginx 경로 분기(`nginx/site.conf`):
 
 ## 30. GUI 화면 반영 (2026-10-15)
 
-Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록과 GUI·서버 차이는 [`gui-screens.md`](./gui-screens.md)에 있다. 결정에 영향을 준 것만 적는다.
+Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록은 [`gui-screens.md`](./gui-screens.md)에, GUI·서버 차이에서 프론트가 정한 것(핸드오프)의 원본은 [`design-requests.md`](./design-requests.md) §3에 있다. 결정에 영향을 준 것만 적는다.
 
 | 바뀐 것 | 위치 |
 |---|---|
 | 호스팅 센터 데스크탑 셸 = 고정 좌측 사이드바(`Desktop - 27`). 모바일은 헤더 + 햄버거 드로어 + 공연 전환 ▾. 1024~1279 배치는 P1 | §3 "호스팅 센터 셸", plan P1·P10a·P11 |
-| GUI가 서버 계약과 다른 곳은 서버 기준으로 만든다(체크아웃 예매번호·티켓번호 제거, 은행명 추가, 할인금액 제거, v2에 없는 리마인드 알림 제외, 티켓 폼 라벨·기본값, 호스트 삭제 숨김, 입장 분모 = 발급 수) | plan P7·P9·P9b·P10b·P12·P13a, gui-screens §4 |
+| GUI가 서버 계약과 다른 곳은 서버 기준으로 만든다(체크아웃 예매번호·티켓번호 제거, 은행명 추가, 할인금액 제거, v2에 없는 리마인드 알림 제외, 티켓 폼 라벨·기본값, 호스트 삭제 숨김, 입장 분모 = 발급 수) | plan P7·P9·P9b·P10b·P12·P13a, design-requests §3 |
 | GUI에 없는 입구는 계획대로 만든다([주문취소]·환불 계좌, 옵션 붙이기, 공유 버튼, 무료 [신청하기]) | plan P5b·P7·P9·P12 |
 | 공연 생성 뒤 이동은 GUI(홈 + 토스트)와 계획(대시보드)이 달라 디자인 확인 전까지 대시보드 | plan P10a |
 | 장소 아래 회색 박스(`329:7206`) — 지도 미리보기면 카카오맵 지도 SDK로 그린다(Geocoder와 같은 SDK) | plan P11, design-requests Q3 |
+| 공연준비 홈 헤더는 로고형(`host title`, 벨 없음)으로 잠정 — 모바일 알림 벨은 햄버거 드로어 안, 데스크탑은 사이드바 하단 사용자 줄. 제목형(벨 + 아바타)으로 정해지면 `Header` 변형과 벨 위치만 바꾼다 | §3 "호스팅 센터 셸", plan P10a, design-requests Q17 |
 
 ## 31. P0 스캐폴딩과 스파이크 결과 (2026-10-16)
 
@@ -1274,6 +1274,24 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 테스트 14건(응답 래퍼 7, 재시도 규칙 2, 서버 분기 Node 환경 5 — 닫힌 포트·접미사 누락·빈 문자열·authApi 경로·routePattern).
 
 **남은 것**: `<Prefetch>`가 `queryFn` 없는 객체를 타입에서 막지 못한다(`queryOptions()` 결과 타입에서 `queryFn`이 선택 필드). 상태 코드 표는 헤더 없는 셸로 채웠으므로, 헤더(`usePathname` 말단 + Suspense)가 생기는 P2·P5a에서 다시 채운다(§3 약속). Docker 베이스 이미지(`node:22-alpine`)는 태그를 고정하지 않았다 — 첫 CI 빌드에서 다이제스트를 확인해 고정한다.
+
+### 3회차 검증 뒤 고친 것
+
+| 문제 | 고침 |
+|---|---|
+| 본문 읽기(`res.json()`)가 ky 타임아웃·네트워크 처리 밖에 있었다 — 천천히 오면 SSR이 끝없이 기다리고, 받다가 끊기면 `NON_JSON`(재시도 안 됨) | `request()`가 본문을 마감 시각(헤더+본문 10초, `REQUEST_TIMEOUT_MS`) 안에서 읽는다. 시간 초과 `TIMEOUT`, 끊김 `NETWORK`, 호출자 취소는 그 사유를 그대로. 마감 계산은 `performance.now()` — `Date.now()`는 Cache Components 프리렌더에서 빌드가 멈춘다(이 실수를 빌드가 잡았다) |
+| NETWORK·TIMEOUT의 `reason`에 라우트 패턴이 들어가 P4 토스트에 그대로 보일 뻔했다 | `ApiError`에 `route` 필드를 따로 둔다. `reason`은 서버 문장만(없으면 `''`). 토스트는 `reason`이 비면 고정 문구 |
+| `authApi` 경로 테스트가 아무것도 검증하지 않았다(변이 실험에서도 통과) | MSW로 정확한 주소(`/prefix/api/v1/auth/token/refresh`)에 응답을 두고 성공을 단언. 끊김은 실제 소켓으로 테스트 |
+| `pnpm start`가 `public`·`.next/static` 없이 떠 CSS·약관이 404 | `start`가 두 폴더를 standalone으로 복사한 뒤 띄운다 |
+| `serverQuery`가 비 ApiError 메시지(queryKey 토큰·env 값 포함 가능)를 남겼다 | 이름만. `<Prefetch>`는 `queryFn`이 없으면 리소스 이름만 담은 에러를 먼저 던진다 |
+| 전부 소문자인 토큰이 `routePattern`을 통과했다 | `gifts` 바로 뒤 세그먼트는 모양과 상관없이 가린다 |
+| PR 게이트가 `next build`를 돌리지 않아 Cache Components 위반이 main에서야 드러났다 | `pr-gate.yml`에 `pnpm build` |
+| ky timeout이 기본값에 암묵적으로 기댔다 | `timeout: 10_000` 명시 |
+| `@swc/core` 빌드 스크립트 경고 | `pnpm.ignoredBuiltDependencies` |
+
+테스트 15건. 3회차까지 P0 코드에서 고친 것은 버그 19건(1회차 7, 2회차 6, 3회차 6)이다.
+
+**P0에서 하지 않은 것(추가)**: deploy-plan D1의 GHCR 패키지 공개 설정·조직 허용 확인(§9 #7), 카카오 JS 키가 환경별로 같은지(§9 #6), 이미지 크기(standalone 41~43MB만 쟀다), `global-error.tsx`(P5a).
 
 ## 핵심 결정 요약
 

@@ -84,7 +84,7 @@ src/app/
 │           └─ gifts/page.tsx          # (보류) 보낸·받은 선물 내역 GG-7 — Figma에 화면이 있을 때만
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
-│  ├─ layout.tsx                       # P10a <Suspense>, 로그인 게이트, 셸 — 데스크탑 HostingSidebar(호스팅 홈·호스트 섹션·사용자) / 모바일 HostingHeader(`host title` 로고 헤더, 벨 없음) + 드로어(알림 벨은 드로어 안 — design-requests Q17). 사이드바·헤더의 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
+│  ├─ layout.tsx                       # P10a <Suspense>, 로그인 게이트, 셸 — 데스크탑 HostingSidebar(호스팅 홈·호스트 섹션·사용자 줄 + 알림 벨) / 모바일 HostingHeader(`host title` 로고 헤더, 벨 없음) + 드로어(알림 벨은 드로어 안 — design-requests Q17). 사이드바·헤더의 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색)
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기
@@ -186,10 +186,11 @@ src/ui/
 
 ```
 src/api/
-├─ client.ts                   # ky 인스턴스(v2 · v1 인증, 내부, 기준 주소 없음) — 응답 래퍼 해제, ApiError(JSON이 아니면 'NON_JSON', status는 항상 HTTP 상태), zod 파싱 정책, 401 가로채기(v2만, dd:session이 있을 때만 — 주입된 refresh 호출 후 재시도, 세션 상실이면 SessionLostError. v1 인증 인스턴스에는 없다)
+├─ client.ts                   # ky 인스턴스 하나(내부, 기준 주소 없음, timeout 10초 — 요청마다 http.ts가 prefix를 넘긴다) — 응답 래퍼 해제, ApiError(JSON이 아니면 'NON_JSON', status는 항상 HTTP 상태), zod 파싱 정책, 401 가로채기(v2만, dd:session이 있을 때만 — 주입된 refresh 호출 후 재시도, 세션 상실이면 SessionLostError. v1 인증 인스턴스에는 없다)
 ├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체 — get / post / patch / put / delete / download. get의 { public: true }는 항상 credentials:'omit'. 요청마다 prefix를 넘긴다 — 브라우저는 상대 경로, 서버(typeof window === 'undefined')는 호출할 때 process.env.API_INTERNAL_URL ?? 기본값
 ├─ auth-handlers.ts            # setAuthHandlers({ refresh, onSessionLost }) — 등록은 features/shared/auth
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
+├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
 ├─ handle-codes.ts             # handleCodes({ 코드: 처리 }) → { meta: { handledCodes }, onError } — 변경 에러를 화면이 처리할 코드를 한 곳에 쓴다
 ├─ upload.ts                   # P3  발급 → S3 PUT → key (호스트·공연·프로필 공용)
 ├─ server/                     # 'server-only' — 라우트 파일에서만 쓴다. src/api 중 유일하게 React(HydrationBoundary)·notFound를 쓴다
@@ -198,7 +199,7 @@ src/api/
 ├─ shared/
 │  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼
 │  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
-│  └─ enums.ts
+│  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
 ├─ auth/  me/  host/  event/  ticket-item/  option/
 ├─ order/                      # + price.ts (금액 계산 순수함수)
 ├─ refund/  issued-ticket/  check-in/  my-ticket/  gift/  notification/
@@ -215,6 +216,7 @@ queryKey 순서는 리소스 → `'viewer'` → `'infinite'` → 파라미터 �
 
 ```
 src/utils/
+├─ log.ts                      # 구조화 stdout 로그 log(level, event, fields)
 ├─ clipboard.ts                # copyText()
 ├─ money.ts                    # 원 단위 표시
 └─ download.ts                 # blob 저장 (엑셀)
