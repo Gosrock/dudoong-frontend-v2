@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
 
 import { Flex } from '../../primitives/Flex';
 import { Button } from './Button';
@@ -16,6 +17,15 @@ export const Secondary: Story = { args: { variant: 'secondary' } };
 export const Tonal: Story = { args: { variant: 'tonal', size: 'lg' } };
 export const Selected: Story = { args: { variant: 'secondary', selected: true } };
 export const Disabled: Story = { args: { disabled: true } };
+export const Dark: Story = { args: { variant: 'dark', size: 'lg' } };
+export const Loading: Story = {
+  args: { loading: true, children: '결제하기' },
+  play: async ({ canvas }) => {
+    const btn = canvas.getByRole('button', { name: '결제하기' });
+    await expect(btn).toBeDisabled();
+    await expect(btn).toHaveAttribute('aria-busy', 'true');
+  },
+};
 
 /** Figma Button 변형 비교용 — 크기 × 종류 */
 export const Matrix: Story = {

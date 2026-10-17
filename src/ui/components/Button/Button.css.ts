@@ -18,7 +18,8 @@ export const button = recipe({
     whiteSpace: 'nowrap',
     transition: 'background-color 120ms ease, border-color 120ms ease',
     selectors: {
-      '&:disabled': {
+      // 진행 중(aria-busy)에는 비활성이지만 변형 색을 유지한다
+      '&:disabled:not([aria-busy="true"])': {
         cursor: 'not-allowed',
         background: vars.color.interaction.disabledBg,
         borderColor: 'transparent',
@@ -59,6 +60,14 @@ export const button = recipe({
           '&:active:not(:disabled)': { background: vars.color.brand.primarySubtle },
         },
       },
+      /** 검정 채움 — GUI 빈 화면·주문 완료 버튼이 Primary 채움을 text/primary-label로 덮어쓴 것(P2) */
+      dark: {
+        background: vars.color.text.primaryLabel,
+        color: vars.color.background.normal,
+        selectors: {
+          '&:hover:not(:disabled), &:active:not(:disabled)': { opacity: 0.85 },
+        },
+      },
     },
     size: {
       sm: [
@@ -84,6 +93,9 @@ export const button = recipe({
     },
     fullWidth: {
       true: { width: '100%' },
+    },
+    loading: {
+      true: { cursor: 'progress' },
     },
   },
   compoundVariants: [

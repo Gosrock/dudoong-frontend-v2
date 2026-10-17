@@ -303,7 +303,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
 | 컴포넌트 | 없는 상태 | 디자인 전까지 코드 |
 |---|---|---|
-| Input | 라벨, 도움말, 에러 상태·문구, 지우기 버튼, 글자 수 카운터(GUI `584:4775`에만 그려짐) | 에러는 테두리 `status/error` + 아래 문구 Body/sm. 카운터는 `maxLength`가 있는 칸에 오른쪽 위 "0/12" |
+| Input | 라벨, 도움말, 에러 상태·문구, 지우기 버튼, 글자 수 카운터(GUI `584:4775`에만 그려짐) | 에러는 테두리 `status/error` + 아래 문구 Body/sm. 카운터는 `maxLength`가 있는 칸의 아래 오른쪽 "0/12"(GUI `584:4775`, 간격 4, 12 Medium, text/tertiary) |
 | Button | 로딩 | 라벨 자리에 스피너, 폭 유지 |
 | Toggle, Radio | disabled | `interaction/disabled` 계열 |
 | Dropdown | placeholder, disabled, 에러, 열린 목록 컴포넌트 | Input과 같은 규칙 |
@@ -349,17 +349,51 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | 종류 | 출처 | 위치 | 쓰는 방식 | Phase |
 |---|---|---|---|---|
 | 아이콘(`ic` 44종, 변형 58개) | Figma Icons 페이지 | `src/ui/icons/svg/` → `registry.ts`(생성) | `<Icon />` 인라인 SVG, `currentColor` | P1 완료 |
-| 일러스트(빈 화면 6종, 로그인, 포스터 준비중, `illust_dashboard`) | Figma image 페이지(벡터) | `src/ui/illustrations/*.svg` | 정적 import → `next/image`(`unoptimized` — SVG는 변환하지 않는다). 빌드 해시로 장기 캐시 | P2 |
-| 아바타 캐릭터(4색) | Figma Avatar | `src/ui/illustrations/avatar-*.svg` | Avatar 컴포넌트가 색으로 고른다 | P2 |
-| 로고(관객·호스팅) | GUI `logo` 페이지 | `src/ui/brand/` | 작은 컴포넌트(인라인 SVG — 헤더 색 대응) | P2 |
+| 일러스트(빈 화면 6종, 로그인, 포스터 준비중) | Figma image 페이지(벡터) | `src/ui/illustrations/*.png`(3x) | **PNG로 넣었다(P2)** — Figma 벡터가 0.3~6.5MB(포스터 준비중은 8MB 넘어 SVG 추출 자체가 막힘)라 웹에 맞지 않는다. 래스터화하면 개당 7~28KB. 다시 뽑는 노드 ID는 `Illustration.tsx` 주석. `<Illustration name />`이 정적 import + `<img>`로 그린다(Storybook에서 `next/image`가 안 돌아서). 빌드 해시로 장기 캐시(P2에서 Next 빌드로 확인) | P2 완료 |
+| `illust_dashboard` 4종(36×36) | Figma | `src/ui/illustrations/dashboard-*.svg` | `<Illustration />` | P2 완료 |
+| 아바타 캐릭터(4색) | Figma Avatar("40" = 45px 변형) | `src/ui/illustrations/avatar-*.svg` | Avatar 컴포넌트가 색으로 고른다 | P2 완료 |
+| 로고(관객·호스팅) | GUI `logo` 페이지 | `src/ui/brand/Logo.tsx` | 인라인 SVG, `currentColor`(호스팅 "host" 글자는 evenodd로 뚫음) | P2 완료 |
 | 폰트 | npm `pretendard`, Google Fonts(Saira Condensed) | 저장소에 파일 없음 | 루트 레이아웃에서 적재. Kartrider는 라이선스 확인 뒤 `next/font/local` | P1 완료 |
 | 사용자 업로드(포스터·프로필·호스트 이미지) | 백엔드 S3(presigned 업로드) | 저장소 밖 | `next/image` + `images.remotePatterns`에 업로드 도메인 | P5a |
 | 고정 주소가 필요한 파일 | — | `src/app/`(favicon, robots, 기본 OG 이미지), `public/`(약관 HTML) | 파일 규칙 그대로 | P0 완료 · P5b(OG) |
 
 - **아이콘과 일러스트를 나누는 이유**: 아이콘은 작고 한 화면에 많으며 상태에 따라 색이 바뀐다 → 인라인 + `currentColor`. 일러스트는 크고 여러 색이며 색이 바뀌지 않는다 → 인라인으로 넣으면 JS 번들만 커지므로 정적 파일.
-- **Figma가 바뀌면**: 아이콘은 `src/ui/icons/README.md` 절차(내보내기 → `node src/ui/icons/generate.mjs`). 일러스트·로고는 해당 SVG만 다시 내보내 교체한다. 원본 SVG를 저장소에 두므로 무엇이 바뀌었는지 git diff로 보인다.
+- **Figma가 바뀌면**: 아이콘은 `src/ui/icons/README.md` 절차(내보내기 → `node src/ui/icons/generate.mjs`). 일러스트·로고는 해당 SVG만 다시 내보내 교체한다. 원본 SVG를 저장소에 두므로 무엇이 바뀌었는지 git diff로 보인다(PNG로 넣은 일러스트 6종은 예외 — 디자이너가 벡터를 단순화하면 SVG로 바꾼다).
 - **SVG 정리**: 내보낸 SVG의 `id`가 페이지 안에서 겹치지 않게 파일 이름 접두사를 붙인다(그라데이션·clipPath). 일러스트는 `<img>`로 그리므로 겹쳐도 무해하고, 인라인으로 그리는 아이콘·로고만 해당한다.
 - **라이선스**: 외부에서 온 에셋은 루트 `THIRD_PARTY_NOTICES.md`에 고지한다.
+
+### 4-2. P2 구현 기록 (2026-10-17)
+
+**결정**
+
+| 항목 | 결정 | 이유 |
+|---|---|---|
+| 날짜·시간 입력 | 네이티브 `<input type="date"/"time">`을 icon input 모양으로 감쌈. 값은 `'yyyy-MM-dd'`·`'HH:mm'` 문자열, 칸 어디를 눌러도 `showPicker()` | 피커 디자인이 없고, 모바일 네이티브 피커가 가장 쓰기 좋으며 의존성이 없다 |
+| 뒤로가기 | 열린 시트·모달·팝업을 닫는다(사용자 결정, patterns §6) | — |
+| 오버레이 토큰 | `color.overlay.dim`(라이트 Neutral 900 70%)·`overlay.shadow`, `zIndex.popover`(1150 — 모달 위, 토스트 아래) 추가. 드롭다운 목록·팝오버·툴팁·메뉴가 popover | `background.dark`는 다크에서 흰색이라 딤에 못 쓴다. Figma 딤은 모달 검정 80%·시트 Neutral 900 70%로 달라 70%로 통일 |
+| Button | `variant="dark"`(검정 채움 — 빈 화면·주문 완료 버튼), `loading`(라벨 폭 유지 + 스피너, `aria-busy`, 변형 색 유지) 추가 | GUI가 Primary 채움을 검정으로 덮어써 쓴다 |
+| 칩 neutral·danger | `Chip.css.ts` 안에서 기존 의미 토큰을 조합(neutral = surface.container 배경 + defaultBorder + text.secondary, danger = 배경 없음 + dangerLabel) | 디자이너 색이 오기 전 임시(§3 "없는 상태") |
+| Footer · NavBar | 만들지 않음(보류) | plan·storyboard·GUI·v1 어디에도 쓰는 곳이 없다. GUI는 햄버거 드로어 |
+| Tooltip | 터치로 열리지 않으므로 모바일 ⓘ 설명은 Popover | Radix Tooltip 동작 |
+| DropdownMenu | `modal={false}` | 메뉴 항목에서 확인 팝업을 열 때 body `pointer-events`가 남는 문제 회피 |
+
+**react-hook-form 연결**
+
+| 컴포넌트 | 연결 | 이유 |
+|---|---|---|
+| Input · SearchField · TextArea · DatePicker · TimePicker | `register` | 네이티브 요소에 ref·onChange·onBlur·name이 그대로 간다 |
+| Dropdown · Checkbox · Toggle · Radio · SelectButton | `Controller` | Radix(button 기반), 값은 콜백으로만 나온다. `field.ref`는 트리거에 붙어 검증 포커스가 간다 |
+| Counter | `Controller` | 값이 number, 입력 칸이 없다. `field.ref`는 줄이기 버튼(min에서 비활성이면 포커스 못 받음) |
+| TagButtonGroup | `Controller` | 값이 string[]. `field.ref`는 첫 칩 |
+| DropZone | 폼 밖 | `onFile` 콜백뿐. 업로드 결과 키를 `setValue`로 넣는다(P3 upload.ts, P11) |
+
+예제: `src/ui/stories/FormWithRHF.stories.tsx`(zod + 제출 play).
+
+**Figma와 다르게 한 것**: SearchField 아이콘은 Figma대로 오른쪽(지우기 버튼은 그 왼쪽). Tabs 높이 44 통일. 칩 모서리 6 → 8, 고정 폭 72 → 최소 폭. 토큰에 없는 간격 10 → 8. dropdown item 28h → 최소 36h(터치 영역). Header 제목 1줄 말줄임, 아이콘 버튼 누르는 영역 40. 바텀시트 모서리 0(Figma 그대로)·데스크탑 최대 폭 600, Modal 최대 폭 480(디자인 없음). Toggle 손잡이 Common/100 → `background.normal`(라이트 같은 값).
+
+**디자이너 확인**: 일러스트 벡터 단순화(가능하면 SVG로), 칩 모서리 6과 neutral·danger 색, 딤 색·투명도 통일과 시트 모서리 0, dropdown item hover 색, Toggle·Radio·SelectButton·TagButton disabled 모양, 간격 10, Tabs 높이, 날짜·시간 placeholder 문구, 403·404 문구·일러스트, Avatar 사진 변형, Header 제목 줄 수.
+
+**미확인(실기기)**: iOS Safari 바텀시트 스크롤 잠금·키보드 회피(vaul `repositionInputs` 켬 — BottomSheet 스토리 `WithInput`·`LongContent`로 확인), 안드로이드 하드웨어 백·iOS 스와이프 백으로 오버레이 닫힘, DatePicker의 iOS placeholder·`showPicker`.
 
 ---
 

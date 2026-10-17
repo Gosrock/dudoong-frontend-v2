@@ -24,5 +24,13 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
+      # 스토리 테스트(키보드·포커스·뒤로가기 play 검사) — 실제 Chromium이 필요하다(P2에서 게이트에 넣음)
+      - name: Playwright Chromium 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps --only-shell chromium
+      - run: pnpm test:stories
       # Cache Components 규칙 위반(instant=false 누락, Suspense 밖 비캐시 데이터)은 build에서만 드러난다
       - run: pnpm build

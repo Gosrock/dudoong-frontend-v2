@@ -286,13 +286,13 @@ try {
 
 - 확인·시트·모달은 `overlay-kit` 하나로 연다. `window.confirm()`을 쓰지 않는다.
 - **"확인 누르면 서버 호출 후 닫힘"은 `src/ui`의 `EasyOverlay`로 쓴다.** `onConfirm`(Promise)이 도는 동안 버튼을 잠그고, 성공하면 닫고, 실패하면 오버레이를 유지한다. 실패 토스트는 기본적으로 전역 토스트(§4-5)에 맡긴다. 문구를 화면이 따로 정해야 하는 코드만 `meta.handledCodes`에 넣고 화면이 처리한다. 1차 소비처는 P13a(승인·거절·취소·환불 완료)와 P8b(선물 보내기·회수·반환·거절).
-- **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다.
-  - **열기와 닫기 모두 `router.replace`**로 그 파라미터만 더하거나 지운다. 다른 쿼리(`?tab=`)는 남긴다. 뒤로가기는 모달을 닫지 않고 그 화면을 떠난다.
-  - 이유: `router.push`는 history state를 넘길 수 없어 "앱이 열었다" 표시를 남길 방법이 없다. 표시 없이 push/back을 섞으면 닫은 뒤 뒤로가기 한 번이 헛돈다. 쓰는 곳이 하나라 규칙을 하나로 둔다.
-  - P2에서 "뒤로가기 = 바텀시트 닫기"로 정하면, 시트와 이 오버레이를 함께 `window.history.pushState({ ...history.state, ddOverlay: 1 }, '', url)`로 열고 표시가 있으면 `router.back()`으로 닫는 방식으로 바꾼다(Next 라우터와 `useSearchParams`가 `pushState`를 따라간다).
+- **뒤로가기는 열린 오버레이를 닫는다**(P2 사용자 결정). 시트·모달·팝업(`BottomSheet`·`Modal`·`Popup`·`ResponsiveOverlay`·`EasyOverlay`)은 `useCloseOnBack`으로 열 때 `window.history.pushState({ ...history.state, ddOverlay: id }, '', location.href)`로 항목을 하나 넣는다(주소는 그대로, Next의 `__NA` 등 기존 state 보존). 뒤로가기(popstate)로 표시가 빠지면 닫히고, UI로 닫으면(버튼·Esc·바깥·스와이프) 내 항목이 맨 위일 때 `history.back()`으로 소비한다. 겹친 오버레이는 맨 위 것만 닫힌다. 토스트·팝오버·툴팁·메뉴는 해당 없다. 실제 Next 16 dev 서버에서 RSC 재요청 0건을 확인했다.
+  - `EasyOverlay`의 `onConfirm`이 도는 동안 뒤로가기는 무시한다(항목을 다시 넣는다). 요청은 이미 갔으니 결과를 보여 준다. 성공하면 항목을 소비한 뒤 resolve하므로 호출한 쪽이 `await` 뒤에 `router.push`해도 엇갈리지 않는다.
+  - **오버레이 안에서 다른 경로로 갈 때는 `router.replace`·`<Link replace>`를 쓴다.** push하면 기록이 [A, A+오버레이, B]가 되어 B에서 뒤로가기를 두 번 눌러야 A로 간다.
+  - 남는 경우: 오버레이가 열린 채 새로고침하면 뒤로가기가 한 번 헛돈다. 위에 다른 오버레이가 있는 채 아래 것을 UI로 닫으면 그 항목이 남는다. 둘 다 드물어 두었다.
+- **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다. 위 규칙과 맞춰 **열 때는 `pushState`(파라미터를 더한 주소, state에 `ddOverlay` 표시), 닫을 때는 표시가 있으면 `router.back()`, 없으면(주소로 바로 들어온 경우) `router.replace`로 그 파라미터만 지운다.** 다른 쿼리(`?tab=`)는 남긴다. Next 라우터와 `useSearchParams`가 `pushState`를 따라간다(P13a에서 구현).
 - 경로가 바뀌면 `overlay.unmountAll()`을 호출한다. 이 감시는 루트 `Providers`의 children을 감싸지 않는 말단 컴포넌트 `<OverlayRouteReset />`이 하고, 형제 위치의 `<Suspense fallback={null}>` 안에 둔다. 이 파일과 `providers.tsx`는 `src/app`에 두는 루트 셸 클라이언트 파일이다(라우트 파일이 아닌 예외 둘, tech-decisions §8).
 - **`usePathname`·`useSearchParams`를 쓰는 컴포넌트는 children을 감싸지 않는 말단으로 두고 자체 `<Suspense fallback={null}>`로 감싼다.** Cache Components에서 이 훅은 `generateStaticParams`가 없는 동적 경로에서 suspend하고, Suspense가 없으면 빌드가 실패한다. children을 감싸는 위치에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404 상태 코드가 깨진다(tech-decisions §2).
-- 바텀시트가 열린 채 모바일 뒤로가기를 누르면 화면이 이동하고 시트는 `unmountAll`로 닫힌다. "뒤로가기 = 시트 닫기"로 할지는 P2에서 정한다.
 
 ---
 

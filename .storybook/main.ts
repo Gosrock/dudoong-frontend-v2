@@ -10,6 +10,8 @@ const config: StorybookConfig = {
     cfg.plugins = [...(cfg.plugins ?? []), vanillaExtractPlugin()];
     // @/* 별칭은 Vite 내장 tsconfig 경로 해석으로 푼다
     cfg.resolve = { ...cfg.resolve, tsconfigPaths: true };
+    // next/link(src/ui의 링크·LinkProgress)가 process.env.__NEXT_* 를 읽는다. Next 밖(Vite)에는 process가 없다
+    cfg.define = { ...cfg.define, 'process.env': {} };
     return cfg;
   },
 };

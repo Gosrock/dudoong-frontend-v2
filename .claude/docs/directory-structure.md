@@ -65,7 +65,7 @@ src/app/
 ├─ favicon.ico                         # v1에서 가져옴(메타데이터 파일)
 ├─ layout.tsx                          # <html>, 전역 스타일, Providers(QueryClient, OverlayProvider)
 ├─ providers.tsx                       # P2·P4a  'use client' — QueryClientProvider(서버 렌더마다 새 것, 브라우저는 하나), OverlayProvider, 인증 핸들러 등록, storage(다른 탭 로그아웃)·pageshow(bfcache) 감시 — dd:session 값 비교. 경로는 읽지 않는다
-├─ OverlayRouteReset.tsx               # P2  'use client' 말단 — 경로가 바뀌면 overlay.unmountAll(). children을 감싸지 않고 layout.tsx에서 <Suspense fallback={null}>로 감싸 형제로 둔다
+├─ OverlayRouteReset.tsx               # P2  'use client' 말단 — 경로가 바뀌면 overlay.unmountAll(). children을 감싸지 않고 providers.tsx 안에서 <Suspense fallback={null}>로 감싸 형제로 둔다(<Toaster />도 여기)
 ├─ not-found.tsx / error.tsx / global-error.tsx
 ├─ healthz/route.ts                    # P0   배포 헬스체크. 유일한 Route Handler. 백엔드를 부르지 않는다
 │
@@ -185,7 +185,9 @@ src/ui/
 │  ├─ types.ts                 # 공개 props 타입(SpaceKey, Responsive<T> …) — vanilla-extract 타입을 밖에 내보내지 않는다
 │  └─ global.css.ts            # reset, 본문 폰트, focus-visible
 ├─ primitives/                 # Flex(+ .Center 등), Spacing, Txt, Divider, Container
-├─ hooks/useMediaQueries.ts
+├─ hooks/                     # useMediaQueries, useCloseOnBack(뒤로가기로 오버레이 닫기), useOnExited, useReturnFocus
+├─ illustrations/             # 일러스트(PNG 3x — 벡터가 너무 커서), illust_dashboard·아바타 캐릭터(SVG) → <Illustration name /> (<img>)
+├─ brand/                     # Logo(audience·host) 인라인 SVG, currentColor
 ├─ stories/                    # Foundation 스토리 — 토큰, 프리미티브, 스타일 세 방법
 ├─ icons/                      # Figma ic 세트에서 뽑은 SVG → <Icon name size variant />. 라이선스 고지(lucide ISC) 포함
 └─ components/                 # 컴포넌트마다 Foo.tsx + Foo.css.ts + Foo.stories.tsx
@@ -194,12 +196,13 @@ src/ui/
    ├─ Checkbox/ Radio/ Toggle/ Tabs/   # Radix Checkbox·RadioGroup·Switch·Tabs + vanilla-extract (design-system.md §3)
    ├─ Badge/ Avatar/ FilterChip/ Chip/   # Chip: Ticket·Concert 상태, role, tag, money option
    ├─ DatePicker/ TimePicker/
-   ├─ BottomSheet/ Modal/ Popup/ EasyOverlay/
+   ├─ BottomSheet/ Modal/ Popup/ EasyOverlay/   # BottomSheet/ResponsiveOverlay: PC=Modal, 모바일=시트. EasyOverlay: openConfirm() → Promise<boolean>
    ├─ Toast/                   # 명령형 toast() — 훅이 아니어서 QueryCache.onError에서도 부른다
+   ├─ Popover/ Tooltip/ DropdownMenu/   # Radix 래퍼. 모바일 ⓘ 설명은 Popover(Tooltip은 터치로 안 열린다)
    ├─ Loader/ Skeleton/ EmptyState/ LinkProgress/   # LinkProgress: 카드 <Link> 안의 인라인 이동 표시(useLinkStatus, 100ms 지연)
    ├─ NotFoundView/ ForbiddenView/   # P2  클라이언트 조회 화면용 공용 404·403 안내 (P5a·P9·P10a가 쓴다)
    ├─ AsyncBoundary/           # P2  QueryErrorResetBoundary + ErrorBoundary + Suspense + 재시도(reset). SessionLostError는 fallback 없이 무시
-   ├─ Accordion/ Header/ Footer/ NavBar/ ListHeader/ InfoRow/   # Header = Figma Top app bar(관객·호스팅 공용, 뒤로가기·제목·공연 전환형). 로고 헤더(GUI 로컬 `basic title` 관객, `host title` 호스팅)는 각 셸이 Header의 변형으로 그린다. InfoRow = Figma list(라벨 + 값 행, 펼침형은 Accordion)
+   ├─ Accordion/ Header/ ListHeader/ InfoRow/   # Footer·NavBar는 쓰는 곳이 없어 보류(P2)   # Header = Figma Top app bar(관객·호스팅 공용, 뒤로가기·제목·공연 전환형). 로고 헤더(GUI 로컬 `basic title` 관객, `host title` 호스팅)는 각 셸이 Header의 변형으로 그린다. InfoRow = Figma list(라벨 + 값 행, 펼침형은 Accordion)
    └─ DataTable/
 ```
 

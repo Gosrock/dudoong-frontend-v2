@@ -7,7 +7,7 @@ description: 피처·페이지를 개발할 때 QA 시나리오를 .claude/docs 
 
 피처 하나의 QA 시나리오를 쓰고 → 실행하고 → 리포트로 보고한다. 엔진은 `@playwright/test`, 백엔드는 가짜다(MSW 핸들러). 구성과 이유는 `.claude/docs/tech-decisions.md` §10.
 
-**PR 게이트 밖이다.** 로컬과 이 스킬에서만 돈다. 게이트는 typecheck · lint · Vitest · build.
+**PR 게이트 밖이다.** 로컬과 이 스킬에서만 돈다. 게이트는 typecheck · lint · Vitest(unit) · 스토리 테스트 · build.
 
 ## 언제
 

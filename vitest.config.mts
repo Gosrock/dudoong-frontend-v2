@@ -28,11 +28,30 @@ export default defineConfig({
       {
         extends: true,
         plugins: [storybookTest({ configDir: path.join(import.meta.dirname, '.storybook') })],
-        // .css.ts가 런타임으로 불러오는 것. 실행 중에 발견되면 Vite가 다시 읽어 첫 실행이 실패한다
+        // 스토리가 쓰는 의존성. 실행 중에 발견되면 Vite가 다시 최적화하며 페이지를 다시 읽어 첫 실행이 실패한다
         optimizeDeps: {
           include: [
             '@vanilla-extract/recipes/createRuntimeFn',
             '@vanilla-extract/sprinkles/createRuntimeSprinkles',
+            'react-hook-form',
+            '@hookform/resolvers/zod',
+            'zod',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-collapsible',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-radio-group',
+            '@radix-ui/react-select',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-tooltip',
+            '@radix-ui/react-visually-hidden',
+            '@tanstack/react-table',
+            'vaul',
+            'sonner',
+            'overlay-kit',
+            'next/link',
           ],
         },
         test: {

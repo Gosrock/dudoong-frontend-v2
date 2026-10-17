@@ -53,6 +53,8 @@ const colorContract = createThemeContract({
     avatar: { teal: null, orange: null, indigo: null },
     role: { masterBg: null, masterText: null, managerBg: null, managerText: null },
     chip: { giftPendingBg: null, ddayBg: null, ddayText: null, pastBg: null },
+    /** 오버레이 딤·그림자. background.dark는 다크에서 흰색이 되므로 따로 둔다(P2) */
+    overlay: { dim: null, shadow: null },
   },
 });
 
@@ -124,6 +126,10 @@ const light = {
       ddayBg: palette.coralRed[50],
       ddayText: palette.coralRed[200],
       pastBg: palette.neutral[50],
+    },
+    overlay: {
+      dim: `color-mix(in srgb, ${palette.neutral[900]} 70%, transparent)`,
+      shadow: `color-mix(in srgb, ${palette.neutral[900]} 15%, transparent)`,
     },
   },
 };
@@ -197,6 +203,10 @@ const dark = {
       ddayText: palette.coralRed[200],
       pastBg: palette.neutral[50],
     },
+    overlay: {
+      dim: `color-mix(in srgb, ${palette.common.black} 70%, transparent)`,
+      shadow: `color-mix(in srgb, ${palette.common.black} 40%, transparent)`,
+    },
   },
 };
 
@@ -235,7 +245,7 @@ const base = createGlobalTheme(':root', {
     display: '"Kartrider Kor", "Pretendard Variable", Pretendard, sans-serif',
     number: 'var(--font-saira), "Saira Condensed", "Pretendard Variable", sans-serif',
   },
-  zIndex: { header: '100', sheet: '1000', modal: '1100', toast: '1200' },
+  zIndex: { header: '100', sheet: '1000', modal: '1100', popover: '1150', toast: '1200' },
   shadow: { drop: '0 4px 4px rgba(0, 0, 0, 0.1)' },
 });
 

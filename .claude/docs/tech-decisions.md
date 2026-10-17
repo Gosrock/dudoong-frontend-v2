@@ -389,10 +389,10 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 
 | 경우 | 방법 |
 |---|---|
-| 주소로 여는 오버레이(`?order={orderUuid}` 주문 상세) | `overlay.open`을 쓰지 않는다. 페이지가 쿼리 값을 보고 선언적으로 렌더한다. **열기와 닫기 모두 `router.replace`**로 그 쿼리만 더하고 지운다. 다른 쿼리(`?tab=`)는 보존한다. 뒤로가기는 모달을 닫지 않고 그 화면을 떠난다. 2회차의 "push로 열고 history state 표시를 보고 back/replace로 닫는다"는 쓸 수 없다 — `router.push`에는 history state를 넘길 인자가 없고, 사용자 state는 클라이언트 이동에서 유지되지 않는다(Next PR #58335 커밋 노트). **P2에서 "모바일 뒤로가기 = 바텀시트 닫기"로 정하면** 이 오버레이도 같이 바꾼다: `window.history.pushState({ ...history.state, ddOverlay: 1 }, '', url)`로 열고(Next 문서: "`pushState` and `replaceState` calls integrate into the Next.js Router"), `history.state?.ddOverlay`가 있으면 `router.back()`, 없으면 `replace`로 닫는다. 새로고침 뒤 표시가 남는지는 미확인이지만, 사라져도 결과는 `replace`로 닫는 것뿐이라 무해하다 |
+| 주소로 여는 오버레이(`?order={orderUuid}` 주문 상세) | `overlay.open`을 쓰지 않는다. 페이지가 쿼리 값을 보고 선언적으로 렌더한다. **P2 결정으로 뒤로가기가 모달을 닫는다** — 아래 `pushState` 방식으로 열고 닫는다(patterns §6). 다른 쿼리(`?tab=`)는 보존한다. 2회차의 "push로 열고 history state 표시를 보고 back/replace로 닫는다"는 쓸 수 없다 — `router.push`에는 history state를 넘길 인자가 없고, 사용자 state는 클라이언트 이동에서 유지되지 않는다(Next PR #58335 커밋 노트). 방식: `window.history.pushState({ ...history.state, ddOverlay: 1 }, '', url)`로 열고(Next 문서: "`pushState` and `replaceState` calls integrate into the Next.js Router"), `history.state?.ddOverlay`가 있으면 `router.back()`, 없으면 `replace`로 닫는다. 새로고침 뒤 표시가 남는지는 미확인이지만, 사라져도 결과는 `replace`로 닫는 것뿐이라 무해하다 |
 | 데이터를 읽는 오버레이 | 루트 `OverlayProvider`에서 렌더되어 라우트의 Suspense·`error.tsx` 밖이다. 안에 `<AsyncBoundary>`를 둔다 |
 | 경로 이동 | 경로가 바뀌면 `overlay.unmountAll()`을 부른다. 이 일을 하는 `<OverlayRouteReset />`은 children을 감싸지 않는 말단 컴포넌트로 루트 Provider 옆에 두고, 자체 `<Suspense fallback={null}>`로 감싼다(§3 "경로를 읽는 컴포넌트") |
-| 바텀시트가 열린 채 뒤로가기(모바일) | 뒤로가기 = 시트 닫기로 할지 P2에서 정한다. 정하기 전까지는 경로 이동으로 처리되어 `unmountAll`로 닫힌다. "닫기"로 정하면 위 `pushState` 방식을 시트와 주소 오버레이에 같이 쓴다 |
+| 오버레이가 열린 채 뒤로가기 | **오버레이를 닫는다**(P2 사용자 결정). 시트·모달·팝업이 `useCloseOnBack`으로 같은 주소의 history 항목을 하나 넣고, popstate로 닫는다. UI로 닫으면 그 항목을 `history.back()`으로 소비한다. 오버레이 안에서의 경로 이동은 `replace`. 자세한 규칙과 남는 경우는 patterns §6 |
 | `EasyOverlay`의 변경 실패 | 오버레이를 유지하고 전역 토스트에 맡긴다. 문구가 다를 때만 `handleCodes`로 화면이 처리한다(§4) |
 
 다단계 플로우 라이브러리는 두지 않는다. 공연 만들기 2단계(P11)는 `?step=` 쿼리 + 지역 상태로 만든다. 체크아웃은 한 화면 안의 섹션이고, 선물 보내기는 바텀시트 2장이다.
@@ -468,13 +468,13 @@ TS 5.x, `strict`, `noUncheckedIndexedAccess`, `moduleResolution: "bundler"`. ali
 
 ## 10. 테스트
 
-2026-10-17 개정(브랜치 `feat/testing-setup`). 세 층으로 나누고, **PR 게이트에는 Vitest만 넣는다.** Playwright(e2e·QA 시나리오)는 로컬 명령과 `qa-scenario` 스킬로만 돈다(사용자 결정).
+2026-10-17 개정(브랜치 `feat/testing-setup`). 세 층으로 나누고, **PR 게이트에는 Vitest만 넣는다**(P2에서 스토리 테스트도 추가 — §24). Playwright(e2e·QA 시나리오)는 로컬 명령과 `qa-scenario` 스킬로만 돈다(사용자 결정).
 
 | 층 | 대상 | 도구 | 명령 | 게이트 |
 |---|---|---|---|---|
 | 유닛 | 순수 함수, zod 스키마, 응답 래퍼·에러 변환, 훅 | Vitest(jsdom, 서버 분기는 `// @vitest-environment node`) | `pnpm test` | O |
 | 컴포넌트 통합 | 컴포넌트 + 쿼리 + 가짜 API | Vitest + Testing Library(+ user-event, jest-dom) + MSW. `renderWithProviders`(`src/test/render.tsx`) | `pnpm test` | O |
-| 스토리 | 스토리마다 렌더 스모크 + `play` 함수 | `@storybook/addon-vitest`(Vitest 브라우저 모드, Chromium) | `pnpm test:stories` | X |
+| 스토리 | 스토리마다 렌더 스모크 + `play` 함수 | `@storybook/addon-vitest`(Vitest 브라우저 모드, Chromium) | `pnpm test:stories` | O(P2부터) |
 | 앱 화면 e2e | 빌드한 standalone 앱의 화면 흐름, 상태 코드, 서버/브라우저 조회 위치 | `@playwright/test` + 가짜 백엔드 | `pnpm test:e2e` | X |
 | QA 시나리오 | 피처별 시나리오(정상·빈 상태·에러·권한·모바일/데스크탑) → 단계별 캡처 HTML 리포트 | 위와 같은 엔진 + `qa/` DSL·리포터 | `pnpm qa <feature>` | X |
 | 실제 환경 | 가짜로 대신할 수 없는 것 — 스테이징의 카카오 로그인 왕복·쿠키, 실기기 | agent-browser(선택), 사람 | — | X |
@@ -980,14 +980,14 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 
 - `test:e2e`·`qa`는 `next build` 뒤 standalone 서버(3100)를 띄운다(`playwright.config.ts`의 `webServer`). 방금 빌드했으면 `E2E_SKIP_BUILD=1`. 빌드할 때 `NEXT_PUBLIC_KAKAO_JS_KEY`가 없으면 `e2e-placeholder`를 넣는다 — 그 빌드의 `.next`를 그대로 배포하지 않는다.
 - `qa`는 `pnpm qa <feature> [--open] [playwright 인자]`. 리포트는 `qa/reports/<feature>/<시각>/`, `latest` 링크.
-- `test:stories`는 첫 실행에서 Vite가 의존성을 다시 최적화하며 실패했다. `.css.ts`가 런타임으로 부르는 `@vanilla-extract/recipes/createRuntimeFn`·`sprinkles/createRuntimeSprinkles`를 `optimizeDeps.include`에 넣어 캐시 없이도 통과한다.
+- `test:stories`는 첫 실행에서 Vite가 의존성을 다시 최적화하며 실패했다. `.css.ts`가 런타임으로 부르는 `@vanilla-extract/recipes/createRuntimeFn`·`sprinkles/createRuntimeSprinkles`를 `optimizeDeps.include`에 넣어 캐시 없이도 통과한다. P2에서 스토리가 쓰는 Radix·vaul·sonner·overlay-kit·react-table·react-hook-form·zod·next/link도 같은 목록에 넣었다. `.storybook/main.ts`는 `next/link`가 읽는 `process.env`를 `define`으로 비운다(없으면 Vite에서 `process is not defined`). `next/image`는 Storybook에서 쓰지 않는다 — `src/ui`의 이미지는 `<img>`로 그린다.
 - 계획했던 `check:crawler`(`scripts/check-crawler.mjs`)는 만들지 않는다 — 가짜 백엔드 위의 크롤러 응답은 Playwright e2e가 맡는다(§10). 실제 nginx·백엔드를 거친 응답은 스테이징 배포 후 확인 단계에서 curl로 본다([`staging-deploy-plan.md`](./staging-deploy-plan.md) §2-2 6단계).
 
 `typecheck`는 `next typegen`을 먼저 돌린다. 라우트 타입(`PageProps` 등)이 생성돼 있어야 `tsc`가 통과한다.
 
 ### CI
 
-PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`(Vitest `unit`) → `build`(§31 3회차에서 추가). `test:e2e`·`qa`는 넣지 않는다(§10, 사용자 결정). `test:stories`도 지금은 넣지 않는다 — 스토리가 렌더링 확인뿐이라 CI Chromium 설치 비용에 비해 얻는 게 적다. P2에서 Radix 컴포넌트에 키보드·포커스 `play` 검사가 붙으면 다시 본다(plan P2 완료 기준).
+PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`(Vitest `unit`) → `build`(§31 3회차에서 추가). `test:e2e`·`qa`는 넣지 않는다(§10, 사용자 결정). **`test:stories`는 P2부터 게이트에 넣었다** — Radix 컴포넌트의 키보드·포커스, 오버레이 뒤로가기 `play` 검사가 붙어 회귀를 잡을 가치가 생겼다(P2 시점 스토리 187개, 로컬 약 6초, 캐시를 지운 첫 실행 포함 2회 연속 통과). CI는 `playwright install --with-deps --only-shell chromium` + `~/.cache/ms-playwright` 캐시. CI 첫 실행 시간은 미확인.
 
 ### 그 밖에 P0에서 만드는 것
 
@@ -1173,7 +1173,7 @@ nginx 경로 분기(`nginx/site.conf`):
 | ky 인스턴스는 기준 주소 없이, `http.ts`가 요청마다 `prefix`. JSON이 아닌 응답은 `ApiError(status, 'NON_JSON')` | §4 |
 | `<Prefetch>`에서 `infiniteQueries`를 뺌 — GH-14는 브라우저 `useInfiniteQuery` | §4 |
 | 변경 에러 처리는 `handleCodes(map)` 헬퍼 하나로(코드 목록을 한 곳에). 조회 토스트에서 다음 페이지 실패 제외·고정 id | §4, §13 |
-| 주소 오버레이는 열기·닫기 모두 `replace`(`router.push`로는 history state를 남길 수 없다). P2에서 바텀시트 뒤로가기를 정하면 `pushState` 방식으로 같이 바꾼다 | §5 |
+| 뒤로가기는 열린 오버레이(시트·모달·팝업·주소 오버레이)를 닫는다 — `pushState`로 같은 주소 항목을 넣고 popstate로 닫는다(P2) | §5 |
 | `LinkProgress`은 카드 `<Link>` 안 인라인 표시(전역 막대 불가) | §3 |
 | 호스팅 센터 게이트는 P4a 게이트를 그대로 쓴다 | §3 |
 | `src/app` = 라우트 파일 + 루트 셸 클라이언트 파일 2개 | §8 |
@@ -1356,7 +1356,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 | 6. 스타일 | vanilla-extract(+ recipes, sprinkles) | 제로 런타임, 서버 컴포넌트 동작, 토큰 타입 검사, emotion과 가까운 작성 방식 |
 | 7. 폼 | react-hook-form + zod | |
 | 8. 계층 | `app → features → ui → api → utils`, eslint 강제 | 패키지 경계를 폴더 경계로 대체 |
-| 10. 테스트 | 게이트: Vitest(유닛 + 컴포넌트 통합, MSW). 게이트 밖: 스토리 테스트, Playwright e2e·QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드), agent-browser는 실제 환경 확인용 | 서버 조회까지 가짜로 막으려면 앞문 프록시가 필요하다. Playwright는 PR 게이트에 넣지 않는다(사용자 결정) |
+| 10. 테스트 | 게이트: Vitest(유닛 + 컴포넌트 통합, MSW), 스토리 테스트(P2부터). 게이트 밖: Playwright e2e·QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드), agent-browser는 실제 환경 확인용 | 서버 조회까지 가짜로 막으려면 앞문 프록시가 필요하다. Playwright는 PR 게이트에 넣지 않는다(사용자 결정) |
 | 11. 배포 | Dockerfile 하나, standalone. 서버 1대의 docker-compose에 v1 front·admin 대신 들어간다 | API는 같은 출처(`/api`) |
 | 13. 에러 | 외부 수집 없음, 구조화 로그. 토스트는 배경 재조회 실패·처리 안 한 변경 실패만(`handleCodes`), `SessionLostError`는 무시 | 에러 화면과 토스트가 겹치지 않게 |
 | 14. 반응형 | sprinkles 조건부 값, 같은 DOM 원칙 | |
