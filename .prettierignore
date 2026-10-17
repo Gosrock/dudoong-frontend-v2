@@ -6,3 +6,6 @@ storybook-static
 pnpm-lock.yaml
 public/*.html
 .claude
+test-results
+playwright-report
+qa/reports

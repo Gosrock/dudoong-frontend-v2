@@ -16,7 +16,14 @@ const elements = [
   { type: 'api', pattern: 'src/api/**' },
   { type: 'utils', pattern: 'src/utils/**' },
   { type: 'env', pattern: 'src/env/**' },
+  // 테스트 헬퍼(renderWithProviders). *.test.* 파일만 import한다(아래 no-restricted-imports)
+  { type: 'test-support', pattern: 'src/test/**' },
 ];
+
+const kyRestriction = {
+  paths: [{ name: 'ky', message: 'ky는 src/api 안에서만 쓴다. 화면은 api 객체를 쓴다.' }],
+  patterns: [{ group: ['ky/*'], message: 'ky는 src/api 안에서만 쓴다.' }],
+};
 
 export default defineConfig([
   ...nextVitals,
@@ -110,17 +117,41 @@ export default defineConfig([
               from: { element: { type: 'env' } },
               allow: { to: { element: { types: { anyOf: ['env'] } } } },
             },
+            {
+              from: { element: { type: 'test-support' } },
+              allow: {
+                to: {
+                  element: { types: { anyOf: ['test-support', 'ui', 'api', 'utils', 'env'] } },
+                },
+              },
+            },
+            {
+              // 어느 계층의 테스트 파일이든 헬퍼를 쓴다. 테스트가 아닌 파일은 no-restricted-imports가 막는다
+              from: {
+                element: {
+                  types: { anyOf: ['app', 'audience', 'hosting', 'shared-feature', 'ui', 'api'] },
+                },
+              },
+              allow: { to: { element: { types: { anyOf: ['test-support'] } } } },
+            },
           ],
         },
       ],
       'no-restricted-imports': [
         'error',
         {
-          paths: [{ name: 'ky', message: 'ky는 src/api 안에서만 쓴다. 화면은 api 객체를 쓴다.' }],
-          patterns: [{ group: ['ky/*'], message: 'ky는 src/api 안에서만 쓴다.' }],
+          paths: kyRestriction.paths,
+          patterns: [
+            ...kyRestriction.patterns,
+            { group: ['@/test/*'], message: 'src/test는 *.test.* 파일에서만 쓴다.' },
+          ],
         },
       ],
     },
+  },
+  {
+    files: ['**/*.test.{ts,tsx}', 'src/test/**'],
+    rules: { 'no-restricted-imports': ['error', kyRestriction] },
   },
   {
     files: ['src/api/**'],
@@ -136,5 +167,8 @@ export default defineConfig([
     'next-env.d.ts',
     '.claude/**',
     'public/**',
+    'playwright-report/**',
+    'test-results/**',
+    'qa/reports/**',
   ]),
 ]);

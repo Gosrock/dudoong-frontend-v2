@@ -50,3 +50,10 @@ next-env.d.ts
 
 # Storybook
 storybook-static/
+
+# Playwright (e2e · QA 시나리오) — 리포트·캡처는 커밋하지 않는다
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/qa/reports/
