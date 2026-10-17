@@ -10,7 +10,7 @@
 
 | 문서 | 내용 |
 |---|---|
-| [`tech-decisions.md`](./tech-decisions.md) | 기술 결정(§0~§20), 검증·조사 기록(§21~§23·§26), 도구 세팅(§24), 배포 인프라(§25), 검토 기록(§27~§29), GUI 반영(§30), P0 결과(§31) |
+| [`tech-decisions.md`](./tech-decisions.md) | 기술 결정(§0~§20), 검증·조사 기록(§21~§23·§26), 도구 세팅(§24), 배포 인프라(§25), 검토 기록(§27~§29), GUI 반영(§30), P0 결과(§31), 테스트 환경 세팅(§32) |
 | [`api-contract.md`](./api-contract.md) | 백엔드 `/api/v2` 규약·권한·상태·API 색인, v1 인증 API, 알림 문구 |
 | [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 200개(자동 추출) |
 | [`plan.md`](./plan.md) | 24개 Phase, 선행 관계, API 배정 |
@@ -25,6 +25,8 @@
 | [`patterns.md`](./patterns.md) | 구현 패턴(§1~§10 공통, §11~§23 화면, §24 화면별 에러 처리) |
 | [`figma-structure.md`](./figma-structure.md) | Figma 관측 캐시 |
 | [`implementation-log.md`](./implementation-log.md) | Phase별 구현 기록 |
+
+**스킬**: [`../skills/qa-scenario/SKILL.md`](../skills/qa-scenario/SKILL.md) — 피처의 QA 시나리오를 이 문서들(plan 완료 기준, storyboard, gui-screens, api-contract, patterns §24)로 쓰고 `pnpm qa <feature>`로 실행해 단계별 캡처 HTML 리포트를 만든다(tech-decisions §10).
 
 ## 충돌할 때 우선순위
 
@@ -42,6 +44,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 | 2026-08~09 | FE 설계 원본(모노레포, Next 앱 2개, Pages Router, emotion) |
 | 2026-10-11 | 백엔드 v2 문서 반영 — 계약 확정, PG·쿠폰·Q&A 등 범위 제외, 관심 호스트·아카이빙·셀프 체크인 추가 |
 | 2026-10-12 | 구조 변경 — 단일 Next 앱, App Router(Cache Components 켬, 서버 캐시 없음), vanilla-extract, `/` = 공연홈, 호스팅 센터는 `/hosting`, 호스트 홈은 관객 쪽 화면 하나. 조회 정의 공유(`queryOptions` + `<Prefetch>`), `api` 객체. 스파이크·백엔드 코드·배포 저장소로 미확정 항목 대부분 해소 |
+| 2026-10-17 | 테스트 환경 — Vitest 유닛·컴포넌트 통합(`renderWithProviders`), 스토리 테스트, Playwright e2e·QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드, PR 게이트 밖), `qa-scenario` 스킬, agent-browser는 실제 환경 확인용(tech-decisions §10·§32) |
 | 2026-10-15 | GUI 화면 파일 반영 — 관객·호스팅 화면 목록(`gui-screens.md`), 호스팅 데스크탑 대시보드(사이드바 3단), GUI와 서버가 다른 것의 프론트 보정 목록 |
 | 2026-10-15 | 검토 3회차 반영 — 인증 상태 정리(세션 플래그를 로그인마다 새 값인 `dd:session` 하나로, 플래그 없으면 모든 401에 재발급 안 함, GM-1 결과 셋과 게이트 오류 화면, 낡은 액세스 쿠키로 재발급이 401일 때 한 번 더, 탭 사이 `storage` 감시, `SessionLostError`), HTML 502 처리, `handleCodes` 헬퍼, `<Prefetch infiniteQueries>` 제거, `?order=` 열기·닫기 모두 `replace`, 선물 때문에 막힌 취소 안내 조건 축소, 호스팅 센터 게이트, 스테이징 첫 배포를 P4b로, 완료 기준 보강(토스 실기기, 환불 계좌 입력, 승인 후 취소, 프로필 이미지 등) |
 | 2026-10-15 | 검토 2회차 반영 — 세션 상실 규칙(재발급 401·403만, 위치별 이동, `dd:hadSession` 플래그), `authApi` 401 가로채기 없음, 환경변수 검증 단순화, 에러 표 보강, 공연 등록 뒤 처리, 옵션 형식 읽기 전용, `?order=` 열기·닫기, Phase 선행·검증 소유 정리, `SameSite` 확인을 P4b 로컬 재현 + P15 리허설로 |

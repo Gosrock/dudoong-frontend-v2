@@ -18,19 +18,33 @@ dudoong-frontend-v2/
 ├─ .prettierrc / .prettierignore / .editorconfig
 ├─ .nvmrc
 ├─ .env.example
-├─ vitest.config.mts           # jsdom 기본, 서버 분기 테스트는 파일 머리 `// @vitest-environment node`. 경로 별칭은 Vite 내장 resolve.tsconfigPaths
+├─ vitest.config.mts           # 프로젝트 둘 — unit(jsdom 기본, 서버 분기 테스트는 파일 머리 `// @vitest-environment node`) · storybook(addon-vitest, Chromium). 경로 별칭은 Vite 내장 resolve.tsconfigPaths
+├─ vitest.setup.ts             # jest-dom, MSW server.listen(onUnhandledFrame: 'error'), 테스트마다 resetHandlers + cleanup
+├─ playwright.config.ts        # e2e 설정(baseConfig) — webServer: next build → standalone(3100), 뷰포트 mobile·desktop, workers 1
+├─ e2e/                        # Playwright e2e — PR 게이트 밖(tech-decisions §10)
+│  ├─ support/
+│  │  ├─ mock-backend.ts       # 가짜 nginx + 백엔드(4100). /api/* → MSW 핸들러(getResponse), 나머지 → Next. 서버 조회·브라우저 요청이 같은 핸들러
+│  │  ├─ fixtures.ts           # test.extend — mockApi(use/calls/unhandled), 핸들러 없는 /api 요청이면 실패
+│  │  └─ env.ts                # 포트, KAKAO_SCRAP_UA, 뷰포트
+│  └─ *.spec.ts                # 짧은 회귀 확인. 크롤러 계약(카카오 UA 상태 코드·OG)도 여기
+├─ qa/                         # QA 시나리오 — .claude/skills/qa-scenario
+│  ├─ scenario.ts              # DSL: scenario(id, title, meta, body) · scenario.manual · step · note · envelope
+│  ├─ reporter.ts              # 단계별 캡처 HTML 리포트 + results.json
+│  ├─ playwright.config.ts     # baseConfig를 이어받는다
+│  ├─ run.mjs                  # pnpm qa <feature>
+│  ├─ scenarios/<feature>.qa.ts
+│  └─ reports/                 # (커밋하지 않음) <feature>/<시각>/index.html, latest 링크
 ├─ .vscode/                    # settings.json(저장 시 Prettier·ESLint), extensions.json — 이 둘만 커밋
 ├─ CLAUDE.md                   # 규칙 요약 + .claude/docs 안내
+├─ .claude/skills/qa-scenario/ # QA 시나리오 스킬(SKILL.md)
 ├─ .husky/pre-commit           # lint-staged
 ├─ .storybook/                 # react-vite + vanilla-extract
 ├─ .github/
 │  ├─ pull_request_template.md
 │  └─ workflows/
-│     ├─ pr-gate.yml           # typecheck → lint → test
+│     ├─ pr-gate.yml           # typecheck → lint → test(Vitest unit) → build. Playwright는 넣지 않는다
 │     ├─ image.yml             # main 머지 → GHCR에 sha 태그 이미지
 │     └─ release.yml           # 버전 태그 → 같은 이미지에 태그 추가(재빌드 없음)
-├─ scripts/
-│  └─ check-crawler.mjs        # 실제 카카오 UA로 OG가 <head>에 있는지 확인
 ├─ public/                     # term.html · privacy.html (v1에서 이전)
 └─ src/
    ├─ app/
@@ -38,7 +52,8 @@ dudoong-frontend-v2/
    ├─ ui/
    ├─ api/
    ├─ utils/
-   └─ env/                     # client.ts — 빌드 때 검증하는 공개 값(카카오 키)
+   ├─ env/                     # client.ts — 빌드 때 검증하는 공개 값(카카오 키)
+   └─ test/                    # render.tsx — renderWithProviders(QueryClient·OverlayProvider·Suspense + user-event). *.test.* 파일만 import(eslint)
 ```
 
 ## `src/app/` — 라우트
@@ -242,3 +257,4 @@ app → features → ui → api → utils
 3. `src/api/server/`는 라우트 파일에서만 import한다(`'server-only'`). 여기서 `cookies()`를 읽지 않는다.
 4. `src/api`는 `features`·`ui`를 import하지 않는다(예외: `src/api/server/`의 `HydrationBoundary`·`notFound`). 위 계층이 필요한 것은 주입 지점(`setAuthHandlers`)으로 받는다. 앱 어디에서도 엔드포인트나 스키마를 따로 정의하지 않는다.
 5. `src/ui`는 `features`를 모른다.
+6. `src/test`는 테스트 헬퍼다. 어느 계층의 `*.test.*` 파일이든 import하고, 테스트가 아닌 파일은 import하지 않는다.

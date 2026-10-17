@@ -83,6 +83,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - 공개 env zod 검증(`env/client.ts`, 빌드 때). ky 인스턴스는 기준 주소 없이 만들고, `http.ts`가 요청마다 `prefix`를 넘긴다 — 서버(`typeof window === 'undefined'`)면 `process.env.API_INTERNAL_URL || 'http://localhost:8080/api/v2'`(`/api/v2`로 끝나야 한다), 브라우저면 `${location.origin}/api/v2`(`instrumentation.ts`·`env/server.ts`는 두지 않는다). 구조화 stdout 로그
 - ESLint(flat config) + Prettier + husky + lint-staged. 프로젝트 고유 규칙(계층, `ky` 직접 import 금지 등)은 [`tech-decisions.md`](./tech-decisions.md) §24
 - Vitest + Testing Library + MSW, Storybook
+- (2026-10-17 추가) 컴포넌트 통합 헬퍼 `renderWithProviders`, 스토리 테스트(`@storybook/addon-vitest`), Playwright e2e·QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드, `pnpm test:e2e`·`pnpm qa <feature>`, PR 게이트 밖)와 `qa-scenario` 스킬 — [`tech-decisions.md`](./tech-decisions.md) §10·§32
 - `CLAUDE.md`, `.env.example`, PR 템플릿, `public/term.html`·`privacy.html`(v1에서 이전)
 
 **산출물 B — 스파이크**: 설계의 전제는 2026-10-11~12에 돌려 확인했다([`tech-decisions.md`](./tech-decisions.md) §21·§22·§26). 다만 전체 구성(ky + vanilla-extract + `<Prefetch>`)은 Cache Components를 끈 상태로, 켠 상태는 축소 구성으로만 확인했다. P0에서 채운다.
@@ -126,6 +127,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [x] 커밋 시 스테이징된 파일에 lint·format이 적용됨
 - [x] 공개 env 누락 시 빌드 실패
 - [~] typecheck · lint · test CI 게이트 동작 — 로컬 통과, 워크플로 `pr-gate.yml`은 PR에서 첫 실행
+- [x] 빌드한 앱을 가짜 백엔드로 띄워 서버 조회·브라우저 요청을 모두 가짜 응답으로 바꾸는 e2e·QA 실행(`pnpm qa home` — tech-decisions §32)
 
 ### P1 — `src/ui` 기반: 토큰 · 프리미티브 · 반응형
 
@@ -261,7 +263,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P5b — 공연 상세 + 섹션 뷰어 + 공유
 
-**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(페이지에 `instant = false`, 서버 캐시 없음), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. 크롤러 계약 스크립트.
+**포함**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(페이지에 `instant = false`, 서버 캐시 없음), `generateMetadata`로 OG. 화면은 클라이언트 컴포넌트. **섹션 탭**(서버 섹션이 없으면 기본 4탭을 프론트가 그림), **섹션 뷰어**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared`), 해시태그, 호스트 연락처 시트, 카카오 공유. 크롤러 계약(Playwright e2e, 실제 카카오 UA — tech-decisions §10).
 
 **GUI**([`gui-screens.md`](./gui-screens.md)): 공연상세 `29:1017` — 포스터, 제목, 해시태그, 일시 "(180분)" 표시(시작·종료로 FE가 계산), 장소 행, 호스트 행, 티켓 카드, 섹션 탭 4개(공연소개 · 예매안내 · 세트리스트 · 유의사항), 하단 [문의 아이콘 버튼](호스트 연락처 시트로 본다 — 미확인) + [티켓 구매하기]. 카카오 공유 버튼은 GUI에 없지만 계획대로 둔다. 매진·판매 불가·지난 공연 상태 화면은 없다.
 
@@ -325,7 +327,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] 토스 앱이 깔린 실기기에서 송금 링크가 열리고 금액 = `totalAmount`, 은행명이 인식됨(값은 [`backend-questions.md`](./backend-questions.md) B3 결과에 따라 P12 은행 목록 값)
 - [ ] `Order_400_15`·`Ticket_Item_400_1`(재고)·`Ticket_Item_400_6`(1인 제한) 뒤 GP-5를 다시 읽어 수량 상한이 갱신됨
 - [ ] 에러 분기: patterns §화면별 에러 처리의 P7 행
-- [ ] agent-browser로 상세 → 선택 → 체크아웃 → 주문 생성까지 검증. 승인 → 티켓 발급까지의 전 구간은 P13a
+- [ ] QA 시나리오(`pnpm qa checkout`)로 상세 → 선택 → 체크아웃 → 주문 생성까지 화면 흐름과 P7 에러 분기 검증 + 스테이징에서 agent-browser로 실제 주문 생성 1회. 승인 → 티켓 발급까지의 전 구간은 P13a
 - [ ] 체크아웃·주문 완료에 예매번호·티켓번호가 나오지 않고, 결제정보에 은행명이 나옴
 
 ### P8 — 티켓탭 · 입장 QR
@@ -351,7 +353,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 **완료 기준**
 - [ ] `viewState` 7종 화면
-- [ ] 미가입 수신자가 링크 → 가입 → 수락까지 완주(agent-browser)
+- [ ] 미가입 수신자가 링크 → 가입 → 수락까지 완주(QA 시나리오로 화면 흐름, 카카오 가입 왕복은 스테이징에서 agent-browser)
 - [ ] `Gift_400_3`(이미 처리됨) 시 랜딩을 다시 읽어 상태 화면으로
 - [ ] [선물하기]·[선물 반환]이 `canGift`·`canReturn`과 일치
 - [ ] 선물을 보낸 본인이 랜딩을 열어도 수락 버튼이 눌리는 순간이 없음
@@ -507,7 +509,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] 주문 상세를 닫은 뒤 뒤로가기가 헛돌지 않음(열기·닫기 모두 `replace`)
 - [ ] 승인·거절 뒤 상태 탭 `counts`가 갱신됨
 - [ ] 환불 요청 → [환불 완료] → 관객 주문상세의 환불 완료까지 이어짐
-- [ ] **agent-browser로 크리티컬 패스 전 구간 검증**: 상세 → 선택 → 체크아웃 → 주문 → 호스트 승인 → 티켓탭에 발급
+- [ ] **크리티컬 패스 전 구간 검증**: 상세 → 선택 → 체크아웃 → 주문 → 호스트 승인 → 티켓탭에 발급 — QA 시나리오(가짜 백엔드)로 화면 흐름, 스테이징에서 agent-browser로 실제 왕복 1회
 - [ ] 에러 분기: patterns §화면별 에러 처리의 P13a 행
 - [ ] 엑셀 다운로드(래퍼 없는 xlsx) 동작, 1만 행 초과 안내
 - [ ] 발급 티켓에 `ownerName`·`giftState` 표시
@@ -529,7 +531,7 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 ### P14 — 통합 하드닝
 
-**포함**: 성능(LCP/TTFB/번들, 티켓 오픈 시 공연 상세의 백엔드 부하 — 캐시가 필요한지 여기서 판단), 보안(오픈 리다이렉트, 토큰 취급, 로그 PII, 선물 토큰·QR 유출 경로), 접근성, 회귀(공유 지점(S1~S8) 통합 시나리오), 부하(티켓 오픈 순간), 레거시 URL.
+**포함**: 성능(LCP/TTFB/번들, 티켓 오픈 시 공연 상세의 백엔드 부하 — 캐시가 필요한지 여기서 판단), 보안(오픈 리다이렉트, 토큰 취급, 로그 PII, 선물 토큰·QR 유출 경로), 접근성, 회귀(공유 지점(S1~S8) 통합 시나리오 — `pnpm qa` 전체, Playwright를 PR 게이트에 넣을지 재검토), 부하(티켓 오픈 순간), 레거시 URL.
 
 **선행**: 전 기능 Phase
 

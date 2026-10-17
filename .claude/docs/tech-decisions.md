@@ -77,7 +77,7 @@ Cache Components는 Next 16의 기본 캐시·프리렌더 모델이다. 끄고 
 
 그리고 조용히 깨지는 것이 하나 있다. **서버 조회 라우트 위에 `<Suspense>`나 `loading.tsx`가 있으면 스트림이 먼저 시작돼 없는 공연이 404가 아니라 200으로 나간다**(Next 문서 `loading` #status-codes). 그래서 라우트 그룹을 나눈다(§3): 서버 조회 화면은 Suspense가 없는 그룹에, 클라이언트 화면은 Suspense가 있는 그룹에 둔다.
 
-이 규칙의 근거는 끈 구성(§22)에서 확인한 것이다. 켠 구성에서는 Suspense가 없어도 브라우저 UA가 200이었으므로(§26) 이 규칙이 지키는 것은 크롤러 404다. **P0에서 {Suspense 유/무} × {카카오 UA/브라우저 UA} × {없는 공연/백엔드 5xx} 표를 채운다.** 크롤러가 Suspense와 무관하게 404라면 `(public)`/`(app)` 분리와 `loading.tsx` 금지를 없앨 수 있다. 5xx일 때 크롤러에 200 + 에러 화면이 나가면 카카오가 잘못된 미리보기를 캐시하므로 크롤러 계약 스크립트의 검사 항목에 넣는다.
+이 규칙의 근거는 끈 구성(§22)에서 확인한 것이다. 켠 구성에서는 Suspense가 없어도 브라우저 UA가 200이었으므로(§26) 이 규칙이 지키는 것은 크롤러 404다. **P0에서 {Suspense 유/무} × {카카오 UA/브라우저 UA} × {없는 공연/백엔드 5xx} 표를 채운다.** 크롤러가 Suspense와 무관하게 404라면 `(public)`/`(app)` 분리와 `loading.tsx` 금지를 없앨 수 있다. 5xx일 때 크롤러에 200 + 에러 화면이 나가면 카카오가 잘못된 미리보기를 캐시하므로 크롤러 계약(Playwright e2e, §10)의 검사 항목에 넣는다.
 
 두 구성을 모두 돌려 봤다(§21·§22·§26).
 
@@ -468,14 +468,30 @@ TS 5.x, `strict`, `noUncheckedIndexedAccess`, `moduleResolution: "bundler"`. ali
 
 ## 10. 테스트
 
-Vitest(단위) + Storybook(UI 스모크) + agent-browser(인터랙티브 검증). CI 자동 E2E 스위트는 두지 않는다.
+2026-10-17 개정(브랜치 `feat/testing-setup`). 세 층으로 나누고, **PR 게이트에는 Vitest만 넣는다.** Playwright(e2e·QA 시나리오)는 로컬 명령과 `qa-scenario` 스킬로만 돈다(사용자 결정).
 
-- **CI 게이트**: typecheck + lint + Vitest.
-- **Vitest 대상**: zod 스키마(실제 응답 샘플 파싱), 금액 계산, 응답 래퍼·에러 변환, 날짜 변환, 권한 판정(`can(role, action)`), 상태 → 표시 매핑.
-- **크롤러 계약 스크립트**: 빌드된 앱에 **실제 카카오 UA**로 요청을 보내 OG가 `<head>`에 있고 없는 공연이 404인지 확인한다. 공연 상세와 선물 랜딩. Next 버전을 올릴 때마다 돌린다.
-- **agent-browser**: 주문 크리티컬 패스(상세 → 선택 → 체크아웃 → 주문 → 호스트 승인 → 티켓), 선물 수락, QR 체크인. 이 경로를 건드리는 PR은 리뷰 체크리스트로 확인한다.
+| 층 | 대상 | 도구 | 명령 | 게이트 |
+|---|---|---|---|---|
+| 유닛 | 순수 함수, zod 스키마, 응답 래퍼·에러 변환, 훅 | Vitest(jsdom, 서버 분기는 `// @vitest-environment node`) | `pnpm test` | O |
+| 컴포넌트 통합 | 컴포넌트 + 쿼리 + 가짜 API | Vitest + Testing Library(+ user-event, jest-dom) + MSW. `renderWithProviders`(`src/test/render.tsx`) | `pnpm test` | O |
+| 스토리 | 스토리마다 렌더 스모크 + `play` 함수 | `@storybook/addon-vitest`(Vitest 브라우저 모드, Chromium) | `pnpm test:stories` | X |
+| 앱 화면 e2e | 빌드한 standalone 앱의 화면 흐름, 상태 코드, 서버/브라우저 조회 위치 | `@playwright/test` + 가짜 백엔드 | `pnpm test:e2e` | X |
+| QA 시나리오 | 피처별 시나리오(정상·빈 상태·에러·권한·모바일/데스크탑) → 단계별 캡처 HTML 리포트 | 위와 같은 엔진 + `qa/` DSL·리포터 | `pnpm qa <feature>` | X |
+| 실제 환경 | 가짜로 대신할 수 없는 것 — 스테이징의 카카오 로그인 왕복·쿠키, 실기기 | agent-browser(선택), 사람 | — | X |
 
-**포기한 것**: 금전 경로의 자동 회귀 방지. 사람이나 에이전트가 다시 확인해야 발견된다.
+- **Vitest 대상**: zod 스키마(실제 응답 샘플 파싱), 금액 계산, 응답 래퍼·에러 변환, 날짜 변환, 권한 판정(`can(role, action)`), 상태 → 표시 매핑, 그리고 컴포넌트의 분기(빈 목록, 모르는 enum, 에러 코드별 문구). 컴포넌트 테스트는 `renderWithProviders(<Foo />)` — 테스트마다 새 `QueryClient`(재시도 끔) + `OverlayProvider` + `Suspense`, `user`(user-event)를 같이 돌려준다. 응답은 `server.use(http.get(...))`로 바꾼다. `src/test/`는 `*.test.*` 파일만 import한다(eslint).
+- **가짜 백엔드(e2e·QA)**: `e2e/support/mock-backend.ts`가 Playwright 워커 안에서 "nginx + 백엔드"로 뜬다(앞문 4100). `/api/*`는 MSW 핸들러(`src/api/__mocks__/handlers.ts` 기본값 + 테스트별 `mockApi.use()`)를 `msw`의 `getResponse()`로 직접 돌려 응답하고, 나머지는 Next standalone(3100)으로 넘긴다. Next의 `API_INTERNAL_URL`도 4100을 향해 **서버 조회와 브라우저 요청이 같은 핸들러를 탄다.** 운영 nginx와 같은 경로 구성이라 브라우저의 같은 출처 `/api/v2`도 그대로 동작한다. 받은 요청은 `mockApi.calls()`로 보이고 `from: 'server' | 'browser'`로 나뉜다(Node fetch는 UA가 `node`, 브라우저는 `Mozilla/…`. `sec-fetch-mode`는 undici도 붙여서 쓸 수 없다). 핸들러가 없는 `/api` 요청이 있으면 테스트가 실패한다.
+  - **이유**: 서버 조회는 Next 프로세스 안에서 일어나 `page.route()`로 막을 수 없다. 가짜 응답을 테스트 코드(함수)로 바로 넘기려면 가짜 백엔드가 테스트와 같은 프로세스에 있어야 한다. 운영과 같은 standalone 산출물을 띄운다.
+  - **대가**: 포트 하나를 테스트가 바꿔 쓰므로 **워커 1개**(직렬). 지금 규모(시나리오 수십 개, 하나에 0.2초 안팎)에서는 문제없다. 느려지면 워커마다 앱+백엔드 쌍을 띄우는 방식으로 바꾼다.
+  - **검토하고 쓰지 않은 것**: Next의 `experimental.testProxy`(`next/experimental/testmode/playwright`) — 서버 fetch를 테스트별로 가로채 병렬이 되지만 실험 기능이고(설치된 문서 `node_modules/next/dist/docs`에 없다) `next.config`에 `experimental.testProxy`를 켜야 한다. 운영 빌드 설정을 테스트 때문에 바꾸지 않는다. standalone `server.js`에서 동작하는지는 미확인. `@mswjs/http-middleware`(express) — `getResponse()`로 충분해 의존성을 늘리지 않았다.
+- **e2e와 QA의 차이**: 엔진·가짜 백엔드·뷰포트(mobile 390×844, desktop 1280×800)는 같다(`playwright.config.ts`의 `baseConfig`를 `qa/playwright.config.ts`가 이어받는다). e2e(`e2e/*.spec.ts`)는 짧은 회귀 확인, QA(`qa/scenarios/<feature>.qa.ts`)는 근거 문서가 달린 시나리오 + 단계별 캡처 + 사람이 읽는 리포트(`qa/reports/<feature>/<시각>/index.html`, `results.json`, Playwright 리포트·trace). 리포트는 커밋하지 않는다. 쓰는 법은 `.claude/skills/qa-scenario/SKILL.md`.
+- **크롤러 계약**: 계획했던 `scripts/check-crawler.mjs` 대신 Playwright e2e에서 **실제 카카오 UA**(`KAKAO_SCRAP_UA`, §2)로 빌드된 앱에 요청한다. 가짜 백엔드로 404·5xx를 마음대로 만들 수 있어 별도 스크립트보다 넓게 본다. 지금은 공연홈 5xx → 500(`e2e/home.spec.ts`, QA `HOME-3`). 공연 상세·선물 랜딩의 OG `<head>`·404는 P5b·P8b에서 추가하고, Next 버전을 올릴 때마다 `pnpm test:e2e`를 돌린다.
+- **agent-browser의 역할**: Playwright를 대신하지 않는다. (1) 시나리오를 쓰기 전에 새 화면을 직접 눌러 보며 셀렉터(접근성 트리)·흐름을 확인할 때, (2) 가짜로 대신할 수 없는 실제 환경(스테이징의 카카오 로그인 왕복, `SameSite` 쿠키)을 볼 때만 쓴다. 결과는 QA 시나리오의 `scenario.manual()`과 PR 설명에 남긴다. 필수 도구가 아니다(설치: `npm i -g agent-browser && agent-browser install`, 이 머신은 0.27.0).
+- **금전 경로**: 주문 크리티컬 패스(상세 → 선택 → 체크아웃 → 주문 → 호스트 승인 → 티켓), 선물 수락, QR 체크인은 QA 시나리오로 화면 흐름과 에러 분기를 고정하고, 실제 백엔드 왕복은 스테이징에서 agent-browser로 한 번 본다. 이 경로를 건드리는 PR은 리뷰 체크리스트(`pnpm qa` 리포트)로 확인한다.
+
+**포기한 것**: 금전 경로의 **CI** 자동 회귀 방지. 로컬 `pnpm qa`로 재현할 수 있지만 PR마다 강제되지 않는다 — 게이트에 넣으면 Chromium 설치·빌드 두 번으로 PR 게이트가 길어지고, 시나리오가 화면 변경마다 깨지는 비용을 Phase 진행 중에 매번 치르게 된다. 화면이 안정되는 P14에서 다시 본다.
+
+**미확인**: Playwright UI 모드(`pnpm qa <feature> --ui`)에서 QA 리포터가 함께 도는지(대화형이라 이 세션에서 돌려 보지 않았다). `isMobile` 에뮬레이션은 Chromium에서만 돈다 — WebKit(iOS Safari) 프로젝트는 넣지 않았다.
 
 ## 11. CI/CD
 
@@ -929,12 +945,19 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 
 ### 테스트와 스토리
 
+2026-10-17 npm 실측(설치한 정확한 버전). 구성은 §10.
+
 | 도구 | 버전 | 용도 |
 |---|---|---|
-| Vitest | 5.0 | 단위 테스트 |
-| `@testing-library/react` | 16.3 | 컴포넌트 테스트 |
-| MSW | 3.0 | 백엔드 mock(브라우저 + 테스트) |
-| Storybook | 10.6 | `@storybook/react-vite` + `@vanilla-extract/vite-plugin`(§22에서 빌드 확인) |
+| Vitest | 5.0.5 | 유닛·컴포넌트 통합(`unit` 프로젝트), 스토리 테스트(`storybook` 프로젝트) |
+| `@testing-library/react` | 16.3.3 | 컴포넌트 렌더(`renderWithProviders`) |
+| `@testing-library/user-event` | 14.6.8 | 사용자 입력 |
+| `@testing-library/jest-dom` | 7.0.1 | DOM 단언(`toBeInTheDocument` 등, `vitest.setup.ts`에서 `/vitest` 진입점) |
+| MSW | 3.0.3 | 백엔드 mock — Vitest(`msw/node`)와 e2e·QA 가짜 백엔드(`getResponse()`)가 같은 핸들러를 쓴다 |
+| Storybook | 10.6.2 | `@storybook/react-vite` + `@vanilla-extract/vite-plugin`(§22에서 빌드 확인) |
+| `@storybook/addon-vitest` | 10.6.2 | 스토리를 Vitest 테스트로. `@vitest/browser`·`@vitest/browser-playwright` 5.0.5, `playwright` 1.64.1 |
+| `@playwright/test` | 1.64.1 | e2e·QA 시나리오. 브라우저는 Chromium(headless shell 156)만 받는다 — `pnpm exec playwright install chromium` |
+| agent-browser | 0.27.0(이 머신, 전역 설치) | 선택 도구. 저장소 의존성에 넣지 않는다 |
 
 ### 스크립트
 
@@ -942,22 +965,29 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 {
   "dev": "next dev",
   "build": "next build",
-  "start": "node .next/standalone/server.js",
+  "start": "cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/ && node .next/standalone/server.js",
   "lint": "eslint .",
   "format": "prettier --write .",
   "typecheck": "next typegen && tsc --noEmit",
-  "test": "vitest run",
+  "test": "vitest run --project unit",
+  "test:stories": "vitest run --project storybook",
+  "test:e2e": "playwright test",
+  "qa": "node qa/run.mjs",
   "storybook": "storybook dev -p 6006",
-  "build-storybook": "storybook build",
-  "check:crawler": "node scripts/check-crawler.mjs"
+  "build-storybook": "storybook build"
 }
 ```
+
+- `test:e2e`·`qa`는 `next build` 뒤 standalone 서버(3100)를 띄운다(`playwright.config.ts`의 `webServer`). 방금 빌드했으면 `E2E_SKIP_BUILD=1`. 빌드할 때 `NEXT_PUBLIC_KAKAO_JS_KEY`가 없으면 `e2e-placeholder`를 넣는다 — 그 빌드의 `.next`를 그대로 배포하지 않는다.
+- `qa`는 `pnpm qa <feature> [--open] [playwright 인자]`. 리포트는 `qa/reports/<feature>/<시각>/`, `latest` 링크.
+- `test:stories`는 첫 실행에서 Vite가 의존성을 다시 최적화하며 실패했다. `.css.ts`가 런타임으로 부르는 `@vanilla-extract/recipes/createRuntimeFn`·`sprinkles/createRuntimeSprinkles`를 `optimizeDeps.include`에 넣어 캐시 없이도 통과한다.
+- 계획했던 `check:crawler`(`scripts/check-crawler.mjs`)는 만들지 않는다 — Playwright e2e가 맡는다(§10).
 
 `typecheck`는 `next typegen`을 먼저 돌린다. 라우트 타입(`PageProps` 등)이 생성돼 있어야 `tsc`가 통과한다.
 
 ### CI
 
-PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`. `build`는 배포 워크플로에서 Docker 이미지로 한다.
+PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`(Vitest `unit`) → `build`(§31 3회차에서 추가). `test:stories`·`test:e2e`·`qa`는 넣지 않는다(§10, 사용자 결정).
 
 ### 그 밖에 P0에서 만드는 것
 
@@ -966,7 +996,7 @@ PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint
 | `CLAUDE.md` | 이 저장소의 규칙 요약(계층, `api` 객체, 스타일 세 층, 서버 컴포넌트 범위)과 `.claude/docs` 안내. 에이전트가 매번 문서 전체를 읽지 않게 한다 |
 | `.env.example` | 필요한 환경변수 목록 |
 | `.editorconfig`, `.prettierignore`, `.gitignore` | |
-| `.github/pull_request_template.md` | 체크리스트 — 금전 경로(주문·선물·체크인) 변경 시 agent-browser 확인 여부, `src/ui` 공개 API에 vanilla-extract 타입 노출 여부 |
+| `.github/pull_request_template.md` | 체크리스트 — 금전 경로(주문·선물·체크인) 변경 시 `pnpm qa` 리포트 확인 여부, `src/ui` 공개 API에 vanilla-extract 타입 노출 여부 |
 | `public/term.html`, `public/privacy.html` | v1에서 옮겨 온다(§22) |
 
 **넣지 않기로 한 것**: Turborepo, 원격 캐시, 번들 분석 상시 실행, 커버리지 기준. 필요해지면 추가한다.
@@ -1235,7 +1265,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 - mock은 `src/api/__mocks__/`(directory-structure대로). `vitest.config.mts`(ESM 설정).
 - Dockerfile은 deploy-plan §3 원본에 `pnpm install --ignore-scripts`(빌드 스크립트 없이 설치해도 standalone에 sharp가 들어가는 것을 확인), `HEALTHCHECK`(`/healthz`), runner의 `NEXT_TELEMETRY_DISABLED`를 더했다. `HOSTNAME=127.0.0.1`이라 로컬에서 `docker run -p 3000:3000`으로는 접속되지 않는다 — 확인할 때는 `--network host` 또는 `-e HOSTNAME=0.0.0.0`.
 - `release.yml`(버전 태그 재사용, deploy-plan D3)을 P0에 미리 넣었다. 태그는 그 커밋의 Image 워크플로가 끝난 뒤 푸시한다. `pr-gate.yml`은 `main` 푸시에서도 돈다.
-- `check:crawler` 스크립트는 P5b에서 만든다.
+- `check:crawler` 스크립트는 P5b에서 만든다. (2026-10-17: 스크립트 대신 Playwright e2e가 맡기로 바꿨다 — §10)
 - `poweredByHeader: false`, `/meta/term`·`/meta/privacy` → `public/*.html` rewrite(운영 포함). `/admin/*` 리다이렉트는 경로별 표(§22)대로 P10a에서 넣는다.
 
 ### 1회차 검증 뒤 고친 것
@@ -1295,6 +1325,24 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 
 **P0에서 하지 않은 것(추가)**: deploy-plan D1의 GHCR 패키지 공개 설정·조직 허용 확인(§9 #7), 카카오 JS 키가 환경별로 같은지(§9 #6), 이미지 크기(standalone 41~43MB만 쟀다), `global-error.tsx`(P5a).
 
+## 32. 테스트 환경 세팅 (2026-10-17)
+
+브랜치 `feat/testing-setup`. 구성과 이유는 §10, 버전·스크립트는 §24.
+
+| 확인 | 결과 |
+|---|---|
+| `pnpm test`(Vitest `unit`) | 4파일 18건 통과 — 기존 15건 + `TagList` 컴포넌트 통합 3건(정상, 모르는 카테고리 → 기타, 빈 배열) |
+| `pnpm test:stories` | 스토리 19개 통과, 약 2초. 캐시를 지운 첫 실행도 통과(`optimizeDeps.include`, §24) |
+| `pnpm test:e2e` | 빌드 포함 4건(2 × 뷰포트) 통과 — 서버가 GE-11을 한 번 조회하고 브라우저는 다시 부르지 않음, 백엔드 500에 카카오 UA 500 |
+| `pnpm qa home` | 자동 3개 × 2뷰포트 통과 + 수동 1개. 실패 시나리오(일부러 만든 것)에서 실패 단계 캡처·에러·Playwright 실패 화면이 리포트에 들어가는 것 확인 |
+| 백엔드 500일 때 브라우저 화면 | 200 + Next 기본 에러 화면("This page couldn’t load", `error.tsx`는 P5a). P0 상태 코드 표(§31)와 같다 |
+
+- 서버발 요청 구분: Node fetch(undici)가 `sec-fetch-mode: cors`를 붙여 이 헤더로는 브라우저와 구분되지 않았다(첫 시도에서 서버 조회가 `browser`로 잡힘). UA로 가른다.
+- eslint: `src/test/`를 계층 요소 `test-support`로 등록하고, `*.test.*` 밖에서 `@/test/*` import를 막았다. `e2e/`·`qa/`는 `src` 밖이라 계층 규칙 대상이 아니다(나머지 규칙·Prettier·tsc는 적용).
+- `.gitignore`: `/test-results/`, `/playwright-report/`, `/qa/reports/`. `.dockerignore`에 `e2e`·`qa`·`playwright.config.ts`.
+
+**남은 것**: 로그인 상태 픽스처(P4a·P4b 이후), 크롤러 계약의 OG `<head>`·404(P5b·P8b), Playwright를 게이트에 넣을지 P14에서 재검토.
+
 ## 핵심 결정 요약
 
 | 항목 | 결정 | 한 줄 근거 |
@@ -1308,7 +1356,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 | 6. 스타일 | vanilla-extract(+ recipes, sprinkles) | 제로 런타임, 서버 컴포넌트 동작, 토큰 타입 검사, emotion과 가까운 작성 방식 |
 | 7. 폼 | react-hook-form + zod | |
 | 8. 계층 | `app → features → ui → api → utils`, eslint 강제 | 패키지 경계를 폴더 경계로 대체 |
-| 10. 테스트 | Vitest + Storybook + agent-browser + 크롤러 계약 스크립트 | CI E2E 없음 |
+| 10. 테스트 | 게이트: Vitest(유닛 + 컴포넌트 통합, MSW). 게이트 밖: 스토리 테스트, Playwright e2e·QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드), agent-browser는 실제 환경 확인용 | 서버 조회까지 가짜로 막으려면 앞문 프록시가 필요하다. Playwright는 PR 게이트에 넣지 않는다(사용자 결정) |
 | 11. 배포 | Dockerfile 하나, standalone. 서버 1대의 docker-compose에 v1 front·admin 대신 들어간다 | API는 같은 출처(`/api`) |
 | 13. 에러 | 외부 수집 없음, 구조화 로그. 토스트는 배경 재조회 실패·처리 안 한 변경 실패만(`handleCodes`), `SessionLostError`는 무시 | 에러 화면과 토스트가 겹치지 않게 |
 | 14. 반응형 | sprinkles 조건부 값, 같은 DOM 원칙 | |
