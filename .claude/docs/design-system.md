@@ -342,6 +342,25 @@ GUI 화면 파일에서 본 것(2026-10-15):
 - **shadcn 참고**: 같은 동작의 shadcn 소스에서 Radix 조합과 접근성 속성을 참고하고, Tailwind 클래스는 가져오지 않는다.
 - **Storybook**: 각 컴포넌트의 Figma 변형 전부를 스토리로 둔다. 디자이너가 Figma와 나란히 비교할 수 있게 한다.
 
+### 4-1. 에셋 관리
+
+종류마다 출처와 바뀌는 빈도가 달라서 위치와 쓰는 방식을 나눈다.
+
+| 종류 | 출처 | 위치 | 쓰는 방식 | Phase |
+|---|---|---|---|---|
+| 아이콘(`ic` 44종, 변형 58개) | Figma Icons 페이지 | `src/ui/icons/svg/` → `registry.ts`(생성) | `<Icon />` 인라인 SVG, `currentColor` | P1 완료 |
+| 일러스트(빈 화면 6종, 로그인, 포스터 준비중, `illust_dashboard`) | Figma image 페이지(벡터) | `src/ui/illustrations/*.svg` | 정적 import → `next/image`(`unoptimized` — SVG는 변환하지 않는다). 빌드 해시로 장기 캐시 | P2 |
+| 아바타 캐릭터(4색) | Figma Avatar | `src/ui/illustrations/avatar-*.svg` | Avatar 컴포넌트가 색으로 고른다 | P2 |
+| 로고(관객·호스팅) | GUI `logo` 페이지 | `src/ui/brand/` | 작은 컴포넌트(인라인 SVG — 헤더 색 대응) | P2 |
+| 폰트 | npm `pretendard`, Google Fonts(Saira Condensed) | 저장소에 파일 없음 | 루트 레이아웃에서 적재. Kartrider는 라이선스 확인 뒤 `next/font/local` | P1 완료 |
+| 사용자 업로드(포스터·프로필·호스트 이미지) | 백엔드 S3(presigned 업로드) | 저장소 밖 | `next/image` + `images.remotePatterns`에 업로드 도메인 | P5a |
+| 고정 주소가 필요한 파일 | — | `src/app/`(favicon, robots, 기본 OG 이미지), `public/`(약관 HTML) | 파일 규칙 그대로 | P0 완료 · P5b(OG) |
+
+- **아이콘과 일러스트를 나누는 이유**: 아이콘은 작고 한 화면에 많으며 상태에 따라 색이 바뀐다 → 인라인 + `currentColor`. 일러스트는 크고 여러 색이며 색이 바뀌지 않는다 → 인라인으로 넣으면 JS 번들만 커지므로 정적 파일.
+- **Figma가 바뀌면**: 아이콘은 `src/ui/icons/README.md` 절차(내보내기 → `node src/ui/icons/generate.mjs`). 일러스트·로고는 해당 SVG만 다시 내보내 교체한다. 원본 SVG를 저장소에 두므로 무엇이 바뀌었는지 git diff로 보인다.
+- **SVG 정리**: 내보낸 SVG의 `id`가 페이지 안에서 겹치지 않게 파일 이름 접두사를 붙인다(그라데이션·clipPath). 일러스트는 `<img>`로 그리므로 겹쳐도 무해하고, 인라인으로 그리는 아이콘·로고만 해당한다.
+- **라이선스**: 외부에서 온 에셋은 루트 `THIRD_PARTY_NOTICES.md`에 고지한다.
+
 ---
 
 ## 5. 디자이너에게 전할 정리 요청

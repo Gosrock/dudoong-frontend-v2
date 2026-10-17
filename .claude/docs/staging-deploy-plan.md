@@ -102,7 +102,11 @@ on:
    - `GIT_SHA`에 태그를 넣어 `deploymentId`가 바뀌게 한다 — 배포 전에 열린 탭이 새 버전으로 하드 이동한다.
 4. **빌드**(`--remote`): `git push -u origin HEAD` → `gh workflow run image.yml --ref <브랜치>` → `gh run watch`. 태그는 `sha-<짧은 sha>`. 커밋 안 한 변경이 있으면 멈추고 알린다.
 5. **배포 실행**: `gh workflow run staging-deploy.yml -R Gosrock/DuDoong-Deploy -f front_tag=<태그>`. 방금 만든 실행을 `gh run list --workflow staging-deploy.yml -R … --limit 1`로 찾아 `gh run watch`.
-6. **결과**: 성공이면 스테이징 주소와 태그를 출력한다. 스테이징이 꺼져 있어 건너뛰었으면 `--start`를 안내한다.
+6. **배포 후 확인(크롤러 응답)**: 실제 nginx·백엔드를 거친 응답을 본다. 가짜 백엔드 위의 Playwright e2e(tech-decisions §10)가 대신할 수 없는 부분이다. 별도 스크립트를 두지 않고 이 단계에 넣는다.
+   - `curl -s -o /dev/null -w '%{http_code}' -A 'facebookexternalhit/1.1; kakaotalk-scrap/1.0' <스테이징>/` → 200
+   - 공연 상세가 생긴 뒤(P5b): 있는 공연 200, 없는 공연 404, 그리고 `og:title`이 HTML에 들어 있는지(`curl … | grep og:title`)
+   - 실패하면 배포는 그대로 두고 결과만 경고로 출력한다(되돌리기는 `--tag main`).
+7. **결과**: 성공이면 스테이징 주소와 태그를 출력한다. 스테이징이 꺼져 있어 건너뛰었으면 `--start`를 안내한다.
 
 ---
 

@@ -981,13 +981,13 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 - `test:e2e`·`qa`는 `next build` 뒤 standalone 서버(3100)를 띄운다(`playwright.config.ts`의 `webServer`). 방금 빌드했으면 `E2E_SKIP_BUILD=1`. 빌드할 때 `NEXT_PUBLIC_KAKAO_JS_KEY`가 없으면 `e2e-placeholder`를 넣는다 — 그 빌드의 `.next`를 그대로 배포하지 않는다.
 - `qa`는 `pnpm qa <feature> [--open] [playwright 인자]`. 리포트는 `qa/reports/<feature>/<시각>/`, `latest` 링크.
 - `test:stories`는 첫 실행에서 Vite가 의존성을 다시 최적화하며 실패했다. `.css.ts`가 런타임으로 부르는 `@vanilla-extract/recipes/createRuntimeFn`·`sprinkles/createRuntimeSprinkles`를 `optimizeDeps.include`에 넣어 캐시 없이도 통과한다.
-- 계획했던 `check:crawler`(`scripts/check-crawler.mjs`)는 만들지 않는다 — Playwright e2e가 맡는다(§10).
+- 계획했던 `check:crawler`(`scripts/check-crawler.mjs`)는 만들지 않는다 — 가짜 백엔드 위의 크롤러 응답은 Playwright e2e가 맡는다(§10). 실제 nginx·백엔드를 거친 응답은 스테이징 배포 후 확인 단계에서 curl로 본다([`staging-deploy-plan.md`](./staging-deploy-plan.md) §2-2 6단계).
 
 `typecheck`는 `next typegen`을 먼저 돌린다. 라우트 타입(`PageProps` 등)이 생성돼 있어야 `tsc`가 통과한다.
 
 ### CI
 
-PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`(Vitest `unit`) → `build`(§31 3회차에서 추가). `test:stories`·`test:e2e`·`qa`는 넣지 않는다(§10, 사용자 결정).
+PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`(Vitest `unit`) → `build`(§31 3회차에서 추가). `test:e2e`·`qa`는 넣지 않는다(§10, 사용자 결정). `test:stories`도 지금은 넣지 않는다 — 스토리가 렌더링 확인뿐이라 CI Chromium 설치 비용에 비해 얻는 게 적다. P2에서 Radix 컴포넌트에 키보드·포커스 `play` 검사가 붙으면 다시 본다(plan P2 완료 기준).
 
 ### 그 밖에 P0에서 만드는 것
 

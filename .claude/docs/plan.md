@@ -158,6 +158,8 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 - [ ] Radix 기반 컴포넌트의 키보드 조작(방향키·스페이스·Esc)과 스크린리더 이름 확인
 - [ ] 바텀시트·모달 iOS Safari 스크롤 락·키보드 회피 스모크
 - [ ] RHF `register` 직결 / `Controller` 필요 컴포넌트 표 확정
+- [ ] 일러스트·아바타·로고를 design-system §4-1 위치·방식으로 추가
+- [ ] 결정: `pnpm test:stories`를 PR 게이트에 넣을지. P1 시점(스토리 19개, 렌더링 확인뿐)에는 CI Chromium 설치 비용(PR마다 1분 안팎)에 비해 얻는 게 적어 뺐다. P2에서 Radix 컴포넌트 스토리에 키보드·포커스 `play` 검사가 붙으면 넣는 쪽으로 다시 본다(tech-decisions §10)
 - [ ] 결정: 모바일에서 바텀시트가 열린 채 뒤로가기를 누르면 시트만 닫을지(히스토리 항목 추가) 화면을 떠날지. "닫는다"로 정하면 시트와 `?order=` 오버레이를 함께 `window.history.pushState({...history.state, ddOverlay: 1}, '', url)` 방식으로 바꾼다(`router.push`로는 history state 표시를 남길 수 없다)
 
 ### P3 — `src/api` 코어 + v2 계약 이식 + mock
