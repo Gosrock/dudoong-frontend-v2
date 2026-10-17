@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest';
+
 import { ApiError } from './errors';
 import { getQueryClient } from './query-client';
 

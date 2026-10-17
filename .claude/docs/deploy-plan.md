@@ -158,6 +158,8 @@ Deploy 저장소 PR은 손으로 올린다. 프론트 저장소에서 자동으�
 
 `/healthz`는 `app/healthz/route.ts`에 두고 백엔드를 부르지 않는다(프로세스가 요청을 받는지만 본다). nginx가 `/api`를 백엔드로 보내므로 `/api` 아래에는 둘 수 없다.
 
+> 스테이징만 따로, 로컬에서 바로 배포하는 경로(Deploy 저장소 `staging-deploy.yml`에 수동 실행과 이미지 태그 입력 추가, `pnpm deploy:staging`)는 [`staging-deploy-plan.md`](./staging-deploy-plan.md)에 계획했다. 위 표의 1·2번이 그 계획의 일부다.
+
 ## 7. 지금 하지 않는 것
 
 | 항목 | 이유 | 필요해지면 |

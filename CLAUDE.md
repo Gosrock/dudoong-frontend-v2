@@ -1,7 +1,9 @@
 # DuDoong Frontend v2
 
+@AGENTS.md
+
 설계 문서는 `.claude/docs/`에 있다. 작업 전에 `README.md`(문서 지도)를 먼저 읽는다.
-Next.js 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확인한다 — `AGENTS.md` 참고.
+Next.js 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확인한다(위 `AGENTS.md`).
 
 ## 규칙 요약
 

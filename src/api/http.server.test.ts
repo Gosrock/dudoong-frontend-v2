@@ -4,11 +4,13 @@ import http_ from 'node:http';
 import type { AddressInfo } from 'node:net';
 
 import { http, HttpResponse } from 'msw';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { server } from './__mocks__/server';
 import { ApiError } from './errors';
-import { api, authApi, routePattern } from './http';
+import { api, authApi } from './http';
+import { routePattern } from './shared/route-pattern';
 
 const Echo = z.object({ value: z.number() });
 const ok = (value: number) =>

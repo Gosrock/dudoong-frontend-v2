@@ -1291,6 +1291,8 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 
 테스트 15건. 3회차까지 P0 코드에서 고친 것은 버그 19건(1회차 7, 2회차 6, 3회차 6)이다.
 
+**보일러플레이트 정리(2026-10-17)**: 요청 파이프라인(기준 주소·ky 호출·본문 읽기·에러 변환·래퍼 해제)을 `src/api/client.ts`로 모으고 `http.ts`는 `api`·`authApi` 객체만 남겼다 — P4a의 401 재발급이 `client.ts`의 `request()`에 붙는다. `routePattern`은 `src/api/shared/route-pattern.ts`. 테스트는 대상 이름(`http.test.ts`, `http.server.test.ts`)으로, vitest 전역 타입을 빼고 각 테스트가 `vitest`에서 import한다. `vite-tsconfig-paths` 대신 Vite 내장 `resolve.tsconfigPaths`(Vitest·Storybook). `CLAUDE.md`가 `@AGENTS.md`를 불러온다. `src/app/favicon.ico`, `.vscode/settings.json`·`extensions.json` 추가.
+
 **P0에서 하지 않은 것(추가)**: deploy-plan D1의 GHCR 패키지 공개 설정·조직 허용 확인(§9 #7), 카카오 JS 키가 환경별로 같은지(§9 #6), 이미지 크기(standalone 41~43MB만 쟀다), `global-error.tsx`(P5a).
 
 ## 핵심 결정 요약

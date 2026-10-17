@@ -19,6 +19,7 @@
 | [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문, **프론트가 정한 것(핸드오프 원본, 30건)**, 해결된 것 |
 | [`backend-questions.md`](./backend-questions.md) | 백엔드 질문과 지켜보는 변경 |
 | [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
+| [`staging-deploy-plan.md`](./staging-deploy-plan.md) | 로컬에서 명령 하나로 스테이징에 배포하는 계획(미구현) — Deploy 저장소 변경, `pnpm deploy:staging` 스크립트, 준비물 |
 | [`directory-structure.md`](./directory-structure.md) | 폴더, 라우트, 계층 규칙 |
 | [`storyboard.md`](./storyboard.md) | 화면 흐름 + 호출 API + Phase |
 | [`patterns.md`](./patterns.md) | 구현 패턴(§1~§10 공통, §11~§23 화면, §24 화면별 에러 처리) |

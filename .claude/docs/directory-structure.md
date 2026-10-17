@@ -18,7 +18,8 @@ dudoong-frontend-v2/
 ├─ .prettierrc / .prettierignore / .editorconfig
 ├─ .nvmrc
 ├─ .env.example
-├─ vitest.config.mts
+├─ vitest.config.mts           # jsdom 기본, 서버 분기 테스트는 파일 머리 `// @vitest-environment node`. 경로 별칭은 Vite 내장 resolve.tsconfigPaths
+├─ .vscode/                    # settings.json(저장 시 Prettier·ESLint), extensions.json — 이 둘만 커밋
 ├─ CLAUDE.md                   # 규칙 요약 + .claude/docs 안내
 ├─ .husky/pre-commit           # lint-staged
 ├─ .storybook/                 # react-vite + vanilla-extract
@@ -46,6 +47,7 @@ dudoong-frontend-v2/
 
 ```
 src/app/
+├─ favicon.ico                         # v1에서 가져옴(메타데이터 파일)
 ├─ layout.tsx                          # <html>, 전역 스타일, Providers(QueryClient, OverlayProvider)
 ├─ providers.tsx                       # P2·P4a  'use client' — QueryClientProvider(서버 렌더마다 새 것, 브라우저는 하나), OverlayProvider, 인증 핸들러 등록, storage(다른 탭 로그아웃)·pageshow(bfcache) 감시 — dd:session 값 비교. 경로는 읽지 않는다
 ├─ OverlayRouteReset.tsx               # P2  'use client' 말단 — 경로가 바뀌면 overlay.unmountAll(). children을 감싸지 않고 layout.tsx에서 <Suspense fallback={null}>로 감싸 형제로 둔다
@@ -186,8 +188,8 @@ src/ui/
 
 ```
 src/api/
-├─ client.ts                   # ky 인스턴스 하나(내부, 기준 주소 없음, timeout 10초 — 요청마다 http.ts가 prefix를 넘긴다) — 응답 래퍼 해제, ApiError(JSON이 아니면 'NON_JSON', status는 항상 HTTP 상태), zod 파싱 정책, 401 가로채기(v2만, dd:session이 있을 때만 — 주입된 refresh 호출 후 재시도, 세션 상실이면 SessionLostError. v1 인증 인스턴스에는 없다)
-├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체 — get / post / patch / put / delete / download. get의 { public: true }는 항상 credentials:'omit'. 요청마다 prefix를 넘긴다 — 브라우저는 상대 경로, 서버(typeof window === 'undefined')는 호출할 때 process.env.API_INTERNAL_URL ?? 기본값
+├─ client.ts                   # 요청 파이프라인 — ky 인스턴스 하나(기준 주소 없음, timeout 10초), 기준 주소 계산(prefixV2·prefixV1Auth), ky 네트워크·타임아웃 → ApiError(0), 본문 읽기 시간 제한, 래퍼 해제(NON_JSON·BAD_ENVELOPE·PARSE_ERROR). 401 재발급은 P4a에서 request()에 붙는다
+├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체만 — client.ts의 request()를 감싼다. { public: true }는 credentials:'omit'
 ├─ auth-handlers.ts            # setAuthHandlers({ refresh, onSessionLost }) — 등록은 features/shared/auth
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
 ├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
@@ -199,6 +201,7 @@ src/api/
 ├─ shared/
 │  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼
 │  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
+│  ├─ route-pattern.ts         # routePattern() — 로그용 경로(id·토큰 → :param, 쿼리 버림)
 │  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
 ├─ auth/  me/  host/  event/  ticket-item/  option/
 ├─ order/                      # + price.ts (금액 계산 순수함수)
