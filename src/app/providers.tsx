@@ -2,10 +2,10 @@
 
 import { QueryClientProvider } from '@tanstack/react-query';
 import { OverlayProvider } from 'overlay-kit';
-import { type ReactNode, Suspense } from 'react';
+import { type ReactNode, Suspense, useEffect } from 'react';
 
-import { getQueryClient } from '@/api/query-client';
-import { Toaster } from '@/ui/components/Toast/Toast';
+import { getQueryClient, setErrorNotifier } from '@/api/query-client';
+import { toast, Toaster } from '@/ui/components/Toast/Toast';
 
 import { OverlayRouteReset } from './OverlayRouteReset';
 
@@ -16,6 +16,11 @@ import { OverlayRouteReset } from './OverlayRouteReset';
  */
 export function Providers({ children }: { children: ReactNode }) {
   const queryClient = getQueryClient();
+  // 전역 에러 토스트(patterns §4) — src/api는 ui를 import할 수 없어 여기서 주입한다. 브라우저에서만 등록
+  useEffect(() => {
+    setErrorNotifier((message, id) => toast(message, { id }));
+    return () => setErrorNotifier(null);
+  }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <OverlayProvider>

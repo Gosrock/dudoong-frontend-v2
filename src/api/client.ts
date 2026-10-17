@@ -1,5 +1,5 @@
 import ky, { isNetworkError, isTimeoutError, type KyInstance, type Options } from 'ky';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 import { log } from '@/utils/log';
 
@@ -94,6 +94,16 @@ export function unwrap<T>(
 
 /** 본문 읽기에도 시간 제한을 건다. 끊기면 NETWORK, 시간을 넘기면 TIMEOUT, 호출자가 취소하면 그 사유를 던진다. */
 async function readBody(res: Response, deadline: number, route: string, signal?: AbortSignal) {
+  return readWithin(res, (r) => r.text(), deadline, route, signal);
+}
+
+async function readWithin<T>(
+  res: Response,
+  read: (res: Response) => Promise<T>,
+  deadline: number,
+  route: string,
+  signal?: AbortSignal,
+): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(
@@ -105,7 +115,7 @@ async function readBody(res: Response, deadline: number, route: string, signal?:
     );
   });
   try {
-    return await Promise.race([res.text(), timeout]);
+    return await Promise.race([read(res), timeout]);
   } catch (e) {
     if (signal?.aborted) throw signal.reason;
     if (e instanceof ApiError) throw e;
@@ -158,4 +168,103 @@ export async function request<T>(
   }
   const text = await readBody(res, deadline, route, opts.signal);
   return unwrap(res, text, schema, route);
+}
+
+// ─── 파일 내려받기 ───────────────────────────────────────────
+
+/** 엑셀은 행이 많으면 만드는 데 오래 걸린다. 일반 요청(10초)보다 길게 둔다. */
+export const DOWNLOAD_TIMEOUT_MS = 60_000;
+
+export type DownloadOptions = Pick<CallOptions, 'searchParams' | 'signal'>;
+export type Downloaded = { blob: Blob; filename: string | null };
+
+/**
+ * 래퍼 없는 파일 응답(엑셀 GR-6·GI-3, api-contract §1). 성공 본문은 파싱하지 않고 Blob으로 돌려준다.
+ * 실패 응답은 JSON 에러 래퍼라 `request()`와 같은 `ApiError`가 된다. 성공인데 JSON이 오면(래퍼) 파일이 아니므로
+ * 에러 래퍼면 그 `ApiError`, 아니면 `BAD_ENVELOPE`.
+ * 파일 이름은 `Content-Disposition`에서 읽고(RFC 6266/5987 `filename*` 우선), 없으면 `null` — 이름은 호출부가 정한다.
+ */
+export async function requestFile(
+  prefix: () => string,
+  path: string,
+  opts: DownloadOptions = {},
+): Promise<Downloaded> {
+  const route = `GET ${routePattern(path)}`;
+  const deadline = performance.now() + DOWNLOAD_TIMEOUT_MS;
+  let res: Response;
+  try {
+    res = await kyBase(path, {
+      method: 'get',
+      prefix: prefix(),
+      searchParams: opts.searchParams,
+      signal: opts.signal,
+      timeout: DOWNLOAD_TIMEOUT_MS,
+    });
+  } catch (e) {
+    if (isTimeoutError(e)) throw new ApiError(0, 'TIMEOUT', '', route);
+    if (isNetworkError(e)) throw new ApiError(0, 'NETWORK', '', route);
+    throw e;
+  }
+  const isJson = (res.headers.get('content-type') ?? '').includes('json');
+  if (!res.ok || isJson) {
+    const text = await readWithin(res, (r) => r.text(), deadline, route, opts.signal);
+    unwrap(res, text, z.unknown(), route);
+    // 성공 래퍼가 왔다 — 파일이 아니다
+    throw new ApiError(res.status, 'BAD_ENVELOPE', '', route);
+  }
+  const blob = await readWithin(res, (r) => r.blob(), deadline, route, opts.signal);
+  return {
+    blob,
+    filename: parseContentDispositionFilename(res.headers.get('content-disposition')),
+  };
+}
+
+/**
+ * `Content-Disposition`의 파일 이름. `filename*=UTF-8''%ED%95%9C.xlsx`(RFC 5987)를 `filename="…"`보다 먼저 본다.
+ * 백엔드(Spring `ContentDisposition.attachment().filename(name)`)는 지금 ASCII `filename="orders-1.xlsx"`만 보낸다.
+ * 경로 구분자는 지운다(파일 이름으로만 쓴다). 못 읽으면 `null`.
+ */
+export function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) return null;
+  const params = splitParams(header);
+  const extended = params.get('filename*');
+  if (extended) {
+    const m = /^([\w!#$%&+^`{}~-]*)'[^']*'(.*)$/.exec(extended);
+    if (m) {
+      const decoded = decodeExtValue(m[1] ?? '', m[2] ?? '');
+      if (decoded) return sanitizeFilename(decoded);
+    }
+  }
+  const plain = params.get('filename');
+  return plain ? sanitizeFilename(plain) : null;
+}
+
+/** `type; a=b; c="d; e"` → Map(a→b, c→d; e). 따옴표 안의 `;`와 `\"` 이스케이프를 지킨다. 이름은 소문자로. */
+function splitParams(header: string) {
+  const params = new Map<string, string>();
+  const re = /;\s*([^\s=;]+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|([^;]*))/g;
+  for (const m of header.matchAll(re)) {
+    const name = (m[1] ?? '').toLowerCase();
+    if (params.has(name)) continue;
+    const value = m[2] !== undefined ? m[2].replace(/\\(.)/g, '$1') : (m[3] ?? '').trim();
+    params.set(name, value);
+  }
+  return params;
+}
+
+function decodeExtValue(charset: string, value: string): string | null {
+  try {
+    if (charset.toLowerCase() === 'utf-8') return decodeURIComponent(value);
+    // ISO-8859-1: %XX 하나가 글자 하나
+    return value.replace(/%([0-9a-f]{2})/gi, (_, h: string) =>
+      String.fromCharCode(parseInt(h, 16)),
+    );
+  } catch {
+    return null;
+  }
+}
+
+function sanitizeFilename(name: string): string | null {
+  const base = name.split(/[\\/]/).pop()?.trim() ?? '';
+  return base && base !== '.' && base !== '..' ? base : null;
 }

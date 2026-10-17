@@ -24,7 +24,8 @@ describe('서버 분기', () => {
   });
 
   it('fetch 자체가 실패하면 URL 없는 ApiError(0, NETWORK) — reason은 비우고 route에 패턴', async () => {
-    // MSW가 처리하지 않는 요청은 fetch 실패가 된다(onUnhandledFrame: 'error')
+    // 기본 핸들러에 GG-3이 있어 이 테스트에서만 네트워크 오류로 바꾼다
+    server.use(http.get('*/api/v2/gifts/:giftToken', () => HttpResponse.error()));
     process.env.API_INTERNAL_URL = 'http://backend.test/api/v2';
     const error = await api.get('gifts/secrettokenlower', Echo).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
@@ -54,6 +55,32 @@ describe('서버 분기', () => {
     process.env.API_INTERNAL_URL = 'http://backend.test/prefix/api/v2';
     server.use(http.post('http://backend.test/prefix/api/v1/auth/token/refresh', () => ok(1)));
     await expect(authApi.post('token/refresh', Echo)).resolves.toEqual({ value: 1 });
+  });
+});
+
+describe('서버 조회에는 토큰이 붙지 않는다', () => {
+  // 서버 조회는 공개 GET만 한다. 사용자 쿠키를 전달하는 코드가 생기면(예: next/headers cookies()를 붙임) 여기서 깨진다
+  const original = process.env.API_INTERNAL_URL;
+  afterEach(() => {
+    if (original === undefined) delete process.env.API_INTERNAL_URL;
+    else process.env.API_INTERNAL_URL = original;
+  });
+
+  it.each([
+    ['공개 GET', { public: true }],
+    ['옵션 없음', undefined],
+  ] as const)('%s — Cookie·Authorization 헤더가 없다', async (_, opts) => {
+    process.env.API_INTERNAL_URL = 'http://backend.test/api/v2';
+    let headers: Headers | undefined;
+    server.use(
+      http.get('http://backend.test/api/v2/events/1', ({ request }) => {
+        headers = request.headers;
+        return ok(1);
+      }),
+    );
+    await expect(api.get('events/1', Echo, opts)).resolves.toEqual({ value: 1 });
+    expect(headers?.get('cookie')).toBeNull();
+    expect(headers?.get('authorization')).toBeNull();
   });
 });
 

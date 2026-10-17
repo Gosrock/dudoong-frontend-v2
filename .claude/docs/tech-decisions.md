@@ -680,7 +680,7 @@ const FormSchema = z.discriminatedUnion('mode', [
 
 ### 금액
 
-`src/api/order/price.ts` 한 곳에서 계산한다: `price × quantity + Σ(YES로 답한 옵션의 yesAdditionalPrice)`. 화면 표시 총액과 토스 송금 링크 금액이 여기서 나오고, 주문 생성 응답의 `totalAmount`와 같아야 한다(P7 계약 테스트).
+`src/api/order/price.ts` 한 곳에서 계산한다. **식은 백엔드와 같다**(`OrderLineItem.getTotalOrderLinePrice = (price + Σ옵션) × quantity`, P3에서 확인): 모든 티켓 같은 옵션이면 `(price + Σ YES 추가금) × 수량` — 옵션 추가금도 수량만큼 곱한다. 티켓별 옵션이면 티켓마다 수량 1인 줄이라 `Σ_i (price + Σ YES 추가금_i)`. NO 답은 0원, v2에 쿠폰 없음. 수량 1~100(`V2CreateOrderRequest.MAX_QUANTITY`). 화면 표시 총액과 토스 송금 링크 금액이 여기서 나오고, 주문 생성 응답의 `totalAmount`와 같아야 한다(P7 계약 테스트).
 
 ---
 
@@ -964,6 +964,8 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 ```json
 {
   "dev": "next dev",
+  "dev:mock": "node scripts/dev-mock.mjs",
+  "check:contract": "node scripts/check-contract.mjs",
   "build": "next build",
   "start": "cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/ && node .next/standalone/server.js",
   "lint": "eslint .",
@@ -977,6 +979,10 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
   "build-storybook": "storybook build"
 }
 ```
+
+- `dev:mock`(P3): 가짜 백엔드(`e2e/support/mock-backend.ts` 재사용, MSW 핸들러, 기본 4200번)를 띄우고 `next dev`의 `DEV_API_ORIGIN`·`API_INTERNAL_URL`을 그쪽으로 향하게 한다. 백엔드 없이 서버 조회·브라우저 조회가 같은 mock을 탄다. 로그인 흉내 `/api/__mock/login`·`/logout`(쿠키). 포트는 `PORT`·`MOCK_API_PORT`.
+- `check:contract`(P3): 운영 `https://dudoong.com/api/v2`(`CONTRACT_BASE_URL`로 바꿈)의 공개 GET을 한 번씩 불러 zod 스키마로 파싱한다. 실패 필드 경로와 UNKNOWN enum 경로만 출력한다(값 없음). 네트워크가 필요해 게이트에 넣지 않는다. GG-3은 `CONTRACT_GIFT_TOKEN`이 있을 때만.
+- 두 스크립트는 의존성 없이 Node 22 타입 제거 + `scripts/ts-import.mjs`(`@/` 별칭·확장자 없는 import 해석 훅)로 TS 소스를 읽는다.
 
 - `test:e2e`·`qa`는 `next build` 뒤 standalone 서버(3100)를 띄운다(`playwright.config.ts`의 `webServer`). 방금 빌드했으면 `E2E_SKIP_BUILD=1`. 빌드할 때 `NEXT_PUBLIC_KAKAO_JS_KEY`가 없으면 `e2e-placeholder`를 넣는다 — 그 빌드의 `.next`를 그대로 배포하지 않는다.
 - `qa`는 `pnpm qa <feature> [--open] [playwright 인자]`. 리포트는 `qa/reports/<feature>/<시각>/`, `latest` 링크.

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:mock": "node scripts/dev-mock.mjs",
     "build": "next build",
     "start": "cp -R public .next/standalone/ && cp -R .next/static .next/standalone/.next/ && node .next/standalone/server.js",
     "lint": "eslint .",
@@ -17,6 +18,7 @@
     "test:stories": "vitest run --project storybook",
     "test:e2e": "playwright test",
     "qa": "node qa/run.mjs",
+    "check:contract": "node scripts/check-contract.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "prepare": "husky"

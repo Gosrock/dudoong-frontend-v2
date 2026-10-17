@@ -42,10 +42,11 @@ dudoong-frontend-v2/
 ├─ .github/
 │  ├─ pull_request_template.md
 │  └─ workflows/
-│     ├─ pr-gate.yml           # typecheck → lint → test(Vitest unit) → build. Playwright는 넣지 않는다
+│     ├─ pr-gate.yml           # typecheck → lint → test(Vitest unit) → test:stories(Chromium) → build. Playwright e2e·QA는 넣지 않는다
 │     ├─ image.yml             # main 머지 → GHCR에 sha 태그 이미지
 │     └─ release.yml           # 버전 태그 → 같은 이미지에 태그 추가(재빌드 없음)
 ├─ public/                     # term.html · privacy.html (v1에서 이전)
+├─ scripts/                    # P3  dev-mock.mjs(pnpm dev:mock), check-contract.mjs(pnpm check:contract), ts-import.mjs(Node 타입 제거 + @/ 별칭 훅)
 └─ src/
    ├─ app/
    ├─ features/
@@ -223,6 +224,7 @@ src/api/
 │  ├─ serverQuery.ts           # 요청별 QueryClient + fetchQuery + 404 → notFound()
 │  └─ Prefetch.tsx             # queries → dehydrate → HydrationBoundary. 무한 목록은 받지 않는다(GH-14는 브라우저 useInfiniteQuery)
 ├─ shared/
+│  ├─ common-schema.ts         # P3  Contact·Place·HostRole — 도메인 폴더끼리 import하면 순환이 생겨 여기 둔다
 │  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼
 │  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
 │  ├─ route-pattern.ts         # routePattern() — 로그용 경로(id·토큰 → :param, 쿼리 버림)
@@ -230,7 +232,7 @@ src/api/
 ├─ auth/  me/  host/  event/  ticket-item/  option/
 ├─ order/                      # + price.ts (금액 계산 순수함수)
 ├─ refund/  issued-ticket/  check-in/  my-ticket/  gift/  notification/
-└─ __mocks__/                  # MSW 핸들러
+└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정)
 ```
 
 서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery` — tech-decisions §4).
