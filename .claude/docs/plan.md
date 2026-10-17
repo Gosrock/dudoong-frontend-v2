@@ -131,17 +131,17 @@ P0 ─┬─ P1 ── P2 ─────────────┐
 
 **근거**: [`design-system.md`](./design-system.md) §1·§2 — Figma 디자인 시스템 파일의 토큰·텍스트 스타일·그리드. 시작할 때 Figma를 다시 읽어 그 문서를 갱신한다.
 
-**포함**: 토큰(`tokens.css.ts` — color(Atomic 원시 값 + 의미 색, `createThemeContract`로 라이트·다크 두 벌)/typography(텍스트 스타일 21개)/space(`Space/7~10`은 데스크탑에서 커짐)/radius/zIndex), 폰트(Pretendard, Saira Condensed, Kartrider — 라이선스 확인 뒤), 전역 스타일·reset·폰트, sprinkles(조건 `mobile`/`desktop` + 토큰 유틸리티). 프리미티브 `Flex`(`Flex.Center` 등) · `Spacing` · `Text`(typography prop, `as`로 시맨틱 태그만 분리) · `Divider` · `Container` · `Button`(recipes). `useMediaQueries`. 아이콘 파이프라인. Storybook. 루트 `Providers`(QueryClient, `OverlayProvider`).
+**포함**: 토큰(`tokens.css.ts` — color(Atomic 원시 값 + 의미 색, `createThemeContract`로 라이트·다크 두 벌)/typography(텍스트 스타일 21개)/space(`Space/7~10`은 데스크탑에서 커짐)/radius/zIndex), 폰트(Pretendard, Saira Condensed, Kartrider — 라이선스 확인 뒤), 전역 스타일·reset·폰트, sprinkles(조건 `mobile`/`desktop` + 토큰 유틸리티). 프리미티브 `Flex`(`Flex.Center` 등) · `Spacing` · `Txt`(typography·color prop, `as`로 시맨틱 태그만 분리) · `Divider` · `Container` · `Button`(recipes). `useMediaQueries`. 아이콘 파이프라인. Storybook. 루트 `Providers`(QueryClient, `OverlayProvider`).
 
 **선행**: P0 · **병렬**: P3
 
 **완료 기준**
-- [ ] 브레이크포인트 확정(design-system §2 — 후보 desktop ≥ 1024px), 간격 토큰의 Mobile/Desktop 전환이 같은 기준을 씀
-- [ ] 아이콘 44종(`ic`, 변형 58개)이 `<Icon name size variant />`로 렌더. Figma SVG 추출 결과를 PNG와 비교(`home`·`Ticket-alert` 보정, design-system §4), lucide 라이선스 고지
-- [ ] 토큰·프리미티브 스토리
-- [ ] 화면 코드에서 스타일을 쓰는 세 방법(프리미티브 / `sprinkles()` / `.css.ts`)의 예제 스토리
-- [ ] `src/ui` 공개 API에 vanilla-extract 타입 미노출
-- [ ] 호스팅 센터 데스크탑 배치(Desktop - 27: 좌측 사이드바 255 + 본문 + 우측 패널 392)가 1440에서 3단으로 들어가고, 1024~1279에서는 우측 패널을 본문 아래로 내리는 중간 배치를 정함(GUI에 1440 프레임 하나뿐 — [`gui-screens.md`](./gui-screens.md) §3)
+- [x] 브레이크포인트 확정(design-system §2 — 후보 desktop ≥ 1024px), 간격 토큰의 Mobile/Desktop 전환이 같은 기준을 씀
+- [x] 아이콘 44종(`ic`, 변형 58개)이 `<Icon name size variant />`로 렌더. Figma SVG 추출 결과를 PNG와 비교(`home`·`Ticket-alert` 보정, design-system §4), lucide 라이선스 고지
+- [x] 토큰·프리미티브 스토리
+- [x] 화면 코드에서 스타일을 쓰는 세 방법(프리미티브 / `sprinkles()` / `.css.ts`)의 예제 스토리
+- [x] `src/ui` 공개 API에 vanilla-extract 타입 미노출
+- [x] 호스팅 센터 데스크탑 배치(Desktop - 27: 좌측 사이드바 255 + 본문 + 우측 패널 392)가 1440에서 3단으로 들어가고, 1024~1279에서는 우측 패널을 본문 아래로 내리는 중간 배치를 정함(GUI에 1440 프레임 하나뿐 — [`gui-screens.md`](./gui-screens.md) §3)
 
 ### P2 — `src/ui` 컴포넌트: 폼 · 오버레이 · 피드백
 

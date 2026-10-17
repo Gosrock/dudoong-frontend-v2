@@ -95,9 +95,7 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 
 **쓰이지 않는 의미 색.** 컴포넌트 어디에도 묶이지 않았다: `text/tertiary-label`, `text/disabled-label`, `text/danger-label`, `brand/accent-pressed`, `brand/accent-hover`, `status/warning`, `status/warning-subtle`, `status/error`, `Background/dark`. 토큰으로는 옮기되, 정리 요청(§5) 결과에 따라 지운다.
 
-**다크 모드.** 의미 색에 Dark 값이 이미 정의돼 있다. 출시 범위는 정하지 않았다. 권장안은 이렇다.
-- 토큰은 처음부터 `createThemeContract`로 라이트·다크 두 벌을 만든다.
-- 출시는 라이트만 한다. 원시 색을 직접 쓰는 컴포넌트(위 표)는 다크 값이 없어서 다크를 켜기 전에 정리가 필요하다.
+**다크 모드(결정 2026-10-17).** 토큰은 처음부터 라이트·다크 두 벌로 만들고(`createThemeContract`) 출시는 라이트만 한다. 다크 값은 `<html data-theme="dark">`일 때만 적용된다(`src/ui/theme/tokens.css.ts`). 다크를 켤 때 컴포넌트를 고치지 않아도 되지만, 원시 색을 직접 쓰던 컴포넌트(위 표 — 코드에서는 `avatar`·`role`·`chip` 전용 토큰)는 다크 값이 디자인 대기라 라이트와 같다.
 
 ### 간격과 모서리 — 화면 크기에 따라 바뀐다
 
@@ -125,7 +123,7 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 
 ### 타이포그래피
 
-텍스트 스타일 21개. `Text` 컴포넌트의 `typography` 프리셋 이름으로 쓴다(patterns §2). 표의 이름은 정리해서 적었다. Figma 원래 이름은 `Heading/md - emphasized`(공백-하이픈-공백)와 `Heading/lg-emphasized`(붙임)가 섞여 있다.
+텍스트 스타일 21개. `Txt` 컴포넌트의 `typography` 프리셋 이름으로 쓴다(patterns §2). 표의 이름은 정리해서 적었다. Figma 원래 이름은 `Heading/md - emphasized`(공백-하이픈-공백)와 `Heading/lg-emphasized`(붙임)가 섞여 있다.
 
 | 그룹 | 스타일 (크기/행간) |
 |---|---|
@@ -146,8 +144,8 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 
 | 폰트 | 쓰는 곳 | 라이선스·로딩 |
 |---|---|---|
-| Pretendard | 본문 전부 | OFL. `next/font/local`로 서브셋 woff2 |
-| Kartrider Kor ExtraBold | `Title` — 공연 제목과 강조 문구(디자이너 설명), ConcertCard 제목 | 넥슨 폰트. **웹 임베드 라이선스 확인 필요** |
+| Pretendard | 본문 전부 | OFL. npm `pretendard`의 가변 폰트 **동적 서브셋 CSS**를 루트 레이아웃에서 불러온다(화면에 나온 글자 조각만 받는다) |
+| Kartrider Kor ExtraBold | `Title` — 공연 제목과 강조 문구(디자이너 설명), ConcertCard 제목 | 넥슨 폰트. **웹 임베드 라이선스 확인 필요** — P1에서는 불러오지 않고 font 스택만 둔다(설치돼 있으면 쓰고 아니면 Pretendard) |
 | Saira Condensed Bold | `Title_number` — Kartrider와 함께 쓰는 숫자 | OFL(Google Fonts). `next/font/google` |
 
 GUI 화면 파일에서 본 것(2026-10-15):
@@ -177,7 +175,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
   - 사이드바와 3단은 12칼럼 그리드를 따르지 않는다. 그리드는 형식상 붙어 있다.
   - 대시보드 외 PC 화면(홈, 폼, 티켓, 예매자 표)과 1280 이하 배치는 없다. 관객 화면은 모두 390폭이다.
   - [`design-requests.md`](./design-requests.md) Q2는 "일부 해결", 최신 시안인지는 Q9.
-- 브레이크포인트는 P1에서 정한다. 지금 문서의 768은 임시값이다. 후보는 이렇다.
+- **브레이크포인트(P1 확정)**: desktop ≥ 1024px, wide ≥ 1280px(`src/ui/theme/breakpoints.ts`). 호스팅 센터 3단(사이드바 255 + 본문 + 우측 패널 392)은 wide에서만 3단이고, 1024~1279에서는 우측 패널을 본문 아래로 내린다. 아래는 정할 때의 후보 기록이다.
   - mobile: 기본
   - desktop: `min-width: 1024px`. 1280 프레임을 기준으로 그 아래 폭에도 데스크탑 배치를 쓴다.
   - QR 화면만 태블릿 폭 대응
@@ -340,7 +338,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
   칩 모서리 6처럼 토큰에 없는 값은 디자이너에게 확인한다(§5).
 - **원시 색 예외**: §1 표의 컴포넌트는 컴포넌트 전용 의미 토큰으로 묶는다. 화면 코드에서 원시 색을 쓰지 않는다.
-- **아이콘**: Figma에서 SVG를 뽑아 단색 stroke·fill을 `currentColor`로 바꾼다. 다색 아이콘(§3 `ic` 행의 예외)은 원래 색을 유지하되, `chat`·`gift` 12는 뚫는 쪽으로 정리되면 단색으로 둔다. 뽑은 뒤 PNG와 비교한다 — `home`은 손으로 고치거나 디자이너 수정을 기다리고, `Ticket-alert`는 24 틀로 자르고 배지는 코드에서 겹친다. 아이콘 라이선스 고지(lucide ISC, feather MIT)를 포함한다.
+- **아이콘(P1 구현)**: `src/ui/icons/` — Figma에서 뽑은 원본 SVG 58개(`svg/<key>-<variant>-<size>.svg`) → `generate.mjs`가 정리·`registry.ts` 생성 → `<Icon name variant size title? />`(인라인 SVG, 훅 없음). `IconSpec`은 Figma에 있는 조합만 타입으로 허용한다. 단색 52개는 `currentColor`. 다색 6개(`chat`, `gift` 12, `instagram`, `notification-on`, `settings` filled, `ticket-alert`)도 본문 잉크색(#141413)은 `currentColor`로 바꾸고 강조색(빨간 점, 흰 점, 리본, 회색 원, 그라데이션)만 원래 값으로 남겼다. 손으로 고친 것: `home` outline은 filled와 같은 중심선을 선 2px로 그려 만들었고(PNG 비교 일치), `Ticket-alert`는 24 viewBox로 되돌리고 배지는 Figma처럼 틀 밖으로 나가게 두어 `overflow="visible"`로 그린다(계획의 "코드에서 겹침" 대신 — 배지를 따로 빼려면 rect 한 줄 삭제). 이 두 파일은 재추출 때 덮어쓰지 않는다(`src/ui/icons/README.md`). Figma 이름 → 키 대응(`notificatio_onn` → `notification-on` 등 8개)은 `generate.mjs`의 `FIGMA_NAME_MAP`. 라이선스 고지는 루트 `THIRD_PARTY_NOTICES.md`(lucide ISC, feather MIT). 남은 것: `chat` 점·`gift` 12 리본의 다크 모드 소실(디자이너 확인), 한 페이지에 `instagram`을 여러 번 그리면 그라데이션 id가 겹침(내용이 같아 보통 무해).
 - **shadcn 참고**: 같은 동작의 shadcn 소스에서 Radix 조합과 접근성 속성을 참고하고, Tailwind 클래스는 가져오지 않는다.
 - **Storybook**: 각 컴포넌트의 Figma 변형 전부를 스토리로 둔다. 디자이너가 Figma와 나란히 비교할 수 있게 한다.
 

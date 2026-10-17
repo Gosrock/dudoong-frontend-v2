@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+<rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#instagram-outline-24-paint0_linear_473_1613)" stroke-width="2"/>
+<circle cx="12" cy="12" r="4" stroke="url(#instagram-outline-24-paint1_linear_473_1613)" stroke-width="2"/>
+<circle cx="17" cy="7" r="1" fill="#EE07AE"/>
+<defs>
+<linearGradient id="instagram-outline-24-paint0_linear_473_1613" x1="-4.99965" y1="5.39791" x2="-1.50035" y2="25.1021" gradientUnits="userSpaceOnUse">
+<stop offset="0.00296149" stop-color="#9309E1"/>
+<stop offset="0.216523" stop-color="#EA02C9"/>
+<stop offset="0.558577" stop-color="#F6114F"/>
+<stop offset="1" stop-color="#FDB203"/>
+</linearGradient>
+<linearGradient id="instagram-outline-24-paint1_linear_473_1613" x1="12" y1="7" x2="12" y2="15.5" gradientUnits="userSpaceOnUse">
+<stop stop-color="#CD0BAB"/>
+<stop offset="0.524038" stop-color="#F40D59"/>
+<stop offset="1" stop-color="#FB6A1B"/>
+</linearGradient>
+</defs>
+</svg>

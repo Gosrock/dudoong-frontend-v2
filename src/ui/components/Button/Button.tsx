@@ -1,15 +1,41 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-import { button, type ButtonVariants } from './Button.css';
+import { button } from './Button.css';
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & ButtonVariants;
+export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
+  variant?: 'primary' | 'secondary' | 'tonal';
+  size?: 'sm' | 'md' | 'lg';
+  /** 앱이 정하는 선택 상태(Secondary). Hover·Pressed·Disabled는 CSS 상태다(design-system §4) */
+  selected?: boolean;
+  fullWidth?: boolean;
+  /** 앞쪽 아이콘. 아이콘만 있으면 aria-label을 준다 */
+  icon?: ReactNode;
+  children?: ReactNode;
+};
 
-export function Button({ size, className, type = 'button', ...rest }: Props) {
+export function Button({
+  variant,
+  size,
+  selected,
+  fullWidth,
+  icon,
+  className,
+  type = 'button',
+  children,
+  ...rest
+}: ButtonProps) {
+  const iconOnly = Boolean(icon) && !children;
   return (
     <button
       type={type}
-      className={[button({ size }), className].filter(Boolean).join(' ')}
+      data-selected={selected ? 'true' : undefined}
+      className={[button({ variant, size, iconOnly, fullWidth }), className]
+        .filter(Boolean)
+        .join(' ')}
       {...rest}
-    />
+    >
+      {icon}
+      {children}
+    </button>
   );
 }

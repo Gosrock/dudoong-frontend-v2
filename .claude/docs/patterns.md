@@ -9,138 +9,85 @@
 
 **원칙: 서버와 클라이언트가 항상 같은 DOM을 그린다. 무엇이 보일지는 CSS가 정한다.** 첫 렌더에서 뷰포트를 JS로 판정하면 서버가 그린 것과 달라져 하이드레이션이 어긋난다.
 
-### 1-1. 조건은 sprinkles에 한 번 정의한다
+브레이크포인트는 `src/ui/theme/breakpoints.ts` 한 곳에 있다(P1 확정): **desktop ≥ 1024px**, wide ≥ 1280px(호스팅 센터 3단 배치용). 간격 토큰 `Space/7~10`도 같은 기준으로 데스크탑에서 커진다(design-system §1).
 
-```ts
-// src/ui/theme/sprinkles.css.ts
-const responsive = defineProperties({
-  conditions: {
-    mobile: {},
-    desktop: { '@media': 'screen and (min-width: 768px)' },   // 768은 임시값. P1에서 확정(design-system §2, 후보 1024)
-  },
-  defaultCondition: 'mobile',
-  properties: {
-    display: ['none', 'block', 'flex', 'inline'],
-    flexDirection: ['row', 'column'],
-    alignItems: ['flex-start', 'center', 'flex-end', 'stretch'],
-    justifyContent: ['flex-start', 'center', 'flex-end', 'space-between'],
-    gap: vars.space, padding: vars.space, marginTop: vars.space, /* … */
-  },
-});
-export const sprinkles = createSprinkles(responsive, colorProperties);
-```
-
-### 1-2. 표시·숨김, 간격, 방향
+### 1-1. 조건부 값 — sprinkles와 프리미티브 props
 
 ```tsx
 // 모바일에서만 보임
 <p className={sprinkles({ display: { mobile: 'block', desktop: 'none' } })}>…</p>
 
-// 데스크탑에서만 줄바꿈
-<br className={sprinkles({ display: { mobile: 'none', desktop: 'inline' } })} />
-
 // 브레이크포인트별 간격
 <Spacing size={{ mobile: 4, desktop: 6 }} />
 
 // 방향 전환
-<Flex flexDirection={{ mobile: 'column', desktop: 'row' }} gap={4}>…</Flex>
+<Flex direction={{ mobile: 'column', desktop: 'row' }} gap={4}>…</Flex>
 ```
 
-둘 다 DOM에 있고 CSS가 하나만 보이게 한다. 이전 판의 `hideOn`/`showOn`, `MediaSpacing`이 이 조건부 값으로 대체된다.
+둘 다 DOM에 있고 CSS가 하나만 보이게 한다. 조건 이름은 `mobile`(기본)·`desktop`이다(`src/ui/theme/sprinkles.css.ts`).
 
-### 1-3. 이미지 소스가 다를 때
+### 1-2. 이미지 소스가 다를 때
 
 둘 다 렌더하고 조건부 `display`로 하나만 보이거나 `<picture>` + `<source media>`를 쓴다. 안 보이는 쪽까지 내려받는 것이 부담이면 `<picture>`를 쓴다.
 
-### 1-4. 컴포넌트 자체가 바뀌어야 할 때 — 초기값 `null`, 마운트 뒤 판정
+### 1-3. 컴포넌트 자체가 바뀌어야 할 때 — `useMediaQueries()`
 
-데스크탑은 세로 스크롤 애니메이션, 모바일은 캐러셀처럼 **컴포넌트가 통째로 다를 때만** 쓴다.
-
-```ts
-// src/ui/hooks/useMediaQueries.ts
-function useMediaQueries() {
-  const [current, setCurrent] = useState<'mobile' | 'desktop' | null>(null);   // 핵심: 초기값 null
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 768px)');
-    const update = () => setCurrent(mq.matches ? 'desktop' : 'mobile');
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-  return current;
-}
-```
-
-서버 렌더와 첫 하이드레이션 모두 `null`이라 결과가 같다. 판정은 마운트 뒤에 일어난다. `null`일 때는 양쪽에 공통인 자리표시를 그린다.
+데스크탑은 사이드바, 모바일은 드로어처럼 **컴포넌트가 통째로 다를 때만** `src/ui/hooks/useMediaQueries.ts`를 쓴다. 첫 렌더는 서버와 같게 `null`이고 마운트 뒤에 `'mobile' | 'desktop'`을 판정한다. `null`일 때는 양쪽에 공통인 자리표시를 그린다.
 
 | 상황 | 방법 |
 |---|---|
-| 보이기·숨기기, 간격, 방향, 크기 | sprinkles 조건부 값 |
+| 보이기·숨기기, 간격, 방향, 크기 | sprinkles 조건부 값 / 프리미티브 props |
 | 이미지 소스 | 둘 다 렌더 또는 `<picture>` |
 | 컴포넌트 교체 | `useMediaQueries()` |
 
 ---
 
-## 2. 텍스트 — `Text` 컴포넌트
+## 2. 텍스트 — `Txt`
 
-- `<h1>`·`<p>`에 직접 글자 스타일을 주지 않는다. `Text`를 쓴다.
-- 크기·굵기·행간은 `typography` 프리셋으로 정한다. 프리셋은 Figma 타이포 토큰에서 온다.
-- 시맨틱 태그가 필요하면 스타일과 분리해 `as`로만 지정한다.
+- `<h1>`·`<p>`에 직접 글자 스타일을 주지 않는다. `Txt`를 쓴다(`src/ui/primitives/Txt.tsx`).
+- 크기·굵기·행간·자간은 `typography` 프리셋으로 정한다. 프리셋은 Figma 텍스트 스타일 21개다(`src/ui/theme/typography.css.ts`, design-system §1). 이름은 Figma 이름을 정리한 것이다 — `Body/md` → `bodyMd`, `Heading/sm - emphasized` → `headingSmEmphasized`.
+- 색은 **`colors`의 값**으로 넘긴다(`src/ui/theme/colors.ts`). 의미 색(`colors.textSecondary`, `colors.brandPrimary` …)은 테마를 따라가는 CSS 변수라 이쪽을 먼저 쓴다. 원시 색(`colors.blue400` …)은 Figma Atomic 값 그대로라 테마를 따라가지 않는다 — 의미 색에 없는 색이 꼭 필요할 때만 쓰고, 그런 색은 디자이너에게 의미 색 추가를 요청한다.
+- 시맨틱 태그가 필요하면 스타일과 분리해 `as`로만 지정한다. 줄 수 제한은 `lines={1 | 2}`.
 
 ```tsx
-<Text as="h2" typography="title2" color="gray900">제목</Text>
-<Text typography="body1" color="gray700">본문</Text>
+<Txt as="h2" typography="headingSmEmphasized">공연 정보</Txt>
+<Txt typography="bodyMd" color={colors.textSecondary}>설명</Txt>
+<Txt typography="headingSmEmphasized" lines={2}>긴 공연 제목은 두 줄에서 말줄임</Txt>
 ```
 
-```ts
-// src/ui/primitives/Text/Text.css.ts
-export const text = recipe({
-  variants: {
-    typography: { title1: {…}, title2: {…}, body1: {…}, body2: {…}, caption: {…} },
-  },
-});
-```
-
-`color`는 토큰 키만 받는다(sprinkles 타입). 프리셋에 없는 크기가 필요하면 프리셋을 추가할지 먼저 본다.
+폰트: 본문은 Pretendard(가변, 동적 서브셋 CSS — 화면에 나온 글자 조각만 받는다), 숫자 전용 `titleNumber`는 Saira Condensed(`next/font/google`). `title`의 Kartrider는 웹 임베드 라이선스 확인 전이라 불러오지 않고 Pretendard로 대신한다(design-system §1).
 
 ---
 
 ## 3. 레이아웃 — `Flex` / `Spacing` 우선
 
-- `div` + `display: flex` 대신 `<Flex>`, margin 대신 `<Spacing>`.
+- `div` + `display: flex` 대신 `<Flex>`, margin 대신 `<Spacing>`. 페이지 폭은 `<Container>`(Figma 그리드 여백 24 · 40 · 80), 구분선은 `<Divider>`.
 - 정렬은 `Flex.Center`(양축), `Flex.CenterVertical`(교차축), `Flex.CenterHorizontal`(주축).
+- props는 토큰 키만 받는다 — `gap={4}`는 `Space/4`(16px). 반응형 값은 `{ mobile, desktop }`.
 - **간격을 추측하지 않는다.** Figma 노드에서 읽고, 모르면 묻는다.
 
 ```tsx
-// src/ui/primitives/Flex/Flex.tsx
-type FlexProps = Pick<Sprinkles, 'alignItems' | 'justifyContent' | 'flexDirection' | 'gap' | 'padding'> & {
-  as?: keyof JSX.IntrinsicElements;
-  className?: string;
-  children?: ReactNode;
-};
-export function Flex({ as: Tag = 'div', className, children, ...sx }: FlexProps) {
-  return <Tag className={clsx(sprinkles({ display: 'flex', ...sx }), className)}>{children}</Tag>;
-}
-Flex.Center = (p: FlexProps) => <Flex alignItems="center" justifyContent="center" {...p} />;
+<Flex direction="column" gap={2}>
+  <Flex justify="space-between" fullWidth>
+    <Txt typography="headingSmEmphasized">공연 정보</Txt>
+    <Txt typography="labelSm" color={colors.textSecondary}>더보기</Txt>
+  </Flex>
+  <Spacing size={4} />
+</Flex>
 ```
 
-```tsx
-// src/ui/primitives/Spacing/Spacing.tsx — 자식을 받지 않는 순수 spacer
-export function Spacing({ size, direction = 'vertical' }: { size: Sprinkles['marginTop']; direction?: 'vertical' | 'horizontal' }) { … }
-```
+**함정 — 컬럼 방향 `Flex`는 자식을 가로로 늘리지 않는다.** 양끝 정렬 행이 내용 폭으로 줄어든다. 꽉 차야 하는 행에는 `fullWidth`를 준다(Storybook `Foundation/Primitives` → `FlexLayouts`).
 
-`Flex`와 `Spacing`은 훅도 상태도 없어 서버 컴포넌트에서 그대로 쓴다.
-
-**함정 — 컬럼 방향 `Flex`는 자식을 가로로 늘리지 않는다.** `alignItems` 기본값을 `flex-start`로 두면 `justifyContent="space-between"`인 헤더 행이 내용 폭으로 줄어 양끝 정렬이 무효가 된다. 꽉 차야 하는 행에는 그 행에 직접 `width: 100%`를 준다. Storybook에 이 사례를 스토리로 남긴다.
+`Flex`·`Spacing`·`Txt`·`Divider`·`Container`는 훅도 상태도 없어 서버 컴포넌트에서도 쓴다. `src/ui`의 공개 props 타입은 vanilla-extract 타입(Sprinkles, RecipeVariants)을 노출하지 않는다 — `src/ui/theme/types.ts`의 자체 타입(`SpaceKey`, `Responsive<T>` …)을 쓴다.
 
 ### 스타일을 쓰는 세 가지 방법
 
-`css={css(...)}`처럼 컴포넌트 파일 안에 스타일을 정의하는 방법은 없다. 정의는 `.css.ts` 파일에만 둘 수 있다. 파일을 매번 만들지 않도록 층을 둔다.
+`css={css(...)}`처럼 컴포넌트 파일 안에 스타일을 정의하는 방법은 없다. 정의는 `.css.ts` 파일에만 둘 수 있다. 파일을 매번 만들지 않도록 층을 둔다(Storybook `Foundation/Styling methods`).
 
 | 순서 | 방법 | 예 |
 |---|---|---|
-| 1 | 프리미티브 | `<Flex gap={4} alignItems="center">` |
-| 2 | `sprinkles()` 인라인 | `className={sprinkles({ marginTop: 4, color: 'gray900' })}` |
+| 1 | 프리미티브 | `<Flex gap={4} align="center">` |
+| 2 | `sprinkles()` 인라인 | `className={sprinkles({ marginTop: 4, background: 'grey' })}` |
 | 3 | `Foo.css.ts` | 고유한 모양, 자손 선택자, 애니메이션, 변형(recipes) |
 
 런타임에 정해지는 값은 CSS 변수에 넣는다.
@@ -149,7 +96,7 @@ export function Spacing({ size, direction = 'vertical' }: { size: Sprinkles['mar
 <div className={bar} style={assignInlineVars({ [progressVar]: `${rate}%` })} />
 ```
 
-`Text` · `Flex` · `Spacing`이 갖춰지면 화면 코드에서 원시 `<div className={…}>`로 레이아웃을 짜는 것을 리뷰에서 지적할 근거가 생긴다.
+`Txt` · `Flex` · `Spacing`이 갖춰졌으므로 화면 코드에서 원시 `<div className={…}>`로 레이아웃을 짜는 것을 리뷰에서 지적한다.
 
 ---
 

@@ -423,7 +423,7 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 
 `css={css(...)}` 같은 컴포넌트 파일 안 인라인 정의는 없다. 스타일 정의는 `.css.ts` 파일에만 둘 수 있다(빌드 때 실행되는 파일). 대신 파일을 매번 만들지 않아도 되게 층을 둔다.
 
-1. **프리미티브** — `<Flex gap={4} alignItems="center">`, `<Spacing size={6} />`, `<Text typography="body1">`. 화면 코드의 대부분은 이걸로 끝난다.
+1. **프리미티브** — `<Flex gap={4} alignItems="center">`, `<Spacing size={6} />`, `<Txt typography="bodyMd" color={colors.textSecondary}>`. 화면 코드의 대부분은 이걸로 끝난다.
 2. **`sprinkles()` 인라인** — `className={sprinkles({ marginTop: { mobile: 4, desktop: 6 }, color: 'gray900' })}`. 컴포넌트 파일 안에서 바로 쓴다. 값은 토큰으로 제한된다.
 3. **`.css.ts` 파일** — 위 둘로 안 되는 것(고유한 모양, 자손 선택자, 애니메이션, 변형). 컴포넌트 옆에 `Foo.css.ts`로 둔다.
 

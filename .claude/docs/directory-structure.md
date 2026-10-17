@@ -161,11 +161,17 @@ src/features/
 ```
 src/ui/
 ├─ theme/
-│  ├─ tokens.css.ts            # createGlobalTheme — color, typography, space, radius, zIndex
+│  ├─ palette.ts               # Figma Atomic 원시 색 102개(화면은 직접 쓰지 않는다)
+│  ├─ tokens.css.ts            # vars — 의미 색(createThemeContract, 라이트 기본 + data-theme="dark"), space(7~10 데스크탑 확대), radius, font, zIndex, shadow
+│  ├─ colors.ts                # colors — <Txt color={colors.textSecondary} />처럼 값으로 넘기는 색(의미 색 + 원시 색)
+│  ├─ typography.css.ts        # Figma 텍스트 스타일 21개(bodyMd, headingSmEmphasized …)
 │  ├─ sprinkles.css.ts         # 조건(mobile/desktop) + 토큰 유틸리티
-│  └─ global.css.ts            # reset, 폰트
-├─ primitives/                 # Flex, Spacing, Text, Divider, Container
+│  ├─ breakpoints.ts           # desktop ≥ 1024, wide ≥ 1280
+│  ├─ types.ts                 # 공개 props 타입(SpaceKey, Responsive<T> …) — vanilla-extract 타입을 밖에 내보내지 않는다
+│  └─ global.css.ts            # reset, 본문 폰트, focus-visible
+├─ primitives/                 # Flex(+ .Center 등), Spacing, Txt, Divider, Container
 ├─ hooks/useMediaQueries.ts
+├─ stories/                    # Foundation 스토리 — 토큰, 프리미티브, 스타일 세 방법
 ├─ icons/                      # Figma ic 세트에서 뽑은 SVG → <Icon name size variant />. 라이선스 고지(lucide ISC) 포함
 └─ components/                 # 컴포넌트마다 Foo.tsx + Foo.css.ts + Foo.stories.tsx
    ├─ Button/ Fab/              # Fab: 56 원형 아이콘 버튼(Figma Button type=round). 아이콘만 있는 일반 버튼은 Button iconOnly
