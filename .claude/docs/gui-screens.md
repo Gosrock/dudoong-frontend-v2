@@ -27,7 +27,7 @@
 | `315:2209` | "버튼 높이 바뀜 -> 한번씩 확인 / 폰트 -> 카트라이더 + 숫자(saira extra condensed) / main color -> Violet" | 이 메모만 "extra condensed"라고 적었다. 실제 화면과 다른 메모는 Saira Condensed다(아래 `295:1070`) |
 | `295:1070`(페이지 `14:3`) | "Saira condensed + 카트라이더" | 숫자 폰트는 디자인 시스템과 같은 Saira Condensed다 |
 
-모바일 프레임은 모두 390폭에 `mobile grid`(4 / 16 / 24)를 쓴다. 데스크탑은 대시보드 1장뿐이다(§3).
+모바일 프레임은 모두 390폭에 `mobile grid`(4 / 16 / 24)를 쓴다. 데스크탑은 대시보드 1장뿐이다(§3). 관객 PC는 와이어프레임 WEB 섹션에만 있다(`figma-structure.md` 2026-10-21 절).
 
 ---
 
