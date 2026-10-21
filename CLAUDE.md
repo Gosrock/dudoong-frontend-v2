@@ -14,6 +14,7 @@ Next.js 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 
 - 조회는 `src/api/<도메인>/queries.ts`의 `queryOptions` 하나를 서버(`<Prefetch>`)와 브라우저가 같이 쓴다. 화면은 `ky`를 직접 쓰지 않고 `api` 객체를 쓴다.
 - 스타일은 vanilla-extract. 순서: 프리미티브(`Flex`·`Spacing`·`Txt`·`Divider`·`Container`) → `sprinkles()` → `Foo.css.ts`. 색은 `colors`(의미 색 우선), 간격·모서리는 토큰만. 글자는 `<Txt typography="bodyMd" color={colors.textSecondary}>`.
 - 컴포넌트 동작은 Radix 프리미티브, 모양은 vanilla-extract(`.claude/docs/design-system.md`).
+- 디자인 전에는 L(로직)만 — 훅·도메인 규칙은 `features/<track>/<feature>/model/`, UI 동작을 넣지 않는다(plan §0).
 
 ## 명령
 

@@ -135,6 +135,8 @@ Route Handler는 `/healthz` 하나다. 더 만들게 되면 nginx가 `/api`를 �
 
 ## `src/features/` — 화면 구현
 
+화면 상태 훅과 도메인 규칙(순수 함수)은 feature 폴더 안 `model/`에 둔다(예: `audience/event/model/useTicketSelection.ts`, `ticket-state.ts`). 훅은 UI 동작(시트 열기 등) 없이 상태·동작·파생값만 돌려주고, 뷰는 같은 feature 폴더의 컴포넌트가 훅을 연결한다. 여러 화면·양쪽 트랙이 쓰면 `shared/<x>/model/`, API 응답에만 의존하는 순수 계산이면 `src/api/<domain>/`(예: `order/price.ts`). 디자인 전에는 `model/`(L)만 만든다(plan §0).
+
 ```
 src/features/
 ├─ audience/
@@ -149,7 +151,7 @@ src/features/
 │  └─ mypage/                  # P9   MyPage, Profile, OrderHistory(+ RefundAccountSheet), FollowingHosts, Archive
 │
 ├─ hosting/
-│  ├─ shell/                   # P10a HostingSidebar(+ SidebarItem = GUI `Component 1`), HostingHeader, EventSwitcherHeader(공연 전환 ▾), MobileDrawer
+│  ├─ shell/                   # P4s  HostingSidebar(+ SidebarItem = GUI `Component 1`), HostingHeader, EventSwitcherHeader(공연 전환 ▾), MobileDrawer
 │  ├─ home/                    # P10a PrepHome(HostTab, EventTab, Search)
 │  ├─ host/                    # P10a + P10b  CreateHost, HostSettings, HostMembers(InviteDialog, RoleMenu, TransferMasterDialog, PermissionGuide)
 │  ├─ event/                   # P11  NewEventWizard, EventLayout, Checklist, EventInfo(PlaceInput: 우편번호 + 카카오 Geocoder), EventDetailEditor(SectionTabs + Tiptap)
