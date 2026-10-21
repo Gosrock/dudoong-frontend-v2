@@ -58,3 +58,28 @@ export const HostEventSchema = z.object({
 });
 export const HostEventPageSchema = pageSchema(HostEventSchema);
 export type HostEvent = z.infer<typeof HostEventSchema>;
+
+// ─── 멤버 목록 (GH-6) ────────────────────────────────────────
+
+/**
+ * 활성 멤버(일반 이상만 조회). 마스터 → 매니저 → 일반 순, 같은 역할은 먼저 들어온 순으로 온다.
+ * 이메일은 없다(api-contract §6 운영). 기준: `V2HostMemberResponse.kt`.
+ */
+export const HostMemberSchema = z.object({
+  userId: z.number().int(),
+  name: z.string().nullable(),
+  profileImageUrl: z.string().nullable(),
+  role: HostRoleSchema,
+});
+export const HostMembersSchema = z.array(HostMemberSchema);
+export type HostMember = z.infer<typeof HostMemberSchema>;
+
+// ─── 팔로우 (PH-13) ──────────────────────────────────────────
+
+/** PUT·DELETE 공통 응답(멱등 — 같은 요청을 다시 보내도 200). 기준: `V2HostFollowResponse.kt` */
+export const HostFollowSchema = z.object({
+  hostId: z.number().int(),
+  isFollowing: z.boolean(),
+  followerCount: z.number().int(),
+});
+export type HostFollow = z.infer<typeof HostFollowSchema>;

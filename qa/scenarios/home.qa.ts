@@ -2,35 +2,33 @@ import { KAKAO_SCRAP_UA } from '../../e2e/support/env';
 import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
- * 공연홈 `/` — 지금은 P0 수직 슬라이스(GE-11 태그 목록)다. P5a에서 공연홈(GP-1)이 들어오면 이 파일을 다시 쓴다.
- * 근거: plan P0 산출물 A·B, tech-decisions §2·§31(상태 코드 표), api-contract GE-11.
+ * 공연홈 `/` — P5a-L에서 GP-1(최소 마크업)로 바꿨다. 화면 캡처 시나리오는 P5a-V에서 다시 쓴다.
+ * 근거: plan P0 산출물 A·B·P5a, tech-decisions §2·§31(상태 코드 표), api-contract GP-1.
  */
 
 scenario(
   'HOME-1',
-  '태그 목록이 카테고리별로 보인다',
+  '다가오는 공연이 보인다',
   {
     kind: '정상',
     summary:
-      '서버가 <Prefetch>로 GE-11을 조회해 HTML에 넣고, 브라우저는 같은 쿼리를 캐시에서 읽어 다시 부르지 않는다.',
-    basis: ['plan P0 수직 슬라이스', 'tech-decisions §31', 'api-contract GE-11'],
+      '서버가 <Prefetch>로 GP-1을 조회해 HTML에 넣고, 브라우저는 같은 쿼리를 캐시에서 읽어 다시 부르지 않는다.',
+    basis: ['plan P5a', 'tech-decisions §31', 'api-contract GP-1'],
   },
   async ({ page, mockApi, step, note }) => {
     await step('공연홈에 들어가면 200으로 열린다', async () => {
       const res = await page.goto('/');
       expect(res?.status()).toBe(200);
     });
-    await step('카테고리 제목(공연구분·장르)과 태그 버튼이 보인다', async () => {
-      await expect(page.getByRole('heading', { name: '공연구분' })).toBeVisible();
-      await expect(page.getByRole('heading', { name: '장르' })).toBeVisible();
-      await expect(page.getByRole('button', { name: '정기공연' })).toBeVisible();
-      await expect(page.getByRole('button', { name: '락밴드' })).toBeVisible();
+    await step('공연 카드 링크와 공연 둘러보기 링크가 보인다', async () => {
+      await expect(page.getByRole('link', { name: '고스락 제37회 정기공연' })).toBeVisible();
+      await expect(page.getByRole('link', { name: '공연 둘러보기' })).toBeVisible();
     });
     await step(
-      'GE-11은 서버에서 한 번만 불리고 브라우저는 다시 부르지 않는다',
+      'GP-1은 서버에서 한 번만 불리고 브라우저는 다시 부르지 않는다',
       async () => {
-        const calls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/tags'));
-        await note(`받은 GE-11 호출: ${calls.map((c) => `${c.from} ${c.status}`).join(', ')}`);
+        const calls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/home'));
+        await note(`받은 GP-1 호출: ${calls.map((c) => `${c.from} ${c.status}`).join(', ')}`);
         expect(calls.map((c) => c.from)).toEqual(['server']);
       },
       { capture: false },
@@ -40,22 +38,20 @@ scenario(
 
 scenario(
   'HOME-2',
-  '태그가 하나도 없으면 카테고리 없이 페이지만 보인다',
+  '공연이 하나도 없으면 빈 문구가 보인다',
   {
     kind: '빈 상태',
-    summary:
-      '빈 배열 응답에서도 200으로 열리고 깨지지 않는다. 빈 상태 문구는 디자인이 없어 P5a에서 정한다(지금은 아무것도 그리지 않는 것이 기대 동작).',
-    basis: ['api-contract GE-11', 'plan P5a'],
-    mocks: [http.get('*/api/v2/tags', () => HttpResponse.json(envelope.ok([])))],
+    summary: '빈 배열 응답에서도 200으로 열리고 깨지지 않는다. 빈 상태 모양은 P5a-V에서 정한다.',
+    basis: ['api-contract GP-1', 'plan P5a'],
+    mocks: [http.get('*/api/v2/home', () => HttpResponse.json(envelope.ok({ events: [] })))],
   },
   async ({ page, step }) => {
     await step('공연홈에 들어가면 200으로 열린다', async () => {
       const res = await page.goto('/');
       expect(res?.status()).toBe(200);
     });
-    await step('제목만 있고 카테고리 제목은 없다', async () => {
-      await expect(page.getByRole('heading', { name: '두둥', level: 1 })).toBeVisible();
-      await expect(page.getByRole('heading', { level: 2 })).toHaveCount(0);
+    await step('빈 문구가 보인다', async () => {
+      await expect(page.getByText('예정된 공연이 없어요.')).toBeVisible();
     });
   },
 );
@@ -69,7 +65,7 @@ scenario(
       '(public)에는 Suspense가 없어 카카오 크롤러가 상태 코드를 그대로 받는다(잘못된 미리보기를 캐시하지 않게). 브라우저는 스트리밍이라 200이고 에러 화면이 그려진다. error.tsx는 P5a 범위라 지금은 Next 기본 화면이다.',
     basis: ['tech-decisions §31 상태 코드 표', 'plan P0 산출물 B-3', 'patterns §11'],
     mocks: [
-      http.get('*/api/v2/tags', () =>
+      http.get('*/api/v2/home', () =>
         HttpResponse.json(envelope.error(500, 'GLOBAL_500_1'), { status: 500 }),
       ),
     ],
@@ -89,8 +85,8 @@ scenario(
       await note(`브라우저 응답: ${res?.status()}`);
       expect(res?.status()).toBe(200);
     });
-    await step('태그 목록 대신 에러 화면이 보인다', async () => {
-      await expect(page.getByRole('heading', { name: '장르' })).toHaveCount(0);
+    await step('공연 목록 대신 에러 화면이 보인다', async () => {
+      await expect(page.getByRole('link', { name: '공연 둘러보기' })).toHaveCount(0);
       // Next 기본 에러 화면. P5a에서 error.tsx가 생기면 그 문구로 바꾼다
       await expect(page.getByText(/couldn.t load/)).toBeVisible();
     });

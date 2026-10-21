@@ -149,6 +149,7 @@ export const addHostMembersMutation = (hostId: string) =>
 - 호스트 홈 공연 목록(GH-14)은 서버에서 프리페치하지 않는다. 브라우저에서 `useInfiniteQuery`로 읽는다(`(public)`이라 Suspense 없이, 스켈레톤으로). 비멤버는 공개 키, 멤버는 viewer 키. OG에 필요 없는 목록이라 서버 렌더 호출을 늘리지 않는다.
 - 세션 쿼리(GM-1)가 확정된 뒤 viewer를 부르므로 요청이 직렬이 된다. 받아들인 비용이다.
 - 변경의 `setQueryData`·무효화 대상은 viewer 키다. 공개 키에도 화면에 쓰는 같은 필드가 있으면 공개 키도 `invalidateQueries`한다. GH-3의 `followerCount`는 응답에 있지만 화면에 그리지 않으므로 팔로우 뒤 공개 키를 무효화하지 않는다.
+- 토글 변경(♡)은 같은 `scope`로 묶어 요청을 순서대로 하나씩 보낸다. 마지막 클릭의 응답만 캐시에 반영하고, 마지막 요청이 실패하면 viewer를 다시 읽는다(P5c-L `useHostFollow`).
 - 확인 전에 기다리는 영역을 화면마다 정한다.
 
 | 화면 | 공개 값으로 그리는 것 | 세션·viewer가 확정될 때까지 기다리는 것 |
@@ -399,8 +400,9 @@ infiniteQueryOptions({
 
 - 적용 필터는 **URL 쿼리**(`?keyword=&tagIds=1,2&includePast=true`), 드롭다운 열림은 로컬 상태.
 - 칩 클릭 즉시 적용 + shallow `replace`. 적용 버튼은 Figma에 없다.
+- shallow 교체는 `window.history.replaceState(null, '', url)`로 한다(Next의 Native History API). **첫 인자는 `null`** — `history.state`(Next 내부 `__NA` 포함)를 넘기면 `useSearchParams`가 갱신되지 않는다(P5a-L e2e에서 확인).
 - `tagIds`는 정렬·중복 제거 후 queryKey에 넣는다(순서만 다른 캐시를 만들지 않는다).
-- 없는 태그 id로 `Event_400_23`이 오면 GE-11을 다시 받아 필터를 초기화한다.
+- 없는 태그 id로 `Event_400_23`이 오면 GE-11을 다시 받아 **태그 필터만** 비운다(검색어·지난공연은 둔다).
 - 검색어는 50자에서 입력을 막는다. debounce 후 URL 반영.
 - "공연임박순"은 드롭다운이 아니라 고정 라벨이다. 서버 정렬값이 `UPCOMING` 하나뿐이다(티켓탭도 같다).
 
@@ -470,6 +472,7 @@ useEffect(() => {
 
 - G11/T-2를 열면 서버가 그 주문의 승인 알림을 읽음 처리한다(비동기). 열고 나서 G11/T-3과 GN-2를 무효화한다.
 - G11/T-2가 `IssuedTicket_404_1`이면 티켓탭 목록을 다시 읽는다(선물로 넘어갔거나 uuid가 바뀜).
+- **QR 값 갱신**: T-2는 `staleTime` 0이라 다시 열거나 창에 돌아오면 다시 읽는다. 수락·반환·회수 뒤에는 `['me','tickets']` 전체를 무효화한다. 404면 목록을 다시 읽는다(P8-L `useTicketDetail`).
 - 웹에서 화면 밝기 강제·스크린샷 차단은 할 수 없다. `navigator.wakeLock`은 QR 표시 중 선택적으로만 쓴다.
 - QR 값이 고정 uuid라 스크린샷이 유출되면 타인이 입장할 수 있다. 서버가 중복 입장을 막고(`ALREADY_ENTERED`), 선물 수락 시 옛 값이 무효가 되는 것이 방어선이다.
 
@@ -539,6 +542,7 @@ useEffect(() => {
 - **타입 매핑**: 15종 → 카테고리(티켓선물 안내 / 티켓승인 안내 / 공연 알림 등)·아이콘은 한 매핑에서. 모르는 타입은 기본 아이콘 + `title`·`body` 그대로.
 - 본문은 서버가 만든 문자열이다. HTML로 넣지 않는다.
 - 알림은 커밋 후 비동기 저장이라 mutation 직후 목록에 없을 수 있다. mutation 성공 직후의 알림 재조회에 기대지 않는다.
+- **쿼리 키는 `['me','notifications', …]` 접두**를 쓴다. 선물·티켓 변경이 이 접두로 미리 무효화를 걸어 두었다(`features/audience/gift/model/gift-cache.ts`의 `NOTIFICATIONS_KEY`, P8-L).
 - 관객 화면과 호스팅 센터가 같은 알림함을 쓴다. 쿼리는 `src/api/notification`, 벨·알림함·타입 매핑은 `features/shared/notification`.
 
 ## 22. 호스팅 센터 — 권한별 화면

@@ -82,3 +82,24 @@ export const eventHandlers = [
     return event ? ok(event.sections) : eventNotFound(request);
   }),
 ];
+
+/** 공연홈·공연 리스트(P5a) 시나리오 세트. 기본 목록 앞에 끼운다(`server.use(...)` / e2e `mockApi.use(...)`) */
+export const eventBrowseSets = {
+  /** GP-1 공연 없음 */
+  homeEmpty: [http.get('*/api/v2/home', () => ok({ events: [] }))],
+  /** GP-1 5xx(서버 조회 → 크롤러 500) */
+  homeServerError: [http.get('*/api/v2/home', ({ request }) => errors.serverError(request))],
+  /** GP-2 결과 없음(필터와 무관) */
+  listEmpty: [http.get('*/api/v2/events', () => ok(paginate([], 0, 10)))],
+  /** GP-2 두 번째 페이지부터 5xx */
+  listNextPageError: [
+    http.get('*/api/v2/events', ({ request }) => {
+      const page = Number(new URL(request.url).searchParams.get('page') ?? 0);
+      return page > 0 ? errors.serverError(request) : undefined;
+    }),
+  ],
+  /** GP-2 첫 페이지 5xx */
+  listServerError: [http.get('*/api/v2/events', ({ request }) => errors.serverError(request))],
+  /** GE-11 5xx */
+  tagsServerError: [http.get('*/api/v2/tags', ({ request }) => errors.serverError(request))],
+};

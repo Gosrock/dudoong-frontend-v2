@@ -1,8 +1,10 @@
 import { authHandlers } from './auth.handlers';
+import { checkInHandlers } from './check-in.handlers';
 import { eventHandlers } from './event.handlers';
 import { giftHandlers } from './gift.handlers';
 import { hostHandlers } from './host.handlers';
 import { meHandlers } from './me.handlers';
+import { myTicketHandlers } from './my-ticket.handlers';
 import { orderHandlers } from './order.handlers';
 import { uploadHandlers } from './upload-handlers';
 
@@ -14,10 +16,12 @@ import { uploadHandlers } from './upload-handlers';
 export const handlers = [
   ...eventHandlers,
   ...hostHandlers,
-  ...giftHandlers,
+  ...giftHandlers.default,
   ...meHandlers.byCookie,
   ...authHandlers.byCookie,
   ...authHandlers.kakao,
   ...uploadHandlers,
   ...orderHandlers.default,
+  ...myTicketHandlers.default,
+  ...checkInHandlers.default,
 ];

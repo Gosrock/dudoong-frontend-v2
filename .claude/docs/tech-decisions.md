@@ -275,7 +275,7 @@ export default async function Page({ params }: Props) {
   |---|---|---|---|---|
   | `hostDetailQuery(id)` | `['hosts', id]` | 서버 프리페치, `staleTime` 30초 | 공개 필드 | — |
   | `hostViewerQuery(id)` | `['hosts', id, 'viewer']` | 같은 엔드포인트, 프리페치 안 함, 세션이 있을 때만(`enabled`), `staleTime` 0 | `myRole`, `isFollowing` | 팔로우·설정·멤버 버튼 자리(비활성 자리표시) |
-  | `hostEventsQuery(id)` / `hostEventsViewerQuery(id)` | `['hosts', id, 'events', 'infinite', params]` / `['hosts', id, 'events', 'viewer', 'infinite', params]` | GH-14. 둘 다 브라우저 `useInfiniteQuery`(프리페치 안 함). 공개는 `{ public: true }`, viewer는 세션이 있을 때만 | 공개: 공개 공연. viewer: 멤버에게만 보이는 준비중 공연 포함 목록 | 공개 목록을 먼저 그리고, `myRole`이 확정되기 전에는 목록 위 "준비중" 자리를 비워 둔다. 멤버로 확정되면 viewer 목록으로 교체 |
+  | `hostEventsQuery(id)` / `hostEventsViewerQuery(id)` | `['hosts', id, 'events', 'infinite', params]` / `['hosts', id, 'events', 'viewer', 'infinite', params]` | GH-14. 둘 다 브라우저 `useInfiniteQuery`(프리페치 안 함). 공개는 `{ public: true }`, viewer는 세션이 있을 때만 | 공개: 공개 공연. viewer: 멤버에게만 보이는 준비중 공연 포함 목록 | 세션·viewer가 확정된 뒤 둘 중 하나로 **한 번만** 읽는다(patterns §4-2 — 공개 목록을 그렸다가 바꾸지 않는다). viewer·세션 확인이 실패하면 공개 키로 읽는다(P5c-L 구현) |
   | `giftLandingQuery(token)` / `giftLandingViewerQuery(token)` | `['gifts', token]` / `['gifts', token, 'viewer']` | 같은 방식 | viewer: `isReceiver`, 사용자에 따라 달라지는 `viewState`(`OWN_LINK` 등) | **상태 영역 전체**를 스켈레톤으로 둔다. 공개 값으로는 OG와 공연 요약만 그린다(`viewState`가 화면 전체를 정하므로 버튼만 막으면 깜빡인다) |
 
   - 사용자에 따라 달라지는 버튼(팔로우, 설정·멤버, 선물 수락·거절)은 viewer 쿼리가 확정되거나 익명이 확정된 뒤에만 활성화한다. 그 전에는 비활성 자리표시를 그린다.
@@ -782,7 +782,8 @@ nginx가 `X-Frame-Options: DENY`를 붙인다. 체크아웃을 iframe에 넣는 
 - 비로그인 수락: 로그인 → 같은 URL로 복귀 → GG-3 다시 조회 → 사용자가 **다시 눌러** 수락. 로그인만으로 자동 수락하지 않는다.
 - 소유권 이전은 낙관적으로 처리하지 않는다. 서버 성공 뒤에 화면을 바꾼다.
 - 수락(PG-4)·반환(PG-6)·회수(DG-2)·거절(PG-5) 성공 뒤에는 `my-ticket` 목록·상세, `gift`, `notification` 쿼리를 무효화한다. 응답의 새 `ticketUuid`로만 이동한다.
-- `Gift_400_3`(이미 처리됨)이면 GG-3을 다시 읽어 상태 화면으로 보낸다. `IssuedTicket_404_1`이면 티켓탭을 다시 읽는다.
+- `Gift_400_3`(이미 처리됨)이면 GG-3을 다시 읽어 상태 화면으로 보낸다. 보낸 쪽 회수(DG-2)에서 오면 연 곳(T-2·GG-3)을 둘 다 다시 읽는다(P8b-L).
+- 랜딩은 `noindex`이고 `og:url`·canonical을 쓰지 않는다(토큰이 든 주소). 토큰이 `[A-Za-z0-9_-]{1,64}`가 아니면 백엔드를 부르지 않고 404(체크인 토큰은 INVALID_QR)(P8b-L·P8c-L). `IssuedTicket_404_1`이면 티켓탭을 다시 읽는다.
 - 선물 대기·완료 티켓이 있는 주문은 사용자가 취소할 수 없다(`Order_400_24`) — 주문상세에서 "선물을 먼저 취소하거나 돌려받아 주세요"로 안내한다.
 - 토큰은 공유 링크 URL 외에는 넣지 않는다(로그, 외부 SDK 메타데이터 등). 서버 로그는 라우트 패턴으로 남긴다(§13). 외부로 나가는 링크의 Referer는 nginx의 `Referrer-Policy: strict-origin-when-cross-origin`이 origin까지로 줄인다(Deploy `site.conf`).
 

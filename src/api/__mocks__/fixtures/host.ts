@@ -1,4 +1,4 @@
-import type { HostViewer } from '../../host/schema';
+import type { HostMember, HostViewer } from '../../host/schema';
 import { MOCK_IMAGE_ORIGIN } from '../respond';
 
 /**
@@ -48,3 +48,22 @@ export function viewerOf(host: HostViewer): HostViewer {
 }
 
 export const MISSING_HOST_ID = 999999;
+
+/**
+ * GH-6 활성 멤버. 마스터 → 매니저 → 일반 순(백엔드 정렬). 수는 GH-3 `memberCount`와 같다.
+ * 고스락의 마스터는 로그인 mock 사용자(`me.ts`, userId 1)다.
+ */
+export const hostMembers: Record<number, HostMember[]> = {
+  11: [
+    { userId: 1, name: '두둥이', profileImageUrl: null, role: 'MASTER' },
+    {
+      userId: 2,
+      name: '김매니저',
+      profileImageUrl: `${MOCK_IMAGE_ORIGIN}/user/2/profile.png`,
+      role: 'MANAGER',
+    },
+    { userId: 3, name: '이드럼', profileImageUrl: null, role: 'GUEST' },
+    { userId: 4, name: null, profileImageUrl: null, role: 'GUEST' },
+  ],
+  12: [{ userId: 21, name: '소음대장', profileImageUrl: null, role: 'MASTER' }],
+};

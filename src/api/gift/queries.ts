@@ -1,6 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 
 import { api } from '../http';
+import { MyTicketDetailSchema } from '../my-ticket/schema';
 import { GiftLandingSchema, GiftLandingViewerSchema } from './schema';
 
 /**
@@ -26,4 +27,15 @@ export const giftLandingViewerQuery = (giftToken: string) =>
     queryKey: ['gifts', giftToken, 'viewer'],
     queryFn: ({ signal }) =>
       api.get(`gifts/${encodeURIComponent(giftToken)}`, GiftLandingViewerSchema, { signal }),
+  });
+
+/**
+ * GG-7a 보낸 사람의 "선물 완료" 티켓 상세(T-1의 SENT 행 `giftId`로 연다). T-2와 같은 모양이고 uuid·QR이 없다.
+ * 선물 완료가 아니거나 내 선물이 아니면 404 `Gift_404_1` → 티켓탭을 다시 읽는다.
+ * 키는 티켓 접두(`['me', 'tickets']`) 아래 — 반환·회수 뒤 티켓 쿼리와 함께 무효화된다.
+ */
+export const sentGiftTicketQuery = (giftId: number) =>
+  queryOptions({
+    queryKey: ['me', 'tickets', 'sent-gifts', giftId],
+    queryFn: ({ signal }) => api.get(`me/gifts/${giftId}/ticket`, MyTicketDetailSchema, { signal }),
   });

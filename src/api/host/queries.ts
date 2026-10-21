@@ -2,7 +2,12 @@ import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { api } from '../http';
 import { pageInfinite, type PageParams } from '../shared/page';
-import { HostDetailSchema, HostEventPageSchema, HostViewerSchema } from './schema';
+import {
+  HostDetailSchema,
+  HostEventPageSchema,
+  HostMembersSchema,
+  HostViewerSchema,
+} from './schema';
 
 /**
  * GH-3·GH-14는 사용자별 값이 섞인다(`isFollowing`·`myRole`, 멤버에게만 보이는 준비중 공연).
@@ -52,4 +57,15 @@ export const hostEventsViewerQuery = (hostId: string | number, params: PageParam
     ...pageInfinite,
     queryKey: ['hosts', String(hostId), 'events', 'viewer', 'infinite', { size: params.size }],
     queryFn: hostEventsFetcher(hostId, params.size, false),
+  });
+
+/**
+ * GH-6 멤버 목록(일반 멤버 이상). 호스트 홈은 `myRole`이 있을 때만 `enabled`로 부른다(아바타 줄, plan P5c).
+ * 비멤버는 403 `HOST_400_2`다.
+ */
+export const hostMembersQuery = (hostId: string | number) =>
+  queryOptions({
+    queryKey: ['hosts', String(hostId), 'members'],
+    queryFn: ({ signal }) =>
+      api.get(`hosts/${encodeURIComponent(hostId)}/members`, HostMembersSchema, { signal }),
   });
