@@ -3,13 +3,14 @@ import { z } from 'zod';
 
 import { log } from '@/utils/log';
 
-import { ApiError } from './errors';
+import { canRecoverSession, hasSessionLostFired, recoverSession } from './auth-handlers';
+import { ApiError, SessionLostError } from './errors';
 import { routePattern } from './shared/route-pattern';
 
 /**
  * 요청 파이프라인. 기준 주소 계산 → ky 호출 → 본문 읽기(시간 제한) → 래퍼 해제·zod 파싱.
  * 화면과 조회 정의는 이 파일이 아니라 `http.ts`의 `api`·`authApi`를 쓴다.
- * 401 재발급(Web Locks, dd:session)은 P4a에서 `request()`에 붙는다(tech-decisions §4).
+ * 401 처리(`withSessionRecovery`)는 `api`(v2)에만 붙는다. `authApi`는 `request()`를 그대로 쓴다(tech-decisions §4).
  */
 
 /** 요청 하나의 전체 시간(응답 헤더 + 본문). ky의 timeout은 헤더까지만 잰다. */
@@ -168,6 +169,32 @@ export async function request<T>(
   }
   const text = await readBody(res, deadline, route, opts.signal);
   return unwrap(res, text, schema, route);
+}
+
+// ─── 401 처리 ────────────────────────────────────────────────
+
+/**
+ * 보호 요청의 401 처리(tech-decisions §4 인증 표).
+ * - 서버, 공개 GET(`credentials: 'omit'`)은 가로채지 않는다
+ * - `dd:session`이 없으면(또는 핸들러 미등록) 401을 그대로 던진다 — 익명 방문자의 요청 수를 늘리지 않는다
+ * - 있으면 재발급(탭 안 단일 비행 + 탭 사이 Web Locks) 뒤 원 요청을 한 번 다시 보낸다. 다시 보낸 요청의 실패는 그대로 던진다
+ * - 이 탭에서 세션 상실이 이미 시작됐으면 401은 모두 `SessionLostError`(곧 이동한다)
+ */
+export async function withSessionRecovery<T>(
+  isPublic: boolean | undefined,
+  call: () => Promise<T>,
+) {
+  if (isServer || isPublic) return call();
+  const sentAt = Date.now();
+  try {
+    return await call();
+  } catch (e) {
+    if (!(e instanceof ApiError) || e.status !== 401) throw e;
+    if (hasSessionLostFired()) throw new SessionLostError();
+    if (!canRecoverSession()) throw e;
+    await recoverSession(sentAt);
+    return call();
+  }
 }
 
 // ─── 파일 내려받기 ───────────────────────────────────────────

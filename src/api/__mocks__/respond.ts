@@ -36,6 +36,12 @@ export const errors = {
   /** 토큰 없음(쿠키 만료 포함). HTTP 401인데 본문 status는 403 */
   noToken: (request: Request) =>
     fail(request, 403, 'AUTH_403_2', '알맞은 accessToken을 넣어주세요.', 401),
+  /** 만료된 액세스 토큰(JWT 필터). 재발급 대상 */
+  expiredToken: (request: Request) =>
+    fail(request, 401, 'AUTH_401_1', '인증 토큰이 만료되었습니다.'),
+  /** 재발급 실패(리프레시 토큰 없음·만료·다른 기기에서 덮어씀). 백엔드는 쿠키를 지우지 않는다 */
+  refreshRejected: (request: Request) =>
+    fail(request, 403, 'AUTH_403_1', '리프레시 토큰이 유효하지 않습니다.'),
   serverError: (request: Request) =>
     fail(request, 500, 'GLOBAL_500_1', '서버 오류. 관리자에게 문의 부탁드립니다.'),
 };
@@ -70,7 +76,32 @@ export function readPageParams(url: URL, defaultSize: number, maxSize = 50) {
  * 요청에 액세스 토큰 쿠키가 실렸는지. 핸들러의 `cookies`(MSW가 `Cookie` 헤더와, jsdom이면 `credentials` 모드에 따라
  * `document.cookie`까지 모은 값)를 넘긴다. 공개 GET은 `credentials: 'omit'`라 언제나 false다.
  */
-export const hasAccessToken = (cookies: Record<string, string>) => Boolean(cookies.accessToken);
+export const hasAccessToken = (cookies: Record<string, string>) =>
+  Boolean(cookies.accessToken) && cookies.accessToken !== EXPIRED_ACCESS_TOKEN;
+
+/**
+ * mock 세션 3상태(plan P4a)를 쿠키 값으로 만든다. 백엔드처럼 액세스·리프레시 토큰 쿠키만 본다.
+ * - 로그인: `accessToken=<아무 값>` — `/api/__mock/login`, e2e `setMockSession(page, 'loggedIn')`
+ * - 비로그인: 쿠키 없음
+ * - 만료: `accessToken=expired` → 보호 요청 401 `AUTH_401_1`. 재발급은 `refreshToken` 쿠키가
+ *   `MOCK_REFRESH_TOKEN`이면 성공(새 액세스 쿠키), 그 밖(없음·`revoked`)이면 403 `AUTH_403_1`
+ */
+export const EXPIRED_ACCESS_TOKEN = 'expired';
+export const MOCK_ACCESS_TOKEN = 'mock';
+export const MOCK_REFRESH_TOKEN = 'mock-refresh';
+
+export type MockAuthState = 'valid' | 'expired' | 'none';
+export function authState(cookies: Record<string, string>): MockAuthState {
+  if (!cookies.accessToken) return 'none';
+  return cookies.accessToken === EXPIRED_ACCESS_TOKEN ? 'expired' : 'valid';
+}
+
+/** 보호 API 앞단(JWT 필터 + 인가). 통과하면 null, 아니면 백엔드와 같은 401 응답 */
+export function requireAuth(request: Request, cookies: Record<string, string>) {
+  const state = authState(cookies);
+  if (state === 'valid') return null;
+  return state === 'expired' ? errors.expiredToken(request) : errors.noToken(request);
+}
 
 /** 경로의 숫자 id. 숫자가 아니면 null(백엔드는 타입 변환 실패로 400) */
 export function readId(value: unknown) {

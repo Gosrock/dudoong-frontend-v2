@@ -1,3 +1,4 @@
+import { authHandlers } from './auth.handlers';
 import { eventHandlers } from './event.handlers';
 import { giftHandlers } from './gift.handlers';
 import { hostHandlers } from './host.handlers';
@@ -14,5 +15,6 @@ export const handlers = [
   ...hostHandlers,
   ...giftHandlers,
   ...meHandlers.byCookie,
+  ...authHandlers.byCookie,
   ...uploadHandlers,
 ];

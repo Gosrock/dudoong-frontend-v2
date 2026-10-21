@@ -162,7 +162,7 @@ src/features/
 │     └─ RefuseOrder/ CancelOrder/ IssuedTicketDetail/ CompleteRefund/
 │
 └─ shared/                     # 관객·호스팅 양쪽이 쓰는 것
-   ├─ auth/                    # P4a/P4b  세션 쿼리(staleTime 5분), 게이트, LoginPage, KakaoCallback, Register, dd:session(로그인마다 새 값)·dd:refreshedAt. 게이트는 익명이면 항상 /login, error면 전체 화면 재시도. setAuthHandlers({ refresh, onSessionLost }) 등록 — 재발급(Web Locks + 15초 abort, authApi)과 세션 상실 처리(한 번만, 보호 화면은 /login/expired, 공개 화면은 reload)의 단일 지점. storage·pageshow 감시 함수도 여기서 내보내고 providers.tsx가 붙인다
+   ├─ auth/                    # P4a/P4b  LoginGate(pending 스켈레톤 · 익명이면 항상 /login · error면 전체 화면 재시도), useSession, registerAuth(queryClient) — setAuthHandlers 등록(재발급 HTTP 호출 refreshTokens + onSessionLost) + storage·pageshow 감시, handleSessionLost(한 번만, 보호 영역은 /login/expired, 그 밖은 reload), useProtectedArea(보호 영역 판정 = 게이트 마운트 수), LoginRequiredLink·useRequireLogin, useLogout, loginHref·expiredHref. P4b: LoginPage, KakaoCallback, Register. 임시 GateCheckView(+ (protected)/gate-check — 실제 보호 화면이 생기면 지운다)
    ├─ host-home/               # P5c  HostHome — 공개 필드는 hostDetailQuery, myRole별 뷰는 hostViewerQuery
    ├─ section-viewer/          # P5b  HTML/마크다운 렌더 + sanitize (공연 상세 ↔ 미리보기), 클라이언트 컴포넌트
    ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑
@@ -215,7 +215,8 @@ src/ui/
 src/api/
 ├─ client.ts                   # 요청 파이프라인 — ky 인스턴스 하나(기준 주소 없음, timeout 10초), 기준 주소 계산(prefixV2·prefixV1Auth), ky 네트워크·타임아웃 → ApiError(0), 본문 읽기 시간 제한, 래퍼 해제(NON_JSON·BAD_ENVELOPE·PARSE_ERROR). 401 재발급은 P4a에서 request()에 붙는다
 ├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체만 — client.ts의 request()를 감싼다. { public: true }는 credentials:'omit'
-├─ auth-handlers.ts            # setAuthHandlers({ refresh, onSessionLost }) — 등록은 features/shared/auth
+├─ auth-handlers.ts            # P4a  setAuthHandlers({ refresh, onSessionLost }) + 재발급 조정: 탭 안 단일 비행, 탭 사이 Web Locks(15초 abort) + dd:refreshedAt 비교, 결과 판정(성공 / 상실 → SessionLostError + onSessionLost 한 번 / 일시 오류 → 세션 유지), B6 대응(1초 뒤 1회). features는 HTTP 호출만 등록한다(api가 features를 import할 수 없어서)
+├─ session-flag.ts             # P4a  dd:session(로그인마다 새 무작위 값)·dd:refreshedAt 읽기·쓰기. 저장소 실패 = 없음. client.ts의 401 처리가 읽어야 해서 api에 둔다
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
 ├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
 ├─ handle-codes.ts             # handleCodes({ 코드: 처리 }) → { meta: { handledCodes }, onError } — 변경 에러를 화면이 처리할 코드를 한 곳에 쓴다
@@ -248,7 +249,8 @@ src/utils/
 ├─ log.ts                      # 구조화 stdout 로그 log(level, event, fields)
 ├─ clipboard.ts                # copyText()
 ├─ money.ts                    # 원 단위 표시
-└─ download.ts                 # blob 저장 (엑셀)
+├─ download.ts                 # blob 저장 (엑셀)
+└─ redirect.ts                 # P4a  safeRedirect(raw, fallback) — 같은 출처 상대 경로만. //·\\·제어 문자·2048자 초과·/login*·/kakao/callback(되돌이) 거부
 ```
 
 ## 계층 규칙 (eslint로 강제)

@@ -63,10 +63,13 @@ function toFetchRequest(req: IncomingMessage, origin: string, body: Buffer) {
 }
 
 async function writeFetchResponse(res: ServerResponse, response: Response) {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string | string[]> = {};
   response.headers.forEach((value, key) => {
-    headers[key] = value;
+    if (key !== 'set-cookie') headers[key] = value;
   });
+  // Set-Cookie는 여러 개를 한 줄로 합치면 깨진다(재발급·로그아웃은 쿠키 둘을 내려준다)
+  const cookies = response.headers.getSetCookie();
+  if (cookies.length > 0) headers['set-cookie'] = cookies;
   res.writeHead(response.status, headers);
   res.end(Buffer.from(await response.arrayBuffer()));
 }

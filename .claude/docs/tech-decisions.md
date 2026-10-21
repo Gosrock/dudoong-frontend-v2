@@ -335,6 +335,16 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 
 ### 인증
 
+**P4a 구현 기록(2026-10-21)** — 아래 규칙대로 구현했고, 위치·세부는 이렇게 정했다.
+- `dd:session`·`dd:refreshedAt`(`src/api/session-flag.ts`)과 재발급 조정(`src/api/auth-handlers.ts` — 단일 비행, Web Locks, 결과 판정)은 `src/api`에 둔다. `client.ts`의 401 처리가 읽어야 하는데 `api`는 `features`를 import할 수 없다. `features/shared/auth`는 재발급 HTTP 호출(`authApi`)과 `onSessionLost`만 등록한다.
+- 보호 영역 판정은 경로가 아니라 **마운트된 `LoginGate` 수**(`useProtectedArea`)로 한다. React 밖(`onSessionLost`·`storage`)에서도 쓸 수 있다.
+- GM-1은 세션 상실에 `null`을 돌려주지만, 게이트는 상실이 이미 시작됐으면 `/login`으로 보내지 않는다(`/login/expired` 하드 이동과 경합 방지).
+- 재발급 뒤 다시 보낸 요청이 또 401이면 반복하지 않고 그대로 던진다(GM-1은 `null`).
+- 잠금 대기가 끊기면 `ApiError(0, 'TIMEOUT')` — 일시 오류와 같은 규칙.
+- `storage`에서 플래그가 없다가 생기면: 이 탭이 이미 세션이면 값만 받아들이고, 익명으로 그려져 있으면 새로고침.
+- `hosting/layout.tsx`에도 게이트를 붙였다(P4s 셸이 그 안에 들어간다).
+- `safeRedirect`는 `/login*`·`/kakao/callback`(되돌이)·공백·제어 문자·2048자 초과도 거부한다. `loginHref('/')`는 `redirect`를 붙이지 않는다.
+
 - API는 프론트와 같은 출처(`/api/v2/…`)다. 브라우저는 같은 출처(`${location.origin}/api/v2`)로 부르고, 서버에서 도는 조회는 `http://localhost:8080/api/v2`로 부른다(§25).
 - 인증 API는 v1 그대로다. 서버는 `Authorization: Bearer`를 먼저 보고 없으면 액세스 토큰 쿠키를 읽는다.
 - **JS로 토큰 쿠키를 읽지 않는다.** 브라우저 요청은 쿠키 자동 전송(`credentials: 'include'`)에 맡긴다. 백엔드가 쿠키를 HttpOnly로 바꾸는 전제 조건이다.

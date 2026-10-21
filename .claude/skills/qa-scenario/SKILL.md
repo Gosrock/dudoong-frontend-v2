@@ -109,7 +109,7 @@ scenario.manual('EVT-9', '카카오 공유 미리보기가 맞게 나온다', {
 - 서버/브라우저 어느 쪽이 불렀는지는 `mockApi.calls()`의 `from`(`'server' | 'browser'`)으로 본다(프리페치 뒤 브라우저가 다시 부르지 않는지 등).
 - 브라우저 요청만 바꾸려면(배경 재조회 실패 → 토스트 등) `page.route('**/api/v2/...', (r) => r.fulfill({...}))`.
 - 시간 의존 값(오픈 전·후, D-day)은 가짜 응답의 날짜로 만든다. 브라우저 시계는 `page.clock`으로 고정할 수 있다.
-- 로그인 상태: P4a·P4b 전에는 없다. 인증이 들어오면 `e2e/support/fixtures.ts`에 로그인 픽스처(세션 응답 핸들러 + `dd:session`)를 추가하고 이 문서를 고친다.
+- 로그인 상태: `e2e/support/auth.ts`의 `setMockSession(page, 'loggedIn' | 'anonymous' | 'expired' | 'expiredRefreshFails')`로 쿠키와 `dd:session`을 함께 세운다. `readSessionFlag(page)`로 확인한다. mock 쿠키 규칙: `accessToken=expired`는 만료(401 `AUTH_401_1`), `refreshToken=mock-refresh`는 재발급 성공, `revoked`는 실패. 예시는 `qa/scenarios/auth-gate.qa.ts`. `pnpm dev:mock`에서는 `/api/__mock/login`·`/api/__mock/expire[?refresh=fail]`·`/api/__mock/logout`(`?redirect=`)으로 같은 상태를 만든다.
 
 ### 3. (선택) agent-browser로 먼저 눌러 본다
 

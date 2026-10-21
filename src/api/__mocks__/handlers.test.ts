@@ -18,7 +18,9 @@ import {
   hostEventsViewerQuery,
   hostViewerQuery,
 } from '../host/queries';
+import { api } from '../http';
 import { meQuery, SESSION_STALE_MS } from '../me/queries';
+import { MeSchema } from '../me/schema';
 import { flattenPages } from '../shared/page';
 import { eventTicketItemsQuery } from '../ticket-item/queries';
 import { MISSING_EVENT_ID } from './fixtures/event';
@@ -224,14 +226,21 @@ describe('GM-1 세션', () => {
     expect(SESSION_STALE_MS).toBe(300_000);
   });
 
-  it('쿠키가 없으면 HTTP 401 AUTH_403_2', async () => {
-    const e = await rejection(client().fetchQuery(meQuery()));
+  it('쿠키가 없으면 HTTP 401 AUTH_403_2 — 세션 표시가 없으면 GM-1은 null(익명)', async () => {
+    const e = await rejection(api.get('me', MeSchema));
     expect(e).toMatchObject({ status: 401, code: 'AUTH_403_2' });
+    await expect(client().fetchQuery(meQuery())).resolves.toBeNull();
+  });
+
+  it('만료 상태는 HTTP 401 AUTH_401_1', async () => {
+    server.use(...meHandlers.expired);
+    const e = await rejection(api.get('me', MeSchema));
+    expect(e).toMatchObject({ status: 401, code: 'AUTH_401_1' });
   });
 
   it('로그인 상태', async () => {
     server.use(...meHandlers.loggedIn);
     const me = await client().fetchQuery(meQuery());
-    expect(me.hosts[0]).toMatchObject({ hostId: 11, myRole: 'MASTER' });
+    expect(me?.hosts[0]).toMatchObject({ hostId: 11, myRole: 'MASTER' });
   });
 });
