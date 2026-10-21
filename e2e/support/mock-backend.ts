@@ -24,8 +24,16 @@ export type ApiCall = {
   status: number;
 };
 
+/** 두둥 토큰 쿠키의 SameSite. `null`이면 핸들러가 내린 값 그대로(mock 기본 `Lax`) */
+export type TokenCookieSameSite = 'Strict' | 'Lax' | 'None' | null;
+
 export type MockBackend = {
   origin: string;
+  /**
+   * 두둥 토큰 쿠키(`accessToken`·`refreshToken`)의 `SameSite`를 바꿔 내린다. 운영(`Strict`) 재현용(plan P4b).
+   * `oauth_state` 쿠키는 백엔드처럼 언제나 `Lax`다. `reset()`이 `null`로 되돌린다(시작 옵션 값으로)
+   */
+  setTokenCookieSameSite: (value: TokenCookieSameSite) => void;
   /** 이번 테스트에만 쓰는 핸들러. 앞에 둔 것이 먼저 맞는다(MSW `server.use`와 같다) */
   use: (...handlers: RequestHandler[]) => void;
   reset: () => void;
@@ -62,13 +70,26 @@ function toFetchRequest(req: IncomingMessage, origin: string, body: Buffer) {
   });
 }
 
-async function writeFetchResponse(res: ServerResponse, response: Response) {
+const TOKEN_COOKIE = /^(accessToken|refreshToken)=/;
+
+/** 두둥 토큰 쿠키의 SameSite 속성을 바꾼다(없으면 붙인다) */
+export function rewriteSameSite(cookie: string, sameSite: TokenCookieSameSite): string {
+  if (sameSite === null || !TOKEN_COOKIE.test(cookie)) return cookie;
+  const parts = cookie.split(/;\s*/).filter((p) => !/^samesite=/i.test(p));
+  return [...parts, `SameSite=${sameSite}`].join('; ');
+}
+
+async function writeFetchResponse(
+  res: ServerResponse,
+  response: Response,
+  sameSite: TokenCookieSameSite,
+) {
   const headers: Record<string, string | string[]> = {};
   response.headers.forEach((value, key) => {
     if (key !== 'set-cookie') headers[key] = value;
   });
   // Set-Cookie는 여러 개를 한 줄로 합치면 깨진다(재발급·로그아웃은 쿠키 둘을 내려준다)
-  const cookies = response.headers.getSetCookie();
+  const cookies = response.headers.getSetCookie().map((c) => rewriteSameSite(c, sameSite));
   if (cookies.length > 0) headers['set-cookie'] = cookies;
   res.writeHead(response.status, headers);
   res.end(Buffer.from(await response.arrayBuffer()));
@@ -99,11 +120,15 @@ function proxyToApp(req: IncomingMessage, res: ServerResponse, appOrigin: string
 export async function startMockBackend({
   port,
   appOrigin,
+  tokenCookieSameSite = null,
 }: {
   port: number;
   appOrigin: string;
+  /** 시작할 때의 토큰 쿠키 SameSite(`pnpm dev:mock`의 `MOCK_COOKIE_SAMESITE`) */
+  tokenCookieSameSite?: TokenCookieSameSite;
 }): Promise<MockBackend> {
   let overrides: RequestHandler[] = [];
+  let sameSite: TokenCookieSameSite = tokenCookieSameSite;
   let calls: ApiCall[] = [];
   let unhandled: ApiCall[] = [];
   const origin = `http://127.0.0.1:${port}`;
@@ -126,7 +151,7 @@ export async function startMockBackend({
       };
       calls.push(call);
       if (!found) unhandled.push(call);
-      await writeFetchResponse(res, response);
+      await writeFetchResponse(res, response, sameSite);
     })().catch((e: unknown) => {
       res.writeHead(500, { 'content-type': 'text/plain' });
       res.end(`mock backend error: ${e instanceof Error ? e.message : String(e)}`);
@@ -144,8 +169,12 @@ export async function startMockBackend({
     use: (...handlers) => {
       overrides = [...handlers, ...overrides];
     },
+    setTokenCookieSameSite: (value) => {
+      sameSite = value;
+    },
     reset: () => {
       overrides = [];
+      sameSite = tokenCookieSameSite;
       calls = [];
       unhandled = [];
     },

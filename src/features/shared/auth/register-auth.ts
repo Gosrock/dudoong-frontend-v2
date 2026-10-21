@@ -1,9 +1,9 @@
 import type { QueryClient } from '@tanstack/react-query';
 
+import { refreshTokens } from '@/api/auth/calls';
 import { setAuthHandlers } from '@/api/auth-handlers';
 import { knownSessionFlag } from '@/api/session-flag';
 
-import { refreshTokens } from './auth-calls';
 import { handleSessionLost } from './session-lost';
 import { handlePageShow, handleSessionStorageEvent } from './session-sync';
 

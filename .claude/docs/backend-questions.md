@@ -57,6 +57,14 @@
 - GP-2 `tagIds`를 여러 개 보낼 때 같은 분류는 OR, 분류끼리는 AND가 맞나? (쉼표로 이어 보낸다)
 - 업로드 URL 발급 제한 `throttle.presigned-url-per-minute`의 운영 값이 30인가? (문서값 30으로 안내한다)
 
+### B8. P4b-L 카카오 로그인 구현에서 나온 것
+
+- 카카오 앱의 이메일·이름 동의 항목이 필수인가? 선택이면 비어 올 수 있어 가입 폼에서 직접 받는다(지금 그렇게 했다).
+- 카카오 콘솔에 `https://staging.dudoong.com/kakao/callback`과 `http://localhost:3000/kakao/callback`이 등록돼 있나?
+- 이용약관·개인정보 동의를 서버가 기록하나? `RegisterRequest`에는 `marketingAgree`만 있다.
+- 사소한 버그: `KakaoKauthErrorCode.KOE010`의 errorCode가 `KAKAO_KOE101`로 중복돼 있다.
+- B6(낡은 액세스 쿠키로 링크 발급·콜백이 401)이 로그인 화면에서 실제로 막는다 — 쿠키가 만료될 때까지(운영 3600초) "잠시 후 다시"에 갇힌다. B6 답이 필요하다.
+
 ---
 
 ## 지켜보는 것

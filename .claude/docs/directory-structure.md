@@ -164,7 +164,7 @@ src/features/
 │     └─ RefuseOrder/ CancelOrder/ IssuedTicketDetail/ CompleteRefund/
 │
 └─ shared/                     # 관객·호스팅 양쪽이 쓰는 것
-   ├─ auth/                    # P4a/P4b  LoginGate(pending 스켈레톤 · 익명이면 항상 /login · error면 전체 화면 재시도), useSession, registerAuth(queryClient) — setAuthHandlers 등록(재발급 HTTP 호출 refreshTokens + onSessionLost) + storage·pageshow 감시, handleSessionLost(한 번만, 보호 영역은 /login/expired, 그 밖은 reload), useProtectedArea(보호 영역 판정 = 게이트 마운트 수), LoginRequiredLink·useRequireLogin, useLogout, loginHref·expiredHref. P4b: LoginPage, KakaoCallback, Register. 임시 GateCheckView(+ (protected)/gate-check — 실제 보호 화면이 생기면 지운다)
+   ├─ auth/                    # P4a/P4b  LoginGate(pending 스켈레톤 · 익명이면 항상 /login · error면 전체 화면 재시도), useSession, registerAuth(queryClient) — setAuthHandlers 등록(재발급 HTTP 호출 refreshTokens + onSessionLost) + storage·pageshow 감시, handleSessionLost(한 번만, 보호 영역은 /login/expired, 그 밖은 reload), useProtectedArea(보호 영역 판정 = 게이트 마운트 수), LoginRequiredLink·useRequireLogin, useLogout, loginHref·expiredHref. P4b: LoginView, KakaoCallbackView(최소 마크업 — V에서 교체), model/(auth-outcome·login-redirect·register-form·finish-login, useKakaoLogin·useKakaoCallback·useRegisterForm). 임시 GateCheckView(+ (protected)/gate-check — 실제 보호 화면이 생기면 지운다)
    ├─ host-home/               # P5c  HostHome — 공개 필드는 hostDetailQuery, myRole별 뷰는 hostViewerQuery
    ├─ section-viewer/          # P5b  HTML/마크다운 렌더 + sanitize (공연 상세 ↔ 미리보기), 클라이언트 컴포넌트
    ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑
@@ -232,7 +232,8 @@ src/api/
 │  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
 │  ├─ route-pattern.ts         # routePattern() — 로그용 경로(id·토큰 → :param, 쿼리 버림)
 │  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
-├─ auth/  me/  host/  event/  ticket-item/  option/
+├─ auth/                       # P4b  calls.ts(카카오 링크·코드 교환·register/valid·login·info·register, 재발급·로그아웃 — authApi), schema.ts
+├─ me/  host/  event/  ticket-item/  option/
 ├─ order/                      # + price.ts (금액 계산 순수함수)
 ├─ refund/  issued-ticket/  check-in/  my-ticket/  gift/  notification/
 └─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정)

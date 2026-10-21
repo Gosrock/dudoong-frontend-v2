@@ -16,5 +16,6 @@ export const handlers = [
   ...giftHandlers,
   ...meHandlers.byCookie,
   ...authHandlers.byCookie,
+  ...authHandlers.kakao,
   ...uploadHandlers,
 ];

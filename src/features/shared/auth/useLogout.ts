@@ -3,11 +3,11 @@
 import { type QueryClient, useIsMutating, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
+import { requestLogout } from '@/api/auth/calls';
 import { isApiError } from '@/api/errors';
 import { clearSessionFlag } from '@/api/session-flag';
 import { log } from '@/utils/log';
 
-import { requestLogout } from './auth-calls';
 import { browserLocation } from './browser-location';
 
 /**

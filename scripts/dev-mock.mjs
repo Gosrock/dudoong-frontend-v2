@@ -6,6 +6,9 @@
 //    — 서버 조회는 rewrite를 타지 않으므로 둘 다 준다(tech-decisions §12)
 // 둘 중 하나가 끝나면 다른 것도 끈다.
 //
+// 카카오 로그인(plan P4b): /login의 [카카오 로그인]이 실제 카카오 대신 가짜 인증 화면(/api/__mock/kakao/authorize)으로 간다.
+// 거기서 기존·신규·정지 사용자나 state 불일치·동의 취소를 고르면 /kakao/callback으로 돌아온다(src/api/__mocks__/auth.handlers.ts).
+//
 // 세션 흉내(plan P4a mock 3상태): 브라우저에서 아래 주소를 열면 쿠키와 dd:session을 세우고 ?redirect=로 돌아간다.
 //   /api/__mock/login  로그인 · /api/__mock/expire 만료(재발급 성공) · /api/__mock/expire?refresh=fail 만료(재발급 실패)
 //   /api/__mock/logout 비로그인. 공개 GET은 쿠키를 싣지 않으므로 계속 익명 값이다.
@@ -25,9 +28,17 @@ const MOCK_PORT = Number(process.env.MOCK_API_PORT ?? 4200);
 const APP_PORT = Number(process.env.PORT ?? 3000);
 const MOCK_ORIGIN = `http://127.0.0.1:${MOCK_PORT}`;
 
+// MOCK_COOKIE_SAMESITE=Strict — 운영처럼 토큰 쿠키를 SameSite=Strict로 내린다(plan P4b SameSite 재현)
+const SAME_SITE = process.env.MOCK_COOKIE_SAMESITE || null;
+if (SAME_SITE && !['Strict', 'Lax', 'None'].includes(SAME_SITE)) {
+  console.error(`[dev:mock] MOCK_COOKIE_SAMESITE는 Strict·Lax·None 중 하나: ${SAME_SITE}`);
+  process.exit(1);
+}
+
 const backend = await startMockBackend({
   port: MOCK_PORT,
   appOrigin: `http://127.0.0.1:${APP_PORT}`,
+  tokenCookieSameSite: SAME_SITE,
 });
 
 // mock 세션 3상태(plan P4a). 쿠키는 백엔드처럼 응답 Set-Cookie로, `dd:session`(세션 표시)은 같은 출처 HTML의
@@ -83,6 +94,9 @@ backend.use(
 );
 console.log(
   `[dev:mock] 가짜 백엔드 ${MOCK_ORIGIN}/api (세션 흉내: /api/__mock/login · /api/__mock/expire[?refresh=fail] · /api/__mock/logout, 모두 ?redirect=/경로)`,
+);
+console.log(
+  `[dev:mock] 카카오 로그인은 가짜 인증 화면으로 간다. 토큰 쿠키 SameSite: ${SAME_SITE ?? 'Lax(기본)'}`,
 );
 
 // 핸들러가 없는 요청은 MOCK_UNHANDLED(500)로 응답한다 — 알아차리게 찍는다

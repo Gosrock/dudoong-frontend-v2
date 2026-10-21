@@ -11,7 +11,8 @@ import { expect, http, HttpResponse, scenario } from '../scenario';
  * - 크롤러: 보호 화면은 (protected)라 서버 조회가 없고, 공개 화면 크롤러 동작은 home.qa.ts가 본다
  * - 익명 사용자별 버튼(♡·선물 수락 → 요청 없이 로그인): 그 버튼을 쓰는 화면이 아직 없어(P5c·P8b) Vitest
  *   (`src/features/shared/auth/session.test.tsx`)로만 확인한다
- * - 로그인·만료 화면 자체: P4b. 지금은 자리표시 화면이라 주소만 본다
+ * - 로그인·만료·콜백 화면: P4b-L은 최소 마크업이라 주소·제목만 본다. 카카오 흐름(콜백 성공·실패, redirect 복귀,
+ *   SameSite=Strict, bfcache)은 e2e/auth.spec.ts·auth-bfcache.spec.ts가 보고, 화면 캡처는 P4b-V에서 더한다
  */
 
 const meCalls = (calls: ApiCall[]) => calls.filter((c) => c.path.startsWith('/api/v2/me'));

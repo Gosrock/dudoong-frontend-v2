@@ -44,6 +44,39 @@ export const errors = {
     fail(request, 403, 'AUTH_403_1', '리프레시 토큰이 유효하지 않습니다.'),
   serverError: (request: Request) =>
     fail(request, 500, 'GLOBAL_500_1', '서버 오류. 관리자에게 문의 부탁드립니다.'),
+  /** OAuth `state` 파라미터와 쿠키가 다름 */
+  stateMismatch: (request: Request) =>
+    fail(
+      request,
+      400,
+      'AUTH_400_1',
+      '로그인 요청이 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요.',
+    ),
+  /** 정지 계정의 로그인·재발급(`User.login()`) */
+  suspended: (request: Request) => fail(request, 403, 'USER_403_1', '접근이 제한된 유저입니다.'),
+  userNotFound: (request: Request) =>
+    fail(request, 404, 'USER_404_1', '유저 정보를 찾을 수 없습니다.'),
+  alreadyRegistered: (request: Request) =>
+    fail(request, 400, 'USER_400_1', '이미 회원가입한 유저입니다.'),
+  /** 카카오 인가 코드 재사용·만료(백엔드 `KakaoKauthErrorCode.KOE320`) */
+  kakaoCodeInvalid: (request: Request) =>
+    fail(
+      request,
+      400,
+      'KAKAO_KOE320',
+      '동일한 인가 코드를 두 번 이상 사용하거나, 이미 만료된 인가 코드를 사용한 경우, 혹은 인가 코드를 찾을 수 없는 경우',
+    ),
+  /** 카카오 id 토큰 형식 오류(`KOE400`) */
+  kakaoIdTokenInvalid: (request: Request) =>
+    fail(
+      request,
+      400,
+      'KAKAO_KOE400',
+      'ID 토큰 값이 전달되지 않았거나 올바른 형식이 아닌 ID 토큰인 경우',
+    ),
+  /** 카카오 사용자 정보 조회가 401(잘못된 카카오 액세스 토큰). 백엔드 `KakaoInfoErrorDecoder`는 HTTP 400으로 바꾼다 */
+  kakaoAccessTokenInvalid: (request: Request) =>
+    fail(request, 400, 'FEIGN_400_2', 'Other server unauthorized'),
 };
 
 /** 배열을 `V2PageResponse`로 자른다. `slice`면 Slice 응답(totalElements·totalPages null, GN-1) */

@@ -4,6 +4,8 @@
  */
 export const browserLocation = {
   assign: (url: string) => window.location.assign(url),
+  /** 지금 기록을 바꾼다 — 로그인 콜백(쓰고 난 인가 코드가 든 주소)을 뒤로가기에 남기지 않는다 */
+  replace: (url: string) => window.location.replace(url),
   reload: () => window.location.reload(),
   /** 지금 주소의 `경로?쿼리` — `redirect` 값으로 쓴다(해시는 버린다) */
   currentPath: () => `${window.location.pathname}${window.location.search}`,

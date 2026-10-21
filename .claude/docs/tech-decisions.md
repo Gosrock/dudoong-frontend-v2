@@ -345,6 +345,15 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 - `hosting/layout.tsx`에도 게이트를 붙였다(P4s 셸이 그 안에 들어간다).
 - `safeRedirect`는 `/login*`·`/kakao/callback`(되돌이)·공백·제어 문자·2048자 초과도 거부한다. `loginHref('/')`는 `redirect`를 붙이지 않는다.
 
+**P4b-L 구현 기록(2026-10-22)** — 백엔드 `24aa595`의 `AuthController`·`OauthStateHelper`·`KakaoRedirectPolicy`·`CookieHelper`를 읽고 맞췄다.
+- 콜백 경로 `(app)/kakao/callback`(백엔드 `{출처}/kakao/callback`). 흐름: 링크 발급 → 카카오 → 코드 교환(`state` 전달) → `register/valid` → 기존이면 로그인, 신규면 `info`로 프로필을 받아 가입 폼 → `register`. 가입이 `USER_400_1`(이미 가입)이면 같은 id 토큰으로 로그인한다.
+- **돌아올 주소는 `sessionStorage`(`dd:loginRedirect`)에 보관한다.** `redirect_uri`는 카카오 콘솔에 등록한 고정 주소라 쿼리를 붙일 수 없고, `state`는 백엔드가 만들어 쿠키와 비교하는 값이라 FE가 내용을 넣을 수 없다. 저장·꺼낼 때 모두 `safeRedirect`.
+- **성공 이동은 `location.replace`**(문서의 `assign`에서 바꿈). 쓴 인가 코드가 든 콜백 주소가 기록에 남으면 뒤로가기가 코드를 다시 교환해 `KOE320`으로 실패한다. `AUTH_400_1` 재시작·동의 취소도 replace. 같은 인가 코드는 모듈 단위로 한 번만 교환한다(개발 StrictMode의 effect 두 번 대비).
+- 실패 판정 `classifyAuthFailure`: HTTP 401 → "잠시 후 다시"(B6), `USER_403_1` → 정지 안내, `AUTH_400_1` → 처음부터, 그 밖 → 일반 실패. 카카오 `error=`(동의 취소)·코드 없음 → 로그인 화면. 이 흐름은 mutation·전역 토스트를 쓰지 않고 화면 상태로만 보인다.
+- 로그인 응답(`TokenAndUser`)은 검사하지 않는다(`z.unknown()`) — 쿠키는 이미 세팅됐는데 쓰지 않는 필드 모양 때문에 `PARSE_ERROR`로 로그인이 실패하지 않게.
+- 가입 동의: 이용약관·개인정보 필수 + 마케팅 선택(`marketingAgree`). 이름·이메일·전화번호는 고칠 수 있다(카카오 값이 비어 올 수 있다) — design-requests Q25.
+- 인증 호출 정의(`refreshTokens`·`requestLogout`·카카오 6종)는 `src/api/auth/calls.ts`. 등록은 여전히 `registerAuth`·`useLogout`.
+
 - API는 프론트와 같은 출처(`/api/v2/…`)다. 브라우저는 같은 출처(`${location.origin}/api/v2`)로 부르고, 서버에서 도는 조회는 `http://localhost:8080/api/v2`로 부른다(§25).
 - 인증 API는 v1 그대로다. 서버는 `Authorization: Bearer`를 먼저 보고 없으면 액세스 토큰 쿠키를 읽는다.
 - **JS로 토큰 쿠키를 읽지 않는다.** 브라우저 요청은 쿠키 자동 전송(`credentials: 'include'`)에 맡긴다. 백엔드가 쿠키를 HttpOnly로 바꾸는 전제 조건이다.
@@ -477,6 +486,8 @@ src/utils    → 순수 유틸
 TS 5.x, `strict`, `noUncheckedIndexedAccess`, `moduleResolution: "bundler"`. alias는 `@/*` → `src/*` 하나. `any` 금지(`@typescript-eslint/no-explicit-any`). Next가 생성하는 라우트 타입(`PageProps`, `LayoutProps`)을 쓴다 — CI에서 `next typegen` 뒤에 typecheck한다.
 
 ## 10. 테스트
+
+> **bfcache**: Playwright는 Chromium을 `--disable-back-forward-cache`로 띄운다. bfcache 복원을 보는 테스트는 새 headless(`channel: 'chromium'`) + `ignoreDefaultArgs`로 그 인자를 빼야 하고, 이 옵션은 워커 단위라 `e2e/auth-bfcache.spec.ts`처럼 파일을 나눈다(P4b-L).
 
 2026-10-17 개정(브랜치 `feat/testing-setup`). 세 층으로 나누고, **PR 게이트에는 Vitest만 넣는다**(P2에서 스토리 테스트도 추가 — §24). Playwright(e2e·QA 시나리오)는 로컬 명령과 `qa-scenario` 스킬로만 돈다(사용자 결정).
 

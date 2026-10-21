@@ -38,9 +38,16 @@ export const api = {
     withSessionRecovery(false, () => requestFile(prefixV2, path, opts)),
 };
 
-/** `/api/v1/auth` 호출. 401 가로채기가 없다(Web Locks 재진입 방지 — tech-decisions §4). */
+/** 인증 호출 옵션. 쿠키는 언제나 싣는다(`state`·리프레시 쿠키를 주고받는다 — api-contract §9) */
+export type AuthCallOptions = Pick<CallOptions, 'searchParams' | 'signal'>;
+
+/**
+ * `/api/v1/auth` 호출. 401 가로채기가 없다(Web Locks 재진입 방지 — tech-decisions §4).
+ * 엔드포인트별 호출과 스키마는 `src/api/auth/`에 있다. 화면은 이 객체가 아니라 그쪽 함수를 쓴다.
+ */
 export const authApi = {
-  post: <T>(path: string, schema: z.ZodType<T>, body?: unknown) =>
-    request('post', prefixV1Auth, path, schema, body),
-  get: <T>(path: string, schema: z.ZodType<T>) => request('get', prefixV1Auth, path, schema),
+  post: <T>(path: string, schema: z.ZodType<T>, body?: unknown, opts?: AuthCallOptions) =>
+    request('post', prefixV1Auth, path, schema, body, opts),
+  get: <T>(path: string, schema: z.ZodType<T>, opts?: AuthCallOptions) =>
+    request('get', prefixV1Auth, path, schema, undefined, opts),
 };
