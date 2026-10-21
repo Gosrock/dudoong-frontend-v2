@@ -123,7 +123,7 @@ app/
 | `(public)` | 서버(`<Prefetch>`) | Suspense·`loading.tsx` **없음**, `instant = false`를 레이아웃과 페이지마다 |
 | `(app)` | 클라이언트 | `<Suspense>` |
 | `(app)/(protected)` | 클라이언트 | 로그인 게이트(§4 인증) |
-| `hosting` | 클라이언트 | `<Suspense>` + 로그인 게이트(P4a의 게이트 컴포넌트를 그대로 쓴다, P10a) + 셸. 셸은 아래 "호스팅 센터 셸" |
+| `hosting` | 클라이언트 | `<Suspense>` + 로그인 게이트(P4a의 게이트 컴포넌트를 그대로 쓴다, P4s) + 셸. 셸은 아래 "호스팅 센터 셸" |
 
 **경로를 읽는 컴포넌트.** Cache Components에서 `usePathname()`은 `generateStaticParams`가 없는 동적 파라미터 경로에서 suspend하고, 위에 Suspense가 없으면 빌드가 실패한다([Next 문서](https://nextjs.org/docs/app/api-reference/functions/use-pathname)). 그렇다고 children을 감싸는 Provider·레이아웃에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404가 200으로 굳는다(§2). 그래서 **`usePathname()`·`useSearchParams()`를 쓰는 컴포넌트는 children을 감싸지 않는 말단 컴포넌트로 두고, 형제 위치의 자체 `<Suspense>`로 감싼다.** 헤더의 활성 메뉴 표시, 경로가 바뀔 때 오버레이를 닫는 `<OverlayRouteReset />`(§5)이 여기에 해당한다. P0 상태 코드 표(§2)는 이 컴포넌트들을 넣은 최종 헤더로 채운다.
 
@@ -1214,12 +1214,12 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 
 | 바뀐 것 | 위치 |
 |---|---|
-| 호스팅 센터 데스크탑 셸 = 고정 좌측 사이드바(`Desktop - 27`). 모바일은 헤더 + 햄버거 드로어 + 공연 전환 ▾. 1024~1279 배치는 P1 | §3 "호스팅 센터 셸", plan P1·P10a·P11 |
+| 호스팅 센터 데스크탑 셸 = 고정 좌측 사이드바(`Desktop - 27`). 모바일은 헤더 + 햄버거 드로어 + 공연 전환 ▾. 1024~1279 배치는 P1 | §3 "호스팅 센터 셸", plan P1·P4s·P11 |
 | GUI가 서버 계약과 다른 곳은 서버 기준으로 만든다(체크아웃 예매번호·티켓번호 제거, 은행명 추가, 할인금액 제거, v2에 없는 리마인드 알림 제외, 티켓 폼 라벨·기본값, 호스트 삭제 숨김, 입장 분모 = 발급 수) | plan P7·P9·P9b·P10b·P12·P13a, design-requests §3 |
 | GUI에 없는 입구는 계획대로 만든다([주문취소]·환불 계좌, 옵션 붙이기, 공유 버튼, 무료 [신청하기]) | plan P5b·P7·P9·P12 |
 | 공연 생성 뒤 이동은 GUI(홈 + 토스트)와 계획(대시보드)이 달라 디자인 확인 전까지 대시보드 | plan P10a |
 | 장소 아래 회색 박스(`329:7206`) — 지도 미리보기면 카카오맵 지도 SDK로 그린다(Geocoder와 같은 SDK) | plan P11, design-requests Q3 |
-| 공연준비 홈 헤더는 로고형(`host title`, 벨 없음)으로 잠정 — 모바일 알림 벨은 햄버거 드로어 안, 데스크탑은 사이드바 하단 사용자 줄. 제목형(벨 + 아바타)으로 정해지면 `Header` 변형과 벨 위치만 바꾼다 | §3 "호스팅 센터 셸", plan P10a, design-requests Q17 |
+| 공연준비 홈 헤더는 로고형(`host title`, 벨 없음)으로 잠정 — 모바일 알림 벨은 햄버거 드로어 안, 데스크탑은 사이드바 하단 사용자 줄. 제목형(벨 + 아바타)으로 정해지면 `Header` 변형과 벨 위치만 바꾼다 | §3 "호스팅 센터 셸", plan P4s, design-requests Q17 |
 
 ## 31. P0 스캐폴딩과 스파이크 결과 (2026-10-16)
 
