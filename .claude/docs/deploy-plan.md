@@ -187,6 +187,7 @@ D2는 백엔드 마이그레이션(V001~V011)이 스테이징에 실행돼 있�
 
 | # | 확인 | 언제 |
 |---|---|---|
+| 0 | nginx가 `proxy_set_header Host $host`(와 `X-Forwarded-Proto`)를 넘기는지 — 안 넘기면 공연 상세 `og:url`·canonical이 `127.0.0.1:3000`이 된다(P5b-L `requestOrigin()`). `curl -s -A 'kakaotalk-scrap/1.0' <스테이징>/events/<id> \| grep og:url` | D2 |
 | 1 | standalone 이미지의 실제 크기, 유휴 상태와 공연 상세를 연속으로 열 때의 메모리 | D1 |
 | 2 | vanilla-extract + Cache Components 구성에서 `standalone` 산출물에 빠지는 파일이 없는지(컨테이너로 띄워 주요 라우트를 연다) | D1 |
 | 3 | `deploymentId`를 바꿔 배포했을 때 옛 탭이 새로고침으로 넘어가는지 | D2 |

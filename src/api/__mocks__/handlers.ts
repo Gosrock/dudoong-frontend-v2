@@ -3,6 +3,7 @@ import { eventHandlers } from './event.handlers';
 import { giftHandlers } from './gift.handlers';
 import { hostHandlers } from './host.handlers';
 import { meHandlers } from './me.handlers';
+import { orderHandlers } from './order.handlers';
 import { uploadHandlers } from './upload-handlers';
 
 /**
@@ -18,4 +19,5 @@ export const handlers = [
   ...authHandlers.byCookie,
   ...authHandlers.kakao,
   ...uploadHandlers,
+  ...orderHandlers.default,
 ];

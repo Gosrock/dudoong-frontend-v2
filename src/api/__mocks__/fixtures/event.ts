@@ -200,8 +200,8 @@ export const events: MockEvent[] = [
     eventId: 101,
     name: '고스락 제37회 정기공연',
     posterImageUrl: poster(101),
-    startAt: '2026.10.17 19:00',
-    endAt: '2026.10.17 21:00',
+    startAt: '2026.11.21 19:00',
+    endAt: '2026.11.21 21:00',
     place: {
       name: '홍대 롤링홀',
       address: '서울 마포구 어울마당로 35',
@@ -212,7 +212,7 @@ export const events: MockEvent[] = [
     tags: tags(1, 2, 7, 9),
     host: HOST_GOSROCK,
     status: 'OPEN',
-    displayStatus: 'ONGOING',
+    displayStatus: 'UPCOMING',
     dDay: null,
     sections: htmlSections('고스락 제37회 정기공연'),
     ticketItems: ticketsFor101,
@@ -274,11 +274,11 @@ export const events: MockEvent[] = [
   {
     ...base,
     eventId: 104,
-    // 정보만 공개하는 공연(티켓 없음). 이름·장소가 비어 있는 오래된 데이터 모양
+    // 정보만 공개하는 공연(티켓 없음). 이름·장소가 비어 있는 오래된 데이터 모양. 진행 중(ONGOING) 예시도 겸한다 — 시작이 지나 서버는 티켓을 팔지 않는다(Event_400_6)
     name: null,
     posterImageUrl: poster(104),
-    startAt: '2026.11.15 19:00',
-    endAt: '2026.11.15 19:00',
+    startAt: '2026.10.17 19:00',
+    endAt: '2026.10.17 19:00',
     runTime: null,
     place: {
       name: '공연장 미정',
@@ -291,8 +291,8 @@ export const events: MockEvent[] = [
     tags: [],
     host: { hostId: 13, name: null, profileImageUrl: null },
     status: 'OPEN',
-    displayStatus: 'UPCOMING',
-    dDay: 29,
+    displayStatus: 'ONGOING',
+    dDay: null,
   },
   ...Array.from({ length: 10 }, (_, i): MockEvent => {
     const day = 10 + i;

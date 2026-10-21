@@ -1,0 +1,74 @@
+import type { Account, PaymentChannel } from '@/api/order/schema';
+import type { PublicTicketItem } from '@/api/ticket-item/schema';
+
+/**
+ * 결제 방식과 주문 3분기(api-contract §6 F5, tech-decisions §19).
+ *
+ * | 분기 | 티켓 | `paymentChannel` | CTA | 주문 생성 직후 |
+ * |---|---|---|---|---|
+ * | 입금형 | 두둥 | `BANK_TRANSFER` · `TOSS_TRANSFER` | 결제하기 → 입금 확인 모달 | `PENDING_APPROVE` |
+ * | 무료 승인형 | 무료 + 승인 | `FREE` | 신청하기(모달 없음) | `PENDING_APPROVE` |
+ * | 무료 선착순 | 무료 + 승인 없음 | `FREE` | 신청하기(모달 없음) | `APPROVED`(즉시 발급). 확정 실패는 주문이 아니라 에러 |
+ */
+export type CheckoutKind = 'TRANSFER' | 'FREE_APPROVAL' | 'FREE_FCFS';
+
+/** 주문할 수 없는 결제 방식(PRICE·UNKNOWN·null)이면 `null` */
+export function checkoutKind(
+  ticket: Pick<PublicTicketItem, 'payType' | 'approvalRequired'>,
+): CheckoutKind | null {
+  if (ticket.payType === 'DUDOONG') return 'TRANSFER';
+  if (ticket.payType === 'FREE') return ticket.approvalRequired ? 'FREE_APPROVAL' : 'FREE_FCFS';
+  return null;
+}
+
+/** CTA 문구 — GUI의 "저장"을 동작에 맞게 바꾼다(plan P7 ③) */
+export const ctaLabel = (kind: CheckoutKind) => (kind === 'TRANSFER' ? '결제하기' : '신청하기');
+
+/** CTA 뒤에 "입금하셨나요?" 확인 모달을 거치는지(V가 모달을 열고, 확인에서 `submit`을 부른다) */
+export const needsDepositConfirm = (kind: CheckoutKind) => kind === 'TRANSFER';
+
+/** 고를 수 있는 결제 방식. 무료는 고르지 않는다(`PaymentChannelSelect`를 그리지 않는다) */
+export const selectablePaymentChannels = (kind: CheckoutKind): readonly PaymentChannel[] =>
+  kind === 'TRANSFER' ? ['BANK_TRANSFER', 'TOSS_TRANSFER'] : [];
+
+export const PAYMENT_CHANNEL_LABEL: Record<'BANK_TRANSFER' | 'TOSS_TRANSFER', string> = {
+  BANK_TRANSFER: '직접 계좌이체',
+  TOSS_TRANSFER: '토스로 송금하기',
+};
+
+/** 은행·예금주·계좌번호가 모두 있는지(결제 정보 영역을 그릴 수 있는지) */
+export const isCompleteAccount = (
+  account: Account | null | undefined,
+): account is {
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+} =>
+  Boolean(
+    account?.bankName?.trim() && account.accountHolder?.trim() && account.accountNumber?.trim(),
+  );
+
+/**
+ * 토스 송금 링크(tech-decisions §19·§22). 비공식 스킴 `supertoss://send?bank=&accountNo=&amount=`.
+ * - 금액은 주문 총액(`orderTotalAmount` = 서버 `totalAmount`) 그대로, 정수 원
+ * - 계좌번호는 숫자만 남긴다(하이픈·공백 제거)
+ * - 계좌가 비었거나 금액이 0 이하면 `null`(버튼을 숨기고 직접 계좌이체로 안내)
+ *
+ * TODO(B3): 은행명은 호스트가 자유 입력한 값을 그대로 넣는다. 토스가 받는 은행명("국민" 등 줄임)과 맞는지는
+ * 실기기에서 확인하고, B3 답(은행 목록·코드)이 오면 P12 은행 목록 값으로 바꾼다. 목록에 없는 값이면 링크를 숨긴다.
+ */
+export function tossTransferLink(
+  account: Account | null | undefined,
+  amount: number,
+): string | null {
+  if (!isCompleteAccount(account)) return null;
+  if (!Number.isSafeInteger(amount) || amount <= 0) return null;
+  const accountNo = account.accountNumber.replace(/\D/g, '');
+  if (accountNo === '') return null;
+  const query = new URLSearchParams({
+    bank: account.bankName.trim(),
+    accountNo,
+    amount: String(amount),
+  });
+  return `supertoss://send?${query.toString()}`;
+}

@@ -570,7 +570,7 @@ Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 | `overlay-kit` | 오버레이 상태 | 규칙은 §5 |
 | Radix 프리미티브(`@radix-ui/react-select`·`-checkbox`·`-radio-group`·`-switch`·`-tabs`·`-collapsible`·`-popover`·`-dialog`·`-dropdown-menu`·`-tooltip`) | 컴포넌트 동작(키보드·포커스·접근성) | 모양은 vanilla-extract. P0에서 React 19 호환·유지보수 확인, 문제가 있으면 Base UI([`design-system.md`](./design-system.md)) |
 | `sonner` | 토스트 | unstyled 모드 + vanilla-extract |
-| `marked` + `isomorphic-dompurify` | 섹션 본문 렌더(MARKDOWN → HTML → sanitize) | 서버 메모리 주의(§17) |
+| `marked` + `sanitize-html` | 섹션 본문 렌더(MARKDOWN → HTML → sanitize). P5b-L에서 `isomorphic-dompurify` 대신 `sanitize-html`로 정했다(§17 측정) | 클라이언트 번들 gzip 약 58KB(§17) |
 | 다음 우편번호(Postcode) + 카카오맵 JS `services.Geocoder` | 공연 장소 입력: 주소 검색 → `address`, 좌표 변환 → `latitude`·`longitude` | 호스팅 기본 정보(P11). PE-4가 좌표를 필수로 받는다. 카카오 JS 키·도메인 등록 필요 |
 
 - `react-simplikit`과 `@use-funnel/browser`는 쓰지 않는다(§22). 필요한 훅 몇 개와 공연 만들기 2단계는 직접 만든다.
@@ -605,6 +605,16 @@ Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 ---
 
 ## 17. 에디터 (공연 상세 설명)
+
+> **2026-10-22 sanitize 결정(P5b-L): `sanitize-html` 2.18.1 + `marked` 18.1.1.** standalone 빌드 세 벌로 `/events/101`(운영 v1 본문 10개, 14.8KB)을 순차 2000번 + 동시 10으로 500번 요청해 쟀다(2회).
+>
+> | | 순차 최고 RSS | 동시 10 이후 RSS | 요청당 | standalone |
+> |---|---|---|---|---|
+> | sanitize 없음 | 282MB | 364MB | 13ms | 43MB |
+> | `sanitize-html` | 291~304MB | 388~446MB | 13ms | 43MB |
+> | `isomorphic-dompurify` | 439~483MB | 723~724MB | 22~23ms | 57MB |
+>
+> jsdom은 standalone 추적에 들어가 기동은 됐지만 메모리·CPU 부담이 커서 아래 "메모리 주의"의 대안을 택했다. 허용 목록은 백엔드 jsoup `Safelist.relaxed()` + v1 서식(글자색 span, 체크리스트 class, `code` 언어 class, del·s·hr). 링크는 `rel="noopener noreferrer"`, `target`은 `_blank`만. **대가는 클라이언트 번들**: `sanitize-html` gzip 57.7KB(DOMPurify 12.1KB) — 공연 상세 청크가 약 46KB 커진다. 줄여야 하면 V·P14에서 "섹션 queryFn 안에서 sanitize + 브라우저 동적 import" 또는 "서버 sanitize-html / 브라우저 DOMPurify"를 본다. 운영 공개 공연 51개를 보니 `contentFormat: MARKDOWN` 본문은 모두 toast-ui가 저장한 HTML 한 줄이었다(`marked`가 블록 HTML을 그대로 넘기는 것을 테스트로 확인). RSC 페이로드에는 sanitize 전 원본이 JSON 문자열로 실리지만 실행되지 않는다(e2e 확인).
 
 > **2026-10-11 개정 — 섹션 모델.** 아래 결론(Tiptap 채택, HTML 저장, sanitize 추가)은 유지하되 전제가 두 가지 바뀌었다.
 >
@@ -662,7 +672,8 @@ v1은 sanitize 코드가 레포 전체에 **0건**이며, toast-ui `Viewer`의 �
   eventId, ticketItemId, quantity,
   // 둘 중 하나
   options: { applyToAll: true, answers: [{ optionId, answer }] },
-  perTicketOptions: [[{ optionId, answer }], …],   // applyToAll=false, 길이 = quantity
+  // 티켓별: options를 같이 보내야 한다 — 없으면 백엔드가 applyToAll=true로 본다(V2CreateOrderRequest.applyToAll(), P7-L에서 확인)
+  options: { applyToAll: false, answers: [] }, perTicketOptions: [[{ optionId, answer }], …],   // 길이 = quantity
   paymentChannel: 'BANK_TRANSFER' | 'TOSS_TRANSFER' | 'FREE',
   depositorName,            // 1~20자
   agreeRefundPolicy,
@@ -685,7 +696,7 @@ const FormSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('individual'), tickets: z.array(z.array(Answer)).min(1) }),
 ]);
 // toOrderOptions(form, quantity): same → { options: { applyToAll: true, answers } }
-//                                  individual → { perTicketOptions }
+//                                  individual → { options: { applyToAll: false, answers: [] }, perTicketOptions }
 ```
 
 | 상황 | 처리 |

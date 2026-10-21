@@ -355,7 +355,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 ### P5b — 공연 상세 + 섹션 뷰어 + 공유
 
-**L 범위**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(페이지에 `instant = false`, 서버 캐시 없음), `generateMetadata`로 OG, 없는·준비중 공연은 `notFound()`, 5xx는 throw. 크롤러 계약(Playwright e2e, 실제 카카오 UA — tech-decisions §10). **섹션 탭 규칙**(서버 섹션이 없으면 기본 4탭을 프론트가 만든다 — 공연소개 · 예매안내 · 세트리스트 · 유의사항). **섹션 뷰어 변환**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared/section-viewer/model/`). 일시 "(180분)" 표시값(시작·종료로 FE가 계산). 해시태그, 호스트 연락처(GH-3 `contacts` — 문의 버튼은 Q20 기본안대로 연락처), 카카오 공유 내용(`features/shared/kakao-share`, PC □ 버튼은 Q22 기본안대로 공유). 화면은 클라이언트 컴포넌트이고 L에서는 최소 마크업으로 둔다.
+**L 범위**: `/events/[eventId]` — 라우트 파일이 `<Prefetch>`로 GP-3 + GE-5를 조회(페이지에 `instant = false`, 서버 캐시 없음), `generateMetadata`로 OG, 없는·준비중 공연은 `notFound()`, 5xx는 throw. 크롤러 계약(Playwright e2e, 실제 카카오 UA — tech-decisions §10). **섹션 탭 규칙**(서버 섹션이 없으면 기본 4탭을 프론트가 만든다 — 공연소개 · 예매안내 · 세트리스트 · 유의사항). **섹션 뷰어 변환**(`contentFormat`으로 HTML/마크다운 렌더러 선택 + sanitize, `features/shared/section-viewer/model/`). 일시 "(180분)" 표시값(시작·종료로 FE가 계산). 해시태그, 호스트 연락처(GP-3 `contacts` — 공연 문의처가 없으면 백엔드가 호스트 연락처를 준다. 문의 버튼은 Q20 기본안대로 연락처), 카카오 공유 내용(`features/shared/kakao-share`, PC □ 버튼은 Q22 기본안대로 공유). 화면은 클라이언트 컴포넌트이고 L에서는 최소 마크업으로 둔다.
 
 **V 범위**: 상세 화면, 섹션 탭 UI, 섹션 뷰어 렌더, 호스트 연락처 시트, 공유 버튼, PC 두 열.
 
@@ -371,12 +371,12 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 3. 요청마다 백엔드를 부른다. 티켓 오픈 때 부하가 문제 되면 이 조회에만 캐시를 붙인다(tech-decisions §2)
 
 **완료 기준 — L**
-- [ ] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
-- [ ] **실제 카카오 UA**(`facebookexternalhit/1.1; kakaotalk-scrap/1.0; …`)로 요청 → OG가 `<head>`에 있음(스크립트)
+- [x] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
+- [x] **실제 카카오 UA**(`facebookexternalhit/1.1; kakaotalk-scrap/1.0; …`)로 요청 → OG가 `<head>`에 있음(스크립트)
 - [ ] 카카오 공유 디버거에서 미리보기 확인(공개 URL이 필요하므로 D2 스테이징 배포 뒤). OG는 L 산출물이라 디자인을 기다리지 않는다
-- [ ] 없는·준비중 공연이 크롤러 UA에 404, 브라우저에는 not-found 화면
-- [ ] v1 실데이터 본문 샘플(MARKDOWN·HTML)이 변환 함수를 통과 + XSS 페이로드 차단
-- [ ] 응답 HTML에 재고 값 없음
+- [x] 없는·준비중 공연이 크롤러 UA에 404, 브라우저에는 not-found 화면
+- [x] v1 실데이터 본문 샘플(MARKDOWN·HTML)이 변환 함수를 통과 + XSS 페이로드 차단
+- [x] 응답 HTML에 재고 값 없음
 
 **완료 기준 — V**
 - [ ] v1 실데이터 본문 샘플(MARKDOWN·HTML)이 뷰어에서 정상 렌더
@@ -414,10 +414,10 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 **선행**: L — P5b-L · V — P6-L, P5b-V · **API**: GP-5
 
 **완료 기준 — L**
-- [ ] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
-- [ ] 매진·판매 불가·PAST 공연 분기 판정
-- [ ] 수량 상한 = `purchaseLimit`, `remaining`, 100 중 가장 작은 값(서버 `MAX_QUANTITY = 100`)
-- [ ] 선택 로직이 훅 하나에 있어 모바일(시트)과 PC(오른쪽 카드)가 같은 것을 쓴다
+- [x] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
+- [x] 매진·판매 불가·PAST 공연 분기 판정
+- [x] 수량 상한 = `purchaseLimit`, `remaining`, 100 중 가장 작은 값(서버 `MAX_QUANTITY = 100`)
+- [x] 선택 로직이 훅 하나에 있어 모바일(시트)과 PC(오른쪽 카드)가 같은 것을 쓴다
 
 **완료 기준 — V**
 - [ ] 매진·판매 불가·PAST 공연 분기 렌더
@@ -438,14 +438,14 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 **핵심 리스크**(L): 화면 총액과 토스 송금 금액이 서버 `totalAmount`와 어긋나면 입금 금액 오류로 거절된다. 모달 중복 제출(10초 내 같은 요청은 서버가 앞 주문을 돌려준다).
 
 **완료 기준 — L**
-- [ ] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
-- [ ] 옵션 2모드 제출 본문이 스키마 검증 통과(`applyToAll` / `perTicketOptions`)
-- [ ] 클라이언트 계산 총액 == 주문 응답 `totalAmount`(계약 테스트)
-- [ ] 3분기 각각 주문 생성 응답의 상태가 맞음(승인은 dev 서버의 v1 어드민이나 API 직접 호출로 대신한다)
-- [ ] 주문 완료 주소에서 새로고침해도 같은 내용(G11/O-3 재조회)
-- [ ] 토스 송금 링크의 금액 = `totalAmount`, 은행명 값은 [`backend-questions.md`](./backend-questions.md) B3 결과에 따라 P12 은행 목록 값
-- [ ] `Order_400_15`·`Ticket_Item_400_1`(재고)·`Ticket_Item_400_6`(1인 제한) 뒤 GP-5를 다시 읽어 수량 상한이 갱신됨
-- [ ] 에러 분기: patterns §화면별 에러 처리의 P7 행
+- [x] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
+- [x] 옵션 2모드 제출 본문이 스키마 검증 통과(`applyToAll` / `perTicketOptions`)
+- [x] 클라이언트 계산 총액 == 주문 응답 `totalAmount`(계약 테스트)
+- [x] 3분기 각각 주문 생성 응답의 상태가 맞음(승인은 dev 서버의 v1 어드민이나 API 직접 호출로 대신한다)
+- [x] 주문 완료 주소에서 새로고침해도 같은 내용(G11/O-3 재조회)
+- [x] 토스 송금 링크의 금액 = `totalAmount`, 은행명 값은 [`backend-questions.md`](./backend-questions.md) B3 결과에 따라 P12 은행 목록 값
+- [x] `Order_400_15`·`Ticket_Item_400_1`(재고)·`Ticket_Item_400_6`(1인 제한) 뒤 GP-5를 다시 읽어 수량 상한이 갱신됨
+- [x] 에러 분기: patterns §화면별 에러 처리의 P7 행
 - [ ] 스테이징에서 agent-browser로 실제 주문 생성 1회(D2 뒤). 승인 → 티켓 발급까지의 전 구간은 P13a
 
 **완료 기준 — V**

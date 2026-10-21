@@ -166,12 +166,13 @@ src/features/
 └─ shared/                     # 관객·호스팅 양쪽이 쓰는 것
    ├─ auth/                    # P4a/P4b  LoginGate(pending 스켈레톤 · 익명이면 항상 /login · error면 전체 화면 재시도), useSession, registerAuth(queryClient) — setAuthHandlers 등록(재발급 HTTP 호출 refreshTokens + onSessionLost) + storage·pageshow 감시, handleSessionLost(한 번만, 보호 영역은 /login/expired, 그 밖은 reload), useProtectedArea(보호 영역 판정 = 게이트 마운트 수), LoginRequiredLink·useRequireLogin, useLogout, loginHref·expiredHref. P4b: LoginView, KakaoCallbackView(최소 마크업 — V에서 교체), model/(auth-outcome·login-redirect·register-form·finish-login, useKakaoLogin·useKakaoCallback·useRegisterForm). 임시 GateCheckView(+ (protected)/gate-check — 실제 보호 화면이 생기면 지운다)
    ├─ host-home/               # P5c  HostHome — 공개 필드는 hostDetailQuery, myRole별 뷰는 hostViewerQuery
-   ├─ section-viewer/          # P5b  HTML/마크다운 렌더 + sanitize (공연 상세 ↔ 미리보기), 클라이언트 컴포넌트
+   ├─ section-viewer/          # P5b  model/: render-section(contentFormat → marked → sanitize-html), sanitize-section-html, section-tabs(서버 섹션 없으면 기본 4탭). 뷰는 V
+   ├─ contact/                 # P5b  model/contact-link — 연락처 6종 + UNKNOWN → 표시·링크(tel·mailto·http(s)만). P5c·P9 재사용
    ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑
    ├─ checkin-result/          # P8c · P13b  result → 화면
    ├─ image-upload/            # P9 · P10b · P11 (먼저 착수한 Phase)  업로드 UI(DropZone 연결, 미리보기). 호출은 src/api/upload
    ├─ permission/              # P5c  can(role, action) — 호스트 홈 관리 버튼에서 처음 쓴다
-   └─ kakao-share/             # P5b · P8b
+   └─ kakao-share/             # P5b · P8b  model/: feed-template(공연과 무관 — 선물 링크도 쓴다), kakao-sdk(SDK 2.8.3 + SRI, 앱 키는 호출할 때 읽음)
 ```
 
 ## `src/ui/` — 디자인 시스템 (P1, P2)
