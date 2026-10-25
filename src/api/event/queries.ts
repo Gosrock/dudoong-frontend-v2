@@ -90,6 +90,18 @@ export const eventDetailQuery = (eventId: string | number) =>
   });
 
 /**
+ * GP-3 공연 상세 — 사용자별 값. 같은 엔드포인트를 쿠키와 함께 부른다. 비로그인이면 백엔드가 연락처(전화·이메일)를 가려 주므로
+ * (#822/#846) 로그인 사용자의 원문 연락처는 여기서만 읽는다. 프리페치하지 않고, 브라우저에서 세션이 있고 연락처를 열 때만
+ * `enabled`로 부른다(`useEventContacts`). 화면은 이 응답에서 `contacts`만 읽는다(tech-decisions §4 viewer 쿼리).
+ */
+export const eventDetailViewerQuery = (eventId: string | number) =>
+  queryOptions({
+    queryKey: ['events', String(eventId), 'viewer'],
+    queryFn: ({ signal }) =>
+      api.get(`events/${encodeURIComponent(eventId)}`, EventDetailSchema, { signal }),
+  });
+
+/**
  * GE-5 섹션 목록(공개). 관객 공연 상세가 서버에서 GP-3과 같이 프리페치한다.
  * 준비중 공연의 섹션은 멤버만 보인다 — 호스팅 센터 미리보기는 쿠키를 싣는 쿼리를 그 Phase에서 따로 둔다.
  */

@@ -5,6 +5,7 @@ import type { HostRole } from '../shared/common-schema';
 import type { MockEvent } from './fixtures/event';
 import { events, preparingEvents, upcomingOrder } from './fixtures/event';
 import { hostMembers, hosts, viewerOf } from './fixtures/host';
+import { maskContacts } from './privacy-mask';
 import {
   errors,
   fail,
@@ -82,7 +83,10 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       const { id, host } = findHost(params.hostId);
       if (id === null) return errors.badRequest(request);
       if (!host) return hostNotFound(request);
-      return ok(hasAccessToken(cookies) ? viewer(host) : host);
+      // 비로그인(쿠키 없음·만료)이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846)
+      return ok(
+        hasAccessToken(cookies) ? viewer(host) : { ...host, contacts: maskContacts(host.contacts) },
+      );
     }),
 
     http.get('*/api/v2/hosts/:hostId/events', ({ request, params, cookies }) => {
@@ -123,7 +127,8 @@ const defaults = buildHostHandlers();
 
 /**
  * 호스트 — GH-3, GH-14(공개), GH-6, PH-13(로그인). 액세스 토큰 쿠키가 실린 요청은 로그인 mock 사용자로 본다
- * (고스락 11의 마스터, 소음공작소 12를 팔로우 — `fixtures/host.ts`). 공개 쿼리는 `credentials: 'omit'`라 언제나 익명 값이다.
+ * (고스락 11의 마스터, 소음공작소 12를 팔로우 — `fixtures/host.ts`). 공개 쿼리는 `credentials: 'omit'`라 언제나 익명 값이다
+ * (GH-3 연락처의 전화·이메일은 가린 값).
  */
 export const hostHandlers = defaults.handlers;
 

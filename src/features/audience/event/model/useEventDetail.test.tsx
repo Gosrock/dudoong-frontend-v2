@@ -39,7 +39,7 @@ describe('공연 상세 화면 상태(useEventDetail)', () => {
     expect(list.every((r) => r.credentials === 'omit')).toBe(true);
   });
 
-  it('제목·일시(러닝타임)·해시태그·문의처·섹션 탭을 돌려준다', async () => {
+  it('제목·일시(러닝타임)·해시태그·섹션 탭을 돌려준다(문의처는 useEventContacts)', async () => {
     const { result } = renderHook(() => useEventDetail('101'), { wrapper });
     await waitFor(() => expect(result.current).not.toBeNull());
     const s = result.current;
@@ -50,10 +50,6 @@ describe('공연 상세 화면 상태(useEventDetail)', () => {
       '#락밴드',
       '#서울',
       '#대학동아리',
-    ]);
-    expect(s.contacts.map((c) => [c.label, c.href])).toEqual([
-      ['인스타그램', 'https://www.instagram.com/gosrock_official/'],
-      ['전화', 'tel:01012345678'],
     ]);
     expect(s.tabs.map((t) => [t.title, t.html !== null])).toEqual([
       ['공연 소개', true],

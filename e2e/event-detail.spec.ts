@@ -1,8 +1,12 @@
+import { http } from 'msw';
+
 import { eventDetailHandlers } from '@/api/__mocks__/event-detail.handlers';
 import { MISSING_EVENT_ID } from '@/api/__mocks__/fixtures/event';
 
+import { setMockSession } from './support/auth';
 import { KAKAO_SCRAP_UA, MOCK_ORIGIN } from './support/env';
 import { expect, test } from './support/fixtures';
+import type { MockBackend } from './support/mock-backend';
 
 /**
  * 공연 상세 `/events/[eventId]` 라우트 로직(P5b-L) — 상태 코드·메타 태그·조회 위치만 본다(plan §0 테스트 5).
@@ -144,5 +148,66 @@ test.describe('공연 상세 — 브라우저', () => {
       await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
     }
     await expect(page.getByText('아직 등록된 내용이 없어요')).toHaveCount(4);
+  });
+});
+
+/**
+ * 문의처는 사용자별 값이다(백엔드 #822/#846 — 비로그인 GP-3은 전화·이메일을 가린다). 서버 조회는 그대로 토큰 없이 두고,
+ * 로그인 사용자가 연락처를 열 때만 브라우저가 GP-3을 쿠키와 함께 다시 읽는다(A안). fixture 101: 전화 `010-1234-5678`.
+ */
+test.describe('공연 상세 — 문의처(사용자별 값)', () => {
+  /** GP-3 요청마다 출처·쿠키 유무를 남긴다(응답은 기본 핸들러) */
+  function spyDetail(mockApi: MockBackend) {
+    const seen: { from: string; cookie: boolean }[] = [];
+    mockApi.use(
+      http.get('*/api/v2/events/101', ({ request }) => {
+        seen.push({
+          from: request.headers.get('user-agent')?.startsWith('Mozilla/') ? 'browser' : 'server',
+          cookie: (request.headers.get('cookie') ?? '').includes('accessToken='),
+        });
+        return undefined;
+      }),
+    );
+    return seen;
+  }
+
+  test('로그인 사용자가 연락처를 열면 원문(전화 링크)이 보이고, 서버 조회에는 여전히 토큰이 없다', async ({
+    page,
+    mockApi,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    const seen = spyDetail(mockApi);
+    const res = await page.goto('/events/101');
+    expect(res?.status()).toBe(200);
+    // 응답 HTML(서버 렌더 + 하이드레이션 데이터)에는 원문이 없다
+    expect(await res?.text()).not.toContain('010-1234-5678');
+    const open = page.getByRole('button', { name: '연락처 보기' });
+    await expect(open).toBeVisible();
+    // 열기 전에는 브라우저가 GP-3을 부르지 않는다
+    expect(seen).toEqual([{ from: 'server', cookie: false }]);
+
+    await open.click();
+    const contacts = page.getByRole('list', { name: '연락처' });
+    await expect(contacts.getByRole('link', { name: '010-1234-5678' })).toHaveAttribute(
+      'href',
+      'tel:01012345678',
+    );
+    expect(seen).toEqual([
+      { from: 'server', cookie: false },
+      { from: 'browser', cookie: true },
+    ]);
+  });
+
+  test('비로그인은 연락처를 열어도 다시 조회하지 않고 가린 전화를 링크 없이 보여 준다', async ({
+    page,
+    mockApi,
+  }) => {
+    const seen = spyDetail(mockApi);
+    await page.goto('/events/101');
+    await page.getByRole('button', { name: '연락처 보기' }).click();
+    const contacts = page.getByRole('list', { name: '연락처' });
+    await expect(contacts).toContainText('전화: 010-****-5678');
+    await expect(contacts.getByRole('link', { name: /\*/ })).toHaveCount(0);
+    expect(seen).toEqual([{ from: 'server', cookie: false }]);
   });
 });

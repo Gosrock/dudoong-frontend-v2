@@ -10,7 +10,8 @@ import {
   toListItem,
   upcomingOrder,
 } from './fixtures/event';
-import { errors, fail, ok, paginate, readId, readPageParams } from './respond';
+import { maskContacts } from './privacy-mask';
+import { errors, fail, hasAccessToken, ok, paginate, readId, readPageParams } from './respond';
 
 const eventNotFound = (request: Request) =>
   fail(request, 404, 'Event_404_1', '이벤트를 찾을 수 없습니다.');
@@ -60,11 +61,16 @@ export const eventHandlers = [
     return ok(paginate(matched, paging.page, paging.size));
   }),
 
-  http.get('*/api/v2/events/:eventId', ({ request, params }) => {
+  // 비로그인(쿠키 없음·만료) 요청이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846). 공개 쿼리는 `credentials: 'omit'`라 언제나 가린 값
+  http.get('*/api/v2/events/:eventId', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
     if (id === null) return errors.badRequest(request);
     const event = findPublicEvent(id);
-    return event ? ok(toDetail(event)) : eventNotFound(request);
+    if (!event) return eventNotFound(request);
+    const detail = toDetail(event);
+    return ok(
+      hasAccessToken(cookies) ? detail : { ...detail, contacts: maskContacts(detail.contacts) },
+    );
   }),
 
   http.get('*/api/v2/events/:eventId/ticket-items', ({ request, params }) => {

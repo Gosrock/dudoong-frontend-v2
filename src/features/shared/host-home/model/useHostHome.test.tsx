@@ -196,18 +196,61 @@ describe('호스트 홈 — 시점별 노출(can + viewer)', () => {
 });
 
 describe('호스트 홈 — 공개 값', () => {
-  it('공개 필드(연락처 표시·링크, 멤버 수, 개설일)를 돌려준다', async () => {
+  it('공개 필드(멤버 수, 개설일)를 돌려준다', async () => {
     const { result } = await settled();
     const s = result.current;
     expect(s.memberCount).toBe(4);
     expect(s.createdOn).toBe('2022.03.02');
-    expect(s.contacts.map((c) => c.label)).toEqual(['인스타그램', '유튜브', '이메일']);
   });
 
   it('연락처·개설일이 없는 호스트도 깨지지 않는다', async () => {
     const { result } = await settled('12');
-    expect(result.current.contacts).toEqual([]);
+    expect(result.current.contacts).toEqual({ status: 'ready', items: [], masked: false });
     expect(result.current.createdOn).toBeNull();
+  });
+});
+
+describe('호스트 홈 — 연락처(사용자별 값, 백엔드 #822/#846)', () => {
+  const rows = (items: { label: string; value: string; href: string | null }[]) =>
+    items.map((c) => [c.label, c.value, c.href]);
+
+  it('비로그인: 공개 값(가린 이메일)으로 확정 — 이메일은 링크 없음, masked', async () => {
+    const { result } = await settled();
+    expect(result.current.contacts.status).toBe('ready');
+    expect(rows(result.current.contacts.items)).toEqual([
+      ['인스타그램', '@gosrock_official', 'https://www.instagram.com/gosrock_official/'],
+      ['유튜브', 'https://www.youtube.com/@gosrock', 'https://www.youtube.com/@gosrock'],
+      ['이메일', 'go***@example.com', null],
+    ]);
+    expect(result.current.contacts.masked).toBe(true);
+  });
+
+  it('로그인: ♡ 때문에 이미 읽는 viewer(GH-3 쿠키) 응답의 원문을 쓴다 — 연락처 때문에 GH-3을 더 부르지 않는다', async () => {
+    given('audience');
+    const sent = recordRequests();
+    const { result } = await settled();
+    await waitFor(() => expect(result.current.contacts.status).toBe('ready'));
+    expect(rows(result.current.contacts.items)[2]).toEqual([
+      '이메일',
+      'gosrock@example.com',
+      'mailto:gosrock@example.com',
+    ]);
+    expect(result.current.contacts.masked).toBe(false);
+    const gh3 = (await sent.list()).filter((r) => r.path === '/api/v2/hosts/11');
+    expect(gh3.map((r) => r.credentials).sort()).toEqual(['include', 'omit']);
+  });
+
+  it('로그인: viewer 확정 전에는 pending(항목은 공개 값), viewer가 실패하면 error', async () => {
+    given('audience');
+    server.use(...hostSets.viewerServerError(11));
+    const { result } = setup();
+    await waitFor(() => expect(result.current).not.toBeNull());
+    expect(result.current.contacts.status).toBe('pending');
+    await waitFor(() => expect(result.current.contacts.status).toBe('error'));
+    expect(result.current.contacts.items.at(-1)).toMatchObject({
+      value: 'go***@example.com',
+      href: null,
+    });
   });
 });
 

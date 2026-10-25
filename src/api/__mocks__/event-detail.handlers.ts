@@ -2,7 +2,7 @@ import { http } from 'msw';
 
 import type { EventSection } from '../event/schema';
 import { v1SectionSamples } from './fixtures/v1-sections';
-import { errors, fail, ok } from './respond';
+import { errors, fail, hasAccessToken, ok } from './respond';
 
 /**
  * 공연 상세(P5b) 시나리오별 핸들러 세트. 기본 목록(`handlers.ts`)에는 넣지 않고 테스트에서 앞에 끼운다
@@ -47,6 +47,12 @@ export const eventDetailHandlers = {
   /** GP-3 5xx */
   detailServerError: (eventId: number) => [
     http.get(detailPath(eventId), ({ request }) => errors.serverError(request)),
+  ],
+  /** GP-3 viewer(쿠키 요청 — 로그인 사용자의 원문 연락처)만 5xx. 공개 조회는 정상 */
+  viewerServerError: (eventId: number) => [
+    http.get(detailPath(eventId), ({ request, cookies }) =>
+      hasAccessToken(cookies) ? errors.serverError(request) : undefined,
+    ),
   ],
   /** GE-5 5xx(GP-3은 정상) */
   sectionsServerError: (eventId: number) => [

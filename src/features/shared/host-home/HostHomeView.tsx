@@ -21,10 +21,12 @@ export function HostHomeView({ hostId }: { hostId: string }) {
       <p>
         멤버 {s.memberCount}명{s.createdOn && ` · ${s.createdOn} 개설`}
       </p>
-      <ul aria-label="연락처">
-        {s.contacts.map((c, i) => (
-          <li key={i}>{c.href ? <a href={c.href}>{c.label}</a> : `${c.label} ${c.value}`}</li>
-        ))}
+      {/* 연락처는 사용자별 값 — 확정(익명: 가린 값, 로그인: viewer 원문)된 뒤에만 그린다 */}
+      <ul aria-label="연락처" aria-busy={s.contacts.status === 'pending'}>
+        {s.contacts.status === 'ready' &&
+          s.contacts.items.map((c, i) => (
+            <li key={i}>{c.href ? <a href={c.href}>{c.label}</a> : `${c.label} ${c.value}`}</li>
+          ))}
       </ul>
       {follow.status === 'login' ? (
         <LoginRequiredLink aria-label="관심 호스트">♡</LoginRequiredLink>
