@@ -1067,7 +1067,7 @@ PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint
 | internal-admin (운영 어드민) | 3200 | `water0641/dudoong-internal-admin` |
 | redis | 6379 (127.0.0.1만) | `redis:alpine` |
 
-**2026-10-25 바뀐 사실(레지스트리)**: 백엔드·배치 이미지가 Docker Hub에서 ECR 비공개 저장소로 옮겨졌다(Backend #827). Deploy #61 뒤로 compose의 모든 이미지가 `${ECR_REGISTRY}/dudoong-*:<태그>`이고(v1 front는 `dudoong-ticket`), 서버는 인스턴스 역할로 ECR에 로그인한다. ECR 저장소는 버전 태그를 덮어쓸 수 없고 스테이징용 `dev` 태그만 예외다(Deploy #60 `IMMUTABLE_WITH_EXCLUSION`). 프론트 푸시 역할(`FrontPushRole`)은 `DuDoong-Front` 저장소의 `Ticket-v*`·`Admin-v*` 태그와 `dev` 브랜치만 믿는다 — v2 저장소는 없다. 위 표의 이미지 이름은 2026-10-12 기준 기록이다. **v2 프론트 이미지 레지스트리(GHCR 계획 유지 / ECR)는 사용자 결정 대기**다 — 계획은 바꾸지 않았다([`deploy-plan.md`](./deploy-plan.md) §1, backend-questions B15).
+**2026-10-25 바뀐 사실(레지스트리)**: 백엔드·v1 프론트·Deploy 저장소는 운영 이미지를 비공개 ECR로 옮겼다(2026-10-24~25). 버전 태그는 덮어쓸 수 없고 스테이징용 `:dev`만 예외다. 푸시 권한은 v1 프론트 저장소에만 있다. 위 표의 이미지 이름은 2026-10-12 기준 기록이다. **v2 프론트 이미지 레지스트리(GHCR 계획 유지 / ECR)는 사용자 결정 대기**다 — 계획은 바꾸지 않았다([`deploy-plan.md`](./deploy-plan.md) §1, backend-questions B15).
 
 nginx 경로 분기(`nginx/site.conf`):
 

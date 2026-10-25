@@ -82,9 +82,7 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 | Avatar | Teal/300, Orange/300, Violet/200 |
 | role chip(마스터·매니저) | Purple/50·400, Teal/50·400 |
 | Ticket state chip 선물대기 | 배경 Coral-red/50(글자는 `brand/accent`) |
-| 상태 칩 대비 | Concert D-day 2.15:1, Ticket 승인대기 1.73:1(Dark 1.67), Ticket 선물완료·Concert 준비중 2.90:1, Concert 지난 공연 3.10:1, Ticket 선물대기 3.53:1, 승인완료 Dark 3.77:1 | 글자 대비 4.5:1 이상 |
-| 칩 색 체계 | 에러 계열 칩 색이 없다(`status/error` = `brand/accent`라 선물대기와 같아진다), 중립 칩 색이 없다 | 에러·중립 칩 색 추가 |
-| 대시보드 상태 아이콘 색 | 예시 `194:1126`에서 덮어쓴 색 — 승인 `status/success`, 거절 `brand/accent`, 대기는 노랑 직접 값(#FFDC4F·#FFB32F, 토큰 없음). 칩 체계(보라·회색)와 다르다 | 대기 의미 색 추가, 아이콘과 칩 색 체계 맞추기 |
+| Concert state chip D-day | 배경 Coral-red/50, 글자 Coral-red/200 |
 | Concert state chip 지난 공연 | Neutral/50 |
 | concert menu 선 | Neutral/900 |
 | Toggle 손잡이 | Common/100 |
@@ -416,6 +414,9 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | `on Primary container` | 이름과 달리 money option chip **배경**으로 쓰인다(그 위 글자 `text/inverse`, 대비 Light 3.96:1, Dark 4.35:1) | 이름·용도 정리, 대비 4.5:1 이상 |
 | `Primary container` 위 `text/brand-label`(primary 2 버튼) | 대비 Light 4.04:1, **Dark 1.47:1** | Dark 값 조정 |
 | Concert state chip D-day | 글자 Coral-red/200 on 배경 Coral-red/50, 대비 2.15:1 | 대비 확보 |
+| 상태 칩 대비 | Concert D-day 2.15:1, Ticket 승인대기 1.73:1(Dark 1.67), Ticket 선물완료·Concert 준비중 2.90:1, Concert 지난 공연 3.10:1, Ticket 선물대기 3.53:1, 승인완료 Dark 3.77:1 | 글자 대비 4.5:1 이상 |
+| 칩 색 체계 | 에러 계열 칩 색이 없다(`status/error` = `brand/accent`라 선물대기와 같아진다), 중립 칩 색이 없다 | 에러·중립 칩 색 추가 |
+| 대시보드 상태 아이콘 색 | 예시 `194:1126`에서 덮어쓴 색 — 승인 `status/success`, 거절 `brand/accent`, 대기는 노랑 직접 값(#FFDC4F·#FFB32F, 토큰 없음). 칩 체계(보라·회색)와 다르다 | 대기 의미 색 추가, 아이콘과 칩 색 체계 맞추기 |
 | `surface/default-label` | Dark가 다른 토큰을 가리키지 않고 `#FFFFFF` 직접 값. 이름은 label인데 surface 그룹 | 용도와 그룹 확인 |
 | 원시 색 직접 사용 | §1 표(Avatar, role chip, 상태 칩, concert menu, Toggle, 포스터) | 의미 색 추가(예: `avatar/*`, `role/*`, `chip/*`) |
 | 의미가 다른 토큰 | round Button 배경 `text/primary`, Checkbox 채움·Radio 점 `text/primary-label`, 지난 공연 칩 글자 `surface/strong-border`, numbering 배경 `surface/default-label`, `ic/Settings` filled의 회색 원 `surface/strong-border`, Avatar grey 배경 `surface/default-border`(Avatar 그림 자체는 #131313·#FFFFFF·#D9D9D9 직접 값) | 배경·채움용 의미 색으로 |
