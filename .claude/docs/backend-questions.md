@@ -102,7 +102,7 @@
 
 ### B13. 입금 전(승인 대기) 유료 두둥티켓 주문을 관객이 취소해도 호스트에게 "환불해 주세요" 메일이 가나? (#836)
 
-- **확인한 것**: 메일 조건은 `isDudoongTicketOrder && isRefund`이고, 사용자 취소(`Order.withdrawByUser`)는 승인 여부와 상관없이 `orderStatus = REFUND`로 둔다(@432cce4 `Order.kt`). 그래서 입금 전 취소에도 메일이 가는 것으로 읽힌다. v2 사용자 취소 유스케이스 경로는 끝까지 확인하지 않았다.
+- **확인한 것**: 메일 조건은 `isDudoongTicketOrder && isRefund`이고, 사용자 취소(`Order.withdrawByUser`)는 승인 여부와 상관없이 `orderStatus = REFUND`로 둔다(@432cce4 `Order.kt`). v2 사용자 취소(O-4)는 승인 대기 주문이면 유료·무료 모두 `withdrawByUser`(REFUND, 유료면 환불 요청), 승인 완료 유료 주문이면 v1 `Order.refund`로 간다(`V2UserOrderDomainService.cancel` @432cce4). 그래서 입금 전(승인 대기) 두둥 주문을 취소해도 메일 조건이 참이 된다.
 - **영향**: 호스팅 센터·관객 취소 안내 문구(입금 전 취소인데 호스트에게 환불 요청이 갔다고 오해할 수 있다).
 - **답이 없으면**: 화면 문구에 메일 이야기를 넣지 않는다.
 
@@ -130,8 +130,9 @@
 
 ### B18. 두둥티켓 승인 대기 주문의 `canCancel`은 false인가?
 
-- **확인한 것**: 개정 약관 제27조③은 두둥티켓을 입금한 뒤 승인 전에는 앱에서 취소할 수 없다고 하고, v1 운영 안내도 그렇게 적는다(legal-copy A-2 ⑤·A-7 ⑤·A-8 ⑤-b). v2 화면은 [주문취소]를 서버 `canCancel`로만 띄운다(patterns §20). v2 `canCancel`이 두둥 `PENDING_APPROVE`에서 false인지는 확인하지 않았다.
-- **답이 없으면**: 서버 `canCancel`대로 그린다. 약관과 다르면 백엔드에 알린다.
+- **확인한 것**: 개정 약관 제27조③은 두둥티켓을 입금한 뒤 승인 전에는 앱에서 취소할 수 없다고 하고, v1 운영 안내도 그렇게 적는다(legal-copy A-2 ⑤·A-7 ⑤·A-8 ⑤-b). v2 화면은 [주문취소]를 서버 `canCancel`로만 띄운다(patterns §20). **@432cce4 소스로는 true다**: `canCancel`은 `cancelBlocker == null`이고, 막는 사유는 카드(PG) 결제 유료 주문·취소 불가 상태·OPEN 아님·시작 뒤·(승인 대기가 아닐 때) 입장·선물 티켓뿐이다. 승인 대기(`PENDING_APPROVE`)는 상태 검사를 건너뛰고, 두둥은 `orderMethod = APPROVAL`이라 첫 사유에도 걸리지 않는다(`V2UserOrderDomainService.canCancel`·`cancelBlocker`). 서버는 입금 여부를 모른다.
+- **요청**: 약관 제27조③과 서버 판정이 다르다. 두둥 승인 대기 주문의 셀프 취소를 막을지(또는 약관 쪽을 바꿀지) 정해 달라.
+- **답이 없으면**: 서버 `canCancel`대로 그린다(v2 계획 — Q31).
 
 ### B19. 호스팅 GR-1·GR-2에서 v1으로 만든 주문의 두둥/PG를 어떻게 가르나?
 
