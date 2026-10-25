@@ -1,15 +1,24 @@
 import { http, type HttpHandler } from 'msw';
 
-import type { MyOrderDetail } from '../order/schema';
+import {
+  MY_ORDER_STATUS_FILTERS,
+  type MyOrderDetail,
+  type MyOrderElement,
+  REFUND_ACCOUNT_HOLDER_MAX,
+  REFUND_ACCOUNT_NUMBER_MAX,
+  REFUND_ACCOUNT_NUMBER_PATTERN,
+} from '../order/schema';
 import type { PublicTicketItem } from '../ticket-item/schema';
+import { banks } from './fixtures/bank';
 import {
   buildMockOrder,
   findCheckoutTicket,
   type MockOrderAnswer,
+  p9SeededOrders,
   seededOrders,
   toCheckout,
 } from './fixtures/order';
-import { errors, fail, ok, readId, requireAuth } from './respond';
+import { errors, fail, ok, paginate, readId, readPageParams, requireAuth } from './respond';
 
 /**
  * 사용자 주문 — G11/O-0 결제 화면, P11/O-1 주문 생성, G11/O-3 주문 상세. 모두 로그인 필요(액세스 토큰 쿠키).
@@ -39,6 +48,13 @@ export const ORDER_ERROR_REASONS = {
   Order_400_23: [400, '옵션 답변이 올바르지 않습니다.'],
   Order_400_26: [400, '같은 주문을 처리하고 있습니다. 잠시 후 주문내역을 확인해 주세요.'],
   Order_404_1: [404, '주문을 찾을 수 없습니다.'],
+  // P9 취소·환불 계좌(error-codes.md)
+  Order_400_5: [400, '주문을 취소할 수 없는 상태입니다.'],
+  Order_400_9: [400, '환불을 할 수 있는 기한을 지났습니다.'],
+  Order_400_24: [400, '취소할 수 없는 주문입니다.'],
+  Order_400_25: [400, '환불 받을 계좌를 입력해 주세요.'],
+  Order_400_27: [400, '환불 계좌를 입력할 수 없는 주문입니다.'],
+  Order_400_28: [400, '이미 환불이 완료된 주문입니다.'],
 } as const satisfies Record<string, readonly [number, string]>;
 export type OrderErrorCode = keyof typeof ORDER_ERROR_REASONS;
 
@@ -49,9 +65,19 @@ export const orderError = (request: Request, code: OrderErrorCode) => {
 
 // ─── 저장소 ──────────────────────────────────────────────────
 
-const orders = new Map<string, MyOrderDetail>(
-  Object.values(seededOrders).map((o) => [o.orderUuid, o]),
-);
+/** 시작 값(P7 3분기 + P9 시나리오). 변경(취소·환불 계좌)이 fixture 객체를 건드리지 않게 복사해 넣는다 */
+const seedEntries = () =>
+  [...Object.values(seededOrders), ...Object.values(p9SeededOrders)].map(
+    (o) => [o.orderUuid, structuredClone(o)] as const,
+  );
+const orders = new Map<string, MyOrderDetail>(seedEntries());
+
+/** 주문 저장소를 시작 값으로 되돌린다(취소·환불 계좌를 바꾸는 vitest의 `beforeEach`) */
+export function resetOrderStore() {
+  orders.clear();
+  for (const [uuid, order] of seedEntries()) orders.set(uuid, order);
+  recent.length = 0;
+}
 /** 중복 요청 판정(같은 본문, 10초) */
 const recent: { key: string; at: number; orderUuid: string }[] = [];
 const DUPLICATE_WINDOW_MS = 10_000;
@@ -218,6 +244,162 @@ const detail = http.get('*/api/v2/me/orders/:orderUuid', ({ request, params, coo
   return order ? ok(order) : orderError(request, 'Order_404_1');
 });
 
+// ─── P9: O-2 목록 · O-4 취소 · O-5 환불 계좌 ──────────────────
+
+const toElement = (o: MyOrderDetail): MyOrderElement => ({
+  orderUuid: o.orderUuid,
+  orderNo: o.orderNo,
+  event: o.event,
+  ticketName: o.ticket.name,
+  quantity: o.quantity,
+  totalAmount: o.payment?.totalAmount ?? 0,
+  status: o.status,
+  refundStatus: o.refundStatus,
+  orderedAt: o.orderedAt,
+});
+
+/** O-2 — 최신 순(나중에 넣은 주문이 먼저). `status` 필터, 페이지 기본 20 · 최대 50(`V2Paging`) */
+function listOrders(request: Request, forcedSize?: number) {
+  const url = new URL(request.url);
+  const paging = readPageParams(url, 20);
+  const status = url.searchParams.get('status') ?? 'ALL';
+  if (!paging || !(MY_ORDER_STATUS_FILTERS as readonly string[]).includes(status)) {
+    return errors.badRequest(request);
+  }
+  const list = [...orders.values()]
+    .reverse()
+    .filter((o) => o.status !== null && (status === 'ALL' || o.status === status))
+    .map(toElement);
+  return ok(paginate(list, paging.page, forcedSize ?? paging.size));
+}
+
+type RefundAccountBody = {
+  bankCode?: unknown;
+  bankName?: unknown;
+  accountHolder?: unknown;
+  accountNumber?: unknown;
+};
+const NOT_BLANK = /[^\u0000-\u0020]/;
+
+/**
+ * `V2RefundAccountRequest` Bean Validation → 실패면 `GLOBAL_400_1`. 통과하면 저장 값(은행명은 코드의 표시 이름,
+ * 예금주 trim, 계좌번호 공백 제거 — `normalize`). 비면 `null`(→ `Order_400_25`)
+ */
+function readRefundAccount(raw: unknown): 'invalid' | null | MyOrderDetail['refundAccount'] {
+  if (typeof raw !== 'object' || raw === null) return 'invalid';
+  const b = raw as RefundAccountBody;
+  const bankCode = typeof b.bankCode === 'string' ? b.bankCode : null;
+  const bankName = typeof b.bankName === 'string' ? b.bankName : null;
+  const holder = b.accountHolder;
+  const number = b.accountNumber;
+  if (
+    typeof holder !== 'string' ||
+    !NOT_BLANK.test(holder) ||
+    holder.length > REFUND_ACCOUNT_HOLDER_MAX
+  )
+    return 'invalid';
+  if (
+    typeof number !== 'string' ||
+    number.length > REFUND_ACCOUNT_NUMBER_MAX ||
+    !REFUND_ACCOUNT_NUMBER_PATTERN.test(number)
+  ) {
+    return 'invalid';
+  }
+  const bank = bankCode === null ? null : banks.find((x) => x.code === bankCode);
+  if (bankCode !== null && !bank) return 'invalid'; // 모르는 코드
+  if (bankCode === null && (bankName === null || !NOT_BLANK.test(bankName) || bankName.length > 20))
+    return 'invalid';
+  const name = (bank?.name ?? bankName ?? '').trim();
+  const digits = number.replace(/\s/g, '');
+  if (!name || !holder.trim() || !digits) return null;
+  return {
+    bankName: name,
+    bankCode: bank?.code ?? null,
+    accountHolder: holder.trim(),
+    maskedAccountNumber: `${'*'.repeat(Math.max(0, digits.length - 4))}${digits.slice(-4)}`,
+  };
+}
+
+const isPaid = (o: MyOrderDetail) => (o.payment?.totalAmount ?? 0) > 0;
+const NOW = '2026.10.25 12:00';
+
+/** `cancelBlocker` 순서를 플래그로 흉내 낸다: 상태 → 공연(삭제·시작 후) → 그 밖(입장·선물 티켓) */
+function cancelBlockCode(o: MyOrderDetail) {
+  if (o.status !== 'PENDING_APPROVE' && o.status !== 'APPROVED') return 'Order_400_5' as const;
+  if (o.event === null || o.event.displayStatus === 'PAST' || o.event.displayStatus === 'ONGOING') {
+    return 'Order_400_9' as const;
+  }
+  return 'Order_400_24' as const;
+}
+
+async function cancelOrder(request: Request, orderUuid: string) {
+  const order = orders.get(orderUuid);
+  if (!order) return orderError(request, 'Order_404_1');
+  const text = await request.text();
+  let body: { refundAccount?: unknown } | null = null;
+  try {
+    body = text ? (JSON.parse(text) as { refundAccount?: unknown }) : null;
+  } catch {
+    return errors.badRequest(request);
+  }
+  // @Valid — 계좌가 있으면 먼저 검증한다
+  const account =
+    body?.refundAccount === undefined || body.refundAccount === null
+      ? null
+      : readRefundAccount(body.refundAccount);
+  if (account === 'invalid') return errors.badRequest(request);
+  if (!order.canCancel) return orderError(request, cancelBlockCode(order));
+  const paid = isPaid(order);
+  if (paid && !account) return orderError(request, 'Order_400_25');
+  const next: MyOrderDetail = {
+    ...order,
+    status: paid ? 'REFUNDED' : 'CANCELED',
+    refundStatus: paid ? 'REQUESTED' : 'NONE',
+    withdrawnAt: NOW,
+    refundStatusChangedAt: paid ? NOW : order.refundStatusChangedAt,
+    refundAccount: paid ? (order.refundAccount ?? account) : order.refundAccount,
+    canEditRefundAccount: paid,
+    refundAccountRequired: false,
+    canCancel: false,
+    issuedTickets: order.issuedTickets.map((t) => ({ ...t, entrance: 'CANCELED' as const })),
+  };
+  orders.set(orderUuid, next);
+  return ok(next);
+}
+
+async function putRefundAccount(request: Request, orderUuid: string) {
+  const order = orders.get(orderUuid);
+  if (!order) return orderError(request, 'Order_404_1');
+  const body = (await request.json().catch(() => null)) as unknown;
+  const account = readRefundAccount(body);
+  if (account === 'invalid') return errors.badRequest(request);
+  if (!order.canEditRefundAccount) {
+    return orderError(
+      request,
+      order.refundStatus === 'COMPLETED' ? 'Order_400_28' : 'Order_400_27',
+    );
+  }
+  if (!account) return orderError(request, 'Order_400_25');
+  const next: MyOrderDetail = { ...order, refundAccount: account, refundAccountRequired: false };
+  orders.set(orderUuid, next);
+  return ok(next);
+}
+
+const list = http.get('*/api/v2/me/orders', ({ request, cookies }) => {
+  return requireAuth(request, cookies) ?? listOrders(request);
+});
+
+const cancel = http.post('*/api/v2/me/orders/:orderUuid/cancel', ({ request, params, cookies }) => {
+  return requireAuth(request, cookies) ?? cancelOrder(request, String(params.orderUuid));
+});
+
+const refundAccount = http.put(
+  '*/api/v2/me/orders/:orderUuid/refund-account',
+  ({ request, params, cookies }) => {
+    return requireAuth(request, cookies) ?? putRefundAccount(request, String(params.orderUuid));
+  },
+);
+
 /** O-1이 언제나 이 코드로 실패한다 */
 const createFails = (code: OrderErrorCode): HttpHandler[] => [
   http.post('*/api/v2/me/orders', ({ request }) => orderError(request, code)),
@@ -261,7 +443,46 @@ const agreementEnforced: HttpHandler[] = [
  * - `checkout(patch)` — O-0이 티켓 값을 바꿔 응답(재고 갱신 등)
  */
 export const orderHandlers = {
-  default: [checkout, create, detail],
+  default: [checkout, create, detail, list, cancel, refundAccount],
+  /** O-2 페이지 크기를 `size`로 고정(무한 스크롤 시나리오 — 기본 20보다 작게) */
+  listWithPageSize: (size: number): HttpHandler[] => [
+    http.get('*/api/v2/me/orders', ({ request }) => listOrders(request, size)),
+  ],
+  /** O-2 두 번째 페이지부터 5xx */
+  listNextPageError: [
+    http.get('*/api/v2/me/orders', ({ request }) => {
+      const page = Number(new URL(request.url).searchParams.get('page') ?? 0);
+      return page > 0 ? errors.serverError(request) : undefined;
+    }),
+  ] as HttpHandler[],
+  /** O-4가 언제나 이 코드로 실패한다(주문은 그대로) */
+  cancelFails: (code: OrderErrorCode): HttpHandler[] => [
+    http.post('*/api/v2/me/orders/:orderUuid/cancel', ({ request }) => orderError(request, code)),
+  ],
+  /**
+   * 경합 — [주문취소]를 누르기 직전에 이 주문의 티켓 하나가 선물 대기가 됐다. 저장된 주문을 선물 대기(`canCancel=false`)로
+   * 바꾸고 `Order_400_24`를 낸다(다시 읽으면 선물 안내 조건에 맞는다)
+   */
+  cancelRaceWithGift: [
+    http.post('*/api/v2/me/orders/:orderUuid/cancel', ({ request, params }) => {
+      const order = orders.get(String(params.orderUuid));
+      if (!order) return orderError(request, 'Order_404_1');
+      orders.set(order.orderUuid, {
+        ...order,
+        canCancel: false,
+        issuedTickets: order.issuedTickets.map((t, i) =>
+          i === 0 ? { ...t, giftState: 'PENDING' as const, giftId: 9999 } : t,
+        ),
+      });
+      return orderError(request, 'Order_400_24');
+    }),
+  ] as HttpHandler[],
+  /** O-5가 언제나 이 코드로 실패한다 */
+  refundAccountFails: (code: OrderErrorCode): HttpHandler[] => [
+    http.put('*/api/v2/me/orders/:orderUuid/refund-account', ({ request }) =>
+      orderError(request, code),
+    ),
+  ],
   createFails,
   freeFcfsConfirmFails,
   agreementEnforced,

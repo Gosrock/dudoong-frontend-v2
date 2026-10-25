@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { EventDisplayStatusSchema } from '../event/schema';
 import { AGREEMENT_VERSION_MAX } from '../shared/agreement';
 import { openEnum } from '../shared/open-enum';
+import { pageSchema } from '../shared/page';
 import { PublicTicketItemSchema, TicketPayTypeSchema } from '../ticket-item/schema';
 import { MAX_ORDER_QUANTITY } from './price';
 
@@ -31,8 +32,13 @@ export const MY_ORDER_STATUSES = [
 export const MyOrderStatusSchema = openEnum('MyOrderStatus', MY_ORDER_STATUSES);
 export type MyOrderStatus = z.infer<typeof MyOrderStatusSchema>;
 
+/** G11/O-2 `status` 필터(`V2MyOrderStatusFilter`). 기본 ALL. 화면은 아직 필터를 쓰지 않는다(Q36) */
+export const MY_ORDER_STATUS_FILTERS = ['ALL', ...MY_ORDER_STATUSES] as const;
+export type MyOrderStatusFilter = (typeof MY_ORDER_STATUS_FILTERS)[number];
+
 export const REFUND_STATUSES = ['NONE', 'REQUESTED', 'COMPLETED'] as const;
 export const RefundStatusSchema = openEnum('RefundStatus', REFUND_STATUSES);
+export type RefundStatus = z.infer<typeof RefundStatusSchema>;
 
 export const REFUSE_REASON_TYPES = [
   'DEPOSIT_UNCONFIRMED',
@@ -41,6 +47,7 @@ export const REFUSE_REASON_TYPES = [
   'ETC',
 ] as const;
 export const RefuseReasonTypeSchema = openEnum('RefuseReasonType', REFUSE_REASON_TYPES);
+export type RefuseReasonType = z.infer<typeof RefuseReasonTypeSchema>;
 
 /** 입장 상태(발급 티켓) */
 export const ENTRANCE_STATES = ['BEFORE', 'DONE', 'CANCELED'] as const;
@@ -177,6 +184,23 @@ export const MyOrderDetailSchema = z.object({
 });
 export type MyOrderDetail = z.infer<typeof MyOrderDetailSchema>;
 
+/** G11/O-2 내 주문 목록 항목(`V2MyOrderElement` @432cce4). 최신 순. 삭제된 공연이면 `event`가 null */
+export const MyOrderElementSchema = z.object({
+  orderUuid: z.string(),
+  orderNo: z.string().nullable(),
+  event: OrderEventSchema.nullable(),
+  /** 티켓 이름(주문 이름) */
+  ticketName: z.string().nullable(),
+  quantity: z.number().int(),
+  /** 총 결제금액(원). 무료는 0 */
+  totalAmount: z.number().int(),
+  status: MyOrderStatusSchema.nullable(),
+  refundStatus: RefundStatusSchema,
+  orderedAt: z.string().nullable(),
+});
+export type MyOrderElement = z.infer<typeof MyOrderElementSchema>;
+export const MyOrderPageSchema = pageSchema(MyOrderElementSchema);
+
 // ─── 요청 ────────────────────────────────────────────────────
 
 /** 주관식 답 길이(trim 후). 백엔드 `SUBJECTIVE_ANSWER_MAX_LENGTH` */
@@ -254,3 +278,41 @@ export const CreateOrderRequestSchema = z
     }
   });
 export type CreateOrderRequest = z.infer<typeof CreateOrderRequestSchema>;
+
+// ─── 환불 계좌 · 취소 요청(P9) — `V2RefundAccountRequest`·`V2CancelMyOrderRequest` @432cce4 ───
+
+/**
+ * 환불 계좌 길이(`OrderRefundAccount.*_MAX_LENGTH` — 은행명 20 · 예금주 20 · 계좌번호 30). 티켓 입금 계좌(30/30/50)와 다르다
+ * (api-contract §4). 은행명은 프론트가 보내지 않는다(아래 — 코드만).
+ */
+export const REFUND_ACCOUNT_HOLDER_MAX = 20;
+export const REFUND_ACCOUNT_NUMBER_MAX = 30;
+/** 계좌번호: 숫자·하이픈·공백(`@Pattern`). 서버는 저장 때 공백을 지운다 */
+export const REFUND_ACCOUNT_NUMBER_PATTERN = /^[0-9][0-9 -]*[0-9]$/;
+/** 은행 코드(금융결제원 3자리 — `GET /api/v2/banks`의 `code`) */
+const BANK_CODE_PATTERN = /^[0-9]{3}$/;
+
+/**
+ * 환불 계좌 본문(엄격 — P11/O-4의 `refundAccount`, P11/O-5 본문). 서버는 `bankCode`와 `bankName` 중 하나를 받지만
+ * **프론트는 은행 목록(`GET /banks`)에서 고른 `bankCode`만 보낸다**(plan P9, #804·#813). `bankName`은 서버가 코드의 표시 이름으로 채운다.
+ * 예금주는 `@NotBlank` + 20자, 계좌번호는 `@NotBlank` + 30자 + 형식. 앞뒤 공백은 화면이 지우고 보낸다.
+ */
+export const RefundAccountRequestSchema = z.strictObject({
+  bankCode: z.string().regex(BANK_CODE_PATTERN),
+  accountHolder: z
+    .string()
+    .min(1)
+    .max(REFUND_ACCOUNT_HOLDER_MAX)
+    .regex(/[^\u0000-\u0020]/),
+  accountNumber: z.string().max(REFUND_ACCOUNT_NUMBER_MAX).regex(REFUND_ACCOUNT_NUMBER_PATTERN),
+});
+export type RefundAccountRequest = z.infer<typeof RefundAccountRequestSchema>;
+
+/**
+ * P11/O-4 본문. 유료(총액 > 0) 주문은 `refundAccount` 필수(없으면 `Order_400_25`), 무료는 무시되므로 본문 없이 보낸다
+ * (`@RequestBody(required = false)`).
+ */
+export const CancelMyOrderRequestSchema = z.strictObject({
+  refundAccount: RefundAccountRequestSchema,
+});
+export type CancelMyOrderRequest = z.infer<typeof CancelMyOrderRequestSchema>;

@@ -6,8 +6,10 @@ import { giftHandlers } from './gift.handlers';
 import { hostHandlers } from './host.handlers';
 import { meHandlers } from './me.handlers';
 import { myTicketHandlers } from './my-ticket.handlers';
+import { notificationHandlers } from './notification.handlers';
 import { orderHandlers } from './order.handlers';
 import { uploadHandlers } from './upload-handlers';
+import { userHandlers } from './user.handlers';
 
 /**
  * 백엔드 mock 기본 목록. 경로는 브라우저 기준(`/api/v2/...`)과 서버 기준(`http://localhost:8080/...`)을 모두 받는다.
@@ -15,6 +17,8 @@ import { uploadHandlers } from './upload-handlers';
  * 테스트별 응답은 `server.use(...)` / `mockApi.use(...)`로 앞에 끼운다. 데이터는 `fixtures/`, 응답 모양은 `respond.ts`.
  */
 export const handlers = [
+  // PH-13 관찰(관심 호스트 GM-4 반영) — 호스트 핸들러보다 앞
+  ...meHandlers.followObserver,
   ...eventHandlers,
   ...hostHandlers,
   ...giftHandlers.default,
@@ -26,4 +30,7 @@ export const handlers = [
   ...myTicketHandlers.default,
   ...checkInHandlers.default,
   ...bankHandlers.default,
+  ...meHandlers.mypage,
+  ...userHandlers.default,
+  ...notificationHandlers.default,
 ];

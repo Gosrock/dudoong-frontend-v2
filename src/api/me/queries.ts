@@ -1,9 +1,16 @@
-import { queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { isApiError, isSessionLost } from '../errors';
 import { api } from '../http';
 import { ensureSessionFlag } from '../session-flag';
-import { type Me, MeSchema } from './schema';
+import { pageInfinite, type PageParams } from '../shared/page';
+import {
+  ArchiveSchema,
+  type FollowingHostFilter,
+  FollowingHostPageSchema,
+  type Me,
+  MeSchema,
+} from './schema';
 
 /** 세션 쿼리 `staleTime` — 5분 안에는 마운트·포커스로 다시 부르지 않는다(tech-decisions §4, plan P4a) */
 export const SESSION_STALE_MS = 5 * 60_000;
@@ -35,3 +42,53 @@ export const meQuery = () =>
       }
     },
   });
+
+/** 관심 호스트 목록 전체(필터마다 키가 다르다)의 접두 키 — 해제 뒤 모든 필터의 캐시에서 뺄 때 */
+export const FOLLOWING_HOSTS_KEY = ['me', 'following-hosts'] as const;
+
+export type FollowingHostsParams = PageParams & { status?: FollowingHostFilter };
+
+/**
+ * GM-4 관심 호스트(로그인, 무한 목록 — patterns §12). 최근 팔로우 순. `status` 기본 `ALL`.
+ * 해제는 PH-13 DELETE(`unfollowHostMutation`) — 화면이 응답 뒤 이 키들에서 그 호스트를 뺀다.
+ */
+export const followingHostsQuery = (params: FollowingHostsParams = {}) => {
+  const p = {
+    status: params.status ?? 'ALL',
+    ...(params.size !== undefined && { size: params.size }),
+  };
+  return infiniteQueryOptions({
+    ...pageInfinite,
+    queryKey: [...FOLLOWING_HOSTS_KEY, 'infinite', p],
+    queryFn: ({ pageParam, signal }) =>
+      api.get('me/following-hosts', FollowingHostPageSchema, {
+        searchParams: { ...p, page: pageParam },
+        signal,
+      }),
+  });
+};
+
+export type ArchiveParams = PageParams & { year?: number | null };
+
+/**
+ * GM-5 관람 공연 아카이빙(로그인, 무한 목록). `year`가 없으면 전체. 응답이 `{years, events: 페이지}`라
+ * 다음 페이지 판단은 `events`로 한다. 연도 탭(`years`)은 어느 페이지에나 같은 값으로 온다.
+ */
+export const archiveQuery = (params: ArchiveParams = {}) => {
+  const p = {
+    year: params.year ?? null,
+    ...(params.size !== undefined && { size: params.size }),
+  };
+  return infiniteQueryOptions({
+    initialPageParam: 0,
+    getNextPageParam: (last: { events: { page: number; hasNext: boolean } }) =>
+      last.events.hasNext ? last.events.page + 1 : undefined,
+    queryKey: ['me', 'archive', 'infinite', p],
+    queryFn: ({ pageParam, signal }) => {
+      const searchParams: Record<string, number> = { page: pageParam };
+      if (p.year !== null) searchParams.year = p.year;
+      if (p.size !== undefined) searchParams.size = p.size;
+      return api.get('me/archive', ArchiveSchema, { searchParams, signal });
+    },
+  });
+};

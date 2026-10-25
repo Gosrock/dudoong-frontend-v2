@@ -43,12 +43,15 @@ const logFields = (e: unknown) =>
 /**
  * 조회 실패: 배경 재조회 실패(`data`가 이미 있음)만 토스트. 첫 로딩 실패는 `<AsyncBoundary>`·공용 404 화면,
  * 무한 목록 다음 페이지 실패는 목록 하단 재시도가 맡는다(patterns §4-5, §12). 세션 상실은 띄우지 않는다.
+ * `meta.silent`인 조회(벨처럼 사용자가 할 일이 없는 배경 조회)도 띄우지 않는다.
  */
 export function shouldToastQueryError(
   error: unknown,
   state: { data: unknown; fetchMeta: unknown },
+  meta?: Record<string, unknown>,
 ): boolean {
   if (isSessionLost(error)) return false;
+  if (meta?.silent === true) return false;
   if (state.data === undefined) return false;
   const fetchMore = (state.fetchMeta as { fetchMore?: unknown } | null)?.fetchMore;
   return fetchMore === undefined;
@@ -69,7 +72,7 @@ function makeQueryClient() {
       onError: (error, query) => {
         if (isSessionLost(error)) return;
         log('warn', 'query.failed', logFields(error));
-        if (!shouldToastQueryError(error, query.state)) return;
+        if (!shouldToastQueryError(error, query.state, query.meta)) return;
         // 같은 쿼리가 한꺼번에 실패해도 하나만 뜨게 queryKey 해시를 id로
         notify?.(messageOf(error), `query:${query.queryHash}`);
       },

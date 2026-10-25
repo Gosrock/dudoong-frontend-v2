@@ -492,6 +492,12 @@ function markApprovedRead(o: MockOrder) {
   if (o.buyer === 'me') o.unreadApproved = false;
 }
 
+/** PN-3로 그 주문의 승인 알림(`ORDER_APPROVED`)을 읽음 — T-3 공지 바에서 빠진다(P9b-L, `fixtures/notification.ts`) */
+export function markApprovedNotificationRead(orderUuid: string) {
+  const o = store.orders.find((x) => x.orderUuid === orderUuid);
+  if (o) markApprovedRead(o);
+}
+
 export function newApproved() {
   const orderUuids = store.orders
     .filter((o) => o.buyer === 'me' && o.unreadApproved && o.status === 'APPROVED')

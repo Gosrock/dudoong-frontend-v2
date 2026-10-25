@@ -1,7 +1,13 @@
-import { queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
 import { api } from '../http';
-import { CheckoutSchema, MyOrderDetailSchema } from './schema';
+import { pageInfinite, type PageParams } from '../shared/page';
+import {
+  CheckoutSchema,
+  MyOrderDetailSchema,
+  MyOrderPageSchema,
+  type MyOrderStatusFilter,
+} from './schema';
 
 /**
  * G11/O-0 결제 화면(로그인) — 티켓(GP-5와 같은 모양) + 입금 계좌. 체크아웃(보호 화면)이 브라우저에서 읽는다.
@@ -28,3 +34,22 @@ export const myOrderQuery = (orderUuid: string) =>
     queryFn: ({ signal }) =>
       api.get(`me/orders/${encodeURIComponent(orderUuid)}`, MyOrderDetailSchema, { signal }),
   });
+
+export type MyOrdersParams = PageParams & { status?: MyOrderStatusFilter };
+
+/**
+ * G11/O-2 내 주문 목록(로그인, 무한 목록 — patterns §12). 최신 순 하나. `status`는 서버가 받지만 화면 필터는 아직 없다(Q36) —
+ * 기본(ALL)이면 보내지 않는다. 키는 `['me', 'orders', 'infinite', params]`라 `['me', 'orders']` 하나로 목록·상세를 같이 무효화한다.
+ */
+export const myOrdersQuery = (params: MyOrdersParams = {}) => {
+  const p = {
+    ...(params.status && params.status !== 'ALL' && { status: params.status }),
+    ...(params.size !== undefined && { size: params.size }),
+  };
+  return infiniteQueryOptions({
+    ...pageInfinite,
+    queryKey: ['me', 'orders', 'infinite', p],
+    queryFn: ({ pageParam, signal }) =>
+      api.get('me/orders', MyOrderPageSchema, { searchParams: { ...p, page: pageParam }, signal }),
+  });
+};
