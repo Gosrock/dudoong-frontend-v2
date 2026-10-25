@@ -4,7 +4,8 @@ import { can, type HostAction } from '@/features/shared/permission/model/can';
 
 /**
  * 주소의 `[hostId]` → 백엔드에 보낼 id. 숫자가 아니면 null(라우트가 `notFound()`).
- * 숫자가 아닌 id는 백엔드가 400 → 서버 조회 500이 되므로 조회 전에 404로 끊는다. 앞의 0은 뗀다(공연 상세와 같은 규칙).
+ * 숫자가 아닌 id는 백엔드가 401(비로그인)·400 `BAD_REQUEST`(로그인) → 서버 조회 500이 되므로 조회 전에 404로 끊는다.
+ * 앞의 0은 뗀다(공연 상세와 같은 규칙).
  */
 export function parseHostIdParam(raw: string): string | null {
   if (!/^\d{1,16}$/.test(raw)) return null;

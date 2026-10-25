@@ -109,7 +109,7 @@ function listHandlers(memberships: () => MockMembership[]): HttpHandler[] {
 const isText = (v: unknown): v is string => typeof v === 'string';
 const notBlank = (v: string) => v.trim().length > 0;
 
-/** PH-2 Bean Validation(`GLOBAL_400_1`)을 흉내 낸다 — api-contract §3 "호스트" 규칙만. 통과하면 정리한 본문 */
+/** PH-2 Bean Validation(400 `BAD_REQUEST`)을 흉내 낸다 — api-contract §3 "호스트" 규칙만. 통과하면 정리한 본문 */
 function readCreateBody(body: unknown) {
   if (!body || typeof body !== 'object') return null;
   const { name, introduce, contacts } = body as Record<string, unknown>;
@@ -146,7 +146,8 @@ export const hostingHandlers = [...listHandlers(withCreated(defaultMemberships))
 /** 호스트 만들기 실패 코드(백엔드 `HostErrorCode`, 432cce4) */
 const CREATE_ERROR_REASONS = {
   HOST_400_16: '연락처 형식이 올바르지 않습니다.',
-  GLOBAL_400_1: '검증 오류',
+  /** Bean Validation — `reason`은 필드→메시지 JSON 문자열 */
+  BAD_REQUEST: JSON.stringify({ name: '크기가 1에서 15 사이여야 합니다' }),
 } as const;
 export type CreateHostErrorCode = keyof typeof CREATE_ERROR_REASONS;
 

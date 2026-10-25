@@ -8,6 +8,7 @@ import {
   isNotFound,
   isSessionLost,
   isUnauthorized,
+  isValidationError,
   SessionLostError,
 } from './errors';
 
@@ -60,5 +61,16 @@ describe('HTTP 상태 판별', () => {
     expect(isSessionLost(e)).toBe(true);
     expect(isUnauthorized(e)).toBe(true);
     expect(isSessionLost(new ApiError(401, 'AUTH_401_1', ''))).toBe(false);
+  });
+});
+
+describe('isValidationError', () => {
+  it('400 BAD_REQUEST(실제 응답)와 GLOBAL_400_1(README 표기)만 검증 실패', () => {
+    expect(isValidationError(new ApiError(400, 'BAD_REQUEST', 'Bad Request'))).toBe(true);
+    expect(isValidationError(new ApiError(400, 'GLOBAL_400_1', '검증 오류'))).toBe(true);
+    expect(isValidationError(new ApiError(400, 'HOST_400_16', ''))).toBe(false);
+    expect(isValidationError(new ApiError(0, 'NETWORK', ''))).toBe(false);
+    expect(isValidationError(new Error('BAD_REQUEST'))).toBe(false);
+    expect(isValidationError(null)).toBe(false);
   });
 });

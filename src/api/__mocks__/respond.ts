@@ -30,10 +30,19 @@ export function fail(
   );
 }
 
+/** `badRequest` 기본 `reason`(필드를 따로 주지 않을 때) */
+const INVALID_FIELDS = { request: '올바르지 않은 값입니다' };
+
 /** 자주 쓰는 에러 */
 export const errors = {
-  /** 형식·길이 검증 실패 */
-  badRequest: (request: Request) => fail(request, 400, 'GLOBAL_400_1', '검증 오류'),
+  /**
+   * 형식·길이 검증 실패(본문 `@Valid`·파라미터 제약). 백엔드는 HTTP 400 `BAD_REQUEST`, `reason`은 필드→메시지 JSON 문자열이다
+   * (`GlobalExceptionHandler` @432cce4 — `GLOBAL_400_1`은 정의만 있고 나지 않는다). 필드를 모르면 기본값
+   */
+  badRequest: (request: Request, fields: Record<string, string> = INVALID_FIELDS) =>
+    fail(request, 400, 'BAD_REQUEST', JSON.stringify(fields)),
+  /** 경로 id 타입 오류(Spring TypeMismatch) — 로그인 상태면 HTTP 400 `BAD_REQUEST`, `reason` "Bad Request"(B7) */
+  typeMismatch: (request: Request) => fail(request, 400, 'BAD_REQUEST', 'Bad Request'),
   /** 토큰 없음(쿠키 만료 포함)·정지·탈퇴 계정(익명 처리). HTTP 401 + 본문 401 `AUTH_401_2`(#808, `TokenAuthenticationEntryPoint` @432cce4) */
   noToken: (request: Request) =>
     fail(request, 401, 'AUTH_401_2', '알맞은 accessToken을 넣어주세요.'),
@@ -170,7 +179,14 @@ export function requireAuth(request: Request, cookies: Record<string, string>) {
   }
 }
 
-/** 경로의 숫자 id. 숫자가 아니면 null(백엔드는 타입 변환 실패로 400) */
+/**
+ * 공개 GET(GE-5·GH-3·GH-14 등)의 숫자가 아닌 경로 id. `V2_PUBLIC_GET_PATHS`는 숫자 id만 공개로 보므로 보호 경로처럼 인증부터
+ * 본다 — 비로그인 401 `AUTH_401_2`(만료·위조면 그 401), 로그인이면 400 `BAD_REQUEST`(B7, @432cce4)
+ */
+export const publicIdMismatch = (request: Request, cookies: Record<string, string>) =>
+  requireAuth(request, cookies) ?? errors.typeMismatch(request);
+
+/** 경로의 숫자 id. 숫자가 아니면 null(보호 경로는 `errors.typeMismatch`, 공개 GET은 `publicIdMismatch`) */
 export function readId(value: unknown) {
   const n = Number(value);
   return typeof value === 'string' && /^\d+$/.test(value) && Number.isSafeInteger(n) ? n : null;

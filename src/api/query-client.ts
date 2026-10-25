@@ -2,7 +2,7 @@ import { isServer, MutationCache, QueryCache, QueryClient } from '@tanstack/reac
 
 import { log } from '@/utils/log';
 
-import { ApiError, isApiError, isSessionLost } from './errors';
+import { ApiError, isApiError, isSessionLost, isValidationError } from './errors';
 import { isHandledByScreen } from './handle-codes';
 
 /**
@@ -23,6 +23,12 @@ function shouldRetry(failureCount: number, error: unknown) {
 /** `reason`이 비었을 때(네트워크·타임아웃·파싱 실패·HTML 502) 띄우는 고정 문구 */
 export const FALLBACK_ERROR_MESSAGE = '일시적인 오류가 발생했어요. 잠시 후 다시 시도해 주세요.';
 
+/**
+ * 형식·길이 검증 실패(`BAD_REQUEST`)에 띄우는 고정 문구. 이 응답의 `reason`은 필드→메시지 JSON이나 "Bad Request"라
+ * 그대로 보이지 않는다(api-contract §1). 보통은 폼이 먼저 막아 여기까지 오지 않는다.
+ */
+export const VALIDATION_ERROR_MESSAGE = '입력한 내용을 다시 확인해 주세요.';
+
 export type ErrorNotifier = (message: string, id: string) => void;
 
 /**
@@ -34,7 +40,10 @@ export function setErrorNotifier(fn: ErrorNotifier | null) {
   notify = fn;
 }
 
-const messageOf = (e: unknown) => (isApiError(e) && e.reason) || FALLBACK_ERROR_MESSAGE;
+const messageOf = (e: unknown) => {
+  if (isValidationError(e)) return VALIDATION_ERROR_MESSAGE;
+  return (isApiError(e) && e.reason) || FALLBACK_ERROR_MESSAGE;
+};
 const logFields = (e: unknown) =>
   isApiError(e)
     ? { status: e.status, code: e.code, route: e.route }

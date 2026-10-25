@@ -5,7 +5,6 @@ import { installLoggedInFetch } from '@/test/login-fetch';
 import { recordRequests } from '@/test/requests';
 
 import { resetHostingStore } from '../__mocks__/hosting.handlers';
-import { ApiError } from '../errors';
 import { myEventsQuery } from '../event/queries';
 import { MyEventSchema } from '../event/schema';
 import { createHostMutation } from './mutations';
@@ -70,12 +69,13 @@ describe('GH-1 내 호스트', () => {
     });
   });
 
-  it('검색어 51자는 400 GLOBAL_400_1(50자는 통과)', async () => {
+  it('검색어 51자는 400 BAD_REQUEST(50자는 통과)', async () => {
     login();
     await expect(firstPage(myHostsQuery({ keyword: '가'.repeat(50) }))).resolves.toBeDefined();
-    await expect(firstPage(myHostsQuery({ keyword: '가'.repeat(51) }))).rejects.toBeInstanceOf(
-      ApiError,
-    );
+    await expect(firstPage(myHostsQuery({ keyword: '가'.repeat(51) }))).rejects.toMatchObject({
+      status: 400,
+      code: 'BAD_REQUEST',
+    });
   });
 });
 
@@ -139,10 +139,10 @@ describe('PH-2 호스트 만들기', () => {
     ['연락처 11개', { ...body, contacts: Array(11).fill(body.contacts[0]) }],
     ['전화 16자', { ...body, contacts: [{ type: 'PHONE', value: '0'.repeat(16) }] }],
     ['소개 256자', { ...body, introduce: '가'.repeat(256) }],
-  ])('%s → 요청 스키마도 mock도 400 GLOBAL_400_1', async (_, bad) => {
+  ])('%s → 요청 스키마도 mock도 400 BAD_REQUEST', async (_, bad) => {
     login();
     expect(CreateHostRequestSchema.safeParse(bad).success).toBe(false);
-    await expect(create(bad)).rejects.toMatchObject({ status: 400, code: 'GLOBAL_400_1' });
+    await expect(create(bad)).rejects.toMatchObject({ status: 400, code: 'BAD_REQUEST' });
   });
 
   it('비로그인은 401', async () => {

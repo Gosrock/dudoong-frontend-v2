@@ -36,6 +36,7 @@ import {
   MOCK_IMAGE_ORIGIN,
   ok,
   paginate,
+  publicIdMismatch,
   readId,
   readPageParams,
   requireAuth,
@@ -77,12 +78,6 @@ const badRequest = (request: Request, code: HostBadRequestCode, emails?: string[
     code,
     emails ? `${HOST_BAD_REQUEST[code]} (${emails.join(', ')})` : HOST_BAD_REQUEST[code],
   );
-
-/**
- * P10b 핸들러의 검증 실패 — 백엔드는 Bean Validation·경로 타입 실패를 HTTP 400 `BAD_REQUEST`로 낸다(`GlobalExceptionHandler` @432cce4,
- * `GLOBAL_400_1`은 실제로 나지 않는다). `reason`은 필드→메시지 JSON 문자열이거나 "Bad Request"
- */
-const validationFailed = (request: Request) => fail(request, 400, 'BAD_REQUEST', 'Bad Request');
 
 const memberGone = (request: Request) =>
   fail(request, 404, 'HOST_404_2', '가입된 호스트 유저가 아닙니다.');
@@ -253,7 +248,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
     const denied = requireAuth(request, cookies);
     if (denied) return { response: denied };
     const { id, host } = findHost(raw);
-    if (id === null) return { response: validationFailed(request) };
+    if (id === null) return { response: errors.typeMismatch(request) };
     if (!host) return { response: hostNotFound(request) };
     const myRole = viewer(host).myRole;
     if (myRole === null) return { response: forbiddenHost(request) };
@@ -267,7 +262,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
     const denied = requireAuth(request, cookies);
     if (denied) return denied;
     const { id, host } = findHost(raw);
-    if (id === null) return errors.badRequest(request);
+    if (id === null) return errors.typeMismatch(request);
     if (!host) return hostNotFound(request);
     follows.set(id, on);
     const v = viewer(host);
@@ -277,7 +272,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
   const handlers = [
     http.get('*/api/v2/hosts/:hostId', ({ request, params, cookies }) => {
       const { id, host } = findHost(params.hostId);
-      if (id === null) return errors.badRequest(request);
+      if (id === null) return publicIdMismatch(request, cookies);
       if (!host) return hostNotFound(request);
       // 비로그인(쿠키 없음·만료·위조 — #792로 익명 처리)이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846)
       return ok(
@@ -288,7 +283,8 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
     http.get('*/api/v2/hosts/:hostId/events', ({ request, params, cookies }) => {
       const { id, host } = findHost(params.hostId);
       const paging = readPageParams(new URL(request.url), 10);
-      if (id === null || !paging) return errors.badRequest(request);
+      if (id === null) return publicIdMismatch(request, cookies);
+      if (!paging) return errors.badRequest(request);
       if (!host) return hostNotFound(request);
       // 멤버는 준비중 공연까지 본다(백엔드 [H-14])
       const isMember = hasAccessToken(cookies) && viewer(host).myRole !== null;
@@ -303,7 +299,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       const denied = requireAuth(request, cookies);
       if (denied) return denied;
       const { id, host } = findHost(params.hostId);
-      if (id === null) return errors.badRequest(request);
+      if (id === null) return errors.typeMismatch(request);
       if (!host) return hostNotFound(request);
       if (viewer(host).myRole === null) return forbiddenHost(request);
       return ok(membersOf(id));
@@ -316,7 +312,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       const read = readUpdateBody(g.id, await request.json().catch(() => null));
       if ('error' in read) {
         return read.error === 'BAD_REQUEST'
-          ? validationFailed(request)
+          ? errors.badRequest(request)
           : badRequest(request, read.error);
       }
       editHostProfile(g.id, read.edit);
@@ -331,7 +327,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       if ('forbidden' in read) return forbidden(request, read.forbidden);
       if ('error' in read) {
         return read.error === 'BAD_REQUEST'
-          ? validationFailed(request)
+          ? errors.badRequest(request)
           : badRequest(request, read.error, 'emails' in read ? read.emails : undefined);
       }
       addStoredMembers(g.id, read.added);
@@ -346,7 +342,8 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
         if (g.response) return g.response;
         const userId = readId(params.userId);
         const role = ((await request.json().catch(() => null)) as { role?: unknown } | null)?.role;
-        if (userId === null || !isRole(role)) return validationFailed(request);
+        if (userId === null) return errors.typeMismatch(request);
+        if (!isRole(role)) return errors.badRequest(request, { role: '널이어서는 안됩니다' });
         if (role === 'MASTER') return badRequest(request, 'HOST_400_10');
         const target = membersOf(g.id).find((m) => m.userId === userId);
         if (!target) return memberGone(request);
@@ -361,7 +358,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       const g = guard(request, cookies, params.hostId, 'MANAGER');
       if (g.response) return g.response;
       const userId = readId(params.userId);
-      if (userId === null) return validationFailed(request);
+      if (userId === null) return errors.typeMismatch(request);
       const target = membersOf(g.id).find((m) => m.userId === userId);
       if (!target) return memberGone(request);
       if (target.role === 'MASTER') return badRequest(request, 'HOST_400_12');
@@ -378,7 +375,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       if (g.response) return g.response;
       const raw = ((await request.json().catch(() => null)) as { userId?: unknown } | null)?.userId;
       const userId = typeof raw === 'number' && Number.isSafeInteger(raw) ? raw : null;
-      if (userId === null) return validationFailed(request);
+      if (userId === null) return errors.badRequest(request, { userId: '널이어서는 안됩니다' });
       if (!membersOf(g.id).some((m) => m.userId === userId)) return memberGone(request);
       setStoredRole(g.id, me.userId, 'MANAGER');
       setStoredRole(g.id, userId, 'MASTER');

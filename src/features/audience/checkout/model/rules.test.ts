@@ -165,7 +165,7 @@ describe('주문 생성 에러 분기 — patterns §24 P7 행', () => {
     );
   });
 
-  it.each(['Order_400_21', 'Order_400_20', 'GLOBAL_400_1', 'GLOBAL_500_1', 'NETWORK'])(
+  it.each(['Order_400_21', 'Order_400_20', 'BAD_REQUEST', 'GLOBAL_500_1', 'NETWORK'])(
     '표에 없는 %s는 전역 토스트(reason)로',
     (code) => {
       expect(classifyCheckoutError(code)).toBeNull();

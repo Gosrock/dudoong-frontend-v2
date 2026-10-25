@@ -246,6 +246,25 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     expect(replace).toHaveBeenCalledWith('/gate-check');
   });
 
+  it.each([
+    ['BAD_REQUEST', '{"email":"비어 있을 수 없습니다"}'],
+    // 백엔드 README가 적은 코드 — 지금은 나지 않지만 같은 분기를 탄다
+    ['GLOBAL_400_1', '검증 오류'],
+  ])('가입이 400 %s(검증 실패)면 invalid로 폼에 머문다', async (code, reason) => {
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => form().setAllConsents(true));
+    server.use(
+      http.post('*/api/v1/auth/oauth/kakao/register', ({ request }) =>
+        fail(request, 400, code, reason),
+      ),
+    );
+    await act(() => form().submit());
+    expect(form().error).toBe('invalid');
+    expect(form().submitting).toBe(false);
+    expect(form().canSubmit).toBe(true);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
   it('이미 가입한 사람(USER_400_1, 두 번 누름·다른 탭에서 먼저 가입)이면 같은 id 토큰으로 로그인한다', async () => {
     // 신규 판정 뒤 다른 탭에서 먼저 가입했다 — 가입은 USER_400_1, 로그인은 성공
     const form = await untilRegister('code=mock-new&state=s1');

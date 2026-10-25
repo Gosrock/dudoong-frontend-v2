@@ -60,7 +60,7 @@ export function toCreateHostBody(values: CreateHostValues): CreateHostRequest {
   };
 }
 
-/** 화면이 처리하는 PH-2 코드. 그 밖(`GLOBAL_400_1` 등)은 전역 토스트 */
+/** 화면이 처리하는 PH-2 코드. 그 밖(400 `BAD_REQUEST` 등)은 전역 토스트 */
 export const CREATE_HOST_ERROR_MESSAGE = {
   /** 연락처 형식 오류 — 연락처 영역 전체 오류(`host-fields.ts`) */
   HOST_400_16: HOST_CONTACTS_SERVER_ERROR,

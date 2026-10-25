@@ -3,7 +3,7 @@ import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED } from '@/api/upload';
 
 /**
  * 프로필 편집 규칙(GM-1 · PM-2 · PM-3, plan P9). 닉네임은 2~7자(v1 `ChangeNameRequest`와 같다). 앞뒤 공백은 지우고 보낸다 —
- * 서버는 공백만인 닉네임을 400으로 막는다(`@Pattern` `GLOBAL_400_1`, 도메인 `USER_400_4`).
+ * 서버는 공백만인 닉네임을 400으로 막는다(`@Pattern` → 400 `BAD_REQUEST`, 도메인 `USER_400_4`).
  */
 export function nicknameError(raw: string): string | null {
   const name = raw.trim();

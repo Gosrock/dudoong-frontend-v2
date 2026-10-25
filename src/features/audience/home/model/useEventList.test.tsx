@@ -284,8 +284,8 @@ describe('공연 리스트 — 없는 태그(Event_400_23)', () => {
           {
             success: false,
             status: 400,
-            code: 'GLOBAL_400_1',
-            reason: '검증 오류',
+            code: 'BAD_REQUEST',
+            reason: '{"keyword":"크기가 0에서 50 사이여야 합니다"}',
             timeStamp: '',
             path: request.url,
           },

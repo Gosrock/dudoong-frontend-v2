@@ -11,7 +11,16 @@ import {
   upcomingOrder,
 } from './fixtures/event';
 import { maskContacts } from './privacy-mask';
-import { errors, fail, hasAccessToken, ok, paginate, readId, readPageParams } from './respond';
+import {
+  errors,
+  fail,
+  hasAccessToken,
+  ok,
+  paginate,
+  publicIdMismatch,
+  readId,
+  readPageParams,
+} from './respond';
 
 const eventNotFound = (request: Request) =>
   fail(request, 404, 'Event_404_1', '이벤트를 찾을 수 없습니다.');
@@ -64,7 +73,7 @@ export const eventHandlers = [
   // 비로그인(쿠키 없음·만료·위조 — #792로 익명 처리) 요청이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846). 공개 쿼리는 `credentials: 'omit'`라 언제나 가린 값
   http.get('*/api/v2/events/:eventId', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
-    if (id === null) return errors.badRequest(request);
+    if (id === null) return publicIdMismatch(request, cookies);
     const event = findPublicEvent(id);
     if (!event) return eventNotFound(request);
     const detail = toDetail(event);
@@ -73,16 +82,16 @@ export const eventHandlers = [
     );
   }),
 
-  http.get('*/api/v2/events/:eventId/ticket-items', ({ request, params }) => {
+  http.get('*/api/v2/events/:eventId/ticket-items', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
-    if (id === null) return errors.badRequest(request);
+    if (id === null) return publicIdMismatch(request, cookies);
     const event = findPublicEvent(id);
     return event ? ok(event.ticketItems) : eventNotFound(request);
   }),
 
-  http.get('*/api/v2/events/:eventId/sections', ({ request, params }) => {
+  http.get('*/api/v2/events/:eventId/sections', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
-    if (id === null) return errors.badRequest(request);
+    if (id === null) return publicIdMismatch(request, cookies);
     // 준비중 공연은 멤버만 본다 — mock은 공개 공연만 돌려준다
     const event = findPublicEvent(id);
     return event ? ok(event.sections) : eventNotFound(request);

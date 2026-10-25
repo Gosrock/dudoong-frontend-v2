@@ -188,7 +188,7 @@ export const addHostMembersMutation = (hostId: string) =>
 | 대상 | 규칙 |
 |---|---|
 | `QueryCache.onError` | `query.state.data !== undefined`일 때(배경 재조회 실패)만 토스트. 무한 목록의 다음 페이지 실패는 제외(하단 재시도가 맡는다, §12). 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다 |
-| `MutationCache.onError` | `meta.handled`이거나 `meta.handledCodes`에 코드가 있으면 토스트하지 않는다. 그 밖은 `reason` 토스트 |
+| `MutationCache.onError` | `meta.handled`이거나 `meta.handledCodes`에 코드가 있으면 토스트하지 않는다. 그 밖은 `reason` 토스트 — 검증 실패(400 `BAD_REQUEST`, `isValidationError`)는 `reason`(필드 JSON·"Bad Request") 대신 고정 문구 `VALIDATION_ERROR_MESSAGE` |
 | `meta.silent` 조회 | 배경 재조회가 실패해도 토스트하지 않는다(벨 GN-2처럼 사용자가 할 일이 없는 배경 조회, `src/api/query-client.ts` `shouldToastQueryError` 세 번째 인자 `meta`, §21) |
 | `SessionLostError` | 어디서도 토스트하지 않는다. 경계·게이트도 무시한다(§5-1) |
 | 중복 | 토스트에 고정 id를 준다(쿼리는 queryKey 해시, mutation은 코드). 배경 재조회가 한꺼번에 실패해도 하나만 뜬다 |
@@ -593,7 +593,7 @@ useEffect(() => {
 
 ## 24. 화면별 에러 처리
 
-백엔드 통합 기획서 각 장의 "에러와 예외 처리" 표에서 화면이 따로 처리해야 하는 코드만 모았다. 코드 전체는 [`error-codes.md`](./error-codes.md), 공통 규칙(403·404·"이미 처리됨")은 §11. 여기 없는 400은 `reason`을 토스트로 보여 준다.
+백엔드 통합 기획서 각 장의 "에러와 예외 처리" 표에서 화면이 따로 처리해야 하는 코드만 모았다. 코드 전체는 [`error-codes.md`](./error-codes.md), 공통 규칙(403·404·"이미 처리됨")은 §11. 여기 없는 400은 `reason`을 토스트로 보여 준다(검증 실패 400 `BAD_REQUEST`만 고정 문구 — `src/api/query-client.ts` `messageOf`).
 
 | Phase | 화면 | 코드 | 처리 |
 |---|---|---|---|
@@ -632,7 +632,7 @@ useEffect(() => {
 | P9 | 프로필 | `USER_400_4` | 닉네임 공백만. 칸 오류 |
 | P9 | 프로필 | `USER_400_5` | 본인이 올린 이미지가 아님. PM-3 발급부터 다시 |
 | P9 | 탈퇴 | `USER_400_6` | "마스터를 양도한 뒤 탈퇴해 주세요" |
-| P10a | 호스트 만들기 | `HOST_400_16` | 연락처 형식. 서버가 어느 줄인지 알려 주지 않아 연락처 영역 전체 오류("연락처 형식을 확인해 주세요"), 연락처를 고치면 지운다(`useCreateHost`). `GLOBAL_400_1`은 폼이 길이·빈 값을 먼저 막으므로 오면 전역 토스트 |
+| P10a | 호스트 만들기 | `HOST_400_16` | 연락처 형식. 서버가 어느 줄인지 알려 주지 않아 연락처 영역 전체 오류("연락처 형식을 확인해 주세요"), 연락처를 고치면 지운다(`useCreateHost`). 검증 실패(400 `BAD_REQUEST`)는 폼이 길이·빈 값을 먼저 막으므로 오면 전역 토스트(고정 문구) |
 | P10b | 호스트 설정 | `HOST_400_16` | 연락처 칸 오류. 서버가 줄을 알려 주지 않아 연락처 영역 전체 오류(P10a와 같은 문구), 연락처를 고치면 지운다(`useHostSettings`) |
 | P10b | 호스트 설정 | `HOST_400_17` | 이 호스트에 올린 이미지가 아님. 어느 자리인지 서버가 말하지 않아 이번에 새로 올려 보낸 자리(프로필·커버)를 모두 버리고 그 자리에 "이미지를 다시 올려 주세요" — 업로드 처음부터(`retry()`는 발급부터). 다른 칸 변경은 남긴다 |
 | P10b | 호스트 이미지 | `UPLOAD_INVALID_EXTENSION` · `UPLOAD_PUT_FAILED` | 그 자리 오류(P9 프로필과 같은 문구). 발급의 429·네트워크는 전역 토스트 |

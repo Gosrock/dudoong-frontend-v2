@@ -5,7 +5,7 @@ import { agreementFields } from '@/api/shared/agreement';
  * 회원가입 폼 규칙(plan P4b — 가입 폼 값·동의 상태). 화면 모양(오버레이)은 V에서 정한다.
  *
  * 값은 카카오 프로필(`/oauth/kakao/info`)로 채운다. 카카오 동의 항목에 따라 이메일·이름이 비어 올 수 있어
- * 사용자가 고칠 수 있게 둔다. 백엔드 검증은 `email`·`name`이 비지 않는 것뿐이다(`@NotEmpty`, 비면 400 `GLOBAL_400_1`).
+ * 사용자가 고칠 수 있게 둔다. 백엔드 검증은 `email`·`name`이 비지 않는 것뿐이다(`@NotEmpty`, 비면 400 `BAD_REQUEST`).
  *
  * 동의: 서비스 이용약관(`/meta/term`)·개인정보 처리방침(`/meta/privacy`)은 필수, 마케팅 수신은 선택(`marketingAgree`).
  * v1은 "약관 동의하고 시작하기" 한 버튼이었다 — 항목을 몇 개로 보일지는 V(디자인)에서 정하고, 필수 판정은 여기 하나다.

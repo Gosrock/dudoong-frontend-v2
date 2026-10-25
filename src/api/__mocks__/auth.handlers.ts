@@ -183,7 +183,12 @@ export const authHandlers = {
       const who = idTokenUser(body);
       if (!who) return errors.kakaoIdTokenInvalid(request);
       const filled = (v: unknown) => typeof v === 'string' && v.length > 0;
-      if (!filled(body.email) || !filled(body.name)) return errors.badRequest(request);
+      if (!filled(body.email) || !filled(body.name)) {
+        return errors.badRequest(request, {
+          ...(!filled(body.email) && { email: '비어 있을 수 없습니다' }),
+          ...(!filled(body.name) && { name: '비어 있을 수 없습니다' }),
+        });
+      }
       if (isRegistered(who)) return errors.alreadyRegistered(request);
       return loggedIn();
     }),

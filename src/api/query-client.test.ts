@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError, SessionLostError } from './errors';
 import { handleCodes } from './handle-codes';
-import { FALLBACK_ERROR_MESSAGE, getQueryClient, setErrorNotifier } from './query-client';
+import {
+  FALLBACK_ERROR_MESSAGE,
+  getQueryClient,
+  setErrorNotifier,
+  VALIDATION_ERROR_MESSAGE,
+} from './query-client';
 
 const retry = getQueryClient().getDefaultOptions().queries?.retry as (
   n: number,
@@ -54,6 +59,15 @@ describe('전역 에러 토스트', () => {
   it('reason이 비면 고정 문구', async () => {
     await mutate(new ApiError(0, 'NETWORK', ''));
     expect(notify).toHaveBeenCalledWith(FALLBACK_ERROR_MESSAGE, 'mutation:NETWORK');
+  });
+
+  it.each([
+    ['BAD_REQUEST', '{"email":"비어 있을 수 없습니다"}'],
+    ['BAD_REQUEST', 'Bad Request'],
+    ['GLOBAL_400_1', '검증 오류'],
+  ])('검증 실패(%s)는 reason(%s)이 아니라 고정 문구', async (code, reason) => {
+    await mutate(new ApiError(400, code, reason));
+    expect(notify).toHaveBeenCalledWith(VALIDATION_ERROR_MESSAGE, `mutation:${code}`);
   });
 
   it('handleCodes로 맡긴 코드·meta.handled·세션 상실은 토스트하지 않는다', async () => {

@@ -58,3 +58,17 @@ export const isForbidden = (e: unknown): e is ApiError => getErrorStatus(e) === 
 
 /** HTTP 404. 없는·남의·비공개 리소스(존재를 숨긴다). */
 export const isNotFound = (e: unknown): e is ApiError => getErrorStatus(e) === 404;
+
+/**
+ * 형식·길이 검증 실패 코드. 백엔드는 Bean Validation·파라미터 제약·경로 타입 오류를 HTTP 400 `BAD_REQUEST`로 낸다
+ * (`GlobalExceptionHandler` @432cce4). `GLOBAL_400_1`은 정의만 있고 나오지 않지만 백엔드 README가 이 코드라고 적고 있어
+ * 바뀌어도 같은 분기를 타게 함께 받는다(error-codes, backend-questions). 이때 `reason`은 사용자용 문장이 아니다
+ * (필드→메시지 JSON 문자열 또는 "Bad Request") — 화면에 그대로 보이지 않는다.
+ */
+export const VALIDATION_ERROR_CODES: readonly string[] = ['BAD_REQUEST', 'GLOBAL_400_1'];
+
+/** 형식·길이 검증 실패(`VALIDATION_ERROR_CODES`). `ApiError`가 아니면 false */
+export function isValidationError(e: unknown): e is ApiError {
+  const code = getErrorCode(e);
+  return code !== null && VALIDATION_ERROR_CODES.includes(code);
+}

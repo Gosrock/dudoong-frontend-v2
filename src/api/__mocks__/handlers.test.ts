@@ -301,6 +301,42 @@ describe('낡은 액세스 쿠키(#792·#793) — 보호 경로만 401, 공개·
   );
 });
 
+describe('검증 실패(B7, GlobalExceptionHandler @432cce4) — 400 BAD_REQUEST, GLOBAL_400_1은 나지 않는다', () => {
+  it.each(['/api/v2/events/abc', '/api/v2/events/abc/sections', '/api/v2/hosts/abc'])(
+    '공개 GET의 숫자가 아닌 id: 비로그인 %s → 401 AUTH_401_2(숫자 id만 공개 경로)',
+    async (path) => {
+      const res = await withCookie(path, '');
+      expect(res.status).toBe(401);
+      expect(await res.json()).toMatchObject({ status: 401, code: 'AUTH_401_2' });
+    },
+  );
+
+  it.each(['/api/v2/events/abc', '/api/v2/hosts/abc', '/api/v2/hosts/abc/members'])(
+    '숫자가 아닌 id: 로그인 %s → 400 BAD_REQUEST "Bad Request"',
+    async (path) => {
+      const res = await withCookie(path, 'accessToken=mock');
+      expect(res.status).toBe(400);
+      expect(await res.json()).toMatchObject({
+        status: 400,
+        code: 'BAD_REQUEST',
+        reason: 'Bad Request',
+      });
+    },
+  );
+
+  it('본문 Bean Validation 실패는 reason이 필드→메시지 JSON 문자열', async () => {
+    const res = await fetch('http://localhost:8080/api/v2/hosts', {
+      method: 'POST',
+      headers: { cookie: 'accessToken=mock', 'content-type': 'application/json' },
+      body: JSON.stringify({ name: '', contacts: [] }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { code: string; reason: string };
+    expect(body.code).toBe('BAD_REQUEST');
+    expect(JSON.parse(body.reason)).toEqual(expect.any(Object));
+  });
+});
+
 describe('은행 목록 G10/T-7 GET /api/v2/banks(#804, 공개 #813)', () => {
   it('백엔드 BankCode 25개를 코드 순으로, 3자리 코드·중복 없음', async () => {
     const list = await api.get('banks', BankListSchema, { public: true });

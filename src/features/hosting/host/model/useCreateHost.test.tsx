@@ -150,8 +150,8 @@ describe('호스트 만들기 — useCreateHost(PH-2)', () => {
     expect(result.current.contactsServerError).toBeNull();
   });
 
-  it('표에 없는 실패(GLOBAL_400_1·5xx)는 전역 토스트로 간다', async () => {
-    server.use(...hostingSets.createFails('GLOBAL_400_1'));
+  it('표에 없는 실패(BAD_REQUEST·5xx)는 전역 토스트로 간다', async () => {
+    server.use(...hostingSets.createFails('BAD_REQUEST'));
     const { result, queryClient } = setup();
     fill(result);
     await act(() => result.current.submit());

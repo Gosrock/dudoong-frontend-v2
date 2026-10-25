@@ -68,7 +68,8 @@ describe('프로필 — useProfileEdit(GM-1 · PM-2 · PM-3)', () => {
     ]);
     expect(UpdateMeRequestSchema.safeParse(patches[0]!.body).success).toBe(true);
     expect(queryClient.getQueryData(meQuery().queryKey)?.name).toBe('새닉네임');
-    expect(result.current.profile?.name).toBe('새닉네임');
+    // 캐시 → 훅 재렌더는 TanStack notifyManager의 setTimeout(0) 뒤라 act가 기다려 주지 않는다(아래 「기본 이미지로」)
+    await waitFor(() => expect(result.current.profile?.name).toBe('새닉네임'));
   });
 
   it.each([
@@ -146,14 +147,19 @@ describe('프로필 — useProfileEdit(GM-1 · PM-2 · PM-3)', () => {
 
   it('기본 이미지로: PM-2 {profileImageKey: ""} → profileImageUrl null', async () => {
     const sent = recordRequests();
-    const { result } = await renderProfile();
+    const { result, queryClient } = await renderProfile();
     await act(() => result.current.image.change(png()));
+    // mutateAsync가 끝나도 훅에 isPending=false·새 프로필이 오는 것은 TanStack notifyManager가 setTimeout(0)으로 미룬
+    // 알림 뒤다 — act는 그 매크로태스크를 기다리지 않는다. 낡은 렌더(pending)의 reset()은 아무것도 보내지 않으므로 기다린다
+    await waitFor(() => expect(result.current.image.pending).toBe(false));
     await act(() => result.current.image.reset());
+    expect((await writes(sent)).map((r) => r.method)).toEqual(['POST', 'PUT', 'PATCH', 'PATCH']);
     expect((await writes(sent)).at(-1)).toMatchObject({
       method: 'PATCH',
       body: { profileImageKey: '' },
     });
-    expect(result.current.profile?.profileImageUrl).toBeNull();
+    expect(queryClient.getQueryData(meQuery().queryKey)?.profileImageUrl).toBeNull();
+    await waitFor(() => expect(result.current.profile?.profileImageUrl).toBeNull());
   });
 });
 

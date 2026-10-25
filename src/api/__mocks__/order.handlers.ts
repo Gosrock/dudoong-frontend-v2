@@ -118,7 +118,7 @@ async function createOrder(request: Request) {
   if (!body || typeof body !== 'object') return errors.badRequest(request);
   const { eventId, ticketItemId, quantity, options, perTicketOptions } = body;
   const paymentChannel = body.paymentChannel;
-  // Bean Validation(@NotNull·@Min·@Max·@AssertTrue) → GLOBAL_400_1
+  // Bean Validation(@NotNull·@Min·@Max·@AssertTrue) → 400 BAD_REQUEST
   if (!isInt(eventId) || !isInt(ticketItemId) || !isInt(quantity)) {
     return errors.badRequest(request);
   }
@@ -224,7 +224,7 @@ const checkout = http.get(
     if (denied) return denied;
     const eventId = readId(params.eventId);
     const ticketItemId = readId(params.ticketItemId);
-    if (eventId === null || ticketItemId === null) return errors.badRequest(request);
+    if (eventId === null || ticketItemId === null) return errors.typeMismatch(request);
     const { event, ticket } = findCheckoutTicket(eventId, ticketItemId);
     if (!event) return orderError(request, 'Event_404_1');
     // 판매 중이 아니거나 다른 공연 티켓이면 404(`V2ReadCheckoutUseCase`)
@@ -282,7 +282,7 @@ type RefundAccountBody = {
 const NOT_BLANK = /[^\u0000-\u0020]/;
 
 /**
- * `V2RefundAccountRequest` Bean Validation → 실패면 `GLOBAL_400_1`. 통과하면 저장 값(은행명은 코드의 표시 이름,
+ * `V2RefundAccountRequest` Bean Validation → 실패면 400 `BAD_REQUEST`. 통과하면 저장 값(은행명은 코드의 표시 이름,
  * 예금주 trim, 계좌번호 공백 제거 — `normalize`). 비면 `null`(→ `Order_400_25`)
  */
 function readRefundAccount(raw: unknown): 'invalid' | null | MyOrderDetail['refundAccount'] {

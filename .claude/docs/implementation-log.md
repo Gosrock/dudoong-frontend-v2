@@ -357,7 +357,7 @@
 | 호스팅 쿼리 기본값 | 전역 기본값 그대로(아래 결정) — 훅 「다음 페이지가 실패하면 기존 행을 두고 nextPageError → retry로 그 페이지를 다시, 전역 토스트 없음」 |
 | 연락처 6종·placeholder | `create-host-rules` 「서버 enum 6종(YOUTUBE 포함)을 모두, 서버 순서로」, it.each 6행, 훅 「연락처 유형 6종(YOUTUBE 포함)과 처음 값」, e2e(유튜브 placeholder "URL") |
 
-그 밖: 탭 「기본은 공연 탭: GE-1만 쿠키와 함께 첫 페이지를 읽고, GH-1은 부르지 않는다」, 「호스트 탭으로 바꾸면 주소에 ?tab=hosts가 남고 GH-1을 읽는다 — 카드에 myRole·eventCount·호스트 홈 주소」, 「카드의 myRole은 호스트마다 다르다」, 검색 「입력 뒤 300ms에 지금 탭 목록을 keyword로 새로 읽고(첫 페이지부터), 탭을 바꿔도 검색어가 남는다」, 「검색칸은 50자에서 막고…」, 빈 상태 「소속 호스트가 없으면 호스트 탭은 "등록한 것 없음" 빈 상태(검색 결과 없음과 구분)」, 무한 스크롤 「호스트 24개: 10개씩 page=1·2로 이어 읽고 hasNext가 false면 끝난다」, 에러 「에러 분기 HOST_400_16(연락처 형식) → 연락처 영역 오류, 이동 없음, 토스트 없음 — 연락처를 고치면 지운다」, 「표에 없는 실패(GLOBAL_400_1·5xx)는 전역 토스트로 간다」, 「만드는 중에 다시 눌러도 한 번만 보낸다」, 리다이렉트 e2e 19행 + 쿼리 전달 + `/admin/kakao/callback` 404.
+그 밖: 탭 「기본은 공연 탭: GE-1만 쿠키와 함께 첫 페이지를 읽고, GH-1은 부르지 않는다」, 「호스트 탭으로 바꾸면 주소에 ?tab=hosts가 남고 GH-1을 읽는다 — 카드에 myRole·eventCount·호스트 홈 주소」, 「카드의 myRole은 호스트마다 다르다」, 검색 「입력 뒤 300ms에 지금 탭 목록을 keyword로 새로 읽고(첫 페이지부터), 탭을 바꿔도 검색어가 남는다」, 「검색칸은 50자에서 막고…」, 빈 상태 「소속 호스트가 없으면 호스트 탭은 "등록한 것 없음" 빈 상태(검색 결과 없음과 구분)」, 무한 스크롤 「호스트 24개: 10개씩 page=1·2로 이어 읽고 hasNext가 false면 끝난다」, 에러 「에러 분기 HOST_400_16(연락처 형식) → 연락처 영역 오류, 이동 없음, 토스트 없음 — 연락처를 고치면 지운다」, 「표에 없는 실패(BAD_REQUEST·5xx)는 전역 토스트로 간다」, 「만드는 중에 다시 눌러도 한 번만 보낸다」, 리다이렉트 e2e 19행 + 쿼리 전달 + `/admin/kakao/callback` 404.
 
 **결정**
 - 필드는 처음에 통합 기획서(2026-10-10) API 레퍼런스에서 옮겼고, 통합 때 백엔드 소스 `432cce4`(`V2MyHostResponse`·`V2MyEventResponse`·`V2CreateHostRequest`/`Response`·`V2HostContactRequest`)와 대조해 같음을 확인했다(B20 해결)
@@ -435,13 +435,24 @@
 
 ## 2026-10-26 백엔드 질문 소스 대조로 생긴 코드 수정 거리
 
-백엔드 질문(backend-questions)을 소스(@432cce4, 새 커밋은 dev `cb8d24e`)로 대조하다 나온 것. **아직 고치지 않았다** — P10b-L 통합 뒤 한 번에 고친다.
+백엔드 질문(backend-questions)을 소스(@432cce4, 새 커밋은 dev `cb8d24e`)로 대조하다 나온 것. 1~4는 고쳤다(2026-10-26, 아래 "검증 실패 코드 정리"). 5는 P12-L.
 
 | # | 위치 | 지금 | 사실 | 할 일 |
 |---|---|---|---|---|
-| 1 | `src/features/shared/auth/model/useRegisterForm.ts`(`VALIDATION_FAILED = 'GLOBAL_400_1'`)·`register-form.ts` 주석 | 가입 검증 실패를 `GLOBAL_400_1`로 받아 폼 `invalid`로 보낸다 | 서버는 400 `BAD_REQUEST`를 준다 → 운영에서 `invalid` 분기가 안 타고 일반 실패가 된다 | 검증 실패 코드를 `BAD_REQUEST`로(또는 둘 다) 받는다 |
-| 2 | 전역 에러 토스트(`src/api/query-client.ts` `messageOf`) | 표에 없는 실패는 `reason`을 그대로 토스트 | `BAD_REQUEST`의 `reason`은 `{"email":"…"}` JSON이나 "Bad Request"라 화면에 그대로 나가면 안 된다 | `BAD_REQUEST`면 고정 문구("입력값을 확인해 주세요" 등)로 바꾼다 — 한 곳(`src/api/errors.ts` 또는 `messageOf`) |
-| 3 | mock(`respond.ts` `badRequest`, `host.handlers.ts`, `hosting.handlers.ts`, `order.handlers.ts`, `me.handlers.ts`)·주석(`host/mutations.ts`, `auth/schema.ts`, `profile.ts`, `member-rules.ts`, `create-host-form.ts`, `host-settings-form.ts`, `useInviteMembers.ts`)·테스트 | 검증 실패를 `GLOBAL_400_1`로 흉내 낸다 | 위와 같다 | mock 응답을 `code: 'BAD_REQUEST'`, `reason`을 필드 JSON으로 맞추고 주석·테스트를 고친다 |
-| 4 | 경로 id 타입 오류 mock | 400 `GLOBAL_400_1` 가정(B7) | 로그인 400 `BAD_REQUEST`, 비로그인 공개 GET은 401 `AUTH_401_2`(숫자 id만 공개 경로 패턴에 걸린다) | mock·테스트를 맞춘다 |
+| 1 | `src/features/shared/auth/model/useRegisterForm.ts`(`VALIDATION_FAILED = 'GLOBAL_400_1'`)·`register-form.ts` 주석 | 가입 검증 실패를 `GLOBAL_400_1`로 받아 폼 `invalid`로 보낸다 | 서버는 400 `BAD_REQUEST`를 준다 → 운영에서 `invalid` 분기가 안 타고 일반 실패가 된다 | **완료(2026-10-26)** 검증 실패 코드를 `BAD_REQUEST`로(또는 둘 다) 받는다 |
+| 2 | 전역 에러 토스트(`src/api/query-client.ts` `messageOf`) | 표에 없는 실패는 `reason`을 그대로 토스트 | `BAD_REQUEST`의 `reason`은 `{"email":"…"}` JSON이나 "Bad Request"라 화면에 그대로 나가면 안 된다 | **완료(2026-10-26)** `BAD_REQUEST`면 고정 문구("입력값을 확인해 주세요" 등)로 바꾼다 — 한 곳(`src/api/errors.ts` 또는 `messageOf`) |
+| 3 | mock(`respond.ts` `badRequest`, `host.handlers.ts`, `hosting.handlers.ts`, `order.handlers.ts`, `me.handlers.ts`)·주석(`host/mutations.ts`, `auth/schema.ts`, `profile.ts`, `member-rules.ts`, `create-host-form.ts`, `host-settings-form.ts`, `useInviteMembers.ts`)·테스트 | 검증 실패를 `GLOBAL_400_1`로 흉내 낸다 | 위와 같다 | **완료(2026-10-26)** mock 응답을 `code: 'BAD_REQUEST'`, `reason`을 필드 JSON으로 맞추고 주석·테스트를 고친다 |
+| 4 | 경로 id 타입 오류 mock | 400 `GLOBAL_400_1` 가정(B7) | 로그인 400 `BAD_REQUEST`, 비로그인 공개 GET은 401 `AUTH_401_2`(숫자 id만 공개 경로 패턴에 걸린다) | **완료(2026-10-26)** mock·테스트를 맞춘다 |
 | 5 | P10/T-3 티켓 수정 본문 | 동의 필드 없음 | dev `cb8d24e`(#873)에 `refundObligationAgreed`·`agreementVersion`(무료 → 두둥 전환 때만) | P12-L에서 반영(api-contract §3) |
 
+
+## 2026-10-26 검증 실패 코드 정리 · `useMyPage` 불안정 테스트
+
+위 표 1~4를 고쳤다.
+
+**변경**: `src/api/errors.ts` `VALIDATION_ERROR_CODES`(`BAD_REQUEST`·`GLOBAL_400_1`)·`isValidationError`. `src/api/query-client.ts` `VALIDATION_ERROR_MESSAGE`("입력한 내용을 다시 확인해 주세요.") — `messageOf` 한 곳에서 검증 실패면 `reason` 대신 이 문구. `useRegisterForm`의 `invalid`가 `isValidationError`로 분기. mock `respond.ts`: `errors.badRequest(request, fields?)`는 400 `BAD_REQUEST` + 필드→메시지 JSON `reason`, `errors.typeMismatch`는 400 `BAD_REQUEST` "Bad Request", `publicIdMismatch`(공개 GET의 숫자가 아닌 id — 비로그인 401 `AUTH_401_2`, 로그인 400). 경로 id 타입 오류는 event·host·gift·order 핸들러가 `typeMismatch`/`publicIdMismatch`로, P10b 전용 `validationFailed`는 없앴다. 주석(`auth/schema`·`register-form`·`host/mutations`·`create-host-form`·`profile`·`event-id`·`host-home-rules`)·테스트(`useCreateHost`·`useEventList`·`checkout/rules`·`hosting-api`)를 맞추고, 테스트를 더했다(가입 400 `BAD_REQUEST`/`GLOBAL_400_1` → `invalid`, 검증 실패 토스트 고정 문구, `isValidationError`, mock 경로 id 타입 오류·본문 검증 `reason` JSON)
+**결정**:
+1. `GLOBAL_400_1`도 함께 받는다 — 지금은 나지 않지만 백엔드 README가 이 코드라고 적고 있어(B 질문 중) 어느 쪽으로 정리돼도 같은 분기를 탄다. 받는 코드 목록은 `VALIDATION_ERROR_CODES` 하나
+2. 쿼리 파라미터 제약 실패(page·size·keyword 등)의 mock `reason`도 필드 JSON으로 둔다(백엔드 문장 모양은 확인하지 않았다 — 화면은 `reason`을 보이지 않으니 영향 없음)
+3. `useMyPage.test` 「기본 이미지로…」 불안정: 훅 결과(`result.current`)가 `act` 직후 낡아 있었다. TanStack `notifyManager`는 캐시 변경을 `setTimeout(0)`으로 묶어 알리는데 `act`는 그 매크로태스크를 기다리지 않는다 — 그래서 ① `change()` 뒤 렌더가 아직 `pending`이면 `reset()`이 아무것도 보내지 않고 ② `reset()` 뒤 `profile`이 옛 URL로 남았다. `change()` 뒤 `pending=false`를, 끝에 `profile`을 `waitFor`로 기다리고 캐시 값은 바로 확인한다(닉네임 저장 테스트도 같은 모양이라 함께). 15회 연속 통과
+**검사**: typecheck · lint · prettier · test(1618) · test:stories(193) · build · e2e(264) 통과(`NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`)

@@ -74,7 +74,7 @@ const cancel = http.delete('*/api/v2/me/gifts/:giftId', ({ request, params, cook
   const denied = requireAuth(request, cookies);
   if (denied) return denied;
   const giftId = readId(params.giftId);
-  if (giftId === null) return errors.badRequest(request);
+  if (giftId === null) return errors.typeMismatch(request);
   return respond(request, cancelGift(giftId));
 });
 
@@ -82,8 +82,9 @@ const memo = http.patch('*/api/v2/me/gifts/:giftId', async ({ request, params, c
   const denied = requireAuth(request, cookies);
   if (denied) return denied;
   const giftId = readId(params.giftId);
+  if (giftId === null) return errors.typeMismatch(request);
   const body = await readMemo(request);
-  if (giftId === null || !body) return errors.badRequest(request);
+  if (!body) return errors.badRequest(request);
   return respond(request, changeGiftMemo(giftId, body.memo));
 });
 
@@ -106,7 +107,7 @@ const sentTicket = http.get('*/api/v2/me/gifts/:giftId/ticket', ({ request, para
   const denied = requireAuth(request, cookies);
   if (denied) return denied;
   const giftId = readId(params.giftId);
-  if (giftId === null) return errors.badRequest(request);
+  if (giftId === null) return errors.typeMismatch(request);
   const detail = readSentGiftTicket(giftId);
   return detail ? ok(detail) : giftError(request, 'Gift_404_1');
 });
