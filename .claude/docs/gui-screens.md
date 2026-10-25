@@ -2,6 +2,7 @@
 
 > 2026-10-15 작성, 2026-10-25 갱신. Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 `figma-console` MCP와 REST로 읽고 썼다. 읽기만 했다.
 > 2026-10-25 갱신은 2026-10-16 12:46Z 버전 → 2026-10-25 현재(같은 날 07:25Z에 "Ready for dev" 라벨 버전이 있다)의 구조 비교와 파일 코멘트 28개를 반영했다. 페이지가 기능별로 나뉘었고, 호스팅 PC 화면과 반응형 스펙이 생겼다(§3).
+> **2026-10-25 사용자 결정 — Dev Mode "Ready for dev"가 달린 노드만 구현 근거로 본다.** 나머지 프레임은 작업 중(참고만). 확인: REST 노드의 `devStatus.type === "READY_FOR_DEV"`. 2026-10-25 기준 14개 — 대시보드 9(`669:2350` · `712:1646` · `745:32726` · `727:23210` · `669:2972` · `680:672` · `669:2787` · `727:23088` · `745:32167`), 기본정보 3(`748:33351` · `748:33451` · `748:34006`), 상세정보 2(`767:39585` · `767:39645`).
 > **디자이너가 작업 중인 파일이다.** 화면은 계속 바뀐다. 각 Phase를 시작할 때 그 Phase의 프레임을 다시 읽는다.
 >
 > 관련 문서: 라우트 [`tech-decisions.md`](./tech-decisions.md) §3, Phase [`plan.md`](./plan.md), 컴포넌트 [`design-system.md`](./design-system.md), 디자인 요청 [`design-requests.md`](./design-requests.md), 서버 계약 [`api-contract.md`](./api-contract.md). 옛 와이어프레임은 [`figma-structure.md`](./figma-structure.md).
