@@ -190,7 +190,7 @@ src/ui/
 │  └─ global.css.ts            # reset, 본문 폰트, focus-visible
 ├─ primitives/                 # Flex(+ .Center 등), Spacing, Txt, Divider, Container
 ├─ hooks/                     # useMediaQueries, useCloseOnBack(뒤로가기로 오버레이 닫기), useOnExited, useReturnFocus
-├─ illustrations/             # 일러스트(PNG 3x — 벡터가 너무 커서), illust_dashboard·아바타 캐릭터(SVG) → <Illustration name /> (<img>)
+├─ illustrations/             # 일러스트 SVG(빈 화면 6종 — P2엔 PNG였다가 2026-10-25 Figma 벡터가 가벼워져 SVG로), illust_dashboard·아바타 캐릭터(SVG) → <Illustration name /> (<img>)
 ├─ brand/                     # Logo(audience·host) 인라인 SVG, currentColor
 ├─ stories/                    # Foundation 스토리 — 토큰, 프리미티브, 스타일 세 방법
 ├─ icons/                      # Figma ic 세트에서 뽑은 SVG → <Icon name size variant />. 라이선스 고지(lucide ISC) 포함
@@ -218,7 +218,7 @@ src/ui/
 src/api/
 ├─ client.ts                   # 요청 파이프라인 — ky 인스턴스 하나(기준 주소 없음, timeout 10초), 기준 주소 계산(prefixV2·prefixV1Auth), ky 네트워크·타임아웃 → ApiError(0), 본문 읽기 시간 제한, 래퍼 해제(NON_JSON·BAD_ENVELOPE·PARSE_ERROR). 401 재발급은 P4a에서 request()에 붙는다
 ├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체만 — client.ts의 request()를 감싼다. { public: true }는 credentials:'omit'
-├─ auth-handlers.ts            # P4a  setAuthHandlers({ refresh, onSessionLost }) + 재발급 조정: 탭 안 단일 비행, 탭 사이 Web Locks(15초 abort) + dd:refreshedAt 비교, 결과 판정(성공 / 상실 → SessionLostError + onSessionLost 한 번 / 일시 오류 → 세션 유지), B6 대응(1초 뒤 1회 — #792로 근거가 없어졌다. 남길지는 implementation-log "코드 수정 거리" #10). features는 HTTP 호출만 등록한다(api가 features를 import할 수 없어서)
+├─ auth-handlers.ts            # P4a  setAuthHandlers({ refresh, onSessionLost }) + 재발급 조정: 탭 안 단일 비행, 탭 사이 Web Locks(15초 abort) + dd:refreshedAt 비교, 결과 판정(성공 / 상실 → SessionLostError + onSessionLost 한 번 / 일시 오류 → 세션 유지). 재발급 4xx는 401 포함 모두 상실(낡은 액세스 쿠키 401 재시도는 #792로 근거가 없어져 2026-10-25 지움). features는 HTTP 호출만 등록한다(api가 features를 import할 수 없어서)
 ├─ session-flag.ts             # P4a  dd:session(로그인마다 새 무작위 값)·dd:refreshedAt 읽기·쓰기. 저장소 실패 = 없음. client.ts의 401 처리가 읽어야 해서 api에 둔다
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
 ├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
@@ -232,6 +232,7 @@ src/api/
 │  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼
 │  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
 │  ├─ route-pattern.ts         # routePattern() — 로그용 경로(id·토큰 → :param, 쿼리 버림)
+│  ├─ agreement.ts             # 2026-10-25  동의 기록 필드(#840·#850) — AGREEMENT_VERSION('2026-10'), agreementFields(사용자가 체크한 true만 + 그때만 agreementVersion)
 │  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
 ├─ auth/                       # P4b  calls.ts(카카오 링크·코드 교환·register/valid·login·info·register, 재발급·로그아웃 — authApi), schema.ts
 ├─ me/  host/  event/  ticket-item/  option/
@@ -240,7 +241,7 @@ src/api/
 ├─ gift/                       # P8b  queries + mutations(보내기·회수·메모·수락·거절·반환)
 ├─ check-in/                   # P8c  PQ-5 (P13b가 PQ-2·GQ-4를 같은 스키마에 붙인다)
 ├─ refund/  issued-ticket/  notification/
-└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
+└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정 — 세션 상태 valid·expired·invalid(`accessToken=forged`)·none), bank.handlers.ts(`GET /api/v2/banks` 25개), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
 ```
 
 서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery`, `eventDetailViewerQuery`(연락처 원문, 2026-10-25 A안) — tech-decisions §4).

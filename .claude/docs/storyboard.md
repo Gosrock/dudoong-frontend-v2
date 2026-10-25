@@ -26,7 +26,7 @@
    ① 옵션 입력 (모든 티켓 동일 / 티켓별 / 없음)
    ② 결제 정보 확인 (금액, 계좌)
    ③ 결제 방식 (직접 계좌이체 / 토스 송금)   ← 무료 티켓은 ②③ 없이 [신청하기]
-   ④ 환불 규정 동의   (+ hostProvisionAgreed, 두둥은 dudoongTicketNoticeConfirmed — #840, 칸 위치는 Q42)
+   ④ 환불 규정 동의   (+ hostProvisionAgreed, 두둥은 dudoongTicketNoticeConfirmed — #840, 체크한 것만 보냄. 칸 위치는 Q42 — 칸이 없는 지금은 안 보냄)
    │ "입금하셨나요?" 모달                               528:12139
    ▼
 [주문 생성]  P11/O-1
@@ -243,8 +243,8 @@ Figma 128:2583~2709는 거절된 주문에도, 498:703은 선물중 티켓이 �
    콜백: 성공 → dd:session 새 값 → location.assign(redirect)  (하드 이동)
          USER_403_1 → "이용이 제한된 계정이에요"  (정지 계정. 탈퇴자는 재가입 흐름)
          AUTH_400_1 → 로그인 처음부터   (state 누락·쿠키 만료는 #776 전까지 통과)
-         401 → "잠시 후 다시 시도해 주세요"   (낡은 액세스 쿠키 — [`backend-questions.md`](./backend-questions.md) B6. 2026-10-25 #792로 해소 — 더는 오지 않는다)
-         신규 판정 → [회원가입 오버레이]   (ageOver14Confirmed #840 · termsAgreed #850, 만 14세 칸은 Q42)
+         401 → 일반 실패   (예전 "잠시 후 다시" 분기는 낡은 액세스 쿠키 401(B6)이 #792로 없어져 2026-10-25 지웠다)
+         신규 판정 → [회원가입 오버레이]   (사용자가 체크한 termsAgreed #850 + agreementVersion만 — 만 14세 ageOver14Confirmed #840은 칸이 없어 Q42 대기)
 
 API 호출 → 401
    ├─ dd:session 없음 → ApiError(401) 그대로 (재발급·이동 없음)
@@ -252,9 +252,8 @@ API 호출 → 401
         ├─ dd:refreshedAt > 요청 시각(다른 탭이 재발급함) → 바로 재시도
         └─ 재발급(authApi, 401 가로채기 없음, 타임아웃 10초)
              ├─ 2xx → dd:refreshedAt 기록 → 재시도
-             ├─ 401 AUTH_401_1 · GLOBAL_401_1 → 1초 뒤 한 번 더   (#792 뒤로 재발급은 permitAll — 이 401은 오지 않는다, 분기만 남음)
              ├─ 5xx · 네트워크 · 타임아웃 → 세션 유지, 재발급 응답의 에러를 던짐
-             └─ 401 · 403 · 그 밖의 4xx → 세션 상실: SessionLostError (토스트·에러 화면 없음)
+             └─ 401 · 403 · 그 밖의 4xx → 세션 상실: SessionLostError (토스트·에러 화면 없음, 재시도 없음 — #792 뒤 낡은 쿠키 401 재시도는 2026-10-25 지움)
                   onSessionLost (한 번만): queryClient.clear() → dd:session 지움
                   ├─ (protected) · /hosting → [/login/expired?redirect=…]
                   └─ 공개 화면 · /events · /login → 같은 주소 새로고침(익명으로 다시 그림)

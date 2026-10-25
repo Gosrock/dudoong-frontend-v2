@@ -165,7 +165,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | 옵션 | 이름 20자, 설명 50자(**필수**). 네/아니오 추가금 0~1,000만 원. 응답 형식은 만든 뒤 못 바꾼다 |
 | 주문 | 수량 1~100(`perTicketOptions`도 100개 이하), 입금자명 1~20자, 거절 `reasonText` 20자, 호스트 취소 사유 100자 |
 | 환불 계좌 | 은행명 20자, 예금주 20자, 계좌번호 30자. 계좌번호는 숫자·하이픈·공백만(`^[0-9][0-9 -]*[0-9]$`), 저장 때 공백을 지운다. 티켓 계좌와 제한이 다르다. `bankCode` 규칙은 티켓 계좌와 같다(#804, `V2RefundAccountRequest` @432cce4) |
-| 동의 필드 | `agreementVersion` 50자(#840). 값은 `'2026-10'`(백엔드 Develop 기획서 — v1 티켓 앱 `AGREEMENT_VERSION`과 같은 값, 문구가 바뀌면 올린다) |
+| 동의 필드 | `agreementVersion` 50자(#840). 값은 `'2026-10'`(백엔드 Develop 기획서 — v1 티켓 앱 `AGREEMENT_VERSION`과 같은 값, 문구가 바뀌면 올린다). **FE 규칙(2026-10-25 구현)**: 동의 필드는 사용자가 화면에서 체크한 것만 `true`로 싣는다(칸 없이 `true`를 만들지 않는다 — 칸이 없는 필드는 design-requests Q42 대기). `agreementVersion`은 동의 필드가 하나라도 있을 때만 싣는다. 한 곳 `src/api/shared/agreement.ts`(`AGREEMENT_VERSION`·`agreementFields`) |
 | 선물 메모 | 50자 |
 | 닉네임 | 2~7자 |
 | 검색어 | 50자. GP-2 `tagIds` 50개 이하 |
@@ -332,7 +332,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 
 - 1주문 1종류. 두둥이 입금을 확인할 수 없으므로 **사용자가 "입금했어요"를 누른 순간이 주문 시점**이고 호스트 승인이 입금 확인이다.
 - 계좌·예금주는 주문 전에 G11/O-0(로그인)에서 받는다. 두둥 티켓이고 지금 살 수 있을 때만 값이 있다. **토스 송금 링크는 이 계좌와 총액으로 프론트가 만든다.** 계좌에 `bankCode`가 생겼지만(#804) 토스 링크의 은행 값으로 바꾸는 매핑은 서버에 없다 — 프론트 몫이다(PR #804 본문).
-- **동의 필드(#840)**: P11/O-1 본문에 `hostProvisionAgreed`(호스트에게 개인정보 제공 동의), `dudoongTicketNoticeConfirmed`(두둥티켓 고지 확인 — 두둥티켓 주문에서만 기록·강제), `agreementVersion`. 모두 선택 필드이고 `true`일 때만 기록한다. 지금은 기록만 하고(`agreement.enforce` 기본 false), 백엔드가 켜면 필요한 필드가 `true`가 아닐 때 400 `Agreement_400_1`이다 — **v2 FE는 처음부터 보낸다**(백엔드 Develop 기획서). 기존 `agreeRefundPolicy`(`@NotNull @AssertTrue`)는 그대로(`V2OrderRequests.kt`·`AgreementService` @432cce4). 화면 문구·동작은 plan P7.
+- **동의 필드(#840)**: P11/O-1 본문에 `hostProvisionAgreed`(호스트에게 개인정보 제공 동의), `dudoongTicketNoticeConfirmed`(두둥티켓 고지 확인 — 두둥티켓 주문에서만 기록·강제), `agreementVersion`. 모두 선택 필드이고 `true`일 때만 기록한다. 지금은 기록만 하고(`agreement.enforce` 기본 false), 백엔드가 켜면 필요한 필드가 `true`가 아닐 때 400 `Agreement_400_1`이다 — **v2 FE는 사용자가 체크한 필드만 보낸다**(§4 동의 필드 — 두 칸 모두 v2 체크아웃 계획에 없어 Q42 대기, 지금 주문 본문에는 동의 필드가 없다). 기존 `agreeRefundPolicy`(`@NotNull @AssertTrue`)는 그대로(`V2OrderRequests.kt`·`AgreementService` @432cce4). 화면 문구·동작은 plan P7.
 - 입금자명은 현재 닉네임을 보내고 사용자가 고칠 수 없다(기본안).
 - **티켓에 붙은 옵션은 전부 필수 응답이다.** 주관식은 1~255자.
 - 옵션 본문: `options{applyToAll: true, answers[{optionId, answer}]}` 또는 `applyToAll=false` + `perTicketOptions[[…],[…]]`(티켓 수만큼). 네/아니오 답은 `YES`/`NO`.
@@ -407,7 +407,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | #763 | **반영됨(dev).** Origin 검사(`CookieOriginFilter`, report-only — `AUTH_403_3`는 enforce를 켜야 난다), OAuth `state` 발급·검증(`OauthStateHelper`, 불일치 `AUTH_400_1`, 빈 값은 전환 기간이라 허용) | 콜백에서 `AUTH_400_1`이면 로그인을 다시 시작 |
 | #776(열린 이슈) | Origin 검사 enforce 켜기, OAuth `state` 필수, 토큰 쿠키 HttpOnly. @432cce4 기본값은 셋 다 false(`CookieOriginFilter`·`OauthStateHelper`·`CookieHelper`). 단 `/internal-api/`는 #847부터 출처 검사를 항상 한다. 백엔드는 v1 프론트(Front #338)가 A·B단계를 배포한 뒤 켠다(백엔드 Develop 기획서) | JS로 토큰 쿠키를 읽지 않는 구조가 전제. **v2 FE는 이미 대응돼 있다**(2026-10-25 코드 확인): `state`를 콜백 값 그대로 3번에 넘긴다(`exchangeKakaoCode`), 카카오 토큰은 본문으로 보낸다, 재발급은 본문 없이 리프레시 쿠키로 한다(`refreshTokens`), 프로덕션 코드에 `document.cookie` 읽기가 없다(로그인 판단은 `localStorage` `dd:session` + API 응답) — `src/api/auth/calls.ts`·`src/api/session-flag.ts` |
 | #839(열린 PR, 예정) | 호스트 사업자 정보 `businessInfo`(GP-3·GH-3), V018 DDL. #846이 고친 `V2ReadEventDetailUseCase`를 같이 고쳐 머지 때 rebase가 필요해 보인다(PR diff 맥락) | 머지 뒤 P5b·P5c 표시, P10b 쓰기 경로 확인 |
-| 동의 강제(`agreement.enforce`) | 지금 false(기록만, `AgreementService` @432cce4). 동의 기록이 쌓이는 것을 확인한 뒤 후속 백엔드 PR로 true(백엔드 Develop 기획서). 켜지면 가입·주문·두둥티켓 생성에서 400 `Agreement_400_1` | v2는 처음부터 동의 필드를 보낸다(plan P4b·P7·P12) |
+| 동의 강제(`agreement.enforce`) | 지금 false(기록만, `AgreementService` @432cce4). 동의 기록이 쌓이는 것을 확인한 뒤 후속 백엔드 PR로 true(백엔드 Develop 기획서). 켜지면 가입·주문·두둥티켓 생성에서 400 `Agreement_400_1` | v2는 사용자가 체크한 필드만 보낸다(UI 없는 것은 design-requests Q42 대기 — 2026-10-25 지금은 가입 `termsAgreed`만). 강제가 켜지면 지금 본문은 가입·주문 모두 400(mock `authHandlers.registerAgreementEnforced`·`orderHandlers.agreementEnforced`, plan P4b·P7·P12) |
 
 ## 8. API 안내서(10-09)에만 있는 정보
 
@@ -428,19 +428,19 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 | 3 | `GET /oauth/kakao?code=…&state=…` | `{accessToken, refreshToken, idToken}` — **카카오의** 토큰이다 |
 | 4 | `POST /oauth/kakao/register/valid` `{idToken}` | `{canRegister}` — 신규 사용자인지 |
 | 5a | 기존 사용자: `POST /oauth/kakao/login` `{idToken}` | `TokenAndUserResponse` + `Set-Cookie`(두둥 토큰 2개). 정지 계정은 403 `USER_403_1`(탈퇴한 사람은 4번에서 `canRegister=true`라 5b로 간다) |
-| 5b | 신규 사용자: `POST /oauth/kakao/info` `{accessToken}`으로 카카오 프로필을 받아 가입 폼을 채우고, `POST /oauth/kakao/register` `{idToken, email, phoneNumber, profileImage, name, marketingAgree, ageOver14Confirmed, termsAgreed, agreementVersion}` | `TokenAndUserResponse` + `Set-Cookie`. 동의 필드 3개는 선택이고 `true`일 때만 기록한다(#840 만 14세·#850 이용약관, `RegisterRequest` @432cce4). 동의 강제가 켜지면 `ageOver14Confirmed`·`termsAgreed`가 `true`가 아닐 때 400 `Agreement_400_1`. 서버는 개인정보 처리방침 동의를 기록하지 않는다(`AgreementType`에 없음) — v2 가입 계획의 처리방침 체크는 화면에서만 받는다(design-requests Q25) |
+| 5b | 신규 사용자: `POST /oauth/kakao/info` `{accessToken}`으로 카카오 프로필을 받아 가입 폼을 채우고, `POST /oauth/kakao/register` `{idToken, email, phoneNumber, profileImage, name, marketingAgree, ageOver14Confirmed, termsAgreed, agreementVersion}` | `TokenAndUserResponse` + `Set-Cookie`. 동의 필드 3개는 선택이고 `true`일 때만 기록한다(#840 만 14세·#850 이용약관, `RegisterRequest` @432cce4). 동의 강제가 켜지면 `ageOver14Confirmed`·`termsAgreed`가 `true`가 아닐 때 400 `Agreement_400_1`. v2는 이용약관 체크 값만 `termsAgreed`로 싣는다(만 14세 칸은 Q42라 `ageOver14Confirmed` 미전송, 2026-10-25). 서버는 개인정보 처리방침 동의를 기록하지 않는다(`AgreementType`에 없음) — v2 가입 계획의 처리방침 체크는 화면에서만 받는다(design-requests Q25) |
 
 - `TokenAndUserResponse` = `{accessToken, accessTokenAge, refreshToken, refreshTokenAge, userProfile{id, profileImage, name}}`. 본문의 토큰은 FE가 쓰지 않는다 — 쿠키로 온다.
 - 토큰을 쿼리스트링으로 보내는 옛 방식(`?id_token=`)은 전환 기간에만 받는다. v2 FE는 처음부터 본문으로 보낸다.
 - **`redirect_uri`는 백엔드가 요청의 Referer로 고른다.** 허용 목록 중 Referer의 출처와 같은 것을 쓰고, 경로가 `/admin`으로 시작하면 `{출처}/admin/kakao/callback`, 아니면 `{출처}/kakao/callback`이다. v2는 로그인 화면이 `/login` 하나라 항상 `/kakao/callback`으로 온다. 호스팅 센터(`/hosting`)에서 로그인으로 넘어가도 경로가 `/admin`이 아니므로 같다.
 - 1번과 3번은 `state` 쿠키를 주고받으므로 `credentials: 'include'`로 부른다. 파라미터와 쿠키가 **둘 다 있는데 다르면** 400 `AUTH_400_1` — 로그인을 처음부터 다시 시작한다(#763). 값이 없거나 쿠키가 만료돼(Max-Age 600초) 사라진 경우는 지금 경고 로그만 남기고 통과한다(`OauthStateHelper.verify`, `stateRequired=false`). #776(state 필수)부터 이 경우도 `AUTH_400_1`이다.
-- 1·3·5번은 모두 `/oauth/**`(`permitAll`)라 **만료·잘못된 액세스 쿠키가 남아 있어도 401이 나지 않는다**(#792). 이전(24aa595)에는 JWT 필터가 401을 내 FE가 "잠시 후 다시 시도해 주세요"로 안내했는데, 그 원인은 없어졌다(안내 분기는 남겨도 해가 없다 — patterns §24 P4b).
+- 1·3·5번은 모두 `/oauth/**`(`permitAll`)라 **만료·잘못된 액세스 쿠키가 남아 있어도 401이 나지 않는다**(#792). 이전(24aa595)에는 JWT 필터가 401을 내 FE가 "잠시 후 다시 시도해 주세요"로 안내했는데, 그 원인이 없어져 FE 분기를 지웠다(2026-10-25). 혹시 401이 오면 일반 실패(`failed`)다.
 
 ### 그 밖
 
 | 호출 | 내용 |
 |---|---|
-| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·서명·형식 오류·서버에 없음 — 세션 상한 10개를 넘어 밀려난 세션, 30초 유예가 지난 옛 토큰 재사용(그 세션은 폐기)도 여기, #807)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`), 사용자 행이 없으면 404 `USER_404_1`, 잘못된 본문이면 400. 재발급은 `permitAll`이라 **만료·잘못된 액세스 쿠키가 같이 실려도 401이 나지 않는다**(#792 — 이전 24aa595에서는 JWT 필터가 401 `AUTH_401_1`·`GLOBAL_401_1`을 내 FE가 1초 뒤 한 번 더 시도했다. 그 분기는 남겨도 해가 없다). FE 판정: 2xx 성공 / 401은 1초 뒤 한 번 더(지금은 오지 않는 경우) / 그 밖의 4xx 세션 상실 / 5xx·네트워크·타임아웃 일시 오류(patterns §5-1). 같은 세션의 직전 토큰은 30초 동안 다시 재발급할 수 있어 탭 여러 개의 동시 재발급이 안전하다(`RefreshTokenAdaptor.GRACE_MILLIS` @432cce4) |
+| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·서명·형식 오류·서버에 없음 — 세션 상한 10개를 넘어 밀려난 세션, 30초 유예가 지난 옛 토큰 재사용(그 세션은 폐기)도 여기, #807)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`), 사용자 행이 없으면 404 `USER_404_1`, 잘못된 본문이면 400. 재발급은 `permitAll`이라 **만료·잘못된 액세스 쿠키가 같이 실려도 401이 나지 않는다**(#792 — 이전 24aa595에서는 JWT 필터가 401 `AUTH_401_1`·`GLOBAL_401_1`을 내 FE가 한 번 더 시도했다. 그 재시도는 2026-10-25 지웠다). FE 판정: 2xx 성공 / 4xx(401 포함) 세션 상실 / 5xx·네트워크·타임아웃 일시 오류(patterns §5-1). 같은 세션의 직전 토큰은 30초 동안 다시 재발급할 수 있어 탭 여러 개의 동시 재발급이 안전하다(`RefreshTokenAdaptor.GRACE_MILLIS` @432cce4) |
 | `POST /logout` | **언제나 200 + 쿠키 2개 삭제**(#793, `AuthController.logoutUser` Operation "토큰이 잘못돼도 항상 200"). 이 기기의 세션만 서버에서 지운다 — 유효한 액세스 토큰이 있으면 그 세션 id로 지우고, 리프레시 토큰(본문 `refreshToken` → 쿠키 순)이 있으면 그 세션의 현재(또는 유예 안 직전) 토큰일 때 그 세션도 지운다. 그래서 액세스가 없거나 만료여도 리프레시로 정리된다(`LogoutUseCase`·`AuthController.logoutUser` @432cce4). 리프레시 쿠키는 path `/`라 같은 출처 요청에 자동으로 실리므로 FE는 본문 없이 불러도 서버 세션이 정리된다. FE는 응답과 상관없이(5xx·네트워크 포함) 로컬 정리(`queryClient.clear()`, `dd:session` 제거) 후 이동한다 |
 | `PATCH /api/v1/users/me/marketing` | 마케팅 수신 동의를 **반전(토글)**한다. 본문 없음, 응답 `UserInfoVo`(`UserController` @432cce4). `PATCH /api/v1/users/me/mail`(`receiveMail`)은 거래 메일까지 끄는 다른 스위치라 섞지 않는다(백엔드 Develop 기획서). v2 GM-1에는 현재 값(`marketingAgree`)이 없다 — backend-questions B17. v2 계획에 화면이 없다(plan P9 "범위 미정") |
 | `DELETE /me` | 회원 탈퇴 + 쿠키 삭제. 마스터인 호스트에 다른 활성 멤버나 OPEN·정산중 공연이 있으면 400 `USER_400_6`(위 마이페이지 절과 같다) |

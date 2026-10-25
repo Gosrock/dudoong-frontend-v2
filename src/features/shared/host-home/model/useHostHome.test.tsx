@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { hostSets, resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { meHandlers } from '@/api/__mocks__/me.handlers';
+import { hasAccessToken } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import type { HostRole } from '@/api/shared/common-schema';
 import { createTestQueryClient } from '@/test/render';
@@ -243,9 +244,27 @@ describe('호스트 홈 — 연락처(사용자별 값, 백엔드 #822/#846)', (
   it('로그인: viewer 확정 전에는 pending(항목은 공개 값), viewer가 실패하면 error', async () => {
     given('audience');
     server.use(...hostSets.viewerServerError(11));
+    // viewer(GH-3 쿠키) 응답을 테스트가 풀 때까지 붙잡는다. 붙잡지 않으면 5xx가 첫 렌더 몇 ms 뒤에 와서, `waitFor`가
+    // 끝난 뒤 RTL이 한 틱(setTimeout 0)을 더 돌리는 사이에 이미 error가 되어 pending을 못 볼 때가 있다
+    let release = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    let viewerSent = false;
+    server.use(
+      http.get('*/api/v2/hosts/11', async ({ cookies }) => {
+        if (!hasAccessToken(cookies)) return undefined;
+        viewerSent = true;
+        await held;
+        return undefined; // 다음 핸들러(viewerServerError)가 5xx로 답한다
+      }),
+    );
     const { result } = setup();
-    await waitFor(() => expect(result.current).not.toBeNull());
+    await waitFor(() => expect(viewerSent).toBe(true));
     expect(result.current.contacts.status).toBe('pending');
+    expect(result.current.contacts.items.at(-1)).toMatchObject({
+      value: 'go***@example.com',
+      href: null,
+    });
+    release();
     await waitFor(() => expect(result.current.contacts.status).toBe('error'));
     expect(result.current.contacts.items.at(-1)).toMatchObject({
       value: 'go***@example.com',
