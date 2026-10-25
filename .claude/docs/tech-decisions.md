@@ -113,8 +113,8 @@ app/
 │  ├─ (public)/layout.tsx         export const instant = false(그 아래 page.tsx에도). Suspense·loading.tsx 없음
 │  └─ (app)/layout.tsx            <Suspense>
 │     └─ (protected)/layout.tsx   로그인 게이트
-└─ hosting/layout.tsx             <Suspense> + 로그인 게이트 + 셸(데스크탑 좌측 사이드바 / 모바일 헤더)
-   └─ events/[eventId]/layout.tsx 공연 스코프(GE-3) — 사이드바의 공연 메뉴 항목, 모바일 공연 전환 ▾ 헤더
+└─ hosting/layout.tsx             <Suspense> + 로그인 게이트 + 셸(데스크탑 상단 바 / 모바일 헤더)
+   └─ events/[eventId]/layout.tsx 공연 스코프(GE-3) — 데스크탑 공연 사이드바(메뉴 항목), 모바일 공연 헤더(제목 ▾)
 ```
 
 | 그룹 | 조회 | 레이아웃 |
@@ -135,7 +135,7 @@ app/
 | | **공연 사이드바**(폭 268, 공연 안의 화면에만): "‹ 내 공연"(공연준비 홈으로) → 공연 카드(포스터 + 공연명 + "호스트명 · D-n") → 메뉴(등록 전 4개: 대시보드 · 기본 정보 · 상세 정보 · 티켓 관리 / 등록 후 6개: + 예매자 관리(숫자 배지) · QR 체크인) → 맨 아래 "공연 페이지 보기"(등록 후만, 공개 상세로). 공연 전환 메뉴는 없다("‹ 내 공연"으로 나가서 고른다) | `events/[eventId]/layout.tsx`가 GE-3(등록 상태별 항목)으로 채운다 |
 | | 가운데 본문 fill(최소 572 ~ 최대 1261). **우측 일정 패널**(286 / 335 / 388 — 1133 / 1280 / 1440 구간별)은 **등록 후 대시보드만**. 1133~1279도 3단 그대로다 | 우측 패널은 페이지가 슬롯으로 채운다 |
 | | **공연 밖 화면**(공연준비 홈 등): 사이드바 없이 상단 바 + 본문. 본문 최대 1280(좌우 여백 40 · 40 · 80 — 1133 · 1280 · 1440) | `hosting/layout.tsx` |
-| 모바일(1133 미만) | 헤더(공연준비 홈은 로고 헤더 `host title` — 벨 자리가 없어 **알림 벨은 햄버거 드로어 안**에 둔다. 제목형 "호스팅 센터"(햄버거 없음 + 벨 + 아바타) 대안은 확인 대기(design-requests Q17). 공연 안에서는 햄버거 + "대시보드 ▾ / 공연명" + 벨) + **햄버거 드로어**에 같은 메뉴. 공연 안 메뉴를 드로어로 열지, 와이어 `487:16952`처럼 제목 ▾ 바텀시트로 열지는 design-requests Q37 대기 | 같은 레이아웃 파일들이 폭에 따라 상단 바·사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
+| 모바일(1133 미만) | 헤더(공연준비 홈은 로고 헤더 `host title` — 벨 자리가 없어 **알림 벨은 햄버거 드로어 안**에 둔다. 제목형 "호스팅 센터"(햄버거 없음 + 벨 + 아바타) 대안은 확인 대기(design-requests Q17). 공연 안에서는 햄버거 + "대시보드 ▾ / 공연명" + 벨) + **햄버거 드로어**에 같은 메뉴. 공연 안 메뉴를 드로어로 열지, 와이어 `487:16952`처럼 제목 ▾ 바텀시트로 열지는 design-requests Q37 대기(잠정: 햄버거 → 드로어, 제목 ▾ → 공연 전환) | 같은 레이아웃 파일들이 폭에 따라 상단 바·사이드바 또는 헤더를 그린다(둘 다 DOM에 두고 CSS로 하나만 보인다 — patterns §1) |
 
 - 사이드바·헤더의 활성 메뉴 표시는 `usePathname()`을 쓰므로 **children을 감싸지 않는 말단 컴포넌트 + 자체 `<Suspense>`**(위 "경로를 읽는 컴포넌트")다.
 - 경계값은 GUI 스펙(1133 미만 모바일 / 1133 · 1280 · 1440)이다. 관객 셸은 1024 기준을 유지한다(plan P4s, 관객도 1133인지는 design-requests Q38). 두 경계를 브레이크포인트 토큰에서 어떻게 나눌지는 P4s 착수 전에 정한다(§14).
@@ -584,7 +584,7 @@ Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 
 - `react-simplikit`과 `@use-funnel/browser`는 쓰지 않는다(§22). 필요한 훅 몇 개와 공연 만들기 2단계는 직접 만든다.
 - `@suspensive/react-query`는 쓰지 않는다. `<SuspenseQuery>`는 `useSuspenseQuery`를 JSX로 쓰게 해 줄 뿐 경계를 포함하지 않는다(suspensive.org 문서 예시도 바깥에서 `ErrorBoundary`·`Suspense`로 감싼다). 대신 `src/ui`에 `<AsyncBoundary>`(Suspense + ErrorBoundary + 재시도) 하나를 둔다.
-- "지도 제외"는 관객 공연 상세의 지도 위젯 이야기다. 호스팅 기본 정보 폼의 주소 검색·좌표 변환은 필요하다(Figma `424:9918`에 "주소 찾기"가 있다). 폼 안에 지도 미리보기를 그릴지는 디자인 확인 뒤 정한다.
+- "지도 제외"는 관객 공연 상세의 지도 위젯 이야기다. 호스팅 기본 정보 폼의 주소 검색·좌표 변환은 필요하다(Figma `424:9918`에 "주소 찾기"가 있다). 폼 안에 지도 미리보기를 그릴지는 디자인 확인 뒤 정한다 → 2026-10-25 GUI에서 지도 미리보기로 확정(design-requests Q3 해결, 카카오맵 지도 SDK — plan P11, §30).
 
 ## 16. UI 라이브러리 교체 (에디터 제외)
 
@@ -686,6 +686,7 @@ v1은 sanitize 코드가 레포 전체에 **0건**이며, toast-ui `Viewer`의 �
   paymentChannel: 'BANK_TRANSFER' | 'TOSS_TRANSFER' | 'FREE',
   depositorName,            // 1~20자
   agreeRefundPolicy,
+  // 2026-10-25 추가(#840, 모두 선택 — api-contract §6, plan P7): hostProvisionAgreed, dudoongTicketNoticeConfirmed(두둥만), agreementVersion
 }
 ```
 
@@ -741,7 +742,7 @@ const FormSchema = z.discriminatedUnion('mode', [
 
 ### 흐름
 
-1. `G11/O-0`(로그인 필요)으로 티켓 + `account{bankName, accountHolder, accountNumber}`를 받는다. 계좌는 두둥 티켓이고 지금 살 수 있을 때만 값이 있다. 클라이언트에서 조회한다.
+1. `G11/O-0`(로그인 필요)으로 티켓 + `account{bankName, accountHolder, accountNumber}`(2026-10-25부터 `bankCode`도, §19 구현 규칙)를 받는다. 계좌는 두둥 티켓이고 지금 살 수 있을 때만 값이 있다. 클라이언트에서 조회한다.
 2. 옵션 입력(§18) → 결제 정보(금액·계좌) → 결제 방식 → 환불 규정 동의.
 3. CTA → "입금하셨나요?" 확인 모달(`EasyOverlay`). `onConfirm`에서 `P11/O-1`을 await한다.
 4. 성공하면 응답(주문 상세와 같은 형태)을 G11/O-3 키에 `setQueryData`로 넣고 `/orders/[orderUuid]?created=1`로 `replace` 이동한다(§3). 새로고침·하드 리로드에도 같은 화면이 다시 그려진다.
@@ -1410,7 +1411,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 |---|---|---|
 | 1. 앱 구조 | 단일 Next 앱, 모노레포·패키지 없음 | 런타임이 같아졌고 관객·호스트에 걸친 화면이 많다 |
 | 2. 라우터 | App Router, Cache Components 켬(기본값), 서버 캐시 없음 | emotion을 버리면 Pages Router를 고를 이유가 없다. 트래픽상 캐시의 이득이 없고 따라오는 복잡도가 크다 |
-| 3. 렌더 | `(audience)` 공통 헤더 아래 `(public)`(서버 조회, Suspense 없음) / `(app)`(클라이언트 조회, 그 안의 `(protected)`에 게이트), `hosting`(데스크탑 좌측 사이드바 / 모바일 헤더 + 드로어 셸, §30) | 서버 조회가 필요한 화면이 4개뿐. 크롤러에 404를 지키려면 Suspense 밖이어야 한다(켠 구성의 브라우저는 200, P0에서 표로 재확인) |
+| 3. 렌더 | `(audience)` 공통 헤더 아래 `(public)`(서버 조회, Suspense 없음) / `(app)`(클라이언트 조회, 그 안의 `(protected)`에 게이트), `hosting`(데스크탑 상단 바 + 공연 사이드바 / 모바일 헤더 + 드로어 셸, §3·§30) | 서버 조회가 필요한 화면이 4개뿐. 크롤러에 404를 지키려면 Suspense 밖이어야 한다(켠 구성의 브라우저는 200, P0에서 표로 재확인) |
 | 4. 데이터 | `queryOptions` 한 벌을 서버(`<Prefetch>`, 무한 목록 제외)와 브라우저가 공유. 사용자별 값은 viewer 쿼리로 분리. `api`·`authApi`. 응답 enum은 `.catch` → `UNKNOWN`. 서버 컴포넌트는 라우트 파일만 | 서버에서 도는 조회에는 토큰이 붙지 않는다. 같은 키에 두면 익명 값이 인증 값을 덮는다 |
 | 4-b. 인증 | v1 OAuth, JS로 쿠키 안 읽음, 401이면 코드 무관 재발급(탭 간 Web Locks, `authApi`는 가로채기 없음). 재발급이 4xx일 때만 세션 상실(5xx·네트워크는 유지) — 보호 화면은 `/login/expired`, 공개 화면은 익명으로 다시 그림. `dd:session` 값으로 익명 방문자의 재발급 생략·탭 간 로그아웃 동기화. `proxy.ts` 없음 | 운영 쿠키가 `SameSite=Strict`라 서버 게이트가 외부 링크 진입을 잘못 막는다. 배포 중 502로 로그인 사용자가 튕기지 않게 |
 | 5. 상태 | 전역 상태 라이브러리 없음 | v1 전역 상태는 전부 서버 상태·오버레이·지역 상태였다 |

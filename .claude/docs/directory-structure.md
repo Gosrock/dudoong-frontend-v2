@@ -165,9 +165,9 @@ src/features/
 │
 └─ shared/                     # 관객·호스팅 양쪽이 쓰는 것
    ├─ auth/                    # P4a/P4b  LoginGate(pending 스켈레톤 · 익명이면 항상 /login · error면 전체 화면 재시도), useSession, registerAuth(queryClient) — setAuthHandlers 등록(재발급 HTTP 호출 refreshTokens + onSessionLost) + storage·pageshow 감시, handleSessionLost(한 번만, 보호 영역은 /login/expired, 그 밖은 reload), useProtectedArea(보호 영역 판정 = 게이트 마운트 수), LoginRequiredLink·useRequireLogin, useLogout, loginHref·expiredHref. P4b: LoginView, KakaoCallbackView(최소 마크업 — V에서 교체), model/(auth-outcome·login-redirect·register-form·finish-login, useKakaoLogin·useKakaoCallback·useRegisterForm). 임시 GateCheckView(+ (protected)/gate-check — 실제 보호 화면이 생기면 지운다)
-   ├─ host-home/               # P5c  HostHome — 공개 필드는 hostDetailQuery, myRole별 뷰는 hostViewerQuery. model/: host-home-rules, useHostFollow(♡ 직렬화), useHostHome
+   ├─ host-home/               # P5c  HostHome — 공개 필드는 hostDetailQuery, myRole별 뷰와 로그인 사용자의 연락처 원문(#846)은 hostViewerQuery. model/: host-home-rules, useHostFollow(♡ 직렬화), useHostHome
    ├─ section-viewer/          # P5b  model/: render-section(contentFormat → marked → sanitize-html), sanitize-section-html, section-tabs(서버 섹션 없으면 기본 4탭). 뷰는 V
-   ├─ contact/                 # P5b  model/contact-link — 연락처 6종 + UNKNOWN → 표시·링크(tel·mailto·http(s)만). P5c·P9 재사용
+   ├─ contact/                 # P5b  model/contact-link — 연락처 6종 + UNKNOWN → 표시·링크(tel·mailto·http(s)만, 가린 값 `*`은 링크 없음 — #846). model/viewer-contacts(`resolveContacts` — 로그인 사용자 원문 연락처 상태, 2026-10-25 A안). P5c·P9 재사용
    ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑
    ├─ checkin-result/          # P8c · P13b  model/checkin-result — result → 화면(`'host' | 'self'`)
    ├─ image-upload/            # P9 · P10b · P11 (먼저 착수한 Phase)  업로드 UI(DropZone 연결, 미리보기). 호출은 src/api/upload
@@ -218,7 +218,7 @@ src/ui/
 src/api/
 ├─ client.ts                   # 요청 파이프라인 — ky 인스턴스 하나(기준 주소 없음, timeout 10초), 기준 주소 계산(prefixV2·prefixV1Auth), ky 네트워크·타임아웃 → ApiError(0), 본문 읽기 시간 제한, 래퍼 해제(NON_JSON·BAD_ENVELOPE·PARSE_ERROR). 401 재발급은 P4a에서 request()에 붙는다
 ├─ http.ts                     # api(/api/v2) · authApi(/api/v1/auth) 객체만 — client.ts의 request()를 감싼다. { public: true }는 credentials:'omit'
-├─ auth-handlers.ts            # P4a  setAuthHandlers({ refresh, onSessionLost }) + 재발급 조정: 탭 안 단일 비행, 탭 사이 Web Locks(15초 abort) + dd:refreshedAt 비교, 결과 판정(성공 / 상실 → SessionLostError + onSessionLost 한 번 / 일시 오류 → 세션 유지), B6 대응(1초 뒤 1회). features는 HTTP 호출만 등록한다(api가 features를 import할 수 없어서)
+├─ auth-handlers.ts            # P4a  setAuthHandlers({ refresh, onSessionLost }) + 재발급 조정: 탭 안 단일 비행, 탭 사이 Web Locks(15초 abort) + dd:refreshedAt 비교, 결과 판정(성공 / 상실 → SessionLostError + onSessionLost 한 번 / 일시 오류 → 세션 유지), B6 대응(1초 뒤 1회 — #792로 근거가 없어졌다. 남길지는 implementation-log "코드 수정 거리" #10). features는 HTTP 호출만 등록한다(api가 features를 import할 수 없어서)
 ├─ session-flag.ts             # P4a  dd:session(로그인마다 새 무작위 값)·dd:refreshedAt 읽기·쓰기. 저장소 실패 = 없음. client.ts의 401 처리가 읽어야 해서 api에 둔다
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
 ├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
@@ -240,10 +240,10 @@ src/api/
 ├─ gift/                       # P8b  queries + mutations(보내기·회수·메모·수락·거절·반환)
 ├─ check-in/                   # P8c  PQ-5 (P13b가 PQ-2·GQ-4를 같은 스키마에 붙인다)
 ├─ refund/  issued-ticket/  notification/
-└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정)
+└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
 ```
 
-서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery` — tech-decisions §4).
+서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery`, `eventDetailViewerQuery`(연락처 원문, 2026-10-25 A안) — tech-decisions §4).
 
 `env/`: `client.ts`(`NEXT_PUBLIC_KAKAO_JS_KEY`, 빌드 때 검증)만 둔다. 서버 값(`API_INTERNAL_URL`)은 `http.ts`가 호출할 때 기본값과 함께 읽으므로 검증 파일이 없다. `instrumentation.ts`도 두지 않는다(tech-decisions §12).
 

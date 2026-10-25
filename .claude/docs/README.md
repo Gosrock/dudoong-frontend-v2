@@ -12,7 +12,7 @@
 |---|---|
 | [`tech-decisions.md`](./tech-decisions.md) | 기술 결정(§0~§20), 검증·조사 기록(§21~§23·§26), 도구 세팅(§24), 배포 인프라(§25), 검토 기록(§27~§29), GUI 반영(§30 — 2026-10-15, 2026-10-25 갱신), P0 결과(§31), 테스트 환경 세팅(§32) |
 | [`api-contract.md`](./api-contract.md) | 백엔드 `/api/v2` 규약·권한·상태·API 색인(86개), v1 인증 API, 알림 문구. 코드 대조 기준 `432cce4`(2026-10-25) |
-| [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 200개(자동 추출) |
+| [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 203개(`24aa595` 자동 추출 200개 + 2026-10-25 `432cce4` 대조로 손으로 더한 `AUTH_401_2`·`Agreement_400_1`·`Notice_404_1`) |
 | [`plan.md`](./plan.md) | 25개 Phase(남은 Phase는 로직 L / 뷰 V로 나눔 — §0), 선행 관계, API 배정 |
 | [`legal-copy.md`](./legal-copy.md) | 약관 근거 화면 문구(2026-10-25 시행 약관) — v1 운영 원문, 조항, v2 Phase·위치, "약관 표시 의무 — v2 계획에 위치 없음(위험)" 표시. 문구가 바뀌면 `agreementVersion`을 올린다 |
 | [`gui-screens.md`](./gui-screens.md) | Figma "GUI 화면" 파일 — 관객·호스팅 화면 목록과 라우트·Phase 대응, 데스크탑 대시보드, GUI와 서버가 다른 것의 요약(원본은 design-requests §3) |
@@ -62,7 +62,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 - 백엔드 통합 기획서: `~/Downloads/두둥-v2-통합-기획서/index.html` (+ `figma/*.jpg` 와이어프레임 62장), 인쇄본 `~/Downloads/두둥 v2 통합 기획서.pdf`
 - 백엔드 API 안내서: `~/Downloads/두둥-v2-API-안내서.html`
 - FE 설계 원본 7종: `~/Downloads/dudoong-v2-docs/`
-- Figma: `와이어프레임 V0.9 (Copy)`, fileKey `YQzHNU46AMT4iXlKuM4LnH`
+- Figma: "GUI 화면" fileKey `1Cn4WOu6TDaSajbFIuH6fO`([`gui-screens.md`](./gui-screens.md)), 와이어프레임 V0.9 최신 fileKey `FUQb8ldGBp3uYUuXPV5FDC`(옛 `YQzHNU46AMT4iXlKuM4LnH`와 노드 번호가 같다 — [`figma-structure.md`](./figma-structure.md))
 - v1 코드: `~/Desktop/repos/DuDoong-Front` (읽기 전용 참고)
 - 배포 인프라: `https://github.com/Gosrock/DuDoong-Deploy` (docker-compose, nginx 설정)
 - 백엔드 코드: `https://github.com/Gosrock/DuDoong-Backend` `dev` 브랜치. v2는 `DuDoong-Api/src/main/kotlin/band/gosrock/api/v2/`, 규약 원문은 그 폴더의 `README.md`
@@ -99,7 +99,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 | 카카오톡 인앱 브라우저(iOS WKWebView · Android WebView)에서 Web Locks 동작과 `localStorage` 유지(세션 플래그) | 실기기. Web Locks가 없으면 대체 경로로 동작하는지 | P4b |
 | v1 본문 실데이터가 `marked`로 제대로 렌더되는지 | 백엔드 데이터 샘플 | P5b |
 | 실제로 들어오는 v1 경로 | nginx 접근 로그(CloudWatch) | P15 |
-| 배포 관련 10건(이미지 크기·메모리, 카카오 JS 키가 환경별로 같은지, 레지스트리 — GHCR 계획 vs 운영 ECR 전환, 사용자 결정 대기 등) | [`deploy-plan.md`](./deploy-plan.md) §9 | P0, P4b |
+| 배포 관련 11건(0~10번 — 이미지 크기·메모리, 카카오 JS 키가 환경별로 같은지, 레지스트리 — GHCR 계획 vs 운영 ECR 전환, 사용자 결정 대기 등) | [`deploy-plan.md`](./deploy-plan.md) §9 | P0, P4b |
 
 ### 디자인 대기
 

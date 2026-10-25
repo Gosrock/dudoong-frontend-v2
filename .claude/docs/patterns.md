@@ -136,7 +136,7 @@ export const addHostMembersMutation = (hostId: string) =>
 
 ### 4-2. 공개 값과 사용자별 값은 키를 나눈다
 
-서버 프리페치는 토큰 없이 돈다. 같은 응답에 사용자별 필드가 섞인 API(GH-3 `myRole`·`isFollowing`·**`contacts`**, GP-3 **`contacts`**, GH-14 준비중 공연, GG-3 `isReceiver`·`viewState`)는 두 쿼리로 읽는다. 연락처가 사용자별 값이 된 것은 백엔드 #846(2026-10-25 — GP-3·GH-3이 비로그인에게 전화·이메일을 가린다) 때문이다. GH-3 `members[].name`(#811)도 비로그인에게 가려지지만 프론트는 `members`를 쓰지 않는다(멤버 줄은 GH-6).
+서버 프리페치는 토큰 없이 돈다. 같은 응답에 사용자별 필드가 섞인 API(GH-3 `myRole`·`isFollowing`·**`contacts`**, GP-3 **`contacts`**, GH-14 준비중 공연, GG-3 `isReceiver`·`viewState`)는 두 쿼리로 읽는다. 연락처가 사용자별 값이 된 것은 백엔드 #846(2026-10-25 — GP-3·GH-3이 비로그인에게 전화·이메일을 가린다) 때문이다. GH-3 `members[].name`(#811로 생긴 필드)도 #846으로 비로그인에게 가려지지만 프론트는 `members`를 쓰지 않는다(멤버 줄은 GH-6).
 
 | | 공개 쿼리 `xxxQuery` | viewer 쿼리 `xxxViewerQuery` |
 |---|---|---|
@@ -240,7 +240,7 @@ try {
 //         스키마 불일치 → 로그(라우트 패턴·issue 경로) 후 PARSE_ERROR
 ```
 
-- 에러는 `ApiError{status, code, reason}`와 그 하위 클래스 `SessionLostError`(§5-1)다. `status`는 언제나 **HTTP 상태**다. 본문 `status`와 다른 응답이 있다(토큰 없음 401의 본문은 403, api-contract §1).
+- 에러는 `ApiError{status, code, reason}`와 그 하위 클래스 `SessionLostError`(§5-1)다. `status`는 언제나 **HTTP 상태**다. 본문 `status`는 보지 않는다(#808 전에는 토큰 없음 401의 본문이 403이었다. 지금은 같지만 HTTP 상태 분기 원칙은 그대로, api-contract §1).
 - **본문이 JSON이 아니면 `ApiError(res.status, 'NON_JSON', '')`**를 던진다. 래퍼 모양이 아니면 `BAD_ENVELOPE`, 스키마와 맞지 않으면 `PARSE_ERROR`(재시도하지 않는다 — 실제 코드는 `src/api/client.ts`). 백엔드 재기동 중 nginx가 돌려주는 HTML 502가 `SyntaxError`로 새면 "5xx만 재시도", "재발급 5xx = 일시 오류" 판정이 모두 깨진다. Vitest 대상(P3): HTML 502 → `ApiError{status: 502, code: 'NON_JSON'}`.
 - ky 인스턴스(`client.ts`)는 기준 주소 없이 만든다. `http.ts`가 요청마다 `prefix`를 넘긴다(서버 판정은 `typeof window === 'undefined'`). 인스턴스를 만들 때 주소를 고정하면 "호출 시점에 읽는다"가 깨진다.
 - 화면에서 코드를 꺼낼 때는 `getErrorCode(e: unknown): string | null`. 네트워크 오류·파싱 실패에서도 throw하지 않는다.
@@ -453,7 +453,7 @@ G11/O-0의 `account`가 `null`(무료·매진·지난 공연)이면 결제 정�
 ## 17. P8 — 티켓탭 · 캐러셀 · QR
 
 - **목록**: G11/T-1은 페이지 없이 전부 온다. 묶음 `groupKey` 단위 카드, 묶음 안 티켓은 좌우 스와이프 + `N/M` 텍스트 페이저(도트 근거 없음).
-- 묶음 카드에 상태별 개수 `counts`를 배지로 그린다("승인완료 2 / 선물 대기중 1", `455:8958`).
+- 묶음 카드에 상태별 개수 `counts`를 배지로 그린다("승인완료 ③", `455:8958` — 2026-10-25에 두 번째 배지 "선물 대기중 ❶"은 지워졌다).
 - 목록에는 `canGift`·`canReturn`이 없다. 버튼은 카드를 눌러 연 G11/T-2로 판단한다. **G11/T-2는 카드를 눌러 상세·QR을 열 때만 조회한다. 캐러셀에 보이는 카드마다 미리 읽지 않는다** — T-2를 읽으면 서버가 그 주문의 승인 알림을 읽음 처리해서, 미리 읽으면 티켓탭 진입만으로 공지 바가 풀린다(기획서: 진입만으로는 풀리지 않는다). [선물하기]·[선물 반환]은 상세 화면에 둔다.
 - 정렬은 고정 라벨 "공연임박순"(§13).
 - **캐러셀**: CSS `scroll-snap`(추가 의존성 없음). 선택 티켓은 `ticketUuid`가 아니라 **묶음 안 인덱스**로 기억한다 — uuid는 선물 수락·반환 때 바뀐다.
@@ -487,11 +487,11 @@ useEffect(() => {
 상태와 규칙은 tech-decisions §20.
 
 - **버튼 노출은 G11/T-2 플래그로만**: [선물하기] = `canGift`, [선물 반환] = `canReturn`. 목록(G11/T-1)에는 이 값이 없다.
-- `viewState` 7종을 한 매핑으로 화면·버튼에 연결한다. Figma에 없는 5종(ALREADY_ACCEPTED · REJECTED · RETURNED · OWN_LINK · EXPIRED)은 문구만 백엔드 문서에 있다.
+- `viewState` 7종을 한 매핑으로 화면·버튼에 연결한다. Figma에 없는 4종(ALREADY_ACCEPTED · RETURNED · OWN_LINK · EXPIRED)은 문구만 백엔드 문서에 있다(2026-10-25 — CANCELED는 `696:17551`, 거절 완료는 `696:17608`이 생겼다, design-requests §1).
   - `viewState`와 `isReceiver`는 사용자에 따라 달라 viewer 쿼리로 읽는다(§4-2). 확정 전에는 수락·거절 버튼을 비활성으로 둔다.
   - `OWN_LINK`(보낸 본인): [선물 취소]로 안내한다.
   - `EXPIRED`: 보낸 사람이면(GG-3 `giftId`가 있음) [회수] 버튼을 둔다(DG-2).
-- 보내기·회수·반환·거절 확인은 `EasyOverlay`. `onConfirm`의 mutation이 끝날 때까지 버튼을 잠근다. 거절 확인 팝업은 `128:1831`.
+- 보내기·회수·반환·거절 확인은 `EasyOverlay`. `onConfirm`의 mutation이 끝날 때까지 버튼을 잠근다. 거절 확인은 바텀시트 `128:1831`([선물 돌려주기] 한 버튼 — 2026-10-25 팝업에서 바뀜).
 - 이미 선물 중인 티켓으로 보내기를 하면 `Gift_400_2`다. G11/T-2를 다시 읽어 `gift.linkPath`로 기존 링크 화면을 보여 준다.
 - 링크는 `origin + linkPath`로 만든다. 공유는 [메세지] `sms:?body={링크}`, [카카오톡] `features/shared/kakao-share`, [링크복사] `copyText()` 세 가지(`455:8935`).
 - 메모는 대기 중일 때만 수정할 수 있다(빈 값 = 삭제).
