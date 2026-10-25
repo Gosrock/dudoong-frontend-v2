@@ -188,6 +188,7 @@ export const addHostMembersMutation = (hostId: string) =>
 |---|---|
 | `QueryCache.onError` | `query.state.data !== undefined`일 때(배경 재조회 실패)만 토스트. 무한 목록의 다음 페이지 실패는 제외(하단 재시도가 맡는다, §12). 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다 |
 | `MutationCache.onError` | `meta.handled`이거나 `meta.handledCodes`에 코드가 있으면 토스트하지 않는다. 그 밖은 `reason` 토스트 |
+| `meta.silent` 조회 | 배경 재조회가 실패해도 토스트하지 않는다(벨 GN-2처럼 사용자가 할 일이 없는 배경 조회, `src/api/query-client.ts` `shouldToastQueryError` 세 번째 인자 `meta`, §21) |
 | `SessionLostError` | 어디서도 토스트하지 않는다. 경계·게이트도 무시한다(§5-1) |
 | 중복 | 토스트에 고정 id를 준다(쿼리는 queryKey 해시, mutation은 코드). 배경 재조회가 한꺼번에 실패해도 하나만 뜬다 |
 
@@ -537,19 +538,23 @@ useEffect(() => {
 - 입금 미확인 거절(`DEPOSIT_UNCONFIRMED`)은 `refundAccountRequired=false`라 입력을 유도하지 않는다. 입구(`canEditRefundAccount`)는 그대로 둔다.
 - 거절 사유: `reasonType`별 고정 문구는 프론트가 가진다. `ETC`만 호스트가 쓴 `reasonText`.
 - 옵션 표시: `lines`가 1개면 "모든 티켓에 같은 옵션", 여러 개면 티켓별. 선물 상태는 `issuedTickets[]`에서 읽는다.
-- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다(`useQuery`, 시트를 열 때). **쿠키를 싣는 `eventDetailViewerQuery`(`useEventContacts`)로 부른다** — 공개 키로 부르면 가린 값이다(#846). 시트 컴포넌트는 공연 상세(P5b)와 같은 것을 쓴다. 단 지금의 `useEventContacts`는 공연 상세(서버 프리페치 있음)를 전제로 공개 GP-3(`eventDetailQuery`)을 `useSuspenseQuery`로 늘 읽는다(코드 L28) — 프리페치가 없는 주문상세에서 그대로 쓰면 서스펜드되고 시트를 열기 전에 공개 GP-3을 부른다. P9 착수 때 공개 GP-3을 서스펜드 없이 읽는 변형(또는 viewer만 읽기)이 필요하다(방법은 미정).
+- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다. 공개 키로 부르면 가린 값이다(#846). 시트 컴포넌트는 공연 상세(P5b)와 같은 것을 쓴다. 공연 상세의 `useEventContacts`는 서버 프리페치를 전제로 공개 GP-3을 `useSuspenseQuery`로 늘 읽어 주문상세에는 쓰지 않는다 — **viewer만 읽기로 정함(`useOrderHostContacts` — 보호 화면이라 세션 확정 뒤, 열 때 쿠키 GP-3 한 번)**: 쿠키를 싣는 `eventDetailViewerQuery`를 `open && 세션 있음`일 때만 `useQuery`로 읽고, 공개 GP-3(`eventDetailQuery`)은 부르지 않는다. 상태 판정은 공연 상세·호스트 홈과 같은 `resolveContacts`(공개 값 자리는 빈 목록). 삭제된 공연(`eventId` null)이면 요청하지 않고 `available: false`(P9-L, 2026-10-25).
 - 환불 계좌 폼의 은행은 `GET /api/v2/banks`(공개, #804·#813) 목록에서 고르고 `bankCode`를 보낸다(`bankName`은 생략 가능 — 서버가 채운다). 응답 계좌의 `bankCode`가 `null`이면(옛 자유 입력 값) 수정 폼은 목록에서 다시 고르게 한다.
 
 ## 21. P9b · P10a — 알림
 
-- **벨**: GN-2 `{count}`. `count > 0`이면 빨간 점(숫자는 그리지 않는다). 로그인된 셸에서 항상 구독하고 focus·메뉴 진입 시 재조회.
-- **알림함**: GN-1 무한 스크롤. 항목 `{notificationId, type, title, body, target{type, targetId, eventId}, extra, isRead, createdAt}`.
-- **읽음**: PN-3 `{notificationIds: [id]}` 또는 `{readAll: true}`. 응답 `{updatedCount, unreadCount}`로 벨 캐시를 바로 갱신한다 — 낙관적 차감을 추정으로 하지 않는다.
-- 행의 읽음 표시는 낙관적으로 바꾸고 실패하면 되돌린다.
-- **타입 매핑**: 17종(#810으로 `EVENT_REMINDER_D1`·`EVENT_STARTING_SOON` 추가, `target.type=EVENT` → `/events/{eventId}`) → 카테고리(티켓선물 안내 / 티켓승인 안내 / 공연 알림 등)·아이콘은 한 매핑에서. 모르는 타입은 기본 아이콘 + `title`·`body` 그대로.
+벨·알림함·읽음은 P9b-L이 먼저 만들었다(S7, 2026-10-25). 코드 `src/api/notification`, `features/shared/notification/model`.
+
+- **쿼리 키**: 모두 `['me','notifications', …]` 아래 — 벨 `['me','notifications','unread-count']`, 알림함 `['me','notifications','infinite',{size}]`(접두 `NOTIFICATIONS_INFINITE_KEY`). 접두 `NOTIFICATIONS_KEY`는 `src/api/notification/queries.ts`에 정의됐다. 선물·티켓 변경이 이 접두로 미리 무효화를 걸어 두었다(`features/audience/gift/model/gift-cache.ts`의 `NOTIFICATIONS_KEY`, P8-L — 값이 같은 상수가 두 곳에 있다, implementation-log P9b-L).
+- **벨**(`useNotificationBell`): GN-2 `{count}`. 세션이 있을 때만 부르고, `count > 0`이면 빨간 점(숫자는 그리지 않는다). 확정 전·실패면 점 없음(벨은 화면을 막지 않는다). 창 포커스로 재조회, 메뉴·드로어 진입은 `refresh()`. 벨 조회는 `meta.silent`라 배경 재조회가 실패해도 전역 토스트를 띄우지 않는다(§4-5).
+- **알림함**(`useNotificationInbox`): GN-1 무한 스크롤(Slice — 건수 없이 `hasNext`로 끝). 항목 `{notificationId, type, title, body, target{type, targetId, eventId}, extra, isRead, createdAt}`. `extra` 값은 nullable(`string | null` — 서버가 null 사유를 그대로 직렬화).
+- **읽음**(`useReadNotifications`): PN-3 `{notificationIds: [id]}` 또는 `{readAll: true}`. 응답 `{updatedCount, unreadCount}`로 벨 캐시를 바로 갱신한다 — 낙관적 차감을 추정으로 하지 않는다. 읽음 요청은 같은 `scope`(`notifications-read`)로 묶어 순서대로 보낸다 — 나중 응답의 `unreadCount`가 언제나 더 최신이다. 캐시 반영은 `useMutation` 옵션(`onMutate`·`onError`·`onSuccess`)에 둔다 — 알림을 누르고 바로 화면을 떠나도(언마운트) 벨·공지 바가 갱신된다. 이미 읽은 알림은 PN-3을 보내지 않는다.
+- 행의 읽음 표시는 낙관적으로 바꾸고 실패하면 이 요청이 바꾼 행만 되돌린다(벨은 그대로).
+- 승인 알림(`ORDER_APPROVED`)을 읽었거나 모두 읽음이면 티켓탭 공지 바(T-3)를 다시 읽는다. 다른 알림은 T-3을 다시 읽지 않는다.
+- **타입 매핑**: 17종(#810으로 `EVENT_REMINDER_D1`·`EVENT_STARTING_SOON` 추가) → 카테고리 3종(티켓선물 안내 / 티켓승인 안내 / 공연 알림)·아이콘은 한 매핑에서(`notification-kind.ts`). 멤버 추가 → 공연 알림, 주문·환불·취소 → 티켓승인 안내, `GIFT_TICKET_CANCELED` → 티켓선물 안내. 모르는 타입은 `OTHER`(기본 아이콘, 카테고리 이름 없음) + `title`·`body` 그대로.
+- **이동**(`notificationHref`, Q1 기본안 + #810): `HOST` → `/hosts/{hostId}`, `GIFT` → `/tickets`, `EVENT` → `/events/{eventId}`(eventId가 null이면 `targetId`로 공연 상세), `ORDER` → 관객이 받은 알림은 `/orders/{orderUuid}`, 호스트가 받은 주문 알림 4종(`ORDER_PENDING_APPROVE`·`ORDER_REFUND_REQUESTED`·`ORDER_CANCELED_BY_USER`·`REFUND_ACCOUNT_CHANGED`)은 `/hosting/events/{eventId}/guests?order={uuid}`(eventId가 null이면 이동 없음). 모르는 타입 + `ORDER` 대상은 받는 사람을 몰라 이동 없음, 모르는 `target.type`도 이동 없음(읽음 처리만). 경로 값은 인코딩한다.
 - 본문은 서버가 만든 문자열이다. HTML로 넣지 않는다.
 - 알림은 커밋 후 비동기 저장이라 mutation 직후 목록에 없을 수 있다. mutation 성공 직후의 알림 재조회에 기대지 않는다.
-- **쿼리 키는 `['me','notifications', …]` 접두**를 쓴다. 선물·티켓 변경이 이 접두로 미리 무효화를 걸어 두었다(`features/audience/gift/model/gift-cache.ts`의 `NOTIFICATIONS_KEY`, P8-L).
 - 관객 화면과 호스팅 센터가 같은 알림함을 쓴다. 쿼리는 `src/api/notification`, 벨·알림함·타입 매핑은 `features/shared/notification`.
 
 ## 22. 호스팅 센터 — 권한별 화면

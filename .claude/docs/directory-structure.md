@@ -92,13 +92,13 @@ src/app/
 │        ├─ tickets/page.tsx           # P8   티켓탭
 │        ├─ check-in/page.tsx          # P8c  셀프 체크인
 │        ├─ orders/
-│        │  ├─ page.tsx                # P9   주문내역
-│        │  └─ [orderUuid]/page.tsx    # P9   주문상세. 주문 완료 화면도 여기(?created=1, P7)
+│        │  ├─ page.tsx                # P9   주문내역 (P9-L 생성 — OrdersView)
+│        │  └─ [orderUuid]/page.tsx    # P9   주문상세(OrderDetailView). 주문 완료 화면도 여기(?created=1, P7)
 │        └─ mypage/
-│           ├─ page.tsx                # P9   마이페이지 (프로필 편집 포함)
-│           ├─ following/page.tsx      # P9   관심 호스트
-│           ├─ archive/page.tsx        # P9   관람 공연 아카이빙
-│           ├─ notifications/page.tsx  # P9b  알림함 — 호스팅 센터의 알림 벨도 여기로
+│           ├─ page.tsx                # P9   마이페이지 (프로필 편집 포함, P9-L 생성 — MyPageView)
+│           ├─ following/page.tsx      # P9   관심 호스트 (P9-L 생성 — FollowingHostsView)
+│           ├─ archive/page.tsx        # P9   관람 공연 아카이빙 (P9-L 생성 — ArchiveView)
+│           ├─ notifications/page.tsx  # P9b  알림함 — 호스팅 센터의 알림 벨도 여기로 (P9b-L 생성 — NotificationInboxView)
 │           └─ gifts/page.tsx          # (보류) 보낸·받은 선물 내역 GG-7 — Figma에 화면이 있을 때만
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
@@ -148,7 +148,7 @@ src/features/
 │  ├─ ticket/                  # P8   TicketTabPage, TicketCarousel, TicketCard, QrCode, QrFullscreen. model/: my-ticket-state(state 11값), ticket-groups, useTicketTab, useTicketDetail
 │  ├─ gift/                    # P8b  SendSheet, LinkCreated, GiftLanding(viewState 7종), SentTicketDetail. model/: gift-landing-state, gift-errors, gift-memo, gift-share, gift-metadata, gift-cache, gift-refetch, useGiftActions(보내기·링크·회수·반환), useGiftLanding
 │  ├─ checkin/                 # P8c  SelfCheckInPage. model/: check-in-params, self-check-in-errors, useSelfCheckIn
-│  └─ mypage/                  # P9   MyPage, Profile, OrderHistory(+ RefundAccountSheet), FollowingHosts, Archive
+│  └─ mypage/                  # P9   MyPage, Profile, OrderHistory(+ RefundAccountSheet), FollowingHosts, Archive. 지금은 로직 연결 자리 MyPageView·OrdersView·OrderDetailView·FollowingHostsView·ArchiveView. model/: order-status(상태 5종 × refundStatus 한 매핑), order-detail(취소 자리·선물 안내·환불 계좌 입구·거절 사유·금액·옵션·안내 종류), order-errors(patterns §24 P9 표), refund-account-form(bankCode), profile(닉네임 2~7자), lists(관심 호스트 탭·대표 공연 배지·아카이빙 주소·연도 탭), useMyOrders, useOrderDetail(+ useCancelOrder·useRefundAccount), useOrderHostContacts(GP-3 viewer만, 열 때), useProfileEdit, useFollowingHosts, useArchive, useWithdraw
 │
 ├─ hosting/
 │  ├─ shell/                   # P4s  전역 상단 바(PC, GUI `Top bar_Host` — 로고·공연 둘러보기·공연 준비하기·벨·아바타 ▾, hosting/layout.tsx), HostingHeader(모바일 `host title`), MobileDrawer, 3단 슬롯(사이드바 268 · 본문 · 우측 패널). 공연 사이드바(‹ 내 공연 · 공연 카드 · SidebarItem = GUI `사이드바 메뉴` true/false/alert · 공연 페이지 보기)와 EventSwitcherHeader(모바일 "대시보드 ▾ / 공연명" — 메뉴 방식 Q37)는 events/[eventId]/layout.tsx가 쓴다(P11). 공연 밖 화면은 사이드바 없이 본문 최대 1280
@@ -168,7 +168,7 @@ src/features/
    ├─ host-home/               # P5c  HostHome — 공개 필드는 hostDetailQuery, myRole별 뷰와 로그인 사용자의 연락처 원문(#846)은 hostViewerQuery. model/: host-home-rules, useHostFollow(♡ 직렬화), useHostHome
    ├─ section-viewer/          # P5b  model/: render-section(contentFormat → marked → sanitize-html), sanitize-section-html, section-tabs(서버 섹션 없으면 기본 4탭). 뷰는 V
    ├─ contact/                 # P5b  model/contact-link — 연락처 6종 + UNKNOWN → 표시·링크(tel·mailto·http(s)만, 가린 값 `*`은 링크 없음 — #846). model/viewer-contacts(`resolveContacts` — 로그인 사용자 원문 연락처 상태, 2026-10-25 A안). P5c·P9 재사용
-   ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑
+   ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑. 지금은 로직 연결 자리 NotificationInboxView. model/: notification-kind(17종 → 카테고리 3종·아이콘·받는 사람·이동 경로, PN-3 본문), useNotificationBell(GN-2 — P9b-L이 먼저 만들었다), useNotificationInbox(GN-1), useReadNotifications(PN-3 단건·전체)
    ├─ checkin-result/          # P8c · P13b  model/checkin-result — result → 화면(`'host' | 'self'`)
    ├─ image-upload/            # P9 · P10b · P11 (먼저 착수한 Phase)  업로드 UI(DropZone 연결, 미리보기). 호출은 src/api/upload
    ├─ permission/              # P5c  model/can — can(role, action), HOST_ACTIONS(api-contract §2 표)
@@ -235,13 +235,17 @@ src/api/
 │  ├─ agreement.ts             # 2026-10-25  동의 기록 필드(#840·#850) — AGREEMENT_VERSION('2026-10'), agreementFields(사용자가 체크한 true만 + 그때만 agreementVersion)
 │  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
 ├─ auth/                       # P4b  calls.ts(카카오 링크·코드 교환·register/valid·login·info·register, 재발급·로그아웃 — authApi), schema.ts
-├─ me/  host/  event/  ticket-item/  option/
-├─ order/                      # + price.ts (금액 계산 순수함수)
+├─ me/                         # GM-1·PM-2(mutations updateMeMutation)·GM-4 followingHostsQuery·GM-5 archiveQuery (P9)
+├─ host/  event/  ticket-item/  option/
+├─ order/                      # + price.ts (금액 계산 순수함수). P9: myOrdersQuery(O-2)·myOrderQuery(O-3)·cancelMyOrderMutation(O-4)·putRefundAccountMutation(O-5)
 ├─ my-ticket/                  # P8   T-1·T-2·T-3 (state 11값 openEnum)
 ├─ gift/                       # P8b  queries + mutations(보내기·회수·메모·수락·거절·반환)
 ├─ check-in/                   # P8c  PQ-5 (P13b가 PQ-2·GQ-4를 같은 스키마에 붙인다)
-├─ refund/  issued-ticket/  notification/
-└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정 — 세션 상태 valid·expired·invalid(`accessToken=forged`)·none), bank.handlers.ts(`GET /api/v2/banks` 25개), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
+├─ refund/                     # P9   은행 목록 banksQuery(`GET /api/v2/banks`, 공개) — P12 티켓 폼과 공유할 때 src/api/bank로 옮길지 미정
+├─ user/                       # P9   calls.ts withdrawAccount — 회원 탈퇴 v1 `DELETE /api/v1/auth/me`를 withSessionRecovery로(authApi 아님)
+├─ notification/               # P9b  GN-1 notificationsQuery·GN-2 unreadNotificationCountQuery(meta.silent)·PN-3 readNotificationsMutation, NOTIFICATIONS_KEY(`['me','notifications']`)
+├─ issued-ticket/
+└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정 — 세션 상태 valid·expired·invalid(`accessToken=forged`)·none), bank.handlers.ts(`GET /api/v2/banks` 25개), user.handlers.ts(탈퇴 — default·masterBlocked), notification.handlers.ts(GN-1·GN-2·PN-3), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
 ```
 
 서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery`, `eventDetailViewerQuery`(연락처 원문, 2026-10-25 A안) — tech-decisions §4).

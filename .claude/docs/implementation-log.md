@@ -186,6 +186,56 @@
 **의존성(V)**: `qr-code-styling`(QR 렌더), 링크 복사 유틸
 **검사**(P5a/P5c·P8 계열 합친 뒤): typecheck · lint · prettier · test(1036) · test:stories(187) · build · e2e(132) 통과
 
+## P9-L — 마이페이지 (로직)
+
+**상태**: done (2026-10-25, 커밋 `0022755`) — V 전부와 실서버 확인 남음
+**변경**: `src/api/me/`(+ `mutations.ts` `updateMeMutation` PM-2, `followingHostsQuery` GM-4 `FOLLOWING_HOSTS_KEY`·`archiveQuery` GM-5, 스키마), `src/api/order/`(`myOrderQuery` O-3·`myOrdersQuery` O-2, `cancelMyOrderMutation` O-4·`putRefundAccountMutation` O-5, 스키마), `src/api/refund/`(새 — `banksQuery` `GET /api/v2/banks` 공개·`staleTime` 1시간, `BankSchema`), `src/api/user/calls.ts`(새 — `withdrawAccount`: v1 `DELETE /api/v1/auth/me`를 `withSessionRecovery`로). `features/audience/mypage/model/`: `order-status`(`orderStatusView` — 상태 5종 × `refundStatus` 한 매핑, 목록·상세 공용), `order-detail`(`cancelEntry`·`giftBlocksCancel`·`GIFT_BLOCKS_CANCEL_MESSAGE`·`refundAccountEntry`·`REFUSE_REASON_LABEL`·`refuseReasonText`·`orderAmounts`·`optionMode`·`cancelNotice`·`cancelResult`·`isPaidOrder`), `order-errors`(`CANCEL_ERROR_TABLE`·`REFUND_ACCOUNT_ERROR_TABLE`·`messageAfterCancelBlocked`), `refund-account-form`(`refundAccountDefaults`·`refundAccountErrors`·`toRefundAccountBody` — `bankCode`만), `profile`(`nicknameError` 2~7자·`PROFILE_ERROR_MESSAGE`), `lists`(`FOLLOWING_TABS`·`representativeBadge`·`archiveOrderHref`·`archiveYearTabs`), 훅 `useMyOrders`·`useOrderDetail`·`useCancelOrder`·`useRefundAccount`·`useOrderHostContacts`·`useProfileEdit`·`useFollowingHosts`·`useArchive`·`useWithdraw`(`WITHDRAW_MASTER_MESSAGE`). 화면 자리(로직 연결만): `MyPageView`·`OrdersView`·`OrderDetailView`·`FollowingHostsView`·`ArchiveView`. 라우트 `(protected)/mypage`·`mypage/following`·`mypage/archive`·`orders`(+ `orders/[orderUuid]` 수정). mock: `fixtures/mypage.ts`·`fixtures/order.ts`(P9 주문 시드 `P9_ORDER`), `me.handlers`(프로필·관심 호스트·아카이빙)·`order.handlers`(O-2·O-3·O-4·O-5 + 실패 세트 `cancelFails`·`refundAccountFails`)·`user.handlers`(새 — `default`·`masterBlocked`)
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `useOrders.test`(주문내역·주문상세·취소·환불 계좌·호스트 문의), `useMyPage.test`(프로필·관심 호스트·아카이빙·탈퇴), `mypage-rules.test`, `me/schema.test`, `order/schema.test` 「P9 주문 스키마」, e2e `mypage.spec` 11건 |
+| 상태 5종 + `refundStatus` 매핑 하나 | `mypage-rules` 「주문 상태 5종 × refundStatus → 표시(목록·상세 공용 매핑 하나)」(it.each + 「서버 enum 5종 × 3종 + UNKNOWN 조합이 모두 라벨을 갖는다」), 훅 「첫 페이지를 쿠키와 함께 읽고, 행마다 상태 라벨이 주문상세(O-3)와 같은 매핑에서 나온다」 |
+| `canCancel`·`canEditRefundAccount`로만 노출 | 훅 it.each 「버튼 노출은 서버 canCancel로만: %s」, `mypage-rules` 「환불 계좌 입구 — canEditRefundAccount · 유도 refundAccountRequired」 |
+| 탈퇴 `USER_400_6` | 훅 「에러 분기 USER_400_6 → "마스터를 양도한 뒤 탈퇴해 주세요", 이동 없음, 토스트 없음」, 「성공하면 캐시와 dd:session을 지우고 홈으로 하드 이동한다」 |
+| 아카이빙 `orderUuid=null` | `mypage-rules` 「아카이빙 orderUuid=null이면 주문상세 주소가 없다」, 훅 「전체(year 없음)로 읽고, 연도 탭은 응답 years, orderUuid=null이면 주문상세로 가지 않는다」, e2e 「orderUuid가 없는 공연은 주문상세로 가지 않고, 있는 공연은 그 주문상세로 간다」 |
+| 유료 = 계좌 → 환불 요청, 무료 = 즉시 취소 | 훅 「유료: 계좌 값 없이 부르면 요청하지 않고 refundAccountMissing(계좌 시트)」, 「유료: 칸 오류면 요청하지 않는다」, 「유료: 계좌를 넣으면 목록에서 고른 bankCode로 O-4 → 환불 요청 상태, 상세 캐시·주문내역·티켓탭 갱신」, 「무료: 본문 없이 O-4 → 바로 취소」, 규칙 「유료 취소는 환불 계좌가 필요하고, 무료는 필요 없다」, it.each 「취소 결과: %s + %s → %s」 |
+| 남의 주문 → 공용 404 | 훅 「남의(없는) 주문 주소면 공용 404 안내」, e2e 「남의(없는) 주문 주소는 공용 404 안내」 |
+| 선물 안내 조건 | `mypage-rules` 「주문취소 자리 — canCancel · 선물 안내 조건(patterns §20)」 8행 + 「giftBlocksCancel: %s → %s」, 훅 「경합 Order_400_24: O-3을 다시 읽고, 다시 읽은 주문이 선물 조건이면 선물 안내 — [주문취소] 자리도 안내로 바뀐다」, e2e 「선물 대기 티켓이 있는 주문은 [주문취소] 대신 선물 안내」 |
+| 환불 계좌 유도·`maskedAccountNumber` 갱신 | 훅 「유료 거절: 입력 유도 → PUT(bankCode만) → maskedAccountNumber가 생기고 유도가 꺼진다」, 「입금 미확인 거절은 입구만 있고 유도가 없다」, 「수정: 처음 값은 은행·예금주만(계좌번호는 다시 입력), 저장하면 마스킹 값이 바뀐다」 |
+| 프로필 이미지 PM-3 → S3 → PM-2 → GM-1 | 훅 「이미지: PM-3 발급 → S3 PUT → PM-2 {profileImageKey} → 세션 키의 profileImageUrl이 바뀐다」, 「에러 분기 USER_400_5(본인 이미지 아님) → 안내, retry()는 같은 파일로 PM-3 발급부터 다시」, 「기본 이미지로: PM-2 {profileImageKey: ""} → profileImageUrl null」 |
+| 관심 호스트 해제 | 훅 「해제하면 DELETE 뒤 모든 필터의 목록에서 빠지고, 목록을 다시 읽지 않는다」, 「호스트 홈 viewer 캐시가 있으면 isFollowing도 맞춘다」 |
+| 호스트 문의 GP-3 쿠키 | 훅 「시트를 열기 전에는 요청이 없고, 열면 GP-3을 쿠키와 함께 한 번 읽어 원문 연락처를 준다(공개 GP-3은 부르지 않는다)」, 「삭제된 공연(eventId null)이면 요청하지 않고 문의 입구가 없다」, e2e 「호스트 문의는 열 때 GP-3을 쿠키와 함께(브라우저) 한 번 읽는다」 |
+| 본문 `bankCode` | `mypage-rules` 「보내는 본문: 앞뒤 공백을 지우고 bankCode만(bankName 없음), 요청 스키마를 통과한다」, 훅 「은행 목록을 받았으면 목록에 없는 코드는 요청 없이 칸 오류」, 「옛 자유 입력 계좌(bankCode null)는 은행을 비워 목록에서 다시 고르게 한다」 |
+| 삭제된 공연(`event: null`) | 훅 「삭제된 공연(event: null)이어도 깨지지 않고, 취소 입구·호스트 문의가 없다」, 「삭제된 공연의 주문도 행으로 나오고 eventRemoved」, e2e 「삭제된 공연의 주문상세는 공연 정보 없이 열리고 취소·문의 입구가 없다」 |
+| 에러 분기 §24 P9 | `mypage-rules` 「에러 분기 — patterns §24 P9 행」(취소 5행·환불 계좌 3행 + 2), 훅 it.each 「에러 분기 %s → O-3 다시 읽기 + "%s"(토스트 없음)」 3행, 「에러 분기 Order_400_25(계좌 없음) → 다시 읽지 않고 refundAccountMissing(계좌 시트)」, 환불 계좌 it.each 3행, 「표에 없는 코드(Order_404_1)는 전역 토스트로 간다」, 프로필 「에러 분기 USER_400_4(공백만) → 칸 오류, 토스트 없음」 |
+
+**결정**: 호스트 문의는 viewer만 읽기(`useOrderHostContacts` — 보호 화면이라 세션 확정 뒤, 열 때 쿠키 GP-3 한 번. 공개 GP-3은 부르지 않는다. `useEventContacts`는 프리페치 전제의 `useSuspenseQuery`라 쓰지 않음, patterns §20). 탈퇴는 `authApi`가 아니라 `withSessionRecovery`로 감싼 v1 DELETE(보호 API라 만료 쿠키면 401 → 재발급 후 한 번 다시, tech-decisions §4). 성공하면 캐시·`dd:session` 정리 뒤 홈으로 하드 이동. 환불 계좌 본문은 `bankCode`만 보내고 `bankName`은 생략(서버가 채운다). 은행 목록은 `src/api/refund`에 두었다 — P12 티켓 폼과 공유할 때 `src/api/bank`로 옮길지는 미정. 관심 호스트 탭 라벨("전체 / 공연 예정 / 지난 공연만")·거절 사유 라벨("입금 미확인 / 결제 금액 오류 / 티켓 매진")은 잠정(design-requests)
+**남음**: V 전부. 실서버 확인 — 탈퇴 응답 래퍼(본문 `data` null 가정), `bankName` 생략 요청이 통과하는지. mock 정합성: 티켓탭 fixture(`fixtures/my-ticket.ts`)의 `mock-order-tickets-*` 주문이 O-3 mock에 없어 티켓탭 [주문상세]로 가면 404 — 맞출 거리
+
+## P9b-L — 알림 (로직)
+
+**상태**: done (2026-10-25, 커밋 `0022755`) — V 전부 남음. 호스트 주문 알림의 `?order=` 진입 검증은 P13a-L과 나눔
+**변경**: `src/api/notification/`(새 — `schema.ts` 17종 `openEnum`·대상 4종·`extra` 값 `string | null`, `queries.ts` `NOTIFICATIONS_KEY`·`unreadNotificationCountQuery`(GN-2, `meta.silent`)·`NOTIFICATIONS_INFINITE_KEY`·`notificationsQuery`(GN-1), `mutations.ts` `readNotificationsMutation`(PN-3)). `src/api/query-client.ts` `shouldToastQueryError`에 세 번째 인자 `meta`(`meta.silent`면 토스트 없음). `features/shared/notification/model/`: `notification-kind`(`NOTIFICATION_CATEGORIES`·`notificationCategory`·`notificationAudience`·`isApprovalNotification`·`notificationHref`·`toNotificationView`·`readRequestOf`), `useNotificationBell`(벨 — S7, P9b-L이 먼저 만들었다), `useNotificationInbox`, `useReadNotifications`. 화면 자리 `NotificationInboxView`, 라우트 `(protected)/mypage/notifications`. mock: `fixtures/notification.ts`, `notification.handlers`(`default`·`empty`·`listServerError`·`countServerError`·`readServerError`)
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `useNotification.test`(벨·알림함), `notification-rules.test`, `notification-api.test`, e2e `notifications.spec` 6건 |
+| 17종 매핑·모르는 타입 | `notification-api` 「백엔드 알림 17종을 모두 안다(#810 리마인더 2종 포함)」, 「대상은 HOST · ORDER · GIFT · EVENT 4종」, 「extra 값이 null이어도(서버가 null 사유를 그대로 직렬화) 읽는다」, `notification-rules` 「알림 17종 → 카테고리·아이콘(plan P9b, Q13)」 it.each + 「17종 모두 UNKNOWN이 아닌 카테고리 3종 중 하나로 간다」, 「문구는 서버 title·body 그대로, 모르는 타입도 깨지지 않는다」, 훅 「모르는 타입·모르는 대상이 와도 깨지지 않고 기본 아이콘 + 서버 문구로 나온다」 |
+| 벨 `count > 0`·PN-3 뒤 갱신 | 훅 「로그인하면 GN-2(쿠키 포함)를 읽고 count > 0이면 빨간 점」, 「안 읽은 알림이 0이면 빨간 점이 없다」, 「비로그인이면 GN-2를 부르지 않고 벨을 그리지 않는다」, 「GN-2가 실패하면 빨간 점 없이 둔다(벨은 화면을 막지 않는다)」, 「벨 조회(GN-2)는 배경 재조회가 실패해도 전역 토스트를 띄우지 않는다(meta.silent)」, 「refresh()는 GN-2를 다시 읽는다(메뉴·드로어 진입)」 |
+| 읽음 뒤 `unreadCount`로 벨 | 훅 「승인 알림을 누르면 PN-3 {notificationIds:[id]} → 행은 바로 읽음, 벨은 응답 unreadCount로, 티켓탭 공지 바가 풀린다」, 「모두 읽음은 PN-3 {readAll:true} → 불러온 행이 모두 읽음, 벨 0, 공지 바 다시 읽기」, 「PN-3이 실패하면 이 요청이 바꾼 행만 안 읽음으로 되돌리고 벨은 그대로」, 「이미 읽은 알림을 누르면 PN-3을 보내지 않는다」, `notification-api` 「GN-2 안 읽은 수와 PN-3 응답 {updatedCount, unreadCount}」, e2e 「모두 읽음은 PN-3 {readAll:true}, 다시 들어와도 모두 읽음」 |
+| 승인 알림 → 공지 바 해제 | `notification-rules` 「승인 알림(ORDER_APPROVED)만 티켓탭 공지 바를 푸는 알림이다」, 훅 「알림을 누르고 바로 알림함을 떠나도(언마운트) 벨과 공지 바가 갱신된다」, 「승인 알림이 아닌 알림을 읽으면 공지 바(T-3)를 다시 읽지 않는다」, e2e 「승인 알림을 누르면 PN-3 단건 → 주문상세로, 티켓탭 공지 바가 풀려 있다」 |
+| `target.type` 4종별 이동 | `notification-rules` 「알림을 누르면 갈 곳 — target.type별(Q1 기본안 + #810)」 13행, 훅 「target.type 4종별 이동 경로가 행에 붙는다」, e2e 「target.type별 이동 — EVENT → 공연 상세, GIFT → 티켓탭, HOST → 호스트 홈」, 「호스트가 받은 주문 알림은 예매자 관리 ?order= 링크(진입 검증은 P13a)」 |
+
+그 밖: 알림함 무한 스크롤 「첫 페이지(20건)를 읽고 다음 페이지는 page=1로 — 건수 UI 없이 hasNext로 끝난다」, 「다음 페이지가 실패하면 기존 행을 지우지 않고 nextPageFailed → fetchNext로 다시」, 「알림이 없으면 빈 상태」, e2e 「비로그인이면 로그인으로 가고 돌아올 곳은 알림함」, 「로그인하면 200, GN-1은 브라우저에서만 첫 페이지부터」.
+
+**결정**: 키 구조 `['me','notifications','unread-count']`·`['me','notifications','infinite',{size}]`(patterns §21). 읽음 요청은 같은 `scope`로 순서대로 보내고, 캐시 반영은 `useMutation` 옵션에 둔다(언마운트 뒤에도 벨·공지 바 갱신). 벨 조회는 `meta.silent`로 배경 재조회 실패 토스트 없음(patterns §4-5). 호스트 주문 알림 4종(`ORDER_PENDING_APPROVE`·`ORDER_REFUND_REQUESTED`·`ORDER_CANCELED_BY_USER`·`REFUND_ACCOUNT_CHANGED`) → `/hosting/events/{eventId}/guests?order={uuid}`(eventId null이면 이동 없음). 모르는 타입 + `ORDER` 대상은 이동 없음. `EVENT` 대상 eventId null이면 `targetId`로 공연 상세. `GIFT_TICKET_CANCELED`는 티켓선물 안내로 묶음, 공연 알림 아이콘 `alarm-clock`은 아이콘 세트에 없음 — 둘 다 design-requests 확인 요청
+**정리할 거리**: `NOTIFICATIONS_KEY`가 `src/api/notification/queries.ts`와 `features/audience/gift/model/gift-cache.ts` 두 곳에 같은 값(`['me','notifications']`)으로 정의돼 있다 — 하나로 정리
+**남음**: V 전부. 호스트가 받은 주문 알림의 `?order=` 진입 검증은 P13a-L(이 Phase는 링크까지)
+**검사**(P9-L · P9b-L 통합 뒤): typecheck · lint · prettier · test(1402) · test:stories(193) · build · e2e(174) 통과
+**문서 반영**: plan P9·P9b·S7·API 표, patterns §4-5·§20·§21, design-requests Q1·Q13·새 확인 요청, directory-structure(api·features·라우트), tech-decisions §4
+
 ## 2026-10-25 연락처 마스킹 대응(A안)
 
 백엔드 #846(공개 GP-3·GH-3가 비로그인에게 전화·이메일을 가린다)에 맞춘 코드 수정. 사용자 결정 A안: 연락처는 사용자별 값이고, 서버 조회는 그대로 토큰 없이 하며, 로그인 사용자는 쿠키로 다시 읽은 원문을 쓴다. 가린 값은 링크로 만들지 않는다(관제 확인 내용을 옮김).
@@ -227,12 +277,14 @@
 | 12 | `src/api/__mocks__/respond.ts` `errors.refreshRejected` 주석 | 사유 "다른 기기에서 덮어씀"이 #807로 없어졌다(기기별 세션) | #807 | **완료** |
 | 13 | `src/api/order/schema.ts` `AccountSchema`·`MyRefundAccountSchema`, `src/api/__mocks__/fixtures/order.ts` | 응답 `bankCode`가 없다(z.object라 파싱은 깨지지 않는다) | #804 | **완료** |
 | 14 | `src/features/audience/checkout/model/payment.ts` `tossTransferLink`(TODO(B3), `bank: account.bankName.trim()`) | B3 해결 — 토스 은행 값을 `bankCode` 매핑으로 만들고 `bankCode`가 `null`이면 토스 버튼을 숨긴다. 매핑 값은 실기기 확인(P7) | #804 | **`bankCode` 수신만, 매핑 TODO(B3)** |
-| 15 | `/api/v2/banks` mock 핸들러 | 없다(P9 환불 계좌·P12 티켓 폼에서 필요) | #804·#813 | **완료** |
+| 15 | `/api/v2/banks` mock 핸들러 | 없다(P9 환불 계좌·P12 티켓 폼에서 필요) | #804·#813 | **완료** — 해소(P9-L `banksQuery`가 이 mock으로 테스트, 커밋 `0022755`) |
 | 16 | `public/term.html`·`public/privacy.html` | 개정 전 약관이다(v1 #355 직전 파일과 바이트 동일, 2026-10-25 비교). 2026-10-25 시행 개정본(Front #355, `release/ticket` `fc3278d`)으로 교체. `next.config.ts`의 `/meta/term`·`/meta/privacy` rewrite는 이미 있다 | Front #355 | **완료** |
 | 17 | `public/no-poster.png` | v1 운영은 포스터 로드 실패 때 `/no-poster.png`로 바꾼다(Front #348). v2 `public/`에 자산이 없다(참고 — 쓸지는 V, design-requests Q26) | Front #348 | 참고(Q26 대기) |
 | 18 | `src/api/host/schema.ts` `HostDetailSchema` 주석(L14-17 "공개 필드") | `contacts`가 공개 필드가 아니게 됐다 — 주석 정리 | #846 | **완료** |
 
 `src/api/my-ticket/schema.ts`의 `event` nullable(#789)과 체크인 `result` 5종(#798)은 이미 맞다.
+
+**mock 정합성 메모(P9-L 뒤)**: 티켓탭 fixture(`src/api/__mocks__/fixtures/my-ticket.ts`)의 `mock-order-tickets-a`~`d` 주문이 O-3 mock(`fixtures/order.ts`)에 없어, mock에서 티켓탭 [주문상세]로 가면 404다 — 두 fixture를 맞출 거리(코드 미수정).
 
 ## 2026-10-25 백엔드 `432cce4` 따라가기 (커밋 `939a1e0`)
 

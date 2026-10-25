@@ -226,7 +226,7 @@ export const updateEventBasicMutation = (eventId: string) =>
 | `api.post / patch / put / delete(path, schema, body?, options?)` | 변경. 백엔드는 변경 응답으로도 값을 주므로 똑같이 파싱한다 |
 | `api.download(path, params?)` | 파일(엑셀). 파싱하지 않는다 |
 
-객체는 둘이다. `api`는 `/api/v2`, `authApi`는 v1 인증(`/api/v1/auth`: 로그인 콜백, 재발급, 로그아웃, 탈퇴)이다. 같은 래퍼 해제·에러 변환을 쓴다. **`authApi`에는 401 가로채기(재발급·재시도)가 없다** — 재발급 호출이 다시 재발급을 부르면 같은 이름의 Web Lock을 다시 요청해 영원히 기다린다(같은 실행 컨텍스트의 같은 잠금 요청도 큐에 쌓인다, [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)).
+객체는 둘이다. `api`는 `/api/v2`, `authApi`는 v1 인증(`/api/v1/auth`: 로그인 콜백, 재발급, 로그아웃)이다. **회원 탈퇴(v1 `DELETE /api/v1/auth/me`)는 `authApi`가 아니라 `withSessionRecovery`로 감싼 호출이다**(`src/api/user/calls.ts` `withdrawAccount`, P9-L) — 같은 v1 인증 경로지만 보호 API라 만료 액세스 쿠키면 401이므로, `api` 객체처럼 `dd:session`이 있을 때 재발급 후 한 번 다시 보낸다. 재발급은 `authApi`(가로채기 없음)로 하므로 Web Lock 재진입은 없다. 같은 래퍼 해제·에러 변환을 쓴다. **`authApi`에는 401 가로채기(재발급·재시도)가 없다** — 재발급 호출이 다시 재발급을 부르면 같은 이름의 Web Lock을 다시 요청해 영원히 기다린다(같은 실행 컨텍스트의 같은 잠금 요청도 큐에 쌓인다, [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)).
 
 - `queryOptions`/`mutationOptions`와 queryKey는 손으로 쓴다. 더 감싸지 않는다.
 - queryKey는 경로를 쪼갠 모양으로 맞춘다(`events/123/sections` → `['events', '123', 'sections']`). 순서는 **리소스 → `'viewer'`(있으면) → `'infinite'`(있으면) → 파라미터 객체(마지막)**다. 예: `['hosts', id, 'events', 'viewer', 'infinite', { size }]`.
@@ -281,6 +281,7 @@ export default async function Page({ params }: Props) {
   | `hostDetailQuery(id)` | `['hosts', id]` | 서버 프리페치, `staleTime` 30초 | 공개 필드(이름·소개·이미지·`memberCount`·`createdAt` 등). **`contacts`는 공개 필드가 아니다** — 비로그인 값은 전화·이메일이 가려져 있다(#846) | — |
   | `hostViewerQuery(id)` | `['hosts', id, 'viewer']` | 같은 엔드포인트, 프리페치 안 함, 세션이 있을 때만(`enabled`), `staleTime` 0 | `myRole`, `isFollowing`, **`contacts`**(로그인 사용자 원문 — 추가 요청 없이 이 응답에서 읽는다) | 팔로우·설정·멤버 버튼 자리(비활성 자리표시). 연락처는 viewer 확정 전·실패 동안 공개(가린) 값 + `status` `pending`·`error` |
   | `eventDetailQuery(id)` / `eventDetailViewerQuery(id)` | `['events', id]` / `['events', id, 'viewer']` | GP-3. 공개는 서버 프리페치. viewer는 쿠키, 프리페치 안 함, `staleTime` 0, **연락처 시트가 열리고(`open`) 세션이 있을 때만** 요청 | viewer: `contacts`만(`useEventContacts`). 나머지 필드는 공개 키 | 연락처 시트 안 목록. 익명이면 요청 없이 공개(가린) 값. 한 번 받은 원문은 시트를 닫아도 유지 |
+  | `eventDetailViewerQuery(id)` — 주문상세 호스트 문의 | `['events', id, 'viewer']` | GP-3 viewer만. **문의 시트를 열 때만**(`open`) + 세션이 있을 때, `useQuery`. 공개 GP-3(`eventDetailQuery`)은 읽지 않는다. 삭제된 공연(`eventId` null)이면 요청 없음 | `contacts`만(`useOrderHostContacts`, P9-L) | 보호 화면이라 게이트가 세션을 확정한 뒤에만 그려진다 — 공개 값으로 먼저 그릴 일이 없다(공개 값 자리는 빈 목록, `resolveContacts`) |
   | `hostEventsQuery(id)` / `hostEventsViewerQuery(id)` | `['hosts', id, 'events', 'infinite', params]` / `['hosts', id, 'events', 'viewer', 'infinite', params]` | GH-14. 둘 다 브라우저 `useInfiniteQuery`(프리페치 안 함). 공개는 `{ public: true }`, viewer는 세션이 있을 때만 | 공개: 공개 공연. viewer: 멤버에게만 보이는 준비중 공연 포함 목록 | 세션·viewer가 확정된 뒤 둘 중 하나로 **한 번만** 읽는다(patterns §4-2 — 공개 목록을 그렸다가 바꾸지 않는다). viewer·세션 확인이 실패하면 공개 키로 읽는다(P5c-L 구현) |
   | `giftLandingQuery(token)` / `giftLandingViewerQuery(token)` | `['gifts', token]` / `['gifts', token, 'viewer']` | 같은 방식 | viewer: `isReceiver`, 사용자에 따라 달라지는 `viewState`(`OWN_LINK` 등) | **상태 영역 전체**를 스켈레톤으로 둔다. 공개 값으로는 OG와 공연 요약만 그린다(`viewState`가 화면 전체를 정하므로 버튼만 막으면 깜빡인다) |
 
