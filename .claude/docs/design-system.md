@@ -60,7 +60,7 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 | 컬렉션 | 내용 | 옮기는 방식 |
 |---|---|---|
 | `Atomic` | 10개 색 계열 × 50~900 + `Common/0`(검정)·`Common/100`(흰색), 모드 1개, 102개 | `vars.palette.violet[400]` 같은 원시 값 |
-| `Sementic` | 38개, Light/Dark 모드(코드는 Light만 옮긴다 — 다크 모드 미지원(사용자 결정 2026-10-25)). `Color/brand`(10) · `text`(11) · `status`(5) · `interaction`(5) · `surface`(4) · `Background`(3). 하나를 빼고 모두 Atomic을 가리킨다(예외: `surface/default-label` Dark가 `#FFFFFF` 직접 값) | `vars.color.*` |
+| `Sementic` | 38개(2026-10-25 52개 — 코드 토큰과 1:1 대조 완료, 아래), Light/Dark 모드(코드는 Light만 옮긴다 — 다크 모드 미지원(사용자 결정 2026-10-25)). `Color/brand`(10) · `text`(11) · `status`(5) · `interaction`(5) · `surface`(4) · `Background`(3). 하나를 빼고 모두 Atomic을 가리킨다(예외: `surface/default-label` Dark가 `#FFFFFF` 직접 값) | `vars.color.*` |
 
 주요 의미 색(Light):
 
@@ -68,7 +68,7 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 |---|---|
 | `brand/primary` · `-hover` · `-pressed` · `-subtle` | Violet 400 · 500 · 600 · 50 |
 | `brand/accent` 계열 | Coral-red 400 · 500 · 600 · 50 |
-| `brand/Primary container` · `on Primary container` | Violet 100 · Violet 300 |
+| `brand/Primary container` · `on Primary container` | Violet 100 · Violet 400(2026-10-25 300 → 400) |
 | `text/primary` · `secondary` · `tertiary` · `inverse` · `on-brand` | Neutral 800 · 500 · 300 · 50 · 50 |
 | `status/success` · `warning` · `error` | Green 400 · Coral-red 400 · Coral-red 400 |
 | `surface/default-border` · `strong-border` · `container` | Neutral 200 · 400 · 50 |
@@ -116,12 +116,14 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 | 쓰는 곳 | Figma 변수 | 원시 | 코드 |
 |---|---|---|---|
 | Secondary Hover 배경 | `surface/container` | Neutral 50 | `surface.container`(있던 것) |
-| primary 2 Normal 배경 · 글자 | `brand/Primary container fixed` · `brand/on Primary container` | Violet 100 · Violet 300 | `brand.primaryContainer`(있던 것 — Figma는 `fixed` 붙은 별도 변수) · `brand.onPrimaryContainer` |
+| primary 2 Normal 배경 · 글자 | `brand/Primary container fixed` · `brand/on Primary container` | Violet 100 · Violet 400 | `brand.primaryContainerFixed` · `brand.onPrimaryContainer` |
 | primary 2 Hover 배경 · 글자 | `brand/Primary container-hover` · `brand/on Primary container-hover` | Violet 200 · Violet 400 | `brand.primaryContainerHover` · `brand.onPrimaryContainerHover`(새로, 옛 글자는 `text.brandLabel` — 값 같음) |
 | primary 2 Pressed 배경 · 글자 | `brand/Primary container-pressed` · `text/on-brand fixed` | Violet 300 · Neutral 50 | `brand.primaryContainerPressed` · `text.onBrandFixed`(새로, 옛 글자는 `text.onBrand` — 값 같음) |
 | round Primary(Fab) Hover · Pressed 배경 | `surface/inverse-hover` · `surface/inverse-pressed` | Neutral 700 · Neutral 900 | `surface.inverseHover` · `surface.inversePressed`(새로) |
 
 **쓰이지 않는 의미 색.** 컴포넌트 어디에도 묶이지 않았다: `text/tertiary-label`, `text/disabled-label`, `text/danger-label`, `brand/accent-pressed`, `brand/accent-hover`, `status/warning`, `status/warning-subtle`, `status/error`, `Background/dark`. 토큰으로는 옮기되, 정리 요청(§5) 결과에 따라 지운다. 2026-10-25: `status/warning`·`warning-subtle`은 Concert state chip D-day large가, `text/tertiary-label`은 `Top bar_Host`의 비활성 메뉴·`날짜` 요일 글자가 쓰기 시작했다.
+
+**Sementic ↔ 코드 토큰 대조(2026-10-25, 플러그인으로 Light 모드 52개 전부).** 43개는 이름·값이 같았다. 다른 것 1개 — `brand/on Primary container`가 Violet 300 → 400으로 바뀌어 코드를 맞췄다(이 색을 배경으로 쓰는 money option chip도 같이 진해진다 — 위 글자 `text/inverse` 대비 약 5.8:1). 코드에 없던 8개를 같은 이름으로 추가했다: `brand.secondary`·`secondaryHover`·`secondaryPressed`(Violet 50·100·200), `brand.primaryContainerFixed`, `background.darkFixed`·`normal2`, `surface.container2`·`imageBg`. `fixed`·`2`는 다크 모드가 없어 원본과 값이 같다. 코드에만 있는 `avatar`·`role`·`chip`은 Figma가 원시 색을 직접 쓰는 곳이다(위). 안내 프레임 `55:410`(Color - Semantic 페이지)은 컬렉션보다 적게 보여 주므로 정본은 변수 컬렉션이다.
 
 **다크 모드: 지원하지 않는다(사용자 결정 2026-10-25).** 2026-10-17에는 토큰을 라이트·다크 두 벌(`createThemeContract`, `<html data-theme="dark">`일 때만 다크)로 두었으나 걷어냈다. 색 토큰은 라이트 한 벌을 `createGlobalTheme(':root', …)`로 둔다(`src/ui/theme/tokens.css.ts`). 쓰는 방식(`vars.color.*`, `colors.*`)은 그대로다. Figma `Sementic`의 Dark 모드 값은 옮기지 않는다.
 
@@ -268,7 +270,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | round Secondary(새로 생김) | `text/inverse` #F7F7F6 | #EEEEED(변수 `119:736`) | `surface/default-border` #DDDCDA | 56 원형, Disabled 없음 |
 
 - Button 페이지에 상태 라벨 글자(Normal·Hover·Pressed·Disabled·Selected·Primary·Secondary·Primary2 — `645:1513`~`645:1519`, `650:1323`~`650:1330`)가 생겼다. 컴포넌트가 아닌 견본 표의 머리글이다.
-- 대비(계산): primary 2 Normal 2.75:1(옛 4.04:1), Hover 2.76:1, Pressed 3.96:1. §5 대비 요청에 더한다.
+- 대비(계산): primary 2 Normal 2.75:1(옛 4.04:1 — 2026-10-25 저녁 Figma가 글자를 Violet 400으로 되돌려 다시 4.04:1), Hover 2.76:1, Pressed 3.96:1. §5 대비 요청에 더한다.
 - 코드 반영(2026-10-25): 위 표대로 Button `secondary`·`tonal`, `Fab`(Primary Hover·Pressed — 투명도 대신 색) 상태 색과 medium 46h를 넣었다. round Secondary는 쓰는 화면이 생기면(V). 색은 Figma 의미 변수 이름의 토큰(`brand.primaryContainerHover`·`brand.onPrimaryContainerHover`·`brand.primaryContainerPressed`·`text.onBrandFixed`·`surface.inverseHover`·`surface.inversePressed`, §1 "버튼 상태 색 의미 변수")을 쓴다 — 옛 전용 토큰 `button.*`는 지웠다.
 
 ### 호스팅 PC·대시보드 컴포넌트(2026-10-25)
@@ -516,7 +518,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | Avatar | `size=40` 변형이 실제 45px, 호스트 행에서 60px | 크기 체계 확인, 사진 표시 여부 |
 | Tabs | 2개 고정, 선택 44h·미선택 42h(2026-10-25 모바일은 44 통일, 데스크탑 변형은 48·44) | 탭 개수 자유, 데스크탑 높이 통일 |
 | 새로 쓰인 변수 12개(2026-10-25, §1) | 이름을 REST로 읽을 수 없다. 대부분 기존 의미 색과 같은 값이다(#F7F7F6·#FFFFFF·#EEEEED·#0A0A09 등) | 이름 알려 주기. 기존 의미 색과 같은 값이면 하나로 |
-| primary 2 상태 색(2026-10-25) | 글자가 Violet 300으로 바뀌어 대비 2.75:1, Hover 2.76:1 | 대비 4.5:1 이상 |
+| primary 2 상태 색(2026-10-25) | 글자가 Violet 300으로 바뀌어 대비 2.75:1 → 같은 날 Violet 400으로 되돌아가 Normal 4.04:1. Hover 2.76:1은 그대로 | 대비 4.5:1 이상 |
 | Tabs 미선택·상단 바 비활성 메뉴 | 회색 #B8B7B3 on 흰색 2.01:1 | 대비 확인 |
 | Tabs disabled(2026-10-25) | Figma에 disabled 탭이 없다. 코드는 `interaction/disabled-text`(Neutral 300)를 쓰는데 미선택 `interaction/inactive`도 Neutral 300이라 둘이 구분되지 않는다(커서만 다름) | disabled 탭 색 정하기(또는 disabled 탭을 쓰지 않기) |
 | "Tablet-QR만" 프레임 이름 | 1133 프레임 2개(`35:172`·`569:5224`)가 12칼럼 데스크탑 그리드가 됐는데 이름은 "QR만"이다 | 이름 정리(Q39) |

@@ -101,8 +101,8 @@ export const StateColors: Story = {
     await expect(pseudoStyle(secondary, ':active', 'background')).toBe(vars.color.background.grey);
 
     const tonal = canvas.getAllByRole('button', { name: 'tonal' })[0]!;
-    // Normal 글자 Violet 300(#8162F1)
-    await expect(getComputedStyle(tonal).color).toBe('rgb(129, 98, 241)');
+    // Normal 글자 brand/on Primary container — Violet 400(#633EE7, 2026-10-25 Figma에서 300 → 400)
+    await expect(getComputedStyle(tonal).color).toBe('rgb(99, 62, 231)');
     await expect(pseudoStyle(tonal, ':hover', 'background')).toBe(
       vars.color.brand.primaryContainerHover,
     );
