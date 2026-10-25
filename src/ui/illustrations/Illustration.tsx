@@ -1,22 +1,26 @@
 import type { CSSProperties } from 'react';
 
 import { assetSrc, type ImportedAsset } from './assetSrc';
-import bookingComplete from './booking-complete.png';
+import bookingComplete from './booking-complete.svg';
 import dashboardApproved from './dashboard-approved.svg';
 import dashboardPending from './dashboard-pending.svg';
 import dashboardRefund from './dashboard-refund.svg';
 import dashboardRejected from './dashboard-rejected.svg';
-import gift from './gift.png';
-import login from './login.png';
-import noSearchResult from './no-search-result.png';
-import noTicket from './no-ticket.png';
-import posterPlaceholder from './poster-placeholder.png';
+import gift from './gift.svg';
+import login from './login.svg';
+import noSearchResult from './no-search-result.svg';
+import noTicket from './no-ticket.svg';
+import posterPlaceholder from './poster-placeholder.svg';
 
 /**
- * 이름 → 파일과 Figma 크기(1x). 빈 화면 일러스트 6종은 Figma 벡터가 0.3~6.5MB라 PNG(3x)로 래스터화했고,
- * 작은 `illust_dashboard`(GUI `14:1529`) 4종은 SVG 그대로다.
- * 다시 뽑기: 디자인 시스템 `image` 페이지 노드(포스터 `486:267`, 티켓 없음 `499:1490`, 예매완료 `506:1634`,
- * 선물 `503:1221`, 검색 결과 없음 `506:1721`, login `506:1510`)를 3x PNG로 내보내 같은 이름으로 바꾼다.
+ * 이름 → 파일과 Figma 크기(1x). 모두 Figma에서 내보낸 SVG 원본 그대로다.
+ * - 빈 화면 일러스트 6종: 2026-10-25 판에서 벡터가 가벼워져(8~75KB) PNG에서 SVG로 바꿨다(design-system §4-1).
+ *   다시 뽑기: 디자인 시스템 `image` 페이지 노드(포스터 `486:267`, 티켓 없음 `499:1490`, 예매완료 `506:1634`,
+ *   선물 `503:1221`, 검색 결과 없음 `506:1721`, login `506:1510`)를 SVG로 내보내 같은 이름으로 바꾼다
+ *   (REST `GET /v1/images/0QD9tGSt8ZciDqe7ol2gYH?ids=…&format=svg`). 넣기 전에 `<script>`·`<foreignObject>`·
+ *   외부 참조(`href`·`url(` 중 `#`로 시작하지 않는 것)가 없는지 본다.
+ * - `dashboard-*` 4종: GUI `illust_dashboard`(`14:1529`, 지금은 디자인 시스템 `ic_대시보드` `538:2072`).
+ * 색은 고정이다(`<img>`라 테마를 따르지 않는다) — 선이 검정(#141413)이라 다크 배경에서는 잘 안 보인다(디자인 대기).
  */
 const ILLUSTRATIONS = {
   'poster-placeholder': { asset: posterPlaceholder, width: 180, height: 254 },

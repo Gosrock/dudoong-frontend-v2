@@ -55,9 +55,10 @@ export const colors = {
   roleManagerBg: vars.color.role.managerBg,
   roleManagerText: vars.color.role.managerText,
   chipGiftPendingBg: vars.color.chip.giftPendingBg,
-  chipDdayBg: vars.color.chip.ddayBg,
-  chipDdayText: vars.color.chip.ddayText,
-  chipPastBg: vars.color.chip.pastBg,
+  buttonTonalHoverBg: vars.color.button.tonalHoverBg,
+  buttonTonalPressedBg: vars.color.button.tonalPressedBg,
+  buttonFabHoverBg: vars.color.button.fabHoverBg,
+  buttonFabPressedBg: vars.color.button.fabPressedBg,
 
   // 원시 색 (palette)
   neutral50: palette.neutral[50],

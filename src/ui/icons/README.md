@@ -1,12 +1,14 @@
 # 아이콘
 
-Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)에서 뽑은 SVG를 `<Icon />`으로 쓴다.
+Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 세트 밖 낱개 `ic/ticket/filled/24`(`183:1130`)에서
+뽑은 SVG를 `<Icon />`으로 쓴다(2026-10-25 판 기준 53종 69개).
 `lucide-react`는 쓰지 않는다(`.claude/docs/design-system.md` §4). 라이선스 고지는 루트 `THIRD_PARTY_NOTICES.md`.
 
 ```tsx
 <Icon name="home" />                              // outline 24 (기본값)
 <Icon name="home" variant="filled" />
 <Icon name="chevron-down" size={12} />
+<Icon name="chevron-left" size={20} />
 <Icon name="notification-on" title="새 알림" />   // title이 있으면 role="img", 없으면 aria-hidden
 ```
 
@@ -16,16 +18,20 @@ Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)에�
 
 ## 파일
 
-| 파일                                           | 내용                                       |
-| ---------------------------------------------- | ------------------------------------------ |
-| `svg/<key>-<outline\|filled>-<12\|16\|24>.svg` | 원본(정리된 SVG). 직접 고쳐도 된다         |
-| `generate.mjs`                                 | `svg/` → `registry.ts` 생성기(의존성 없음) |
-| `registry.ts`                                  | 생성 파일. 직접 고치지 않는다              |
-| `Icon.tsx`                                     | 컴포넌트                                   |
+| 파일                                               | 내용                                       |
+| -------------------------------------------------- | ------------------------------------------ |
+| `svg/<key>-<outline\|filled>-<12\|16\|20\|24>.svg` | 원본(정리된 SVG). 직접 고쳐도 된다         |
+| `generate.mjs`                                     | `svg/` → `registry.ts` 생성기(의존성 없음) |
+| `registry.ts`                                      | 생성 파일. 직접 고치지 않는다              |
+| `Icon.tsx`                                         | 컴포넌트                                   |
 
 ## 다시 뽑기
 
 1. Figma에서 `ic` 세트의 변형을 SVG로 내보낸다(내보내기 이름은 기본값 `name=…, type=…, size=…` 그대로 둔다).
+   REST로 받을 때는 `GET /v1/images/0QD9tGSt8ZciDqe7ol2gYH?ids=<노드 id,…>&format=svg`가 준 주소를 받아 같은 이름으로 저장한다.
+   - **`ticket` filled는 세트 밖이다**(2026-10-25에 세트에서 빠져 낱개 컴포넌트 `ic/ticket/filled/24` `183:1130`이 됐다).
+     세트만 내보내면 빠지므로 이 노드를 따로 내보내 `ticket-filled-24.svg`로 저장한다.
+   - 세트 밖 낱개 프레임 `ic`(`662:722`·`662:726`)·`icon/music-4`(`662:730`)는 컴포넌트가 아닌 프레임이라 뽑지 않는다.
 2. 파일을 `src/ui/icons/svg/`에 넣는다(같은 키의 기존 파일은 지운다).
 3. `node src/ui/icons/generate.mjs`
    - Figma 이름 파일을 `<key>-<type>-<size>.svg`로 바꾼다(이름 대응표는 `generate.mjs`의 `FIGMA_NAME_MAP`).
@@ -35,16 +41,16 @@ Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)에�
 
 ### Figma 이름 → 키
 
-| Figma                     | 키                        |
-| ------------------------- | ------------------------- |
-| `notificatio_onn`         | `notification-on`         |
-| `Ticket` / `Ticket-alert` | `ticket` / `ticket-alert` |
-| `Settings`                | `settings`                |
-| `up down`                 | `up-down`                 |
-| `order detail`            | `order-detail`            |
-| `open chat`               | `open-chat`               |
-| `image_add`               | `image-add`               |
-| 나머지                    | 그대로                    |
+| Figma                                              | 키                                                              |
+| -------------------------------------------------- | --------------------------------------------------------------- |
+| `notificatio_onn`                                  | `notification-on`                                               |
+| `Ticket`(2026-10-25부터 `ticket`) / `Ticket-alert` | `ticket` / `ticket-alert`                                       |
+| `Settings`                                         | `settings`                                                      |
+| `up down`                                          | `up-down`                                                       |
+| `order detail`                                     | `order-detail`                                                  |
+| `open chat`                                        | `open-chat`                                                     |
+| `image_add`                                        | `image-add`                                                     |
+| 나머지                                             | 소문자·공백은 `-`(`pop out` → `pop-out`, `log out` → `log-out`) |
 
 ### 손으로 고친 파일 — 다시 뽑을 때 덮어쓰지 말 것
 

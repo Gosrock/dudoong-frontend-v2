@@ -1,8 +1,9 @@
 // 생성 파일 — 직접 고치지 말 것. node src/ui/icons/generate.mjs 로 다시 만든다.
-// 원본: src/ui/icons/svg/*.svg (Figma 디자인 시스템 ic 세트 36:178)
+// 원본: src/ui/icons/svg/*.svg (Figma 디자인 시스템 ic 세트 36:178 + 낱개 ic/ticket/filled/24 183:1130)
 
 export type IconName =
   | 'add'
+  | 'archiving'
   | 'backward'
   | 'blank'
   | 'calendar'
@@ -19,6 +20,8 @@ export type IconName =
   | 'close'
   | 'dashboard'
   | 'detail'
+  | 'diagonal'
+  | 'edit'
   | 'etc'
   | 'favorite'
   | 'forward'
@@ -28,10 +31,13 @@ export type IconName =
   | 'info'
   | 'information'
   | 'instagram'
+  | 'location'
+  | 'log-out'
   | 'mail'
   | 'menu'
   | 'minus'
   | 'more'
+  | 'music'
   | 'notification'
   | 'notification-on'
   | 'open-chat'
@@ -39,21 +45,25 @@ export type IconName =
   | 'panel-open'
   | 'people'
   | 'phone'
+  | 'pop-out'
   | 'preview'
   | 'qr'
   | 'search'
   | 'settings'
   | 'ticket'
   | 'ticket-alert'
-  | 'up-down';
+  | 'up'
+  | 'up-down'
+  | 'update';
 
 export type IconVariant = 'outline' | 'filled';
-export type IconSize = 12 | 16 | 24;
+export type IconSize = 12 | 16 | 20 | 24;
 
 /** Figma에 있는 (name, variant, size) 조합만 허용한다. variant 기본값 'outline', size 기본값 24. */
 export type IconSpec =
   | { name: 'add'; variant?: 'outline'; size: 12 }
   | { name: 'add'; variant?: 'outline'; size?: 24 }
+  | { name: 'archiving'; variant?: 'outline'; size?: 24 }
   | { name: 'backward'; variant?: 'outline'; size?: 24 }
   | { name: 'blank'; variant?: 'outline'; size?: 24 }
   | { name: 'calendar'; variant?: 'outline'; size?: 24 }
@@ -62,7 +72,9 @@ export type IconSpec =
   | { name: 'check'; variant?: 'outline'; size?: 24 }
   | { name: 'chevron-down'; variant?: 'outline'; size: 12 }
   | { name: 'chevron-down'; variant?: 'outline'; size?: 24 }
+  | { name: 'chevron-left'; variant?: 'outline'; size: 20 }
   | { name: 'chevron-left'; variant?: 'outline'; size?: 24 }
+  | { name: 'chevron-right'; variant?: 'outline'; size: 20 }
   | { name: 'chevron-right'; variant?: 'outline'; size?: 24 }
   | { name: 'chevron-up'; variant?: 'outline'; size: 12 }
   | { name: 'chevron-up'; variant?: 'outline'; size?: 24 }
@@ -79,6 +91,8 @@ export type IconSpec =
   | { name: 'dashboard'; variant: 'filled'; size?: 24 }
   | { name: 'dashboard'; variant?: 'outline'; size?: 24 }
   | { name: 'detail'; variant?: 'outline'; size?: 24 }
+  | { name: 'diagonal'; variant?: 'outline'; size?: 24 }
+  | { name: 'edit'; variant?: 'outline'; size?: 24 }
   | { name: 'etc'; variant: 'filled'; size?: 24 }
   | { name: 'favorite'; variant?: 'outline'; size?: 24 }
   | { name: 'forward'; variant?: 'outline'; size?: 24 }
@@ -89,11 +103,14 @@ export type IconSpec =
   | { name: 'info'; variant?: 'outline'; size?: 24 }
   | { name: 'information'; variant?: 'outline'; size: 16 }
   | { name: 'instagram'; variant?: 'outline'; size?: 24 }
+  | { name: 'location'; variant?: 'outline'; size?: 24 }
+  | { name: 'log-out'; variant?: 'outline'; size?: 24 }
   | { name: 'mail'; variant: 'filled'; size?: 24 }
   | { name: 'menu'; variant?: 'outline'; size?: 24 }
   | { name: 'minus'; variant?: 'outline'; size: 12 }
   | { name: 'more'; variant?: 'outline'; size: 12 }
   | { name: 'more'; variant?: 'outline'; size?: 24 }
+  | { name: 'music'; variant?: 'outline'; size?: 24 }
   | { name: 'notification-on'; variant?: 'outline'; size?: 24 }
   | { name: 'notification'; variant?: 'outline'; size?: 24 }
   | { name: 'open-chat'; variant: 'filled'; size?: 24 }
@@ -101,6 +118,7 @@ export type IconSpec =
   | { name: 'panel-open'; variant?: 'outline'; size?: 24 }
   | { name: 'people'; variant?: 'outline'; size?: 24 }
   | { name: 'phone'; variant: 'filled'; size?: 24 }
+  | { name: 'pop-out'; variant?: 'outline'; size?: 24 }
   | { name: 'preview'; variant?: 'outline'; size?: 24 }
   | { name: 'qr'; variant?: 'outline'; size?: 24 }
   | { name: 'search'; variant?: 'outline'; size?: 24 }
@@ -109,7 +127,9 @@ export type IconSpec =
   | { name: 'ticket-alert'; variant?: 'outline'; size?: 24 }
   | { name: 'ticket'; variant: 'filled'; size?: 24 }
   | { name: 'ticket'; variant?: 'outline'; size?: 24 }
-  | { name: 'up-down'; variant?: 'outline'; size?: 24 };
+  | { name: 'up-down'; variant?: 'outline'; size?: 24 }
+  | { name: 'up'; variant?: 'outline'; size?: 24 }
+  | { name: 'update'; variant?: 'outline'; size?: 24 };
 
 export type IconEntry = {
   viewBox: string;
@@ -128,6 +148,10 @@ export const icons: Record<string, IconEntry> = {
   'add/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M5 12H19M12 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  'archiving/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M5 3H19C20.1046 3 21 3.89543 21 5V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M11 3V11L14 8L17 11V3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
   'backward/outline/24': {
     viewBox: '0 0 24 24',
@@ -162,9 +186,17 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   },
+  'chevron-left/outline/20': {
+    viewBox: '0 0 20 20',
+    body: '<path d="M12.5 15L7.5 10L12.5 5" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
   'chevron-left/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  'chevron-right/outline/20': {
+    viewBox: '0 0 20 20',
+    body: '<path d="M7.5 5L12.5 10L7.5 15" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
   'chevron-right/outline/24': {
     viewBox: '0 0 24 24',
@@ -230,6 +262,14 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V7L15 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V8M14 2V6C14 6.53043 14.2107 7.03914 14.5858 7.41421C14.9609 7.78929 15.4696 8 16 8H20M2 13V12H8V13M5 12V18M4 18H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   },
+  'diagonal/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M7 7H17V17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M7 17L17 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'edit/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M18.1911 10.7149C18.4476 10.4584 18.651 10.1539 18.7898 9.81884C18.9286 9.48375 19 9.1246 19 8.7619C19 8.39921 18.9286 8.04006 18.7898 7.70497C18.651 7.36988 18.4476 7.06541 18.1911 6.80894C17.9347 6.55248 17.6303 6.34904 17.2952 6.21024C16.9601 6.07144 16.601 6 16.2384 6C15.8757 6 15.5166 6.07144 15.1815 6.21024C14.8465 6.34904 14.542 6.55248 14.2856 6.80894L7.77205 13.3258C7.46295 13.6347 7.23669 14.0166 7.11419 14.4362L6.026 18.1678C5.99337 18.2797 5.99142 18.3983 6.02034 18.5112C6.04926 18.6241 6.108 18.7272 6.1904 18.8096C6.2728 18.892 6.37584 18.9507 6.48872 18.9797C6.60161 19.0086 6.7202 19.0066 6.83207 18.974L10.5634 17.8857C10.9829 17.7632 11.3647 17.5369 11.6737 17.2278L18.1911 10.7149Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M13.5 8.5L16.5 11.5" stroke-width="2" stroke="currentColor"/>',
+  },
   'etc/filled/24': {
     viewBox: '0 0 24 24',
     body: '<circle cx="5.5" cy="12.5" r="1.5" fill="currentColor"/><circle cx="11.5" cy="12.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="12.5" r="1.5" fill="currentColor"/>',
@@ -272,6 +312,14 @@ export const icons: Record<string, IconEntry> = {
     body: '<rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#instagram-outline-24-paint0_linear_473_1613)" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="url(#instagram-outline-24-paint1_linear_473_1613)" stroke-width="2"/><circle cx="17" cy="7" r="1" fill="#EE07AE"/><defs><linearGradient id="instagram-outline-24-paint0_linear_473_1613" x1="-4.99965" y1="5.39791" x2="-1.50035" y2="25.1021" gradientUnits="userSpaceOnUse"><stop offset="0.00296149" stop-color="#9309E1"/><stop offset="0.216523" stop-color="#EA02C9"/><stop offset="0.558577" stop-color="#F6114F"/><stop offset="1" stop-color="#FDB203"/></linearGradient><linearGradient id="instagram-outline-24-paint1_linear_473_1613" x1="12" y1="7" x2="12" y2="15.5" gradientUnits="userSpaceOnUse"><stop stop-color="#CD0BAB"/><stop offset="0.524038" stop-color="#F40D59"/><stop offset="1" stop-color="#FB6A1B"/></linearGradient></defs>',
     multicolor: true,
   },
+  'location/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M20 10C20 16.4183 12 21.5 12 21.5C12 21.5 4 16.4183 4 10C4 5.58172 7.58172 2 12 2C16.4183 2 20 5.58172 20 10Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M15.25 9.75C15.25 11.5449 13.7949 13 12 13C10.2051 13 8.75 11.5449 8.75 9.75C8.75 7.95507 10.2051 6.5 12 6.5C13.7949 6.5 15.25 7.95507 15.25 9.75Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'log-out/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M16 17L21 12L16 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M21 12H9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
   'mail/filled/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M21 18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V8.81934L10.4336 13.5439L10.4395 13.5479C10.9072 13.8408 11.4481 13.9961 12 13.9961C12.5519 13.9961 13.0928 13.8408 13.5605 13.5479L13.5664 13.5439L21 8.81934V18ZM20 5C20.5523 5 21 5.44771 21 6V6.4502L12.499 11.8525C12.3494 11.9463 12.1765 11.9961 12 11.9961C11.8235 11.9961 11.6496 11.9463 11.5 11.8525L3 6.4502V6C3 5.44772 3.44772 5 4 5H20Z" fill="currentColor"/>',
@@ -291,6 +339,10 @@ export const icons: Record<string, IconEntry> = {
   'more/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M12 13C12.5523 13 13 12.5523 13 12C13 11.4477 12.5523 11 12 11C11.4477 11 11 11.4477 11 12C11 12.5523 11.4477 13 12 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 6C12.5523 6 13 5.55228 13 5C13 4.44772 12.5523 4 12 4C11.4477 4 11 4.44772 11 5C11 5.55228 11.4477 6 12 6Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 20C12.5523 20 13 19.5523 13 19C13 18.4477 12.5523 18 12 18C11.4477 18 11 18.4477 11 19C11 19.5523 11.4477 20 12 20Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  'music/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M9 18V5L21 3V16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M9 9L21 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M9 18C9 19.6569 7.65685 21 6 21C4.34315 21 3 19.6569 3 18C3 16.3431 4.34315 15 6 15C7.65685 15 9 16.3431 9 18Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M21 16C21 17.6569 19.6569 19 18 19C16.3431 19 15 17.6569 15 16C15 14.3431 16.3431 13 18 13C19.6569 13 21 14.3431 21 16Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
   'notification-on/outline/24': {
     viewBox: '0 0 24 24',
@@ -320,6 +372,10 @@ export const icons: Record<string, IconEntry> = {
   'phone/filled/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M7.51367 3.00547C8.55699 2.93357 8.90895 3.58049 9.39352 4.34886C10.3564 5.87566 11.7916 7.59503 9.76516 9.01081C9.60054 9.12581 9.24157 9.41126 9.12893 9.5722L9.11613 9.59077C9.76078 11.2781 11.5168 13.2557 12.988 14.273C13.4793 14.6127 13.9065 14.8247 14.3822 15.1359C14.4317 15.0617 14.5347 14.9358 14.5968 14.8688C15.1211 14.2978 15.5554 13.6644 16.4056 13.6232C17.087 13.5901 17.6481 14.0906 18.2133 14.4185C18.9365 14.8381 19.6973 15.2709 20.3527 15.7882C20.6247 16.0029 20.856 16.5042 20.8671 16.8492C20.8984 17.706 20.0787 18.7468 19.5425 19.3427C19.0342 19.9341 18.4507 20.3067 17.6643 20.3869C15.6941 20.5879 13.3818 19.3911 11.7602 18.3833C11.414 18.1598 11.0239 17.9673 10.7016 17.712C9.13291 16.4695 7.72198 15.1884 6.5939 13.5232C5.37701 11.7269 4.37155 10.0449 4.05712 7.85647C3.70666 5.41726 5.00519 4.22342 6.95824 3.15825C7.12362 3.06904 7.32788 3.03 7.51367 3.00547Z" fill="currentColor"/>',
+  },
+  'pop-out/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M21 13V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H11M21 3L12 12M21 9V3H15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
   'preview/outline/24': {
     viewBox: '0 0 24 24',
@@ -360,11 +416,20 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M7 15L12 20L17 15M7 9L12 4L17 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   },
+  'up/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M19 12L12 5L5 12M12 5L12 19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'update/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M12 2V4M12 20V22M4.93018 4.92993L6.34018 6.33993M17.6602 17.6599L19.0702 19.0699M2 12H4M20 12H22M6.34018 17.6599L4.93018 19.0699M19.0702 4.92993L17.6602 6.33993M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
 };
 
 export const iconList = [
   { name: 'add', variant: 'outline', size: 12 },
   { name: 'add', variant: 'outline', size: 24 },
+  { name: 'archiving', variant: 'outline', size: 24 },
   { name: 'backward', variant: 'outline', size: 24 },
   { name: 'blank', variant: 'outline', size: 24 },
   { name: 'calendar', variant: 'outline', size: 24 },
@@ -373,7 +438,9 @@ export const iconList = [
   { name: 'check', variant: 'outline', size: 24 },
   { name: 'chevron-down', variant: 'outline', size: 12 },
   { name: 'chevron-down', variant: 'outline', size: 24 },
+  { name: 'chevron-left', variant: 'outline', size: 20 },
   { name: 'chevron-left', variant: 'outline', size: 24 },
+  { name: 'chevron-right', variant: 'outline', size: 20 },
   { name: 'chevron-right', variant: 'outline', size: 24 },
   { name: 'chevron-up', variant: 'outline', size: 12 },
   { name: 'chevron-up', variant: 'outline', size: 24 },
@@ -390,6 +457,8 @@ export const iconList = [
   { name: 'dashboard', variant: 'filled', size: 24 },
   { name: 'dashboard', variant: 'outline', size: 24 },
   { name: 'detail', variant: 'outline', size: 24 },
+  { name: 'diagonal', variant: 'outline', size: 24 },
+  { name: 'edit', variant: 'outline', size: 24 },
   { name: 'etc', variant: 'filled', size: 24 },
   { name: 'favorite', variant: 'outline', size: 24 },
   { name: 'forward', variant: 'outline', size: 24 },
@@ -400,11 +469,14 @@ export const iconList = [
   { name: 'info', variant: 'outline', size: 24 },
   { name: 'information', variant: 'outline', size: 16 },
   { name: 'instagram', variant: 'outline', size: 24 },
+  { name: 'location', variant: 'outline', size: 24 },
+  { name: 'log-out', variant: 'outline', size: 24 },
   { name: 'mail', variant: 'filled', size: 24 },
   { name: 'menu', variant: 'outline', size: 24 },
   { name: 'minus', variant: 'outline', size: 12 },
   { name: 'more', variant: 'outline', size: 12 },
   { name: 'more', variant: 'outline', size: 24 },
+  { name: 'music', variant: 'outline', size: 24 },
   { name: 'notification-on', variant: 'outline', size: 24 },
   { name: 'notification', variant: 'outline', size: 24 },
   { name: 'open-chat', variant: 'filled', size: 24 },
@@ -412,6 +484,7 @@ export const iconList = [
   { name: 'panel-open', variant: 'outline', size: 24 },
   { name: 'people', variant: 'outline', size: 24 },
   { name: 'phone', variant: 'filled', size: 24 },
+  { name: 'pop-out', variant: 'outline', size: 24 },
   { name: 'preview', variant: 'outline', size: 24 },
   { name: 'qr', variant: 'outline', size: 24 },
   { name: 'search', variant: 'outline', size: 24 },
@@ -421,4 +494,6 @@ export const iconList = [
   { name: 'ticket', variant: 'filled', size: 24 },
   { name: 'ticket', variant: 'outline', size: 24 },
   { name: 'up-down', variant: 'outline', size: 24 },
+  { name: 'up', variant: 'outline', size: 24 },
+  { name: 'update', variant: 'outline', size: 24 },
 ] as const satisfies readonly IconSpec[];

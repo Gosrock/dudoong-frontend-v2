@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect } from 'storybook/test';
 
 import { Icon } from './Icon';
 import { iconList, icons } from './registry';
@@ -70,4 +71,33 @@ export const Colored: Story = {
       ))}
     </div>
   ),
+};
+
+/** 2026-10-25 판에서 더해진 11개(design-system §3 ic 행)와 세트 밖 낱개 `ic/ticket/filled/24`(`183:1130`) */
+export const AddedIn20261025: Story = {
+  render: () => (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+      <Icon name="edit" title="edit" />
+      <Icon name="up" title="up" />
+      <Icon name="diagonal" title="diagonal" />
+      <Icon name="pop-out" title="pop-out" />
+      <Icon name="archiving" title="archiving" />
+      <Icon name="location" title="location" />
+      <Icon name="music" title="music" />
+      <Icon name="log-out" title="log-out" />
+      <Icon name="update" title="update" />
+      <Icon name="chevron-left" size={20} title="chevron-left 20" />
+      <Icon name="chevron-right" size={20} title="chevron-right 20" />
+      <Icon name="ticket" variant="filled" title="ticket filled" />
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    const imgs = canvas.getAllByRole('img');
+    await expect(imgs).toHaveLength(12);
+    for (const img of imgs) await expect(img.childElementCount).toBeGreaterThan(0);
+    await expect(canvas.getByRole('img', { name: 'chevron-left 20' })).toHaveAttribute(
+      'viewBox',
+      '0 0 20 20',
+    );
+  },
 };

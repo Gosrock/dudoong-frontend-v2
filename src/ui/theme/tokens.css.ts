@@ -11,7 +11,8 @@ import { palette } from './palette';
 /**
  * 디자인 토큰(design-system.md §1). 색은 Figma `Sementic` 컬렉션의 Light/Dark를 그대로 옮겼다.
  * 다크 모드: 토큰은 두 벌 다 두고 출시는 라이트만 한다 — `<html data-theme="dark">`일 때만 다크 값이 적용된다.
- * `avatar`·`role`·`chip`은 Figma가 원시 색을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다(다크 값은 디자인 대기라 라이트와 같다).
+ * `avatar`·`role`·`chip`·`button`은 Figma가 원시 색(또는 이름을 모르는 새 변수)을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다
+ * (다크 값은 디자인 대기라 라이트와 같다).
  */
 const colorContract = createThemeContract({
   color: {
@@ -52,7 +53,13 @@ const colorContract = createThemeContract({
     background: { normal: null, grey: null, dark: null },
     avatar: { teal: null, orange: null, indigo: null },
     role: { masterBg: null, masterText: null, managerBg: null, managerText: null },
-    chip: { giftPendingBg: null, ddayBg: null, ddayText: null, pastBg: null },
+    chip: { giftPendingBg: null },
+    /**
+     * Button 상태 색(design-system §3 "Button 상태 색", 2026-10-25). Figma 변수 이름을 몰라(REST 변수 API 403) 전용 토큰으로 둔다.
+     * tonal = primary 2 Hover 배경 `649:1159`(Violet 200)·Pressed 배경 `649:1160`(Violet 300),
+     * fab = round Primary Hover `649:1162`(Neutral 700)·Pressed `649:1163`(Neutral 900)
+     */
+    button: { tonalHoverBg: null, tonalPressedBg: null, fabHoverBg: null, fabPressedBg: null },
     /** 오버레이 딤·그림자. background.dark는 다크에서 흰색이 되므로 따로 둔다(P2) */
     overlay: { dim: null, shadow: null },
   },
@@ -123,9 +130,12 @@ const light = {
     },
     chip: {
       giftPendingBg: palette.coralRed[50],
-      ddayBg: palette.coralRed[50],
-      ddayText: palette.coralRed[200],
-      pastBg: palette.neutral[50],
+    },
+    button: {
+      tonalHoverBg: palette.violet[200],
+      tonalPressedBg: palette.violet[300],
+      fabHoverBg: palette.neutral[700],
+      fabPressedBg: palette.neutral[900],
     },
     overlay: {
       dim: `color-mix(in srgb, ${palette.neutral[900]} 70%, transparent)`,
@@ -199,9 +209,12 @@ const dark = {
     },
     chip: {
       giftPendingBg: palette.coralRed[50],
-      ddayBg: palette.coralRed[50],
-      ddayText: palette.coralRed[200],
-      pastBg: palette.neutral[50],
+    },
+    button: {
+      tonalHoverBg: palette.violet[200],
+      tonalPressedBg: palette.violet[300],
+      fabHoverBg: palette.neutral[700],
+      fabPressedBg: palette.neutral[900],
     },
     overlay: {
       dim: `color-mix(in srgb, ${palette.common.black} 70%, transparent)`,

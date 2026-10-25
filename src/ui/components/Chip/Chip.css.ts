@@ -71,10 +71,14 @@ export const chip = recipe({
       // role
       master: { background: vars.color.role.masterBg, color: vars.color.role.masterText },
       manager: { background: vars.color.role.managerBg, color: vars.color.role.managerText },
-      // concert
+      // concert(Figma `300:1067` small, 2026-10-25 — 색이 모두 의미 색이 됐다)
       ready: { background: vars.color.status.successSubtle, color: vars.color.status.success },
-      dday: { background: vars.color.chip.ddayBg, color: vars.color.chip.ddayText },
-      past: { background: vars.color.chip.pastBg, color: vars.color.surface.strongBorder },
+      dday: { background: vars.color.brand.accentSubtle, color: vars.color.brand.accent },
+      ing: { background: vars.color.brand.accent, color: vars.color.brand.accentSubtle },
+      past: {
+        background: vars.color.interaction.disabledBg,
+        color: vars.color.surface.strongBorder,
+      },
     },
   },
 });

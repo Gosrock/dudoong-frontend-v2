@@ -9,6 +9,7 @@ import { Flex } from '../primitives/Flex';
 import { Txt } from '../primitives/Txt';
 import { colors } from '../theme/colors';
 import { sprinkles } from '../theme/sprinkles.css';
+import { withDarkTheme } from './storyStyles';
 
 const meta = { title: 'Foundation/Assets' } satisfies Meta;
 export default meta;
@@ -23,7 +24,7 @@ const Cell = ({ name, children }: { name: string; children: ReactNode }) => (
   </Flex>
 );
 
-/** src/ui/illustrations — 빈 화면 6종(PNG 3x), illust_dashboard 4종(SVG). Figma 크기 그대로 */
+/** src/ui/illustrations — 빈 화면 6종·illust_dashboard 4종(모두 SVG). Figma 크기 그대로 */
 export const Illustrations: Story = {
   render: () => (
     <Flex wrap gap={6} align="flex-end">
@@ -44,6 +45,29 @@ export const Illustrations: Story = {
       await waitFor(() => expect(img.complete && img.naturalWidth > 0).toBe(true));
     }
   },
+};
+
+/**
+ * 다크 토큰에서 보기(출시는 라이트만). 일러스트는 `<img>`라 색이 바뀌지 않는다 — 검정 선(#141413) 그림은
+ * 다크 배경(Neutral 900)에서 거의 보이지 않는다(PNG일 때와 같다). 다크 모드를 켤 때 디자인이 필요하다.
+ */
+export const IllustrationsDark: Story = {
+  render: () => (
+    <Flex
+      wrap
+      gap={6}
+      align="flex-end"
+      className={sprinkles({ padding: 4 })}
+      style={{ background: colors.backgroundNormal }}
+    >
+      {illustrationNames.map((name) => (
+        <Cell key={name} name={name}>
+          <Illustration name={name} />
+        </Cell>
+      ))}
+    </Flex>
+  ),
+  decorators: [withDarkTheme],
 };
 
 export const IllustrationWithAlt: Story = {

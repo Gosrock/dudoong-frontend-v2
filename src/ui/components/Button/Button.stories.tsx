@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 
+import { Icon } from '../../icons/Icon';
 import { Flex } from '../../primitives/Flex';
+import { pseudoStyle, withDarkTheme } from '../../stories/storyStyles';
+import { vars } from '../../theme/tokens.css';
 import { Button } from './Button';
 
 const meta = {
@@ -47,4 +50,71 @@ export const Matrix: Story = {
       ))}
     </Flex>
   ),
+};
+
+/** medium은 아이콘 유무와 관계없이 46h(Figma 2026-10-25 `36:47`·`36:68`), 아이콘만 있으면 46×46 */
+export const MediumHeight: Story = {
+  render: () => (
+    <Flex gap={3} align="center">
+      <Button>텍스트</Button>
+      <Button icon={<Icon name="add" size={24} />}>텍스트</Button>
+      <Button icon={<Icon name="add" />} aria-label="추가" />
+    </Flex>
+  ),
+  play: async ({ canvas }) => {
+    for (const btn of canvas.getAllByRole('button')) {
+      await expect(btn.getBoundingClientRect().height).toBe(46);
+    }
+    await expect(canvas.getByRole('button', { name: '추가' }).getBoundingClientRect().width).toBe(
+      46,
+    );
+  },
+};
+
+/**
+ * 상태 색(design-system §3 "Button 상태 색"). Hover·Pressed는 CSS 상태라 화면에서는 마우스로 확인하고,
+ * play는 규칙 값을 Figma 변형과 맞춘다 — Secondary Hover `650:1200`·Pressed `438:1793`,
+ * primary 2 Normal `645:1506`·Hover `650:1219`·Pressed `650:1224`.
+ */
+export const StateColors: Story = {
+  render: () => (
+    <Flex direction="column" gap={4}>
+      {(['primary', 'secondary', 'tonal'] as const).map((variant) => (
+        <Flex key={variant} gap={3} align="center">
+          <Button variant={variant} icon={<Icon name="add" />}>
+            {variant}
+          </Button>
+          <Button variant={variant} size="lg" icon={<Icon name="add" />}>
+            {variant}
+          </Button>
+          <Button variant={variant} size="lg" icon={<Icon name="add" />} aria-label="추가" />
+          <Button variant={variant} disabled>
+            {variant}
+          </Button>
+        </Flex>
+      ))}
+    </Flex>
+  ),
+  play: async ({ canvas }) => {
+    const secondary = canvas.getAllByRole('button', { name: 'secondary' })[0]!;
+    await expect(pseudoStyle(secondary, ':hover', 'background')).toBe(vars.color.surface.container);
+    await expect(pseudoStyle(secondary, ':active', 'background')).toBe(vars.color.background.grey);
+
+    const tonal = canvas.getAllByRole('button', { name: 'tonal' })[0]!;
+    // Normal 글자 Violet 300(#8162F1)
+    await expect(getComputedStyle(tonal).color).toBe('rgb(129, 98, 241)');
+    await expect(pseudoStyle(tonal, ':hover', 'background')).toBe(vars.color.button.tonalHoverBg);
+    await expect(pseudoStyle(tonal, ':hover', 'color')).toBe(vars.color.text.brandLabel);
+    await expect(pseudoStyle(tonal, ':active', 'background')).toBe(
+      vars.color.button.tonalPressedBg,
+    );
+    await expect(pseudoStyle(tonal, ':active', 'color')).toBe(vars.color.text.onBrand);
+  },
+};
+
+/** 다크 토큰 미리 보기(출시는 라이트만). tonal Hover·Pressed는 전용 토큰이라 다크 값이 라이트와 같다(디자인 대기) */
+export const StateColorsDark: Story = {
+  ...StateColors,
+  decorators: [withDarkTheme],
+  play: undefined,
 };

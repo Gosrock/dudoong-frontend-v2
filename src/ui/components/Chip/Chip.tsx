@@ -29,9 +29,9 @@ export type ChipProps = Common &
         children: ReactNode;
       }
     | {
-        /** Concert state chip. ready=준비중, dday=D-n·D-day·공연 중, past=지난 공연 */
+        /** Concert state chip. ready=준비중, dday=D-n·D-day, ing=공연중, past=지난 공연 */
         variant: 'concert';
-        tone: 'ready' | 'dday' | 'past';
+        tone: 'ready' | 'dday' | 'ing' | 'past';
         children: ReactNode;
       }
     | {

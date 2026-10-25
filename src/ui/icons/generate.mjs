@@ -16,7 +16,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const svgDir = join(here, 'svg');
 const outFile = join(here, 'registry.ts');
 
-// Figma `ic` 세트(36:178)의 name 값 → 코드 키. 여기 없는 이름은 소문자·kebab-case로 바꾼다.
+// Figma `ic` 세트(36:178)의 name 값 → 코드 키. 여기 없는 이름은 소문자·kebab-case로 바꾼다
+// (`pop out` → `pop-out`, `log out` → `log-out`). 2026-10-25에 `Ticket`은 `ticket`으로 바뀌었다(결과 키는 같다).
 const FIGMA_NAME_MAP = {
   notificatio_onn: 'notification-on',
   Ticket: 'ticket',
@@ -31,8 +32,8 @@ const FIGMA_NAME_MAP = {
 // 다색 아이콘에서 currentColor로 바꿀 본문 색(Figma `text/primary-label` 계열)
 const INK = new Set(['#141413']);
 
-const FILE_RE = /^(.+)-(outline|filled)-(12|16|24)\.svg$/;
-const FIGMA_FILE_RE = /^name=(.+), type=(outline|filled), size=(12|16|24)\.svg$/;
+const FILE_RE = /^(.+)-(outline|filled)-(12|16|20|24)\.svg$/;
+const FIGMA_FILE_RE = /^name=(.+), type=(outline|filled), size=(12|16|20|24)\.svg$/;
 
 const toKey = (figmaName) =>
   FIGMA_NAME_MAP[figmaName] ??
@@ -108,7 +109,9 @@ function main() {
     if (!file.endsWith('.svg')) continue;
     const m = FILE_RE.exec(file);
     if (!m)
-      throw new Error(`파일 이름 규칙(<key>-<outline|filled>-<12|16|24>.svg)에 맞지 않음: ${file}`);
+      throw new Error(
+        `파일 이름 규칙(<key>-<outline|filled>-<12|16|20|24>.svg)에 맞지 않음: ${file}`,
+      );
     const [, name, variant, size] = m;
     const path = join(svgDir, file);
     const src = readFileSync(path, 'utf8');
@@ -140,13 +143,13 @@ function main() {
     .join('\n');
 
   const ts = `// 생성 파일 — 직접 고치지 말 것. node src/ui/icons/generate.mjs 로 다시 만든다.
-// 원본: src/ui/icons/svg/*.svg (Figma 디자인 시스템 ic 세트 36:178)
+// 원본: src/ui/icons/svg/*.svg (Figma 디자인 시스템 ic 세트 36:178 + 낱개 ic/ticket/filled/24 183:1130)
 
 export type IconName =
 ${names.map((n) => `  | '${n}'`).join('\n')};
 
 export type IconVariant = 'outline' | 'filled';
-export type IconSize = 12 | 16 | 24;
+export type IconSize = 12 | 16 | 20 | 24;
 
 /** Figma에 있는 (name, variant, size) 조합만 허용한다. variant 기본값 'outline', size 기본값 24. */
 export type IconSpec =

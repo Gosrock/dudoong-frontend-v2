@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 
+import { withDarkTheme } from '../../stories/storyStyles';
 import { Tab, TabList, TabPanel, Tabs } from './Tabs';
 
 const meta = {
@@ -12,7 +13,10 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Figma tab — 공연/호스트 2개 */
+/**
+ * Figma tab(`271:1234`) — 공연/호스트 2개, `type=모바일`. 선택 = 검정 16 Bold + 밑줄(`271:1226`),
+ * 미선택 = `interaction/inactive` 16 Regular(`271:1225`), 모두 44h
+ */
 export const TwoTabs: Story = {
   render: () => (
     <Tabs defaultValue="host">
@@ -22,6 +26,48 @@ export const TwoTabs: Story = {
       </TabList>
     </Tabs>
   ),
+  play: async ({ canvas }) => {
+    const selected = canvas.getByRole('tab', { name: '호스트' });
+    const unselected = canvas.getByRole('tab', { name: '공연' });
+    const sel = getComputedStyle(selected);
+    const unsel = getComputedStyle(unselected);
+    // text/primary-label #141413, interaction/inactive #B8B7B3
+    await expect(sel.color).toBe('rgb(20, 20, 19)');
+    await expect(sel.borderBottomColor).toBe('rgb(20, 20, 19)');
+    await expect(sel.fontWeight).toBe('700');
+    await expect(sel.fontSize).toBe('16px');
+    await expect(unsel.color).toBe('rgb(184, 183, 179)');
+    await expect(unsel.fontWeight).toBe('400');
+    await expect(selected.getBoundingClientRect().height).toBe(44);
+    await expect(unselected.getBoundingClientRect().height).toBe(44);
+  },
+};
+
+/** Figma `type=데스크탑`(`657:2012`·`657:2014`) — 20(`Heading/md` / `- emphasized`), 48h로 통일 */
+export const Desktop: Story = {
+  render: () => (
+    <Tabs defaultValue="host">
+      <TabList aria-label="검색 결과" size="lg">
+        <Tab value="concert">공연</Tab>
+        <Tab value="host">호스트</Tab>
+      </TabList>
+    </Tabs>
+  ),
+  play: async ({ canvas }) => {
+    const selected = canvas.getByRole('tab', { name: '호스트' });
+    const unselected = canvas.getByRole('tab', { name: '공연' });
+    await expect(getComputedStyle(selected).fontSize).toBe('20px');
+    await expect(getComputedStyle(selected).fontWeight).toBe('700');
+    await expect(getComputedStyle(unselected).fontWeight).toBe('400');
+    await expect(selected.getBoundingClientRect().height).toBe(48);
+    await expect(unselected.getBoundingClientRect().height).toBe(48);
+  },
+};
+
+/** 다크 토큰 미리 보기(출시는 라이트만) */
+export const Dark: Story = {
+  render: TwoTabs.render,
+  decorators: [withDarkTheme],
 };
 
 /** 공연 상세처럼 4개 + disabled */

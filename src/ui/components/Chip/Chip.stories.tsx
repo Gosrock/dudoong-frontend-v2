@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ReactNode } from 'react';
+import { expect } from 'storybook/test';
 
 import { Flex } from '../../primitives/Flex';
 import { Txt } from '../../primitives/Txt';
+import { withDarkTheme } from '../../stories/storyStyles';
 import { colors } from '../../theme/colors';
 import { sprinkles } from '../../theme/sprinkles.css';
 import { Chip, type ChipProps, formatDday } from './Chip';
@@ -17,6 +19,45 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
+
+/**
+ * Concert state chip small(Figma `300:1067`, 2026-10-25): 준비중 `300:1068`, D-day 배경 `brand/accent-subtle`·글자
+ * `brand/accent`(`300:1070`), 공연중 배경 `brand/accent`·글자 `brand/accent-subtle`(`585:798`),
+ * 지난 공연 배경 `interaction/disabled-bg`(`300:1072`). large(P10a-V)는 아직 없다.
+ */
+export const ConcertStates: Story = {
+  render: () => (
+    <Flex gap={2}>
+      <Chip variant="concert" tone="ready">
+        준비중
+      </Chip>
+      <Chip variant="concert" tone="dday">
+        D-7
+      </Chip>
+      <Chip variant="concert" tone="ing">
+        공연중
+      </Chip>
+      <Chip variant="concert" tone="past">
+        지난 공연
+      </Chip>
+    </Flex>
+  ),
+  play: async ({ canvas }) => {
+    const style = (text: string) => getComputedStyle(canvas.getByText(text));
+    // brand/accent #E84230, brand/accent-subtle #FEEDEC, interaction/disabled-bg #EEEEED
+    await expect(style('D-7').backgroundColor).toBe('rgb(254, 237, 236)');
+    await expect(style('D-7').color).toBe('rgb(232, 66, 48)');
+    await expect(style('공연중').backgroundColor).toBe('rgb(232, 66, 48)');
+    await expect(style('공연중').color).toBe('rgb(254, 237, 236)');
+    await expect(style('지난 공연').backgroundColor).toBe('rgb(238, 238, 237)');
+  },
+};
+
+/** 다크 토큰 미리 보기(출시는 라이트만) */
+export const ConcertStatesDark: Story = {
+  render: ConcertStates.render,
+  decorators: [withDarkTheme],
+};
 
 const Row = ({ title, children }: { title: string; children: ReactNode }) => (
   <Flex direction="column" gap={2}>
@@ -63,7 +104,7 @@ export const FigmaVariants: Story = {
           매니저
         </Chip>
       </Row>
-      <Row title="Concert state chip (+ 공연 중, D-day)">
+      <Row title="Concert state chip small (+ D-day)">
         <Chip variant="concert" tone="ready">
           준비중
         </Chip>
@@ -73,8 +114,8 @@ export const FigmaVariants: Story = {
         <Chip variant="concert" tone="dday">
           {formatDday(0)}
         </Chip>
-        <Chip variant="concert" tone="dday">
-          공연 중
+        <Chip variant="concert" tone="ing">
+          공연중
         </Chip>
         <Chip variant="concert" tone="past">
           지난 공연
