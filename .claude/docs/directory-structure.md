@@ -102,7 +102,7 @@ src/app/
 │           └─ gifts/page.tsx          # (보류) 보낸·받은 선물 내역 GG-7 — Figma에 화면이 있을 때만
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
-│  ├─ layout.tsx                       # P10a <Suspense>, 로그인 게이트, 셸 — 데스크탑 HostingSidebar(호스팅 홈·호스트 섹션·사용자 줄 + 알림 벨) / 모바일 HostingHeader(`host title` 로고 헤더, 벨 없음) + 드로어(알림 벨은 드로어 안 — design-requests Q17). 사이드바·헤더의 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
+│  ├─ layout.tsx                       # P4s <Suspense>, 로그인 게이트, 셸 — 데스크탑(1133 이상) 전역 상단 바(GUI `Top bar_Host` — 로고·공연 둘러보기·공연 준비하기·알림 벨·아바타 ▾) / 모바일 HostingHeader(`host title` 로고 헤더, 벨 없음) + 드로어(알림 벨은 드로어 안 — design-requests Q17). 공연 밖 화면은 사이드바 없이 본문 최대 1280. 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색)
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기
@@ -111,7 +111,7 @@ src/app/
 │  │  ├─ settings/page.tsx             # P10b 호스트 설정
 │  │  └─ members/page.tsx              # P10b 멤버
 │  └─ events/[eventId]/                # page.tsx 없음 — next.config redirects()로 dashboard
-│     ├─ layout.tsx                    # P11  공연 스코프 (GE-3) — 사이드바에 공연 메뉴 항목(등록 상태별), 모바일은 공연 전환 ▾ 헤더
+│     ├─ layout.tsx                    # P11  공연 스코프 (GE-3) — 데스크탑 공연 사이드바 268(‹ 내 공연 · 공연 카드 · 메뉴 등록 전 4 / 후 6 · 예매자 관리 배지 · 공연 페이지 보기), 모바일은 "대시보드 ▾ / 공연명" 헤더(메뉴 방식 Q37 대기)
 │     ├─ dashboard/page.tsx            # P11(체크리스트) + P13a(등록 후 통계)
 │     ├─ info/page.tsx                 # P11  기본 정보
 │     ├─ detail/page.tsx               # P11  상세 정보 (섹션 에디터)
@@ -151,7 +151,7 @@ src/features/
 │  └─ mypage/                  # P9   MyPage, Profile, OrderHistory(+ RefundAccountSheet), FollowingHosts, Archive
 │
 ├─ hosting/
-│  ├─ shell/                   # P4s  HostingSidebar(+ SidebarItem = GUI `Component 1`), HostingHeader, EventSwitcherHeader(공연 전환 ▾), MobileDrawer
+│  ├─ shell/                   # P4s  전역 상단 바(PC, GUI `Top bar_Host` — 로고·공연 둘러보기·공연 준비하기·벨·아바타 ▾, hosting/layout.tsx), HostingHeader(모바일 `host title`), MobileDrawer, 3단 슬롯(사이드바 268 · 본문 · 우측 패널). 공연 사이드바(‹ 내 공연 · 공연 카드 · SidebarItem = GUI `사이드바 메뉴` true/false/alert · 공연 페이지 보기)와 EventSwitcherHeader(모바일 "대시보드 ▾ / 공연명" — 메뉴 방식 Q37)는 events/[eventId]/layout.tsx가 쓴다(P11). 공연 밖 화면은 사이드바 없이 본문 최대 1280
 │  ├─ home/                    # P10a PrepHome(HostTab, EventTab, Search)
 │  ├─ host/                    # P10a + P10b  CreateHost, HostSettings, HostMembers(InviteDialog, RoleMenu, TransferMasterDialog, PermissionGuide)
 │  ├─ event/                   # P11  NewEventWizard, EventLayout, Checklist, EventInfo(PlaceInput: 우편번호 + 카카오 Geocoder), EventDetailEditor(SectionTabs + Tiptap)
@@ -185,7 +185,7 @@ src/ui/
 │  ├─ colors.ts                # colors — <Txt color={colors.textSecondary} />처럼 값으로 넘기는 색(의미 색 + 원시 색)
 │  ├─ typography.css.ts        # Figma 텍스트 스타일 21개(bodyMd, headingSmEmphasized …)
 │  ├─ sprinkles.css.ts         # 조건(mobile/desktop) + 토큰 유틸리티
-│  ├─ breakpoints.ts           # desktop ≥ 1024, wide ≥ 1280
+│  ├─ breakpoints.ts           # 지금 desktop ≥ 1024, wide ≥ 1280(P1). 기준값: 호스팅 1133 / 1280 / 1440(GUI), 관객 1024(Q38 대기) — 나누는 방식은 P4s 착수 전
 │  ├─ types.ts                 # 공개 props 타입(SpaceKey, Responsive<T> …) — vanilla-extract 타입을 밖에 내보내지 않는다
 │  └─ global.css.ts            # reset, 본문 폰트, focus-visible
 ├─ primitives/                 # Flex(+ .Center 등), Spacing, Txt, Divider, Container

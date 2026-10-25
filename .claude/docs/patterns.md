@@ -9,7 +9,7 @@
 
 **원칙: 서버와 클라이언트가 항상 같은 DOM을 그린다. 무엇이 보일지는 CSS가 정한다.** 첫 렌더에서 뷰포트를 JS로 판정하면 서버가 그린 것과 달라져 하이드레이션이 어긋난다.
 
-브레이크포인트는 `src/ui/theme/breakpoints.ts` 한 곳에 있다(P1 확정): **desktop ≥ 1024px**, wide ≥ 1280px(호스팅 센터 3단 배치용). 간격 토큰 `Space/7~10`도 같은 기준으로 데스크탑에서 커진다(design-system §1).
+브레이크포인트는 `src/ui/theme/breakpoints.ts` 한 곳에 있다. 지금 코드(P1): **desktop ≥ 1024px**, wide ≥ 1280px(옛 `Desktop - 27` 3단 배치용). 간격 토큰 `Space/7~10`도 같은 기준으로 데스크탑에서 커진다(design-system §1). **2026-10-25 기준값은 둘로 나뉜다** — 호스팅 1133(1133 미만 모바일, 1133 · 1280 · 1440에서 우측 패널 폭이 바뀜, GUI 반응형 스펙), 관객 1024(관객도 1133인지는 design-requests Q38 대기). 토큰을 어떻게 나눌지는 P4s 착수 전에 정한다(design-system §2).
 
 ### 1-1. 조건부 값 — sprinkles와 프리미티브 props
 
@@ -136,7 +136,7 @@ export const addHostMembersMutation = (hostId: string) =>
 
 ### 4-2. 공개 값과 사용자별 값은 키를 나눈다
 
-서버 프리페치는 토큰 없이 돈다. 같은 응답에 사용자별 필드가 섞인 API(GH-3 `myRole`·`isFollowing`, GH-14 준비중 공연, GG-3 `isReceiver`·`viewState`)는 두 쿼리로 읽는다.
+서버 프리페치는 토큰 없이 돈다. 같은 응답에 사용자별 필드가 섞인 API(GH-3 `myRole`·`isFollowing`·**`contacts`**, GP-3 **`contacts`**, GH-14 준비중 공연, GG-3 `isReceiver`·`viewState`)는 두 쿼리로 읽는다. 연락처가 사용자별 값이 된 것은 백엔드 #846(2026-10-25 — GP-3·GH-3이 비로그인에게 전화·이메일을 가린다) 때문이다. GH-3 `members[].name`(#811)도 비로그인에게 가려지지만 프론트는 `members`를 쓰지 않는다(멤버 줄은 GH-6).
 
 | | 공개 쿼리 `xxxQuery` | viewer 쿼리 `xxxViewerQuery` |
 |---|---|---|
@@ -155,7 +155,11 @@ export const addHostMembersMutation = (hostId: string) =>
 | 화면 | 공개 값으로 그리는 것 | 세션·viewer가 확정될 때까지 기다리는 것 |
 |---|---|---|
 | 선물 랜딩 | OG, 공연 요약 | 상태 영역 전체(`viewState`·`isReceiver`에 따른 본문과 버튼)를 스켈레톤으로 |
-| 호스트 홈 | 소개, 연락처 | ♡ 상태, 설정·멤버 버튼. 공연 목록은 세션이 확정된 뒤 공개 키(비멤버) 또는 viewer 키(멤버)로 한 번만 읽는다 — 공개 목록을 그렸다가 바꾸지 않는다 |
+| 호스트 홈 | 소개 | ♡ 상태, 설정·멤버 버튼, **연락처**(viewer 확정 뒤 `hostViewerQuery` 응답의 원문 — 추가 요청 없음. 확정 전·실패 동안은 공개(가린) 값 + `status` `pending`·`error`, 익명은 가린 값 그대로. `useHostHome().contacts`는 `ContactsState`). 공연 목록은 세션이 확정된 뒤 공개 키(비멤버) 또는 viewer 키(멤버)로 한 번만 읽는다 — 공개 목록을 그렸다가 바꾸지 않는다 |
+| 공연 상세 | 연락처 시트를 열기 전 전부(공개 키 GP-3) | 연락처 시트 안 목록만: 시트를 열고(`open`) 세션이 있을 때 `eventDetailViewerQuery`(`['events', id, 'viewer']`, 쿠키, 프리페치 안 함, `staleTime` 0)로 원문을 읽는다(`useEventContacts(eventId, {open})` → `{status: idle\|pending\|ready\|error, items, masked, retry}`). 익명이면 요청 없이 가린 값. 한 번 받은 원문은 닫아도 유지 |
+
+- **가린 값은 링크로 만들지 않는다**(`contact-link.ts` — `PHONE`·`EMAIL` 값에 `*`가 있으면 `masked: true`, `href: null`). 가린 이메일 `ab***@gmail.com`이 `mailto:` 링크가 되던 문제를 막는다. 알려진 한계: 원문 이메일 아이디에 `*`가 있으면 가린 값으로 오판한다(백엔드가 가림 여부를 따로 주지 않는다).
+- 만료된 액세스 쿠키로 viewer를 부르면 #792 뒤로 401이 아니라 익명 200(가린 값)이 와서 재발급이 일어나지 않는다 → 연락처는 `masked: true`인 `ready`. 실제로 생기는 구간인지는 미확인(tech-decisions §4).
 
 ### 4-3. 경계
 
@@ -255,14 +259,14 @@ try {
 | `dd:session`이 없을 때의 401 | 재발급도 `onSessionLost`도 없이 `ApiError(401)`로 던진다. 익명 방문자가 재발급 요청을 만들지 않는다 |
 | `dd:session`이 있을 때 보호 요청의 401(코드 무관) | 재발급을 한 번 시도 → 성공하면 원 요청 재시도 |
 | 재발급 직렬화 | `navigator.locks.request('dudoong-auth-refresh', { signal: AbortSignal.timeout(15_000) }, …)`. 잠금 안에서 `dd:refreshedAt`이 원 요청을 보낸 시각보다 뒤면 다른 탭이 이미 갱신했으므로 재발급 없이 원 요청만 다시 보낸다. 아니면 `authApi`로 재발급을 부르고(타임아웃 10초), 성공하면 `dd:refreshedAt`을 기록한다. 잠금 대기가 abort되면 일시 오류 |
-| 재발급 결과 | 2xx = 성공. **401이고 코드가 `AUTH_401_1`·`GLOBAL_401_1`**이면(만료·잘못된 액세스 쿠키를 JWT 필터가 재발급 엔드포인트 앞에서 막은 것, api-contract §9) 약 1초 뒤 한 번 더 시도하고, 또 401이면 세션 상실. **그 밖의 401·403(`AUTH_403_1`, 정지 계정 `USER_403_1`)과 그 밖의 4xx(`USER_404_1`, 400) = 세션 상실.** 5xx·네트워크·타임아웃 = 일시 오류 — **재발급 응답의 에러**를 던지고 세션은 유지한다(5xx 재시도 규칙이 그대로 적용된다) |
+| 재발급 결과 | 2xx = 성공. **401이고 코드가 `AUTH_401_1`·`GLOBAL_401_1`**이면 약 1초 뒤 한 번 더 시도하고, 또 401이면 세션 상실(원래 근거였던 "JWT 필터가 재발급 엔드포인트 앞에서 막음"은 백엔드 #792로 없어졌다 — 재발급은 `permitAll` 익명이라 이 401은 오지 않는다. 분기는 무해하게 남는다, api-contract §9). **그 밖의 401·403(`AUTH_403_1`, 정지 계정 `USER_403_1`)과 그 밖의 4xx(`USER_404_1`, 400) = 세션 상실.** 5xx·네트워크·타임아웃 = 일시 오류 — **재발급 응답의 에러**를 던지고 세션은 유지한다(5xx 재시도 규칙이 그대로 적용된다) |
 | Web Locks가 없을 때 | 탭 안 single-flight만. 재발급이 403이어도 그 사이 `dd:refreshedAt`이 바뀌었으면(다른 탭이 먼저 갱신) 원 요청을 한 번 재시도한다 |
 | 세션 쿼리(GM-1) | 결과는 셋이다. **세션** / **`null`**(`dd:session` 없음의 401, 또는 재발급이 세션 상실) / **throw**(GM-1의 5xx·네트워크, 재발급 일시 오류) |
 | 로그인 게이트(`(protected)`·`hosting` 레이아웃) | pending = 스켈레톤. `null` = `/login?redirect=…`. error = children 대신 전체 화면 재시도(`AsyncBoundary`의 재시도 UI), **이동하지 않는다**. `/login/expired`로는 보내지 않는다 — 그건 `onSessionLost`만 한다 |
 | 공개 GET(`{ public: true }`) | 항상 `credentials: 'omit'`. 401이 올 일이 없다 |
 | `authApi` | 401 가로채기 없음. 잠금 안에서 재발급을 부르므로 같은 잠금을 다시 요청하는 교착이 없다 |
-| 로그인 콜백 | 성공 → `dd:session`을 새 값으로 세우고 `location.assign(redirect)`(하드 이동 — 익명으로 캐시된 GM-1·viewer를 버린다). `USER_403_1` → "이용이 제한된 계정이에요". `AUTH_400_1`(OAuth `state` 불일치) → 로그인 다시 시작. 401 → "잠시 후 다시 시도해 주세요"(만료된 쿠키가 남아 있는 경우) |
-| 로그아웃 | 진행 중인 mutation이 있으면(`useIsMutating() > 0`) 버튼 비활성. 응답과 상관없이(401·5xx 포함) `queryClient.clear()` → `dd:session` 제거 → 이동 |
+| 로그인 콜백 | 성공 → `dd:session`을 새 값으로 세우고 `location.assign(redirect)`(하드 이동 — 익명으로 캐시된 GM-1·viewer를 버린다). `USER_403_1` → "이용이 제한된 계정이에요". `AUTH_400_1`(OAuth `state` 불일치) → 로그인 다시 시작. 401 → "잠시 후 다시 시도해 주세요"(원인이던 남은 액세스 쿠키 401은 #792로 없어졌다) |
+| 로그아웃 | 진행 중인 mutation이 있으면(`useIsMutating() > 0`) 버튼 비활성. 응답과 상관없이(5xx·네트워크 포함) `queryClient.clear()` → `dd:session` 제거 → 이동. 백엔드는 언제나 200 + 쿠키 삭제(#793) |
 
 **세션 상실(`onSessionLost`)** — 모듈 플래그로 **한 번만** 실행한다. 동시에 실패한 401 N건은 모두 `SessionLostError`(`ApiError` 하위)로 끝난다. `QueryCache`/`MutationCache`의 `onError`, `<AsyncBoundary>`, 게이트는 이 에러를 무시한다(토스트·에러 화면 없이 fallback 유지, 곧 이동한다).
 
@@ -366,7 +370,7 @@ src/app → src/features → src/ui → src/api → src/utils
 | 화면 문구는 `code`로 분기하고 `reason`은 폴백으로만 쓴다 | `reason`은 서버 문장이라 화면 맥락과 안 맞을 수 있다 |
 | 403은 HTTP 상태로 먼저 분기한다 | 호스트 권한 실패의 `code`가 `HOST_400_*`라 `code`의 숫자만 보면 400으로 오인한다 |
 | 400 "이미 처리됨" 계열은 최신 상태를 다시 읽는다 | 409가 없다. 승인·거절·취소·선물 전이가 모두 이 패턴 |
-| 공개 GET은 `{ public: true }`로 쿠키 없이 보낸다(§5-1) | 공개 GET도 만료·잘못된 토큰이 붙으면 401이다. 공개 값은 원래 익명 값이다 |
+| 공개 GET은 `{ public: true }`로 쿠키 없이 보낸다(§5-1) | 공개 값은 원래 익명 값이다 — 서버 조회와 같은 값을 한 키로 쓴다. (처음 근거였던 "공개 GET도 만료·잘못된 토큰이 붙으면 401"은 백엔드 #792로 없어졌다.) 사용자별 값(연락처 원문 등)은 쿠키를 싣는 viewer 쿼리로 따로 읽는다(§4-2) |
 | 클라이언트 조회의 403·404는 공용 화면으로 보낸다 | 403 = "권한이 없어요"(호스팅 센터의 다른 호스트 공연 등), 404 = "찾을 수 없어요"(남의 주문 등). 서버 조회의 404는 `notFound()`(§14). 예외: 모달 안의 조회(예매자 관리 `?order=`·발급 티켓 상세) 404는 모달을 닫고 목록을 다시 읽는다(§24 P13a) |
 | 변경 응답으로 캐시를 바로 채운다(`setQueryData`) | 변경 응답이 "화면을 다시 그릴 값"(수정된 리소스 · 남은 목록)이다 |
 | 날짜는 표시 직전에만 변환한다 | 요청·응답 모두 `yyyy.MM.dd HH:mm` 문자열 |
@@ -414,7 +418,9 @@ infiniteQueryOptions({
 - `generateMetadata`도 `serverQuery(eventDetailQuery(id))`를 쓴다(요청당 QueryClient가 같아 조회는 한 번).
 - **섹션 탭**: 서버 섹션이 있으면 그대로, 없으면 기본 4탭 라벨을 프론트가 그리고 빈 상태를 보여 준다.
 - **섹션 뷰어**(`features/shared/section-viewer`): `contentFormat`으로 렌더러를 고른다(`HTML` → sanitize 후 렌더 / `MARKDOWN` → 마크다운 렌더 후 같은 sanitize). 클라이언트 컴포넌트다(`isomorphic-dompurify`는 서버 렌더와 브라우저 양쪽에서 돈다). 미리보기가 같은 컴포넌트를 쓴다.
-- 문의처는 GP-3이 준다(공연 문의처, 없으면 호스트 연락처). 연락처 `type` 6종 → 아이콘·링크 매핑은 한 곳에서.
+- 문의처는 GP-3이 준다(공연 문의처, 없으면 호스트 연락처). 연락처 `type` 6종 → 아이콘·링크 매핑은 한 곳에서(`contact-link.ts`).
+- **문의처는 사용자별 값이다**(백엔드 #846): 서버 조회(익명) 값은 전화·이메일이 가려져 있다. 연락처 시트는 `useEventContacts(eventId, {open})`로 읽는다 — 로그인 사용자는 시트를 열 때 `eventDetailViewerQuery`(쿠키)로 원문, 익명은 가린 값(§4-2). 가린 값은 링크로 만들지 않는다. 비로그인에게 가린 값을 그대로 보일지 "로그인하면 볼 수 있어요" 안내를 둘지는 design-requests Q41.
+- **약관 표시 의무 — v2 계획에 위치 없음(위험)**: 2026-10-25 시행 약관은 공연 상세에 중개자 고지(제3조③)와 두둥티켓 호스트 환불 기준 우선 안내(제19조③)를 표시한다고 약속한다. v2 계획(P5b)에는 그 자리가 없다(계획은 바꾸지 않았다). v1 운영 문구·위치(참고)는 [`legal-copy.md`](./legal-copy.md) A-1·A-2 — 넣게 되면 V 착수 때 약관 원문과 대조한다.
 - `displayStatus`·`dDay`는 서버가 요청 시점에 계산해 준다. 구매 가능 여부는 GP-5의 `isPurchasable`로 판단한다.
 - **카카오 공유**: `features/shared/kakao-share`가 SDK 준비를 소유한다. 실패하면 `copyText(canonicalUrl)` 폴백. OG 태그는 `generateMetadata`가 서버에서 넣는다 — 크롤러는 SDK를 실행하지 않는다.
 - **크롤러 확인은 실제 카카오 UA로 한다**: `facebookexternalhit/1.1; kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984`. `kakaotalk-scrap`만 보내면 Next가 크롤러로 인식하지 못해 OG가 `<body>`로 나간다(tech-decisions §2).
@@ -531,7 +537,8 @@ useEffect(() => {
 - 입금 미확인 거절(`DEPOSIT_UNCONFIRMED`)은 `refundAccountRequired=false`라 입력을 유도하지 않는다. 입구(`canEditRefundAccount`)는 그대로 둔다.
 - 거절 사유: `reasonType`별 고정 문구는 프론트가 가진다. `ETC`만 호스트가 쓴 `reasonText`.
 - 옵션 표시: `lines`가 1개면 "모든 티켓에 같은 옵션", 여러 개면 티켓별. 선물 상태는 `issuedTickets[]`에서 읽는다.
-- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다(`useQuery`, 시트를 열 때). 시트 컴포넌트는 공연 상세(P5b)와 같은 것을 쓴다.
+- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다(`useQuery`, 시트를 열 때). **쿠키를 싣는 `eventDetailViewerQuery`(`useEventContacts`)로 부른다** — 공개 키로 부르면 가린 값이다(#846). 시트 컴포넌트는 공연 상세(P5b)와 같은 것을 쓴다.
+- 환불 계좌 폼의 은행은 `GET /api/v2/banks`(공개, #804·#813) 목록에서 고르고 `bankCode`를 보낸다(`bankName`은 생략 가능 — 서버가 채운다). 응답 계좌의 `bankCode`가 `null`이면(옛 자유 입력 값) 수정 폼은 목록에서 다시 고르게 한다.
 
 ## 21. P9b · P10a — 알림
 
@@ -539,7 +546,7 @@ useEffect(() => {
 - **알림함**: GN-1 무한 스크롤. 항목 `{notificationId, type, title, body, target{type, targetId, eventId}, extra, isRead, createdAt}`.
 - **읽음**: PN-3 `{notificationIds: [id]}` 또는 `{readAll: true}`. 응답 `{updatedCount, unreadCount}`로 벨 캐시를 바로 갱신한다 — 낙관적 차감을 추정으로 하지 않는다.
 - 행의 읽음 표시는 낙관적으로 바꾸고 실패하면 되돌린다.
-- **타입 매핑**: 15종 → 카테고리(티켓선물 안내 / 티켓승인 안내 / 공연 알림 등)·아이콘은 한 매핑에서. 모르는 타입은 기본 아이콘 + `title`·`body` 그대로.
+- **타입 매핑**: 17종(#810으로 `EVENT_REMINDER_D1`·`EVENT_STARTING_SOON` 추가, `target.type=EVENT` → `/events/{eventId}`) → 카테고리(티켓선물 안내 / 티켓승인 안내 / 공연 알림 등)·아이콘은 한 매핑에서. 모르는 타입은 기본 아이콘 + `title`·`body` 그대로.
 - 본문은 서버가 만든 문자열이다. HTML로 넣지 않는다.
 - 알림은 커밋 후 비동기 저장이라 mutation 직후 목록에 없을 수 있다. mutation 성공 직후의 알림 재조회에 기대지 않는다.
 - **쿼리 키는 `['me','notifications', …]` 접두**를 쓴다. 선물·티켓 변경이 이 접두로 미리 무효화를 걸어 두었다(`features/audience/gift/model/gift-cache.ts`의 `NOTIFICATIONS_KEY`, P8-L).
@@ -554,6 +561,7 @@ useEffect(() => {
 - 멤버 변경 응답은 전부 "변경 후 멤버 전체 목록"이다. 그대로 캐시에 넣는다.
 - **마스터 양도 뒤에는 `myRole`을 주는 쿼리를 무효화한다**(GH-1, GH-3 viewer, GE-1, GE-3). 양도하면 내가 매니저가 되므로 화면 모드가 바뀌어야 한다. 역할 변경(PH-10)은 다른 멤버의 역할이라 내 `myRole`이 바뀌지 않는다 — 응답(멤버 목록)만 캐시에 넣는다.
 - 멤버 목록(GH-6)에는 이메일이 없다.
+- **일반 멤버(GUEST) 개인정보**(#846): 주문·발급 티켓의 구매자 연락처·이메일·입금자명은 가린 값으로 온다 — 받은 값을 그대로 그린다. 연락처·입금자명 검색은 완전 일치만 되므로 일반 멤버의 검색 칸에 "전체를 정확히 입력해 주세요" 류 안내를 둔다. 엑셀 버튼은 매니저 이상에게만 보인다(권한 판정 한 곳에서, 일반 멤버는 403).
 - 권한 가이드 표(`503:30950`)는 api-contract §2로 그린다. Figma의 "호스트 삭제" 행은 뺀다.
 
 ## 23. 호스팅 센터 — 폼과 부분 수정
@@ -583,7 +591,7 @@ useEffect(() => {
 |---|---|---|---|
 | P4b | 로그인 콜백 | `USER_403_1` | 정지 계정. "이용이 제한된 계정이에요" 안내(재발급에서 오면 세션 상실, §5-1). 탈퇴한 사람은 이 코드가 아니라 가입 흐름(`canRegister=true`)으로 간다 |
 | P4b | 로그인 콜백 | `AUTH_400_1` | OAuth `state` 불일치. 로그인을 처음부터 다시 시작. 값 누락·쿠키 만료(10분)는 지금 통과하고 #776(state 필수)부터 이 코드가 된다 |
-| P4b | 로그인 · 콜백 | 401 `AUTH_401_1` · `GLOBAL_401_1` | 만료·잘못된 액세스 쿠키가 남아 JWT 필터가 막음(api-contract §9). "잠시 후 다시 시도해 주세요" |
+| P4b | 로그인 · 콜백 | 401 `AUTH_401_1` · `GLOBAL_401_1` | 만료·잘못된 액세스 쿠키가 남아 JWT 필터가 막음(api-contract §9). "잠시 후 다시 시도해 주세요" — **백엔드 #792(2026-10-25)로 `/oauth/**`는 낡은 쿠키가 있어도 통과해 이 401은 더 이상 오지 않는다.** 분기는 무해하게 남는다 |
 | 공통 | 변경 요청 | `AUTH_403_3` | 허용되지 않은 출처. 백엔드가 enforce를 켜야 나고, 같은 출처 fetch는 Origin을 보내므로 정상 흐름에서는 생기지 않는다. 오면 일반 403 화면 |
 | P5a | 공연 리스트 | `Event_400_23` | 없는 태그. GE-11을 다시 받아 필터 초기화(§13) |
 | P7 | 체크아웃 | `Event_400_5` · `Event_400_6` | 오픈 전·시작 후. 구매 버튼 비활성 + 상세로 돌려보냄 |
@@ -655,6 +663,8 @@ useEffect(() => {
 | P13a | 거절 | `Order_400_18` | 사유 오류(`ETC`는 문구 필수, 20자). 시트에서 미리 검증 |
 | P13a | 환불 완료 | `Order_400_17` | 환불 요청 상태가 아님. [환불 완료]는 `refundStatus=REQUESTED`일 때만 |
 | P13a | 엑셀 | `Order_400_19` · `IssuedTicket_400_7` | 1만 행 초과. 필터를 좁히라고 안내 |
+| P13a | 엑셀 | 403 `HOST_400_1` | 일반 멤버(#846 — 엑셀은 매니저 이상). 버튼을 `myRole`로 숨기므로 정상 흐름에선 안 온다. 오면 일반 403 처리 + `myRole` 쿼리 다시 읽기 |
+| P4b · P7 · P12 | 가입 · 주문 · 두둥티켓 생성 | `Agreement_400_1` | 백엔드가 동의 강제를 켰는데 동의 필드가 빠짐(#840). 화면에서 체크 전 버튼을 막으므로 정상 흐름에선 안 온다. 오면 "필수 동의를 확인해 주세요"로 동의 영역으로 보낸다 |
 | P13b | 호스트 스캔 | `Event_400_27` | OPEN·정산중이 아닌 공연 |
 
 표의 코드는 모두 `error-codes.md`에 있는 것을 확인했다(2026-10-14, 2회차 추가분 2026-10-15). 처리 문구는 백엔드 통합 기획서 각 장의 "프론트 처리" 열을 따른다. 화면에서 직접 처리하는 코드는 `handleCodes({...})`로 적는다(§4-5). 3회차(2026-10-15)에 백엔드 코드로 승인의 시작 후 코드(`OrderValidator.validCanApproveOrder` → `validTicketingTime` = `Event_400_6`)와 로그인·콜백의 401(JWT 필터)을 확인했다. 셀프 체크인의 `Event_400_5`는 백엔드 `V2CheckInDomainService.selfCheckIn` → `Event.validateNotOpenStatus()` → `EventNotOpenException`(`EVENT_NOT_OPEN`)에서 확인했다.

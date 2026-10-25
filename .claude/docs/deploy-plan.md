@@ -1,6 +1,7 @@
 # DuDoong-Front v2 — 프론트 배포 계획
 
 > 2026-10-12 작성. `Gosrock/DuDoong-Deploy`(`eee6e93`)와 v1 프론트 `Gosrock/DuDoong-Front`(`54767db`)의 Dockerfile·워크플로를 읽고 썼다.
+> 2026-10-25: 그 뒤 Deploy 저장소 #60·#61·#63·#65·#66·#68과 v1 프론트 #349, 백엔드 #827이 머지돼 운영 이미지가 ECR로 옮겨졌다. 사실은 §1 첫 절에 적었고, **v2 레지스트리 결정은 사용자 결정 대기**라 아래 계획(GHCR)은 바꾸지 않았다.
 > 서버 구성과 nginx 경로 분기는 [`tech-decisions.md`](./tech-decisions.md) §25에 있다. 이 문서는 **프론트 이미지를 어떻게 만들고 어떻게 올리는가**만 다룬다.
 
 ## 결론
@@ -14,11 +15,20 @@
 | 이미지 크기(압축) | 494MB(Docker Hub 실측, `1.3.1` arm64) | 100MB 안팎 예상 — P0에서 잰다 |
 | 이미지 개수 | 2개(ticket, admin) | 1개 |
 | 스테이징과 운영 | 서로 다른 빌드(`dev` 브랜치 / 태그) | 같은 이미지를 승격 |
-| 레지스트리 | 개인 Docker Hub 계정(`david0218`) | GHCR(`ghcr.io/gosrock/dudoong-front`) |
+| 레지스트리 | 개인 Docker Hub 계정(`david0218`) → **2026-10-25부터 ECR 비공개 저장소**(`dudoong-ticket`·`dudoong-admin`, Front #349) | GHCR(`ghcr.io/gosrock/dudoong-front`) — **사용자 결정 대기**(§1 첫 절) |
 | front 헬스체크 | 없음(배포 스크립트가 백엔드만 본다) | `/healthz` |
 | 배포 뒤 옛 탭 | 대책 없음 | `deploymentId`로 새로고침 유도 |
 
 ## 1. 지금 방식에서 확인한 것
+
+### 2026-10-25 바뀐 사실 — 운영 이미지 ECR 전환 (v2 레지스트리는 사용자 결정 대기)
+
+- **백엔드·배치**: Docker Hub → ECR 비공개 저장소 `dudoong-api`·`dudoong-batch`, OIDC 역할로 푸시(Backend #827). 배치 `latest` 태그 제거("ECR 저장소는 태그를 덮어쓸 수 없어").
+- **v1 프론트**: `dudoong-ticket`·`dudoong-admin`을 ECR로(Front #349). 운영 태그 `X.Y.Z`(git 태그 `Ticket-vX.Y.Z`·`Admin-vX.Y.Z`에서 추출), 스테이징은 `:dev` 하나. Docker Hub 로그인을 지우고 `aws-actions/configure-aws-credentials` + `amazon-ecr-login`. "같은 버전 재빌드는 ECR에 이미 있으면 실패 → 새 버전 태그로"(#349 본문).
+- **Deploy**: #60 `infra/ecr.yml` — 저장소 버전 태그 **덮어쓰기 불가**(`IMMUTABLE`, 스테이징용 `dev` 태그만 예외 `IMMUTABLE_WITH_EXCLUSION`), 최근 10개만 보관. 프론트 푸시 역할(`FrontPushRole`)의 OIDC `sub`는 `DuDoong-Front` 저장소의 `Ticket-v*`·`Admin-v*` 태그와 `dev` 브랜치뿐이다(v2 저장소 없음). #61 — compose 두 파일의 모든 이미지가 `${ECR_REGISTRY}/dudoong-*:<태그>`, 서버는 인스턴스 역할로 ECR에 로그인(`scripts/ecr-login.sh`).
+- **스테이징 운영 방식**(백엔드 Develop 기획서): 스테이징 서버는 평소 꺼져 있고 매일 02:00에 자동 종료된다. dev push는 `:dev` 이미지를 ECR에 빌드·푸시만 한다. 확인하려면 Deploy 저장소 Actions **Staging Power → start**(최신 main 구성 + `:dev` 배포) 또는 내부 어드민의 스테이징 켜기 버튼. 스테이징 백엔드는 `docker-compose.staging.yml`에 고정된 버전이다. **Swagger는 staging·prod에서 꺼져 있다**(필드 확인은 로컬 백엔드).
+- **이 계획과 부딪히는 곳**(결정하지 않았다): ① 아래 GHCR 계획은 "공개 패키지면 서버가 로그인 없이 받는다" 전제인데, 운영 이미지를 비공개로 둔다는 Deploy #59 방침과 다르다 ② ECR은 버전 태그를 덮어쓸 수 없어 §5의 스테이징 `:main` 이동 태그 방식을 그대로 못 쓴다(`dev`만 예외) ③ §6 4번의 compose 형식(`ghcr.io/…`)이 지금 compose(`${ECR_REGISTRY}/…`)와 다르다 ④ ECR로 정하면 `FrontPushRole`에 v2 저장소 조건을 더하는 Deploy 변경이 필요하다(backend-questions B15). [`staging-deploy-plan.md`](./staging-deploy-plan.md)의 GHCR 전제도 같다.
+- **v2 프론트 이미지 레지스트리(GHCR 유지 / ECR)는 사용자 결정 대기다.** 결정 전까지 이 문서의 계획은 그대로 둔다.
 
 | 사실 | 근거 | 문제 |
 |---|---|---|
@@ -139,7 +149,7 @@ compose의 front 태그를 올리는 PR ──▶ main 머지 ──▶ 스테�
 
 Deploy 저장소 PR은 손으로 올린다. 프론트 저장소에서 자동으로 PR을 열 수도 있지만 저장소 간 토큰이 필요하고, 운영 배포 시점을 사람이 고르는 지금 방식이 이 서비스에 맞다(티켓 오픈 시간대를 피해야 한다).
 
-**GHCR로 옮기는 이유.** 이미지가 개인 계정(`david0218`)에 있어 그 계정의 토큰이 있어야 배포할 수 있다. GHCR은 조직 소유이고 워크플로의 기본 토큰으로 올린다. 패키지를 공개로 설정하면 서버는 로그인 없이 받는다. 조직 설정에서 공개 패키지를 막아 뒀다면 Docker Hub에 조직 계정을 만들어 쓴다.
+**GHCR로 옮기는 이유**(2026-10-12 기준 — v1은 그 뒤 ECR로 옮겼다, §1 첫 절). 이미지가 개인 계정(`david0218`)에 있어 그 계정의 토큰이 있어야 배포할 수 있다. GHCR은 조직 소유이고 워크플로의 기본 토큰으로 올린다. 패키지를 공개로 설정하면 서버는 로그인 없이 받는다. 조직 설정에서 공개 패키지를 막아 뒀다면 Docker Hub에 조직 계정을 만들어 쓴다.
 
 ## 6. Deploy 저장소에서 바꿀 것
 
@@ -179,7 +189,7 @@ Deploy 저장소 PR은 손으로 올린다. 프론트 저장소에서 자동으�
 | D3 | 버전 태그 워크플로, 롤백 리허설 | P14 |
 | D4 | Deploy 저장소 5·6번, 컷오버 | P15 |
 
-D2는 백엔드 마이그레이션(V001~V011)이 스테이징에 실행돼 있어야 의미가 있다([`backend-questions.md`](./backend-questions.md) B5).
+D2는 백엔드 마이그레이션이 스테이징에 실행돼 있어야 의미가 있다([`backend-questions.md`](./backend-questions.md) B5). 2026-10-25: V001~V011은 Deploy #52, V012는 #57, V016·V019는 #68 체크리스트로 스테이징·운영에 실행하게 돼 있다(V013~V015·V017은 #66이 "이미 적용"). V018은 열린 PR #839 몫. D2 때 스테이징을 켜는 방법은 §1 첫 절.
 
 ## 9. 확인할 것
 
@@ -194,7 +204,7 @@ D2는 백엔드 마이그레이션(V001~V011)이 스테이징에 실행돼 있�
 | 4 | 스테이징 서버에서 `localhost`가 `::1`로도 풀리는지(§6의 3번이 실제로 필요한지) | D2 |
 | 5 | `next/image` 변환이 스테이징 서버 사양에서 감당되는지 | D2 |
 | 6 | 카카오 JS 키가 스테이징과 운영에서 같은지 — 다르면 §4의 "이미지 하나"가 깨지므로 키를 서버에서 내려주는 방식으로 바꾼다 | D1 전 |
-| 7 | 조직이 GHCR 공개 패키지를 허용하는지 | D1 |
+| 7 | 조직이 GHCR 공개 패키지를 허용하는지 → 2026-10-25: 운영 이미지를 ECR 비공개로 둔다는 Deploy #59 방침과 맞출지(레지스트리 결정, 사용자 결정 대기 — §1 첫 절) | D1 |
 | 8 | 배포 중 front가 꺼져 있는 시간(초) | D2 |
 | 9 | `isomorphic-dompurify`가 띄우는 jsdom의 메모리 — 섹션 10개짜리 공연 상세를 연속으로 열 때의 RSS, jsdom이 standalone 산출물에 빠지지 않고 기동되는지. 부담이 크면 `sanitize-html`로 바꾼다(tech-decisions §17) | D1 |
 | 10 | nginx 버퍼링 — 호스팅 센터의 정적 셸이 먼저 흘러 나가는지. Next 문서는 nginx 뒤에서 스트리밍하려면 `X-Accel-Buffering: no`가 필요하다고 한다(self-hosting #streaming-and-suspense). 필요하면 `next.config.ts`의 `headers()`로 `/hosting/:path*`에 붙인다. 공개 화면은 어차피 블로킹이라 영향이 없다 | D2 |

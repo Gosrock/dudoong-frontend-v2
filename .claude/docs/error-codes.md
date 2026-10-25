@@ -1,9 +1,12 @@
 # 백엔드 에러 코드
 
 > `Gosrock/DuDoong-Backend` `dev`(`24aa595`, 2026-10-10)의 `*ErrorCode` enum에서 자동 추출했다. 13개 도메인, 200개 코드.
+> **2026-10-25 `432cce4` 대조로 손으로 고친 곳**: `AUTH_401_2` 추가·`AUTH_403_2` 의미 변경(#808), `AgreementErrorCode`(#840)·`NoticeErrorCode`(#832) 절 추가. 다시 자동 추출하면 이 표시가 사라지니 그때 이 줄도 고친다.
+> **제외 규칙**: 운영 어드민(`/internal-api`) 전용 코드는 v2 화면이 받지 않아 옮기지 않는다 — `ADMIN_400_3`(#803)·`ADMIN_400_4`(#824), `AdminTagErrorCode`(`ADMIN_TAG_*`, #826), `AlimTalkErrorCode`(`ALIMTALK_*`, #842·#854), `Order_400_29`(0원이 아닌 주문의 환불 요청 해제, #828 — 부르는 곳이 운영 어드민뿐), `Notice_400_1`·`Notice_400_2`(공지 작성, #832). 근거는 각 PR의 변경 파일이 `DuDoong-Admin/` 아래이거나 던지는 곳이 운영 어드민 경로뿐인 것.
 > v1·v2가 같은 enum을 쓴다. `reason`은 서버가 내려 주는 문장이고, 화면 문구는 `code`로 분기해 FE가 정한다([`api-contract.md`](./api-contract.md) §1).
 > HTTP 열은 enum에 적힌 값이다. **v2에서 호스트 권한 실패 코드는 enum이 400이어도 실제 응답은 403이다**(아래 표시).
-> **`AUTH_403_2`는 토큰이 없을 때(쿠키 만료 포함)와 정지·탈퇴 계정일 때 HTTP 401로 온다**(본문 `status`는 403). 역할 부족일 때만 HTTP 403이다. `AUTH_403_1`(재발급 실패)은 쿠키를 지우지 않는다. 분기는 HTTP 상태로 한다([`api-contract.md`](./api-contract.md) §1).
+> **토큰 없음(쿠키 만료 포함)·정지·탈퇴 계정은 HTTP 401 `AUTH_401_2`**(본문 `status`도 401, #808 — 그 전엔 `AUTH_403_2`에 본문 403). `AUTH_403_2`는 역할 부족(HTTP 403)만이다. `AUTH_403_1`(재발급 실패)은 쿠키를 지우지 않는다. 분기는 HTTP 상태로 한다([`api-contract.md`](./api-contract.md) §1).
+> **#758 L-3(남은 항목)**: `IssuedTicket_400_1`(PQ-5 같은 공연 남의 티켓)과 10/O-5 다른 공연 `optionId` 400은 나중에 404로 바뀔 수 있다(백엔드 Develop 기획서 2026-10-25). 바뀌면 이 표와 patterns §24를 고친다.
 
 ## AdminErrorCode
 
@@ -24,7 +27,8 @@
 | `GLOBAL_400_1` | 400 | 검증 오류 | `ARGUMENT_NOT_VALID_ERROR` |
 | `AUTH_401_1` | 401 | 인증 시간이 만료되었습니다. 인증토큰을 재 발급 해주세요 | `TOKEN_EXPIRED` |
 | `AUTH_403_1` | 403 | 인증 시간이 만료되었습니다. 재 로그인 해주세요. | `REFRESH_TOKEN_EXPIRED` |
-| `AUTH_403_2` | 403 (토큰 없음은 **401**) | 알맞은 accessToken을 넣어주세요. | `ACCESS_TOKEN_NOT_EXIST` |
+| `AUTH_401_2` | 401 | 알맞은 accessToken을 넣어주세요. | `ACCESS_TOKEN_NOT_EXIST` (#808, 예전 `AUTH_403_2`) |
+| `AUTH_403_2` | 403 | 접근 권한이 없습니다. | `ACCESS_DENIED` (#808, 역할 부족만) |
 | `AUTH_403_3` | 403 | 허용되지 않은 출처의 요청입니다. | `ORIGIN_NOT_ALLOWED` |
 | `AUTH_400_1` | 400 | 로그인 요청이 만료되었거나 올바르지 않습니다. 다시 로그인해 주세요. | `OAUTH_STATE_MISMATCH` |
 | `GLOBAL_401_1` | 401 | 잘못된 토큰입니다. 재 로그인 해주세요 | `INVALID_TOKEN` |
@@ -201,6 +205,18 @@
 | `Order_400_26` | 400 | 같은 주문을 처리하고 있습니다. 잠시 후 주문내역을 확인해 주세요. | `V2_DUPLICATE_ORDER_IN_PROGRESS` |
 | `Order_400_27` | 400 | 환불 계좌를 입력할 수 없는 주문입니다. | `V2_REFUND_ACCOUNT_NOT_ALLOWED` |
 | `Order_400_28` | 400 | 이미 환불이 완료된 주문입니다. | `V2_REFUND_ALREADY_COMPLETED` |
+
+## AgreementErrorCode (#840, 432cce4)
+
+| code | HTTP | reason | enum |
+|---|---|---|---|
+| `Agreement_400_1` | 400 | 필수 동의 또는 확인이 필요합니다. | `AGREEMENT_REQUIRED` — `agreement.enforce=true`일 때만 난다(지금 기본 false). 가입(`ageOver14Confirmed`·`termsAgreed`), 주문(`hostProvisionAgreed`, 두둥티켓이면 `dudoongTicketNoticeConfirmed`), 두둥티켓 생성(`refundObligationAgreed`) |
+
+## NoticeErrorCode (#832, 432cce4)
+
+| code | HTTP | reason | enum |
+|---|---|---|---|
+| `Notice_404_1` | 404 | 공지사항을 찾을 수 없습니다. | `NOTICE_NOT_FOUND` — GA-2 숨김·없는 공지 |
 
 ## TicketItemErrorCode
 
