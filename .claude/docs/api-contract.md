@@ -37,7 +37,7 @@
 - 필드는 항상 키가 있고 값이 없으면 `null`. 그 역할에게 안 보이는 값도 `null`.
 - 에러 `{success: false, status, code, reason, timeStamp, path}`. `code` = `{도메인}_{HTTP}_{번호}`(예: `Order_400_24`). 도메인 접두는 대소문자가 섞여 있다(`HOST_`, `USER_`, `Order_`, `Event_`, `Ticket_Item_`, `Option_Group_`, `IssuedTicket_`, `Gift_`).
 - `reason`은 보여도 되는 한국어 문장이지만 화면 문구는 `code`로 분기한다.
-- **409는 없다.** 중복·이미 처리됨도 400. 형식·길이 검증 실패는 `GLOBAL_400_1`.
+- **409는 없다.** 중복·이미 처리됨도 400. 형식·길이 검증 실패(Bean Validation·파라미터·경로 타입)는 400 **`code: "BAD_REQUEST"`**다 — `GLOBAL_400_1`은 정의만 있고 나오지 않는다(소스 확인 @432cce4, 2026-10-26, error-codes). 이때 `reason`은 사용자용 문장이 아니다(필드→메시지 JSON 또는 "Bad Request").
 
 ### 401 · 403 · 404
 
@@ -326,7 +326,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 - P10/T-3: 보낸 필드만 바뀐다. 값을 비울 때는 `clear: ["SUPPLY_COUNT" | "PURCHASE_LIMIT" | "SALE_START_AT" | "SALE_END_AT" | "DESCRIPTION"]`. 이 5개 필드에 명시적 `null`을 보내면 400. `payType`을 바꾸면 `price`도 함께 보낸다.
 - 옵션은 공연 단위 풀에 있고 티켓에 붙인다. 티켓 폼 칩의 ⊗ = 이 티켓에서 떼기(P10/O-5), 옵션 상세 [삭제] = 옵션 자체 삭제(D10/O-4). 새 옵션은 P10/O-2 생성 + P10/O-5 지정 두 번 호출.
 - 무료 티켓에는 유료(추가금) 옵션을 붙일 수 없다.
-- **두둥티켓 생성 동의(#840)**: P10/T-2 본문에 `refundObligationAgreed`(호스트 환불 의무 동의)·`agreementVersion`. `payType=DUDOONG`일 때만 기록·강제(동의 강제가 켜지면 아니면 400 `Agreement_400_1`). 수정 P10/T-3에는 없다(`V2TicketItemRequest` @432cce4).
+- **두둥티켓 생성 동의(#840)**: P10/T-2 본문에 `refundObligationAgreed`(호스트 환불 의무 동의)·`agreementVersion`. `payType=DUDOONG`일 때만 기록·강제(동의 강제가 켜지면 아니면 400 `Agreement_400_1`). 수정 P10/T-3에는 @432cce4에 없었고, **dev `cb8d24e`(#873, 2026-10-25)에서 생겼다** — `V2UpdateTicketItemRequest`에 선택 필드 `refundObligationAgreed`·`agreementVersion`. 무료 → 두둥으로 바꿀 때만 검사·기록하고, 강제가 켜지면 `Agreement_400_1`(P12-L에서 반영).
 
 ### 구매 (F5)
 

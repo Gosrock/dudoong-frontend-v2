@@ -24,7 +24,7 @@
 | code | HTTP | reason | enum |
 |---|---|---|---|
 | `EXAMPLE_404_1` | 404 | 예시를 찾을 수 없는 오류입니다. | `EXAMPLE_NOT_FOUND` |
-| `GLOBAL_400_1` | 400 | 검증 오류 | `ARGUMENT_NOT_VALID_ERROR` |
+| `GLOBAL_400_1` | 400 | 검증 오류 | `ARGUMENT_NOT_VALID_ERROR` — **정의만 있고 던지는 곳이 없다(소스 확인 @432cce4, 2026-10-26).** 실제 검증 실패(`@Valid`·파라미터·경로 타입)는 400 `code: "BAD_REQUEST"`로 온다. 본문 검증이면 `reason`이 필드→메시지 JSON 문자열(`{"email":"…"}`), 경로 타입 오류면 `"Bad Request"`다(`GlobalExceptionHandler`). 화면에 `reason`을 그대로 보이지 않는다 |
 | `AUTH_401_1` | 401 | 인증 시간이 만료되었습니다. 인증토큰을 재 발급 해주세요 | `TOKEN_EXPIRED` |
 | `AUTH_403_1` | 403 | 인증 시간이 만료되었습니다. 재 로그인 해주세요. | `REFRESH_TOKEN_EXPIRED` |
 | `AUTH_401_2` | 401 | 알맞은 accessToken을 넣어주세요. | `ACCESS_TOKEN_NOT_EXIST` (#808, 예전 `AUTH_403_2`) |

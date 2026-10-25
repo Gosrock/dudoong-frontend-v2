@@ -22,6 +22,7 @@
 - **확인한 것**: 코드 기본값은 둘 다 3600초다.
 - **문제**: 기본값 그대로면 한 시간 동안 조작이 없을 때 로그인이 풀린다. 리프레시 수명이 길어지면 프론트의 세션 표시(`localStorage`)가 Safari에서 7일 뒤 지워지는 영향도 다시 봐야 한다.
 - **답이 없으면**: 3600초로 보고 만든다.
+- **소스 확인(@432cce4, 2026-10-26)**: 기본값은 env `JWT_ACCESS_EXP`·`JWT_REFRESH_EXP`(없으면 3600, `application-common.yml`). 운영 값은 env(SSM)로만 정해져 저장소로 알 수 없다 — 질문 유지. dev `cb8d24e`(#872)도 수명 기본값은 그대로다.
 
 ### B3. 티켓 계좌의 은행명을 목록(코드값)으로 바꿀 수 있나? — **해결(#804·#813)**
 
@@ -46,6 +47,7 @@
   - Deploy 릴리스 PR 체크리스트: #52(2026-10-10 머지) "스테이징·운영 DB에 DDL(V001~V011) 실행", #57(2026-10-24) V012, #66(2026-10-25) "V016을 운영에 실행. 나머지 V012~V015·V017은 이미 적용", #68(2026-10-25) V016·V019 스테이징·운영. 백엔드 Develop 기획서도 "V012~V017, V019 운영 적용 완료"라고 적는다.
   - 각 마이그레이션 파일의 실행 기록 헤더는 V014만 채워져 있어, 실행 사실은 위 체크리스트·기획서 문장 근거까지만이다.
 - **남은 것**: 없음(질문으로는 닫는다). V018은 #839 머지 때 확인한다.
+- **소스 확인(@432cce4, 2026-10-26)**: dev `cb8d24e`에 V020(#877, 이메일 발송 이력 — 백엔드 전용, FE 영향 없음)이 생겼다. V018은 여전히 열린 PR #839에만 있다.
 
 ### B6. 인증 경로에서는 잘못된 액세스 쿠키를 익명으로 처리하거나 지워 줄 수 있나? — **해결(#792·#793)**
 
@@ -62,24 +64,24 @@
 
 백엔드 dev `24aa595`(2026-10-10) 코드와 운영 공개 GET 응답으로 스키마를 만들며 생긴 질문이다. 답이 없어도 프론트는 괄호 안처럼 처리한다.
 
-- GP-5의 `payType`과 `options[].type`이 nullable(`V2TicketPayType?`, `V2TicketOptionType?`)인데 실제로 null이 올 수 있나? (null 허용으로 받는다)
-- `dDay`가 GH-14 응답에만 있고 GP-1·GP-2·GP-3에는 없다. 공연 카드·상세의 D-day 칩은 `startAt`으로 프론트가 계산해도 되나? (KST 기준으로 프론트가 계산한다)
-- GH-14 `status`와 GH-3·GM-1 `myRole`이 enum이 아니라 `String`이다. 값 목록이 설명과 같다고 봐도 되나? (모르는 값은 UNKNOWN으로 받는다)
-- 경로의 숫자 id 자리에 숫자가 아닌 값이 오면 400 `GLOBAL_400_1`인가 404인가? (mock은 400으로 가정)
-- GP-2 `tagIds`를 여러 개 보낼 때 같은 분류는 OR, 분류끼리는 AND가 맞나? (쉼표로 이어 보낸다)
-- 업로드 URL 발급 제한 `throttle.presigned-url-per-minute`의 운영 값이 30인가? (문서값 30으로 안내한다)
+- GP-5의 `payType`과 `options[].type`이 nullable(`V2TicketPayType?`, `V2TicketOptionType?`)인데 실제로 null이 올 수 있나? (null 허용으로 받는다) → **소스 확인(@432cce4, 2026-10-26)** **부분**: 도메인 컬럼이 null일 때만 null이고 enum 값은 모두 대응된다(`V2TicketTypes.kt`). 실제 null 행이 있는지는 운영 데이터라 null 허용을 유지한다
+- `dDay`가 GH-14 응답에만 있고 GP-1·GP-2·GP-3에는 없다. 공연 카드·상세의 D-day 칩은 `startAt`으로 프론트가 계산해도 되나? (KST 기준으로 프론트가 계산한다) → **소스 확인(@432cce4, 2026-10-26)** **규칙 확인**: `V2EventDisplayRule.dDayOf` — `displayStatus=UPCOMING`일 때만, 시각을 뺀 날짜 차이, 당일 0, JVM 시간대 KST(`Dockerfile` `-Duser.timezone=Asia/Seoul`). 프론트도 같은 규칙으로 계산한다. 덧붙여 GH-14·GE-1·GE-3·GD-1·GM-5에는 있다(design-requests Q29)
+- GH-14 `status`와 GH-3·GM-1 `myRole`이 enum이 아니라 `String`이다. 값 목록이 설명과 같다고 봐도 되나? (모르는 값은 UNKNOWN으로 받는다) → **소스 확인(@432cce4, 2026-10-26)** **해결**: 모두 enum 이름 그대로다. GH-14 `status`는 비멤버에게 OPEN·CALCULATING·CLOSED, 멤버에게는 PREPARING까지(`V2ReadHostEventsUseCase`). `myRole`은 MASTER·MANAGER·GUEST(GH-3은 비멤버 null)
+- 경로의 숫자 id 자리에 숫자가 아닌 값이 오면 400 `GLOBAL_400_1`인가 404인가? (mock은 400으로 가정) → **소스 확인(@432cce4, 2026-10-26)** **해결 — 둘 다 아니다**: 로그인 상태면 400 `code: "BAD_REQUEST"`(Spring TypeMismatch → `GlobalExceptionHandler.handleExceptionInternal`, 백엔드 테스트 `InputLogHardeningWebTest`). 비로그인으로 공개 GET을 부르면 `V2_PUBLIC_GET_PATHS`가 숫자 id만 허용해 401 `AUTH_401_2`. **덧붙여 `GLOBAL_400_1`은 백엔드 어디서도 내지 않는다** — Bean Validation 실패도 400 `BAD_REQUEST`이고 `reason`은 필드→메시지 JSON 문자열이다(`handleMethodArgumentNotValid`). 프론트 코드 수정 거리(implementation-log 2026-10-26 절)
+- GP-2 `tagIds`를 여러 개 보낼 때 같은 분류는 OR, 분류끼리는 AND가 맞나? (쉼표로 이어 보낸다) → **소스 확인(@432cce4, 2026-10-26)** **해결**: 맞다(`V2EventBrowseDomainService.tagFilterGroups`). 중복 id는 합치고, 없는 id는 400 `Event_400_23`. 쉼표·반복 키 둘 다 된다
+- 업로드 URL 발급 제한 `throttle.presigned-url-per-minute`의 운영 값이 30인가? (문서값 30으로 안내한다) → **소스 확인(@432cce4, 2026-10-26)**: 기본값 30(env `PRESIGNED_URL_RATE_LIMIT`). 운영 덮어쓰기는 저장소로 알 수 없다 — 질문 유지
 
 ### B8. P4b-L 카카오 로그인 구현에서 나온 것 — **부분 해결**
 
-- 카카오 앱의 이메일·이름 동의 항목이 필수인가? 선택이면 비어 올 수 있어 가입 폼에서 직접 받는다(지금 그렇게 했다).
-- 카카오 콘솔에 `https://staging.dudoong.com/kakao/callback`과 `http://localhost:3000/kakao/callback`이 등록돼 있나?
+- 카카오 앱의 이메일·이름 동의 항목이 필수인가? 선택이면 비어 올 수 있어 가입 폼에서 직접 받는다(지금 그렇게 했다). → **소스 확인(@432cce4, 2026-10-26)**: 서버는 비어 올 수 있다고 보고 처리한다(`KakaoInformationResponse` nullable, 이름은 없으면 닉네임). 가입 본문 `email`·`name`은 `@NotEmpty`. 콘솔 필수 여부만 남았다(질문 유지)
+- 카카오 콘솔에 `https://staging.dudoong.com/kakao/callback`과 `http://localhost:3000/kakao/callback`이 등록돼 있나? → **소스 확인(@432cce4, 2026-10-26)**: 서버 허용 목록(`KakaoRedirectPolicy`, staging 프로필)에는 둘 다 있다. 카카오 콘솔 등록 여부만 남았다(질문 유지)
 - 이용약관·개인정보 동의를 서버가 기록하나? `RegisterRequest`에는 `marketingAgree`만 있다. → **답(#840·#850)**: 가입 본문에 `ageOver14Confirmed`·`termsAgreed`·`agreementVersion`(선택, `true`일 때만 기록)이 생겼다(`RegisterRequest` @432cce4). 개인정보 처리방침은 동의 종류(`AgreementType`)에 없어 기록하지 않는다(v1 운영·백엔드 Develop 기획서는 처리방침을 체크가 아닌 안내로 둔다 — 참고. v2 가입 계획은 그대로, design-requests Q25). 동의 강제가 켜지면 만 14세·이용약관이 필수(400 `Agreement_400_1`) — v2 계획에 만 14세 칸이 없어 design-requests Q42.
-- 사소한 버그: `KakaoKauthErrorCode.KOE010`의 errorCode가 `KAKAO_KOE101`로 중복돼 있다.
+- 사소한 버그: `KakaoKauthErrorCode.KOE010`의 errorCode가 `KAKAO_KOE101`로 중복돼 있다. (**소스 확인(@432cce4, 2026-10-26)**: 그대로다, dev `cb8d24e`도 같다)
 - ~~B6(낡은 액세스 쿠키로 링크 발급·콜백이 401)이 로그인 화면에서 실제로 막는다.~~ → **해소(#792)**: `/oauth/**`는 낡은 쿠키가 있어도 익명으로 통과한다.
 
 ### B9. P8-L 티켓탭·선물에서 나온 것
 
-- T-2를 열 때 승인 알림 읽음 처리가 비동기라, 직후 T-3이 아직 `hasNew: true`일 수 있다. 프론트는 열자마자 T-3을 한 번만 무효화한다. 읽음 처리를 T-2 트랜잭션 안에서 끝내 줄 수 있나, 아니면 프론트가 짧게 한 번 더 읽어야 하나?
+- T-2를 열 때 승인 알림 읽음 처리가 비동기라, 직후 T-3이 아직 `hasNew: true`일 수 있다. 프론트는 열자마자 T-3을 한 번만 무효화한다. 읽음 처리를 T-2 트랜잭션 안에서 끝내 줄 수 있나, 아니면 프론트가 짧게 한 번 더 읽어야 하나? → **소스 확인(@432cce4, 2026-10-26)** **부분**: 일부러 비동기다 — T-2 커밋 뒤 알림 전용 풀에서 읽음 처리한다(`V2GiftNotificationEventHandler.handleOrderTicketViewed` `@Async` + `AFTER_COMMIT`, 주석 "읽음 처리 실패는 조회에 영향 없음"). 직후 T-3이 true일 수 있는 것은 설계다. 동기화 요청 여부만 남았다
 
 ### B10. 끝난 공연의 티켓이 티켓탭(T-1)에서 빠지나? "티켓 정리" 알림이 있나? — **해결(소스 확인 @432cce4, 2026-10-26)**
 
@@ -93,10 +95,12 @@
 ### B11(후보 — 디자인 답 대기). 판매 중단 티켓을 GP-5에 포함할 수 있나?
 
 - **출처**: 와이어프레임 코멘트 Nemin 2026-10-03(`503:25595`) — 판매 중단 티켓은 관객에게 딤드로 보인다(design-requests Q33).
-- **확인한 것**: GP-5는 판매 중단 티켓을 빼고 준다([`patterns.md`](./patterns.md) §15).
+- **확인한 것**: GP-5는 판매 중단 티켓을 빼고 준다([`patterns.md`](./patterns.md) §15). **소스 확인(@432cce4, 2026-10-26)**: 판매 중단에 더해 판매 기간 밖(시작 전·종료 후) 티켓도 뺀다(`V2PublicTicketItemMapper.onSaleItems` — `isOnSale(now)`). 매진은 `isSoldOut`으로 남는다.
 - **상태**: Q33에서 딤드로 정해지면 질문한다. 그 전까지 프론트는 서버대로 보이지 않는다.
 
-### B12. 운영자가 승인 대기 주문을 취소하면 관객 O-3의 `refuseReasonType`은 `null`인가? (#828)
+### B12. 운영자가 승인 대기 주문을 취소하면 관객 O-3의 `refuseReasonType`은 `null`인가? (#828) — **해결(소스 확인 @432cce4, 2026-10-26)**
+
+> `null`이다. `V2AdminOrderDomainService.cancel`은 승인 대기면 `refuseByHost`만 부르고 사유 종류를 기록하지 않는다 → CANCELED + `approvedAt` null이라 `V2OrderStatus.of`가 **REFUSED**로 준다. `refuseReasonType: null`, `refuseReason` = 운영자 문구(빈 값이면 null). 유료 v2 두둥 주문이고 계좌가 없으면 `refundAccountRequired: true`(입금 미확인과 달리 계좌 입력을 유도한다). 프론트 처리(아래 "답이 없으면")와 맞다.
 
 - **확인한 것**: 운영 어드민 취소는 승인 대기 주문을 `refuseByHost`로 거절 전이시키는데, PR #828 diff에서 이 경로는 `recordRefuseReasonType`을 부르지 않는다. 그러면 사유 종류 없는 거절이 된다.
 - **영향**: 관객 주문 상세의 거절 사유 표시, `DEPOSIT_UNCONFIRMED` 여부에 달린 환불 계좌 입력 유도(api-contract §6 취소·환불).
@@ -107,8 +111,11 @@
 - **확인한 것**: 메일 조건은 `isDudoongTicketOrder && isRefund`이고, 사용자 취소(`Order.withdrawByUser`)는 승인 여부와 상관없이 `orderStatus = REFUND`로 둔다(@432cce4 `Order.kt`). v2 사용자 취소(O-4)는 승인 대기 주문이면 유료·무료 모두 `withdrawByUser`(REFUND, 유료면 환불 요청), 승인 완료 유료 주문이면 v1 `Order.refund`로 간다(`V2UserOrderDomainService.cancel` @432cce4). 그래서 입금 전(승인 대기) 두둥 주문을 취소해도 메일 조건이 참이 된다.
 - **영향**: 호스팅 센터·관객 취소 안내 문구(입금 전 취소인데 호스트에게 환불 요청이 갔다고 오해할 수 있다).
 - **답이 없으면**: 화면 문구에 메일 이야기를 넣지 않는다.
+- **소스 확인(@432cce4, 2026-10-26)** **동작 확인**: 간다. `DudoongTicketRefundHostEmailHandler`는 유료 승인형(`isDudoongTicketOrder`) + REFUND면 보내고, 승인 대기 취소도 `withdrawByUser`로 REFUND가 된다. 무료는 안 간다. dev `cb8d24e`(#877)는 발송 이력만 더했다. **의도인지만 묻는다**(질문 유지).
 
-### B14. 운영자가 포스터·프로필 이미지를 되돌리면 v2 응답 URL은 `null`인가 기본 이미지 URL인가? (#830)
+### B14. 운영자가 포스터·프로필 이미지를 되돌리면 v2 응답 URL은 `null`인가 기본 이미지 URL인가? (#830) — **해결(소스 확인 @432cce4, 2026-10-26)**
+
+> `null`이다. `AdminResetImageUseCase`·`Event.adminResetPosterImage`가 key를 null로 저장하고 `ImageVo.generateImageUrl`은 key가 없으면 null을 준다. 프론트는 이미 null을 처리한다.
 
 - **확인한 것**: PR 본문은 "v2 '빈 문자열이면 기본 이미지'와 같은 저장값"이라고만 적는다. 응답 매핑은 확인하지 않았다.
 - **답이 없으면**: FE는 둘 다 처리한다(이미지 URL은 모두 nullable — `src/api/event/schema.ts`·`src/api/host/schema.ts`). 질문 우선순위 낮음.
@@ -120,14 +127,17 @@
 
 ### B16. 작은 것
 
-- `GET /api/v2/banks`의 Swagger summary가 아직 "[T-7] 은행 목록 (로그인, #797)"이다. 실제로는 #813부터 비로그인 공개다(`SecurityConfig.V2_PUBLIC_GET_PATHS` @432cce4). 문구만 고쳐 주면 된다.
-- 동의 강제(`agreement.enforce`)를 켜는 날짜가 정해지면 미리 알려 달라. v2는 처음부터 보내지만, v2 화면이 운영에 나가기 전에 켜지는지가 컷오버 체크리스트에 들어간다.
+- `GET /api/v2/banks`의 Swagger summary가 아직 "[T-7] 은행 목록 (로그인, #797)"이다. 실제로는 #813부터 비로그인 공개다(`SecurityConfig.V2_PUBLIC_GET_PATHS` @432cce4). 문구만 고쳐 주면 된다. (소스 확인 2026-10-26: dev `cb8d24e`도 그대로)
+- 백엔드 `api/v2/README.md`(91행)는 DTO 검증 실패를 `GLOBAL_400_1`이라고 적지만, 실제 응답은 400 `code: "BAD_REQUEST"`다(`GlobalExceptionHandler`, `GlobalErrorCode.ARGUMENT_NOT_VALID_ERROR`는 던지는 곳이 없다). 문서를 고치거나 코드를 `GLOBAL_400_1`로 맞춰 달라 — 어느 쪽이든 프론트는 둘 다 검증 오류로 처리한다(B7).
+- 동의 강제(`agreement.enforce`)를 켜는 날짜가 정해지면 미리 알려 달라. v2는 처음부터 보내지만, v2 화면이 운영에 나가기 전에 켜지는지가 컷오버 체크리스트에 들어간다. (**소스 확인(@432cce4, 2026-10-26)**: env `AGREEMENT_ENFORCE`(기본 false) 재배포로 켠다 — `V017__835_agreement_log.sql` 헤더 "프론트 배포 뒤". 날짜는 없다)
+- dev `cb8d24e`(#873, 2026-10-25): 티켓 수정(P10/T-3) 본문에 선택 필드 `refundObligationAgreed`·`agreementVersion`이 생겼다. 무료 → 두둥으로 바꿀 때만 검사·기록하고, 강제가 켜지면 `Agreement_400_1`. P12-L에서 반영한다(api-contract §3).
 
 ### B17. 마이페이지 마케팅 수신 토글의 현재 값을 v2에서 어떻게 읽나?
 
 - **확인한 것**: 변경 API는 v1 `PATCH /api/v1/users/me/marketing`이고 본문이 없는 **반전(토글)**이며 응답이 `UserInfoVo`다(`UserController.kt` @432cce4 "마케팅 동의 여부를 토글링 합니다"). v2 GM-1 응답에는 `marketingAgree`가 없다(`src/api/me/schema.ts`, 백엔드 Develop 기획서 F10 "마케팅 수신 설정 토글(v1 화면 반영)"). v1 운영 화면은 v1 `GET /api/v1/users/me`의 `marketingAgree`로 초기값을 그린다(Front #364 `MarketingSetting.tsx`).
 - **문제**: 초기값을 모르면 토글을 그릴 수 없고, 반전 API라 두 번 눌리거나 재시도되면 의도와 반대 값이 된다. `PATCH /api/v1/users/me/mail`(`receiveMail`)은 거래 메일까지 끄는 다른 스위치라 섞으면 안 된다(Develop 기획서).
 - **요청**: GM-1에 `marketingAgree`를 넣거나, 값을 지정하는 API(`{marketingAgree: true|false}`)를 주면 좋다.
+- **소스 확인(@432cce4, 2026-10-26)**: 그대로 없다(`V2MeResponse`에 `marketingAgree` 없음, dev `cb8d24e`도 같다). 질문 유지.
 - **답이 없으면**: 초기값은 v1 `GET /api/v1/users/me`로 읽고, 토글은 요청 중 비활성 + 응답 값으로 화면을 맞춘다(재시도하지 않는다).
 
 ### B18(보낼 질문). 두둥티켓 승인 대기 주문을 관객이 앱에서 취소할 수 있어야 하나? — **위험: 서버 동작과 안내가 다름**
@@ -140,6 +150,7 @@
 
 - **확인한 것**: GR-1 행에는 `paymentChannel`·`totalAmount`가 있어 v2 두둥 주문은 상세 재조회 없이 판정할 수 있다(`V2OrderResponses.kt` @432cce4). v1에서 만든 주문은 `paymentChannel`이 `null`이라 v1 PG 주문과 v1 두둥 주문을 이 필드로 가를 수 없다. 두둥 주문 거절·취소 확인에 "직접 환불" 안내를 붙이려면 필요하다(v1 운영 Front #350은 상세의 `orderMethod`로 판정, legal-copy C-3·C-4).
 - **답이 없으면**: `paymentChannel`이 두둥 값이거나, `null`이고 `totalAmount > 0`이면 안내를 붙인다(빠뜨리는 쪽보다 더 붙는 쪽).
+- **소스 확인(@432cce4, 2026-10-26)** **부분 해결**: 승인 대기 주문은 `Order.createApproveOrder`(승인형)로만 생기므로 **거절(승인 대기) 확인은 `totalAmount > 0`이면 두둥**이다. 승인 완료 주문 취소에서는 v1 APPROVED(두둥)와 CONFIRM(PG)이 `APPROVED` 하나로 합쳐지고 GR-1·GR-2에 `orderMethod`가 없어 가를 수 없다 — 질문은 취소에만 남는다.
 
 
 ### B20. P10a-L 공연준비 홈·호스트 만들기에서 나온 것 — **해결(소스 확인 @432cce4, 2026-10-26)**
@@ -174,7 +185,7 @@
 | 운영자 개입(#826·#828) — 선물 강제 회수(`cancelReason=ADMIN`), v2 주문 대리 승인·거절·취소, 알림 없는 환불 완료, 0원 환불 요청 해제 | 상태가 FE 모르게 바뀔 수 있다 — "400이면 다시 읽기"로 흡수. 선물 취소 사유 목록에 `ADMIN` |
 | 호스트별 취소 마감 시각 설정(백로그, 프론트 + 백엔드 — 유료티켓에도 호스트 기준 적용). 근거: 백엔드 Develop 기획서(2026-10-25) 남은 일 | 기획서가 "프론트 + 백엔드" 일로 적었다. 생기면 프론트 취소 화면도 바뀐다. 지금 계획 범위에는 없다 |
 | 마케팅 수신 동의·철회 일시 기록과 2년마다 재확인 — 지금은 불린만 있다. 근거: 백엔드 Develop 기획서(2026-10-25) 남은 일 | 백엔드 일. plan P9 마케팅 수신 설정의 "위험(철회 수단)"·B17과 관련. 지금 계획 범위에는 없다 |
-| Front #333 "v2 uuid null 처리"(백엔드 Develop 기획서가 "프론트 확인 대기"로 적음) | **미확인** — 이 저장소 문서에 무엇을 말하는지 근거가 없다. 내용을 받으면 판단한다 |
+| Front #333 "v2 uuid null 처리"(백엔드 Develop 기획서가 "프론트 확인 대기"로 적음) | **근거 찾음(2026-10-26)** — `Gosrock/DuDoong-Front` 이슈 #333(OPEN, "[백엔드 공유] v2 API 변경")이다. 본문에 보낸 선물(SENT) 행·T-2의 `ticketUuid`가 null일 수 있다, G-4·G-6 뒤 uuid 재발급이 있다. "uuid null 처리"가 이것을 가리키는지는 **추정**이다. 프론트 스키마는 `ticketUuid` nullable로 받는다 |
 
 ---
 

@@ -382,3 +382,16 @@
 **남음**: V 전부(카드·`myRole` 배지·FAB·sentinel·연락처 드롭다운·403 화면 모양). 준비중 카드 ⋮ 삭제는 P11
 **검사**: typecheck · lint · prettier · test(1496) · test:stories(193) · build · e2e(232 — 새 58) 통과. 로컬에 `.env.local`이 없어 `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`로 돌렸다
 **문서 반영**: plan P10a 완료 기준 L, patterns §4-4·§24(P10a 행), design-requests Q19·Q49~Q51, backend-questions B20, directory-structure(api·features·라우트·mock), README(질문 수)
+
+## 2026-10-26 백엔드 질문 소스 대조로 생긴 코드 수정 거리
+
+백엔드 질문(backend-questions)을 소스(@432cce4, 새 커밋은 dev `cb8d24e`)로 대조하다 나온 것. **아직 고치지 않았다** — P10b-L 통합 뒤 한 번에 고친다.
+
+| # | 위치 | 지금 | 사실 | 할 일 |
+|---|---|---|---|---|
+| 1 | `src/features/shared/auth/model/useRegisterForm.ts`(`VALIDATION_FAILED = 'GLOBAL_400_1'`)·`register-form.ts` 주석 | 가입 검증 실패를 `GLOBAL_400_1`로 받아 폼 `invalid`로 보낸다 | 서버는 400 `BAD_REQUEST`를 준다 → 운영에서 `invalid` 분기가 안 타고 일반 실패가 된다 | 검증 실패 코드를 `BAD_REQUEST`로(또는 둘 다) 받는다 |
+| 2 | 전역 에러 토스트(`src/api/query-client.ts` `messageOf`) | 표에 없는 실패는 `reason`을 그대로 토스트 | `BAD_REQUEST`의 `reason`은 `{"email":"…"}` JSON이나 "Bad Request"라 화면에 그대로 나가면 안 된다 | `BAD_REQUEST`면 고정 문구("입력값을 확인해 주세요" 등)로 바꾼다 — 한 곳(`src/api/errors.ts` 또는 `messageOf`) |
+| 3 | mock(`respond.ts` `badRequest`, `host.handlers.ts`, `hosting.handlers.ts`, `order.handlers.ts`, `me.handlers.ts`)·주석(`host/mutations.ts`, `auth/schema.ts`, `profile.ts`, `member-rules.ts`, `create-host-form.ts`, `host-settings-form.ts`, `useInviteMembers.ts`)·테스트 | 검증 실패를 `GLOBAL_400_1`로 흉내 낸다 | 위와 같다 | mock 응답을 `code: 'BAD_REQUEST'`, `reason`을 필드 JSON으로 맞추고 주석·테스트를 고친다 |
+| 4 | 경로 id 타입 오류 mock | 400 `GLOBAL_400_1` 가정(B7) | 로그인 400 `BAD_REQUEST`, 비로그인 공개 GET은 401 `AUTH_401_2`(숫자 id만 공개 경로 패턴에 걸린다) | mock·테스트를 맞춘다 |
+| 5 | P10/T-3 티켓 수정 본문 | 동의 필드 없음 | dev `cb8d24e`(#873)에 `refundObligationAgreed`·`agreementVersion`(무료 → 두둥 전환 때만) | P12-L에서 반영(api-contract §3) |
+
