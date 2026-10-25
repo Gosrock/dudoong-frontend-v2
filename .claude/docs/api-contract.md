@@ -21,7 +21,7 @@
 - 재발급 `POST /api/v1/auth/token/refresh`(본문 `{refreshToken}` 또는 쿠키), 로그아웃 `POST /api/v1/auth/logout`, 탈퇴 `DELETE /api/v1/auth/me`.
 - 토큰은 `Authorization: Bearer` 헤더를 먼저 보고, 없으면 액세스 토큰 쿠키를 읽는다.
 - 사용자 id는 토큰에서 채운다. 요청에 `userId`를 보내지 않는다.
-- 공개(비로그인) GET은 14개다: GP-1 GP-2 GP-3 GP-5 GE-5 GE-11 GH-3 GH-14 GG-3 SYS-1 + 은행 목록 `GET /banks`(#813) + 공지 A-1·A-2·A-3(#832). 화면에서 쓰는 것은 SYS-1을 뺀 13개다. 나머지 72개는 비로그인이면 401 `AUTH_401_2`(아래 표, #808). 공개 여부는 백엔드 `SecurityConfig.V2_PUBLIC_GET_PATHS` 한 곳에서 정한다(@432cce4).
+- 공개(비로그인) GET은 14개다: GP-1 GP-2 GP-3 GP-5 GE-5 GE-11 GH-3 GH-14 GG-3 SYS-1 + 은행 목록 `GET /banks`(#813) + 공지 GA-1·GA-2·GA-3(#832). 화면에서 쓰는 것은 SYS-1을 뺀 13개다. 나머지 72개는 비로그인이면 401 `AUTH_401_2`(아래 표, #808). 공개 여부는 백엔드 `SecurityConfig.V2_PUBLIC_GET_PATHS` 한 곳에서 정한다(@432cce4).
 - **공개 GET은 사람마다 값이 다를 수 있다.** GP-3·GH-3은 비로그인이면 연락처의 전화·이메일 값을, GH-3은 `members[].name`도 가려서 준다(#846, §6 공연). 로그인 사용자에게는 원문이다.
 - 공개 GET·재발급·OAuth·로그아웃(`permitAll`)은 **만료·위조 액세스 토큰이 붙어도 익명으로 통과한다**(#792). `JwtTokenFilter`가 파싱 실패를 요청 속성에 남기고 익명으로 넘기며, 인증이 필요한 경로에서만 `TokenAuthenticationEntryPoint`가 401을 낸다 — 만료 `AUTH_401_1`, 위조·형식 오류 `GLOBAL_401_1`(위조 토큰이 **쿠키**로 왔으면 `accessToken` 삭제 `Set-Cookie`도 붙인다. 만료 토큰에는 붙이지 않는다). 이전(24aa595)에는 필터가 경로와 상관없이 401을 냈다.
 - FE는 여전히 공개 GET을 쿠키 없이(`credentials: 'omit'`) 부른다. 이유가 바뀌었다: 401 회피가 아니라 **서버 조회와 같은 익명 값을 한 키로 쓰기 위해서**다. 그 대신 사용자별 값(가린 연락처의 원문 등)은 쿠키를 실은 별도 조회로 읽는다(tech-decisions §4 viewer 표).
@@ -441,7 +441,7 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 | 호출 | 내용 |
 |---|---|
 | `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·서명·형식 오류·서버에 없음 — 세션 상한 10개를 넘어 밀려난 세션, 30초 유예가 지난 옛 토큰 재사용(그 세션은 폐기)도 여기, #807)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`), 사용자 행이 없으면 404 `USER_404_1`, 잘못된 본문이면 400. 재발급은 `permitAll`이라 **만료·잘못된 액세스 쿠키가 같이 실려도 401이 나지 않는다**(#792 — 이전 24aa595에서는 JWT 필터가 401 `AUTH_401_1`·`GLOBAL_401_1`을 내 FE가 1초 뒤 한 번 더 시도했다. 그 분기는 남겨도 해가 없다). FE 판정: 2xx 성공 / 401은 1초 뒤 한 번 더(지금은 오지 않는 경우) / 그 밖의 4xx 세션 상실 / 5xx·네트워크·타임아웃 일시 오류(patterns §5-1). 같은 세션의 직전 토큰은 30초 동안 다시 재발급할 수 있어 탭 여러 개의 동시 재발급이 안전하다(PR #807 본문) |
-| `POST /logout` | **언제나 200 + 쿠키 2개 삭제**(#793, `AuthController.logoutUser` Operation "토큰이 잘못돼도 항상 200"). 이 기기의 세션만 서버에서 지운다 — 액세스 토큰의 세션 id로, 액세스가 없거나 만료면 리프레시 토큰(본문 `refreshToken` → 쿠키 순)으로 찾는다(`LogoutUseCase` @432cce4). 리프레시 쿠키는 path `/`라 같은 출처 요청에 자동으로 실리므로 FE는 본문 없이 불러도 서버 세션이 정리된다. FE는 응답과 상관없이(5xx·네트워크 포함) 로컬 정리(`queryClient.clear()`, `dd:session` 제거) 후 이동한다 |
+| `POST /logout` | **언제나 200 + 쿠키 2개 삭제**(#793, `AuthController.logoutUser` Operation "토큰이 잘못돼도 항상 200"). 이 기기의 세션만 서버에서 지운다 — 유효한 액세스 토큰이 있으면 그 세션 id로 지우고, 리프레시 토큰(본문 `refreshToken` → 쿠키 순)이 있으면 그 세션의 현재(또는 유예 안 직전) 토큰일 때 그 세션도 지운다. 그래서 액세스가 없거나 만료여도 리프레시로 정리된다(`LogoutUseCase`·`AuthController.logoutUser` @432cce4). 리프레시 쿠키는 path `/`라 같은 출처 요청에 자동으로 실리므로 FE는 본문 없이 불러도 서버 세션이 정리된다. FE는 응답과 상관없이(5xx·네트워크 포함) 로컬 정리(`queryClient.clear()`, `dd:session` 제거) 후 이동한다 |
 | `PATCH /api/v1/users/me/marketing` | 마케팅 수신 동의를 **반전(토글)**한다. 본문 없음, 응답 `UserInfoVo`(`UserController` @432cce4). `PATCH /api/v1/users/me/mail`(`receiveMail`)은 거래 메일까지 끄는 다른 스위치라 섞지 않는다(백엔드 Develop 기획서). v2 GM-1에는 현재 값(`marketingAgree`)이 없다 — backend-questions B17. v2 계획에 화면이 없다(plan P9 "범위 미정") |
 | `DELETE /me` | 회원 탈퇴 + 쿠키 삭제. 마스터인 호스트에 다른 활성 멤버나 OPEN·정산중 공연이 있으면 400 `USER_400_6`(위 마이페이지 절과 같다) |
 
@@ -460,7 +460,7 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 - FE 처리 규칙(`dd:session`이 있을 때만 401 → 재발급 한 번, 탭 간 직렬화, 세션 쿼리 결과 셋, 공개 GET은 쿠키 없이)은 [`tech-decisions.md`](./tech-decisions.md) §4 인증과 [`patterns.md`](./patterns.md) §5에 있다. 인증 API는 `/api/v1/auth` 아래라 v2 `api` 객체가 아니라 별도 `authApi` 인스턴스로 부른다. `authApi`에는 401 가로채기가 없다(재발급 호출이 다시 재발급을 부르지 않게).
 - 액세스 토큰 수명 기본 3600초, 리프레시 토큰도 기본 3600초(env로 바뀜). 리프레시 토큰은 로그인(기기)마다 따로 있다(사용자당 최대 10세션, #807 — §1).
 
-## 10. 알림 문구 (주문·호스트)
+## 10. 알림 문구 (주문·호스트·공연)
 
 서버가 `title`·`body`를 완성해서 준다. FE는 그대로 표시하고, 아이콘·카테고리·이동 화면만 `type`으로 정한다.
 
@@ -475,8 +475,10 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 | `ORDER_CANCELED_BY_HOST` | 티켓 주문이 취소되었습니다 | 같음 |
 | `ORDER_REFUND_COMPLETED` | 환불이 완료되었습니다 | 같음 |
 | `REFUND_ACCOUNT_CHANGED` | 환불 계좌가 변경되었어요 | 같음 |
+| `EVENT_REMINDER_D1` | 공연까지 D-1 남았습니다 | `eventName`, `hostName`, `startAt`. 본문 "'{공연명}' 공연까지 D-1 남았습니다. {yyyy.MM.dd HH:mm} 시작". 시작 24시간 전 ~ 1시간 전 창에서 한 번(#810) |
+| `EVENT_STARTING_SOON` | 1시간 뒤에 시작됩니다! | 같음. 본문 "'{공연명}' 공연이 1시간 뒤에 시작됩니다!". 시작 60분 전 ~ 시작 창에서 한 번 |
 
-선물 알림 6종의 본문은 §6 선물 절과 백엔드 통합 기획서 F7에 있다.
+선물 알림 6종의 본문은 §6 선물 절과 백엔드 통합 기획서 F7에 있다. 공연 리마인더 2종은 OPEN 공연의 유효 티켓 현재 소유자에게 사용자당 1건씩, `target.type=EVENT`(`targetId` = eventId)로 온다(`V2EventReminderDomainService` @432cce4).
 
 ## 11. 필드 명세가 있는 곳
 
