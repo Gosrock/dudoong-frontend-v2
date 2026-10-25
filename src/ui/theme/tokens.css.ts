@@ -123,7 +123,8 @@ export const vars = createGlobalTheme(':root', {
     body: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif',
     // Kartrider는 웹 임베드 라이선스 확인 전이라 불러오지 않는다 — 설치돼 있으면 쓰고, 아니면 본문 폰트(design-system §1)
     display: '"Kartrider Kor", "Pretendard Variable", Pretendard, sans-serif',
-    number: 'var(--font-saira), "Saira Condensed", "Pretendard Variable", sans-serif',
+    // 숫자도 Pretendard(디자이너 답 2026-10-25, design-requests Q14). Figma Title_number(Saira Condensed)는 쓰지 않는다
+    number: '"Pretendard Variable", Pretendard, sans-serif',
   },
   zIndex: { header: '100', sheet: '1000', modal: '1100', popover: '1150', toast: '1200' },
   shadow: { drop: '0 4px 4px rgba(0, 0, 0, 0.1)' },

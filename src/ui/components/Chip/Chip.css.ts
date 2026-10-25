@@ -5,9 +5,9 @@ import { typography } from '../../theme/typography.css';
 
 /**
  * Figma Tag 페이지 5종(design-system §3).
- * - 모서리 6(Ticket state · Concert state · money option)은 토큰에 없어 `radius[2]`(8)로 옮겼다(디자이너 확인, §4 표).
+ * - 모서리는 8(`radius[2]`) — 디자이너가 2026-10-25 Figma도 8로 통일했다(작은 호스트용 칩은 4, 아직 V 범위).
  * - tag(12)·role chip(`Radius/7`)은 높이의 절반이라 알약.
- * - 좌우 패딩 10은 토큰에 없어 8(`space[2]`) 또는 12(`space[3]`)로 옮겼다. Figma 고정 폭(72)은 최소 폭으로 둔다.
+ * - Ticket state chip은 2026-10-25 Figma에서 고정 폭 72를 풀고 내용 폭(좌우 12)이 됐다. 글자가 정해진 money option chip만 72.
  */
 export const chip = recipe({
   base: [
@@ -25,8 +25,8 @@ export const chip = recipe({
   ],
   variants: {
     variant: {
-      /** Ticket state chip 72×24 */
-      status: { minWidth: 72, borderRadius: vars.radius[2] },
+      /** Ticket state chip — 높이 24, 내용 폭(좌우 12) */
+      status: { borderRadius: vars.radius[2] },
       /** tag(공연 태그·티켓 수) 72×24, 알약 */
       tag: { borderRadius: vars.radius.full },
       /** role chip 57×24, Label/md, 알약 */
