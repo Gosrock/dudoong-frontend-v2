@@ -250,7 +250,6 @@ describe('익명이 확정된 사용자별 버튼', () => {
 describe('로그아웃', () => {
   it.each([
     ['200', authHandlers.byCookie],
-    ['401(낡은 액세스 쿠키)', authHandlers.logoutStaleAccess],
     ['502(HTML)', authHandlers.logoutServerError],
   ])(
     '응답이 %s여도 캐시·표시를 지우고 / 로 하드 이동 — 이전 사용자의 캐시가 남지 않는다',

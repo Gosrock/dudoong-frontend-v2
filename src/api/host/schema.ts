@@ -12,8 +12,10 @@ import { pageSchema } from '../shared/page';
 // ─── 호스트 홈 (GH-3) ────────────────────────────────────────
 
 /**
- * 공개 필드. 서버 프리페치(토큰 없음)로 받아 `['hosts', id]`에 둔다.
+ * 익명으로 받은 GH-3. 서버 프리페치(토큰 없음)로 받아 `['hosts', id]`에 둔다.
  * 사용자별 필드(`isFollowing`·`myRole`)는 일부러 뺐다 — 익명 값이 화면에 섞이지 않게 타입에서부터 막는다(tech-decisions §4).
+ * `contacts`는 공개 필드가 아니다: 비로그인에게는 전화·이메일이 가려져 온다(백엔드 #846). 로그인 사용자의 원문은
+ * `HostViewerSchema`(`['hosts', id, 'viewer']`)의 `contacts`에서 읽는다(`resolveContacts`, implementation-log A안).
  */
 export const HostDetailSchema = z.object({
   hostId: z.number().int(),
@@ -21,7 +23,7 @@ export const HostDetailSchema = z.object({
   introduce: z.string().nullable(),
   profileImageUrl: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
-  /** 대표 연락처. v2 연락처가 없으면 v1 연락처(전화·이메일) */
+  /** 대표 연락처. v2 연락처가 없으면 v1 연락처(전화·이메일). 익명 응답이면 전화·이메일은 가린 값(#846) */
   contacts: z.array(ContactSchema),
   /** 개설일 */
   createdAt: kstDateTime.nullable(),

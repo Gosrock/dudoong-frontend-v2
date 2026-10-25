@@ -40,7 +40,9 @@ describe('getErrorCode', () => {
 
 describe('HTTP 상태 판별', () => {
   it('HTTP 상태로 판별한다(본문 status가 아니다)', () => {
-    expect(isUnauthorized(new ApiError(401, 'AUTH_403_2', ''))).toBe(true);
+    expect(isUnauthorized(new ApiError(401, 'AUTH_401_2', ''))).toBe(true);
+    expect(isUnauthorized(new ApiError(401, 'GLOBAL_401_1', ''))).toBe(true);
+    expect(isUnauthorized(new ApiError(403, 'AUTH_403_2', ''))).toBe(false);
     expect(isForbidden(new ApiError(403, 'HOST_400_2', ''))).toBe(true);
     expect(isNotFound(new ApiError(404, 'Event_404_1', ''))).toBe(true);
     expect(isNotFound(new ApiError(400, 'Event_404_1', ''))).toBe(false);

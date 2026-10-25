@@ -41,7 +41,12 @@ const test45BankOrder = {
     optionAmount: 2000,
     discountAmount: 0,
     totalAmount: 14000,
-    account: { bankName: '신한은행', accountHolder: '고스락', accountNumber: '110-123-456789' },
+    account: {
+      bankName: '신한은행',
+      bankCode: '088',
+      accountHolder: '고스락',
+      accountNumber: '110-123-456789',
+    },
   },
   lines: [
     {
@@ -97,11 +102,48 @@ describe('응답 스키마', () => {
       toCheckout(findCheckoutTicket(CHECKOUT_EVENT_ID, id).ticket!).account;
     expect(at(CHECKOUT_TICKET.paidWithOptions)).toEqual({
       bankName: '신한은행',
+      bankCode: '088',
       accountHolder: '고스락',
       accountNumber: '110-123-456789',
     });
     expect(at(CHECKOUT_TICKET.soldOut)).toBeNull();
     expect(at(CHECKOUT_TICKET.freeFcfs)).toBeNull();
+  });
+
+  // #804 `V2MyOrderAccountResponse`·`V2MyRefundAccountResponse` — bankCode는 서버 추정, 실패면 null
+  it.each([
+    ['은행 코드 추정 성공', '088', '088'],
+    ['자유 입력 은행명이라 추정 실패 → null', null, null],
+  ])('계좌 bankCode: %s', (_, bankCode, expected) => {
+    const account = { ...test45BankOrder.payment.account, bankCode };
+    const parsed = MyOrderDetailSchema.parse({
+      ...test45BankOrder,
+      payment: { ...test45BankOrder.payment, account },
+      refundAccount: {
+        bankName: '신한은행',
+        bankCode,
+        accountHolder: '홍길동',
+        maskedAccountNumber: '******6789',
+      },
+    });
+    expect(parsed.payment?.account?.bankCode).toBe(expected);
+    expect(parsed.refundAccount?.bankCode).toBe(expected);
+  });
+
+  it('계좌에 bankCode 키가 없으면(#804 전 서버) 계약 위반으로 실패', () => {
+    const noCode = {
+      bankName: '신한은행',
+      accountHolder: '고스락',
+      accountNumber: '110-123-456789',
+    };
+    expect(
+      CheckoutSchema.safeParse({
+        ticket: toCheckout(
+          findCheckoutTicket(CHECKOUT_EVENT_ID, CHECKOUT_TICKET.paidNoOptions).ticket!,
+        ).ticket,
+        account: noCode,
+      }).success,
+    ).toBe(false);
   });
 });
 
@@ -151,7 +193,30 @@ describe('요청 스키마(P11/O-1) — 엄격', () => {
     ['입금자명 공백만', { depositorName: '   ' }],
     ['입금자명 21자', { depositorName: '가'.repeat(21) }],
     ['모르는 키', { couponId: 1 }],
+    ['동의 필드 없이 agreementVersion만', { agreementVersion: '2026-10' }],
+    ['동의 필드가 있는데 agreementVersion 없음', { hostProvisionAgreed: true }],
+    [
+      '동의 필드 false(true일 때만 보낸다)',
+      { hostProvisionAgreed: false, agreementVersion: '2026-10' },
+    ],
+    ['agreementVersion 51자', { hostProvisionAgreed: true, agreementVersion: 'v'.repeat(51) }],
   ])('%s → 실패', (_, patch) => {
     expect(CreateOrderRequestSchema.safeParse({ ...base, ...patch }).success).toBe(false);
+  });
+
+  // #840 동의 필드(선택) — 사용자가 체크한 것만 true로, 하나라도 있으면 agreementVersion을 같이
+  it.each([
+    ['동의 필드 없음(지금 화면 — Q42)', {}],
+    ['호스트 제공 동의 + 버전', { hostProvisionAgreed: true, agreementVersion: '2026-10' }],
+    [
+      '두둥: 호스트 제공 동의 + 고지 확인 + 버전',
+      {
+        hostProvisionAgreed: true,
+        dudoongTicketNoticeConfirmed: true,
+        agreementVersion: '2026-10',
+      },
+    ],
+  ])('%s → 통과', (_, patch) => {
+    expect(CreateOrderRequestSchema.safeParse({ ...base, ...patch }).success).toBe(true);
   });
 });

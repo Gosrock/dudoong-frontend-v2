@@ -16,22 +16,11 @@ describe('로그인·콜백 실패 판정(에러 코드별, patterns §24 P4b)',
       new ApiError(400, 'AUTH_400_1', ''),
       'restart',
     ],
-    [
-      '낡은 액세스 쿠키 401 AUTH_401_1 → 잠시 후 다시',
-      new ApiError(401, 'AUTH_401_1', ''),
-      'retryLater',
-    ],
-    [
-      '잘못된 액세스 쿠키 401 GLOBAL_401_1 → 잠시 후 다시',
-      new ApiError(401, 'GLOBAL_401_1', ''),
-      'retryLater',
-    ],
-    [
-      '토큰 없음 401 AUTH_403_2(본문 403) → 잠시 후 다시(HTTP 상태로 본다)',
-      new ApiError(401, 'AUTH_403_2', ''),
-      'retryLater',
-    ],
-    ['세션 상실(401) → 잠시 후 다시', new SessionLostError(), 'retryLater'],
+    // #792 뒤로 OAuth 경로는 낡은 액세스 쿠키에 401을 내지 않는다 — 혹시 오는 401은 다른 실패와 같다(retryLater 없음)
+    ['혹시 오는 401 AUTH_401_1 → 일반 실패', new ApiError(401, 'AUTH_401_1', ''), 'failed'],
+    ['혹시 오는 401 GLOBAL_401_1 → 일반 실패', new ApiError(401, 'GLOBAL_401_1', ''), 'failed'],
+    ['혹시 오는 401 AUTH_401_2 → 일반 실패', new ApiError(401, 'AUTH_401_2', ''), 'failed'],
+    ['세션 상실(SessionLostError) → 일반 실패', new SessionLostError(), 'failed'],
     [
       '카카오 인가 코드 재사용 400 KAKAO_KOE320 → 일반 실패',
       new ApiError(400, 'KAKAO_KOE320', ''),

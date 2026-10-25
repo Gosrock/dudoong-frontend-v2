@@ -77,7 +77,7 @@ export type KakaoCallbackState =
  * `/kakao/callback` 화면 상태. UI와 무관하게 상태만 돌려준다.
  * - `pending` → 성공이면 `redirecting`(세션 표시를 새로 세우고 돌아올 곳으로 하드 이동 — `finishLogin`)
  * - 신규 사용자면 `register` + 가입 폼(`useRegisterForm`)
- * - 실패: `USER_403_1` → `error/suspended`, 401 → `error/retryLater`, 그 밖 → `error/failed`,
+ * - 실패: `USER_403_1` → `error/suspended`, 그 밖 → `error/failed`,
  *   `AUTH_400_1`·동의 취소·코드 없음 → `restarting`(로그인 화면으로 replace, 돌아올 곳 유지)
  *
  * @param search 콜백 주소의 쿼리(`useSearchParams()` 또는 `location.search`)

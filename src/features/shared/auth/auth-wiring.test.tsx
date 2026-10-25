@@ -72,7 +72,7 @@ describe('재발급(registerAuth → setAuthHandlers.refresh)', () => {
     cleanup();
   });
 
-  it('정지·탈퇴 계정 토큰(익명 처리 401 AUTH_403_2) → 재발급 403 USER_403_1 → 세션 상실, 보호 화면이면 /login/expired', async () => {
+  it('정지·탈퇴 계정 토큰(익명 처리 401 AUTH_401_2) → 재발급 403 USER_403_1 → 세션 상실, 보호 화면이면 /login/expired', async () => {
     startSession();
     const qc = createTestQueryClient();
     const cleanup = registerAuth(qc);

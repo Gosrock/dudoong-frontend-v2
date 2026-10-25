@@ -39,7 +39,7 @@ export const PAYMENT_CHANNEL_LABEL: Record<'BANK_TRANSFER' | 'TOSS_TRANSFER', st
 /** 은행·예금주·계좌번호가 모두 있는지(결제 정보 영역을 그릴 수 있는지) */
 export const isCompleteAccount = (
   account: Account | null | undefined,
-): account is {
+): account is Account & {
   bankName: string;
   accountHolder: string;
   accountNumber: string;
@@ -54,8 +54,10 @@ export const isCompleteAccount = (
  * - 계좌번호는 숫자만 남긴다(하이픈·공백 제거)
  * - 계좌가 비었거나 금액이 0 이하면 `null`(버튼을 숨기고 직접 계좌이체로 안내)
  *
- * TODO(B3): 은행명은 호스트가 자유 입력한 값을 그대로 넣는다. 토스가 받는 은행명("국민" 등 줄임)과 맞는지는
- * 실기기에서 확인하고, B3 답(은행 목록·코드)이 오면 P12 은행 목록 값으로 바꾼다. 목록에 없는 값이면 링크를 숨긴다.
+ * TODO(B3): 은행 값은 아직 계좌의 `bankName`(호스트 자유 입력 또는 `bankCode`의 표시 이름)을 그대로 넣는다.
+ * 백엔드 #804로 계좌 응답에 `bankCode`(금융결제원 3자리, 추정 실패면 null)가 생겼지만, 토스 스킴이 받는 은행 값은
+ * 서버가 주지 않고(`BankCode` 주석 — 토스 공개 문서로 확인되지 않음) 근거 있는 매핑도 없다. `bankCode` → 토스 값 매핑과
+ * "`bankCode`가 null이면 토스 버튼 숨김"은 실기기 확인(P7) 뒤에 정한다 — 그 전에는 매핑 표를 만들지 않는다.
  */
 export function tossTransferLink(
   account: Account | null | undefined,

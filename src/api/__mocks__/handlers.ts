@@ -1,4 +1,5 @@
 import { authHandlers } from './auth.handlers';
+import { bankHandlers } from './bank.handlers';
 import { checkInHandlers } from './check-in.handlers';
 import { eventHandlers } from './event.handlers';
 import { giftHandlers } from './gift.handlers';
@@ -24,4 +25,5 @@ export const handlers = [
   ...orderHandlers.default,
   ...myTicketHandlers.default,
   ...checkInHandlers.default,
+  ...bankHandlers.default,
 ];

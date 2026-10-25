@@ -35,7 +35,11 @@ export type KakaoProfile = z.infer<typeof KakaoProfileSchema>;
  */
 export const TokenAndUserSchema = z.unknown();
 
-/** 5b `POST /oauth/kakao/register` 본문 `RegisterRequest`. `email`·`name`은 `@NotEmpty`(비면 400 `GLOBAL_400_1`) */
+/**
+ * 5b `POST /oauth/kakao/register` 본문 `RegisterRequest`(@432cce4). `email`·`name`은 `@NotEmpty`(비면 400 `GLOBAL_400_1`).
+ * 동의 필드(#840·#850)는 선택이고 사용자가 체크했을 때만 싣는다(`src/api/shared/agreement.ts`). 동의 강제가 켜지면
+ * `ageOver14Confirmed`·`termsAgreed`가 `true`가 아닐 때 400 `Agreement_400_1`.
+ */
 export type RegisterBody = {
   idToken: string;
   email: string;
@@ -44,4 +48,10 @@ export type RegisterBody = {
   profileImage: string | null;
   name: string;
   marketingAgree: boolean;
+  /** 만 14세 이상 확인(#840). TODO(Q42): v2 가입 계획에 칸이 없어 지금은 보내지 않는다 */
+  ageOver14Confirmed?: true;
+  /** 서비스 이용약관 동의(#850) — 가입 폼의 이용약관 체크 값 */
+  termsAgreed?: true;
+  /** 동의 필드를 하나라도 보낼 때만 `AGREEMENT_VERSION` */
+  agreementVersion?: string;
 };

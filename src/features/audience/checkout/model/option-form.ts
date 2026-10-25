@@ -185,6 +185,10 @@ const toAnswers = (answers: readonly AnswerValue[]) =>
  * - individual: `options{applyToAll: false, answers: []}` + `perTicketOptions`(길이 = 수량).
  *   `options`를 빼면 서버가 일괄로 본다(`V2CreateOrderRequest.applyToAll()`) — 반드시 함께 보낸다
  * - 입금자명은 계좌이체일 때만(무료는 서버가 무시하므로 보내지 않는다)
+ * - 동의 기록(#840) `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed`·`agreementVersion`은 보내지 않는다.
+ *   TODO(Q42): 값을 만들 칸(호스트 제공 동의 체크, 두둥티켓 고지 확인)이 v2 체크아웃 계획에 없다 — 칸 없이 `true`를 만들지 않는다.
+ *   칸이 생기면 폼 값으로 `agreementFields({...})`(`src/api/shared/agreement.ts`)를 펼친다. 백엔드가 동의 강제를 켜면 이 본문은
+ *   400 `Agreement_400_1`이다(mock `orderHandlers.agreementEnforced`)
  */
 export function toOrderBody(
   values: CheckoutFormValues,

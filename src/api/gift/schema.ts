@@ -73,12 +73,16 @@ export type GiftLandingViewer = z.infer<typeof GiftLandingViewerSchema>;
 /** 메모 최대 길이(앞뒤 공백 제외). 넘으면 `Gift_400_9` */
 export const GIFT_MEMO_MAX = 50;
 
-/** 대기 중 선물이 취소된 이유(`TicketGiftCancelReason`) */
+/**
+ * 대기 중 선물이 취소된 이유(`TicketGiftCancelReason` @432cce4).
+ * `ADMIN` = 운영자 강제 회수(내부 어드민, 백엔드 #819·#826). 보낸 사람 회수와 같은 규칙 — 대기 중일 때만, 알림 없음
+ */
 export const GIFT_CANCEL_REASONS = [
   'SENDER',
   'ORDER_CANCELED',
   'SENDER_WITHDRAWN',
   'EVENT_REMOVED',
+  'ADMIN',
 ] as const;
 export const GiftCancelReasonSchema = openEnum('GiftCancelReason', GIFT_CANCEL_REASONS);
 export type GiftCancelReason = z.infer<typeof GiftCancelReasonSchema>;

@@ -9,11 +9,13 @@ import {
   kakaoUserOf,
 } from './fixtures/kakao';
 import { me } from './fixtures/me';
-import { errors, fail, MOCK_ACCESS_TOKEN, MOCK_REFRESH_TOKEN, ok } from './respond';
+import { errors, MOCK_ACCESS_TOKEN, MOCK_REFRESH_TOKEN, ok } from './respond';
 
 /**
  * v1 인증(`/api/v1/auth`, api-contract §9) — 재발급·로그아웃(P4a)과 카카오 OAuth(P4b).
  * 쿠키는 백엔드처럼 응답 `Set-Cookie`로 세팅한다(FE는 쿠키를 쓰지 않는다).
+ * 재발급·OAuth·로그아웃은 `permitAll`이라 만료·위조 액세스 쿠키가 실려도 익명으로 통과한다(#792·#793) — 여기 핸들러는
+ * 액세스 쿠키를 보지 않는다. 그래서 "낡은 액세스 쿠키 401" 시나리오는 두지 않는다(백엔드에 없는 응답).
  *
  * 카카오 흐름 흉내: 1번 링크가 실제 카카오가 아니라 가짜 인증 화면(`/api/__mock/kakao/authorize`)을 가리킨다. 그 화면에서
  * 사용자(기존·신규·정지·이메일 없음)나 실패(동의 취소·state 불일치)를 고르면 `redirect_uri?code=mock-<who>&state=…`로 돌아온다.
@@ -186,25 +188,26 @@ export const authHandlers = {
       return loggedIn();
     }),
   ],
-  /** 1번 링크 발급이 401(낡은 액세스 쿠키, B6) */
-  kakaoLinkStaleAccess: [
-    http.get('*/api/v1/auth/oauth/kakao/link', ({ request }) => errors.expiredToken(request)),
-  ],
   /** 1번 링크 발급이 5xx */
   kakaoLinkServerError: [
     http.get('*/api/v1/auth/oauth/kakao/link', ({ request }) => errors.serverError(request)),
-  ],
-  /** 3번 코드 교환이 401(낡은 액세스 쿠키, B6) */
-  kakaoExchangeStaleAccess: [
-    http.get('*/api/v1/auth/oauth/kakao', ({ request }) => errors.expiredToken(request)),
   ],
   /** 3번 코드 교환이 400 `AUTH_400_1`(state 불일치) */
   kakaoStateMismatch: [
     http.get('*/api/v1/auth/oauth/kakao', ({ request }) => errors.stateMismatch(request)),
   ],
-  /** 5a 로그인이 401(낡은 액세스 쿠키, B6) */
-  kakaoLoginStaleAccess: [
-    http.post('*/api/v1/auth/oauth/kakao/login', ({ request }) => errors.expiredToken(request)),
+  /**
+   * 5b 가입 — 동의 강제를 켠 백엔드(`agreement.enforce=true`). `ageOver14Confirmed`·`termsAgreed`가 `true`가 아니면
+   * 400 `Agreement_400_1`(`RegisterRequest`·`AgreementService.requireAgreed` @432cce4). 통과하면 기본 가입으로 넘긴다
+   */
+  registerAgreementEnforced: [
+    http.post('*/api/v1/auth/oauth/kakao/register', async ({ request }) => {
+      const body = await readJson(request.clone());
+      if (body.ageOver14Confirmed !== true || body.termsAgreed !== true) {
+        return errors.agreementRequired(request);
+      }
+      return undefined;
+    }),
   ],
   /** 5b 가입이 5xx */
   kakaoRegisterServerError: [
@@ -220,18 +223,6 @@ export const authHandlers = {
   ],
   refreshServerError: [
     http.post('*/api/v1/auth/token/refresh', ({ request }) => errors.serverError(request)),
-  ],
-  /** 낡은 액세스 쿠키를 JWT 필터가 재발급 앞에서 거절(backend-questions B6) */
-  refreshStaleAccess: [
-    http.post('*/api/v1/auth/token/refresh', ({ request }) =>
-      fail(request, 401, 'AUTH_401_1', '인증 토큰이 만료되었습니다.'),
-    ),
-  ],
-  /** 만료·잘못된 액세스 쿠키가 실린 로그아웃(JWT 필터 401, 쿠키를 지우지 않는다) */
-  logoutStaleAccess: [
-    http.post('*/api/v1/auth/logout', ({ request }) =>
-      fail(request, 401, 'AUTH_401_1', '인증 토큰이 만료되었습니다.'),
-    ),
   ],
   logoutServerError: [
     http.post('*/api/v1/auth/logout', () => new HttpResponse('<html>502</html>', { status: 502 })),

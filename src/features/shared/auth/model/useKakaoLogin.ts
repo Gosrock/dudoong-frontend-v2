@@ -7,20 +7,20 @@ import { getErrorCode, getErrorStatus } from '@/api/errors';
 import { log } from '@/utils/log';
 
 import { browserLocation } from '../browser-location';
-import { type AuthFailure, classifyAuthFailure } from './auth-outcome';
+import type { AuthFailure } from './auth-outcome';
 import { saveLoginRedirect } from './login-redirect';
 
 export type KakaoLoginState =
   | { status: 'idle' }
   /** 링크를 받는 중이거나 카카오로 이동하는 중. 버튼을 막는다 */
   | { status: 'starting' }
-  | { status: 'error'; failure: Exclude<AuthFailure, 'suspended' | 'restart'> };
+  | { status: 'error'; failure: Extract<AuthFailure, 'failed'> };
 
 /**
  * 로그인 화면(`/login`, `/login/expired`)의 [카카오 로그인]. UI와 무관하게 상태와 동작만 돌려준다.
  *
  * `start()`: 돌아올 곳을 보관(`sessionStorage`, `login-redirect.ts`) → 1 `GET /oauth/kakao/link`(쿠키 포함 — `oauth_state`
- * 쿠키를 받는다) → 받은 카카오 주소로 이동. 실패하면 401은 `retryLater`(낡은 액세스 쿠키, B6), 그 밖은 `failed`.
+ * 쿠키를 받는다) → 받은 카카오 주소로 이동. 실패하면 `failed`(링크 발급은 `permitAll`이라 낡은 액세스 쿠키로 막히지 않는다 — #792).
  *
  * 카카오에서 뒤로 와 이 화면이 bfcache로 복원되면 `starting`에 멈춰 있지 않게 `idle`로 돌린다.
  *
@@ -51,9 +51,8 @@ export function useKakaoLogin(redirect: string | null | undefined) {
       browserLocation.assign(link);
     } catch (e) {
       starting.current = false;
-      const failure = classifyAuthFailure(e);
       log('warn', 'auth.kakao_link_failed', { status: getErrorStatus(e), code: getErrorCode(e) });
-      setState({ status: 'error', failure: failure === 'retryLater' ? 'retryLater' : 'failed' });
+      setState({ status: 'error', failure: 'failed' });
     }
   }, [redirect]);
 

@@ -22,16 +22,28 @@ describe('api', () => {
     server.use(
       http.get('*/api/v2/echo', () =>
         HttpResponse.json(
-          { success: false, status: 403, code: 'AUTH_403_2', reason: '토큰 없음', timeStamp: '' },
+          { success: false, status: 401, code: 'AUTH_401_2', reason: '토큰 없음', timeStamp: '' },
           { status: 401 },
         ),
       ),
     );
     await expect(api.get('echo', Echo)).rejects.toMatchObject({
       status: 401,
-      code: 'AUTH_403_2',
+      code: 'AUTH_401_2',
       reason: '토큰 없음',
     });
+  });
+
+  it('본문 status가 HTTP 상태와 달라도 HTTP 상태를 쓴다(#808 전 토큰 없음 = HTTP 401 + 본문 403 같은 응답)', async () => {
+    server.use(
+      http.get('*/api/v2/echo', () =>
+        HttpResponse.json(
+          { success: false, status: 403, code: 'AUTH_403_2', reason: '', timeStamp: '' },
+          { status: 401 },
+        ),
+      ),
+    );
+    await expect(api.get('echo', Echo)).rejects.toMatchObject({ status: 401, code: 'AUTH_403_2' });
   });
 
   it('본문이 JSON이 아니면(nginx HTML 502) NON_JSON', async () => {

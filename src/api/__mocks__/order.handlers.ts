@@ -236,6 +236,26 @@ const freeFcfsConfirmFails: HttpHandler[] = [
 ];
 
 /**
+ * 동의 강제를 켠 백엔드(`agreement.enforce=true`, #840). `hostProvisionAgreed`가 `true`가 아니거나, 두둥티켓 주문인데
+ * `dudoongTicketNoticeConfirmed`가 `true`가 아니면 400 `Agreement_400_1`(`AgreementService.requireOrderAgreements` @432cce4).
+ * 통과하면 기본 처리로 넘긴다
+ */
+const agreementEnforced: HttpHandler[] = [
+  http.post('*/api/v2/me/orders', async ({ request }) => {
+    const body = (await request.clone().json()) as Body;
+    const { ticket } = findCheckoutTicket(Number(body.eventId), Number(body.ticketItemId));
+    const dudoong = ticket?.payType === 'DUDOONG';
+    if (
+      body.hostProvisionAgreed !== true ||
+      (dudoong && body.dudoongTicketNoticeConfirmed !== true)
+    ) {
+      return errors.agreementRequired(request);
+    }
+    return undefined;
+  }),
+];
+
+/**
  * 이름 붙인 세트(plan §0). 테스트는 `server.use(...orderHandlers.createFails('Order_400_22'))`처럼 앞에 끼운다.
  * - `default` — 기본 목록(`handlers.ts`)에 들어 있는 O-0·O-1·O-3
  * - `checkout(patch)` — O-0이 티켓 값을 바꿔 응답(재고 갱신 등)
@@ -244,6 +264,7 @@ export const orderHandlers = {
   default: [checkout, create, detail],
   createFails,
   freeFcfsConfirmFails,
+  agreementEnforced,
   checkoutWith: (patch: Partial<PublicTicketItem>): HttpHandler[] => [
     http.get(
       '*/api/v2/events/:eventId/ticket-items/:ticketItemId/checkout',

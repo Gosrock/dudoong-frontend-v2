@@ -10,9 +10,13 @@ import { findPublicEvent, type MockEvent } from './event';
  * 계약 테스트(plan P7)가 두 구현을 맞대어 보게 하려는 것이다.
  */
 
-/** 두둥티켓 입금 계좌(test_45 `ACCOUNT`). 은행명은 호스트 자유 입력이다(backend-questions B3) */
+/**
+ * 두둥티켓 입금 계좌(test_45 `ACCOUNT`). 은행명은 호스트 자유 입력이다(backend-questions B3).
+ * `bankCode`는 서버가 은행명으로 추정한 값(#804 — `BankCode.fromName("신한은행")` = SHINHAN `088`)
+ */
 export const MOCK_ACCOUNT: Account = {
   bankName: '신한은행',
+  bankCode: '088',
   accountHolder: '고스락',
   accountNumber: '110-123-456789',
 };

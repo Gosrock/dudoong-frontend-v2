@@ -1,4 +1,5 @@
 import type { KakaoProfile, RegisterBody } from '@/api/auth/schema';
+import { agreementFields } from '@/api/shared/agreement';
 
 /**
  * 회원가입 폼 규칙(plan P4b — 가입 폼 값·동의 상태). 화면 모양(오버레이)은 V에서 정한다.
@@ -8,6 +9,7 @@ import type { KakaoProfile, RegisterBody } from '@/api/auth/schema';
  *
  * 동의: 서비스 이용약관(`/meta/term`)·개인정보 처리방침(`/meta/privacy`)은 필수, 마케팅 수신은 선택(`marketingAgree`).
  * v1은 "약관 동의하고 시작하기" 한 버튼이었다 — 항목을 몇 개로 보일지는 V(디자인)에서 정하고, 필수 판정은 여기 하나다.
+ * 서버 동의 기록(#840·#850)에는 이용약관 체크를 `termsAgreed`로 싣는다. 처리방침 동의는 서버가 기록하지 않는다(화면에서만 받는다).
  */
 
 export type RegisterValues = {
@@ -60,7 +62,12 @@ export const hasAllConsents = (consents: RegisterConsents) =>
 export const canSubmitRegister = (values: RegisterValues, consents: RegisterConsents) =>
   Object.keys(validateRegister(values)).length === 0 && hasRequiredConsents(consents);
 
-/** 제출 본문. 앞뒤 공백을 지우고, 빈 전화번호는 `null` */
+/**
+ * 제출 본문. 앞뒤 공백을 지우고, 빈 전화번호는 `null`.
+ * 동의 기록: 이용약관 체크가 켜져 있으면 `termsAgreed: true` + `agreementVersion`(체크하지 않았으면 두 키 모두 없다).
+ * TODO(Q42): 만 14세 확인(`ageOver14Confirmed`)은 v2 가입 계획에 칸이 없어 보내지 않는다 — 칸 없이 `true`를 만들지 않는다.
+ * 백엔드가 동의 강제를 켜면 이 본문은 400 `Agreement_400_1`이 된다(mock `authHandlers.registerAgreementEnforced`).
+ */
 export function toRegisterBody(input: {
   idToken: string;
   values: RegisterValues;
@@ -75,5 +82,6 @@ export function toRegisterBody(input: {
     profileImage: input.profileImage,
     name: input.values.name.trim(),
     marketingAgree: input.consents.marketing,
+    ...agreementFields({ termsAgreed: input.consents.terms }),
   };
 }

@@ -83,7 +83,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       const { id, host } = findHost(params.hostId);
       if (id === null) return errors.badRequest(request);
       if (!host) return hostNotFound(request);
-      // 비로그인(쿠키 없음·만료)이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846)
+      // 비로그인(쿠키 없음·만료·위조 — #792로 익명 처리)이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846)
       return ok(
         hasAccessToken(cookies) ? viewer(host) : { ...host, contacts: maskContacts(host.contacts) },
       );

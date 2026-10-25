@@ -18,7 +18,12 @@ import {
   tossTransferLink,
 } from './payment';
 
-const account = { bankName: '신한은행', accountHolder: '고스락', accountNumber: '110-123-456789' };
+const account = {
+  bankName: '신한은행',
+  bankCode: '088',
+  accountHolder: '고스락',
+  accountNumber: '110-123-456789',
+};
 
 describe('3분기 · CTA', () => {
   it.each([
@@ -62,6 +67,18 @@ describe('토스 송금 링크', () => {
       amount: '50000',
     });
   });
+
+  it.each([
+    ['088(추정 성공)', '088'],
+    ['null(자유 입력이라 추정 실패)', null],
+  ])(
+    'bankCode가 %s여도 은행 값은 아직 bankName — 토스 매핑은 근거가 없어 미정(B3, #804)',
+    (_, bankCode) => {
+      const link = tossTransferLink({ ...account, bankCode }, 1000)!;
+      const q = new URL(link.replace('supertoss://send', 'https://x.test/send')).searchParams;
+      expect(q.get('bank')).toBe('신한은행');
+    },
+  );
 
   it.each([
     ['금액 0(무료)', account, 0],

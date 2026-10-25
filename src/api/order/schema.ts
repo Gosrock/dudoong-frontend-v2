@@ -1,12 +1,13 @@
 import { z } from 'zod';
 
 import { EventDisplayStatusSchema } from '../event/schema';
+import { AGREEMENT_VERSION_MAX } from '../shared/agreement';
 import { openEnum } from '../shared/open-enum';
 import { PublicTicketItemSchema, TicketPayTypeSchema } from '../ticket-item/schema';
 import { MAX_ORDER_QUANTITY } from './price';
 
 /**
- * 사용자 주문(11 문서) 스키마. 기준: 백엔드 dev 24aa595
+ * 사용자 주문(11 문서) 스키마. 기준: 백엔드 dev 24aa595(계좌 `bankCode`·동의 필드는 432cce4)
  * - 응답 `v2/order/dto/response/V2CheckoutResponse.kt`(G11/O-0), `V2MyOrderResponses.kt`(`V2MyOrderDetailResponse` — O-1·O-3·O-4 공통)
  * - 요청 `v2/order/dto/request/V2OrderRequests.kt`(`V2CreateOrderRequest`) + 도메인 검증 `V2UserOrderDomainService`
  * - 요청·응답 예시 `e2e-tests/test_45_v2_order.py`
@@ -51,9 +52,18 @@ export const OrderGiftStateSchema = openEnum('OrderGiftState', ORDER_GIFT_STATES
 
 // ─── 응답 ────────────────────────────────────────────────────
 
-/** 입금 계좌. 어디서나 같은 이름(api-contract §1). 은행명은 호스트 자유 입력 30자(B3) */
+/**
+ * 은행 코드(금융결제원 3자리, `BankCode` @432cce4 — #804). 응답에서는 서버가 `bankName`으로 추정한 값이고 모르는 은행명이면 `null`.
+ * 요청 계좌(티켓 계좌 P10/T-2·T-3, 환불 계좌 P11/O-4·O-5)에서는 선택 — 보내면 `bankName`보다 우선하고(서버가 표시 이름으로
+ * 채운다) 모르는 코드는 400. 값은 은행 목록 `GET /api/v2/banks`의 `code`. 요청 스키마는 그 화면(P9·P12)에서 만든다.
+ */
+export const BankCodeSchema = z.string();
+
+/** 입금 계좌. 어디서나 같은 이름(api-contract §1). 은행명은 호스트 자유 입력 30자 또는 `bankCode`의 표시 이름(B3) */
 export const AccountSchema = z.object({
   bankName: z.string().nullable(),
+  /** `V2MyOrderAccountResponse.bankCode`(#804) — 추정 실패면 null */
+  bankCode: BankCodeSchema.nullable(),
   accountHolder: z.string().nullable(),
   accountNumber: z.string().nullable(),
 });
@@ -114,6 +124,8 @@ export const OrderLineSchema = z.object({
 
 export const MyRefundAccountSchema = z.object({
   bankName: z.string(),
+  /** `V2MyRefundAccountResponse.bankCode`(#804) — 추정 실패면 null */
+  bankCode: BankCodeSchema.nullable(),
   accountHolder: z.string(),
   maskedAccountNumber: z.string(),
 });
@@ -187,6 +199,9 @@ export type OrderAnswer = z.infer<typeof OrderAnswerSchema>;
  * - 티켓별: `options{applyToAll: false, answers: []}` + `perTicketOptions`(길이 = 수량). **`options`를 빼면 서버가
  *   `applyToAll = true`로 보고 `perTicketOptions`를 무시한다**(`V2CreateOrderRequest.applyToAll()`)
  * - 두둥티켓은 `BANK_TRANSFER`·`TOSS_TRANSFER` + 입금자명, 무료는 `FREE`(입금자명 무시)
+ * - 동의 기록(#840, 모두 선택): `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed`(두둥만)·`agreementVersion`.
+ *   사용자가 체크했을 때만 `true`로 싣고(`src/api/shared/agreement.ts`), `agreementVersion`은 동의 필드가 하나라도 있을 때만.
+ *   TODO(Q42): 두 동의를 만들 화면 칸이 v2 체크아웃 계획에 없어 지금 화면은 보내지 않는다
  */
 export const CreateOrderRequestSchema = z
   .strictObject({
@@ -204,6 +219,9 @@ export const CreateOrderRequestSchema = z
     paymentChannel: z.enum(PAYMENT_CHANNELS),
     depositorName: z.string().trim().min(1).max(DEPOSITOR_NAME_MAX).optional(),
     agreeRefundPolicy: z.literal(true),
+    hostProvisionAgreed: z.literal(true).optional(),
+    dudoongTicketNoticeConfirmed: z.literal(true).optional(),
+    agreementVersion: z.string().min(1).max(AGREEMENT_VERSION_MAX).optional(),
   })
   .superRefine((body, ctx) => {
     if (body.options.applyToAll) {
@@ -223,6 +241,15 @@ export const CreateOrderRequestSchema = z
         code: 'custom',
         path: ['depositorName'],
         message: '계좌이체는 입금자명 필수',
+      });
+    }
+    const agreed =
+      body.hostProvisionAgreed !== undefined || body.dudoongTicketNoticeConfirmed !== undefined;
+    if (agreed !== (body.agreementVersion !== undefined)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['agreementVersion'],
+        message: '동의 필드를 보낼 때만 같이 보낸다',
       });
     }
   });

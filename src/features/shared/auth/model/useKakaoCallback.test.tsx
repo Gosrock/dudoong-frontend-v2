@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authHandlers, refreshed } from '@/api/__mocks__/auth.handlers';
 import { kakaoProfiles } from '@/api/__mocks__/fixtures/kakao';
-import { errors, fail } from '@/api/__mocks__/respond';
+import { errors, EXPIRED_ACCESS_TOKEN, fail, FORGED_ACCESS_TOKEN } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { readSessionFlag, resetSessionFlagStateForTest, startSession } from '@/api/session-flag';
 import { renderWithProviders } from '@/test/render';
@@ -175,6 +175,9 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
           profileImage: 'http://k.kakaocdn.net/dn/mock/new.jpg',
           name: '새내기',
           marketingAgree: false,
+          // 이용약관 체크 값(#850). 만 14세(ageOver14Confirmed)는 칸이 없어 키가 없다(Q42)
+          termsAgreed: true,
+          agreementVersion: '2026-10',
         },
         credentials: 'include',
       },
@@ -191,6 +194,20 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     const sent = recordRequests();
     await act(() => form().submit());
     expect((await sent.list())[0]?.body).toMatchObject({ marketingAgree: true });
+  });
+
+  it('동의 강제가 켜진 백엔드(Agreement_400_1 — 만 14세 미전송)면 일반 실패로 남고 이동하지 않는다', async () => {
+    server.use(...authHandlers.registerAgreementEnforced);
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => form().setAllConsents(true));
+    const sent = recordRequests();
+    await act(() => form().submit());
+    const [post] = await sent.list();
+    expect(post?.body).toMatchObject({ termsAgreed: true, agreementVersion: '2026-10' });
+    expect(post?.body).not.toHaveProperty('ageOver14Confirmed');
+    expect(form().error).toBe('failed');
+    expect(form().submitting).toBe(false);
+    expect(replace).not.toHaveBeenCalled();
   });
 
   it('카카오 이메일이 없으면 칸 오류가 있고 제출할 수 없다. 적으면 제출된다', async () => {
@@ -283,14 +300,26 @@ describe('카카오 콜백 — 실패(에러 코드별)', () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith('/login?redirect=%2Fgate-check'));
   });
 
-  it.each([
-    ['코드 교환', authHandlers.kakaoExchangeStaleAccess],
-    ['로그인', authHandlers.kakaoLoginStaleAccess],
-  ])('%s이 401(낡은 액세스 쿠키) → "잠시 후 다시 시도" 상태', async (_, handlers) => {
-    server.use(...handlers);
+  it.each([EXPIRED_ACCESS_TOKEN, FORGED_ACCESS_TOKEN])(
+    '액세스 쿠키(%s)가 남아 있어도 코드 교환·로그인은 익명으로 통과해 원래 화면으로 간다(#792)',
+    async (token) => {
+      document.cookie = `accessToken=${token}; path=/`;
+      try {
+        callback('code=mock-existing&state=s1');
+        await waitFor(() => expect(replace).toHaveBeenCalledWith('/gate-check'));
+      } finally {
+        document.cookie = 'accessToken=; path=/; max-age=0';
+      }
+    },
+  );
+
+  it('혹시 로그인이 401이면 일반 실패(retryLater 분기는 #792로 없앴다)', async () => {
+    server.use(
+      http.post('*/api/v1/auth/oauth/kakao/login', ({ request }) => errors.expiredToken(request)),
+    );
     const { result } = callback('code=mock-existing&state=s1');
     await waitFor(() => expect(result.current.status).toBe('error'));
-    expect(result.current).toMatchObject({ failure: 'retryLater' });
+    expect(result.current).toMatchObject({ failure: 'failed' });
     expect(replace).not.toHaveBeenCalled();
   });
 

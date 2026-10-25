@@ -23,10 +23,6 @@ export type AuthHandlers = {
 export const REFRESH_LOCK_NAME = 'dudoong-auth-refresh';
 /** 잠금 대기 상한. 넘기면 일시 오류(잠금을 쥔 탭이 멈춰도 무한히 기다리지 않게) */
 export const LOCK_WAIT_MS = 15_000;
-/** B6 — 낡은 액세스 쿠키를 JWT 필터가 재발급 앞에서 거절했을 때 다시 시도하기까지(backend-questions B6) */
-export const STALE_ACCESS_RETRY_MS = 1_000;
-/** 재발급이 이 코드의 401이면 쿠키가 만료되는 짧은 구간이라 한 번 더 시도한다 */
-const STALE_ACCESS_CODES = new Set(['AUTH_401_1', 'GLOBAL_401_1']);
 
 let handlers: AuthHandlers | null = null;
 let sessionLostFired = false;
@@ -67,30 +63,23 @@ class RefreshRejected extends Error {
   }
 }
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 /**
  * 재발급 한 번과 결과 판정.
  * - 2xx(본문이 이상해도 상태가 2xx면) 성공
- * - 401 `AUTH_401_1`·`GLOBAL_401_1` → 약 1초 뒤 한 번 더. 또 401이면 상실
- * - 그 밖의 4xx(403 `AUTH_403_1`, `USER_403_1`, 404 `USER_404_1`, 400) → 상실(`RefreshRejected`)
+ * - 4xx(403 `AUTH_403_1`, `USER_403_1`, 404 `USER_404_1`, 400, 401 포함) → 상실(`RefreshRejected`)
  * - 5xx·네트워크·타임아웃 → 일시 오류. 재발급 응답의 에러를 그대로 던진다(5xx 재시도 규칙이 적용되게)
+ *
+ * 재발급은 `permitAll`이라 만료·위조 액세스 쿠키가 실려도 401이 나지 않는다(백엔드 #792, backend-questions B6 해결).
+ * 그 전(24aa595)에 두던 "401 `AUTH_401_1`·`GLOBAL_401_1`이면 1초 뒤 한 번 더"는 지웠다 — 지금 401은 다른 4xx와 같이 상실이다.
  */
 async function refreshOnce(refresh: AuthHandlers['refresh']) {
-  for (let attempt = 0; ; attempt++) {
-    try {
-      await refresh();
-      return;
-    } catch (e) {
-      if (!(e instanceof ApiError)) throw e;
-      if (e.status >= 200 && e.status < 300) return;
-      if (e.status === 401 && STALE_ACCESS_CODES.has(e.code) && attempt === 0) {
-        await sleep(STALE_ACCESS_RETRY_MS);
-        continue;
-      }
-      if (e.status >= 400 && e.status < 500) throw new RefreshRejected(e);
-      throw e;
-    }
+  try {
+    await refresh();
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+    if (e.status >= 200 && e.status < 300) return;
+    if (e.status >= 400 && e.status < 500) throw new RefreshRejected(e);
+    throw e;
   }
 }
 

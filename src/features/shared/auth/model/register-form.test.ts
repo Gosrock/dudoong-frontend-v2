@@ -81,7 +81,32 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
       profileImage: 'http://k.kakaocdn.net/dn/mock/new.jpg',
       name: '새내기',
       marketingAgree: true,
+      termsAgreed: true,
+      agreementVersion: '2026-10',
     });
+  });
+
+  // 동의 기록(#840·#850): 사용자가 체크한 값만. 만 14세는 칸이 없어 보내지 않는다(Q42)
+  it.each([
+    [
+      '이용약관 체크 → termsAgreed·agreementVersion',
+      true,
+      { termsAgreed: true, agreementVersion: '2026-10' },
+    ],
+    ['이용약관 미체크 → 동의 키가 하나도 없다', false, {}],
+  ])('%s', (_, terms, expected) => {
+    const body = toRegisterBody({
+      idToken: 't',
+      values: filled,
+      consents: { terms, privacy: true, marketing: false },
+      profileImage: null,
+    });
+    const agreementKeys = ['termsAgreed', 'ageOver14Confirmed', 'agreementVersion'] as const;
+    const picked = Object.fromEntries(
+      agreementKeys.filter((k) => k in body).map((k) => [k, body[k]]),
+    );
+    expect(picked).toEqual(expected);
+    expect('ageOver14Confirmed' in body).toBe(false);
   });
 
   it('전화번호가 있으면 그대로, 마케팅 미동의는 false', () => {

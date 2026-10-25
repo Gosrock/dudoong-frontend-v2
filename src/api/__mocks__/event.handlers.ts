@@ -61,7 +61,7 @@ export const eventHandlers = [
     return ok(paginate(matched, paging.page, paging.size));
   }),
 
-  // 비로그인(쿠키 없음·만료) 요청이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846). 공개 쿼리는 `credentials: 'omit'`라 언제나 가린 값
+  // 비로그인(쿠키 없음·만료·위조 — #792로 익명 처리) 요청이면 연락처의 전화·이메일을 가린다(백엔드 #822/#846). 공개 쿼리는 `credentials: 'omit'`라 언제나 가린 값
   http.get('*/api/v2/events/:eventId', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
     if (id === null) return errors.badRequest(request);

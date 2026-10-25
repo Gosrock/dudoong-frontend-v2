@@ -29,11 +29,10 @@ export type RegisterInput = { idToken: string; profile: KakaoProfile };
 /**
  * 제출 실패.
  * - `invalid` — 400 `GLOBAL_400_1`(이메일·이름이 비었거나 형식 오류). 폼에서 고쳐 다시 낸다
- * - `retryLater` — 401(낡은 액세스 쿠키, B6)
  * - `suspended` — 이미 가입한 정지 계정(`USER_400_1` → 로그인 → `USER_403_1`)
  * - `failed` — 그 밖(5xx·네트워크, 카카오 id 토큰 만료 `KAKAO_KOE403` 등). 다시 내거나 로그인을 처음부터
  */
-export type RegisterSubmitError = 'invalid' | 'retryLater' | 'suspended' | 'failed';
+export type RegisterSubmitError = 'invalid' | 'suspended' | 'failed';
 
 const ALREADY_REGISTERED = 'USER_400_1';
 const VALIDATION_FAILED = 'GLOBAL_400_1';
@@ -128,6 +127,6 @@ export type RegisterForm = ReturnType<typeof useRegisterForm>;
 function registerError(e: unknown): RegisterSubmitError {
   if (getErrorCode(e) === VALIDATION_FAILED) return 'invalid';
   const failure = classifyAuthFailure(e);
-  if (failure === 'retryLater' || failure === 'suspended') return failure;
+  if (failure === 'suspended') return failure;
   return 'failed';
 }

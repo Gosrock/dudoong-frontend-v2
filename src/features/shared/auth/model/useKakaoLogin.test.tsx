@@ -2,6 +2,7 @@ import { act, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { authHandlers } from '@/api/__mocks__/auth.handlers';
+import { EXPIRED_ACCESS_TOKEN, FORGED_ACCESS_TOKEN } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { renderWithProviders } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -57,13 +58,20 @@ describe('로그인 화면 [카카오 로그인]', () => {
     expect(await sent.lines()).toEqual(['GET /api/v1/auth/oauth/kakao/link']);
   });
 
-  it('링크 발급이 401(낡은 액세스 쿠키)이면 "잠시 후 다시 시도" 상태로, 이동하지 않는다', async () => {
-    server.use(...authHandlers.kakaoLinkStaleAccess);
-    const { result } = renderHook(() => useKakaoLogin(null));
-    await act(() => result.current.start());
-    expect(result.current.state).toEqual({ status: 'error', failure: 'retryLater' });
-    expect(assign).not.toHaveBeenCalled();
-  });
+  it.each([EXPIRED_ACCESS_TOKEN, FORGED_ACCESS_TOKEN])(
+    '액세스 쿠키(%s)가 남아 있어도 링크 발급은 익명으로 통과해 카카오로 간다(#792)',
+    async (token) => {
+      document.cookie = `accessToken=${token}; path=/`;
+      try {
+        const { result } = renderHook(() => useKakaoLogin(null));
+        await act(() => result.current.start());
+        expect(result.current.state).toEqual({ status: 'starting' });
+        expect(assign).toHaveBeenCalledTimes(1);
+      } finally {
+        document.cookie = 'accessToken=; path=/; max-age=0';
+      }
+    },
+  );
 
   it('링크 발급이 5xx면 일반 실패이고 다시 누를 수 있다', async () => {
     server.use(...authHandlers.kakaoLinkServerError);
@@ -88,14 +96,16 @@ describe('로그인 화면 [카카오 로그인]', () => {
 });
 
 describe('로그인 화면 마크업(훅 상태를 그대로 보여 준다)', () => {
-  it('?redirect= 를 보관하고, 401이면 안내 문구가 보인다', async () => {
+  it('?redirect= 를 보관하고, 링크 발급이 실패하면 안내 문구가 보인다', async () => {
     search.value = new URLSearchParams('redirect=%2Ftickets');
-    server.use(...authHandlers.kakaoLinkStaleAccess);
+    server.use(...authHandlers.kakaoLinkServerError);
     const { user } = renderWithProviders(<LoginView />);
     expect(screen.getByRole('heading', { name: '로그인' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '카카오 로그인/회원가입' }));
     await waitFor(() =>
-      expect(screen.getByRole('alert')).toHaveTextContent('잠시 후 다시 시도해 주세요.'),
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        '로그인하지 못했어요. 다시 시도해 주세요.',
+      ),
     );
     expect(readLoginRedirect()).toBe('/tickets');
   });

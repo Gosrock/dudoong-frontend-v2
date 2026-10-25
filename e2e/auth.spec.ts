@@ -117,32 +117,21 @@ test.describe('카카오 로그인 콜백', () => {
     );
   });
 
-  test('콜백이 401(낡은 액세스 쿠키)이면 "잠시 후 다시 시도해 주세요"', async ({
+  test('낡은(위조) 액세스 쿠키가 남아 있어도 링크 발급·콜백은 익명으로 통과해 로그인된다(#792)', async ({
     page,
     mockApi,
   }) => {
-    mockApi.use(...authHandlers.kakaoExchangeStaleAccess);
-    await setMockSession(page, 'anonymous');
-    await page.goto('/login');
+    await setMockSession(page, 'forged');
+    await page.goto('/login?redirect=%2Fgate-check');
     await loginWithKakao(page, '기존 사용자로 로그인');
-    await expect(
-      page.getByRole('alert').filter({ hasText: '잠시 후 다시 시도해 주세요.' }),
-    ).toBeVisible();
-    expect(await readSessionFlag(page)).toBeNull();
-  });
-
-  test('로그인 화면의 링크 발급이 401이면 "잠시 후 다시 시도해 주세요"이고 이동하지 않는다', async ({
-    page,
-    mockApi,
-  }) => {
-    mockApi.use(...authHandlers.kakaoLinkStaleAccess);
-    await setMockSession(page, 'anonymous');
-    await page.goto('/login');
-    await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
-    await expect(
-      page.getByRole('alert').filter({ hasText: '잠시 후 다시 시도해 주세요.' }),
-    ).toBeVisible();
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/gate-check$/);
+    await expect(page.getByText(LOGGED_IN_TEXT)).toBeVisible();
+    // 카카오 흐름(링크·코드 교환·로그인)에는 401이 없다
+    expect(
+      mockApi
+        .calls()
+        .filter((c) => c.path.startsWith('/api/v1/auth/oauth/kakao') && c.status === 401),
+    ).toEqual([]);
   });
 });
 
@@ -168,6 +157,19 @@ test.describe('세션 상태별 보호 화면 진입', () => {
     mockApi,
   }) => {
     await setMockSession(page, 'expired');
+    await page.goto('/gate-check');
+    await expect(page.getByText(LOGGED_IN_TEXT)).toBeVisible();
+    await expect(page).toHaveURL(/\/gate-check$/);
+    expect(
+      mockApi.calls().filter((c) => c.path.startsWith('/api/v1/auth/token/refresh')).length,
+    ).toBe(1);
+  });
+
+  test('위조 액세스 쿠키(401 GLOBAL_401_1 + 쿠키 삭제)면 재발급 뒤 화면이 정상 렌더(#792)', async ({
+    page,
+    mockApi,
+  }) => {
+    await setMockSession(page, 'forged');
     await page.goto('/gate-check');
     await expect(page.getByText(LOGGED_IN_TEXT)).toBeVisible();
     await expect(page).toHaveURL(/\/gate-check$/);

@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 import { ApiError } from '../errors';
 import {
@@ -27,7 +28,11 @@ import { MISSING_EVENT_ID } from './fixtures/event';
 import { MISSING_GIFT_TOKEN } from './fixtures/gift';
 import { MISSING_HOST_ID } from './fixtures/host';
 import { meHandlers } from './me.handlers';
+import { EXPIRED_ACCESS_TOKEN, FORGED_ACCESS_TOKEN, MOCK_REFRESH_TOKEN } from './respond';
 import { server } from './server';
+
+/** 은행 목록 응답 모양(`V2BankResponse`). 화면 스키마는 P9·P12에서 만든다 — 여기서는 mock 계약만 본다 */
+const BankListSchema = z.array(z.object({ code: z.string(), name: z.string() }));
 
 /** 조회 정의(queryOptions) + 기본 mock 핸들러 + 스키마가 맞물리는지. 응답은 실제 `api`·zod 파싱을 탄다 */
 
@@ -226,9 +231,9 @@ describe('GM-1 세션', () => {
     expect(SESSION_STALE_MS).toBe(300_000);
   });
 
-  it('쿠키가 없으면 HTTP 401 AUTH_403_2 — 세션 표시가 없으면 GM-1은 null(익명)', async () => {
+  it('쿠키가 없으면 HTTP 401 AUTH_401_2(본문 status도 401, #808) — 세션 표시가 없으면 GM-1은 null(익명)', async () => {
     const e = await rejection(api.get('me', MeSchema));
-    expect(e).toMatchObject({ status: 401, code: 'AUTH_403_2' });
+    expect(e).toMatchObject({ status: 401, code: 'AUTH_401_2' });
     await expect(client().fetchQuery(meQuery())).resolves.toBeNull();
   });
 
@@ -242,5 +247,87 @@ describe('GM-1 세션', () => {
     server.use(...meHandlers.loggedIn);
     const me = await client().fetchQuery(meQuery());
     expect(me?.hosts[0]).toMatchObject({ hostId: 11, myRole: 'MASTER' });
+  });
+});
+
+/** 액세스 쿠키를 직접 실어 보낸다(응답 헤더·본문 status까지 본다) */
+const withCookie = (path: string, cookie: string, method = 'GET') =>
+  fetch(`http://localhost:8080${path}`, { method, headers: { cookie } });
+
+describe('낡은 액세스 쿠키(#792·#793) — 보호 경로만 401, 공개·재발급·로그아웃은 익명 통과', () => {
+  it.each([
+    ['쿠키 없음', '', 'AUTH_401_2', false],
+    ['만료 토큰', `accessToken=${EXPIRED_ACCESS_TOKEN}`, 'AUTH_401_1', false],
+    ['위조 토큰(서명 키가 다름)', `accessToken=${FORGED_ACCESS_TOKEN}`, 'GLOBAL_401_1', true],
+  ])('보호 API + %s → HTTP 401 %s, 액세스 쿠키 삭제 %s', async (_, cookie, code, deletes) => {
+    const res = await withCookie('/api/v2/me', cookie);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toMatchObject({ success: false, status: 401, code });
+    const setCookie = res.headers.get('set-cookie') ?? '';
+    expect(/accessToken=;.*Max-Age=0/.test(setCookie)).toBe(deletes);
+  });
+
+  it.each([EXPIRED_ACCESS_TOKEN, FORGED_ACCESS_TOKEN])(
+    '공개 GET + %s 토큰 → 익명 200(연락처는 가린 값)',
+    async (token) => {
+      const res = await withCookie('/api/v2/events/101', `accessToken=${token}`);
+      expect(res.status).toBe(200);
+      const { data } = (await res.json()) as {
+        data: { contacts: { type: string; value: string }[] };
+      };
+      expect(data.contacts.find((c) => c.type === 'PHONE')?.value).toContain('*');
+    },
+  );
+
+  it.each([EXPIRED_ACCESS_TOKEN, FORGED_ACCESS_TOKEN])(
+    '재발급 + %s 액세스 토큰 + 유효한 리프레시 → 200(401 없음)',
+    async (token) => {
+      const res = await withCookie(
+        '/api/v1/auth/token/refresh',
+        `accessToken=${token}; refreshToken=${MOCK_REFRESH_TOKEN}`,
+        'POST',
+      );
+      expect(res.status).toBe(200);
+    },
+  );
+
+  it.each([EXPIRED_ACCESS_TOKEN, FORGED_ACCESS_TOKEN])(
+    '로그아웃 + %s 토큰 → 언제나 200 + 쿠키 삭제',
+    async (token) => {
+      const res = await withCookie('/api/v1/auth/logout', `accessToken=${token}`, 'POST');
+      expect(res.status).toBe(200);
+      expect(res.headers.get('set-cookie')).toMatch(/accessToken=;/);
+    },
+  );
+});
+
+describe('은행 목록 G10/T-7 GET /api/v2/banks(#804, 공개 #813)', () => {
+  it('백엔드 BankCode 25개를 코드 순으로, 3자리 코드·중복 없음', async () => {
+    const list = await api.get('banks', BankListSchema, { public: true });
+    expect(list).toHaveLength(25);
+    const codes = list.map((b) => b.code);
+    expect(codes).toEqual([...codes].sort());
+    expect(new Set(codes).size).toBe(25);
+    for (const code of codes) expect(code).toMatch(/^\d{3}$/);
+  });
+
+  it.each([
+    ['002', 'KDB산업은행'],
+    ['004', 'KB국민은행'],
+    ['011', 'NH농협은행'],
+    ['012', '지역농·축협'],
+    ['031', 'iM뱅크'],
+    ['050', '저축은행'],
+    ['088', '신한은행'],
+    ['090', '카카오뱅크'],
+    ['092', '토스뱅크'],
+  ])('%s → %s', async (code, name) => {
+    const list = await api.get('banks', BankListSchema, { public: true });
+    expect(list.find((b) => b.code === code)?.name).toBe(name);
+  });
+
+  it('위조 액세스 쿠키가 실려도 200(공개)', async () => {
+    const res = await withCookie('/api/v2/banks', `accessToken=${FORGED_ACCESS_TOKEN}`);
+    expect(res.status).toBe(200);
   });
 });

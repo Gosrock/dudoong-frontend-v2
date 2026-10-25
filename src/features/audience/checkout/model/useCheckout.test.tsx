@@ -464,6 +464,44 @@ describe('에러 분기 — patterns §24 P7 행(handleCodes)', () => {
   });
 });
 
+describe('동의 기록 필드(#840) — 화면 칸이 없어 보내지 않는다(Q42)', () => {
+  const AGREEMENT_KEYS = [
+    'hostProvisionAgreed',
+    'dudoongTicketNoticeConfirmed',
+    'agreementVersion',
+  ];
+
+  it.each([
+    ['두둥(입금형)', CHECKOUT_TICKET.paidNoOptions],
+    ['무료 승인형', CHECKOUT_TICKET.freeApproval],
+  ])('%s 주문 본문에 동의 필드 키가 하나도 없다', async (_, ticketItemId) => {
+    const r = await openCheckout(ticketItemId, 1);
+    fill(
+      r.result,
+      ticketItemId === CHECKOUT_TICKET.freeApproval
+        ? { same: [{ optionId: 702, answer: '드럼' }] }
+        : {},
+    );
+    const sent = recordRequests();
+    await submitAndWait(r.result);
+    const [post] = await posted(sent);
+    expect(post).toBeDefined();
+    for (const key of AGREEMENT_KEYS) expect(post?.body).not.toHaveProperty(key);
+  });
+
+  it('동의 강제가 켜진 백엔드면 400 Agreement_400_1 — 화면 표에 없어 전역 토스트, 완료로 가지 않는다', async () => {
+    server.use(...orderHandlers.agreementEnforced);
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    fill(r.result);
+    await submitAndWait(r.result);
+    expect(created()).toBeNull();
+    expect(r.result.current.submitError).toBeNull();
+    const m = lastMutation(r);
+    expect(m.state.error).toMatchObject({ status: 400, code: 'Agreement_400_1' });
+    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(true);
+  });
+});
+
 describe('무료 선착순 확정 실패 — 주문이 아니라 에러', () => {
   it('확정 실패(재고)면 재고 분기, 완료로 가지 않는다', async () => {
     server.use(...orderHandlers.freeFcfsConfirmFails);

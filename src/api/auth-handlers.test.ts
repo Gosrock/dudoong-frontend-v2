@@ -5,13 +5,7 @@ import { z } from 'zod';
 import { authHandlers } from './__mocks__/auth.handlers';
 import { errors, ok } from './__mocks__/respond';
 import { server } from './__mocks__/server';
-import {
-  LOCK_WAIT_MS,
-  recoverSession,
-  REFRESH_LOCK_NAME,
-  setAuthHandlers,
-  STALE_ACCESS_RETRY_MS,
-} from './auth-handlers';
+import { LOCK_WAIT_MS, recoverSession, REFRESH_LOCK_NAME, setAuthHandlers } from './auth-handlers';
 import { REQUEST_TIMEOUT_MS } from './client';
 import { ApiError, SessionLostError } from './errors';
 import { api, authApi } from './http';
@@ -26,7 +20,7 @@ import {
 
 /**
  * 401 처리(plan P4a, tech-decisions §4 인증 표). `api`(v2) → 401 → 재발급 → 원 요청 재시도.
- * 보호 API는 `/api/v2/probe`로 흉내 낸다: `valid`가 false면 401 `AUTH_403_2`(쿠키 만료 = 토큰 없음).
+ * 보호 API는 `/api/v2/probe`로 흉내 낸다: `valid`가 false면 401 `AUTH_401_2`(쿠키 만료 = 토큰 없음, #808).
  */
 const Probe = z.object({ ok: z.boolean() });
 let valid = false;
@@ -67,7 +61,7 @@ describe('세션 표시가 없으면', () => {
     const e = await api.get('probe', Probe).catch((x: unknown) => x);
     expect(e).toBeInstanceOf(ApiError);
     expect(e).not.toBeInstanceOf(SessionLostError);
-    expect(e).toMatchObject({ status: 401, code: 'AUTH_403_2' });
+    expect(e).toMatchObject({ status: 401, code: 'AUTH_401_2' });
     expect(refreshOk).not.toHaveBeenCalled();
     expect(onSessionLost).not.toHaveBeenCalled();
     expect(probeCalls).toBe(1);
@@ -121,7 +115,7 @@ describe('세션 표시가 있으면', () => {
     register(async () => {});
     await expect(api.get('probe', Probe)).rejects.toMatchObject({
       status: 401,
-      code: 'AUTH_403_2',
+      code: 'AUTH_401_2',
     });
     expect(probeCalls).toBe(2);
     expect(onSessionLost).not.toHaveBeenCalled();
@@ -200,43 +194,21 @@ describe('세션 표시가 있으면', () => {
   });
 });
 
-describe('B6 — 재발급이 401 AUTH_401_1·GLOBAL_401_1이면 약 1초 뒤 한 번 더', () => {
+describe('재발급의 401은 다시 시도하지 않고 상실(#792 — 재발급은 permitAll이라 낡은 액세스 쿠키 401이 없다)', () => {
   beforeEach(() => {
     startSession();
-    vi.useFakeTimers({ toFake: ['setTimeout'] });
   });
 
-  it.each(['AUTH_401_1', 'GLOBAL_401_1'])('%s → 1초 뒤 성공하면 복구', async (code) => {
-    const refresh = vi
-      .fn()
-      .mockRejectedValueOnce(new ApiError(401, code, ''))
-      .mockResolvedValueOnce(undefined);
-    register(refresh);
-    const done = recoverSession(Date.now() - 1);
-    await vi.advanceTimersByTimeAsync(STALE_ACCESS_RETRY_MS - 1);
-    expect(refresh).toHaveBeenCalledTimes(1);
-    await vi.advanceTimersByTimeAsync(1);
-    await expect(done).resolves.toBeUndefined();
-    expect(refresh).toHaveBeenCalledTimes(2);
-    expect(onSessionLost).not.toHaveBeenCalled();
-  });
-
-  it('또 401이면 세션 상실', async () => {
-    const refresh = vi.fn().mockRejectedValue(new ApiError(401, 'AUTH_401_1', ''));
-    register(refresh);
-    const done = recoverSession(Date.now() - 1).catch((x: unknown) => x);
-    await vi.advanceTimersByTimeAsync(STALE_ACCESS_RETRY_MS);
-    expect(await done).toBeInstanceOf(SessionLostError);
-    expect(refresh).toHaveBeenCalledTimes(2);
-    expect(onSessionLost).toHaveBeenCalledTimes(1);
-  });
-
-  it('다른 코드의 401(AUTH_403_2)은 다시 시도하지 않고 상실', async () => {
-    const refresh = vi.fn().mockRejectedValue(new ApiError(401, 'AUTH_403_2', ''));
-    register(refresh);
-    await expect(recoverSession(Date.now() - 1)).rejects.toBeInstanceOf(SessionLostError);
-    expect(refresh).toHaveBeenCalledTimes(1);
-  });
+  it.each(['AUTH_401_1', 'GLOBAL_401_1', 'AUTH_401_2'])(
+    '재발급이 401 %s → 한 번만 부르고 세션 상실',
+    async (code) => {
+      const refresh = vi.fn().mockRejectedValue(new ApiError(401, code, ''));
+      register(refresh);
+      await expect(recoverSession(Date.now() - 1)).rejects.toBeInstanceOf(SessionLostError);
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(onSessionLost).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 describe('Web Locks가 없을 때(대체 경로)', () => {
