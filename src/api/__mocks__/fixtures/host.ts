@@ -67,3 +67,29 @@ export const hostMembers: Record<number, HostMember[]> = {
   ],
   12: [{ userId: 21, name: '소음대장', profileImageUrl: null, role: 'MASTER' }],
 };
+
+/**
+ * 가입한 mock 사용자(멤버 초대 PH-7이 이메일로 찾는다). 이메일은 대소문자를 가리지 않는다.
+ * `twin@example.com`은 같은 이메일의 정상 계정이 둘이라 `HOST_400_18`이 난다.
+ */
+export const mockUsers: {
+  userId: number;
+  name: string | null;
+  profileImageUrl: string | null;
+  email: string;
+}[] = [
+  { userId: 1, name: '두둥이', profileImageUrl: null, email: 'dudoong@example.com' },
+  {
+    userId: 2,
+    name: '김매니저',
+    profileImageUrl: `${MOCK_IMAGE_ORIGIN}/user/2/profile.png`,
+    email: 'manager@example.com',
+  },
+  { userId: 3, name: '이드럼', profileImageUrl: null, email: 'drum@example.com' },
+  { userId: 4, name: null, profileImageUrl: null, email: 'guest4@example.com' },
+  { userId: 21, name: '소음대장', profileImageUrl: null, email: 'noise@example.com' },
+  { userId: 31, name: '박기타', profileImageUrl: null, email: 'guitar@example.com' },
+  { userId: 32, name: '최보컬', profileImageUrl: null, email: 'vocal@example.com' },
+  { userId: 41, name: '쌍둥이1', profileImageUrl: null, email: 'twin@example.com' },
+  { userId: 42, name: '쌍둥이2', profileImageUrl: null, email: 'twin@example.com' },
+];

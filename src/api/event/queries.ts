@@ -1,4 +1,4 @@
-import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, type QueryKey, queryOptions } from '@tanstack/react-query';
 
 import { api } from '../http';
 import { pageInfinite, type PageParams } from '../shared/page';
@@ -149,3 +149,10 @@ export const myEventsQuery = (params: MyEventsParams = {}) => {
     },
   });
 };
+
+/**
+ * GE-3 공연 관리 상세(`GET /events/{id}/manage`, `myRole` 포함)의 키 모양 `['events', id, 'manage', …]`(patterns §4-1 — 경로를 쪼갠 모양).
+ * 쿼리 정의(`eventManageQuery`)는 P11이 만든다 — 그때 이 모양을 지킨다. 마스터 양도(P10b) 뒤 어느 공연이 그 호스트 것인지 몰라
+ * 이 모양 전체를 무효화한다(`queryClient.invalidateQueries({ predicate })`).
+ */
+export const isEventManageQueryKey = (key: QueryKey) => key[0] === 'events' && key[2] === 'manage';

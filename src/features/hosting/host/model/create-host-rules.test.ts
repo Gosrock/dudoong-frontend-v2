@@ -4,19 +4,21 @@ import { CreateHostRequestSchema } from '@/api/host/schema';
 import { CONTACT_TYPES } from '@/api/shared/common-schema';
 
 import {
+  type CreateHostValues,
+  hasCreateHostErrors,
+  initialCreateHostValues,
+  toCreateHostBody,
+  validateCreateHost,
+} from './create-host-form';
+import {
   canAddContact,
   canRemoveContact,
   contactError,
   contactPlaceholder,
-  type CreateHostValues,
-  hasCreateHostErrors,
   HOST_CONTACT_OPTIONS,
-  initialCreateHostValues,
   introduceError,
   nameError,
-  toCreateHostBody,
-  validateCreateHost,
-} from './create-host-form';
+} from './host-fields';
 
 describe('연락처 유형 6종과 유형별 placeholder(plan P10a, Q8)', () => {
   it('서버 enum 6종(YOUTUBE 포함)을 모두, 서버 순서로', () => {

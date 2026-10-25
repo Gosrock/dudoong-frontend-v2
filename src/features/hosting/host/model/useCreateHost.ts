@@ -12,16 +12,22 @@ import { meQuery } from '@/api/me/queries';
 import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/home/model/hosting-home';
 
 import {
-  canAddContact,
-  canRemoveContact,
   CREATE_HOST_ERROR_MESSAGE,
   type CreateHostValues,
   hasCreateHostErrors,
-  HOST_CONTACT_OPTIONS,
   initialCreateHostValues,
   toCreateHostBody,
   validateCreateHost,
 } from './create-host-form';
+import {
+  canAddContact,
+  canRemoveContact,
+  HOST_CONTACT_OPTIONS,
+  withAddedContact,
+  withContactType,
+  withContactValue,
+  withoutContact,
+} from './host-fields';
 
 /**
  * 호스트 만들기(`/hosting/new/hosts`, PH-2, plan P10a). 값·칸 오류·제출만 돌려주고 UI 동작은 없다(plan §0).
@@ -69,34 +75,18 @@ export function useCreateHost() {
   );
   const setContactType = useCallback((index: number, type: HostContactType) => {
     setContactsServerError(null);
-    setValues((v) => ({
-      ...v,
-      contacts: v.contacts.map((c, i) => (i === index ? { ...c, type } : c)),
-    }));
+    setValues((v) => ({ ...v, contacts: withContactType(v.contacts, index, type) }));
   }, []);
   const setContactValue = useCallback((index: number, value: string) => {
     setContactsServerError(null);
-    setValues((v) => ({
-      ...v,
-      contacts: v.contacts.map((c, i) => (i === index ? { ...c, value } : c)),
-    }));
+    setValues((v) => ({ ...v, contacts: withContactValue(v.contacts, index, value) }));
   }, []);
   const addContact = useCallback(
-    () =>
-      setValues((v) =>
-        canAddContact(v.contacts)
-          ? { ...v, contacts: [...v.contacts, { type: null, value: '' }] }
-          : v,
-      ),
+    () => setValues((v) => ({ ...v, contacts: withAddedContact(v.contacts) })),
     [],
   );
   const removeContact = useCallback(
-    (index: number) =>
-      setValues((v) =>
-        canRemoveContact(v.contacts)
-          ? { ...v, contacts: v.contacts.filter((_, i) => i !== index) }
-          : v,
-      ),
+    (index: number) => setValues((v) => ({ ...v, contacts: withoutContact(v.contacts, index) })),
     [],
   );
 

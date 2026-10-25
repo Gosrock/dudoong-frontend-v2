@@ -143,3 +143,73 @@ export type CreateHostRequest = z.infer<typeof CreateHostRequestSchema>;
 /** PH-2 응답 `V2CreateHostResponse` — `{hostId}`뿐이라 목록 캐시를 채울 수 없다(GH-1을 다시 읽는다) */
 export const CreateHostResponseSchema = z.object({ hostId: z.number().int() });
 export type CreateHostResponse = z.infer<typeof CreateHostResponseSchema>;
+
+// ─── 호스트 설정 (PH-4) ──────────────────────────────────────
+
+/** PH-2와 같은 연락처 한 줄(`V2HostContactRequest`, 432cce4) */
+const HostContactRequestSchema = z
+  .object({
+    type: HostContactTypeSchema,
+    value: z.string().trim().min(1).max(HOST_CONTACT_VALUE_MAX),
+  })
+  .refine((c) => c.type !== 'PHONE' || c.value.length <= HOST_PHONE_VALUE_MAX);
+
+/** 이미지 key 길이(`V2UpdateHostRequest` `@Size(max = 255)`) */
+export const HOST_IMAGE_KEY_MAX = 255;
+
+/**
+ * PH-4 본문 `V2UpdateHostRequest`(432cce4). **키가 없으면 그 필드는 바꾸지 않는다**(PATCH — patterns §23 "바뀐 필드만").
+ * - `name` 1~15자, 공백만이면 400(`@Pattern`). 서버가 앞뒤 공백을 지운다
+ * - `introduce` 255자. **빈 문자열이면 비운다**(서버 `ifBlank { null }` — PH-2의 `null`과 다르다. PATCH의 `null`은 "변경 안 함")
+ * - `contacts` 1~10개 **전체 교체**(값 200자, 전화 15자 — 도메인 검증은 `HOST_400_16`)
+ * - `profileImageKey`·`coverImageKey` PH-15가 이 호스트에 발급한 key 그대로, `""`이면 기본 이미지. 아니면 `HOST_400_17`
+ */
+export const UpdateHostRequestSchema = z
+  .object({
+    name: z.string().trim().min(1).max(HOST_NAME_MAX),
+    introduce: z.string().max(HOST_INTRODUCE_MAX),
+    contacts: z.array(HostContactRequestSchema).min(HOST_CONTACTS_MIN).max(HOST_CONTACTS_MAX),
+    profileImageKey: z.string().max(HOST_IMAGE_KEY_MAX),
+    coverImageKey: z.string().max(HOST_IMAGE_KEY_MAX),
+  })
+  .partial()
+  .strict();
+export type UpdateHostRequest = z.infer<typeof UpdateHostRequestSchema>;
+
+/**
+ * PH-4 응답은 GH-3과 같은 `V2HostHomeResponse`다(`V2UpdateHostUseCase`, 432cce4) — 요청자 기준이라 `myRole`·`isFollowing`·
+ * 원문 연락처가 들어 있어 viewer 키(`['hosts', id, 'viewer']`)에 그대로 넣는다. (`members` 요약은 GH-3처럼 읽지 않는다)
+ */
+export const UpdateHostResponseSchema = HostViewerSchema;
+
+// ─── 멤버 (PH-7 · PH-10 · DH-11 · PH-12) ─────────────────────
+
+/** 한 번에 추가할 수 있는 멤버 수(`V2AddHostMembersRequest.MAX_MEMBERS`, 432cce4) */
+export const HOST_MEMBERS_INVITE_MAX = 20;
+
+/**
+ * 멤버 추가·역할 변경에서 보내는 역할(`V2HostMemberRole`, 432cce4). 서버는 `MASTER`도 받지만 지정할 수 없어 400 `HOST_400_10`
+ * (마스터는 양도 PH-12로만 바뀐다) — 보내는 쪽 타입에서 뺀다.
+ */
+export const AssignableHostRoleSchema = z.enum(['MANAGER', 'GUEST']);
+export type AssignableHostRole = z.infer<typeof AssignableHostRoleSchema>;
+
+/**
+ * PH-7 본문 `V2AddHostMembersRequest`(432cce4) — 가입된 이메일, 1~20명, 수락 없이 바로 활성 멤버.
+ * 매니저 요청자는 `GUEST`만(아니면 403 `HOST_400_11`). 한 명이라도 문제가 있으면 아무도 추가하지 않는다.
+ */
+export const AddHostMembersRequestSchema = z.object({
+  members: z
+    .array(z.object({ email: z.email(), role: AssignableHostRoleSchema }))
+    .min(1)
+    .max(HOST_MEMBERS_INVITE_MAX),
+});
+export type AddHostMembersRequest = z.infer<typeof AddHostMembersRequestSchema>;
+
+/** PH-10 본문 `V2UpdateHostMemberRoleRequest`(432cce4) — 일반 ↔ 매니저(마스터만 부른다) */
+export const UpdateHostMemberRoleRequestSchema = z.object({ role: AssignableHostRoleSchema });
+export type UpdateHostMemberRoleRequest = z.infer<typeof UpdateHostMemberRoleRequestSchema>;
+
+/** PH-12 본문 `V2TransferMasterRequest`(432cce4) — 새 마스터가 될 활성 멤버 */
+export const TransferMasterRequestSchema = z.object({ userId: z.number().int() });
+export type TransferMasterRequest = z.infer<typeof TransferMasterRequestSchema>;

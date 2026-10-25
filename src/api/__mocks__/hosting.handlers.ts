@@ -19,6 +19,7 @@ import {
   toMyEvent,
   toMyHost,
 } from './fixtures/hosting';
+import { mockUserRoleIn, profileEditOf, resetHostStore } from './host-store';
 import { errors, fail, ok, paginate, readPageParams, requireAuth } from './respond';
 
 /**
@@ -33,10 +34,14 @@ import { errors, fail, ok, paginate, readPageParams, requireAuth } from './respo
 let created: MockMembership[] = [];
 let nextHostId = CREATED_HOST_ID_START;
 
-/** 만든 호스트를 지운다(vitest `beforeEach`·e2e `test.beforeEach`) */
+/**
+ * 만든 호스트를 지운다(vitest `beforeEach`·e2e `test.beforeEach`). GH-1·GE-1이 읽는 호스트 저장소(P10b 설정·멤버·양도 —
+ * `host-store.ts`)도 함께 되돌린다
+ */
 export function resetHostingStore() {
   created = [];
   nextHostId = CREATED_HOST_ID_START;
+  resetHostStore();
 }
 
 const KEYWORD_MAX = 50;
@@ -47,6 +52,21 @@ function readKeyword(url: URL): string | null | undefined {
   if (raw === null) return undefined;
   if (raw.length > KEYWORD_MAX) return null;
   return raw.trim();
+}
+
+/**
+ * 호스트 저장소(P10b)를 덮는다 — 마스터를 넘기면 `myRole`이 매니저로, 설정에서 바꾼 이름·이미지도 카드에 나온다.
+ * 저장소에 mock 사용자가 없는 호스트(세트가 만든 멤버십)는 세트 값 그대로.
+ */
+function managed(m: MockMembership): MockMembership {
+  const role = mockUserRoleIn(m.hostId);
+  const edit = profileEditOf(m.hostId);
+  return {
+    ...m,
+    ...(role && role !== 'UNKNOWN' && { myRole: role }),
+    ...(edit?.name !== undefined && { name: edit.name }),
+    ...(edit?.profileImageUrl !== undefined && { profileImageUrl: edit.profileImageUrl }),
+  };
 }
 
 const includes = (value: string | null, keyword: string | undefined) =>
@@ -62,6 +82,7 @@ function listHandlers(memberships: () => MockMembership[]): HttpHandler[] {
       const keyword = readKeyword(url);
       if (!paging || keyword === null) return errors.badRequest(request);
       const list = memberships()
+        .map(managed)
         .filter((m) => includes(m.name, keyword))
         .map((m) => toMyHost(m, hostEventsOf(m.hostId).length));
       return ok(paginate(list, paging.page, paging.size));
@@ -75,6 +96,7 @@ function listHandlers(memberships: () => MockMembership[]): HttpHandler[] {
       const keyword = readKeyword(url);
       if (!paging || keyword === null) return errors.badRequest(request);
       const list = memberships()
+        .map(managed)
         .flatMap((m) => hostEventsOf(m.hostId).map((e) => toMyEvent(e, m.myRole)))
         .filter((e) => includes(e.name, keyword))
         // 최신 생성 순 — mock 공연에는 생성일이 없어 id 큰 것을 최근으로 본다

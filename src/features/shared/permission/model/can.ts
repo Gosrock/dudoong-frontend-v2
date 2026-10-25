@@ -11,16 +11,18 @@ export const HOST_ACTIONS = {
   viewGuests: 'GUEST',
   /** 환불 계좌 전체 보기(일반 멤버는 `null`) */
   viewRefundAccount: 'MANAGER',
-  /** 엑셀 다운로드(#758 예정: 매니저 이상) */
-  downloadExcel: 'GUEST',
+  /** 엑셀 다운로드(GR-6·GI-3). 일반 멤버는 403 `HOST_400_1`(백엔드 #846 — api-contract §2, patterns §22) */
+  downloadExcel: 'MANAGER',
   /** QR 체크인, 셀프 체크인 QR 띄우기, 체크인 통계 */
   checkIn: 'GUEST',
   /** 공연·티켓·옵션 쓰기(새 공연 만들기 포함) */
   editEvent: 'MANAGER',
   /** 호스트 설정·이미지 */
   editHost: 'MANAGER',
-  /** 멤버 추가·삭제(매니저는 일반 멤버만 — 대상 제한은 P10b) */
+  /** 멤버 추가·삭제. 매니저는 일반 멤버만 다룬다 — 매니저를 추가·삭제하는 것은 `manageManagers` */
   manageMembers: 'MANAGER',
+  /** 매니저 역할의 멤버를 추가·삭제(`Host.validateCanManageRole` — 마스터가 아니면 403 `HOST_400_11`, 432cce4) */
+  manageManagers: 'MASTER',
   /** 주문 승인·거절·승인 후 취소·환불 완료 */
   manageOrders: 'MANAGER',
   /** 역할 변경(일반 ↔ 매니저) */

@@ -108,8 +108,8 @@ src/app/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기 (P10a-L 생성 — CreateHostView)
 │  │  └─ events/page.tsx               # P11  간편 공연 만들기 (내부 2단계)
 │  ├─ hosts/[hostId]/
-│  │  ├─ settings/page.tsx             # P10b 호스트 설정
-│  │  └─ members/page.tsx              # P10b 멤버
+│  │  ├─ settings/page.tsx             # P10b 호스트 설정 (P10b-L 생성 — HostSettingsView. 비멤버 403·없는 호스트 404는 클라이언트 판정)
+│  │  └─ members/page.tsx              # P10b 멤버 (P10b-L 생성 — HostMembersView)
 │  └─ events/[eventId]/                # page.tsx 없음 — next.config redirects()로 dashboard
 │     ├─ layout.tsx                    # P11  공연 스코프 (GE-3) — 데스크탑 공연 사이드바 268(‹ 내 공연 · 공연 카드 · 메뉴 등록 전 4 / 후 6 · 예매자 관리 배지 · 공연 페이지 보기), 모바일은 "대시보드 ▾ / 공연명" 헤더(메뉴 방식 Q37 대기)
 │     ├─ dashboard/page.tsx            # P11(체크리스트) + P13a(등록 후 통계)
@@ -153,7 +153,7 @@ src/features/
 ├─ hosting/
 │  ├─ shell/                   # P4s  전역 상단 바(PC, GUI `Top bar_Host` — 로고·공연 둘러보기·공연 준비하기·벨·아바타 ▾, hosting/layout.tsx), HostingHeader(모바일 `host title`), MobileDrawer, 3단 슬롯(사이드바 268 · 본문 · 우측 패널). 공연 사이드바(‹ 내 공연 · 공연 카드 · SidebarItem = GUI `사이드바 메뉴` true/false/alert · 공연 페이지 보기)와 EventSwitcherHeader(모바일 "대시보드 ▾ / 공연명" — 메뉴 방식 Q37)는 events/[eventId]/layout.tsx가 쓴다(P11). 공연 밖 화면은 사이드바 없이 본문 최대 1280
 │  ├─ home/                    # P10a PrepHome(HostTab, EventTab, Search). 지금은 로직 연결 자리 HostingHomeView. model/: hosting-home(탭 `?tab=hosts` · 검색어 50자·300ms · 빈 상태 none/search · 카드 주소), useHostingHome(GH-1·GE-1 무한 목록, 지금 탭만 조회)
-│  ├─ host/                    # P10a + P10b  CreateHost, HostSettings, HostMembers(InviteDialog, RoleMenu, TransferMasterDialog, PermissionGuide). 지금은 로직 연결 자리 CreateHostView. model/: create-host-form(연락처 유형 6종·placeholder, 칸 오류, PH-2 본문), useCreateHost(PH-2 → GH-1·GM-1 무효화 → `/hosting?tab=hosts`)
+│  ├─ host/                    # P10a + P10b  CreateHost, HostSettings, HostMembers(InviteDialog, RoleMenu, TransferMasterDialog, PermissionGuide). 지금은 로직 연결 자리 CreateHostView. 지금은 로직 연결 자리 HostSettingsView·HostMembersView도. model/: host-fields(이름·소개·연락처 칸 규칙 — 만들기·설정 공용, 연락처 유형 6종·placeholder·줄 바꾸기), create-host-form(PH-2 본문), useCreateHost(PH-2 → GH-1·GM-1 무효화 → `/hosting?tab=hosts`), host-settings-form(바뀐 필드만 PH-4, 이미지 프로필·커버 key, 에러 문구), useHostSettings(GH-3 viewer → PH-15 → S3 → PH-4, 일반 멤버 읽기 전용), member-rules(행 메뉴 `memberActionsOf`, 초대 역할·칸 오류·실패 줄 매핑, 권한 가이드 표), useHostMembers(GH-6·PH-10·DH-11·PH-12), useInviteMembers(PH-7), host-cache(변경 응답 반영·`myRole` 쿼리 무효화)
 │  ├─ access/                  # P10a 하위 화면(호스트 P10b·공연 P11)의 비멤버 403·404 판정. HostingAccessRejected(AsyncBoundary rejected)·HostingForbidden(P2 ForbiddenView). model/hosting-access(조회 에러 → forbidden·notFound·error, myRole → `can(role, 'viewManagement')`)
 │  ├─ event/                   # P11  NewEventWizard, EventLayout, Checklist, EventInfo(PlaceInput: 우편번호 + 카카오 Geocoder), EventDetailEditor(SectionTabs + Tiptap)
 │  ├─ ticket/                  # P12  TicketManage, TicketForm, TicketMenu, OptionManage
@@ -172,7 +172,7 @@ src/features/
    ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑. 지금은 로직 연결 자리 NotificationInboxView. model/: notification-kind(17종 → 카테고리 3종·아이콘·받는 사람·이동 경로, PN-3 본문), useNotificationBell(GN-2 — P9b-L이 먼저 만들었다), useNotificationInbox(GN-1), useReadNotifications(PN-3 단건·전체)
    ├─ checkin-result/          # P8c · P13b  model/checkin-result — result → 화면(`'host' | 'self'`)
    ├─ image-upload/            # P9 · P10b · P11 (먼저 착수한 Phase)  업로드 UI(DropZone 연결, 미리보기). 호출은 src/api/upload
-   ├─ permission/              # P5c  model/can — can(role, action), HOST_ACTIONS(api-contract §2 표)
+   ├─ permission/              # P5c  model/can — can(role, action), HOST_ACTIONS(api-contract §2 표 — P10b-L이 `manageManagers` 추가)
    └─ kakao-share/             # P5b · P8b  model/: feed-template(공연과 무관 — 선물 링크도 쓴다), kakao-sdk(SDK 2.8.3 + SRI, 앱 키는 호출할 때 읽음)
 ```
 
@@ -237,7 +237,7 @@ src/api/
 │  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
 ├─ auth/                       # P4b  calls.ts(카카오 링크·코드 교환·register/valid·login·info·register, 재발급·로그아웃 — authApi), schema.ts
 ├─ me/                         # GM-1·PM-2(mutations updateMeMutation)·GM-4 followingHostsQuery·GM-5 archiveQuery (P9)
-├─ host/  event/  ticket-item/  option/   # P10a: host — myHostsQuery(GH-1, `MY_HOSTS_KEY`)·createHostMutation(PH-2)·입력 규칙 상수, event — myEventsQuery(GE-1, `MY_EVENTS_KEY`)
+├─ host/  event/  ticket-item/  option/   # P10a: host — myHostsQuery(GH-1, `MY_HOSTS_KEY`)·createHostMutation(PH-2)·입력 규칙 상수, event — myEventsQuery(GE-1, `MY_EVENTS_KEY`). P10b: host — updateHostMutation(PH-4)·addHostMembersMutation(PH-7)·updateHostMemberRoleMutation(PH-10)·removeHostMemberMutation(DH-11)·transferMasterMutation(PH-12), event — `isEventManageQueryKey`(GE-3 키 모양 `['events', id, 'manage']`, 양도 뒤 무효화)
 ├─ order/                      # + price.ts (금액 계산 순수함수). P9: myOrdersQuery(O-2)·myOrderQuery(O-3)·cancelMyOrderMutation(O-4)·putRefundAccountMutation(O-5)
 ├─ my-ticket/                  # P8   T-1·T-2·T-3 (state 11값 openEnum)
 ├─ gift/                       # P8b  queries + mutations(보내기·회수·메모·수락·거절·반환)
@@ -246,7 +246,7 @@ src/api/
 ├─ user/                       # P9   calls.ts withdrawAccount — 회원 탈퇴 v1 `DELETE /api/v1/auth/me`를 withSessionRecovery로(authApi 아님)
 ├─ notification/               # P9b  GN-1 notificationsQuery·GN-2 unreadNotificationCountQuery(meta.silent)·PN-3 readNotificationsMutation, NOTIFICATIONS_KEY(`['me','notifications']`)
 ├─ issued-ticket/
-└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정 — 세션 상태 valid·expired·invalid(`accessToken=forged`)·none), bank.handlers.ts(`GET /api/v2/banks` 25개), user.handlers.ts(탈퇴 — default·masterBlocked), notification.handlers.ts(GN-1·GN-2·PN-3), hosting.handlers.ts(GH-1·GE-1·PH-2 — 만든 호스트가 다음 GH-1에 나오는 저장소, `hostingSets` mixedRoles·manyHosts·noMembership·noEvents·nextPageError·listServerError·createFails), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
+└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정 — 세션 상태 valid·expired·invalid(`accessToken=forged`)·none), bank.handlers.ts(`GET /api/v2/banks` 25개), user.handlers.ts(탈퇴 — default·masterBlocked), notification.handlers.ts(GN-1·GN-2·PN-3), hosting.handlers.ts(GH-1·GE-1·PH-2 — 만든 호스트가 다음 GH-1에 나오는 저장소, `hostingSets` mixedRoles·manyHosts·noMembership·noEvents·nextPageError·listServerError·createFails), host.handlers.ts에 P10b PH-4·PH-7·PH-10·DH-11·PH-12(백엔드 검사 순서·코드), host-store.ts(P10b 저장소 — 설정·멤버·양도가 GH-3·GH-6·GH-1·GE-1의 `myRole`·프로필에 반영, `actAsRole(hostId, role)`로 3시점, `resetHostStore` — `resetHostMockState`·`resetHostingStore`가 함께 부른다), fixtures/host.ts `mockUsers`(초대 이메일 — `twin@example.com`은 계정 둘), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
 ```
 
 서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery`, `eventDetailViewerQuery`(연락처 원문, 2026-10-25 A안) — tech-decisions §4).

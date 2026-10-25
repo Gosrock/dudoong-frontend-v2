@@ -383,6 +383,56 @@
 **검사**: typecheck · lint · prettier · test(1496) · test:stories(193) · build · e2e(232 — 새 58) 통과. 로컬에 `.env.local`이 없어 `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`로 돌렸다
 **문서 반영**: plan P10a 완료 기준 L, patterns §4-4·§24(P10a 행), design-requests Q19·Q49~Q51, backend-questions B20, directory-structure(api·features·라우트·mock), README(질문 수)
 
+## P10b-L — 호스트 설정 · 멤버 (로직)
+
+**상태**: done (2026-10-26, 커밋 전) — V 전부 남음
+**변경**: `src/api/host/`(`schema.ts` + `UpdateHostRequestSchema`(PH-4, 키 없음 = 변경 안 함, `.strict()`)·`UpdateHostResponseSchema`(= `HostViewerSchema`)·`HOST_IMAGE_KEY_MAX`·`HOST_MEMBERS_INVITE_MAX` 20·`AssignableHostRoleSchema`(MANAGER·GUEST)·`AddHostMembersRequestSchema`·`UpdateHostMemberRoleRequestSchema`·`TransferMasterRequestSchema`, `mutations.ts` `updateHostMutation`·`addHostMembersMutation`·`updateHostMemberRoleMutation`·`removeHostMemberMutation`·`transferMasterMutation`), `src/api/event/queries.ts` `isEventManageQueryKey`(GE-3 키 모양). `features/shared/permission/model/can`: `manageManagers`(MASTER) 추가, `downloadExcel`을 계약대로 MANAGER로. `features/hosting/host/model/`: `host-fields`(P10a `create-host-form`에서 이름·소개·연락처 칸 규칙을 옮긴 공용 모듈 — `contactInputsOf`·줄 바꾸기 함수 추가), `host-settings-form`(`hostSettingsValuesOf`·`changedHostFields`·`isHostSettingsDirty`·`validateHostSettings`(바뀐 칸만)·`toUpdateHostBody`(바뀐 필드만)·에러 문구), `useHostSettings`, `member-rules`(`HOST_ROLE_LABEL`·`memberActionsOf`·`inviteRoleOptions`·`inviteRowErrors`·`toAddMembersBody`·`inviteFailureEmails`·`inviteServerErrors`·`INVITE_ERROR_MESSAGE`·`MEMBER_ACTION_ERROR_MESSAGE`·`PERMISSION_GUIDE`), `useHostMembers`, `useInviteMembers`, `host-cache`(`applyMembers`·`invalidateHostSummary`·`applyUpdatedHost`·`invalidateMyRoleQueries`). `features/hosting/access`: `HostingNotFound` 추가. 화면 자리(로직 연결만): `HostSettingsView`·`HostMembersView`. 라우트 `hosting/hosts/[hostId]/settings`·`/members`. mock: `host-store.ts`(새 — 멤버·프로필 저장소, `actAsRole`), `host.handlers.ts`(PH-4·PH-7·PH-10·DH-11·PH-12, GH-3·GH-6이 저장소를 읽는다), `hosting.handlers.ts`(GH-1·GE-1 `myRole`·이름·이미지가 저장소를 따른다, `resetHostingStore`가 저장소도 되돌린다), `fixtures/host.ts` `mockUsers`
+
+**훅이 돌려주는 것**
+- `useHostSettings(hostId)` → `{host, access: ok|forbidden, canEdit, values, setName, setIntroduce, setContactType, setContactValue, addContact, removeContact, canAddContact, canRemoveContact, contactOptions, images: {PROFILE, COVER}: {url, changed, uploading, error, change(file), reset(), retry()}, errors, attempted, dirty, contactsServerError, saving, canSave, save(): Promise<boolean>}`
+- `useHostMembers(hostId)` → `{access, myRole, hostName, members: [{userId, name, profileImageUrl, role, roleLabel, isMe, actions: {changeRoleTo, remove, transfer}}], canInvite, changeRole(userId, role), remove(userId), transferMaster(userId), pendingUserId, actionError, permissionGuide}`
+- `useInviteMembers(hostId, myRole)` → `{rows, setEmail, setRole, addRow, removeRow, canAddRow, canRemoveRow, roleOptions, errors, serverErrors, formError, attempted, submitting, submit(): Promise<boolean>}`
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `useHostSettings.test` 16건, `useHostMembers.test` 17건(초대 포함), `member-rules.test` 38건, `host-settings-rules.test` 14건, `host-manage-api.test` 15건, `HostManageViews.test` 8건, `can.test` +1행, e2e `hosting-host.spec` 16건(×2 프로젝트) |
+| 3시점 버튼 = 권한표 | `member-rules` 「행 메뉴 — 마스터·매니저·일반 3시점」 표 12행, 「권한 가이드 표 — 행과 칸이 계약 표와 같다」, 훅 「마스터 시점…」「매니저 시점…」「일반 시점…」, e2e 「마스터: …권한 가이드에 "호스트 삭제"가 없다」「매니저: 일반 멤버 삭제만…」「일반: 목록만」 |
+| 매니저 초대 역할 "일반" 고정 | `member-rules` 「초대 역할 — 매니저는 "일반" 고정」, 훅 「마스터는 매니저·일반, 매니저는 "일반" 고정 — 다른 역할로 바꾸지 못한다」, e2e(매니저 시점 역할 옵션 `['일반']`) |
+| 초대 실패 줄 매핑(13·14·15) | `member-rules` 「초대 실패 → 줄 매핑」 4행 + 폼 오류 폴백, 훅 it.each 3행(13·15·18 — 둘째 줄에만 사유, 토스트 없음, 고치면 지움), api 「PH-7 실패 …, 아무도 추가되지 않는다」 4행(검사 순서), e2e 「초대: 한 줄이 실패하면 그 줄에 사유…」 |
+| 변경 응답으로 캐시 갱신 | 훅 「역할 변경(PH-10): 응답을 GH-6 키에 넣고, 내 myRole 쿼리는 무효화하지 않는다」, 「삭제(DH-11): …GH-3 두 키를 무효화」, 「한 명 초대: …응답 목록을 GH-6 키에」, e2e 「역할 변경: …GH-6을 다시 읽지 않는다」 |
+| 양도 → myRole 무효화 → 매니저 버튼 | 훅 「마스터 양도(PH-12): myRole 쿼리(GH-1·GH-3 viewer·GE-1·GE-3·GM-1)를 무효화 → 버튼이 매니저 기준으로 바뀐다」, api 「PH-12 양도: …다음 GH-1·GE-1·GH-3의 myRole이 MANAGER」, e2e 「마스터 양도: …myRole 쿼리를 다시 읽는다」(공연준비 홈 카드도 MANAGER) |
+| 이미지 발급 → S3 → PH-4 | 훅 「프로필 이미지를 올리면 폼에 key, 저장하면 profileImageKey로 PH-4…」, 「기본 이미지로 되돌리면 coverImageKey ""」, 「S3 PUT 실패 → …retry()는 같은 파일로 발급부터 다시」, 「JPG·PNG가 아니면 요청 없이…」, e2e 「이미지: 발급(PH-15) → S3 PUT → 저장(PH-4 profileImageKey) → 새 이미지 주소」(가짜 S3는 `page.route`) |
+| 에러 분기 P10b | 훅 「HOST_400_16 → 연락처 영역 오류…」, 「HOST_400_17 → 올린 이미지를 버리고…」, 「HOST_404_2 → GH-6을 다시 읽고 actionError」, 「표에 없는 실패(5xx)는 전역 토스트」, api(400_5·400_10 경로·400_12·403 400_11·404_2·403 400_1·400_2·400_4) |
+| 실제 하위 라우트 403·404 | `HostManageViews.test` describe.each 2화면 × 4건(비멤버 403·없는 호스트 404·숫자 아닌 id 요청 없이 404·멤버 통과), e2e 2화면 × 3건(비로그인 → 로그인, 비멤버 403 + 서버 /api 0건, 없는 호스트 404) |
+
+그 밖: 설정 「바뀐 것이 없으면 요청하지 않는다」, 「이름·연락처를 바꾸면 그 두 필드만 PATCH — 응답을 viewer 키에…」, 「소개를 비우면 introduce ""」, 「일반 멤버: 읽기 전용 — 저장하지 않는다」, e2e 「이름을 바꿔 저장하면 바뀐 필드만 PH-4 — 공연준비 홈 호스트 카드에도 반영」.
+
+**결정**
+- 필드·규칙은 백엔드 소스 `432cce4`(`V2HostController`, `V2UpdateHostRequest`, `V2AddHostMembersRequest`, `V2HostMemberRole`, `V2TransferMasterRequest`, `V2HostImageUploadRequest/Response`, `V2HostMemberResponse`, 유스케이스 6개, `Host`, `V2HostDomainService`, `HostErrorCode`, `V2ErrorPolicy`, `S3UploadPresignedUrlService.isHostImageKey`)에서 옮겼다 — api-contract §6 운영에 정리
+- 접근: 설정은 GH-3 viewer `myRole`(비멤버 200 + null → `hostingAccessOfRole` 403), 멤버는 GH-6 403을 경계가 받는다(`HostingAccessRejected`). 주소의 id는 P5c `parseHostIdParam`으로 거르고 숫자가 아니면 요청 없이 공용 404. 호스팅 센터는 서버 조회가 없어 403·404 모두 상태 코드 200
+- 설정 폼은 `useState` + 처음 값 비교로 바뀐 필드를 만든다(P10a 만들기와 같은 방식 — patterns §23의 RHF `dirtyFields`와 결과는 같다). 이미지 key는 폼 값에 두고 [저장] 때 PH-4(patterns §23)
+- 멤버 화면의 `myRole`은 GH-3 viewer에서 읽는다(patterns §22 — myRole을 주는 쿼리). GH-6 응답의 내 행으로 알 수도 있지만 문서 기준을 따랐다
+- mock: 설정·멤버 변경이 다음 조회에 반영되도록 저장소를 두었다. 검증 실패는 백엔드처럼 400 `BAD_REQUEST`(P10b 핸들러만 — 기존 `GLOBAL_400_1` 정리는 아래 "백엔드 질문 소스 대조" 절)
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. 일반 멤버가 설정 주소로 들어오면 403이 아니라 읽기 전용(design-requests Q53). 되돌리기: `HostSettingsView`에서 `!f.canEdit`이면 `HostingForbidden`
+2. 호스트 이미지는 프로필·커버 두 자리를 모두 L에 둔다(PH-15 `purpose` 둘 다, 호스트 홈 GUI에 배너·로고가 있다 — 설정 GUI에는 칸이 없다). 되돌리기: `HOST_IMAGE_SLOTS`에서 하나를 뺀다
+3. `HOST_400_17`은 어느 자리 key인지 서버가 말하지 않아 이번에 새로 올려 보낸 자리를 모두 버린다(지운 자리 `""`는 남김). 되돌리기: `useHostSettings` `save`의 catch
+4. 설정 저장 뒤 GH-1·GE-1·GM-1·공개 GH-3도 무효화(이름·이미지가 카드·햄버거에 나온다). 되돌리기: `host-cache.ts` `applyUpdatedHost`
+5. 양도 뒤 GM-1도 무효화(`hosts[].myRole`), GE-3은 P11 전이라 키 모양 술어로. 되돌리기: `invalidateMyRoleQueries`의 마지막 줄 / P11에서 `eventManageQuery`가 다른 키를 쓰면 `isEventManageQueryKey`를 고친다
+6. `HOST_400_18`도 사유 이메일을 그 줄에 단다(patterns는 문구만 적었다 — 서버가 이메일을 붙여 준다). 줄에 맞지 않으면 폼 오류로(소리 없이 묻히지 않게)
+7. 초대 칸 검사: 빈칸·`@` 모양·같은 이메일(대소문자 무시)만 프론트가 막는다. 줄을 더하거나 빼면 지난 서버 사유를 모두 지운다
+8. 멤버 변경은 한 번에 하나만(`pendingUserId`). `HOST_404_2`는 GH-6을 다시 읽고 안내 문구. 문구 전부 잠정(Q52)
+9. 역할 이름 "마스터 / 매니저 / 일반"(plan의 "일반" — 서버 표시 이름 "게스트"는 쓰지 않는다), 모르는 역할 "알 수 없음"
+10. `can()`: `downloadExcel`을 GUEST → MANAGER로 고쳤다(api-contract §2·patterns §22와 어긋나 있었다 — 쓰는 곳은 아직 없음). `manageManagers` 추가
+11. `isMe`(GM-1 `userId`)를 행에 붙였다 — "나" 표시용
+
+**남음**: V 전부(초대 모달·역할 메뉴·양도/삭제 확인·권한 가이드 표·이미지 칸 위치·이탈 확인 — `dirty`는 L에 있다). QA 시나리오 캡처(V). mock GM-1(`me.handlers`)은 양도 뒤에도 `hosts[].myRole`이 그대로다(저장소를 읽지 않는다)
+**검사**: typecheck · lint · prettier · test(1605) · test:stories(193) · build · e2e(264 — 새 32) 통과. `useMyPage.test` 「기본 이미지로…」는 커밋 HEAD에서도 가끔 실패하는 기존 불안정 테스트다(이번 변경과 무관, 고치지 않았다). 로컬에 `.env.local`이 없어 `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`로 돌렸다
+**문서 반영**: plan P10b 완료 기준 L, patterns §22·§24(P10b 행), api-contract §6 운영(PH-4·멤버 변경 소스 확인), design-requests Q52·Q53, directory-structure(api·features·라우트·mock), README(질문 수)
+
 ## 2026-10-26 백엔드 질문 소스 대조로 생긴 코드 수정 거리
 
 백엔드 질문(backend-questions)을 소스(@432cce4, 새 커밋은 dev `cb8d24e`)로 대조하다 나온 것. **아직 고치지 않았다** — P10b-L 통합 뒤 한 번에 고친다.

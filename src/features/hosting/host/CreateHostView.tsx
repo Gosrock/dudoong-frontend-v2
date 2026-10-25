@@ -2,7 +2,7 @@
 
 import type { HostContactType } from '@/api/host/schema';
 
-import { contactPlaceholder } from './model/create-host-form';
+import { contactPlaceholder } from './model/host-fields';
 import { useCreateHost } from './model/useCreateHost';
 
 /** `/hosting/new/hosts` 호스트 만들기 — 스타일 없는 최소 마크업(P10a-L). 드롭다운·글자 수·하단 버튼 바는 P10a-V */
