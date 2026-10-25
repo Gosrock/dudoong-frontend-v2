@@ -127,7 +127,7 @@ app/
 
 **경로를 읽는 컴포넌트.** Cache Components에서 `usePathname()`은 `generateStaticParams`가 없는 동적 파라미터 경로에서 suspend하고, 위에 Suspense가 없으면 빌드가 실패한다([Next 문서](https://nextjs.org/docs/app/api-reference/functions/use-pathname)). 그렇다고 children을 감싸는 Provider·레이아웃에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404가 200으로 굳는다(§2). 그래서 **`usePathname()`·`useSearchParams()`를 쓰는 컴포넌트는 children을 감싸지 않는 말단 컴포넌트로 두고, 형제 위치의 자체 `<Suspense>`로 감싼다.** 헤더의 활성 메뉴 표시, 경로가 바뀔 때 오버레이를 닫는 `<OverlayRouteReset />`(§5)이 여기에 해당한다. P0 상태 코드 표(§2)는 이 컴포넌트들을 넣은 최종 헤더로 채운다.
 
-**호스팅 센터 셸(GUI 반영, 2026-10-15 → 2026-10-25 갱신).** GUI 화면 파일의 2026-10-25 "Ready for dev" 판 — PC 대시보드 5장·공연준비 홈 PC 4폭·기본 정보 PC 1장과 반응형 스펙([`gui-screens.md`](./gui-screens.md) §3) — 과 모바일 화면들(§2)을 따른다. 옛 `Desktop - 27`(사이드바 255 + 본문 + 우측 392, 사이드바에 "호스팅 홈"·"호스트" 섹션·사용자 줄)은 지워졌다. 화면 문구의 "호스팅 센터"는 "공연준비"로 바뀌는 중이다(문구만 — 라우트 `/hosting`은 그대로).
+**호스팅 센터 셸(GUI 반영, 2026-10-15 → 2026-10-25 갱신).** GUI 화면 파일의 2026-10-25 "Ready for dev" 판 — PC 대시보드 6장·공연준비 홈 PC 4폭·기본 정보 PC 1장과 반응형 스펙([`gui-screens.md`](./gui-screens.md) §3) — 과 모바일 화면들(§2)을 따른다. 옛 `Desktop - 27`(사이드바 255 + 본문 + 우측 392, 사이드바에 "호스팅 홈"·"호스트" 섹션·사용자 줄)은 지워졌다. 화면 문구의 "호스팅 센터"는 "공연준비"로 바뀌는 중이다(문구만 — 라우트 `/hosting`은 그대로).
 
 | 폭 | 셸 | 위치 |
 |---|---|---|

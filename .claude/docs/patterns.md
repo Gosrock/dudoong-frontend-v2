@@ -537,7 +537,7 @@ useEffect(() => {
 - 입금 미확인 거절(`DEPOSIT_UNCONFIRMED`)은 `refundAccountRequired=false`라 입력을 유도하지 않는다. 입구(`canEditRefundAccount`)는 그대로 둔다.
 - 거절 사유: `reasonType`별 고정 문구는 프론트가 가진다. `ETC`만 호스트가 쓴 `reasonText`.
 - 옵션 표시: `lines`가 1개면 "모든 티켓에 같은 옵션", 여러 개면 티켓별. 선물 상태는 `issuedTickets[]`에서 읽는다.
-- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다(`useQuery`, 시트를 열 때). **쿠키를 싣는 `eventDetailViewerQuery`(`useEventContacts`)로 부른다** — 공개 키로 부르면 가린 값이다(#846). 시트 컴포넌트는 공연 상세(P5b)와 같은 것을 쓴다.
+- 호스트 문의 시트는 주문상세에 연락처가 없어 GP-3을 따로 부른다(`useQuery`, 시트를 열 때). **쿠키를 싣는 `eventDetailViewerQuery`(`useEventContacts`)로 부른다** — 공개 키로 부르면 가린 값이다(#846). 시트 컴포넌트는 공연 상세(P5b)와 같은 것을 쓴다. 단 지금의 `useEventContacts`는 공연 상세(서버 프리페치 있음)를 전제로 공개 GP-3(`eventDetailQuery`)을 `useSuspenseQuery`로 늘 읽는다(코드 L28) — 프리페치가 없는 주문상세에서 그대로 쓰면 서스펜드되고 시트를 열기 전에 공개 GP-3을 부른다. P9 착수 때 공개 GP-3을 서스펜드 없이 읽는 변형(또는 viewer만 읽기)이 필요하다(방법은 미정).
 - 환불 계좌 폼의 은행은 `GET /api/v2/banks`(공개, #804·#813) 목록에서 고르고 `bankCode`를 보낸다(`bankName`은 생략 가능 — 서버가 채운다). 응답 계좌의 `bankCode`가 `null`이면(옛 자유 입력 값) 수정 폼은 목록에서 다시 고르게 한다.
 
 ## 21. P9b · P10a — 알림
