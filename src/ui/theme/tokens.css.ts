@@ -6,7 +6,7 @@ import { palette } from './palette';
 /**
  * 디자인 토큰(design-system.md §1). 색은 Figma `Sementic` 컬렉션의 Light 값을 옮겼다.
  * 다크 모드는 지원하지 않는다(사용자 결정 2026-10-25) — 토큰은 라이트 한 벌을 `:root`에 둔다.
- * `avatar`·`role`·`chip`·`button`은 Figma가 원시 색(또는 이름을 모르는 새 변수)을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다.
+ * `avatar`·`role`·`chip`은 Figma가 원시 색을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다.
  */
 export const vars = createGlobalTheme(':root', {
   color: {
@@ -17,6 +17,9 @@ export const vars = createGlobalTheme(':root', {
       primarySubtle: palette.violet[50],
       primaryContainer: palette.violet[100],
       onPrimaryContainer: palette.violet[300],
+      primaryContainerHover: palette.violet[200],
+      onPrimaryContainerHover: palette.violet[400],
+      primaryContainerPressed: palette.violet[300],
       accent: palette.coralRed[400],
       accentHover: palette.coralRed[500],
       accentPressed: palette.coralRed[600],
@@ -28,6 +31,7 @@ export const vars = createGlobalTheme(':root', {
       tertiary: palette.neutral[300],
       inverse: palette.neutral[50],
       onBrand: palette.neutral[50],
+      onBrandFixed: palette.neutral[50],
       primaryLabel: palette.neutral[800],
       secondaryLabel: palette.neutral[500],
       tertiaryLabel: palette.neutral[300],
@@ -54,6 +58,8 @@ export const vars = createGlobalTheme(':root', {
       defaultBorder: palette.neutral[200],
       strongBorder: palette.neutral[400],
       defaultLabel: palette.neutral[100],
+      inverseHover: palette.neutral[700],
+      inversePressed: palette.neutral[900],
     },
     background: {
       normal: palette.common.white,
@@ -73,17 +79,6 @@ export const vars = createGlobalTheme(':root', {
     },
     chip: {
       giftPendingBg: palette.coralRed[50],
-    },
-    /**
-     * Button 상태 색(design-system §3 "Button 상태 색", 2026-10-25). Figma 변수 이름을 몰라(REST 변수 API 403) 전용 토큰으로 둔다.
-     * tonal = primary 2 Hover 배경 `649:1159`(Violet 200)·Pressed 배경 `649:1160`(Violet 300),
-     * fab = round Primary Hover `649:1162`(Neutral 700)·Pressed `649:1163`(Neutral 900)
-     */
-    button: {
-      tonalHoverBg: palette.violet[200],
-      tonalPressedBg: palette.violet[300],
-      fabHoverBg: palette.neutral[700],
-      fabPressedBg: palette.neutral[900],
     },
     /** 오버레이 딤·그림자 */
     overlay: {

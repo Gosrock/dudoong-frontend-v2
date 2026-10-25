@@ -32,7 +32,9 @@ export const Disabled: Story = { args: { disabled: true } };
 export const StateColors: Story = {
   play: async ({ canvasElement }) => {
     const button = within(canvasElement).getByRole('button', { name: '새 공연 만들기' });
-    await expect(pseudoStyle(button, ':hover', 'background')).toBe(vars.color.button.fabHoverBg);
-    await expect(pseudoStyle(button, ':active', 'background')).toBe(vars.color.button.fabPressedBg);
+    await expect(pseudoStyle(button, ':hover', 'background')).toBe(vars.color.surface.inverseHover);
+    await expect(pseudoStyle(button, ':active', 'background')).toBe(
+      vars.color.surface.inversePressed,
+    );
   },
 };

@@ -108,7 +108,18 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 | `161:3481` | 20 | 모서리 20(`My`·`승인 메뉴_desktop`·`티켓 판매 정보`) — 값이 `Radius/6`과 같다 |
 | `35:176` | 2.09(인스턴스 축소 값) | `example poster` 준비중 mobile 모서리 |
 
-Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/accent-subtle`, Neutral/50 = `surface/container`, Neutral/100 = `Background/grey`, Common/100 = `Background/normal`, Neutral/900 = `Background/dark`). 하지만 Dark 값은 다르므로 기계적으로 바꾸지 않는다. 코드에서는 이 색들을 컴포넌트 전용 의미 토큰으로 묶는다(`vars.color.avatar.teal`, `vars.color.role.master` 등). 전용 토큰은 `avatar`·`role`·`chip`(2026-10-25부터 선물대기 배경 `giftPendingBg` 하나)·**`button`**(2026-10-25 — 이름을 모르는 새 변수를 묶은 것: `tonalHoverBg` Violet 200 `649:1159`, `tonalPressedBg` Violet 300 `649:1160`, `fabHoverBg` Neutral 700 `649:1162`, `fabPressedBg` Neutral 900 `649:1163`)이다. 디자이너가 의미 색을 추가하면 그 이름으로 바꾼다(§5).
+Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/accent-subtle`, Neutral/50 = `surface/container`, Neutral/100 = `Background/grey`, Common/100 = `Background/normal`, Neutral/900 = `Background/dark`). 하지만 Dark 값은 다르므로 기계적으로 바꾸지 않는다. 코드에서는 이 색들을 컴포넌트 전용 의미 토큰으로 묶는다(`vars.color.avatar.teal`, `vars.color.role.master` 등). 전용 토큰은 `avatar`·`role`·`chip`(2026-10-25부터 선물대기 배경 `giftPendingBg` 하나)이다. 디자이너가 의미 색을 추가하면 그 이름으로 바꾼다(§5). 2026-10-25에 잠시 두었던 `button` 전용 토큰은 Figma 의미 변수 이름(플러그인으로 `Sementic` 컬렉션을 읽음)을 알게 되어 지웠다 — 아래 "버튼 상태 색 의미 변수".
+
+
+**버튼 상태 색 의미 변수(2026-10-25, 플러그인으로 `Sementic` 컬렉션 읽음).** 위 표의 `649:*`·`640:1888`·`606:1920`(primary 2 Pressed 글자)이 쓰는 이름이다. 코드 토큰은 `vars.color.<그룹>.<camelCase>`로 옮겼다(값은 옛 `button.*`와 같다).
+
+| 쓰는 곳 | Figma 변수 | 원시 | 코드 |
+|---|---|---|---|
+| Secondary Hover 배경 | `surface/container` | Neutral 50 | `surface.container`(있던 것) |
+| primary 2 Normal 배경 · 글자 | `brand/Primary container fixed` · `brand/on Primary container` | Violet 100 · Violet 300 | `brand.primaryContainer`(있던 것 — Figma는 `fixed` 붙은 별도 변수) · `brand.onPrimaryContainer` |
+| primary 2 Hover 배경 · 글자 | `brand/Primary container-hover` · `brand/on Primary container-hover` | Violet 200 · Violet 400 | `brand.primaryContainerHover` · `brand.onPrimaryContainerHover`(새로, 옛 글자는 `text.brandLabel` — 값 같음) |
+| primary 2 Pressed 배경 · 글자 | `brand/Primary container-pressed` · `text/on-brand fixed` | Violet 300 · Neutral 50 | `brand.primaryContainerPressed` · `text.onBrandFixed`(새로, 옛 글자는 `text.onBrand` — 값 같음) |
+| round Primary(Fab) Hover · Pressed 배경 | `surface/inverse-hover` · `surface/inverse-pressed` | Neutral 700 · Neutral 900 | `surface.inverseHover` · `surface.inversePressed`(새로) |
 
 **쓰이지 않는 의미 색.** 컴포넌트 어디에도 묶이지 않았다: `text/tertiary-label`, `text/disabled-label`, `text/danger-label`, `brand/accent-pressed`, `brand/accent-hover`, `status/warning`, `status/warning-subtle`, `status/error`, `Background/dark`. 토큰으로는 옮기되, 정리 요청(§5) 결과에 따라 지운다. 2026-10-25: `status/warning`·`warning-subtle`은 Concert state chip D-day large가, `text/tertiary-label`은 `Top bar_Host`의 비활성 메뉴·`날짜` 요일 글자가 쓰기 시작했다.
 
@@ -258,7 +269,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
 - Button 페이지에 상태 라벨 글자(Normal·Hover·Pressed·Disabled·Selected·Primary·Secondary·Primary2 — `645:1513`~`645:1519`, `650:1323`~`650:1330`)가 생겼다. 컴포넌트가 아닌 견본 표의 머리글이다.
 - 대비(계산): primary 2 Normal 2.75:1(옛 4.04:1), Hover 2.76:1, Pressed 3.96:1. §5 대비 요청에 더한다.
-- 코드 반영(2026-10-25): 위 표대로 Button `secondary`·`tonal`, `Fab`(Primary Hover·Pressed — 투명도 대신 색) 상태 색과 medium 46h를 넣었다. round Secondary는 쓰는 화면이 생기면(V). 이름 모르는 변수는 전용 토큰 `button.*`(§1).
+- 코드 반영(2026-10-25): 위 표대로 Button `secondary`·`tonal`, `Fab`(Primary Hover·Pressed — 투명도 대신 색) 상태 색과 medium 46h를 넣었다. round Secondary는 쓰는 화면이 생기면(V). 색은 Figma 의미 변수 이름의 토큰(`brand.primaryContainerHover`·`brand.onPrimaryContainerHover`·`brand.primaryContainerPressed`·`text.onBrandFixed`·`surface.inverseHover`·`surface.inversePressed`, §1 "버튼 상태 색 의미 변수")을 쓴다 — 옛 전용 토큰 `button.*`는 지웠다.
 
 ### 호스팅 PC·대시보드 컴포넌트(2026-10-25)
 
@@ -574,3 +585,4 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | 디자인 시스템 반영(2026-10-25) | 디자인 시스템 파일 2026-10-25T09:12Z 판을 10-14T17:51Z 판과 비교(REST 파일 JSON의 노드·변수 바인딩·스타일 + 렌더·SVG 내보내기). 새 페이지 "┗ Menu"와 호스팅 PC 컴포넌트 14개를 §3 새 표로 — GUI 원격 컴포넌트가 이 파일 것임을 키로 확인하고 "없는 컴포넌트"의 해당 6행을 옮김. Button 27 → 68변형·상태 색 표·medium 46h, round Secondary. Tabs 검정 선택·회색 미선택·데스크탑 변형. Concert state chip `ing`·`size`·의미 색. 아이콘 53종·68변형(9종 + 20 크기), `Ticket` filled 분리. 그리드: Tablet 12칼럼, host 그리드 3개, 그리드 스타일 7개 — GUI 프레임과 여백 대조(§2). `drop shadow2`. 새로 쓰인 변수 12개(이름 미확인), 옛 변수 값 변화 없음. 일러스트 SVG 크기 감소. 숫자 폰트: 디자인 시스템 `Title_number` 그대로, 대시보드 컴포넌트 숫자는 Pretendard(Q14). 코드 수정 거리는 implementation-log |
 | 코드 반영(2026-10-25, 커밋 `456e5f2`) | implementation-log "디자인 시스템 변경으로 생긴 코드 수정 거리" #1~#9 처리를 반영 — §1 전용 토큰 `button`·Concert 칩 의미 색, §3 Tabs `size` md/lg(lg 48 통일), §4 아이콘 53종 69개·크기 20·`ticket` filled 낱개, §4-1 일러스트 SVG 전환(PNG 예외 문장 삭제), §4-2 "Tabs 높이 44 통일"은 모바일만, §5 Tabs disabled 색 요청, 결정 요약·§7 a11y 자동 검사 없음 |
 | 다크 모드 미지원(2026-10-25) | 사용자 결정으로 다크 모드를 지원하지 않는다. 토큰 다크 세트·`data-theme="dark"` 셀렉터·`withDarkTheme` 데코레이터와 다크 스토리 4개를 걷어내고 색 토큰을 `createGlobalTheme(':root')` 한 벌로 바꿈. §1 다크 모드 문단, §5 다크 값 요청, §7 "다크 모드 출시 범위" 정리 |
+| 버튼 상태 색 토큰 이름(2026-10-25) | 플러그인으로 읽은 Figma 의미 변수 이름으로 전용 토큰 `button.*`(`tonalHoverBg`·`tonalPressedBg`·`fabHoverBg`·`fabPressedBg`)를 바꿈 — §1 "버튼 상태 색 의미 변수" 표, §3 Button 상태 색 코드 반영. 값 변화 없음 |

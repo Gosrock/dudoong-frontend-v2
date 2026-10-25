@@ -103,11 +103,15 @@ export const StateColors: Story = {
     const tonal = canvas.getAllByRole('button', { name: 'tonal' })[0]!;
     // Normal 글자 Violet 300(#8162F1)
     await expect(getComputedStyle(tonal).color).toBe('rgb(129, 98, 241)');
-    await expect(pseudoStyle(tonal, ':hover', 'background')).toBe(vars.color.button.tonalHoverBg);
-    await expect(pseudoStyle(tonal, ':hover', 'color')).toBe(vars.color.text.brandLabel);
-    await expect(pseudoStyle(tonal, ':active', 'background')).toBe(
-      vars.color.button.tonalPressedBg,
+    await expect(pseudoStyle(tonal, ':hover', 'background')).toBe(
+      vars.color.brand.primaryContainerHover,
     );
-    await expect(pseudoStyle(tonal, ':active', 'color')).toBe(vars.color.text.onBrand);
+    await expect(pseudoStyle(tonal, ':hover', 'color')).toBe(
+      vars.color.brand.onPrimaryContainerHover,
+    );
+    await expect(pseudoStyle(tonal, ':active', 'background')).toBe(
+      vars.color.brand.primaryContainerPressed,
+    );
+    await expect(pseudoStyle(tonal, ':active', 'color')).toBe(vars.color.text.onBrandFixed);
   },
 };

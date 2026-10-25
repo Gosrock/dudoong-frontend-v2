@@ -22,8 +22,8 @@ export const fab = style({
   cursor: 'pointer',
   transition: 'background-color 120ms ease',
   selectors: {
-    '&:hover:not(:disabled)': { background: vars.color.button.fabHoverBg },
-    '&:active:not(:disabled)': { background: vars.color.button.fabPressedBg },
+    '&:hover:not(:disabled)': { background: vars.color.surface.inverseHover },
+    '&:active:not(:disabled)': { background: vars.color.surface.inversePressed },
     '&:focus-visible': {
       outline: `2px solid ${vars.color.brand.primary}`,
       outlineOffset: 2,

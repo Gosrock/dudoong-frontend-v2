@@ -56,8 +56,9 @@ export const button = recipe({
       },
       /**
        * Figma "primary 2"(토큰 primarySubtle과 다른 색이라 subtle로 부르지 않는다).
-       * Normal 배경 Violet 100(`640:1888`) + 글자·아이콘 Violet 300(`424:686`, `645:1506`·`423:767`),
-       * Hover 배경 Violet 200 + 글자 Violet 400(`650:1219`·`650:1291`), Pressed 배경 Violet 300 + 글자 #F7F7F6(`650:1224`·`650:1296`).
+       * Normal 배경 `brand/Primary container fixed`(Violet 100) + 글자·아이콘 `brand/on Primary container`(Violet 300),
+       * Hover `brand/Primary container-hover`(Violet 200) + `brand/on Primary container-hover`(Violet 400),
+       * Pressed `brand/Primary container-pressed`(Violet 300) + `text/on-brand fixed`(Neutral 50).
        * Normal 대비가 2.75:1이라 디자이너 확인 중(design-system §3·§5) — Figma 값대로 둔다.
        */
       tonal: {
@@ -65,12 +66,12 @@ export const button = recipe({
         color: vars.color.brand.onPrimaryContainer,
         selectors: {
           '&:hover:not(:disabled)': {
-            background: vars.color.button.tonalHoverBg,
-            color: vars.color.text.brandLabel,
+            background: vars.color.brand.primaryContainerHover,
+            color: vars.color.brand.onPrimaryContainerHover,
           },
           '&:active:not(:disabled)': {
-            background: vars.color.button.tonalPressedBg,
-            color: vars.color.text.onBrand,
+            background: vars.color.brand.primaryContainerPressed,
+            color: vars.color.text.onBrandFixed,
           },
         },
       },
