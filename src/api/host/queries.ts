@@ -7,6 +7,7 @@ import {
   HostEventPageSchema,
   HostMembersSchema,
   HostViewerSchema,
+  MyHostPageSchema,
 } from './schema';
 
 /**
@@ -69,3 +70,43 @@ export const hostMembersQuery = (hostId: string | number) =>
     queryFn: ({ signal }) =>
       api.get(`hosts/${encodeURIComponent(hostId)}/members`, HostMembersSchema, { signal }),
   });
+
+// ─── 호스팅 센터 ─────────────────────────────────────────────
+
+/**
+ * 호스팅 센터 조회의 기본값(plan P10a "호스팅 센터용 쿼리 기본값"). 조작 화면이라 전역 기본값을 그대로 쓴다 —
+ * `staleTime` 0(마운트·포커스마다 최신으로), `retry` 5xx·네트워크 1회, `refetchOnWindowFocus` 켬(tech-decisions §4 기본 옵션 표).
+ * 서버에서 조회하지 않는다: `hosting/layout.tsx`의 게이트가 세션을 확정한 뒤에만 화면을 그려 브라우저에서만 부른다.
+ * 쿼리마다 따로 덮지 않으므로 여기에는 값을 두지 않고, 바뀌면 이 주석과 각 `queryOptions`를 같이 고친다.
+ */
+
+/** 내 호스트 목록 전체(검색어마다 키가 다르다)의 접두 키 — 호스트를 만든 뒤·마스터 양도 뒤 무효화(patterns §22) */
+export const MY_HOSTS_KEY = ['me', 'hosts'] as const;
+
+export type MyHostsParams = PageParams & {
+  /** 호스트 이름 부분일치, 50자까지(51자는 400) */
+  keyword?: string;
+};
+
+/**
+ * GH-1 내 호스트(로그인, 무한 목록 — patterns §12). 카드형 기본 크기 10. 빈 검색어는 보내지 않는다(키도 같게).
+ * 정렬은 서버 순서 그대로 — 호스트 id 큰 순(432cce4)이라 방금 만든 호스트가 첫 페이지 맨 앞에 온다.
+ */
+export const myHostsQuery = (params: MyHostsParams = {}) => {
+  const keyword = params.keyword?.trim();
+  const p = {
+    ...(keyword && { keyword }),
+    ...(params.size !== undefined && { size: params.size }),
+  };
+  return infiniteQueryOptions({
+    ...pageInfinite,
+    queryKey: [...MY_HOSTS_KEY, 'infinite', p],
+    queryFn: ({ pageParam, signal }) => {
+      const searchParams = new URLSearchParams();
+      if (p.keyword) searchParams.set('keyword', p.keyword);
+      searchParams.set('page', String(pageParam));
+      if (p.size !== undefined) searchParams.set('size', String(p.size));
+      return api.get('me/hosts', MyHostPageSchema, { searchParams, signal });
+    },
+  });
+};

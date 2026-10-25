@@ -335,3 +335,50 @@
 `Header`의 `logo="host"`(`host title`), `Illustration`의 `dashboard-*`(`ic_대시보드` — 색 구성 같음), 텍스트 스타일·`titleNumber`(Saira Condensed)는 바꿀 것이 없다. 대시보드 숫자 폰트는 사용자 결정대로 `titleNumber`가 정본이고 디자이너 확인 중이다(design-requests Q14) — P13a-V에서 그린다.
 
 **처리(커밋 `456e5f2`, 2026-10-25)**: Button medium 46h·`secondary` Hover/Pressed 분리·`tonal` 글자 Violet 300 + Hover·Pressed, `Fab` Hover·Pressed 색(투명도 대신), Tabs 검정 선택·회색 미선택 + `TabList` `size` md(44h)·lg(48h 통일 — Figma 선택 48·미선택 44와 다름), Chip concert 의미 색 + `ing`, 전용 토큰 `chip.dday*`·`chip.pastBg` 삭제와 `button.*` 추가(Figma 변수 이름을 몰라 둔 컴포넌트 전용 토큰 — 같은 날 플러그인으로 이름을 읽어 `brand.primaryContainerHover`·`brand.onPrimaryContainerHover`·`brand.primaryContainerPressed`·`text.onBrandFixed`·`surface.inverseHover`·`surface.inversePressed`로 바꾸고 `button` 그룹을 지웠다, 값 변화 없음 — design-system §1), 아이콘 11개 + 크기 20(53종 69개, `ticket` filled는 낱개 `183:1130`에서), 일러스트 6종 PNG → Figma SVG(아바타 제외 — #10 보류). 스토리(Button·Chip·Fab·Tabs·Icon·Illustrations) 갱신. 커밋 메시지 기준 격리 worktree에서 typecheck · test:stories · build · e2e 통과. 스토리 테스트에는 a11y 자동 검사가 없어 대비(primary 2 2.75:1, Tabs 미선택 2.01:1)는 사람 검토로만 본다(design-system 결정 요약·§5). **문서 반영**: design-system 결정 요약·§1·§3·§4·§4-1·§4-2·§5·§7.
+
+## P10a-L — 공연준비 홈 · 호스트 만들기 (로직)
+
+**상태**: done (2026-10-26, 커밋 전) — V 전부 남음
+**변경**: `src/api/host/`(`schema.ts` + `MyHostSchema`(GH-1)·`CreateHostRequestSchema`·`CreateHostResponseSchema`(PH-2)·입력 규칙 상수 `HOST_NAME_MAX` 15·`HOST_INTRODUCE_MAX` 255·`HOST_CONTACTS_MIN/MAX` 1/10·`HOST_CONTACT_VALUE_MAX` 200·`HOST_PHONE_VALUE_MAX` 15, `queries.ts` `MY_HOSTS_KEY`·`myHostsQuery`, `mutations.ts` `createHostMutation`), `src/api/event/`(`MyEventSchema`(GE-1, 장소 평평한 세 필드)·`MY_EVENTS_KEY`·`myEventsQuery`). `features/hosting/home/model/`: `hosting-home`(`HOSTING_HOME_TABS`·`parseHostingHomeTab`·`hostingHomeSearch`·`HOSTING_HOME_HOSTS_HREF`·`clampHostingKeyword` 50자·`HOSTING_KEYWORD_DEBOUNCE_MS` 300·`emptyKindOf`·`HOSTS_EMPTY_TITLE`·`NEW_HOST_HREF`·`myHostHref`·`myEventHref`), `useHostingHome`. `features/hosting/host/model/`: `create-host-form`(`HOST_CONTACT_OPTIONS` 6종·`contactPlaceholder`·`initialCreateHostValues`·칸 오류 `nameError`·`introduceError`·`contactError`·`validateCreateHost`·`toCreateHostBody`·`CREATE_HOST_ERROR_MESSAGE`), `useCreateHost`. `features/hosting/access/`(새): `model/hosting-access`(`hostingAccessOfError`·`hostingAccessOfRole`·`HOSTING_ACCESS_BACK`), `HostingAccessRejected`·`HostingForbidden`(P2 `ForbiddenView`·`NotFoundView`). 화면 자리(로직 연결만): `HostingHomeView`·`CreateHostView`. 라우트 `hosting/page.tsx`·`hosting/new/hosts/page.tsx`. `next.config.ts` `redirects()`에 `/admin/*` 표(tech-decisions §22) 9줄. mock: `fixtures/hosting.ts`(멤버십 기본·mixed·many, `toMyHost`·`toMyEvent`), `hosting.handlers.ts`(GH-1·GE-1·PH-2 + 만든 호스트 저장소 `resetHostingStore`, `hostingSets`)
+
+**훅이 돌려주는 것**
+- `useHostingHome()` → `{tabs, tab, setTab, keywordInput, setKeywordInput, submitKeyword, keyword, hosts, events}`. `hosts`·`events`는 `{status: pending|error|empty|success, items(+ href), emptyKind: none|search|null, hasNextPage, isFetchingNextPage, nextPageError, loadMore, retry}`
+- `useCreateHost()` → `{values, setName, setIntroduce, setContactType, setContactValue, addContact, removeContact, canAddContact, canRemoveContact, contactOptions, errors, attempted, contactsServerError, submitting, submit}`
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `useHostingHome.test` 11건, `useCreateHost.test` 8건, `hosting-home.test`, `create-host-rules.test`, `hosting-access.test`, `HostingAccessRejected.test` 8건, `host/hosting-api.test` 15건, e2e `hosting.spec` 29건(×2 프로젝트) |
+| 호스트 생성 → 목록 반영 | 훅 「호스트 생성 → 목록 반영: 만든 호스트가 다음 GH-1에 마스터로 나온다」, 「PH-2 {name, introduce, contacts}를 보내고(공백 정리·빈 소개 null), GH-1·GM-1을 다시 읽게 한 뒤 공연준비 홈 호스트 탭으로 replace」, api 「본문이 요청 스키마를 통과하고, 응답 {hostId}의 호스트가 다음 GH-1에 마스터로 나온다」, e2e 「만들면 PH-2를 보내고 공연준비 홈 호스트 탭으로 — 새 호스트가 목록에 나온다」 |
+| 비멤버 403(더미 하위 라우트) | `HostingAccessRejected.test` 「공연: 멤버 전용 조회가 403(HOST_400_2)이면 공용 403 안내, 돌아갈 곳은 공연준비 홈」, 「공연: 없는·남의 공연(404)은 공용 404 안내」, 「공연: 5xx는 403·404가 아니라 다시 시도」, 「호스트: 비멤버의 멤버 목록(GH-6 403 HOST_400_2)은 공용 403 안내」, 「호스트: 공개 GH-3 viewer가 200 + myRole null이어도 403 안내」 + 멤버 통과 3건, `hosting-access.test` 표 15행 |
+| 벨 | 해당 없음 — P9b-L이 먼저 만들고 검증했다 |
+| 서버 조회 없음(셸만) | 빌드 결과 `/hosting`·`/hosting/new/hosts` 정적(○), e2e 「로그인하면 200, 공연 탭이 기본 — GE-1만 브라우저에서 읽고 서버는 /api를 부르지 않는다」 |
+| 호스팅 쿼리 기본값 | 전역 기본값 그대로(아래 결정) — 훅 「다음 페이지가 실패하면 기존 행을 두고 nextPageError → retry로 그 페이지를 다시, 전역 토스트 없음」 |
+| 연락처 6종·placeholder | `create-host-rules` 「서버 enum 6종(YOUTUBE 포함)을 모두, 서버 순서로」, it.each 6행, 훅 「연락처 유형 6종(YOUTUBE 포함)과 처음 값」, e2e(유튜브 placeholder "URL") |
+
+그 밖: 탭 「기본은 공연 탭: GE-1만 쿠키와 함께 첫 페이지를 읽고, GH-1은 부르지 않는다」, 「호스트 탭으로 바꾸면 주소에 ?tab=hosts가 남고 GH-1을 읽는다 — 카드에 myRole·eventCount·호스트 홈 주소」, 「카드의 myRole은 호스트마다 다르다」, 검색 「입력 뒤 300ms에 지금 탭 목록을 keyword로 새로 읽고(첫 페이지부터), 탭을 바꿔도 검색어가 남는다」, 「검색칸은 50자에서 막고…」, 빈 상태 「소속 호스트가 없으면 호스트 탭은 "등록한 것 없음" 빈 상태(검색 결과 없음과 구분)」, 무한 스크롤 「호스트 24개: 10개씩 page=1·2로 이어 읽고 hasNext가 false면 끝난다」, 에러 「에러 분기 HOST_400_16(연락처 형식) → 연락처 영역 오류, 이동 없음, 토스트 없음 — 연락처를 고치면 지운다」, 「표에 없는 실패(GLOBAL_400_1·5xx)는 전역 토스트로 간다」, 「만드는 중에 다시 눌러도 한 번만 보낸다」, 리다이렉트 e2e 19행 + 쿼리 전달 + `/admin/kakao/callback` 404.
+
+**결정**
+- 필드는 처음에 통합 기획서(2026-10-10) API 레퍼런스에서 옮겼고, 통합 때 백엔드 소스 `432cce4`(`V2MyHostResponse`·`V2MyEventResponse`·`V2CreateHostRequest`/`Response`·`V2HostContactRequest`)와 대조해 같음을 확인했다(B20 해결)
+- 호스팅 센터 쿼리 기본값: 전역 기본값 그대로(`staleTime` 0 · 5xx·네트워크 1회 · 포커스 재조회), 브라우저에서만. 목록 접두 키 `['me','hosts']`·`['me','events']`(patterns §4-4)
+- 공연준비 홈: 지금 탭의 목록만 부른다(`enabled`). 검색칸 하나가 지금 탭을 찾고, 탭을 바꿔도 검색어는 남는다(Figma `531:12572` — 검색 하나, 결과 공연·호스트 각각). 검색어는 주소에 남기지 않는다
+- 호스트 만들기 성공: GH-1 접두 키 + GM-1(`['me']` exact — `hosts`·`hostCount`) 무효화 → `/hosting?tab=hosts`로 `replace`
+- 403 판정은 `features/hosting/access`(새 폴더). 하위 화면은 `<AsyncBoundary rejected={HostingAccessRejected}>`, 공개 GH-3 viewer로 여는 호스트 화면은 `hostingAccessOfRole(myRole)`(`can(role,'viewManagement')`)
+- `/admin/*` 리다이렉트는 tech-decisions §22 표의 경로만, 307. 표 밖 `/admin/*`·`/admin/kakao/callback`은 404
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. 공연준비 홈 탭을 주소 `?tab=hosts`에 남긴다(tech-decisions §3 "주소에 남기는 것" 표에 없다) — 호스트를 만든 뒤 호스트 탭으로 돌아오게 하려고. 되돌리기: `useHostingHome`의 탭을 `useState`로, `HOSTING_HOME_HOSTS_HREF`를 `/hosting`으로
+2. Q19 기본안 "호스트 설정이나 공연준비 홈" 중 공연준비 홈 호스트 탭을 골랐다(설정은 P10b라 아직 없다). 되돌리기: `useCreateHost`의 `router.replace` 주소 하나
+3. 만든 뒤 GM-1 세션 키도 무효화(햄버거 호스트 줄이 GM-1 `hosts`를 쓴다). 되돌리기: `useCreateHost` `onSuccess`의 두 번째 `invalidateQueries` 삭제
+4. 연락처 처음 값은 유형 미선택 한 줄, 1~10줄 추가·삭제를 L에 둔다(GUI 만들기는 한 줄 — design-requests Q51). 되돌리기: `initialCreateHostValues`의 `type`, `addContact`·`removeContact` 제거
+5. 연락처 드롭다운 라벨은 GUI 문구(전화번호·오픈채팅방 …)를 쓰고, 유튜브를 기타 앞(서버 enum 순서)에 넣었다. 이메일 placeholder는 `null`(Q49)
+6. 이름·소개·연락처 값의 앞뒤 공백을 지워 보내고 빈 소개는 `null`. 서버도 이름·연락처는 지우고 공백뿐인 소개는 `null`로 저장한다 — 소개의 앞뒤 공백까지 지우는 것만 프론트 판단. 되돌리기: `toCreateHostBody`
+7. 칸 오류 문구("호스트 이름을 입력해 주세요" 등)·공연 탭 빈 상태·검색 결과 없음 문구는 잠정(Q50). `HOST_400_16`은 줄을 몰라 연락처 영역 전체 오류
+8. 공연 카드 주소는 `/hosting/events/{id}`(redirects로 대시보드 — 호스트 홈 준비중 카드와 같은 주소), 호스트 카드는 호스트 홈 `/hosts/{id}`(storyboard F)
+9. `/admin/*` 리다이렉트를 307(`permanent: false`)로, `/admin/new/events/:step*`는 단계 없이 `/hosting/new/events`로. 되돌리기: `next.config.ts` `adminRedirects`
+10. mock GE-1 "최신 생성 순"은 생성일이 없어 id 큰 순으로 흉내 낸다. GH-1 정렬(호스트 id 큰 순)은 서버와 같다
+
+**남음**: V 전부(카드·`myRole` 배지·FAB·sentinel·연락처 드롭다운·403 화면 모양). 준비중 카드 ⋮ 삭제는 P11
+**검사**: typecheck · lint · prettier · test(1496) · test:stories(193) · build · e2e(232 — 새 58) 통과. 로컬에 `.env.local`이 없어 `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`로 돌렸다
+**문서 반영**: plan P10a 완료 기준 L, patterns §4-4·§24(P10a 행), design-requests Q19·Q49~Q51, backend-questions B20, directory-structure(api·features·라우트·mock), README(질문 수)

@@ -140,6 +140,21 @@
 - **답이 없으면**: `paymentChannel`이 두둥 값이거나, `null`이고 `totalAmount > 0`이면 안내를 붙인다(빠뜨리는 쪽보다 더 붙는 쪽).
 
 
+### B20. P10a-L 공연준비 홈·호스트 만들기에서 나온 것 — **해결(소스 확인 @432cce4, 2026-10-26)**
+
+> 백엔드 저장소 `432cce4` 소스로 아래 질문에 모두 답이 나왔다. 보낼 필요 없다. 원래 질문은 기록으로 남긴다.
+>
+> - **필드**: `V2MyHostResponse`(hostId·name·profileImageUrl·myRole·eventCount)·`V2MyEventResponse`(eventId·hostId·hostName·myRole·name·posterImageUrl·startAt·endAt·placeName·placeAddress·placeDetailAddress·status·displayStatus·dDay)·`V2CreateHostRequest`·`V2CreateHostResponse{hostId}`가 프론트 스키마와 같다.
+> - **GH-1 정렬**: 호스트 id 큰 순(`queryPageHostsByActiveUserId` `hostIdDesc`) — 방금 만든 호스트가 첫 페이지 맨 앞.
+> - **`HOST_400_16`**: `V2HostDomainService.validateContacts` — 연락처 0개·11개 이상, 공백뿐인 값, 길이 초과(PHONE 15·그 밖 200, 앞뒤 공백 지운 뒤). 형식(숫자·이메일·URL) 검사는 없고 어느 줄인지 알려 주지 않는다 → 프론트 처리(연락처 영역 전체 오류)를 그대로 둔다.
+> - **공백**: 이름 `@NotBlank` + `trim()`, 연락처 값 `@NotBlank` + `trim()`, 소개는 `ifBlank { null }`(앞뒤 공백은 지우지 않는다).
+> - `keyword` 50자(`V2Paging.KEYWORD_MAX_LENGTH`), 카드형 기본 크기 10·상한 50.
+
+- **필드 출처**: GH-1 `V2MyHostResponse`·GE-1 `V2MyEventResponse`·PH-2 `V2CreateHostRequest`/`V2CreateHostResponse`는 백엔드 소스(@432cce4)가 아니라 통합 기획서(2026-10-10) API 레퍼런스 H-1·E-1·H-2로 옮겼다(소스를 로컬에 받아 두지 않았다). `432cce4`에서 이 네 DTO가 바뀌었는지 확인해 달라(`src/api/host/schema.ts`·`src/api/event/schema.ts`).
+- **GH-1 정렬**: 레퍼런스에 정렬 규칙이 없다(GE-1은 "최신 생성 순"). 어떤 순서로 주나? 방금 만든 호스트가 첫 페이지에 오나? — **답이 없으면**: 서버 순서 그대로 그린다. 만든 뒤에는 GH-1을 다시 읽으므로 어느 순서든 목록에는 나온다.
+- **`HOST_400_16`(연락처 형식) 조건**: 어떤 값이 형식 오류인가(전화 숫자만? 이메일 형식? URL?)와 여러 줄 중 어느 줄인지 알 수 있나? — **답이 없으면**: 프론트는 길이(값 200자, 전화 15자)와 빈 값만 미리 막고, 이 코드가 오면 연락처 영역 전체에 "연락처 형식을 확인해 주세요"를 보인다.
+- **이름·연락처 공백**: 서버가 이름·연락처 값의 앞뒤 공백을 지우나, 공백만인 이름을 막나(`@NotBlank`)? — **답이 없으면**: 프론트가 앞뒤 공백을 지워 보내고 빈 값은 보내지 않는다.
+
 ---
 
 ## 지켜보는 것

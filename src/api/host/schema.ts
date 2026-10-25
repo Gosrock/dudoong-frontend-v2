@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 import { EventDisplayStatusSchema, EventStatusSchema } from '../event/schema';
-import { ContactSchema, HostRoleSchema, PlaceSchema } from '../shared/common-schema';
+import { CONTACT_TYPES, ContactSchema, HostRoleSchema, PlaceSchema } from '../shared/common-schema';
 import { kstDateTime } from '../shared/date';
 import { pageSchema } from '../shared/page';
 
 /**
- * 호스트(공개) 응답. 기준: 백엔드 `v2/host/dto/response/V2HostHomeResponse.kt`·`V2HostEventResponse.kt`(dev 24aa595).
+ * 호스트 응답·요청. 공개 응답 기준: 백엔드 `v2/host/dto/response/V2HostHomeResponse.kt`·`V2HostEventResponse.kt`(dev 24aa595).
  */
 
 // ─── 호스트 홈 (GH-3) ────────────────────────────────────────
@@ -85,3 +85,61 @@ export const HostFollowSchema = z.object({
   followerCount: z.number().int(),
 });
 export type HostFollow = z.infer<typeof HostFollowSchema>;
+
+// ─── 내 호스트 (GH-1) ────────────────────────────────────────
+
+/**
+ * 내가 활성 멤버인 호스트(공연준비 홈 호스트 탭). 기준: 백엔드 `v2/host/dto/response/V2MyHostResponse.kt`(dev 432cce4).
+ * 호스트 id 큰 순(최근 만든 호스트가 앞, `HostCustomRepositoryImpl.queryPageHostsByActiveUserId`).
+ */
+export const MyHostSchema = z.object({
+  hostId: z.number().int(),
+  name: z.string().nullable(),
+  profileImageUrl: z.string().nullable(),
+  /** 이 호스트에서 내 역할. 카드 배지·버튼 숨김용이지 권한의 근거가 아니다(patterns §11) */
+  myRole: HostRoleSchema,
+  /** 등록된 공연 수(준비중 포함, 삭제 제외) */
+  eventCount: z.number().int(),
+});
+export const MyHostPageSchema = pageSchema(MyHostSchema);
+export type MyHost = z.infer<typeof MyHostSchema>;
+
+// ─── 호스트 만들기 (PH-2) ────────────────────────────────────
+
+/** 호스트 입력 규칙(api-contract §3 "호스트"). 서버 검증과 같은 값이다 — `V2CreateHostRequest`·`HostContact`·`Host.MAX_CONTACT_COUNT`(432cce4) */
+export const HOST_NAME_MAX = 15;
+export const HOST_INTRODUCE_MAX = 255;
+export const HOST_CONTACTS_MIN = 1;
+export const HOST_CONTACTS_MAX = 10;
+export const HOST_CONTACT_VALUE_MAX = 200;
+/** `PHONE` 값은 v1 컬럼 때문에 15자 이하 */
+export const HOST_PHONE_VALUE_MAX = 15;
+
+/** 보내는 연락처 유형 — 서버 enum 그대로(UNKNOWN은 보내지 않는다) */
+export const HostContactTypeSchema = z.enum(CONTACT_TYPES);
+export type HostContactType = z.infer<typeof HostContactTypeSchema>;
+
+/**
+ * PH-2 본문 `V2CreateHostRequest`(432cce4). 서버는 이름·연락처 값의 앞뒤 공백을 지우고, 공백뿐인 소개는 `null`로 저장한다. 생성자는 마스터가 된다. 이미지는 만든 뒤 설정(PH-15 → PH-4)에서 넣는다.
+ * 테스트가 "실제로 보낸 본문"을 이 스키마로 확인한다.
+ */
+export const CreateHostRequestSchema = z.object({
+  name: z.string().trim().min(1).max(HOST_NAME_MAX),
+  introduce: z.string().max(HOST_INTRODUCE_MAX).nullable(),
+  contacts: z
+    .array(
+      z
+        .object({
+          type: HostContactTypeSchema,
+          value: z.string().trim().min(1).max(HOST_CONTACT_VALUE_MAX),
+        })
+        .refine((c) => c.type !== 'PHONE' || c.value.length <= HOST_PHONE_VALUE_MAX),
+    )
+    .min(HOST_CONTACTS_MIN)
+    .max(HOST_CONTACTS_MAX),
+});
+export type CreateHostRequest = z.infer<typeof CreateHostRequestSchema>;
+
+/** PH-2 응답 `V2CreateHostResponse` — `{hostId}`뿐이라 목록 캐시를 채울 수 없다(GH-1을 다시 읽는다) */
+export const CreateHostResponseSchema = z.object({ hostId: z.number().int() });
+export type CreateHostResponse = z.infer<typeof CreateHostResponseSchema>;

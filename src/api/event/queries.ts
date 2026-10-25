@@ -8,6 +8,7 @@ import {
   EventSectionsSchema,
   type EventSort,
   HomeSchema,
+  MyEventPageSchema,
   TagGroupsSchema,
 } from './schema';
 
@@ -115,3 +116,36 @@ export const eventSectionsQuery = (eventId: string | number) =>
         signal,
       }),
   });
+
+// ─── 호스팅 센터 ─────────────────────────────────────────────
+
+/**
+ * 내 공연 목록 전체(검색어마다 키가 다르다)의 접두 키 — 공연 등록(PE-8)·삭제(DE-9)·만들기(PE-2)·마스터 양도 뒤 무효화
+ * (patterns §22·§23). 호스팅 센터 쿼리 기본값은 `myHostsQuery` 주석과 같다(전역 기본값, 브라우저에서만).
+ */
+export const MY_EVENTS_KEY = ['me', 'events'] as const;
+
+export type MyEventsParams = PageParams & {
+  /** 공연명 부분일치, 50자까지(51자는 400) */
+  keyword?: string;
+};
+
+/** GE-1 내 공연(로그인, 무한 목록 — patterns §12). 준비중 포함, 최신 생성 순. 카드형 기본 크기 10 */
+export const myEventsQuery = (params: MyEventsParams = {}) => {
+  const keyword = params.keyword?.trim();
+  const p = {
+    ...(keyword && { keyword }),
+    ...(params.size !== undefined && { size: params.size }),
+  };
+  return infiniteQueryOptions({
+    ...pageInfinite,
+    queryKey: [...MY_EVENTS_KEY, 'infinite', p],
+    queryFn: ({ pageParam, signal }) => {
+      const searchParams = new URLSearchParams();
+      if (p.keyword) searchParams.set('keyword', p.keyword);
+      searchParams.set('page', String(pageParam));
+      if (p.size !== undefined) searchParams.set('size', String(p.size));
+      return api.get('me/events', MyEventPageSchema, { searchParams, signal });
+    },
+  });
+};

@@ -85,8 +85,8 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 
 ### 물어야 하는 것
 
-- **백엔드 질문(B1~B19, 해결 B1·B3·B4·B6, 후보 B10·B11·B15)과 지켜보는 항목** → [`backend-questions.md`](./backend-questions.md)
-- **기획 질문 39건(Q1~Q45 중 6건 해결) + 문구 정정 요청** → [`design-requests.md`](./design-requests.md) §2
+- **백엔드 질문(B1~B20, 해결 B1·B3·B4·B6·B20, 후보 B10·B11·B15)과 지켜보는 항목** → [`backend-questions.md`](./backend-questions.md)
+- **기획 질문 45건(Q1~Q51 중 6건 해결) + 문구 정정 요청** → [`design-requests.md`](./design-requests.md) §2
 - **약관 표시 의무 — v2 계획에 위치 없음(위험)** 목록 → [`legal-copy.md`](./legal-copy.md) (공연 상세 중개자 고지·판매정보 굵은 문단, 첫 화면 중개자 고지, 체크아웃 호스트 제공 동의·중개자 문장·두둥 입금 전 고지, 가입 만 14세, 두둥티켓 개설 환불 의무 동의)
 
 ### 실제 환경에서 확인할 것

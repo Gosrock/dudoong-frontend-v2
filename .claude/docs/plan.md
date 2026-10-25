@@ -608,14 +608,14 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 **선행**: L — P4b-L · V — P10a-L, P4s-V · **API**: GH-1 GE-1 PH-2 (+ GN-2 벨 — 먼저 착수 시)
 
-**완료 기준 — L**
-- [ ] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
-- [ ] 호스트 생성 → 목록 반영
-- [ ] 비멤버 403 판정이 더미 하위 라우트에서 동작(실제 `/hosting/hosts/[id]/…`는 P10b, `/hosting/events/[id]/…`는 P11에서 확인)
-- [ ] 벨을 이 Phase가 먼저 만들었다면: `count > 0` 판정, PN-3 뒤 갱신
-- [ ] 호스팅 센터 화면이 서버에서 데이터를 조회하지 않음(셸만 렌더)
-- [ ] 호스팅 센터용 쿼리 기본값(`staleTime` 등) 확정
-- [ ] 연락처 유형 6종(`YOUTUBE` 포함)과 유형별 placeholder 데이터
+**완료 기준 — L**(2026-10-26 P10a-L, implementation-log)
+- [x] MSW 위에서 시나리오가 훅/라우트 테스트로 통과
+- [x] 호스트 생성 → 목록 반영
+- [x] 비멤버 403 판정이 더미 하위 라우트에서 동작(실제 `/hosting/hosts/[id]/…`는 P10b, `/hosting/events/[id]/…`는 P11에서 확인) — 라우트를 만들지 않고 테스트 안의 더미 하위 화면(`HostingAccessRejected.test`)으로
+- [x] 벨을 이 Phase가 먼저 만들었다면: `count > 0` 판정, PN-3 뒤 갱신 — 해당 없음(P9b-L이 먼저 만들었고 거기서 검증했다)
+- [x] 호스팅 센터 화면이 서버에서 데이터를 조회하지 않음(셸만 렌더) — `/hosting`·`/hosting/new/hosts`는 빌드에서 정적(○), e2e에서 서버발 `/api` 0건
+- [x] 호스팅 센터용 쿼리 기본값(`staleTime` 등) 확정 — 전역 기본값 그대로(`staleTime` 0, 5xx·네트워크 1회 재시도, 포커스 재조회), 브라우저에서만(patterns §4-4)
+- [x] 연락처 유형 6종(`YOUTUBE` 포함)과 유형별 placeholder 데이터 — 이메일 placeholder는 문서·GUI에 없어 비워 둠(design-requests Q49)
 
 **완료 기준 — V**
 - [ ] 카드에 호스트별 `myRole` 배지

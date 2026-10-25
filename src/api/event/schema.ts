@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ContactSchema, PlaceSchema } from '../shared/common-schema';
+import { ContactSchema, HostRoleSchema, PlaceSchema } from '../shared/common-schema';
 import { kstDateTime } from '../shared/date';
 import { openEnum } from '../shared/open-enum';
 import { pageSchema } from '../shared/page';
@@ -124,3 +124,34 @@ export const EventSectionSchema = z.object({
 });
 export const EventSectionsSchema = z.array(EventSectionSchema);
 export type EventSection = z.infer<typeof EventSectionSchema>;
+
+// ─── 내 공연 (GE-1) ──────────────────────────────────────────
+
+/**
+ * 내가 활성 멤버인 호스트들의 공연(공연준비 홈 공연 탭). 준비중 포함, 최신 생성 순.
+ * 기준: 백엔드 `v2/event/dto/response/V2MyEventResponse.kt`(dev 432cce4).
+ * 장소는 `place` 객체가 아니라 평평한 세 필드다(미입력이면 `null`).
+ */
+export const MyEventSchema = z.object({
+  eventId: z.number().int(),
+  hostId: z.number().int(),
+  hostName: z.string().nullable(),
+  /** 이 공연 호스트에서 내 역할. 일반 멤버는 공연을 지울 수 없다 — 카드 ⋮ 표시용(P11) */
+  myRole: HostRoleSchema,
+  name: z.string().nullable(),
+  posterImageUrl: z.string().nullable(),
+  startAt: kstDateTime.nullable(),
+  endAt: kstDateTime.nullable(),
+  /** 공연장 이름. 미입력이면 null */
+  placeName: z.string().nullable(),
+  placeAddress: z.string().nullable(),
+  /** 상세주소(없으면 null, #740) */
+  placeDetailAddress: z.string().nullable(),
+  /** 저장 상태(PREPARING / OPEN / CALCULATING / CLOSED) */
+  status: EventStatusSchema,
+  displayStatus: EventDisplayStatusSchema,
+  /** D-n의 n(당일 0). UPCOMING일 때만, 아니면 null */
+  dDay: z.number().int().nullable(),
+});
+export const MyEventPageSchema = pageSchema(MyEventSchema);
+export type MyEvent = z.infer<typeof MyEventSchema>;
