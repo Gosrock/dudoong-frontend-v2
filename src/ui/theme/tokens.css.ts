@@ -1,71 +1,14 @@
-import {
-  assignVars,
-  createGlobalTheme,
-  createThemeContract,
-  globalStyle,
-} from '@vanilla-extract/css';
+import { createGlobalTheme, globalStyle } from '@vanilla-extract/css';
 
 import { media } from './breakpoints';
 import { palette } from './palette';
 
 /**
- * 디자인 토큰(design-system.md §1). 색은 Figma `Sementic` 컬렉션의 Light/Dark를 그대로 옮겼다.
- * 다크 모드: 토큰은 두 벌 다 두고 출시는 라이트만 한다 — `<html data-theme="dark">`일 때만 다크 값이 적용된다.
- * `avatar`·`role`·`chip`·`button`은 Figma가 원시 색(또는 이름을 모르는 새 변수)을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다
- * (다크 값은 디자인 대기라 라이트와 같다).
+ * 디자인 토큰(design-system.md §1). 색은 Figma `Sementic` 컬렉션의 Light 값을 옮겼다.
+ * 다크 모드는 지원하지 않는다(사용자 결정 2026-10-25) — 토큰은 라이트 한 벌을 `:root`에 둔다.
+ * `avatar`·`role`·`chip`·`button`은 Figma가 원시 색(또는 이름을 모르는 새 변수)을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다.
  */
-const colorContract = createThemeContract({
-  color: {
-    brand: {
-      primary: null,
-      primaryHover: null,
-      primaryPressed: null,
-      primarySubtle: null,
-      primaryContainer: null,
-      onPrimaryContainer: null,
-      accent: null,
-      accentHover: null,
-      accentPressed: null,
-      accentSubtle: null,
-    },
-    text: {
-      primary: null,
-      secondary: null,
-      tertiary: null,
-      inverse: null,
-      onBrand: null,
-      primaryLabel: null,
-      secondaryLabel: null,
-      tertiaryLabel: null,
-      disabledLabel: null,
-      brandLabel: null,
-      dangerLabel: null,
-    },
-    status: { success: null, successSubtle: null, warning: null, warningSubtle: null, error: null },
-    interaction: {
-      inactive: null,
-      inactiveBg: null,
-      disabled: null,
-      disabledBg: null,
-      disabledText: null,
-    },
-    surface: { container: null, defaultBorder: null, strongBorder: null, defaultLabel: null },
-    background: { normal: null, grey: null, dark: null },
-    avatar: { teal: null, orange: null, indigo: null },
-    role: { masterBg: null, masterText: null, managerBg: null, managerText: null },
-    chip: { giftPendingBg: null },
-    /**
-     * Button 상태 색(design-system §3 "Button 상태 색", 2026-10-25). Figma 변수 이름을 몰라(REST 변수 API 403) 전용 토큰으로 둔다.
-     * tonal = primary 2 Hover 배경 `649:1159`(Violet 200)·Pressed 배경 `649:1160`(Violet 300),
-     * fab = round Primary Hover `649:1162`(Neutral 700)·Pressed `649:1163`(Neutral 900)
-     */
-    button: { tonalHoverBg: null, tonalPressedBg: null, fabHoverBg: null, fabPressedBg: null },
-    /** 오버레이 딤·그림자. background.dark는 다크에서 흰색이 되므로 따로 둔다(P2) */
-    overlay: { dim: null, shadow: null },
-  },
-});
-
-const light = {
+export const vars = createGlobalTheme(':root', {
   color: {
     brand: {
       primary: palette.violet[400],
@@ -131,102 +74,23 @@ const light = {
     chip: {
       giftPendingBg: palette.coralRed[50],
     },
+    /**
+     * Button 상태 색(design-system §3 "Button 상태 색", 2026-10-25). Figma 변수 이름을 몰라(REST 변수 API 403) 전용 토큰으로 둔다.
+     * tonal = primary 2 Hover 배경 `649:1159`(Violet 200)·Pressed 배경 `649:1160`(Violet 300),
+     * fab = round Primary Hover `649:1162`(Neutral 700)·Pressed `649:1163`(Neutral 900)
+     */
     button: {
       tonalHoverBg: palette.violet[200],
       tonalPressedBg: palette.violet[300],
       fabHoverBg: palette.neutral[700],
       fabPressedBg: palette.neutral[900],
     },
+    /** 오버레이 딤·그림자 */
     overlay: {
       dim: `color-mix(in srgb, ${palette.neutral[900]} 70%, transparent)`,
       shadow: `color-mix(in srgb, ${palette.neutral[900]} 15%, transparent)`,
     },
   },
-};
-
-const dark = {
-  color: {
-    brand: {
-      primary: palette.violet[300],
-      primaryHover: palette.violet[200],
-      primaryPressed: palette.violet[500],
-      primarySubtle: palette.blue[800],
-      primaryContainer: palette.violet[400],
-      onPrimaryContainer: palette.violet[300],
-      accent: palette.coralRed[300],
-      accentHover: palette.coralRed[200],
-      accentPressed: palette.coralRed[500],
-      accentSubtle: palette.coralRed[800],
-    },
-    text: {
-      primary: palette.neutral[50],
-      secondary: palette.neutral[300],
-      tertiary: palette.neutral[500],
-      inverse: palette.neutral[800],
-      onBrand: palette.neutral[50],
-      primaryLabel: palette.neutral[50],
-      secondaryLabel: palette.neutral[400],
-      tertiaryLabel: palette.neutral[500],
-      disabledLabel: palette.neutral[600],
-      brandLabel: palette.violet[300],
-      dangerLabel: palette.coralRed[300],
-    },
-    status: {
-      success: palette.green[300],
-      successSubtle: palette.green[800],
-      warning: palette.coralRed[300],
-      warningSubtle: palette.coralRed[800],
-      error: palette.coralRed[300],
-    },
-    interaction: {
-      inactive: palette.neutral[500],
-      inactiveBg: palette.neutral[700],
-      disabled: palette.neutral[600],
-      disabledBg: palette.neutral[800],
-      disabledText: palette.neutral[600],
-    },
-    surface: {
-      container: palette.neutral[800],
-      defaultBorder: palette.neutral[600],
-      strongBorder: palette.neutral[400],
-      defaultLabel: palette.common.white,
-    },
-    background: {
-      normal: palette.neutral[900],
-      grey: palette.neutral[800],
-      dark: palette.common.white,
-    },
-    avatar: {
-      teal: palette.teal[300],
-      orange: palette.orange[300],
-      indigo: palette.violet[200],
-    },
-    role: {
-      masterBg: palette.purple[50],
-      masterText: palette.purple[400],
-      managerBg: palette.teal[50],
-      managerText: palette.teal[400],
-    },
-    chip: {
-      giftPendingBg: palette.coralRed[50],
-    },
-    button: {
-      tonalHoverBg: palette.violet[200],
-      tonalPressedBg: palette.violet[300],
-      fabHoverBg: palette.neutral[700],
-      fabPressedBg: palette.neutral[900],
-    },
-    overlay: {
-      dim: `color-mix(in srgb, ${palette.common.black} 70%, transparent)`,
-      shadow: `color-mix(in srgb, ${palette.common.black} 40%, transparent)`,
-    },
-  },
-};
-
-createGlobalTheme(':root', colorContract, light);
-globalStyle(':root[data-theme="dark"]', { vars: assignVars(colorContract, dark) });
-
-const base = createGlobalTheme(':root', {
   /** Space/1~10. 7~10은 데스크탑에서 커진다(Figma Component 컬렉션 Mobile/Desktop 모드). */
   space: {
     0: '0',
@@ -266,13 +130,11 @@ globalStyle(':root', {
   '@media': {
     [media.desktop]: {
       vars: {
-        [base.space[7]]: '48px',
-        [base.space[8]]: '64px',
-        [base.space[9]]: '80px',
-        [base.space[10]]: '96px',
+        [vars.space[7]]: '48px',
+        [vars.space[8]]: '64px',
+        [vars.space[9]]: '80px',
+        [vars.space[10]]: '96px',
       },
     },
   },
 });
-
-export const vars = { ...base, ...colorContract };

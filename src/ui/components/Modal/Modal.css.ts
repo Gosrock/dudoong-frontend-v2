@@ -11,7 +11,7 @@ const reduced = '(prefers-reduced-motion: reduce)';
 
 /**
  * 딤. GUI 확인 모달(`567:9468`)은 검정 80%, 티켓 시트(`331:5853`)는 Neutral 900 70%로 서로 다르다 — 70%로 통일.
- * 색 토큰 `background.dark`를 섞어 쓴다(다크 테마에서는 흰색이 되므로 다크 출시 전에 딤 전용 토큰이 필요하다).
+ * 색 토큰 `overlay.dim`(Neutral 900 70%)을 쓴다.
  */
 export const overlay = style({
   position: 'fixed',

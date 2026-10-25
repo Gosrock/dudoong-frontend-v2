@@ -3,8 +3,8 @@ import { vars } from './tokens.css';
 
 /**
  * 색 값 모음. `<Txt color={colors.textPrimary} />`처럼 값으로 넘긴다.
- * - 의미 색(`textPrimary`, `brandPrimary` …)은 CSS 변수라 테마(라이트·다크)를 따라간다. **화면은 이쪽을 쓴다.**
- * - 원시 색(`blue100`, `violet400` …)은 Figma Atomic 값 그대로다. 테마를 따라가지 않는다 — 의미 색에 없는 색이
+ * - 의미 색(`textPrimary`, `brandPrimary` …)은 CSS 변수다(라이트 한 벌 — 다크 모드 미지원). **화면은 이쪽을 쓴다.**
+ * - 원시 색(`blue100`, `violet400` …)은 Figma Atomic 값 그대로다 — 의미 색에 없는 색이
  *   꼭 필요할 때만 쓰고, 그런 색은 디자이너에게 의미 색 추가를 요청한다(design-system §1·§5).
  */
 export const colors = {

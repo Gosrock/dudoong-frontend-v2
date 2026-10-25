@@ -20,7 +20,7 @@ import posterPlaceholder from './poster-placeholder.svg';
  *   (REST `GET /v1/images/0QD9tGSt8ZciDqe7ol2gYH?ids=…&format=svg`). 넣기 전에 `<script>`·`<foreignObject>`·
  *   외부 참조(`href`·`url(` 중 `#`로 시작하지 않는 것)가 없는지 본다.
  * - `dashboard-*` 4종: GUI `illust_dashboard`(`14:1529`, 지금은 디자인 시스템 `ic_대시보드` `538:2072`).
- * 색은 고정이다(`<img>`라 테마를 따르지 않는다) — 선이 검정(#141413)이라 다크 배경에서는 잘 안 보인다(디자인 대기).
+ * 색은 고정이다(`<img>`라 CSS 토큰을 따르지 않는다).
  */
 const ILLUSTRATIONS = {
   'poster-placeholder': { asset: posterPlaceholder, width: 180, height: 254 },

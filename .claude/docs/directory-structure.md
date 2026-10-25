@@ -181,7 +181,7 @@ src/features/
 src/ui/
 ├─ theme/
 │  ├─ palette.ts               # Figma Atomic 원시 색 102개(화면은 직접 쓰지 않는다)
-│  ├─ tokens.css.ts            # vars — 의미 색(createThemeContract, 라이트 기본 + data-theme="dark"), space(7~10 데스크탑 확대), radius, font, zIndex, shadow
+│  ├─ tokens.css.ts            # vars — 의미 색(createGlobalTheme 라이트 한 벌 — 다크 모드 미지원), space(7~10 데스크탑 확대), radius, font, zIndex, shadow
 │  ├─ colors.ts                # colors — <Txt color={colors.textSecondary} />처럼 값으로 넘기는 색(의미 색 + 원시 색)
 │  ├─ typography.css.ts        # Figma 텍스트 스타일 21개(bodyMd, headingSmEmphasized …)
 │  ├─ sprinkles.css.ts         # 조건(mobile/desktop) + 토큰 유틸리티

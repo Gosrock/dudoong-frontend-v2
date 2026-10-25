@@ -46,7 +46,7 @@
 
 - `<h1>`·`<p>`에 직접 글자 스타일을 주지 않는다. `Txt`를 쓴다(`src/ui/primitives/Txt.tsx`).
 - 크기·굵기·행간·자간은 `typography` 프리셋으로 정한다. 프리셋은 Figma 텍스트 스타일 21개다(`src/ui/theme/typography.css.ts`, design-system §1). 이름은 Figma 이름을 정리한 것이다 — `Body/md` → `bodyMd`, `Heading/sm - emphasized` → `headingSmEmphasized`.
-- 색은 **`colors`의 값**으로 넘긴다(`src/ui/theme/colors.ts`). 의미 색(`colors.textSecondary`, `colors.brandPrimary` …)은 테마를 따라가는 CSS 변수라 이쪽을 먼저 쓴다. 원시 색(`colors.blue400` …)은 Figma Atomic 값 그대로라 테마를 따라가지 않는다 — 의미 색에 없는 색이 꼭 필요할 때만 쓰고, 그런 색은 디자이너에게 의미 색 추가를 요청한다.
+- 색은 **`colors`의 값**으로 넘긴다(`src/ui/theme/colors.ts`). 의미 색(`colors.textSecondary`, `colors.brandPrimary` …)은 CSS 변수라 이쪽을 먼저 쓴다(라이트 한 벌 — 다크 모드 미지원(사용자 결정 2026-10-25)). 원시 색(`colors.blue400` …)은 Figma Atomic 값 그대로다 — 의미 색에 없는 색이 꼭 필요할 때만 쓰고, 그런 색은 디자이너에게 의미 색 추가를 요청한다.
 - 시맨틱 태그가 필요하면 스타일과 분리해 `as`로만 지정한다. 줄 수 제한은 `lines={1 | 2}`.
 
 ```tsx

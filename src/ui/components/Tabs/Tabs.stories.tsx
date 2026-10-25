@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 
-import { withDarkTheme } from '../../stories/storyStyles';
 import { Tab, TabList, TabPanel, Tabs } from './Tabs';
 
 const meta = {
@@ -62,12 +61,6 @@ export const Desktop: Story = {
     await expect(selected.getBoundingClientRect().height).toBe(48);
     await expect(unselected.getBoundingClientRect().height).toBe(48);
   },
-};
-
-/** 다크 토큰 미리 보기(출시는 라이트만) */
-export const Dark: Story = {
-  render: TwoTabs.render,
-  decorators: [withDarkTheme],
 };
 
 /** 공연 상세처럼 4개 + disabled */

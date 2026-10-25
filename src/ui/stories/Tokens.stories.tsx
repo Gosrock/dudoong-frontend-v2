@@ -26,7 +26,7 @@ function Swatch({ name, value }: { name: string; value: string }) {
   );
 }
 
-/** 의미 색. `data-theme="dark"`로 다크 값을 미리 볼 수 있다(출시는 라이트만) */
+/** 의미 색(라이트 한 벌 — 다크 모드 미지원) */
 export const SemanticColors: Story = {
   render: () => (
     <Flex direction="column" gap={5}>

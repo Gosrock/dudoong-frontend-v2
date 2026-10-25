@@ -3,7 +3,7 @@ import { expect } from 'storybook/test';
 
 import { Icon } from '../../icons/Icon';
 import { Flex } from '../../primitives/Flex';
-import { pseudoStyle, withDarkTheme } from '../../stories/storyStyles';
+import { pseudoStyle } from '../../stories/storyStyles';
 import { vars } from '../../theme/tokens.css';
 import { Button } from './Button';
 
@@ -110,11 +110,4 @@ export const StateColors: Story = {
     );
     await expect(pseudoStyle(tonal, ':active', 'color')).toBe(vars.color.text.onBrand);
   },
-};
-
-/** 다크 토큰 미리 보기(출시는 라이트만). tonal Hover·Pressed는 전용 토큰이라 다크 값이 라이트와 같다(디자인 대기) */
-export const StateColorsDark: Story = {
-  ...StateColors,
-  decorators: [withDarkTheme],
-  play: undefined,
 };

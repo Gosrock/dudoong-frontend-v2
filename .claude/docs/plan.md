@@ -179,7 +179,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 **근거**: [`design-system.md`](./design-system.md) §1·§2 — Figma 디자인 시스템 파일의 토큰·텍스트 스타일·그리드. 시작할 때 Figma를 다시 읽어 그 문서를 갱신한다.
 
-**포함**: 토큰(`tokens.css.ts` — color(Atomic 원시 값 + 의미 색, `createThemeContract`로 라이트·다크 두 벌)/typography(텍스트 스타일 21개)/space(`Space/7~10`은 데스크탑에서 커짐)/radius/zIndex), 폰트(Pretendard, Saira Condensed, Kartrider — 라이선스 확인 뒤), 전역 스타일·reset·폰트, sprinkles(조건 `mobile`/`desktop` + 토큰 유틸리티). 프리미티브 `Flex`(`Flex.Center` 등) · `Spacing` · `Txt`(typography·color prop, `as`로 시맨틱 태그만 분리) · `Divider` · `Container` · `Button`(recipes). `useMediaQueries`. 아이콘 파이프라인. Storybook. 루트 `Providers`(QueryClient, `OverlayProvider`).
+**포함**: 토큰(`tokens.css.ts` — color(Atomic 원시 값 + 의미 색, 라이트 한 벌 — 다크 모드 미지원(사용자 결정 2026-10-25))/typography(텍스트 스타일 21개)/space(`Space/7~10`은 데스크탑에서 커짐)/radius/zIndex), 폰트(Pretendard, Saira Condensed, Kartrider — 라이선스 확인 뒤), 전역 스타일·reset·폰트, sprinkles(조건 `mobile`/`desktop` + 토큰 유틸리티). 프리미티브 `Flex`(`Flex.Center` 등) · `Spacing` · `Txt`(typography·color prop, `as`로 시맨틱 태그만 분리) · `Divider` · `Container` · `Button`(recipes). `useMediaQueries`. 아이콘 파이프라인. Storybook. 루트 `Providers`(QueryClient, `OverlayProvider`).
 
 **선행**: P0 · **병렬**: P3
 

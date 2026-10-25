@@ -4,7 +4,6 @@ import { expect } from 'storybook/test';
 
 import { Flex } from '../../primitives/Flex';
 import { Txt } from '../../primitives/Txt';
-import { withDarkTheme } from '../../stories/storyStyles';
 import { colors } from '../../theme/colors';
 import { sprinkles } from '../../theme/sprinkles.css';
 import { Chip, type ChipProps, formatDday } from './Chip';
@@ -51,12 +50,6 @@ export const ConcertStates: Story = {
     await expect(style('공연중').color).toBe('rgb(254, 237, 236)');
     await expect(style('지난 공연').backgroundColor).toBe('rgb(238, 238, 237)');
   },
-};
-
-/** 다크 토큰 미리 보기(출시는 라이트만) */
-export const ConcertStatesDark: Story = {
-  render: ConcertStates.render,
-  decorators: [withDarkTheme],
 };
 
 const Row = ({ title, children }: { title: string; children: ReactNode }) => (
