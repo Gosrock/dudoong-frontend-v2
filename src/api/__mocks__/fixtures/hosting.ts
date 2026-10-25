@@ -1,8 +1,9 @@
 import type { MyEvent } from '../../event/schema';
 import type { MyHost } from '../../host/schema';
 import type { HostRole } from '../../shared/common-schema';
+import { storedEvents } from '../event-store';
 import { MOCK_IMAGE_ORIGIN } from '../respond';
-import { events, type MockEvent, preparingEvents } from './event';
+import type { MockEvent } from './event';
 import { hosts } from './host';
 
 /**
@@ -44,9 +45,9 @@ export const manyMemberships: MockMembership[] = [
   }),
 ];
 
-/** 이 호스트의 공연(준비중 포함, 삭제 제외 — GH-1 `eventCount`·GE-1 범위) */
+/** 이 호스트의 공연(준비중 포함, 삭제 제외 — GH-1 `eventCount`·GE-1 범위). 공연 저장소(P11 만들기·등록·삭제)를 읽는다 */
 export const hostEventsOf = (hostId: number): MockEvent[] =>
-  [...events, ...preparingEvents].filter((e) => e.host.hostId === hostId && e.status !== 'DELETED');
+  storedEvents().filter((e) => e.host.hostId === hostId);
 
 export const toMyHost = (m: MockMembership, eventCount: number): MyHost => ({
   hostId: m.hostId,

@@ -3,8 +3,10 @@ import { infiniteQueryOptions, type QueryKey, queryOptions } from '@tanstack/rea
 import { api } from '../http';
 import { pageInfinite, type PageParams } from '../shared/page';
 import {
+  EventChecklistSchema,
   EventDetailSchema,
   EventListPageSchema,
+  EventManageSchema,
   EventSectionsSchema,
   type EventSort,
   HomeSchema,
@@ -150,9 +152,51 @@ export const myEventsQuery = (params: MyEventsParams = {}) => {
   });
 };
 
+const managePath = (eventId: string | number) => `events/${encodeURIComponent(eventId)}`;
+
 /**
- * GE-3 공연 관리 상세(`GET /events/{id}/manage`, `myRole` 포함)의 키 모양 `['events', id, 'manage', …]`(patterns §4-1 — 경로를 쪼갠 모양).
- * 쿼리 정의(`eventManageQuery`)는 P11이 만든다 — 그때 이 모양을 지킨다. 마스터 양도(P10b) 뒤 어느 공연이 그 호스트 것인지 몰라
- * 이 모양 전체를 무효화한다(`queryClient.invalidateQueries({ predicate })`).
+ * GE-3 공연 관리 상세(일반 멤버 이상, `myRole`·`checklist` 포함). 공연 스코프 레이아웃(`events/[eventId]/layout.tsx`)이
+ * 메뉴·읽기 전용 판정에 쓰고, 기본 정보 폼이 처음 값으로 쓴다. 비멤버는 403(`HOST_400_2`), 없는·지운 공연은 404.
+ * 키 `['events', id, 'manage']` — 마스터 양도(P10b)가 이 모양(`isEventManageQueryKey`)으로 무효화한다. 호스팅 센터 기본값(브라우저에서만).
+ */
+export const eventManageQuery = (eventId: string | number) =>
+  queryOptions({
+    queryKey: ['events', String(eventId), 'manage'],
+    queryFn: ({ signal }) =>
+      api.get(`${managePath(eventId)}/manage`, EventManageSchema, { signal }),
+  });
+
+/** GE-7 등록 체크리스트(일반 멤버 이상). 대시보드가 준비중일 때만 부른다(등록 뒤에는 쓰지 않는다 — patterns §23) */
+export const eventChecklistQuery = (eventId: string | number) =>
+  queryOptions({
+    queryKey: ['events', String(eventId), 'manage', 'checklist'],
+    queryFn: ({ signal }) =>
+      api.get(`${managePath(eventId)}/checklist`, EventChecklistSchema, { signal }),
+  });
+
+/**
+ * GE-5 섹션 — 호스팅 센터 상세 정보 편집용. 공개 키(`eventSectionsQuery`)와 같은 엔드포인트를 **쿠키와 함께** 부른다:
+ * 준비중 공연의 섹션은 활성 멤버만 보인다(그 밖은 404 — `V2ReadEventSectionsUseCase`, 432cce4). 공개 키는 서버 프리페치(쿠키 없음)라 나눈다.
+ */
+export const eventSectionsManageQuery = (eventId: string | number) =>
+  queryOptions({
+    queryKey: ['events', String(eventId), 'manage', 'sections'],
+    queryFn: ({ signal }) =>
+      api.get(`${managePath(eventId)}/sections`, EventSectionsSchema, { signal }),
+  });
+
+/**
+ * GE-3 키 모양 `['events', id, 'manage', …]`(patterns §4-1 — 경로를 쪼갠 모양). 체크리스트·편집용 섹션도 이 아래에 둔다.
+ * 마스터 양도(P10b) 뒤 어느 공연이 그 호스트 것인지 몰라 이 모양 전체를 무효화한다(`queryClient.invalidateQueries({ predicate })`).
  */
 export const isEventManageQueryKey = (key: QueryKey) => key[0] === 'events' && key[2] === 'manage';
+
+/**
+ * 관객 화면이 읽는 이 공연의 공개 키 — 기본 정보(PE-4)·섹션(PE-6) 저장 뒤 정확히(`exact`) 무효화해 공연 상세를 열면 바로 반영되게 한다
+ * (plan P11 "저장·등록 뒤 공연 상세를 열면 바로 반영"). 공연 상세는 서버 조회라 새로 열면 늘 새 값이다 — 브라우저 캐시에 남은 값만 지운다.
+ */
+export const eventPublicKeys = (eventId: string | number) => [
+  eventDetailQuery(eventId).queryKey,
+  eventDetailViewerQuery(eventId).queryKey,
+  eventSectionsQuery(eventId).queryKey,
+];

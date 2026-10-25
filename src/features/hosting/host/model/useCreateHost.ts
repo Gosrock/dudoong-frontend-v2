@@ -37,8 +37,9 @@ import {
  * - 성공: 응답이 `{hostId}`뿐이라 GH-1(`MY_HOSTS_KEY`)을 무효화하고(새 호스트가 목록에 나온다), GM-1 세션(`hosts`·`hostCount` —
  *   햄버거 호스트 줄)도 다시 읽는다. 그 뒤 공연준비 홈 호스트 탭으로 `replace`(Q19 기본안, 뒤로가기로 폼에 돌아와 다시 내지 못하게)
  * - 에러: `HOST_400_16`(연락처 형식) → 연락처 영역 오류(`contactsServerError`), 토스트 없음. 그 밖은 전역 토스트
+ * - `onCreated`를 주면 이동하지 않고 만든 호스트 id를 넘긴다 — 간편 공연 만들기 Step1 안의 호스트 만들기(P11: 만든 호스트를 고른 채 Step2로)
  */
-export function useCreateHost() {
+export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => void } = {}) {
   const queryClient = useQueryClient();
   const router = useRouter();
   const [values, setValues] = useState<CreateHostValues>(initialCreateHostValues);
@@ -59,11 +60,19 @@ export function useCreateHost() {
   const mutation = useMutation({
     ...createHostMutation(),
     ...codes,
-    onSuccess: async () => {
+    onSuccess: async ({ hostId }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: MY_HOSTS_KEY }),
         queryClient.invalidateQueries({ queryKey: meQuery().queryKey, exact: true }),
       ]);
+      if (onCreated) {
+        // 이동하지 않으니 폼을 비우고 다시 만들 수 있게 푼다
+        inflight.current = false;
+        setValues(initialCreateHostValues());
+        setAttempted(false);
+        onCreated(hostId);
+        return;
+      }
       router.replace(HOSTING_HOME_HOSTS_HREF);
     },
   });
@@ -119,7 +128,8 @@ export function useCreateHost() {
     attempted,
     /** 서버 `HOST_400_16`(어느 줄인지 모른다 — 연락처 영역 전체). 연락처를 고치면 지운다 */
     contactsServerError,
-    submitting: mutation.isPending || mutation.isSuccess,
+    // 이동하는 동안(성공 뒤)도 막는다. `onCreated`면 이동하지 않으므로 요청 중만
+    submitting: mutation.isPending || (mutation.isSuccess && !onCreated),
     submit,
   };
 }

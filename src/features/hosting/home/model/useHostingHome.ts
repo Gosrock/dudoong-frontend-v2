@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { myEventsQuery } from '@/api/event/queries';
 import { myHostsQuery } from '@/api/host/queries';
 import { flattenPages } from '@/api/shared/page';
+import { canDeleteEvent } from '@/features/hosting/event/model/event-scope';
 
 import {
   clampHostingKeyword,
@@ -76,7 +77,7 @@ function listState<T>(
  * - 검색: 칸 하나가 지금 탭의 목록을 찾는다. 입력 뒤 300ms에 적용(50자에서 막는다), 탭을 바꿔도 검색어는 남는다
  * - 목록: GH-1(호스트 탭)·GE-1(공연 탭) 무한 목록. **지금 탭의 목록만 부른다**(`enabled`). 검색어가 바뀌면 새 키의 첫 페이지부터
  * - 조회는 브라우저에서만 — 호스팅 레이아웃의 게이트가 세션을 확정한 뒤 이 훅이 마운트된다(서버 조회 없음)
- * - 카드: 호스트별 `myRole`(배지는 V), 이동 주소(호스트 → 호스트 홈, 공연 → 공연 관리)
+ * - 카드: 호스트별 `myRole`(배지는 V), 이동 주소(호스트 → 호스트 홈, 공연 → 공연 관리), 공연 카드 ⋮ 삭제 가능(`canDelete`, P11)
  */
 export function useHostingHome() {
   const searchParams = useSearchParams();
@@ -106,7 +107,12 @@ export function useHostingHome() {
   );
   const events = useMemo(
     () =>
-      flattenPages(eventsQuery.data, (e) => e.eventId).map((e) => ({ ...e, href: myEventHref(e) })),
+      flattenPages(eventsQuery.data, (e) => e.eventId).map((e) => ({
+        ...e,
+        href: myEventHref(e),
+        // 카드 ⋮ 삭제 — 준비중 공연 + 매니저 이상만(P11 `canDeleteEvent`, 삭제는 `useDeleteEvent`)
+        canDelete: canDeleteEvent(e),
+      })),
     [eventsQuery.data],
   );
 

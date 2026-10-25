@@ -456,3 +456,72 @@
 2. 쿼리 파라미터 제약 실패(page·size·keyword 등)의 mock `reason`도 필드 JSON으로 둔다(백엔드 문장 모양은 확인하지 않았다 — 화면은 `reason`을 보이지 않으니 영향 없음)
 3. `useMyPage.test` 「기본 이미지로…」 불안정: 훅 결과(`result.current`)가 `act` 직후 낡아 있었다. TanStack `notifyManager`는 캐시 변경을 `setTimeout(0)`으로 묶어 알리는데 `act`는 그 매크로태스크를 기다리지 않는다 — 그래서 ① `change()` 뒤 렌더가 아직 `pending`이면 `reset()`이 아무것도 보내지 않고 ② `reset()` 뒤 `profile`이 옛 URL로 남았다. `change()` 뒤 `pending=false`를, 끝에 `profile`을 `waitFor`로 기다리고 캐시 값은 바로 확인한다(닉네임 저장 테스트도 같은 모양이라 함께). 15회 연속 통과
 **검사**: typecheck · lint · prettier · test(1618) · test:stories(193) · build · e2e(264) 통과(`NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`)
+
+## P11-L — 공연 생성 · 체크리스트 · 기본 정보 · 섹션 편집 · 등록 (로직)
+
+**상태**: done (2026-10-26, 커밋 전) — V 전부 남음
+**변경**: `src/api/event/`(`schema.ts` + 입력 규칙 상수 `EVENT_NAME_MAX` 25·`EVENT_PLACE_TEXT_MAX` 255·`EVENT_CONTACTS_MAX` 10·`EVENT_CONTACT_VALUE_MAX` 200·`EVENT_TAGS_MAX` 10·`EVENT_SECTIONS_MIN/MAX` 1/10·`EVENT_SECTION_TITLE_MAX` 20·`EVENT_SECTION_CONTENT_MAX` 20,000, `EventChecklistSchema`(GE-7)·`EventManageSchema`(GE-3·PE-4 응답, `posterImageKey`·`checklist` 포함)·`CreateEventRequestSchema`/`ResponseSchema`(PE-2)·`EventPlaceRequestSchema`·`UpdateEventBasicRequestSchema`(PE-4, 키 없음 = 변경 안 함, `.strict()`)·`UpdateEventSectionsRequestSchema`(PE-6)·`EventStatusResultSchema`(PE-8·DE-9), `queries.ts` `eventManageQuery`(GE-3 `['events', id, 'manage']` — P10b 술어 그대로)·`eventChecklistQuery`(`…, 'manage', 'checklist']`)·`eventSectionsManageQuery`(쿠키 GE-5 `…, 'manage', 'sections']`)·`eventPublicKeys`, 새 `mutations.ts` 5종). `features/hosting/event/`(새): `model/` event-scope·schedule·place·kakao-geocoder·basic-info-form·sections-form·checklist·create-event-form·event-cache + 훅 6개, 화면 자리(로직 연결만) `NewEventView`·`EventScopeView`·`EventDashboardView`·`EventInfoView`·`EventDetailView`. `features/hosting/host/model/useCreateHost`: `{onCreated}` 옵션(주면 이동하지 않고 id를 넘기고 폼을 비운다). `features/hosting/home`: 공연 카드 `canDelete` + 최소 마크업 [삭제]·[새 공연 만들기]. 라우트 `hosting/new/events/page.tsx`, `hosting/events/[eventId]/layout.tsx`·`dashboard`·`info`·`detail/page.tsx`. mock: `event-store.ts`(새 — 공연 fixture 복사본, PE-2·4·6·8·DE-9가 바꾸고 GE-3·GE-7·GE-5·GP-3·GP-5·GE-1이 읽는다), `hosting-event.handlers.ts`(새 — PE-2·GE-3·PE-4·PE-6·GE-7·PE-8·DE-9, `hostingEventSets`, `mockRoleIn`), `event.handlers.ts`(GP-3·GP-5·GE-5가 저장소를 읽고, GE-5는 멤버(쿠키)에게 준비중 섹션), `hosting.handlers.ts`(`createdHostOf`, `resetHostingStore`가 공연 저장소도 되돌린다), `fixtures/hosting.ts` `hostEventsOf`가 저장소를 읽는다
+
+**백엔드 소스**: `432cce4`(로컬 클론) → dev `cb8d24e` `git diff`에서 공연 API 변경 없음(`Event.kt`의 `@Where` → `@SQLRestriction`만, Spring Boot 3.5 업그레이드). 근거 파일: `V2EventController`, `V2CreateEventRequest`·`V2UpdateEventBasicRequest`(`V2EventPlaceRequest`·`V2EventContactRequest`)·`V2EventSectionRequest`·`V2EventImageUploadRequest`, `V2EventManageResponse`·`V2EventChecklistResponse`·`V2EventStatusResponse`·`V2EventImageUploadResponse`, 유스케이스 9개, `V2EventDomainService`·`EventChecklist`·`EventSection`·`EventContact`·`EventPlace`·`Event.open`·`EventService.deleteEventSoft`·`EventErrorCode`·`HostRoleAop`
+
+**훅이 돌려주는 것**
+- `useNewEventWizard({now?})` → `{step, hosts: {status, items(+ selectable), hasNextPage, loadMore, retry}, selectedHost, selectHost, canGoToStep2, goToStep2, creatingHost, startCreateHost, cancelCreateHost, createHost(= useCreateHost 반환값), values, setName, setSchedule, setHasTicket, scheduleRange, errors, scheduleServerError, attempted, submitting, submit}`
+- `useEventScope(eventId)` → `{event(GE-3), registered, menu[{key,label,href}], publicHref, canEdit, readOnlyReason: role|ended|null, readOnlyMessage, hasTicketLocked, isManager}`
+- `useEventDashboard(eventId)` → `{event, mode: checklist|registered, checklistStatus, retryChecklist, checklistItems[{key,label,done,exempt,href}], progress, canOpen, justCompleted, acknowledgeCompleted, showRegister, canRegister, registering, register(): Promise<boolean>, registerError, justRegistered, acknowledgeRegistered, createdNotice, dismissCreatedNotice}`
+- `useEventBasicInfo(eventId, {geocode?, now?})` → `{event, canEdit, readOnlyReason, readOnlyMessage, registered, values, poster: {url, changed, uploading, error, change, remove, retry}, setName, setSchedule, scheduleRange, selectAddress(주소), setPlaceName, setDetailAddress, geocoding, placeLookupError, setContactType, setContactValue, addContact, removeContact, canAddContact, contactOptions, tagGroups, toggleTag, setHasTicket, hasTicketLocked, errors, serverErrors{schedule,contacts,tags,poster,hasTicket}, formError, attempted, dirty, saving, canSave, canPreview, save(), savedNotice: saved|registeredChanged|null, dismissSavedNotice}`
+- `useEventSections(eventId)` → `{event, canEdit, readOnlyReason, readOnlyMessage, sections[{key,title,content}], setTitle, setContent, addSection, removeSection, moveSection, canAddSection, canRemoveSection, uploadSectionImage(file): Promise<url|null>, imageUploading, imageError, errors, attempted, formError, dirty, saving, canSave, canPreview, save(), savedNotice, dismissSavedNotice}`
+- `useDeleteEvent()` → `{deleteEvent({eventId, status, myRole}): Promise<boolean>, deletingId, error}`
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `event-manage-api.test` 28건, `event-rules.test` 75건, `kakao-geocoder.test` 3건, `useNewEventWizard.test` 9건, `useEventDashboard.test` 10건, `useEventBasicInfo.test` 19건, `useEventSections.test` 7건, `useDeleteEvent.test` 4건, `EventScopeView.test` 6건, `useHostingHome.test` +1, e2e `hosting-event.spec` 12건(×2 프로젝트) |
+| 만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 없음) | e2e 「체크리스트를 채우면 등록 준비 완료, 등록하면 메뉴가 6개로 바뀌고 공연 상세가 열린다」, api 「티켓 없음 공연: ① 기본 정보 + ② 섹션을 채우면 canOpen → 등록하면 OPEN, 공개 상세가 열린다」 |
+| 일반 멤버인 호스트는 선택 불가 | 훅 「일반 멤버인 호스트는 고를 수 없다 — 골라도 선택되지 않고 [다음]이 막힌다」, 규칙 「일반 멤버인 호스트는 고를 수 없다」, e2e 「일반 멤버인 호스트는 고를 수 없다 — …」, api it.each 「일반 멤버인 호스트·비멤버 호스트에는 만들 수 없다」 |
+| 포스터 발급 → S3 → key | 훅 「포스터: PE-10(POSTER) 발급 → S3 PUT → 저장하면 posterImageKey로 PE-4」, 「S3 PUT 실패 → …retry()는 같은 파일로 발급부터 다시」, e2e 완주(포스터 img + PATCH 본문 `posterImageKey`) |
+| 다 채운 순간 | 훅 「다 채운 순간: 이 화면이 본 canOpen이 false → true로 바뀐 직후 justCompleted(한 번) — 확인하면 꺼진다」, 「처음부터 다 찬 채로 들어오면(새로고침) 알리지 않는다」, e2e `ready-notice` |
+| 등록 → 메뉴 바뀜 · 체크리스트 모드 벗어남 | 훅 「등록(PE-8): GE-3·GE-1만 무효화(GE-7은 아님) → GE-3이 다시 오면 등록 후 모드 + justRegistered」, `EventScopeView.test` 메뉴 4/6, 규칙 「등록 전 4개…, 등록 후 6개…」, e2e 완주(메뉴 6개) |
+| 비멤버 403(`/hosting/events/[id]/…`) | `EventScopeView.test` 「비멤버(…102 — GE-3 403 HOST_400_2)는 공용 403 안내…」·404·숫자 아닌 id, e2e 「비멤버는 공용 403 안내 — 서버는 /api를 부르지 않는다」·「없는 공연·숫자가 아닌 id는 공용 404…」 |
+| 장소 4필드 · 체크리스트 ① | 훅 「주소를 고르면 좌표를 얻고, 저장 본문에 장소 4필드 + 상세주소를 모두 채운다 → 체크리스트 ①에 반영」, 「좌표를 못 얻으면 다른 주소를 고르게 하고 저장하지 않는다」, api 「포스터 key·장소 4필드 + 상세주소·문의처를 저장하면 체크리스트 ①이 찬다」, e2e 완주(PATCH 본문 + `checklist-basic` done) |
+| 등록된 공연 저장 → 안내 상태 | 훅 「등록된 공연을 저장하면 안내가 필요하다는 상태(registeredChanged)…」, 섹션 훅 「뺀 섹션은 본문에 없다 — 등록된 공연이면 registeredChanged…」, e2e 「기본 정보: 등록된 공연을 저장하면 안내가 필요하다는 상태…」 |
+| 카드 ⋮ 삭제 — 일반 멤버 불허 | 규칙 it.each 「삭제(카드 ⋮)」 6행, `useHostingHome.test` 「공연 카드 ⋮ 삭제(P11)…」, `useDeleteEvent.test` 「일반 멤버·등록된 공연은 요청하지 않는다」, api 「삭제: 준비중 + 매니저 이상만…」, e2e 「준비중 공연만 [삭제]…」·「일반 멤버에게는 [삭제]가 없다」 |
+| `hasTicket` 잠금 · 정산중·지난 공연 읽기 전용 | 규칙 「티켓 여부 잠금」 4행·「읽기 전용」 9행, 훅 「등록된 공연을 저장하면 … 티켓 여부는 잠겨 있다」·「지난 공연: 읽기 전용(ended)」, api 「티켓 여부: 등록 후 바꾸면 Event_400_18…」·「…정산중·지난 공연은 Event_400_17」, e2e `has-ticket-locked` |
+| 장소 수정 시 `detailAddress` 함께 | 훅 「장소 수정 시 상세주소만 바꿔도 detailAddress를 포함한 장소 전체를 보낸다」, 규칙 「상세주소만 고쳐도 장소 전체(4필드 + 상세주소)를 보낸다」, api 「장소는 통째로 교체 — detailAddress를 빼면 지워진다」 |
+| 섹션 전체 교체 | 훅 「탭 하나만 고쳐도 모든 섹션을 보낸다…」·「뺀 섹션은 본문에 없다…」, 규칙 「보내는 본문은 지금 목록 전부…」, api 「전체 교체: 빠진 섹션은 지워지고 sortOrder 순으로 0부터…」, e2e 「상세 정보: 섹션 저장은 전체 교체 — 뺀 탭은 공연 상세에서도 사라진다」 |
+| 일반 멤버 읽기 전용 | 훅 「일반 멤버: 읽기 전용(role)…」(기본 정보·섹션), 대시보드 「일반 멤버: …[등록하기]가 없고…」, `EventScopeView.test` 「일반 멤버는 읽기 전용 안내」, e2e 「일반 멤버는 읽기 전용 — …」 |
+| 저장·등록 뒤 공연 상세에 바로 반영 | 훅 「저장 뒤 GE-7·GE-1·관객 공연 상세 공개 키를 무효화한다 — 공연 상세를 열면 바로 반영」, api 「저장한 이름·장소가 관객 공연 상세(GP-3)에 바로 나온다」·섹션 「관객 공연 상세에도 바로」, e2e 완주(`/events/7001`)·등록된 공연 수정 2건 |
+| 에러 분기 P11 | 훅 it.each `Event_400_2`·`24`·`20`·`23` 칸 오류, `25` 티켓 여부, `22` 포스터 버림, `17` GE-3 다시 읽기, 대시보드 it.each `7`·`8`·`15`, 섹션 `21`, 삭제 `19`, 만들기 `Event_400_2` + `BAD_REQUEST` 전역 토스트, api(코드·검사 순서) |
+| Step1 안 호스트 만들기 → `?step=2` | 훅 「Step1 안에서 호스트를 만들면(PH-2) 그 호스트가 골라진 채 ?step=2로 — 공연준비 홈으로 가지 않는다」, e2e 「Step1 안에서 호스트를 만들면 그 호스트가 골라진 채 ?step=2로 간다」(뒤로가기 = Step1, 골라진 채) |
+
+그 밖: 만들기 「PE-2 {hostId, name, startAt, endAt(종료 ≤ 시작이면 다음 날), hasTicket} → GE-1 무효화 → 대시보드(?created=1)로 replace」, 「고른 호스트가 없는 ?step=2(새로고침 등)는 Step1로 replace」, 「호스트 홈의 ?hostId=는 고를 수 있는 호스트일 때만 미리 고른다」, 대시보드 「등록된 공연은 등록 후 모드 — GE-7을 부르지 않는다」, 「?created=1이면 createdNotice — 닫으면 주소에서 지운다」, 일정 it.each(자정·달·해·윤년 넘김), 섹션 「v1 MARKDOWN 섹션은 HTML로 바꿔 에디터에 넣는다」, 본문 이미지 「PE-10(SECTION) → S3 → url」, GE-3 키 「isEventManageQueryKey에 맞는다」.
+
+**결정**
+- GE-3 키는 P10b가 무효화하던 모양 그대로 `['events', id, 'manage']`. GE-7·편집용 GE-5도 그 아래(`'checklist'`·`'sections'`)라 마스터 양도 뒤 함께 다시 읽힌다. PE-8 뒤에는 GE-3을 `exact`로만 무효화한다(GE-7은 무효화하지 않는다 — plan)
+- 대시보드 체크리스트는 plan대로 GE-7을 따로 읽는다(GE-3에도 같은 `checklist`가 있지만 `Event_400_7` 뒤 "GE-7 다시 읽기"가 문서 규칙이다)
+- 편집용 섹션은 쿠키를 싣는 GE-5(`eventSectionsManageQuery`) — 공개 키는 서버 프리페치(쿠키 없음)라 준비중 공연에서 404다
+- 호스팅 센터는 서버 조회 없음: 레이아웃·페이지 모두 클라이언트 판정(403·404도 상태 코드 200). 공연 스코프 경계는 레이아웃 하나 + 상세 정보 화면 안 하나(섹션 Suspense가 메뉴를 가리지 않게)
+- Step1 안 호스트 만들기는 P10a `useCreateHost`에 `onCreated`를 더해 재사용(칸 규칙·`HOST_400_16`·GH-1·GM-1 무효화 그대로)
+- PE-4·PE-6 저장 뒤 관객 공연 상세의 공개 키(GP-3 공개·viewer, GE-5)를 `exact`로 무효화. 공연 상세는 서버 조회라 새로 열면 늘 새 값이다 — 남은 브라우저 캐시만 지운다
+- mock: 공연 저장소를 두어 PE-* 변경이 GE-3·GP-3·GE-5·GE-1에 이어진다. "지금"은 실제 시각(`mockNow`) — 테스트의 새 공연은 2030년으로 만든다
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. "다 채운 순간" = 이 화면이 본 `canOpen`이 false → true로 바뀐 직후(처음부터 true면 알리지 않는다, 확인하면 꺼진다). 되돌리기: `useEventDashboard`의 `seenCanOpen` 비교
+2. 간편 만들기 직후 토스트 상태를 주소 `?created=1`로 넘긴다(tech-decisions §3 "주소에 남기는 것" 표에 없다 — 주문 완료 `?created=1`과 같은 모양). 닫으면 `replace`로 지운다. 되돌리기: `createdEventHref`와 `useEventDashboard`의 `createdNotice`
+3. Step1은 `?step=1`로 쓰고, `?step=2`인데 고른 호스트가 없으면(새로고침) Step1로 `replace`. 호스트 홈의 `?hostId=`(P5c 링크)는 고를 수 있는 호스트일 때만 미리 고르고 Step1에 머문다. 되돌리기: `create-event-form.ts`·`useNewEventWizard`의 effect
+4. Step2 티켓 여부는 기본값 없음(`null` — 고르게 한다). 되돌리기: `initialCreateEventValues`
+5. 일정 칸 값 모양은 브라우저 기본 입력(`YYYY-MM-DD`·`HH:mm`). 종료 = 시작도 다음 날(24시간). 바꾸지 않은 일정은 보내지 않는다 — 하루를 넘는 v1 공연이 단일 날짜 모델로 바뀌지 않게. 되돌리기: `schedule.ts`
+6. 칸 검사는 바뀐 칸만(손대지 않은 빈 이름·지난 시작이 다른 칸 저장을 막지 않게). 준비중 공연의 지난 시작은 막지 않는다(서버도 막지 않음 — 등록만 못 한다). 되돌리기: `validateBasicInfo`
+7. 공연 문의처는 빈 한 줄로 시작하고, 유형도 값도 없는 줄은 보내지 않는다(0개 저장 허용 — 서버 0~10). 유형·placeholder는 호스트 연락처 6종(`host-fields`)을 그대로 쓰고 전화 15자 제한은 두지 않는다(서버 공연 규칙). 되돌리기: `basic-info-form.ts` `isBlankContact`·`eventContactError`
+8. 장소 칸을 모두 비우면 "바뀌지 않음"으로 본다(서버는 장소를 지우는 PE-4를 받지 않는다). 좌표 변환 중·실패면 저장하지 않는다. 주소는 우편번호 결과만 받는다(직접 입력 없음). 되돌리기: `changedBasicFields`의 `place`
+9. 섹션 기본 4탭 제목은 관객 상세(P5b)의 `DEFAULT_SECTION_TITLES`("공연소개" — 붙여 씀)를 그대로 쓴다. 백엔드 `EventSection.DEFAULT_TITLES`는 "공연 소개"(띄어 씀)이고 v1 이관 섹션·관객 상세 대체 제목도 "공연 소개"다 — 디자인 확인 필요. 되돌리기: `section-tabs.ts` 상수 하나(관객 빈 탭도 같이 바뀐다)
+10. 빈 본문(`<p></p>` 등 — 글자·이미지 없음)은 `content: null`로 보낸다. MARKDOWN 섹션은 `renderSectionHtml`로 바꿔 에디터에 넣는다(저장하면 HTML). 새 섹션 제목은 빈 칸(채워야 저장). 되돌리기: `sections-form.ts`
+11. 저장 결과 상태 `savedNotice`: 준비중 `saved`, 등록 뒤 `registeredChanged`(안내 팝업 문구는 V — 최소 마크업 문구는 잠정). `canPreview` = `canSave`(plan V "저장하기를 누를 수 있을 때만")
+12. PE-8 `Event_400_15`(시작이 지남)를 화면 처리 코드로 더했다(patterns §24에 없던 코드 — 소스 확인). 문구 잠정
+13. 읽기 전용 문구("일반 멤버는 공연 정보를 볼 수만 있어요"·"끝난 공연은 수정할 수 없어요")·체크리스트 행 라벨·서버 코드 문구는 모두 잠정(design-requests 기본안 범위 — V에서 디자인 문구로)
+14. 공연 삭제 입구는 공연준비 홈 카드에만 둔다(공연 화면 안 삭제는 계획에 없다). 지운 공연의 GE-3 이하 캐시는 버린다
+15. 카카오 Geocoder 어댑터를 L에 둔다(`kakao-geocoder.ts` — 카카오맵 SDK `autoload=false` + `services`). 우편번호 창은 V. 최소 마크업은 주소 글자 칸 + [주소 선택]으로 대신한다
+
+**남음**: V 전부(진행 막대·호스트 카드·Radio·날짜 선택기, 공연 사이드바·모바일 헤더(Q37)·활성 메뉴, 체크리스트 행·"등록 준비 완료" 모달·등록 확인 팝업·토스트, 기본 정보 2열·Daum 우편번호 창·지도 미리보기·태그 칩·이탈 확인(`dirty`는 L에 있다), Tiptap 에디터·탭·미리보기 화면(`preview/page.tsx` — L에서 만들지 않았다), 카드 ⋮ 메뉴·삭제 확인). 실제 카카오맵 SDK 동작(도메인·키)은 V/실환경 확인. 티켓 있는 공연의 등록 완주는 P12-L 뒤. QA 시나리오 캡처(V)
+**검사**: typecheck · lint · prettier · test(1780 — 새 162) · test:stories(193) · build · e2e(288 — 새 24) 통과. 로컬에 `.env.local`이 없어 `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`로 돌렸다
+**문서 반영**: plan P11 완료 기준 L, patterns §22(공연 스코프)·§23(저장 뒤 반영·일정 칸)·§24(P11 `Event_400_15`·`Event_400_13` 행), api-contract §6(P11-L 소스 확인 — GE-3 `checklist`·`posterImageKey`, 공연 문의처 규칙, PE-6·PE-8·DE-9 코드), directory-structure(api·features·라우트·mock)

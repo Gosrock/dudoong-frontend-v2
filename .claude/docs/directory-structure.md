@@ -106,15 +106,15 @@ src/app/
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색) — 탭은 `?tab=hosts`(기본 공연 탭은 주소에 없음). P10a-L 생성 — HostingHomeView
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기 (P10a-L 생성 — CreateHostView)
-│  │  └─ events/page.tsx               # P11  간편 공연 만들기 (내부 2단계)
+│  │  └─ events/page.tsx               # P11  간편 공연 만들기 (내부 2단계 `?step=1|2`, P11-L 생성 — NewEventView)
 │  ├─ hosts/[hostId]/
 │  │  ├─ settings/page.tsx             # P10b 호스트 설정 (P10b-L 생성 — HostSettingsView. 비멤버 403·없는 호스트 404는 클라이언트 판정)
 │  │  └─ members/page.tsx              # P10b 멤버 (P10b-L 생성 — HostMembersView)
 │  └─ events/[eventId]/                # page.tsx 없음 — next.config redirects()로 dashboard
-│     ├─ layout.tsx                    # P11  공연 스코프 (GE-3) — 데스크탑 공연 사이드바 268(‹ 내 공연 · 공연 카드 · 메뉴 등록 전 4 / 후 6 · 예매자 관리 배지 · 공연 페이지 보기), 모바일은 "대시보드 ▾ / 공연명" 헤더(메뉴 방식 Q37 대기)
-│     ├─ dashboard/page.tsx            # P11(체크리스트) + P13a(등록 후 통계)
-│     ├─ info/page.tsx                 # P11  기본 정보
-│     ├─ detail/page.tsx               # P11  상세 정보 (섹션 에디터)
+│     ├─ layout.tsx                    # P11  공연 스코프 (GE-3, P11-L 생성 — EventScopeView: 숫자 아닌 id 404·비멤버 403·메뉴·읽기 전용) — 데스크탑 공연 사이드바 268(‹ 내 공연 · 공연 카드 · 메뉴 등록 전 4 / 후 6 · 예매자 관리 배지 · 공연 페이지 보기), 모바일은 "대시보드 ▾ / 공연명" 헤더(메뉴 방식 Q37 대기)
+│     ├─ dashboard/page.tsx            # P11(체크리스트) + P13a(등록 후 통계). P11-L 생성 — EventDashboardView(`?created=1` 만든 직후)
+│     ├─ info/page.tsx                 # P11  기본 정보 (P11-L 생성 — EventInfoView)
+│     ├─ detail/page.tsx               # P11  상세 정보 (섹션 에디터, P11-L 생성 — EventDetailView)
 │     ├─ preview/page.tsx              # P11  미리보기
 │     ├─ tickets/
 │     │  ├─ page.tsx                   # P12
@@ -155,7 +155,7 @@ src/features/
 │  ├─ home/                    # P10a PrepHome(HostTab, EventTab, Search). 지금은 로직 연결 자리 HostingHomeView. model/: hosting-home(탭 `?tab=hosts` · 검색어 50자·300ms · 빈 상태 none/search · 카드 주소), useHostingHome(GH-1·GE-1 무한 목록, 지금 탭만 조회)
 │  ├─ host/                    # P10a + P10b  CreateHost, HostSettings, HostMembers(InviteDialog, RoleMenu, TransferMasterDialog, PermissionGuide). 지금은 로직 연결 자리 CreateHostView. 지금은 로직 연결 자리 HostSettingsView·HostMembersView도. model/: host-fields(이름·소개·연락처 칸 규칙 — 만들기·설정 공용, 연락처 유형 6종·placeholder·줄 바꾸기), create-host-form(PH-2 본문), useCreateHost(PH-2 → GH-1·GM-1 무효화 → `/hosting?tab=hosts`), host-settings-form(바뀐 필드만 PH-4, 이미지 프로필·커버 key, 에러 문구), useHostSettings(GH-3 viewer → PH-15 → S3 → PH-4, 일반 멤버 읽기 전용), member-rules(행 메뉴 `memberActionsOf`, 초대 역할·칸 오류·실패 줄 매핑, 권한 가이드 표), useHostMembers(GH-6·PH-10·DH-11·PH-12), useInviteMembers(PH-7), host-cache(변경 응답 반영·`myRole` 쿼리 무효화)
 │  ├─ access/                  # P10a 하위 화면(호스트 P10b·공연 P11)의 비멤버 403·404 판정. HostingAccessRejected(AsyncBoundary rejected)·HostingForbidden(P2 ForbiddenView). model/hosting-access(조회 에러 → forbidden·notFound·error, myRole → `can(role, 'viewManagement')`)
-│  ├─ event/                   # P11  NewEventWizard, EventLayout, Checklist, EventInfo(PlaceInput: 우편번호 + 카카오 Geocoder), EventDetailEditor(SectionTabs + Tiptap)
+│  ├─ event/                   # P11  NewEventWizard, EventLayout, Checklist, EventInfo(PlaceInput: 우편번호 + 카카오 Geocoder), EventDetailEditor(SectionTabs + Tiptap). 지금은 로직 연결 자리 NewEventView·EventScopeView·EventDashboardView·EventInfoView·EventDetailView. model/: event-scope(주소 id·메뉴 등록 전 4/후 6·읽기 전용 이유·티켓 여부 잠금·`canDeleteEvent`), schedule(날짜 1칸 + 시각, 종료 ≤ 시작이면 다음 날), place(주소 → 좌표 어댑터 `Geocoder`·4필드·상세주소), kakao-geocoder(카카오맵 SDK `services.Geocoder` 어댑터), basic-info-form(PE-4 바뀐 필드만·문의처 0~10·태그 10·서버 코드 → 칸), sections-form(PE-6 전체 교체·기본 4탭·1~10/20자/20,000자), checklist(행 3개·③ 면제·PE-8 코드), create-event-form(Step·호스트 선택 가능·PE-2 본문·`?created=1`), event-cache(저장·등록·삭제 뒤 반영), useEventScope, useNewEventWizard(Step1 안 호스트 만들기는 `useCreateHost({onCreated})`), useEventDashboard, useEventBasicInfo, useEventSections, useDeleteEvent
 │  ├─ ticket/                  # P12  TicketManage, TicketForm, TicketMenu, OptionManage
 │  ├─ guest/                   # P13a Dashboard, OrderTab, IssuedTicketTab, RefundTab, OrderDetail(?order= 값으로 페이지가 선언적으로 렌더)
 │  ├─ qr/                      # P13b HostScan, AudienceScan
@@ -237,7 +237,7 @@ src/api/
 │  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
 ├─ auth/                       # P4b  calls.ts(카카오 링크·코드 교환·register/valid·login·info·register, 재발급·로그아웃 — authApi), schema.ts
 ├─ me/                         # GM-1·PM-2(mutations updateMeMutation)·GM-4 followingHostsQuery·GM-5 archiveQuery (P9)
-├─ host/  event/  ticket-item/  option/   # P10a: host — myHostsQuery(GH-1, `MY_HOSTS_KEY`)·createHostMutation(PH-2)·입력 규칙 상수, event — myEventsQuery(GE-1, `MY_EVENTS_KEY`). P10b: host — updateHostMutation(PH-4)·addHostMembersMutation(PH-7)·updateHostMemberRoleMutation(PH-10)·removeHostMemberMutation(DH-11)·transferMasterMutation(PH-12), event — `isEventManageQueryKey`(GE-3 키 모양 `['events', id, 'manage']`, 양도 뒤 무효화)
+├─ host/  event/  ticket-item/  option/   # P10a: host — myHostsQuery(GH-1, `MY_HOSTS_KEY`)·createHostMutation(PH-2)·입력 규칙 상수, event — myEventsQuery(GE-1, `MY_EVENTS_KEY`). P10b: host — updateHostMutation(PH-4)·addHostMembersMutation(PH-7)·updateHostMemberRoleMutation(PH-10)·removeHostMemberMutation(DH-11)·transferMasterMutation(PH-12), event — `isEventManageQueryKey`(GE-3 키 모양 `['events', id, 'manage']`, 양도 뒤 무효화). P11: event — eventManageQuery(GE-3)·eventChecklistQuery(GE-7)·eventSectionsManageQuery(GE-5 쿠키 — 모두 `['events', id, 'manage', …]`)·`eventPublicKeys`, mutations.ts createEventMutation(PE-2)·updateEventBasicMutation(PE-4)·updateEventSectionsMutation(PE-6)·openEventMutation(PE-8)·deleteEventMutation(DE-9), 입력 규칙 상수(`EVENT_NAME_MAX` 25 등)
 ├─ order/                      # + price.ts (금액 계산 순수함수). P9: myOrdersQuery(O-2)·myOrderQuery(O-3)·cancelMyOrderMutation(O-4)·putRefundAccountMutation(O-5)
 ├─ my-ticket/                  # P8   T-1·T-2·T-3 (state 11값 openEnum)
 ├─ gift/                       # P8b  queries + mutations(보내기·회수·메모·수락·거절·반환)
@@ -246,7 +246,7 @@ src/api/
 ├─ user/                       # P9   calls.ts withdrawAccount — 회원 탈퇴 v1 `DELETE /api/v1/auth/me`를 withSessionRecovery로(authApi 아님)
 ├─ notification/               # P9b  GN-1 notificationsQuery·GN-2 unreadNotificationCountQuery(meta.silent)·PN-3 readNotificationsMutation, NOTIFICATIONS_KEY(`['me','notifications']`)
 ├─ issued-ticket/
-└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정 — 세션 상태 valid·expired·invalid(`accessToken=forged`)·none), bank.handlers.ts(`GET /api/v2/banks` 25개), user.handlers.ts(탈퇴 — default·masterBlocked), notification.handlers.ts(GN-1·GN-2·PN-3), hosting.handlers.ts(GH-1·GE-1·PH-2 — 만든 호스트가 다음 GH-1에 나오는 저장소, `hostingSets` mixedRoles·manyHosts·noMembership·noEvents·nextPageError·listServerError·createFails), host.handlers.ts에 P10b PH-4·PH-7·PH-10·DH-11·PH-12(백엔드 검사 순서·코드), host-store.ts(P10b 저장소 — 설정·멤버·양도가 GH-3·GH-6·GH-1·GE-1의 `myRole`·프로필에 반영, `actAsRole(hostId, role)`로 3시점, `resetHostStore` — `resetHostMockState`·`resetHostingStore`가 함께 부른다), fixtures/host.ts `mockUsers`(초대 이메일 — `twin@example.com`은 계정 둘), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
+└─ __mocks__/                  # MSW — handlers.ts(기본 목록), <도메인>.handlers.ts, upload-handlers.ts, fixtures/(현실적인 한국어 값·null·404 예시), respond.ts(ok·fail·paginate·쿠키 판정 — 세션 상태 valid·expired·invalid(`accessToken=forged`)·none), bank.handlers.ts(`GET /api/v2/banks` 25개), user.handlers.ts(탈퇴 — default·masterBlocked), notification.handlers.ts(GN-1·GN-2·PN-3), hosting.handlers.ts(GH-1·GE-1·PH-2 — 만든 호스트가 다음 GH-1에 나오는 저장소, `hostingSets` mixedRoles·manyHosts·noMembership·noEvents·nextPageError·listServerError·createFails), host.handlers.ts에 P10b PH-4·PH-7·PH-10·DH-11·PH-12(백엔드 검사 순서·코드), host-store.ts(P10b 저장소 — 설정·멤버·양도가 GH-3·GH-6·GH-1·GE-1의 `myRole`·프로필에 반영, `actAsRole(hostId, role)`로 3시점, `resetHostStore` — `resetHostMockState`·`resetHostingStore`가 함께 부른다), fixtures/host.ts `mockUsers`(초대 이메일 — `twin@example.com`은 계정 둘), event-store.ts(P11 공연 저장소 — PE-2·PE-4·PE-6·PE-8·DE-9가 바꾸고 GE-3·GE-7·GE-5·GP-3·GP-5·GE-1이 읽는다, `setStoredValidTicket`·`setStoredStatus`, `resetHostingStore`가 함께 되돌린다), hosting-event.handlers.ts(PE-2·GE-3·PE-4·PE-6·GE-7·PE-8·DE-9 — 백엔드 검사 순서·코드, `hostingEventSets` createFails·basicFails·sectionsFails·openFails·deleteFails·manageServerError, `mockRoleIn`), privacy-mask.ts(백엔드 `PrivacyMasker` 이식 — 익명 GP-3·GH-3 연락처 가림)
 ```
 
 서버와 브라우저가 같은 `queryOptions`를 쓴다. 서버 전용 조회 함수는 없다. 사용자별 값이 섞인 응답은 viewer 쿼리를 따로 둔다(`hostViewerQuery`, `hostEventsViewerQuery`, `giftLandingViewerQuery`, `eventDetailViewerQuery`(연락처 원문, 2026-10-25 A안) — tech-decisions §4).

@@ -1,8 +1,8 @@
 import { http } from 'msw';
 
+import { storedEvent, storedPublicEvent } from './event-store';
 import {
   events,
-  findPublicEvent,
   homeEvents,
   knownTagIds,
   tagGroups,
@@ -10,6 +10,7 @@ import {
   toListItem,
   upcomingOrder,
 } from './fixtures/event';
+import { mockRoleIn } from './hosting-event.handlers';
 import { maskContacts } from './privacy-mask';
 import {
   errors,
@@ -74,7 +75,8 @@ export const eventHandlers = [
   http.get('*/api/v2/events/:eventId', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
     if (id === null) return publicIdMismatch(request, cookies);
-    const event = findPublicEvent(id);
+    // 공연 저장소(P11)를 읽는다 — 기본 정보 저장·등록이 바로 반영된다
+    const event = storedPublicEvent(id);
     if (!event) return eventNotFound(request);
     const detail = toDetail(event);
     return ok(
@@ -85,16 +87,23 @@ export const eventHandlers = [
   http.get('*/api/v2/events/:eventId/ticket-items', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
     if (id === null) return publicIdMismatch(request, cookies);
-    const event = findPublicEvent(id);
+    const event = storedPublicEvent(id);
     return event ? ok(event.ticketItems) : eventNotFound(request);
   }),
 
   http.get('*/api/v2/events/:eventId/sections', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
     if (id === null) return publicIdMismatch(request, cookies);
-    // 준비중 공연은 멤버만 본다 — mock은 공개 공연만 돌려준다
-    const event = findPublicEvent(id);
-    return event ? ok(event.sections) : eventNotFound(request);
+    // 준비중 공연은 활성 멤버(일반 포함)만 본다 — 그 밖은 존재를 숨기는 404(`V2ReadEventSectionsUseCase`, 432cce4)
+    const event = storedEvent(id);
+    if (!event) return eventNotFound(request);
+    if (
+      event.status === 'PREPARING' &&
+      !(hasAccessToken(cookies) && mockRoleIn(event.host.hostId) !== null)
+    ) {
+      return eventNotFound(request);
+    }
+    return ok(event.sections);
   }),
 ];
 

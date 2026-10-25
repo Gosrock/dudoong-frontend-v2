@@ -9,6 +9,7 @@ import {
   HOST_PHONE_VALUE_MAX,
 } from '../host/schema';
 import { CONTACT_TYPES } from '../shared/common-schema';
+import { resetEventStore } from './event-store';
 import {
   CREATED_HOST_ID_START,
   defaultMemberships,
@@ -36,13 +37,18 @@ let nextHostId = CREATED_HOST_ID_START;
 
 /**
  * 만든 호스트를 지운다(vitest `beforeEach`·e2e `test.beforeEach`). GH-1·GE-1이 읽는 호스트 저장소(P10b 설정·멤버·양도 —
- * `host-store.ts`)도 함께 되돌린다
+ * `host-store.ts`)와 공연 저장소(P11 만들기·수정·등록·삭제 — `event-store.ts`)도 함께 되돌린다
  */
 export function resetHostingStore() {
   created = [];
   nextHostId = CREATED_HOST_ID_START;
   resetHostStore();
+  resetEventStore();
 }
+
+/** PH-2로 만든 호스트(mock 사용자가 마스터). 공연 관리(P11) mock이 역할·호스트 이름을 읽는다 */
+export const createdHostOf = (hostId: number): MockMembership | undefined =>
+  created.find((m) => m.hostId === hostId);
 
 const KEYWORD_MAX = 50;
 

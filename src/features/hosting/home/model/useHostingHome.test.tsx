@@ -71,6 +71,17 @@ describe('공연준비 홈 — 탭(GH-1 / GE-1)', () => {
     expect(result.current.hosts.status).toBe('pending');
   });
 
+  it('공연 카드 ⋮ 삭제(P11): 준비중 공연 + 매니저 이상만 canDelete', async () => {
+    const { result } = open();
+    await waitFor(() => expect(result.current.events.status).toBe('success'));
+    expect(result.current.events.items.map((e) => [e.eventId, e.status, e.canDelete])).toEqual([
+      [140, 'PREPARING', true],
+      [103, 'OPEN', false],
+      [101, 'OPEN', false],
+      [90, 'CLOSED', false],
+    ]);
+  });
+
   it('호스트 탭으로 바꾸면 주소에 ?tab=hosts가 남고 GH-1을 읽는다 — 카드에 myRole·eventCount·호스트 홈 주소', async () => {
     const { result } = open();
     await waitFor(() => expect(result.current.events.status).toBe('success'));
