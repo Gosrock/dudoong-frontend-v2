@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { type FormEvent, useState } from 'react';
 
+import { banksQuery } from '@/api/bank/queries';
 import { isNotFound, isSessionLost } from '@/api/errors';
-import { banksQuery } from '@/api/refund/queries';
 import {
   AsyncBoundary,
   type AsyncBoundaryRejectedProps,

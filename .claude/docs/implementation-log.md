@@ -443,7 +443,7 @@
 | 2 | 전역 에러 토스트(`src/api/query-client.ts` `messageOf`) | 표에 없는 실패는 `reason`을 그대로 토스트 | `BAD_REQUEST`의 `reason`은 `{"email":"…"}` JSON이나 "Bad Request"라 화면에 그대로 나가면 안 된다 | **완료(2026-10-26)** `BAD_REQUEST`면 고정 문구("입력값을 확인해 주세요" 등)로 바꾼다 — 한 곳(`src/api/errors.ts` 또는 `messageOf`) |
 | 3 | mock(`respond.ts` `badRequest`, `host.handlers.ts`, `hosting.handlers.ts`, `order.handlers.ts`, `me.handlers.ts`)·주석(`host/mutations.ts`, `auth/schema.ts`, `profile.ts`, `member-rules.ts`, `create-host-form.ts`, `host-settings-form.ts`, `useInviteMembers.ts`)·테스트 | 검증 실패를 `GLOBAL_400_1`로 흉내 낸다 | 위와 같다 | **완료(2026-10-26)** mock 응답을 `code: 'BAD_REQUEST'`, `reason`을 필드 JSON으로 맞추고 주석·테스트를 고친다 |
 | 4 | 경로 id 타입 오류 mock | 400 `GLOBAL_400_1` 가정(B7) | 로그인 400 `BAD_REQUEST`, 비로그인 공개 GET은 401 `AUTH_401_2`(숫자 id만 공개 경로 패턴에 걸린다) | **완료(2026-10-26)** mock·테스트를 맞춘다 |
-| 5 | P10/T-3 티켓 수정 본문 | 동의 필드 없음 | dev `cb8d24e`(#873)에 `refundObligationAgreed`·`agreementVersion`(무료 → 두둥 전환 때만) | P12-L에서 반영(api-contract §3) |
+| 5 | P10/T-3 티켓 수정 본문 | 동의 필드 없음 | dev `cb8d24e`(#873)에 `refundObligationAgreed`·`agreementVersion`(무료 → 두둥 전환 때만) | **완료(2026-10-30 P12-L)** `toUpdateTicketBody`가 무료 → 두둥일 때만 사용자가 체크한 값을 싣는다 |
 
 
 ## 2026-10-26 검증 실패 코드 정리 · `useMyPage` 불안정 테스트
@@ -525,3 +525,61 @@
 **남음**: V 전부(진행 막대·호스트 카드·Radio·날짜 선택기, 공연 사이드바·모바일 헤더(Q37)·활성 메뉴, 체크리스트 행·"등록 준비 완료" 모달·등록 확인 팝업·토스트, 기본 정보 2열·Daum 우편번호 창·지도 미리보기·태그 칩·이탈 확인(`dirty`는 L에 있다), Tiptap 에디터·탭·미리보기 화면(`preview/page.tsx` — L에서 만들지 않았다), 카드 ⋮ 메뉴·삭제 확인). 실제 카카오맵 SDK 동작(도메인·키)은 V/실환경 확인. 티켓 있는 공연의 등록 완주는 P12-L 뒤. QA 시나리오 캡처(V)
 **검사**: typecheck · lint · prettier · test(1780 — 새 162) · test:stories(193) · build · e2e(288 — 새 24) 통과. 로컬에 `.env.local`이 없어 `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`로 돌렸다
 **문서 반영**: plan P11 완료 기준 L, patterns §22(공연 스코프)·§23(저장 뒤 반영·일정 칸)·§24(P11 `Event_400_15`·`Event_400_13` 행), api-contract §6(P11-L 소스 확인 — GE-3 `checklist`·`posterImageKey`, 공연 문의처 규칙, PE-6·PE-8·DE-9 코드), directory-structure(api·features·라우트·mock)
+
+## P12-L — 티켓 · 옵션 관리 (로직)
+
+**상태**: done (2026-10-30, 커밋 전) — V 전부 남음
+**변경**: `src/api/bank/`(`src/api/refund/`에서 옮김 — 환불 계좌·티켓 계좌 공통, import 3곳). `src/api/ticket-item/`: `schema.ts`에 관리 스키마(`TicketItemManageSchema`·`TicketSaleStateSchema`·`TicketAccountSchema`·`AppliedTicketOptionSchema`)·요청 스키마(`CreateTicketItemRequestSchema`·`UpdateTicketItemRequestSchema`(`clear[]`, `.strict()` — 명시적 null 불가)·`TicketAccountRequestSchema`(`bankCode`만)·`ReplaceTicketOptionsRequestSchema`)·입력 규칙 상수(`TICKET_NAME_MAX` 12·`TICKET_DESCRIPTION_MAX` 30·`TICKET_PRICE_MAX` 1,000만·`TICKET_COUNT_MAX` 999,999·`TICKET_OPTIONS_MAX` 10·계좌 30/30/50·`TICKET_CLEARABLE_FIELDS`), `queries.ts` `ticketItemsManageQuery`(T-1 `['events', id, 'manage', 'ticket-items']`), 새 `mutations.ts` 6종(T-2~T-6·O-5). 새 `src/api/option/`(schema·queries `eventOptionsQuery` O-1 `['events', id, 'manage', 'options']`·mutations O-2~O-4). `features/hosting/ticket/`(새): `model/` ticket-rules·ticket-form·option-form·bank-select·ticket-cache + 훅 5개, 화면 자리 `TicketListView`·`TicketFormView`. 라우트 `hosting/events/[eventId]/tickets/page.tsx`·`new/page.tsx`·`[ticketItemId]/page.tsx`. mock: `ticket-store.ts`(새 — fixture 공개 티켓·옵션을 관리 모양으로 옮긴 저장소, GP-5 투영 `publicTicketsOf`), `hosting-ticket.handlers.ts`(새), `event.handlers.ts`(GP-5가 저장소를 읽는다), `event-store.ts`(`hasValidTicketOf` — 체크리스트 ③·`Event_400_25`가 티켓 저장소를 본다, `hasValidTicket`은 강제 플래그로만), `hosting-event.handlers.ts`(`guard`·`isEditable`·`RANK` export), `hosting.handlers.ts`(`resetHostingStore`가 티켓 저장소도 되돌린다), `handlers.ts`
+
+**백엔드 소스**: `432cce4`(로컬 클론) → dev `cb8d24e`(`git diff`에서 티켓·옵션·은행 변경은 #873 `f22fca0c` — `V2UpdateTicketItemRequest` 동의 필드 + `V2UpdateTicketItemUseCase`·`V2TicketItemDomainService.updateTicketItem` 무료 → 두둥 동의 검사·기록). 근거 파일: `V2TicketItemController`·`V2TicketOptionController`·`V2BankController`, `V2TicketItemRequest.kt`(`V2TicketItemRequest`·`V2UpdateTicketItemRequest.read`·`V2TicketAccountRequest`·`V2ReplaceTicketOptionsRequest`)·`V2TicketOptionRequest.kt`·`V2TicketItemManageResponse.kt`·`V2TicketTypes.kt`, 유스케이스 10개, `V2TicketItemDomainService`·`V2TicketItemForm`(`V2TicketClearableField`)·`V2TicketOptionDomainService`·`TicketItem`·`OptionGroup`·`TicketItemErrorCode`·`AgreementService`·`BankCode`·`V2PublicTicketItemMapper`
+
+**훅이 돌려주는 것**
+- `useTicketList(eventId, {now?})` → `{event, canEdit, readOnlyMessage, status, retry, noTicketEvent, canAdd, newHref, cards[{ticket, chip, chipLabel, locked, menu[{action: edit|delete|suspend|resume, label}], editHref, canManageOptions}], empty, suspend(id), resume(id), remove(id): Promise<boolean>, pendingId, actionError, dismissActionError}`
+- `useTicketForm(eventId, ticketItemId | null, {now?})` → `{event, ticket, missing, mode: create|edit, canEdit, readOnlyReason: role|ended|noTicketEvent|priceTicket|null, readOnlyMessage, values, locks{locked, quantityPublic, approval, limitedSupply}, setPayType, setName, setDescription, setPrice, setUnlimited, setSupplyCount, setQuantityPublic, setLimitPurchase, setPurchaseLimit, setApprovalRequired, setAccountHolder, setAccountNumber, setSalePeriod, setSaleStartNow, setSaleStart(date, time), setSaleEnd(date, time), bank(= useBankSelect), agreement{field, required, agreed, setAgreed}, errors, serverErrors, formError, attempted, dirty, saving, canSave, save(), listHref}`
+- `useBankSelect(value, onSelect)` → `{status, retry, banks, keyword, setKeyword, filtered, selected, select(code), codes}`
+- `useTicketOptions(eventId, ticketItemId)` → `{ticket, canChange, attached, poolStatus, retryPool, attachable, canAttachMore, attach(id), detach(id), values, setName, setDescription, setType, setYesAdditionalPrice, errors, serverErrors, attempted, createAndAttach(): 'attached'|'createdOnly'|'failed', partial, retryAttach(), pending, error, dismissError}`
+- `useOptionEditor(eventId, optionId)` → `{status, missing, option, canEdit, values, type(읽기 전용), priceLocked, setName, setDescription, setYesAdditionalPrice, errors, serverErrors, attempted, dirty, canSave, save(), canDelete, remove(), deleted, busy, error}`
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `ticket-manage-api.test` 40건, `ticket-rules.test` 88건, `useTicketList.test` 10건, `useTicketForm.test` 18건, `useTicketOptions.test` 10건, e2e `hosting-ticket.spec` 11건(×2 프로젝트) |
+| 두둥·무료 생성·수정·삭제 | 훅 「기본값 그대로(두둥 …) 저장 → 서버가 받는다 …」·「무료 티켓: 승인 토글이 열리고 가격·계좌 없이 저장(가격 0)」·「바뀐 필드만 + 비우면 clear[] …」, 목록 「지우면 남은 목록을 넣고 …」, api T-2·T-3·T-4 describe, e2e 「빈 목록 → 두둥 티켓 …」·「무료 티켓 …」·「수정: 바뀐 필드만 보낸다」·「판매 전 티켓을 지우면 …」 |
+| 무제한 → 재고 공개 꺼짐·비활성 | 규칙 「무제한이면 재고 공개를 끄고 비활성」, 훅 「무제한이면 재고 공개를 끄고 비활성 — 켜려 해도 바뀌지 않는다」, e2e(`재고 공개` 체크 해제 + disabled) |
+| 수정 본문 바뀐 필드 + `clear[]` | 규칙 describe 「수정 본문(P10/T-3 …)」 8건, 훅 「바뀐 필드만 + 비우면 clear[]」·「수량 지정 → 무제한은 clear SUPPLY_COUNT + 재고 공개 끔」, api 「보낸 필드만 바뀌고, clear로 비운다」·「명시적 null은 400 …」 |
+| 잠긴 티켓 허용 필드 · ⋮ 메뉴 | 규칙 it.each 「잠금」 4행·「⋮ 메뉴」 8행·「잠긴 티켓: … 잠금」·「잠긴 티켓의 수량은 늘리기만」, 훅 「잠긴 티켓(501): 이름·가격·결제 방식은 바뀌지 않고 …」·목록 「카드: …」, api 「잠긴 티켓(501 판매됨) …」·「승인 대기 주문이 있으면 잠긴다」, e2e 「판매된 티켓은 삭제 대신 판매 중단만 …」·「잠긴 티켓 수정 화면 …」 |
+| 새 옵션 = 생성 + 지정(중간 실패) | 훅 「두 번 호출해 붙인다 → attached」·「붙이기가 실패하면 createdOnly — … retryAttach로 다시 붙인다」·「만들기가 실패하면 failed …」, e2e 「카드 [티켓 옵션 추가]에서 새 옵션을 만들면 생성 + 지정 두 번 호출 …」 |
+| 판매 중단 → 재개가 목록 · GP-5에 | 목록 훅 「중단하면 목록 카드가 바뀌고 관객 GP-5 키를 정확히 무효화 — GP-5에서 빠진다, 재개하면 다시」, api 「판매 중단 → GP-5에서 빠지고, 재개 → 다시 나온다(멱등) …」, e2e 같은 시나리오(GP-5 응답) |
+| 티켓 없음 공연 추가 불가 | 규칙 it.each 「티켓 있음 … → 추가」, 목록 훅 「티켓 없음 공연은 추가할 수 없다」, 폼 훅 「티켓 없음 공연은 만들 수 없다 — 읽기 전용 …」, api 「티켓 없음 공연에는 만들 수 없다(Ticket_Item_400_12)」, e2e 「티켓 없음 공연에서는 추가할 수 없다 …」 |
+| 옵션 수정에서 응답 형식 못 바꿈 | 규칙 「수정 본문: 바뀐 것만, 형식(type)은 없다 …」, 훅 「잠긴 옵션(701): … 본문에 이름만(형식 없음)」, api 「O-3: 응답 형식은 본문에 없다(스키마가 거른다) …」 |
+| 에러 분기 P12 | 훅 it.each `Ticket_Item_400_13`·`400_3`·`400_8` 칸 오류, `400_14` 폼 오류 + 목록 다시 읽기, `Agreement_400_1` 폼 오류, 목록 `400_7` 안내 + 다시 읽기, 옵션 `Option_Group_400_5` 안내 + 풀 다시 읽기·`400_6` 칸 오류, api(코드·검사 순서 — `400_2`·`400_11`·`400_12`·`400_15`·`Item_Option_Group_400_2`·`400_4`·`Option_Group_400_1`·`400_2`·`400_3`·`400_4`·`404`·`Event_400_17`) |
+| 기본값 그대로 저장 가능 | 규칙 「새 폼 기본값: 두둥 · 무제한 + 재고 공개 꺼짐 · 승인 켬 …」, 훅·e2e 기본값 저장 → 200 |
+| 두둥 생성 본문 동의 · `bankCode` | 규칙 「동의(#840): 두둥이고 사용자가 체크했을 때만 …」·「체크 칸은 Q42 대기」·「무료 → 두둥(#873) …」, 훅 「동의(#840): 기본은 보내지 않는다 …」, api 「동의 강제(#840) …」·「무료 → 두둥 …(#873) …」, e2e POST 본문(`bankCode`만, 동의 키 없음) |
+
+그 밖: 은행 고르기 「은행은 목록에서만 — 검색어로 거르고 …」·`filterBanks` it.each 7행, 상태 칩 it.each 7행, GP-5 투영 「GP-5 투영은 fixture 공개 티켓과 같다」(P6·P7 시나리오 보존), 키 「GE-3 아래(마스터 양도 뒤 술어 무효화에 걸린다)」. **P11이 남긴 티켓 있는 공연의 등록 완주**: e2e 「만들기 → 기본 정보 → 섹션 → 체크리스트 ③은 티켓을 만들어야 찬다 → 등록 → 관객 GP-5에 티켓」.
+
+**결정**
+- 키: T-1·O-1은 GE-3 아래(`['events', id, 'manage', 'ticket-items' | 'options']`) — P10b 술어 무효화(양도)에 걸린다. GP-5 공개 키(`['events', id, 'ticket-items']`)는 티켓·옵션 변경 뒤 `exact`로 무효화
+- mock: 티켓 저장소를 두어 T-*·O-* 변경이 T-1·O-1·GP-5·체크리스트 ③에 이어진다. 동의 강제는 저장소 플래그(`setTicketAgreementEnforced`)로 — 검사 순서까지 백엔드와 같게
+- 은행 목록 모듈을 `src/api/bank`로 옮겼다(P9 주석이 "P12가 쓰게 되면 정한다"고 남긴 것)
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. GP-5 mock 투영은 fixture 기준 시각(`PUBLIC_VIEW_NOW` = 2026.10.17 20:00)으로 판매 기간·구매 가능을 계산한다(변경 검사는 실제 시각). 실제 시각이면 fixture 공연 102 등이 날짜가 지나 P6·P7 테스트가 깨진다. 되돌리기: `ticket-store.ts` `publicTicketsOf`의 `now` 기본값
+2. 체크아웃·주문 mock(`fixtures/order.ts`·`ticketItemHandlers`)은 여전히 fixture 공개 티켓을 읽는다 — 호스트가 바꾼 티켓은 GP-5에만 반영되고 O-0·O-1 mock에는 반영되지 않는다. 되돌리기: order 핸들러가 `publicTicketsOf`를 읽게
+3. 상태 칩: 판매 중단을 "판매 중단" 칩으로 따로 둔다(GUI 칩은 판매중·판매 종료·판매 예정 셋뿐). 판매 종료가 없으면 공연 시작을 끝으로 본다. 공연 등록 전·매진은 칩에 넣지 않는다. 되돌리기: `ticket-rules.ts` `ticketSaleChipOf`
+4. ⋮ 메뉴: 기존 PG 티켓(`payType=PRICE`)·모르는 결제 방식은 [수정]을 두지 않는다(서버 `Ticket_Item_400_11`). 되돌리기: `ticketMenuOf`
+5. 판매 기간 토글을 켜면 판매 종료는 필수(날짜·시각), 판매 시작은 "공연 등록 즉시" 체크 또는 날짜·시각. GUI에 종료 "공연 시작까지" 체크가 없어서다. 되돌리기: `salePeriodOf`
+6. 수정 폼: 응답 `bankCode`가 null인 옛 자유 입력 은행명은 계좌를 고치지 않으면 보내지 않고, 고치면 목록에서 다시 고르게 한다. 계좌는 세 칸 중 하나라도 바뀌면 세 값을 통째로 보낸다. 되돌리기: `isAccountChanged`
+7. 무료 → 두둥 전환 시 승인은 서버가 켜므로 `approvalRequired`를 보내지 않는다. 두둥 → 무료면 계좌를 보내지 않는다(서버가 지운다). 되돌리기: `toUpdateTicketBody`
+8. 동의 칸: `REFUND_OBLIGATION_FIELD = false`(Q42 대기). 훅은 `agreement.agreed`·`setAgreed` 상태만 두고 화면은 그리지 않는다 — 기본 false라 보내지 않는다. 칸이 생기면 상수를 true로 바꾸면 동의 전 저장이 막힌다. `Agreement_400_1`은 폼 오류 "필수 동의를 확인해 주세요". 되돌리기: `ticket-form.ts` 상수·`useTicketForm`
+9. 무료 티켓에 붙일 새 옵션은 추가금 0만 받는다(만든 뒤 O-5가 `Item_Option_Group_400_4`로 실패해 반쪽 성공이 되지 않게). 유료 옵션이 붙은 두둥 티켓은 무료로 바꾸지 못하게 결제 방식 칸 오류. 되돌리기: `validateOptionForm({freeTicket})`·`validateTicketForm` `hasPaidOption`
+10. 새 옵션 만들기가 성공하면 붙이기 결과와 상관없이 폼을 비운다(다시 누르면 같은 옵션이 또 생기지 않게). 붙이기 실패면 `partial` + `retryAttach()`. 되돌리기: `useTicketOptions.createAndAttach`
+11. 옵션 상세(수정·삭제)는 붙은 옵션에서만 연다(최소 마크업). 삭제 입구는 상세 하단(patterns §23 기본안), 잠긴 옵션이면 없다
+12. 저장 뒤 티켓 목록으로 `replace`(만들기·수정 모두). 되돌리기: `useTicketForm` `onSaved`
+13. 화면 문구(칸 오류·폼 오류·읽기 전용 안내·칩 라벨)는 모두 잠정(V에서 디자인 문구로). 금지 문구(약관 제19조⑥ — 무료티켓·옵션으로 대금 받기 안내)는 어디에도 쓰지 않았다
+14. `src/api/refund` → `src/api/bank` 이동. 되돌리기: `git mv` + import 3곳
+
+**남음**: V 전부(카드·상태 칩·⋮ 메뉴 팝오버·빈 상태, 티켓 폼 카운터·토글·DatePicker·은행 Combobox, 옵션 추가·상세 모달·옵션 칩·"티켓 옵션이란?"·관리자 승인 가이드 팝오버, 티켓 없음 공연 안내, 이탈 확인 — `dirty`는 L에 있다), 동의 칸(Q42), 판매 중단 딤드(Q33), 공연 상세에 판매 중단 반영 확인(P6-V 뒤). QA 시나리오 캡처(V)
+**검사**: typecheck · lint · prettier · test(1946 — 새 166) · test:stories(193) · build · e2e(308 — 새 22 = `hosting-ticket.spec` 11건 ×2) 통과(`NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`)
+**문서 반영**: plan P12 완료 기준 L, patterns §23(티켓·옵션 변경 뒤 반영)·§24(P12 `Ticket_Item_400_2`·`400_11`·수정 `Item_Option_Group_400_4`·`Event_400_17`·`Option_Group_400_3` 행, `Agreement_400_1` 행에 #873), api-contract §6(P12-L 소스 확인 — 응답 모양·검사 순서, #873 위치), directory-structure(api bank·ticket-item·option, features ticket, 라우트, mock)

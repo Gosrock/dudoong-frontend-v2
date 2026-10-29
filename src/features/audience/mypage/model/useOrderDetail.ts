@@ -3,12 +3,12 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
+import { banksQuery } from '@/api/bank/queries';
 import { handleCodes } from '@/api/handle-codes';
 import { MY_TICKETS_KEY } from '@/api/my-ticket/queries';
 import { cancelMyOrderMutation, putRefundAccountMutation } from '@/api/order/mutations';
 import { myOrderQuery } from '@/api/order/queries';
 import type { MyOrderDetail } from '@/api/order/schema';
-import { banksQuery } from '@/api/refund/queries';
 
 import {
   cancelEntry,

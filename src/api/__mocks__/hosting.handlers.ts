@@ -22,6 +22,7 @@ import {
 } from './fixtures/hosting';
 import { mockUserRoleIn, profileEditOf, resetHostStore } from './host-store';
 import { errors, fail, ok, paginate, readPageParams, requireAuth } from './respond';
+import { resetTicketStore } from './ticket-store';
 
 /**
  * 공연준비 홈(P10a) — GH-1 `GET /me/hosts` · GE-1 `GET /me/events` · PH-2 `POST /hosts`(모두 로그인).
@@ -37,13 +38,14 @@ let nextHostId = CREATED_HOST_ID_START;
 
 /**
  * 만든 호스트를 지운다(vitest `beforeEach`·e2e `test.beforeEach`). GH-1·GE-1이 읽는 호스트 저장소(P10b 설정·멤버·양도 —
- * `host-store.ts`)와 공연 저장소(P11 만들기·수정·등록·삭제 — `event-store.ts`)도 함께 되돌린다
+ * `host-store.ts`), 공연 저장소(P11 만들기·수정·등록·삭제 — `event-store.ts`), 티켓·옵션 저장소(P12 — `ticket-store.ts`)도 함께 되돌린다
  */
 export function resetHostingStore() {
   created = [];
   nextHostId = CREATED_HOST_ID_START;
   resetHostStore();
   resetEventStore();
+  resetTicketStore();
 }
 
 /** PH-2로 만든 호스트(mock 사용자가 마스터). 공연 관리(P11) mock이 역할·호스트 이름을 읽는다 */

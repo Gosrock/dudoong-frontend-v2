@@ -2,10 +2,12 @@ import type { EventManage, EventSection } from '../event/schema';
 import { formatKstDateTime } from '../shared/date';
 import { events, type MockEvent, preparingEvents } from './fixtures/event';
 import { MOCK_IMAGE_ORIGIN } from './respond';
+import { hasStoredTickets } from './ticket-store';
 
 /**
  * 공연 관리(P11) mock 저장소. PE-2(만들기)·PE-4(기본 정보)·PE-6(섹션)·PE-8(등록)·DE-9(삭제)가 바꾸고,
  * GE-3·GE-7·GE-5·GP-3·GP-5·GE-1(공연준비 홈)이 읽는다 — 저장·등록 뒤 공연 상세를 열면 바로 반영된다(plan P11).
+ * 티켓·옵션은 P12 티켓 저장소(`ticket-store.ts`)에 있다 — GP-5와 체크리스트 ③은 그쪽을 읽는다.
  * 처음 값은 공연 fixture(`fixtures/event.ts`의 공개 공연 + 준비중 공연)의 복사본이다. vitest·e2e는 `resetEventStore()`
  * (`resetHostingStore()`가 함께 부른다)로 되돌린다.
  */
@@ -14,7 +16,10 @@ import { MOCK_IMAGE_ORIGIN } from './respond';
 export type StoredEvent = MockEvent & {
   posterImageKey: string | null;
   openedAt: string | null;
-  /** 유효(삭제 안 된) 티켓이 있는지 — 체크리스트 ③과 `Event_400_25`. P12 전이라 fixture 티켓이 있으면 true */
+  /**
+   * 유효 티켓이 있는 것으로 **강제로** 본다(P11 시나리오 도우미 `setStoredValidTicket`). 실제 판정은 `hasValidTicketOf` —
+   * 이 값 또는 티켓 저장소(P12)에 유효 티켓이 있는지. `ticketItems`(공개 fixture 모양)는 GP-5가 쓰지 않는다
+   */
   hasValidTicket: boolean;
 };
 
@@ -36,7 +41,7 @@ function seed() {
         posterImageKey: keyOf(e.posterImageUrl),
         // fixture 공연은 모두 2026-10 이전 오픈으로 본다(기록 없음 — design-requests Q43)
         openedAt: null,
-        hasValidTicket: e.ticketItems.length > 0,
+        hasValidTicket: false,
       },
     ]),
   );
@@ -100,7 +105,7 @@ export function createStoredEvent(input: {
   return event;
 }
 
-/** 이 공연에 유효 티켓이 있는 것으로 본다(P12 전 — 체크리스트 ③·`Event_400_25` 시나리오) */
+/** 이 공연에 유효 티켓이 있는 것으로 본다(티켓 저장소와 상관없이 — 체크리스트 ③·`Event_400_25` 시나리오) */
 export function setStoredValidTicket(eventId: number, hasValidTicket: boolean) {
   const e = store.get(eventId);
   if (e) store.set(eventId, { ...e, hasValidTicket });
@@ -116,6 +121,9 @@ export function setStoredStatus(eventId: number, status: StoredEvent['status']) 
 }
 
 // ─── 규칙(`V2EventDomainService`, 432cce4) ───────────────────
+
+/** 유효(삭제 안 된) 티켓이 있는지(`ticketItemAdaptor.existsValidByEventId`) — 체크리스트 ③과 `Event_400_25` */
+export const hasValidTicketOf = (e: StoredEvent) => e.hasValidTicket || hasStoredTickets(e.eventId);
 
 /** 표시 섹션 — 섹션이 없으면 v1 본문 대체도 없다(mock 공연은 v1 본문을 따로 두지 않는다) */
 const displaySections = (e: StoredEvent): EventSection[] => e.sections;
@@ -143,11 +151,12 @@ export const mockNow = () => formatKstDateTime(new Date());
 export function checklistOf(e: StoredEvent, now = mockNow()): EventManage['checklist'] {
   const basic = hasBasic(e);
   const detail = displaySections(e).some((s) => !!s.content?.trim());
-  const filled = basic && detail && (!e.hasTicket || e.hasValidTicket);
+  const hasValidTicket = hasValidTicketOf(e);
+  const filled = basic && detail && (!e.hasTicket || hasValidTicket);
   return {
     isBasicFilled: basic,
     isDetailFilled: detail,
-    hasValidTicket: e.hasValidTicket,
+    hasValidTicket,
     ticketRequired: e.hasTicket,
     canOpen: filled && e.status === 'PREPARING' && e.startAt !== null && e.startAt > now,
   };

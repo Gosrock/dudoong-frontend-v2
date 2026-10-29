@@ -22,6 +22,7 @@ import {
   readId,
   readPageParams,
 } from './respond';
+import { publicTicketsOf } from './ticket-store';
 
 const eventNotFound = (request: Request) =>
   fail(request, 404, 'Event_404_1', '이벤트를 찾을 수 없습니다.');
@@ -87,8 +88,9 @@ export const eventHandlers = [
   http.get('*/api/v2/events/:eventId/ticket-items', ({ request, params, cookies }) => {
     const id = readId(params.eventId);
     if (id === null) return publicIdMismatch(request, cookies);
+    // 티켓 저장소(P12)를 읽는다 — 판매 중단·재개·만들기·수정·삭제가 바로 반영된다
     const event = storedPublicEvent(id);
-    return event ? ok(event.ticketItems) : eventNotFound(request);
+    return event ? ok(publicTicketsOf(id, event)) : eventNotFound(request);
   }),
 
   http.get('*/api/v2/events/:eventId/sections', ({ request, params, cookies }) => {

@@ -18,6 +18,7 @@ import { isKstDateTime } from '../shared/date';
 import {
   checklistOf,
   createStoredEvent,
+  hasValidTicketOf,
   isChecklistFilled,
   mockNow,
   runTimeOf,
@@ -38,7 +39,7 @@ import { errors, fail, MOCK_IMAGE_ORIGIN, ok, readId, requireAuth } from './resp
  * 권한 앞단은 `@HostRolesAllowed`(호스트 P10b mock과 같은 코드): 비멤버 403 `HOST_400_2`, 매니저 미만 403 `HOST_400_1`.
  */
 
-const RANK: Record<HostRole, number> = { GUEST: 1, MANAGER: 2, MASTER: 3, UNKNOWN: 0 };
+export const RANK: Record<HostRole, number> = { GUEST: 1, MANAGER: 2, MASTER: 3, UNKNOWN: 0 };
 
 const eventNotFound = (request: Request) =>
   fail(request, 404, 'Event_404_1', '이벤트를 찾을 수 없습니다.');
@@ -112,7 +113,7 @@ export function toManage(e: StoredEvent, myRole: HostRole | null): EventManage {
 /**
  * 공연 하나를 다루는 공통 앞단 — 로그인, 경로 id, 공연 존재(지운 공연은 없음), 요청자 역할. 통과하면 `{ event, myRole }`
  */
-function guard(
+export function guard(
   request: Request,
   cookies: Record<string, string>,
   raw: unknown,
@@ -135,8 +136,8 @@ const notBlank = (v: string) => v.trim().length > 0;
 const isObject = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
 
-/** 준비중 / 등록된(OPEN) 공연만 수정할 수 있다(`validateEditable`) */
-const isEditable = (e: StoredEvent) => e.status === 'PREPARING' || e.status === 'OPEN';
+/** 준비중 / 등록된(OPEN) 공연만 수정할 수 있다(`validateEditable`) — 티켓·옵션(P12)도 같은 규칙 */
+export const isEditable = (e: StoredEvent) => e.status === 'PREPARING' || e.status === 'OPEN';
 
 // ─── PE-4 본문 읽기(Bean Validation → 400 BAD_REQUEST) ───
 
@@ -242,7 +243,7 @@ function applyBasic(
   if (!isEditable(event)) return { response: eventError(request, 'Event_400_17') };
   if (body.hasTicket !== undefined && body.hasTicket !== event.hasTicket) {
     if (event.status !== 'PREPARING') return { response: eventError(request, 'Event_400_18') };
-    if (!body.hasTicket && event.hasValidTicket) {
+    if (!body.hasTicket && hasValidTicketOf(event)) {
       return { response: eventError(request, 'Event_400_25') };
     }
     next.hasTicket = body.hasTicket;
