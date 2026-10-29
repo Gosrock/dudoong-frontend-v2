@@ -43,7 +43,7 @@ dudoong-frontend-v2/
 │  ├─ pull_request_template.md
 │  └─ workflows/
 │     ├─ pr-gate.yml           # typecheck → lint → test(Vitest unit) → test:stories(Chromium) → build. Playwright e2e·QA는 넣지 않는다
-│     ├─ image.yml             # main 머지 → GHCR에 sha 태그 이미지
+│     ├─ image.yml             # main 머지 → 이미지(지금 GHCR — ECR `:dev`로 바꿀 예정, deploy-plan §1)
 │     └─ release.yml           # 버전 태그 → 같은 이미지에 태그 추가(재빌드 없음)
 ├─ public/                     # term.html · privacy.html (v1에서 이전)
 ├─ scripts/                    # P3  dev-mock.mjs(pnpm dev:mock), check-contract.mjs(pnpm check:contract), ts-import.mjs(Node 타입 제거 + @/ 별칭 훅)

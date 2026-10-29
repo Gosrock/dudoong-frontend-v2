@@ -85,7 +85,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 
 ### 물어야 하는 것
 
-- **백엔드 질문 — 답 못 받은 것만(B2·B7·B8·B9·B13·B16·B17·B18·B19, 후보 B11·B15)과 지켜보는 항목** → [`backend-questions.md`](./backend-questions.md)
+- **백엔드 질문 — 답 못 받은 것만(B2·B7·B8·B9·B13·B15·B16·B17·B18·B19, 후보 B11)과 지켜보는 항목** → [`backend-questions.md`](./backend-questions.md)
 - **기획 질문 — 답 못 받은 것만 45건 + 문구 정정 요청** → [`design-requests.md`](./design-requests.md) §2
 - **약관 표시 의무 — v2 계획에 위치 없음(위험)** 목록 → [`legal-copy.md`](./legal-copy.md) (공연 상세 중개자 고지·판매정보 굵은 문단, 첫 화면 중개자 고지, 체크아웃 호스트 제공 동의·중개자 문장·두둥 입금 전 고지, 가입 만 14세, 두둥티켓 개설 환불 의무 동의)
 
@@ -99,7 +99,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 | 카카오톡 인앱 브라우저(iOS WKWebView · Android WebView)에서 Web Locks 동작과 `localStorage` 유지(세션 플래그) | 실기기. Web Locks가 없으면 대체 경로로 동작하는지 | P4b |
 | v1 본문 실데이터가 `marked`로 제대로 렌더되는지 | 백엔드 데이터 샘플 | P5b |
 | 실제로 들어오는 v1 경로 | nginx 접근 로그(CloudWatch) | P15 |
-| 배포 관련 11건(0~10번 — 이미지 크기·메모리, 카카오 JS 키가 환경별로 같은지, 레지스트리 — GHCR 계획 vs 운영 ECR 전환, 사용자 결정 대기 등) | [`deploy-plan.md`](./deploy-plan.md) §9 | P0, P4b |
+| 배포 관련 11건(0~10번 — 이미지 크기·메모리, 카카오 JS 키가 환경별로 같은지, 레지스트리 — 2026-10-29 ECR로 결정, Deploy 권한 요청 B15 등) | [`deploy-plan.md`](./deploy-plan.md) §9 | P0, P4b |
 
 ### 디자인 대기
 

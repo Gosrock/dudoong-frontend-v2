@@ -63,6 +63,16 @@
 - **영향**: 두둥 주문 취소 확인에 "직접 환불" 안내를 붙여야 한다(legal-copy C-3·C-4).
 - **답이 없으면**: `paymentChannel`이 두둥 값이거나, null이고 `totalAmount > 0`이면 안내를 붙인다(빠뜨리는 쪽보다 더 붙는 쪽).
 
+### B15. v2 프론트 이미지를 ECR에 올릴 수 있게 Deploy `infra/ecr.yml`을 갱신해 줄 수 있나? — **v2 레지스트리 ECR 결정(2026-10-29)**
+
+- **확인한 것(Deploy `b5d4d20`)**: 운영·스테이징 이미지는 모두 비공개 ECR이고, 올리기는 저장소·ref별 OIDC 역할로만 된다(`infra/ecr.yml`). v2 저장소 `Gosrock/dudoong-frontend-v2`는 어느 역할의 신뢰 조건에도 없다. 서버 받기 권한(인스턴스 역할)도 5개 저장소로 한정돼 있다.
+- **요청**(스택 갱신은 조직 관리자)
+  1. v2용 ECR 저장소 하나(이름 예: `dudoong-front`). 다른 프론트 저장소처럼 `dev`만 덮어쓰기 허용, 같은 수명 정책.
+  2. v2 저장소 푸시 역할 — 신뢰 조건 `refs/heads/main`(→ `:dev`)과 `refs/tags/v*`(→ 버전 태그). 스테이징 수동 배포([`staging-deploy-plan.md`](./staging-deploy-plan.md))를 쓰려면 브랜치 수동 실행도 필요하다 — 열어 줄 수 있는지, 아니면 main 머지 뒤에만 스테이징에 올릴지.
+  3. 서버 인스턴스 역할의 받기 권한에 그 저장소 추가.
+  4. v2 저장소 secret `AWS_ACCOUNT_ID` 등록.
+- **답이 없으면**: 스테이징 첫 배포(deploy-plan D2)를 할 수 없다. 이 저장소의 이미지 워크플로(`image.yml`·`release.yml`)는 아직 GHCR이고, 위 변경이 들어간 뒤 ECR로 다시 쓴다(deploy-plan §1 첫 절).
+
 ---
 
 ## 조건이 맞으면 보낼 질문(후보)
@@ -71,11 +81,6 @@
 
 - GP-5는 판매 중단·판매 기간 밖 티켓을 뺀다(`V2PublicTicketItemMapper.onSaleItems`). 매진은 `isSoldOut`으로 남는다.
 - Q33에서 "딤드로 보인다"로 정해지면 보낸다. 그 전까지 서버대로 보이지 않는다.
-
-### B15. v2 프론트 이미지를 ECR로 올린다면 푸시 권한을 이 저장소에도 열어 줄 수 있나? — 사용자 결정 대기
-
-- 백엔드·v1 프론트·Deploy 저장소는 운영 이미지를 비공개 ECR로 옮겼다(2026-10-24~25). 버전 태그는 덮어쓸 수 없다(`:dev`만 예외). 푸시 권한은 v1 프론트 저장소에만 있다.
-- v2 레지스트리(GHCR 계획 유지 / ECR)가 정해지면 보낸다([`deploy-plan.md`](./deploy-plan.md) §1).
 
 ---
 

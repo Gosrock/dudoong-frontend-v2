@@ -526,7 +526,7 @@ TS 5.x, `strict`, `noUncheckedIndexedAccess`, `moduleResolution: "bundler"`. ali
 
 ## 11. CI/CD
 
-GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). `main` 머지마다 이미지를 만들어 GHCR에 올리고, 버전 태그는 다시 빌드하지 않고 같은 이미지에 붙인다. 배포는 Deploy 저장소의 compose 파일에서 태그를 올려 한다(§25). `next build`는 lint를 하지 않으므로 CI에 lint 단계를 둔다. 자세한 것은 [`deploy-plan.md`](./deploy-plan.md).
+GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). `main` 머지마다 이미지를 만들어 비공개 ECR `:dev`에 올리고(2026-10-29 GHCR → ECR 결정), 버전 태그는 `:dev`가 그 커밋 이미지면 다시 빌드하지 않고 붙인다. 배포는 Deploy 저장소의 compose 파일에서 태그를 올려 한다(§25). `next build`는 lint를 하지 않으므로 CI에 lint 단계를 둔다. 자세한 것은 [`deploy-plan.md`](./deploy-plan.md).
 
 - 호스팅 센터 수정도 전체 재배포다. 티켓 오픈 시간대 배포는 피한다.
 
@@ -1069,7 +1069,7 @@ PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint
 | internal-admin (운영 어드민) | 3200 | `water0641/dudoong-internal-admin` |
 | redis | 6379 (127.0.0.1만) | `redis:alpine` |
 
-**2026-10-25 바뀐 사실(레지스트리)**: 백엔드·v1 프론트·Deploy 저장소는 운영 이미지를 비공개 ECR로 옮겼다(2026-10-24~25). 버전 태그는 덮어쓸 수 없고 스테이징용 `:dev`만 예외다. 푸시 권한은 v1 프론트 저장소에만 있다. 위 표의 이미지 이름은 2026-10-12 기준 기록이다. **v2 프론트 이미지 레지스트리(GHCR 계획 유지 / ECR)는 사용자 결정 대기**다 — 계획은 바꾸지 않았다([`deploy-plan.md`](./deploy-plan.md) §1, backend-questions B15).
+**2026-10-25 바뀐 사실(레지스트리)**: 백엔드·v1 프론트·Deploy 저장소는 운영 이미지를 비공개 ECR로 옮겼다(2026-10-24~25). 버전 태그는 덮어쓸 수 없고 스테이징용 `:dev`만 예외다. 푸시 권한은 v1 프론트 저장소에만 있다. 위 표의 이미지 이름은 2026-10-12 기준 기록이다. **2026-10-29: v2도 ECR로 간다(사용자 결정)** — [`deploy-plan.md`](./deploy-plan.md) §1, Deploy 권한 요청은 backend-questions B15.
 
 nginx 경로 분기(`nginx/site.conf`):
 
@@ -1387,7 +1387,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 
 **보일러플레이트 정리(2026-10-17)**: 요청 파이프라인(기준 주소·ky 호출·본문 읽기·에러 변환·래퍼 해제)을 `src/api/client.ts`로 모으고 `http.ts`는 `api`·`authApi` 객체만 남겼다 — P4a의 401 재발급이 `client.ts`의 `request()`에 붙는다. `routePattern`은 `src/api/shared/route-pattern.ts`. 테스트는 대상 이름(`http.test.ts`, `http.server.test.ts`)으로, vitest 전역 타입을 빼고 각 테스트가 `vitest`에서 import한다. `vite-tsconfig-paths` 대신 Vite 내장 `resolve.tsconfigPaths`(Vitest·Storybook). `CLAUDE.md`가 `@AGENTS.md`를 불러온다. `src/app/favicon.ico`, `.vscode/settings.json`·`extensions.json` 추가.
 
-**P0에서 하지 않은 것(추가)**: deploy-plan D1의 GHCR 패키지 공개 설정·조직 허용 확인(§9 #7), 카카오 JS 키가 환경별로 같은지(§9 #6), 이미지 크기(standalone 41~43MB만 쟀다), `global-error.tsx`(P5a).
+**P0에서 하지 않은 것(추가)**: deploy-plan D1의 레지스트리 준비(§9 #7 — 2026-10-29 ECR로 결정, B15 대기), 카카오 JS 키가 환경별로 같은지(§9 #6), 이미지 크기(standalone 41~43MB만 쟀다), `global-error.tsx`(P5a).
 
 ## 32. 테스트 환경 세팅 (2026-10-17)
 
