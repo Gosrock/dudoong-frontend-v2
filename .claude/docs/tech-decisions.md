@@ -1272,7 +1272,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 
 | 바뀐 것 | 위치 |
 |---|---|
-| 호스팅 데스크탑 셸 = 전역 상단 바 `Top bar_Host`(58, 벨 포함 — `hosting/layout.tsx`) + 공연 스코프 사이드바(268, 등록 전 4 / 후 6 메뉴 — `events/[eventId]/layout.tsx`) + 등록 후 대시보드만 우측 일정 패널(286/335/388). 공연 밖 화면은 사이드바 없이 본문 최대 1280. PC 벨은 상단 바 | §3 "호스팅 센터 셸", plan P4s·P11·P13a, design-requests §4 |
+| 호스팅 데스크탑 셸 = 전역 상단 바 `Top bar_Host`(58, 벨 포함 — `hosting/layout.tsx`) + 공연 스코프 사이드바(268, 등록 전 4 / 후 6 메뉴 — `events/[eventId]/layout.tsx`) + 등록 후 대시보드만 우측 일정 패널(286/335/388). 공연 밖 화면은 사이드바 없이 본문 최대 1280. PC 벨은 상단 바 | §3 "호스팅 센터 셸", plan P4s·P11·P13a, design-requests Q2(해결 — git `f71a2dc`) |
 | 호스팅 브레이크포인트 1133 / 1280 / 1440(1133 미만 모바일, 1133~1279도 3단). 관객은 1024 유지 — 관객도 1133인지 Q38. 토큰 나누기는 P4s 착수 전 | §14, design-system §2, patterns §1 |
 | 사이드바 메뉴 컴포넌트 이름 `Component 1` → `사이드바 메뉴`(`true`/`false`/`alert`) | §3, design-system §3 |
 | 지도 미리보기 확정(Q3 해결) — 카카오맵 지도 SDK. 미리보기는 저장할 수 있을 때만 연다 | plan P11 |
