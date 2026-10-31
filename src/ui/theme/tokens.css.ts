@@ -87,6 +87,18 @@ export const vars = createGlobalTheme(':root', {
       purple: palette.purple[400],
       purpleSubtle: palette.purple[50],
     },
+    /**
+     * 대시보드 `티켓 판매 정보` 도넛·범례 색(design-system §3, P13a-V). Figma가 변수 없이 직접 값 3개(#B6CCFF·#82D8AD·#FFD899 —
+     * "색상은 고정하려고")를 쓴다 — 팔레트에 같은 값이 없어 그대로 옮겼다. 4번째부터는 Figma에 없어 팔레트 옅은 색으로 이었다(Figma 코멘트)
+     */
+    chart: {
+      1: '#b6ccff',
+      2: '#82d8ad',
+      3: '#ffd899',
+      4: palette.violet[100],
+      5: palette.pink[100],
+      6: palette.teal[100],
+    },
     /** 오버레이 딤·그림자 */
     overlay: {
       // Figma `Background/dimmed`(Neutral 900 85%, 2026-10-31)

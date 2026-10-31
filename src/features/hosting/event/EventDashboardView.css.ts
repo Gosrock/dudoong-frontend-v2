@@ -182,3 +182,66 @@ export const noticeIcon = style({
   justifyContent: 'center',
 });
 globalStyle(`${noticeIcon} > svg`, { width: 16, height: 16 });
+
+// ─── 등록 후(P13a-V) — GUI `669:2787`(모바일) · `712:1646`(1440) 등 ───
+
+export const registered = style({ display: 'flex', flexDirection: 'column' });
+
+export const statsState = style({
+  padding: `${vars.space[5]} ${vars.space[5]} 0`,
+});
+
+/**
+ * 통계 카드 — 모바일 2×2(간격 8, 좌우 24 — GUI 36 → 등록 전과 같은 24), PC 한 줄 4개(위아래 28 · 좌우 24 · 간격 16 — `712:1699`)
+ */
+export const stats = style({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: vars.space[2],
+  margin: 0,
+  padding: `${vars.space[6]} ${vars.space[5]} 0`,
+  listStyle: 'none',
+  '@media': {
+    [media.desktop]: {
+      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+      gap: vars.space[4],
+      padding: `${vars.space[5]} ${vars.space[5]}`,
+    },
+  },
+});
+
+/**
+ * 판매 · 입장 — 모바일 한 열(간격 12), PC 두 칸(간격 16 · 위아래 28 · 좌우 24, 위 선 #F7F7F6 — `712:1705`). 높이는 각자(입장 카드가 짧다)
+ */
+export const salesRow = style({
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr)',
+  alignItems: 'start',
+  gap: vars.space[3],
+  padding: `${vars.space[3]} ${vars.space[5]} 0`,
+  '@media': {
+    [media.desktop]: {
+      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+      gap: vars.space[4],
+      padding: `${vars.space[5]} ${vars.space[5]}`,
+      borderTop: `1px solid ${vars.color.surface.container}`,
+    },
+  },
+});
+
+/** 우측 일정 패널 본문 — 위아래 28(→ 24) · 좌우 24, 주간 줄 아래 19(→ 16), 단계 사이 12 */
+export const panel = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[4],
+  padding: `${vars.space[5]} ${vars.space[5]}`,
+});
+
+export const timeline = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[3],
+  margin: 0,
+  padding: 0,
+  listStyle: 'none',
+});

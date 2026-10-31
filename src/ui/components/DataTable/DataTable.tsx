@@ -39,6 +39,8 @@ export type DataTableProps<T extends RowData> = {
   getRowLabel?: (row: T) => string;
   /** 데이터가 0건일 때 표 안에 보일 내용 */
   empty?: ReactNode;
+  /** 행마다 붙일 `data-testid`(테스트·QA가 행을 찾을 때) */
+  rowTestId?: string;
   /** 주면 행 대신 이 내용을 보인다(Skeleton 등). 페이지 줄은 유지 */
   loading?: ReactNode;
 };
@@ -62,6 +64,7 @@ export function DataTable<T extends RowData>({
   getRowLabel,
   empty,
   loading,
+  rowTestId,
 }: DataTableProps<T>) {
   const defs = useMemo(() => {
     const helper = createColumnHelper<typeof features, T>();
@@ -114,6 +117,7 @@ export function DataTable<T extends RowData>({
       <tr
         key={row.id}
         className={s.row}
+        data-testid={rowTestId}
         data-clickable={onRowClick ? 'true' : undefined}
         tabIndex={onRowClick ? 0 : undefined}
         aria-label={onRowClick && getRowLabel ? getRowLabel(row.original) : undefined}
