@@ -1,10 +1,22 @@
+import type { Page } from '@playwright/test';
+
 import { KAKAO_SCRAP_UA } from '../../e2e/support/env';
 import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
- * 공연홈 `/` — P5a-L에서 GP-1(최소 마크업)로 바꿨다. 화면 캡처 시나리오는 P5a-V에서 다시 쓴다.
- * 근거: plan P0 산출물 A·B·P5a, tech-decisions §2·§31(상태 코드 표), api-contract GP-1.
+ * 공연홈 `/` — P5a-V(2026-11-01): GUI `759:22391`(모바일 390) · PC 와이어 `626:19888`(1440). 히어로 → "더 많은 공연 둘러보기 →" 캐러셀 → ↑.
+ * 근거: plan P0 산출물 A·B·P5a(완료 기준 V), tech-decisions §2·§31(상태 코드 표), api-contract GP-1.
+ * 권한: 공개 화면이라 로그인 여부로 본문이 다르지 않다(헤더는 shell 시나리오).
  */
+
+/** 하이드레이션 경고를 모은다(완료 기준 V "하이드레이션 경고 0") */
+function watchHydration(page: Page) {
+  const messages: string[] = [];
+  page.on('console', (m) => {
+    if (/hydrat/i.test(m.text())) messages.push(m.text());
+  });
+  return messages;
+}
 
 scenario(
   'HOME-1',
@@ -15,10 +27,15 @@ scenario(
       '서버가 <Prefetch>로 GP-1을 조회해 HTML에 넣고, 브라우저는 같은 쿼리를 캐시에서 읽어 다시 부르지 않는다.',
     basis: ['plan P5a', 'tech-decisions §31', 'api-contract GP-1'],
   },
-  async ({ page, mockApi, step, note }) => {
-    await step('공연홈에 들어가면 200으로 열린다', async () => {
+  async ({ page, mockApi, step, note, testInfo }) => {
+    const desktop = testInfo.project.name === 'desktop';
+    if (desktop) await page.setViewportSize({ width: 1440, height: 1024 });
+    const hydration = watchHydration(page);
+    await step('공연홈에 들어가면 200으로 열리고 히어로 · 캐러셀이 보인다', async () => {
       const res = await page.goto('/');
       expect(res?.status()).toBe(200);
+      await expect(page.locator('main img').first()).toBeVisible(); // 히어로(장식 — alt 없음)
+      await expect(page.getByRole('heading', { name: '더 많은 공연 둘러보기' })).toBeVisible();
     });
     await step('공연 카드 링크와 공연 둘러보기 링크가 보인다', async () => {
       // 본문(main) 안 — PC 상단 바 주 메뉴에도 같은 이름의 링크가 있다(P4s-V 셸)
@@ -34,6 +51,44 @@ scenario(
         expect(calls.map((c) => c.from)).toEqual(['server']);
       },
       { capture: false },
+    );
+    await step(
+      '하이드레이션 경고가 없다',
+      async () => {
+        await note(`하이드레이션 메시지 ${hydration.length}건`);
+        expect(hydration).toEqual([]);
+      },
+      { capture: false },
+    );
+  },
+);
+
+scenario(
+  'HOME-5',
+  '"더 많은 공연 둘러보기 →"를 누르면 공연 리스트로 간다',
+  {
+    kind: '정상',
+    summary: '글자와 원형 화살표가 한 링크다(GUI 759:22411). 캐러셀은 가로로 넘긴다.',
+    basis: ['plan P5a', 'GUI 759:22411·759:22414'],
+  },
+  async ({ page, step }) => {
+    await step(
+      '캐러셀이 가로로 넘친다',
+      async () => {
+        await page.goto('/');
+        const list = page.getByRole('region', { name: '다가오는 공연' }).getByRole('list');
+        const overflow = await list.evaluate((el) => el.scrollWidth > el.clientWidth);
+        expect(overflow).toBe(true);
+      },
+      { fullPage: false },
+    );
+    await step(
+      '링크를 누르면 /events',
+      async () => {
+        await page.getByRole('link', { name: '더 많은 공연 둘러보기' }).click();
+        await expect(page).toHaveURL(/\/events$/);
+      },
+      { fullPage: false },
     );
   },
 );

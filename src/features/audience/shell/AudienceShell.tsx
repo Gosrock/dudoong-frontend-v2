@@ -25,6 +25,7 @@ const NAV = [
  * - 1024 이상: PC 상단 바(와이어 `626:19888` 로그인 전 · `640:17991` 로그인 후 — 로고 · 글자 메뉴 · 검색 · [로그인] / 아바타 ▾)
  *
  * 하위 화면(주문내역 등)은 페이지가 `AudienceSubHeader`(뒤로가기 + 제목)를 두면 로고 헤더가 숨는다(CSS `:has`).
+ * 공연 리스트는 `NO_SEARCH_ATTR`를 두어 검색 아이콘을 숨긴다 — 선택자가 아이콘의 `href`·`aria-label`("공연 검색")을 쓴다.
  * 경로를 읽지 않고, children 위에 Suspense를 두지 않는다 — `(public)` 404 상태 코드 유지(tech-decisions §2).
  */
 export function AudienceShell({ children }: { children: ReactNode }) {
