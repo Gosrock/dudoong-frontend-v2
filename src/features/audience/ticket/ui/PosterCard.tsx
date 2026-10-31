@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 
-import { Illustration } from '@/ui/illustrations/Illustration';
-
 import type { TicketGroupView } from '../model/ticket-groups';
 import { TicketStateChips } from './ticket-chips';
 import * as s from './TicketTab.css';
@@ -11,7 +9,7 @@ import * as s from './TicketTab.css';
 /**
  * 묶음(주문) 카드 앞면 — 공연 포스터(`908:11288` "image 182-1" 294×416 · 모서리 16) + 오른쪽 위 상태 칩.
  * 한 주문에 티켓이 2장 이상이면 뒤에 기운 카드를 하나 겹친다(`908:11332` — 회전 · 포스터 위 검정 40%).
- * 포스터가 없거나 못 읽으면 디자인 시스템 "포스터 준비중" 그림.
+ * 포스터가 없거나 못 읽으면 빈 상자(`surface.imageBg` — Q26 기본안, 공연홈 ConcertCard와 같다).
  */
 export function PosterCard({
   group,
@@ -49,12 +47,7 @@ export function PosterCard({
 
 function Poster({ src }: { src: string | null }) {
   const [failed, setFailed] = useState(false);
-  if (!src || failed)
-    return (
-      <span className={s.posterPlaceholder}>
-        <Illustration name="poster-placeholder" />
-      </span>
-    );
+  if (!src || failed) return null;
   return (
     // 서버 이미지(자산 도메인). nginx가 `/_next/image`를 막아 next/image 최적화를 쓰지 않는다(v1 #378, ConcertCard와 같다)
     // eslint-disable-next-line @next/next/no-img-element

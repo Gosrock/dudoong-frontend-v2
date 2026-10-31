@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import {
   NEW_APPROVED_ORDER_UUID,
   resetTicketStore,
@@ -8,8 +10,17 @@ import { setMockSession } from './support/auth';
 import { expect, test } from './support/fixtures';
 
 /**
- * P8-L 라우트 로직 — 티켓탭 `/tickets`(보호, 브라우저 조회). 화면 모양·QR 렌더는 보지 않는다(V).
+ * P8-L 라우트 로직 — 티켓탭 `/tickets`(보호, 브라우저 조회). 화면 모양은 QA 시나리오(`qa/scenarios/tickets.qa.ts`)가 본다.
  */
+
+/** 묶음 카드를 가운데로 넘기고(가운데가 아니면 첫 탭은 넘기기만) 눌러 입장 QR 층을 연다(P8-V) */
+async function openQr(page: Page, groupKey: string) {
+  const group = page.locator(`#group-${groupKey}`);
+  if ((await group.getAttribute('data-active')) !== 'true') await group.getByRole('button').click();
+  await expect(group).toHaveAttribute('data-active', 'true');
+  await group.getByRole('button', { name: '입장 QR 보기' }).click();
+  return page.getByRole('dialog', { name: '입장 QR' });
+}
 test.beforeEach(() => resetTicketStore());
 
 test.describe('티켓탭', () => {
@@ -36,9 +47,8 @@ test.describe('티켓탭', () => {
         .every((c) => c.from === 'browser'),
     ).toBe(true);
 
-    const group = page.locator(`#group-${NEW_APPROVED_ORDER_UUID}`);
-    await group.getByRole('button', { name: '티켓 열기' }).click();
-    await expect(page.getByTestId('qr-value')).toHaveText(TICKET_UUID.approved);
+    await openQr(page, NEW_APPROVED_ORDER_UUID);
+    await expect(page.getByTestId('qr-value')).toHaveAttribute('data-value', TICKET_UUID.approved);
     expect(
       mockApi
         .calls()
@@ -54,13 +64,14 @@ test.describe('티켓탭', () => {
   }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/tickets');
-    const group = page.locator(`#group-${NEW_APPROVED_ORDER_UUID}`);
-    await group.getByRole('button', { name: '티켓 열기' }).click();
-    const detail = page.getByRole('region', { name: '티켓 상세' });
-    await detail.getByRole('textbox', { name: '메모' }).fill('친구');
-    await detail.getByRole('button', { name: '선물하기' }).click();
+    const layer = await openQr(page, NEW_APPROVED_ORDER_UUID);
+    await expect(page.getByTestId('qr-value')).toBeVisible();
+    await layer.getByRole('button', { name: '선물하기' }).click();
+    const sheet = page.getByRole('dialog', { name: '선물하기' });
+    await sheet.getByRole('textbox', { name: '메모' }).fill('친구');
+    await sheet.getByRole('button', { name: '선물하기' }).click();
     await expect(page.getByTestId('gift-link')).toHaveText(/\/gifts\/mock-gift-new-\d+$/);
-    await expect(page.getByTestId('qr-notice')).toHaveText(/선물 대기 중인 티켓이에요/);
+    await expect(page.getByTestId('qr-notice')).toHaveText('선물중인 티켓');
     await expect(page.getByTestId('qr-value')).toHaveCount(0);
     const posts = mockApi.calls().filter((c) => c.method === 'POST');
     expect(posts.map((c) => c.path)).toEqual([`/api/v2/me/tickets/${TICKET_UUID.approved}/gift`]);

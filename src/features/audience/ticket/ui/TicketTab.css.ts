@@ -142,14 +142,6 @@ export const posterImage = style({
   objectFit: 'cover',
 });
 
-export const posterPlaceholder = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: '100%',
-  height: '100%',
-});
-
 export const chipList = style({
   position: 'absolute',
   top: vars.space[3],

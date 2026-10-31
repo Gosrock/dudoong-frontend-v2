@@ -73,7 +73,7 @@ function TicketTabContent() {
           <div role="status" className={s.noticeBar}>
             <Chip size="lg" color="red" theme="fill">
               NEW
-            </Chip>
+            </Chip>{' '}
             <span className={s.noticeText}>
               <Txt typography="labelMd" color={colors.white} lines={1}>
                 티켓 주문이 승인되었습니다!
@@ -96,7 +96,7 @@ function TicketTabContent() {
           <div className={s.noticeBar} data-testid="notice-default">
             <Chip size="lg" color="grey" theme="fill">
               Notice
-            </Chip>
+            </Chip>{' '}
             <span className={s.noticeText}>
               <Txt typography="labelMd" color={colors.white} lines={1}>
                 두둥에서 다양한 공연을 예매해보세요
