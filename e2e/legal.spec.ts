@@ -2,7 +2,7 @@ import { expect, test } from './support/fixtures';
 
 /**
  * 약관 경로(tech-decisions §22 — v1과 같은 `/meta/term`·`/meta/privacy`, `next.config.ts` rewrite → `public/*.html`).
- * 파일은 2026-10-25 시행 개정본(v1 Front #355, `release/ticket` `fc3278d`)이다 — legal-copy 머리말.
+ * 파일은 2026-10-25 시행 개정본의 운영 최신본(v1 Front #355 + #379·#382, `release/ticket` `9d09938`)이다 — v1-additions L-1.
  */
 test.describe('약관 경로', () => {
   for (const [path, title, heading, effective] of [
