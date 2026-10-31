@@ -85,4 +85,18 @@ describe('카카오 공유 SDK 래퍼', () => {
     window.Kakao = sdk;
     expect(await shareKakaoFeed(template)).toBe('failed');
   });
+
+  it('실패 로그에 SDK 오류 메시지(공유 주소 · 선물 토큰)를 남기지 않는다', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const sdk = fakeSdk(true);
+    sdk.Share.sendDefault.mockImplementation(() => {
+      throw new Error('Illegal argument for url: https://dudoong.com/gifts/SECRET-TOKEN');
+    });
+    window.Kakao = sdk;
+    expect(await shareKakaoFeed(template)).toBe('failed');
+    const lines = warn.mock.calls.map((c) => String(c[0]));
+    expect(lines.some((l) => l.includes('kakao_share.failed'))).toBe(true);
+    expect(lines.join('\n')).not.toContain('SECRET-TOKEN');
+    warn.mockRestore();
+  });
 });

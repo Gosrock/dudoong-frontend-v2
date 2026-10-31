@@ -58,3 +58,39 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## QR 판독 엔진 (`public/vendor/zxing-wasm/`)
+
+`zxing_reader.wasm`은 [zxing-wasm](https://github.com/Sec-ant/zxing-wasm)(MIT) 배포 파일을 그대로 복사한 것이다(CSP 때문에 CDN 대신 자체 호스팅 — `src/features/hosting/qr/ui/zxing-wasm.ts`). wasm 안의 판독 코드는 [zxing-cpp](https://github.com/zxing-cpp/zxing-cpp)(Apache License 2.0)를 빌드한 것이다.
+
+### zxing-wasm — MIT License
+
+Source: https://github.com/Sec-ant/zxing-wasm/blob/main/LICENSE
+
+```
+MIT License
+
+Copyright (c) 2023 Ze-Zheng Wu
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### zxing-cpp — Apache License 2.0
+
+Source: https://github.com/zxing-cpp/zxing-cpp/blob/master/LICENSE — 전문은 https://www.apache.org/licenses/LICENSE-2.0

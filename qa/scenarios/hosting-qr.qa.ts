@@ -9,6 +9,7 @@ import {
 } from '../../src/api/__mocks__/fixtures/my-ticket';
 import { resetHostMockState } from '../../src/api/__mocks__/host.handlers';
 import { resetHostingStore } from '../../src/api/__mocks__/hosting.handlers';
+import { ZXING_WASM_PATH } from '../../src/features/hosting/qr/ui/zxing-wasm';
 import { expect, scenario } from '../scenario';
 
 /**
@@ -85,10 +86,21 @@ scenario(
   },
   async ({ page, step }) => {
     await setUp(page);
+    // P14 보안 — 판독 엔진 wasm은 우리 출처(`public/vendor/zxing-wasm`)에서, jsdelivr는 부르지 않는다
+    const cdn: string[] = [];
+    page.on('request', (r) => {
+      if (r.url().includes('jsdelivr.net')) cdn.push(r.url());
+    });
+    const wasm = page.waitForResponse((r) => new URL(r.url()).pathname === ZXING_WASM_PATH);
     await step('대시보드에서 "QR 체크인 열기"를 누르면 QR 체크인 화면이 열린다', async () => {
       await page.goto('/hosting/events/101/dashboard');
       await page.getByRole('link', { name: 'QR 체크인 열기' }).click();
       await expect(page).toHaveURL(QR);
+      // 카메라가 켜지면 첫 판독에서 wasm을 받는다
+      const res = await wasm;
+      expect(res.status()).toBe(200);
+      expect(new URL(res.url()).origin).toBe(new URL(page.url()).origin);
+      expect(cdn).toEqual([]);
       await expect(page.getByTestId('checkin-stat-issued')).toHaveText('7');
       await expect(page.getByTestId('checkin-stats-rate')).toHaveText('0% 입장 완료');
       await expect(result(page)).toContainText('티켓 QR을 카메라에 비춰 주세요');

@@ -4,6 +4,8 @@ import './src/env/client';
 import { createVanillaExtractPlugin } from '@vanilla-extract/next-plugin';
 import type { NextConfig } from 'next';
 
+import { contentSecurityPolicy, cspHeaderName } from './src/utils/csp';
+
 const withVanillaExtract = createVanillaExtractPlugin({
   unstable_turbopack: { mode: 'auto' },
 });
@@ -41,6 +43,15 @@ const adminRedirects = [
   { source: '/admin/login', destination: '/login' },
 ].map((r) => ({ ...r, permanent: false }));
 
+/**
+ * CSP(P14 보안, `src/utils/csp.ts`). 기본은 Report-Only — `CSP_ENFORCE=1`로 빌드하면 강제.
+ * 다른 보안 헤더(`X-Frame-Options`·HSTS·`Referrer-Policy`)는 nginx가 붙인다(tech-decisions §25 — 앱에서 중복으로 넣지 않는다).
+ */
+const cspHeader = {
+  key: cspHeaderName(process.env.CSP_ENFORCE === '1'),
+  value: contentSecurityPolicy({ dev: process.env.NODE_ENV === 'development' }),
+};
+
 const nextConfig: NextConfig = {
   output: 'standalone',
   poweredByHeader: false,
@@ -48,6 +59,9 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   // 배포 사이 버전 불일치를 감지해 하드 내비게이션으로 넘긴다(deploy-plan §3).
   deploymentId: process.env.GIT_SHA,
+  async headers() {
+    return [{ source: '/:path*', headers: [cspHeader] }];
+  },
   async redirects() {
     return [
       // 공연 관리 주소는 대시보드로(tech-decisions §3 — 페이지 파일을 두지 않는다)
