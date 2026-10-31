@@ -3,6 +3,7 @@
 > 2026-10-12 작성. `Gosrock/DuDoong-Deploy`(`eee6e93`)와 v1 프론트 `Gosrock/DuDoong-Front`(`54767db`)의 Dockerfile·워크플로를 읽고 썼다.
 > 2026-10-25: 그 뒤 백엔드·v1 프론트·Deploy 저장소가 운영 이미지를 비공개 ECR로 옮겼다.
 > **2026-10-29: v2도 ECR로 간다(사용자 결정).** GHCR 계획을 ECR 기준으로 고쳤다. 근거: Deploy `b5d4d20`의 `infra/ecr.yml`·`docker-compose.*.yml`·`scripts/ecr-login.sh`, v1 프론트 `ticket-deploy.yml`. Deploy 쪽 권한 요청은 [`backend-questions.md`](./backend-questions.md) B15.
+> **2026-10-31: B15 처리됨(Deploy #85, `deploy-latest` `e8e5bcf`의 `infra/ecr.yml`).** 저장소 `dudoong-front`, 푸시 역할 `dudoong-github-ecr-front-v2`(신뢰 조건 `refs/heads/main`·`refs/tags/v*`만 — 다른 브랜치 수동 실행은 열지 않았다), 서버 받기 권한, 저장소 secret `AWS_ACCOUNT_ID`. `image.yml`·`release.yml`을 ECR로 다시 썼다(§5).
 > 서버 구성과 nginx 경로 분기는 [`tech-decisions.md`](./tech-decisions.md) §25에 있다. 이 문서는 **프론트 이미지를 어떻게 만들고 어떻게 올리는가**만 다룬다.
 
 ## 결론
@@ -16,7 +17,7 @@
 | 이미지 크기(압축) | 494MB(Docker Hub 실측, `1.3.1` arm64) | 100MB 안팎 예상 — P0에서 잰다 |
 | 이미지 개수 | 2개(ticket, admin) | 1개 |
 | 스테이징과 운영 | 서로 다른 빌드(`dev` 브랜치 / 태그) | 같은 이미지를 승격 |
-| 레지스트리 | 개인 Docker Hub 계정(`david0218`) → **2026-10-25부터 비공개 ECR** | **비공개 ECR**(사용자 결정 2026-10-29) — 저장소 이름·권한은 B15 요청 |
+| 레지스트리 | 개인 Docker Hub 계정(`david0218`) → **2026-10-25부터 비공개 ECR** | **비공개 ECR**(사용자 결정 2026-10-29) — `dudoong-front`, 푸시 역할 `dudoong-github-ecr-front-v2`(Deploy #85, 2026-10-31) |
 | front 헬스체크 | 없음(배포 스크립트가 백엔드만 본다) | `/healthz` |
 | 배포 뒤 옛 탭 | 대책 없음 | `deploymentId`로 새로고침 유도 |
 
@@ -28,7 +29,7 @@ Deploy `b5d4d20`(2026-10-26) 기준 사실:
 
 - 운영·스테이징 compose의 이미지 5개(`dudoong-api`·`dudoong-ticket`·`dudoong-admin`·`dudoong-internal-admin`·`dudoong-nginx`)가 모두 `${ECR_REGISTRY:?}/dudoong-*`다(Deploy #60·#61). Docker Hub는 지웠다(#63).
 - **받기**: 서버가 EC2 인스턴스 역할로 ECR에 로그인한다(`scripts/ecr-login.sh`, 배포 때마다, 12시간 유효). 서버에 둘 비밀 값이 없다.
-- **올리기**: 이미지를 만드는 저장소의 GitHub Actions만 OIDC로, 저장소·ref별로 자기 ECR 저장소에만 올린다(`infra/ecr.yml`). v1 프론트는 `Ticket-v*`·`Admin-v*` 태그와 `dev` 브랜치(`dudoong-github-ecr-front`). **v2 저장소(`Gosrock/dudoong-frontend-v2`)는 없다.** 워크플로는 저장소 secret `AWS_ACCOUNT_ID`로 역할 ARN을 만든다.
+- **올리기**: 이미지를 만드는 저장소의 GitHub Actions만 OIDC로, 저장소·ref별로 자기 ECR 저장소에만 올린다(`infra/ecr.yml`). v1 프론트는 `Ticket-v*`·`Admin-v*` 태그와 `dev` 브랜치(`dudoong-github-ecr-front`). **v2 저장소(`Gosrock/dudoong-frontend-v2`)는 없다** → 2026-10-31 Deploy #85로 생겼다(`dudoong-github-ecr-front-v2`, `refs/heads/main`·`refs/tags/v*`만). 워크플로는 저장소 secret `AWS_ACCOUNT_ID`로 역할 ARN을 만든다.
 - **태그**: 버전 태그는 덮어쓸 수 없다(`IMMUTABLE`). 프론트 저장소는 `dev`만 예외(`IMMUTABLE_WITH_EXCLUSION`) — 스테이징이 `:dev`를 쓴다.
 - **수명 정책**: 저장소마다 **태그 달린 이미지는 최근 10개만** 남기고, 태그가 없어진 이미지는 7일 뒤 지운다.
 - 스테이징은 평소 꺼져 있다. Swagger는 staging·prod에서 꺼져 있다.
@@ -38,7 +39,7 @@ Deploy `b5d4d20`(2026-10-26) 기준 사실:
 1. 서버가 로그인 없이 받는 공개 패키지(GHCR) 전제를 버린다. 서버 쪽은 compose 이미지 이름만 바꾸면 된다.
 2. **커밋마다 `sha-*` 태그를 올리지 않는다.** 수명 정책이 태그 이미지를 10개만 남기므로, 커밋마다 올리면 운영 버전 이미지가 밀려 지워지고 롤백할 수 없다.
 3. 스테이징용 이동 태그는 `:main`이 아니라 덮어쓰기가 허용된 `:dev`다(v1과 같다).
-4. Deploy 저장소 변경이 먼저다 — v2용 ECR 저장소와 푸시 역할(B15). 그 전까지 이 저장소의 이미지 워크플로(`image.yml`·`release.yml`, 아직 GHCR)는 바꾸지 않는다.
+4. Deploy 저장소 변경이 먼저다 — v2용 ECR 저장소와 푸시 역할(B15). 그 전까지 이 저장소의 이미지 워크플로(`image.yml`·`release.yml`, 아직 GHCR)는 바꾸지 않는다. → 2026-10-31 Deploy #85 뒤 ECR로 다시 썼다(§5).
 
 아래 표는 2026-10-12 기준이다.
 
@@ -155,8 +156,8 @@ compose의 front 태그를 올리는 PR ──▶ main 머지 ──▶ 스테�
 
 | 단계 | 내용 |
 |---|---|
-| 이미지 빌드 | `ubuntu-24.04-arm`, `linux/arm64`만. buildx의 GitHub Actions 캐시(`type=gha`)를 쓴다. OIDC로 푸시 역할을 받아 ECR에 올린다(`aws-actions/configure-aws-credentials` → `amazon-ecr-login`, v1 `ticket-deploy.yml`과 같은 방식). 저장소 secret은 `AWS_ACCOUNT_ID`만 |
-| 버전 태그 | `:dev` 이미지의 OCI 라벨 `org.opencontainers.image.revision`이 태그 커밋과 같으면 `docker buildx imagetools create`로 태그만 붙인다(스테이징에서 본 이미지를 그대로 승격). 다르면 태그 커밋으로 빌드한다. 버전 태그는 덮어쓸 수 없다 |
+| 이미지 빌드 | `ubuntu-24.04-arm`, `linux/arm64`만. buildx의 GitHub Actions 캐시(`type=gha`)를 쓴다. OIDC로 푸시 역할을 받아 ECR에 올린다(`aws-actions/configure-aws-credentials` → `amazon-ecr-login`, v1 `ticket-deploy.yml`과 같은 방식). 저장소 secret은 `AWS_ACCOUNT_ID`만, 빌드 인자는 저장소 variable `NEXT_PUBLIC_KAKAO_JS_KEY`(없으면 첫 단계에서 멈춘다). **`image.yml`(2026-10-31)**: `main` 푸시와 수동 실행 → `:dev`만(sha 태그 없음). 수동 실행도 `main`에서만 된다 — 역할 신뢰 조건이 `refs/heads/main`·`refs/tags/v*`뿐이라 다른 브랜치는 역할을 받지 못한다(첫 단계에서 멈춘다). `concurrency` 한 줄(진행 중인 실행은 끝까지, 대기는 최신 하나) → 마지막에 끝나는 실행이 main 최신이다. 중간 커밋은 `:dev`가 된 적 없을 수 있다 |
+| 버전 태그 | `:dev` 이미지의 OCI 라벨 `org.opencontainers.image.revision`이 태그 커밋과 같으면 `docker buildx imagetools create`로 태그만 붙인다(스테이징에서 본 이미지를 그대로 승격). 다르면 태그 커밋으로 빌드한다. 버전 태그는 덮어쓸 수 없다. **`release.yml`(2026-10-31)**: `v*.*.*` 태그 → `:2.x.y`. `:dev`를 digest로 고정해 라벨을 읽고(도중에 덮어써져도 같은 이미지), 같은 버전 태그가 이미 있으면 같은 커밋일 때만 성공(재실행). 승격하려면 그 커밋의 `image.yml`이 끝난 뒤 태그를 푸시한다. **`v*` 태그는 저장소 태그 ruleset으로 관리자만 만든다** — 푸시 역할이 `refs/tags/v*`를 믿으므로 태그를 만들 수 있으면 아무 커밋이나 ECR에 버전으로 올릴 수 있다(Deploy `infra/ecr.yml` 주석·백엔드 권고) |
 | 스테이징 | compose가 `:dev`를 가리킨다(v1 ticket과 같다). 서버를 켤 때(Staging Power) 최신을 받는다 |
 | 운영 | compose가 `:2.x.y`를 가리킨다. 지금처럼 Deploy 저장소 PR로 올린다 |
 | 롤백 | Deploy 저장소의 태그 PR을 되돌린다. 이전 버전 이미지는 최근 10개까지 남는다(수명 정책). 급하면 `Deployment-live`(스테이징 생략) |
@@ -177,7 +178,7 @@ Deploy 저장소 PR은 손으로 올린다. 프론트 저장소에서 자동으�
 | 6 | `nginx/site.conf` | `location /admin/` 삭제 | 컷오버(P15) |
 | 8 | `nginx/nginx.conf`·`nginx/site.conf` | `/_next/image` 차단을 호스트별로: `nginx.conf` http 블록에 `map $host $next_image_blocked { default 1; staging.dudoong.com 0; }`, `site.conf`는 `location = /_next/image { if ($next_image_blocked) { return 404; } include /etc/nginx/proxy_headers.conf; proxy_pass http://127.0.0.1:3000; }`(`if` 안에는 `return`만 — nginx에서 안전한 형태) | v2를 스테이징에 처음 올릴 때(3번과 같이) |
 | 9 | `nginx/nginx.conf`·`nginx/site.conf` | 8번의 map과 `location = /_next/image` 블록 삭제(`location /`로 간다) | 컷오버(P15, 6번과 같이) |
-| 7 | `infra/ecr.yml` | v2용 ECR 저장소(`dev`만 덮어쓰기 허용, 수명 정책은 다른 저장소와 같게)와 v2 저장소 푸시 역할(OIDC — `refs/heads/main`, `refs/tags/v*`), 서버 인스턴스 역할의 받기 권한에 그 저장소 추가. 조직 관리자가 스택을 갱신한다. v2 저장소에 secret `AWS_ACCOUNT_ID` 등록 | D1 전(B15) |
+| 7 | `infra/ecr.yml` | v2용 ECR 저장소(`dev`만 덮어쓰기 허용, 수명 정책은 다른 저장소와 같게)와 v2 저장소 푸시 역할(OIDC — `refs/heads/main`, `refs/tags/v*`), 서버 인스턴스 역할의 받기 권한에 그 저장소 추가. 조직 관리자가 스택을 갱신한다. v2 저장소에 secret `AWS_ACCOUNT_ID` 등록 | **완료(Deploy #85, 2026-10-31)** — 다른 브랜치 수동 실행은 열지 않았다(staging-deploy-plan §6 1번) |
 
 - **3번.** Next를 `HOSTNAME=127.0.0.1`로 띄우면 IPv4 루프백에서만 듣는다. nginx는 `localhost`를 `127.0.0.1`과 `::1` 둘 다로 풀 수 있고, 그러면 `::1` 쪽 연결은 거절된다. 주소를 숫자로 적으면 이 문제가 없다. v1에도 영향이 없는 변경이다.
 - **4번.** nginx 이미지는 스테이징과 운영이 같이 쓰므로 `/admin/` 블록은 컷오버 전까지 남는다. 그동안 스테이징에서는 v2 front와 v1 admin이 같이 돈다. v2의 `/hosting`은 영향을 받지 않고, `/admin/*` 리다이렉트만 컷오버 뒤에 확인할 수 있다.
@@ -185,7 +186,7 @@ Deploy 저장소 PR은 손으로 올린다. 프론트 저장소에서 자동으�
 
 `/healthz`는 `app/healthz/route.ts`에 두고 백엔드를 부르지 않는다(프로세스가 요청을 받는지만 본다). nginx가 `/api`를 백엔드로 보내므로 `/api` 아래에는 둘 수 없다.
 
-> 스테이징만 따로, 로컬에서 바로 배포하는 경로(Deploy 저장소 `staging-deploy.yml`에 수동 실행과 이미지 태그 입력 추가, `pnpm deploy:staging`)는 [`staging-deploy-plan.md`](./staging-deploy-plan.md)에 계획했다. 위 표의 1·2번이 그 계획의 일부다.
+> 스테이징만 따로, 로컬에서 바로 배포하는 경로(Deploy 저장소 `staging-deploy.yml`에 수동 실행과 이미지 태그 입력 추가, `pnpm deploy:staging`)는 [`staging-deploy-plan.md`](./staging-deploy-plan.md)에 계획했다. 위 표의 1·2번이 그 계획의 일부다. 2026-10-31: 푸시 역할이 다른 브랜치 수동 실행을 열지 않아 **브랜치 빌드 경로는 없다** — 스테이징 `:dev`는 main 머지로만 바뀌고, `pnpm deploy:staging`은 이미 있는 태그(`dev`·버전)를 스테이징에 다시 배포하는 일만 한다.
 
 ## 7. 지금 하지 않는 것
 
@@ -201,7 +202,7 @@ Deploy 저장소 PR은 손으로 올린다. 프론트 저장소에서 자동으�
 
 | 단계 | 내용 | Phase |
 |---|---|---|
-| D1 | Dockerfile, `.dockerignore`, `/healthz`, `deploymentId`, 이미지 빌드 워크플로(P0에서 GHCR로 썼다 — **ECR로 다시 쓴다**: Deploy §6 7번이 된 뒤 `image.yml`은 main → `:dev`, `release.yml`은 `:dev` 승격 또는 빌드). 이미지 크기와 유휴 메모리를 잰다 | P0(ECR 전환은 B15 뒤) |
+| D1 | Dockerfile, `.dockerignore`, `/healthz`, `deploymentId`, 이미지 빌드 워크플로(P0에서 GHCR로 썼다 — **ECR로 다시 쓴다**: Deploy §6 7번이 된 뒤 `image.yml`은 main → `:dev`, `release.yml`은 `:dev` 승격 또는 빌드 → **2026-10-31 다시 썼다**, 첫 main 머지에서 처음 돈다). 이미지 크기와 유휴 메모리를 잰다 | P0(ECR 전환 2026-10-31) |
 | D2 | Deploy 저장소 1~4번. 스테이징에 v2를 올리고 확인 항목을 본다 | P4b(스테이징이 처음 필요한 시점). `plan.md` P4b의 포함·완료 기준에 들어 있다. 공개 URL이 필요한 확인(카카오 공유 디버거 P5b, QR 실기기 P13b)은 D2 뒤에 한다 |
 | D3 | 버전 태그 워크플로, 롤백 리허설 | P14 |
 | D4 | Deploy 저장소 5·6번, 컷오버 | P15 |
@@ -221,7 +222,7 @@ D2는 백엔드 마이그레이션이 스테이징에 실행돼 있어야 의미
 | 4 | 스테이징 서버에서 `localhost`가 `::1`로도 풀리는지(§6의 3번이 실제로 필요한지) | D2 |
 | 5 | `next/image` 변환이 스테이징 서버 사양에서 감당되는지 | D2 |
 | 6 | 카카오 JS 키가 스테이징과 운영에서 같은지 — 다르면 §4의 "이미지 하나"가 깨지므로 키를 서버에서 내려주는 방식으로 바꾼다 | D1 전 |
-| 7 | ~~조직이 GHCR 공개 패키지를 허용하는지~~ → **결정됨(2026-10-29)**: ECR. 남은 확인은 Deploy §6 7번이 들어간 뒤 `image.yml`이 OIDC로 올리고 서버가 받는지 | D1 |
+| 7 | ~~조직이 GHCR 공개 패키지를 허용하는지~~ → **결정됨(2026-10-29)**: ECR. 남은 확인은 Deploy §6 7번이 들어간 뒤 `image.yml`이 OIDC로 올리고 서버가 받는지 → 7번 완료·워크플로 전환(2026-10-31). 남은 것: 첫 main 머지 뒤 `image.yml` 실행이 역할을 받아 `:dev`를 올리는지, ECR 콘솔에서 `:dev`의 라벨 `org.opencontainers.image.revision`이 그 커밋인지, 서버(D2)가 받는지 | D1·D2 |
 | 8 | 배포 중 front가 꺼져 있는 시간(초) | D2 |
 | 9 | `isomorphic-dompurify`가 띄우는 jsdom의 메모리 — 섹션 10개짜리 공연 상세를 연속으로 열 때의 RSS, jsdom이 standalone 산출물에 빠지지 않고 기동되는지. 부담이 크면 `sanitize-html`로 바꾼다(tech-decisions §17) | D1 |
 | 10 | nginx 버퍼링 — 호스팅 센터의 정적 셸이 먼저 흘러 나가는지. Next 문서는 nginx 뒤에서 스트리밍하려면 `X-Accel-Buffering: no`가 필요하다고 한다(self-hosting #streaming-and-suspense). 필요하면 `next.config.ts`의 `headers()`로 `/hosting/:path*`에 붙인다. 공개 화면은 어차피 블로킹이라 영향이 없다 | D2 |
@@ -231,3 +232,4 @@ D2는 백엔드 마이그레이션이 스테이징에 실행돼 있어야 의미
 | 14 | (계약 대조 2026-10-31) 엑셀(GR-6·GI-3) 일반 멤버 거부의 실제 상태·본문 — 403 + JSON 에러인지(blob으로 받는 요청이라 FE가 에러 본문을 읽는지) | D2 |
 | 15 | (계약 대조 2026-10-31) 쿠키 흐름 — 로그인 → 만료 → 재발급 → 로그아웃에서 `Set-Cookie`의 `Domain`·`Path`·`SameSite`, 로그아웃이 낡은 쿠키에도 200 + 쿠키 삭제인지(#793) | D2 |
 | 16 | (계약 대조 2026-10-31) `pnpm check:contract`를 스테이징 주소에 대고 돌린다(지금은 운영 공개 GET 기준) | D2 |
+| 17 | (ECR 전환 2026-10-31) 첫 `v*` 태그에서 `release.yml`의 승격 경로 — `imagetools inspect --format '{{json .Image}}'`로 `:dev` 라벨을 읽어 태그 커밋(`GITHUB_SHA`)과 맞는지, 주석 달린(annotated) 태그에서도 `GITHUB_SHA`가 커밋인지. 실행 로그의 "태그만 붙인다"/"새로 빌드한다" 줄로 본다. 어긋나면 빌드 경로로 가므로 이미지는 나오지만 스테이징에서 본 이미지가 아니게 된다 | D3 |
