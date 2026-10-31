@@ -128,6 +128,14 @@ export function kstWeekOf(now: Date) {
   return { month: `${pad(k.getUTCFullYear() % 100)}년 ${k.getUTCMonth() + 1}월`, days };
 }
 
+/** `'2026.01.01 18:00'`(KST) → `'2026.01.01.목 18:00'` — 티켓탭 카드 아래 공연 일시(GUI `908:11292`, P8-V) */
+export function formatKstDotDateWeekdayTime(value: string): string {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
+  return `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)}.${weekday} ${pad(p.hour)}:${pad(p.minute)}`;
+}
+
 /** `'2026.03.22 10:05'`(KST) → `'2026.03.22 (일) 10:05'` — 예매자 관리 표 주문·발급·체크인 일시(와이어 `424:11710`, P13a-V) */
 export function formatKstDotDateTimeWeekday(value: string): string {
   const p = readParts(value);
