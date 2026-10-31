@@ -67,9 +67,9 @@ describe('티켓 관리 목록(G10/T-1)', () => {
         c.canManageOptions,
       ]),
     ).toEqual([
-      [501, '판매중', true, ['edit', 'suspend'], false],
-      [502, '판매중', true, ['edit', 'suspend'], false],
-      [503, '판매중', false, ['edit', 'delete', 'suspend'], true],
+      [501, '판매 중', true, ['edit', 'suspend'], false],
+      [502, '판매 중', true, ['edit', 'suspend'], false],
+      [503, '판매 중', false, ['edit', 'delete'], true],
     ]);
     expect(result.current.canAdd).toBe(true);
     expect(result.current.newHref).toBe('/hosting/events/101/tickets/new');
@@ -127,29 +127,26 @@ describe('판매 중단 · 재개(T-5 · T-6)', () => {
     await loaded(result);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     const sent = recordRequests();
-    expect(await act(() => result.current.suspend(503))).toBe(true);
+    expect(await act(() => result.current.suspend(501))).toBe(true);
     expect((await writes(sent)).map((r) => [r.method, r.path])).toEqual([
-      ['POST', '/api/v2/events/101/ticket-items/503/suspend'],
+      ['POST', '/api/v2/events/101/ticket-items/501/suspend'],
     ]);
-    await waitFor(() => expect(result.current.cards[2]!.chipLabel).toBe('판매 중단'));
-    expect(result.current.cards[2]!.menu.map((m) => m.action)).toEqual([
-      'edit',
-      'delete',
-      'resume',
-    ]);
+    await waitFor(() => expect(result.current.cards[0]!.chipLabel).toBe('판매 중단'));
+    // 판매 중단은 잠긴(판매된) 티켓에만 — GUI `958:20819`(P12-V)
+    expect(result.current.cards[0]!.menu.map((m) => m.action)).toEqual(['edit', 'resume']);
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: eventTicketItemsQuery('101').queryKey,
       exact: true,
     });
     const gp5 = () => queryClient.fetchQuery({ ...eventTicketItemsQuery('101'), staleTime: 0 });
     expect((await gp5()).map((t) => [t.ticketItemId, t.isSuspended])).toEqual([
-      [501, false],
+      [501, true],
       [502, false],
-      [503, true],
+      [503, false],
     ]);
 
-    expect(await act(() => result.current.resume(503))).toBe(true);
-    await waitFor(() => expect(result.current.cards[2]!.chipLabel).toBe('판매중'));
+    expect(await act(() => result.current.resume(501))).toBe(true);
+    await waitFor(() => expect(result.current.cards[0]!.chipLabel).toBe('판매 중'));
     expect((await gp5()).map((t) => t.isSuspended)).toEqual([false, false, false]);
   });
 

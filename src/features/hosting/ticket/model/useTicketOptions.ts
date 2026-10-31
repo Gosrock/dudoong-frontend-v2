@@ -9,6 +9,7 @@ import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
 import { replaceTicketOptionsMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
+import { TICKET_OPTIONS_MAX } from '@/api/ticket-item/schema';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import { tryCatch } from '@/utils/try-catch';
 
@@ -137,6 +138,18 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     return replace([...attachedIds, optionId]);
   };
 
+  /**
+   * 기존 옵션 여러 개를 한 번에 붙인다(P12-V 옵션 추가 시트 "n개 추가하기" — GUI `931:1356`, #50). O-5 한 번.
+   * 선택지에 없는 id는 빼고, 티켓당 10개를 넘기면 보내지 않는다
+   */
+  const attachMany = (optionIds: readonly number[]) => {
+    const ids = optionIds.filter((id) => attachable.some((o) => o.optionId === id));
+    if (ids.length === 0 || attachedIds.length + ids.length > TICKET_OPTIONS_MAX) {
+      return Promise.resolve(false);
+    }
+    return replace([...attachedIds, ...ids]);
+  };
+
   /** 이 티켓에서만 떼기(옵션은 풀에 남는다) */
   const detach = async (optionId: number) => {
     if (!attachedIds.includes(optionId)) return false;
@@ -212,6 +225,9 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     attachable,
     canAttachMore,
     attach,
+    attachMany,
+    /** 더 붙일 수 있는 개수(티켓당 10개) */
+    remainingSlots: Math.max(0, TICKET_OPTIONS_MAX - attachedIds.length),
     detach,
     // 새 옵션
     values,
@@ -223,6 +239,18 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
       edit('yesAdditionalPrice', (v) => ({ ...v, yesAdditionalPrice })),
     errors: formErrors,
     serverErrors,
+    /** 새 옵션 폼에 입력이 있는지(닫기 확인 — GUI `940:8060`) */
+    dirty:
+      values.name !== '' ||
+      values.description !== '' ||
+      values.type !== 'SUBJECTIVE' ||
+      values.yesAdditionalPrice !== '',
+    /** 새 옵션 폼을 처음 값으로(시트를 닫거나 고르기로 돌아갈 때) */
+    resetForm: () => {
+      setValues(initialOptionFormValues());
+      setAttempted(false);
+      setServerErrors({});
+    },
     attempted,
     createAndAttach,
     /** 만들었지만 붙이지 못한 옵션 */

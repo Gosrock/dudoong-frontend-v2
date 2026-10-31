@@ -1375,6 +1375,48 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **범위 밖**: 디자인 시스템 17:25Z 판의 새 다이얼로그 컴포넌트 4개(design-system §8 미반영 — 이 화면은 안 씀). 사이드바 포스터 · 대시보드 포스터의 mock 이미지 깨짐(mock URL, 셸 P11-V 그대로). dev 서버 로그의 `instant` 경고(`events/[eventId]/layout.tsx`, P11 그대로)
 **검사**: typecheck · 바꾼 파일 eslint · `vitest related`(2463 · 2378) · 스토리 5파일 16건 · e2e `hosting-guests` · `hosting-event` · `hosting-checkin` · `hosting` · `notifications` · `shell` 138/138 · QA `pnpm qa hosting-guests` 23/23(HG-1~12 × mobile · desktop, HG-3 desktop만, 수동 1). 전체 게이트는 PR CI
 
+## P12-V — 티켓 관리 · 새 티켓 · 티켓 수정 · 옵션 (뷰)
+
+**상태**: done (2026-11-01, PR #59) — 스킬 `gui-implement`. Design Sync #46~#51 · #53~#57 반영(`Closes`)
+**근거(gui-screens §0)**: GUI 2026-10-31T18:14Z 판(버전 `2416559213059999360`) Ready for dev **88개**(35 → 66 → 88 — 작업 중에 티켓관리 페이지에 옵션 있음·가이드·추가 시트·새 옵션·상세·수정, 관리자 승인이란 `971:21949`, PR 직전 확인에서 더보기·삭제·판매 중단·재개·옵션 삭제 22장이 더 Ready가 됨 — #53~#57). **GUI** — 목록 `767:46535`·`821:26240`·`767:50048`·`767:46943`·`913:949`·`955:2980`, 옵션 가이드 `924:1281`·`956:3157`, 옵션 추가 `931:1291`·`931:1356`·`940:13011`·`940:12677`·PC `956:3281`~`956:3647`, 새 옵션 `932:1544`·`932:1621`·`940:8060`·PC `956:3753`~`956:4063`, 옵션 상세·수정 `943:2200`·`943:2398`·`933:1822`·`933:2015`·`944:2455`·`940:12844`·PC `956:5804`~`956:6587`, 새 티켓 `767:46560`·`767:46664`·`821:23712`·`821:25116`·`821:25649`·`971:21949`. **와이어** — 티켓 수정(GUI 없음 — 새 티켓 폼 + 잠금). 열린 Design Sync 이슈 #46(수정 — 칩 띄어쓰기 · 판매된/종료 티켓 [티켓 옵션 추가] 숨김) · #47(신규 — 관리자 승인이란) · #48~#51(Ready 전환 — 옵션 있음 · 가이드 · 추가 시트 · 새 옵션) · PR 직전에 온 #53(옵션 상세·수정 — 칸 설명 한 줄 · 판매 시작 안내 · 닫기 확인) · #54(옵션 삭제 확인 "삭제한 옵션은 되돌릴 수 없어요.") · #55(⋮ 더보기 · 티켓 삭제 확인 · "티켓을 삭제했어요.") · #56(판매 중단 확인 "추후 다시 판매를 재개할 수 있어요." · "티켓의 판매를 중단했어요.") · #57("티켓을 다시 판매하기 시작했어요."). 디자인 시스템: 기준 `2416531042358919300` 뒤 판 `2416551327510094742`는 `┗ Dialogue` 단독 컴포넌트 4개뿐(관제탑이 §8에 기록) — 이 화면은 기존 `Popup`으로 덮인다
+**변경**
+- `features/hosting/ticket/`: `TicketListView`(+css — 안내 · "티켓 옵션이란?" · 카드 그리드(PC 두 열) · 빈 상태 · FAB) · `TicketFormView`(+css — 모바일 ← 제목 헤더, PC 1280~ 두 열 + 오른쪽 회색 판, 하단 바) · `ui/TicketCard`(카드 · ⋮ DS DropdownMenu · 확인 창 · 옵션 행) · `ui/OptionSheets`(추가 시트 · 새 옵션 · 상세 · 수정 — DS ResponsiveOverlay) · `ui/TicketGuides`(옵션 가이드 시트 · 관리자 승인 다이얼로그) · `ui/TicketParts`(노란 안내 상자 · 옵션 행 · 옵션 칩 · 토글 칸) · `ui/text-style.ts`(글자 스타일 → CSS 값 — PC만 글자 크기를 바꿀 때)
+- model(L 소폭): `ticket-rules` 칩 라벨 "판매중" → **"판매 중"**(#46), 메뉴 라벨 "수정"·"삭제" → **"수정하기"·"삭제하기"**, **`ticketMenuOf` — 판매 중단은 잠긴(판매된) 티켓에만**(판매 전 티켓은 [수정하기 · 삭제하기] — GUI `958:20392`·`958:20819`, #55·#56. 판매 중단된 티켓은 잠김과 상관없이 [판매 재개]) — 테스트 기대값을 같이 고침(`ticket-rules.test` 3행 · `useTicketList.test` 2곳), `useTicketOptions` `attachMany`(한 번에 여러 개 — "n개 추가하기") · `remainingSlots` · `dirty` · `resetForm`, `useOptionEditor` `reset`
+- 새 `src/ui` 컴포넌트 없음(스토리 없음) — DS `Chip`·`Toggle`·`Radio`·`Checkbox`·`Input`·`Dropdown`·`DatePicker`·`TimePicker`·`DropdownMenu`·`ResponsiveOverlay`·`Popup`(openConfirm)·`Fab`·`EmptyState`·`Header`·`toast`, P11 `EditorParts`(`FormSection`·`FieldError`·`useLeaveGuard`)
+- e2e `hosting-ticket.spec`을 V 마크업으로(⋮ 메뉴 + 확인 창, 은행 Dropdown, 토글 role switch, 옵션 시트). QA `qa/scenarios/hosting-ticket.qa.ts` HT-1~13(+ HT-14 수동)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 라벨이 두둥 티켓/무료 티켓, 무제한이면 재고 공개 토글이 비활성 | QA HT-7(라디오 두둥 티켓 · 무료 티켓, `재고 정보 공개` switch disabled) · e2e 「빈 목록 → 두둥 티켓 …」 |
+| 티켓 없음 공연에서 추가 버튼이 없음 | QA HT-11 · e2e 「티켓 없음 공연에서는 추가할 수 없다 …」 |
+| 판매 중단 → 재개가 공연 상세 화면에 반영(P6-V 뒤) | P6-V #52 머지 뒤 ego-browser로 확인 — 호스팅에서 "일반 예매" 판매 중단 → `/events/101` PC 카드에 "판매 중단" 흐림. QA HT-14(수동) · HT-9(칩) · e2e GP-5 `isSuspended` |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`)**: 목록 390(Figma `767:50048`·`913:949`와 같음 — FAB 색만 다름, 아래 결정) · 1200/1440(`767:46943`·`955:2980`) · ⋮ 메뉴 · 옵션 추가 모달 1200 · 새 옵션 + 닫기 확인 · 옵션 상세 390 · 잠긴 옵션 수정 390(`933:2015`와 같음) · 새 티켓 390 · 1440(`821:25649` — 판매 수량 줄 줄바꿈을 고쳐 맞춤) · 1024(한 열) · 관리자 승인 팝업 390(`971:21949`와 같음) · 잠긴 티켓 수정 390. 고친 것: ⋮이 가격과 겹침 → 가격 묶음 위 32 · 카드 정보 위 정렬, PC 판매 수량 라디오 줄바꿈 → 열 간격 48 · 칸 88, PC 빈 상태 일러스트 170 → 300, 폼 → 목록으로 돌아와도 모바일 공연 헤더가 숨던 문제(아래 결정 10)
+
+**결정** (🤖 Claude 판단 — 근거 / 되돌리려면)
+1. 🤖 새 티켓 FAB는 DS round Primary(검정) — GUI는 채움을 보라로 덮어씀(변형 없음) / `TicketListView` FAB에 보라 클래스. Figma 코멘트 `793:2469`
+2. 🤖 옵션 시트·가이드는 DS BottomSheet(모바일)·Modal(PC) — GUI는 직접 그린 시트(✕ · 회색 손잡이). 모바일은 ✕ 없이 ⌄ 손잡이 / DS 시트 변형. Figma 코멘트 `931:1314`
+3. 🤖 옵션 가이드 본문 "주관식 질문으로 학번, 입금자명 등을 입력받을 수 있어요." → **"학번 등을"**(입금자명 뺌) — 약관 제19조⑥ 금지 규칙(무료티켓·옵션으로 서비스 밖 대금 받기 안내 금지, plan P12 L). 사용자 결정이 필요한 문구라 PR "사용자 대기"에 올림 / `TicketGuides.openOptionGuide`
+4. 판매 중단 칩 = red border round "판매 중단" — 처음엔 🤖(GUI 없음)이었는데 #56 `958:20841`이 같은 모양으로 Ready가 됨 / `TicketCard` `CHIP_COLOR`
+5. 🤖 재고 칩: 수량이면 "남은/전체매 (공개|비공개)", 무료 티켓 가격 "무료", 판매 기간이 없으면 기간 줄 없음 · 한쪽만 없으면 "등록 즉시"·"공연 시작까지" / `TicketCard` `stockText`·`salePeriodText`. Figma 코멘트 `910:3358`
+6. 🤖 판매 종료 티켓은 [티켓 옵션 추가]뿐 아니라 옵션 ✕(빼기)도 없고 상세에 [수정]·[옵션 삭제]가 없다(#46 · `943:2398` "판매 종료" 상세에 [수정] 없음) / `TicketCard` `changeable`·`allowEdit`
+7. 🤖 옵션 삭제(옵션 자체) 입구는 상세 하단 [옵션 삭제] + 확인 창(plan P12 기본안 — GUI 상세에 없음) / `OptionDetailOverlay`. Figma 코멘트 `943:2219`
+8. ⋮ 메뉴 동작은 확인 창 + 완료 토스트 — GUI #55~#57 문구 그대로("[이름] 티켓을 삭제할까요?" 등, 메뉴 항목은 빨간색 없이). 옵션 ✕도 #54 확인 창 + "옵션을 삭제했어요." / `TicketCard` `confirmThen`·`detachOption`
+8-1. 🤖 **옵션 ✕의 동작은 "이 티켓에서 빼기"(O-5)** — GUI 확인 창은 "티켓 옵션을 삭제할까요? / 삭제한 옵션은 되돌릴 수 없어요"지만, ✕가 보이는 조건(#48 "판매가 아직 일어나지 않은 티켓")이 떼기 조건과 같고 plan P12가 삭제(O-4)와 떼기를 구분한다. 옵션 자체 삭제는 상세 하단 [옵션 삭제] / ✕를 O-4로 바꾸려면 `TicketCard.detachOption`에서 `useOptionEditor.remove`. Figma 답글로 물음(`943:2219`), PR "사용자 대기"
+9. 🤖 은행명은 DS Dropdown(서버 목록 25개) — 검색 칸 없음(L `keyword`는 쓰지 않음) / `TicketFormView` 계좌 칸
+10. 🤖 모바일 폼은 공연 헤더 대신 ← 제목 헤더(GUI Top app bar `only title`). 폼이 보이는 동안 `useLayoutEffect`로 공연 스코프 틀에 `data-hide-event-header` — `:has()`는 Cache Components가 숨겨 둔 이전 화면(React Activity)에도 맞아 목록에서도 헤더가 숨었다(e2e 등록 완주가 잡음) / `TicketFormView.css` `HIDE_HEADER_ATTR`
+11. 🤖 [티켓 만들기]·[저장하기]는 처음 값에서 아무것도 안 바꿨을 때만 비활성(GUI 빈 폼 = 회색) — 바꾼 뒤에는 눌러야 칸 오류가 보인다(L `attempted`). 같은 기준으로 이탈 경고(L `dirty`는 만들기에서 늘 true라 빈 폼에서 나갈 때도 묻게 된다) / `TicketFormView` `touched`
+12. 🤖 PC 폼 두 열은 1280부터(1024~1279는 한 열 최대 600 — 기본 정보와 같음), 판매 기간 상자는 PC 판 안에서 배경 없음 / `TicketFormView.css` `columns`·`period`
+13. 🤖 무료 티켓의 새 옵션은 가격 토글 잠금(L — 무료 티켓에 유료 옵션 불가) / `OptionFields` `priceDisabled`
+14. 🤖 금액 칸은 숫자만(쉼표 없이) — GUI 자리표시 "1,000" / `OptionFields`·폼 가격
+15. 🤖 티켓 없음 공연 안내 "티켓 없는 공연이라 티켓을 만들 수 없어요. 기본 정보에서 티켓 여부를 바꿀 수 있어요."(디자인 없음), 목록 조회 실패는 회색 한 줄 + [다시 시도] / `TicketListView`
+
+**Figma 코멘트(2026-11-01-impl, GUI)**: 답글 `910:3358`(1989717381 — 메뉴·확인 창·판매 중단은 #55~#57로 반영, 남은 것) · `943:2219`(1989717383 — 옵션 ✕ 동작 질문) · `793:2469` "[개발 · DS 컴포넌트로 구현] 새 티켓 만들기 + 버튼"(1989715585) · `931:1314` "[개발 · DS 컴포넌트로 구현] 옵션 시트"(1989715589) · `910:3358` "[개발 · 디자인 없음] 티켓 카드 — ⋮ 메뉴 · 확인 창 · 판매 중단 · 수량 · 무료"(1989715592) · `943:2219` "[개발 · 디자인 없음] 옵션 삭제 입구"(1989715595) · `767:46671` "[개발 · 디자인 없음] 티켓 수정 화면"(1989715597)
+**범위 밖**: DS BottomSheet에 ✕가 없음(공용 컴포넌트). DS Fab에 보라 변형 없음. gui-screens §0 머리의 Ready 수(35 → 66)는 관제탑 몫
+**검사**: typecheck · 바꾼 파일 eslint · `vitest related`(126) · e2e `hosting-ticket`·`hosting-event`·`hosting`(102 — #53~#57 반영 뒤 `hosting-ticket`·`hosting-event` 44 다시) · QA `pnpm qa hosting-ticket` 30/30(HT-1~13 · 15 · 16 × mobile · desktop, 수동 HT-14). 전체 게이트는 PR CI
+
 ## P13b-V — QR 체크인 (뷰)
 
 **상태**: done (2026-11-01, PR #62) — 스킬 `gui-implement`. 남은 것(사람 · D2 스테이징): 실기기 3종 판독(QA QR-8 수동), [관객이 스캔] QR을 실제 폰으로 찍어 `/check-in` 입장(QR-9 수동)

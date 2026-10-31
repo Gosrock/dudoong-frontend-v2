@@ -20,7 +20,7 @@ import { expect, test } from './support/fixtures';
 /**
  * P12-L 라우트 로직 — 티켓 관리(`/hosting/events/[eventId]/tickets`)·새 티켓(`…/tickets/new`)·수정(`…/tickets/[ticketItemId]`)·
  * 옵션 붙이기, 그리고 P11이 남긴 "티켓 있는 공연의 등록 완주". 호스팅 센터라 조회는 브라우저에서만 한다(셸만 렌더).
- * 최소 마크업이라 상태·요청 본문·관객 GP-5 응답만 본다(모양은 V). mock 저장소(`ticket-store.ts`)는 테스트마다 되돌린다.
+ * 상태·요청 본문·관객 GP-5 응답을 본다(P12-V 마크업 — ⋮ 메뉴는 Radix 메뉴 + 확인 창, 옵션은 시트). mock 저장소(`ticket-store.ts`)는 테스트마다 되돌린다.
  */
 const resetStores = () => {
   resetHostMockState();
@@ -32,6 +32,23 @@ test.afterEach(resetStores);
 const cards = (page: Page) => page.getByTestId('ticket-card');
 const card = (page: Page, name: string) => cards(page).filter({ hasText: name });
 const menu = eventMenu;
+
+/** 카드 ⋮ 메뉴 항목을 누른다. 확인 창이 뜨는 항목은 `confirm`으로 확인 버튼 이름 */
+async function cardMenu(page: Page, name: string, item: string, confirm?: string) {
+  await card(page, name)
+    .getByRole('button', { name: `${name} 메뉴` })
+    .click();
+  await page.getByRole('menuitem', { name: item }).click();
+  if (confirm) await page.getByRole('alertdialog').getByRole('button', { name: confirm }).click();
+}
+const menuItems = async (page: Page, name: string) => {
+  await card(page, name)
+    .getByRole('button', { name: `${name} 메뉴` })
+    .click();
+  const items = await page.getByRole('menuitem').allTextContents();
+  await page.keyboard.press('Escape');
+  return items;
+};
 
 /** 관객 GP-5(공개) — 판매 기간 안의 티켓 id */
 async function publicTicketIds(page: Page, eventId: number) {
@@ -52,12 +69,8 @@ const suspendedIds = async (page: Page, eventId: number) =>
 async function fillDudoongForm(page: Page, name: string) {
   await page.getByLabel('티켓 이름').fill(name);
   await page.getByLabel('가격').fill('15000');
-  await page.getByLabel('은행 검색').fill('신한');
-  await page
-    .getByRole('list', { name: '은행 목록' })
-    .getByRole('button', { name: '신한은행' })
-    .click();
-  await expect(page.getByTestId('selected-bank')).toHaveText('신한은행');
+  await pickOption(page, '은행', '신한은행');
+  await expect(page.getByRole('combobox', { name: '은행' })).toHaveText(/신한은행/);
   await page.getByLabel('예금주').fill('고스락');
   await page.getByLabel('계좌번호').fill('110-123-456789');
 }
@@ -72,11 +85,11 @@ test.describe('새 티켓 만들기', () => {
     await expect(page.getByTestId('tickets-empty')).toHaveText('만든 티켓이 없어요');
     await page.getByRole('link', { name: '새 티켓 만들기' }).click();
     await expect(page).toHaveURL('/hosting/events/140/tickets/new');
-    await expect(page.getByLabel('판매 수량 무제한')).toBeChecked();
-    await expect(page.getByLabel('재고 공개')).not.toBeChecked();
-    await expect(page.getByLabel('재고 공개')).toBeDisabled();
-    await expect(page.getByLabel('관리자 승인')).toBeChecked();
-    await expect(page.getByLabel('관리자 승인')).toBeDisabled();
+    await expect(page.getByRole('radio', { name: '무제한' })).toBeChecked();
+    await expect(page.getByRole('switch', { name: '재고 정보 공개' })).not.toBeChecked();
+    await expect(page.getByRole('switch', { name: '재고 정보 공개' })).toBeDisabled();
+    await expect(page.getByRole('switch', { name: '관리자 승인 여부' })).toBeChecked();
+    await expect(page.getByRole('switch', { name: '관리자 승인 여부' })).toBeDisabled();
 
     await fillDudoongForm(page, '일반 예매');
     const post = page.waitForRequest(
@@ -106,11 +119,12 @@ test.describe('새 티켓 만들기', () => {
   test('무료 티켓: 가격·계좌 칸이 없고 승인 토글이 열린다', async ({ page }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/140/tickets/new');
-    await page.getByLabel('무료 티켓').check();
+    await page.getByRole('radio', { name: '무료 티켓' }).click();
     await expect(page.getByLabel('가격')).toHaveCount(0);
     await expect(page.getByLabel('예금주')).toHaveCount(0);
-    await expect(page.getByLabel('관리자 승인')).toBeEnabled();
-    await page.getByLabel('관리자 승인').uncheck();
+    await expect(page.getByRole('switch', { name: '관리자 승인 여부' })).toBeEnabled();
+    await page.getByRole('switch', { name: '관리자 승인 여부' }).click();
+    await expect(page.getByRole('switch', { name: '관리자 승인 여부' })).not.toBeChecked();
     await page.getByLabel('티켓 이름').fill('초대권');
     const post = page.waitForRequest((r) => r.method() === 'POST');
     await page.getByRole('button', { name: '티켓 만들기' }).click();
@@ -154,24 +168,24 @@ test.describe('목록 · ⋮ 메뉴', () => {
     await page.goto('/hosting/events/101/tickets');
     const sold = card(page, '일반 예매');
     await expect(sold).toHaveAttribute('data-locked', 'true');
-    await expect(sold.getByRole('button', { name: '삭제' })).toHaveCount(0);
-    await expect(card(page, '초대권').getByRole('button', { name: '삭제' })).toBeVisible();
+    expect(await menuItems(page, '일반 예매')).toEqual(['수정하기', '판매 중단']);
+    expect(await menuItems(page, '초대권')).toEqual(['수정하기', '삭제하기']);
     expect(await publicTicketIds(page, 101)).toEqual([501, 502, 503]);
 
-    await sold.getByRole('button', { name: '판매 중단' }).click();
+    await cardMenu(page, '일반 예매', '판매 중단', '중단');
     await expect(sold.getByTestId('ticket-chip')).toHaveText('판매 중단');
     expect(await publicTicketIds(page, 101)).toEqual([501, 502, 503]);
     expect(await suspendedIds(page, 101)).toEqual([501]);
 
-    await sold.getByRole('button', { name: '판매 재개' }).click();
-    await expect(sold.getByTestId('ticket-chip')).toHaveText('판매중');
+    await cardMenu(page, '일반 예매', '판매 재개', '확인');
+    await expect(sold.getByTestId('ticket-chip')).toHaveText('판매 중');
     expect(await suspendedIds(page, 101)).toEqual([]);
   });
 
   test('판매 전 티켓을 지우면 목록과 GP-5에서 사라진다', async ({ page }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/tickets');
-    await card(page, '초대권').getByRole('button', { name: '삭제' }).click();
+    await cardMenu(page, '초대권', '삭제하기', '삭제');
     await expect(cards(page)).toHaveCount(2);
     expect(await publicTicketIds(page, 101)).toEqual([501, 502]);
   });
@@ -179,7 +193,7 @@ test.describe('목록 · ⋮ 메뉴', () => {
   test('수정: 바뀐 필드만 보낸다', async ({ page }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/tickets');
-    await card(page, '초대권').getByRole('link', { name: '수정' }).click();
+    await cardMenu(page, '초대권', '수정하기');
     await expect(page).toHaveURL('/hosting/events/101/tickets/503');
     await page.getByLabel('티켓 설명').fill('입장 시 확인');
     const patch = page.waitForRequest((r) => r.method() === 'PATCH');
@@ -209,8 +223,9 @@ test.describe('목록 · ⋮ 메뉴', () => {
     await page.goto('/hosting/events/101/tickets');
     await expect(cards(page)).toHaveCount(3);
     await expect(page.getByRole('link', { name: '새 티켓 만들기' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: '판매 중단' })).toHaveCount(0);
-    await expect(page.getByText('티켓 옵션 추가')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '새 티켓 만들기' })).toHaveCount(0);
+    await expect(cards(page).getByRole('button', { name: /메뉴$/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '티켓 옵션 추가' })).toHaveCount(0);
   });
 });
 
@@ -222,13 +237,18 @@ test.describe('옵션', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/tickets');
     const free = card(page, '초대권');
-    await free.getByText('티켓 옵션 추가').click();
+    await free.getByRole('button', { name: '티켓 옵션 추가' }).click();
+    const sheet = page.getByRole('dialog', { name: '티켓 옵션 추가하기' });
     // 무료 티켓에는 유료 옵션(뒤풀이 +10,000)이 선택지에 없다
-    await expect(free.getByRole('button', { name: '뒤풀이 참석 붙이기' })).toHaveCount(0);
-    await free.getByLabel('옵션 이름').fill('응원 문구');
-    await free.getByLabel('옵션 설명').fill('짧게 적어 주세요');
-    await free.getByRole('button', { name: '옵션 만들어 붙이기' }).click();
-    await expect(free.getByRole('list', { name: '초대권 옵션' })).toHaveText('응원 문구');
+    await expect(sheet.getByRole('checkbox', { name: '응원하는 멤버' })).toBeVisible();
+    await expect(sheet.getByRole('checkbox', { name: '뒤풀이 참석' })).toHaveCount(0);
+    await sheet.getByRole('button', { name: '새 옵션 직접 만들기' }).click();
+    const create = page.getByRole('dialog', { name: '새 옵션 직접 만들기' });
+    await create.getByLabel('옵션 이름').fill('응원 문구');
+    await create.getByLabel('옵션 설명').fill('짧게 적어 주세요');
+    await create.getByRole('button', { name: '옵션 추가하기' }).click();
+    await expect(page.getByText('옵션을 추가했어요.')).toBeVisible();
+    await expect(free.getByRole('list', { name: '초대권 옵션' })).toContainText('응원 문구');
     expect(
       mockApi
         .calls()
