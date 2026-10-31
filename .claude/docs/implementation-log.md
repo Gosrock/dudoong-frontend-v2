@@ -783,12 +783,21 @@
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2238) · test:stories(193) · build · e2e(374 — 새 10 = `shell.spec` 5건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
 **문서 반영**: plan(개요 진행 현황 — 남은 L 없음, P4s L 범위 위치·끝남 표시, L 완료 기준 5칸, §5 첫 문단), README(문서 지도 plan 행), directory-structure(`features/shared/shell`, hosting/shell은 V), patterns §21(셸 메뉴의 벨·항목 주소)
 
+## 2026-10-31 재발급 429를 세션 상실로 보던 버그 (`fix/refresh-429`)
+
+**변경**: `src/api/auth-handlers.ts` `refreshOnce` — 재발급 4xx 중 429·408(`TRANSIENT_4XX`)은 `RefreshRejected`가 아니라 일시 오류로 그 에러를 그대로 던진다(5xx·네트워크와 같은 길: 세션 유지, `onSessionLost` 없음, 상실 1회 플래그 그대로, 원 요청은 재발급 응답의 에러로 실패). 원인: 백엔드 `ThrottlingInterceptor`가 재발급에도 걸리고 재발급은 유효한 액세스 토큰 없이 나가 IP 버킷(기본 분당 60)을 쓴다 — 공유 NAT(공연장 Wi-Fi)에서 리프레시 토큰이 살아 있는데 `/login/expired`로 튕기고 다른 탭도 따라 나갔다(dev `fe423ed` `ThrottlingWebConfigure`·`application.yml`로 확인). 테스트 `auth-handlers.test` 5건 추가(429 실제 `authApi`·408 HTML·429 뒤 다음 401에서 다시 재발급해 성공·대조 401/403은 상실). 문서: tech-decisions §4 재발급 결과 판정·요약 표, api-contract §9 재발급 행, patterns §5-1, backend-questions B21
+**Claude 판단**(되돌리는 법 같이)
+1. **408도 일시 오류** — 백엔드는 408을 내지 않지만 앞단(ALB·nginx)이 요청 본문을 다 받기 전에 끊으면 낸다. 429와 같이 토큰을 보기 전의 응답이라 세션에 대해 아무것도 말하지 않는다. 되돌리기: `TRANSIENT_4XX`에서 408을 뺀다
+2. **429를 자동 재시도하지 않는다** — 쿼리 기본 retry(5xx·네트워크만)에 넣지 않았다. 제한에 걸린 IP에서 다시 두드리면 버킷만 더 빈다. `Retry-After`도 백엔드가 주지 않는다. 사용자는 전역 에러 처리(토스트·에러 화면 재시도)로 다시 시도한다. 되돌리기: `query-client.ts` `shouldRetry`
+3. B21 번호 — B20은 답을 받아 지운 번호라(backend-questions 머리말) 다음 번호를 썼다
+**검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`): typecheck · lint · prettier · test(2243) · build · e2e `auth.spec`·`auth-bfcache.spec`(32) 통과. 수정을 빼면 새 테스트 3건(429·408·429 뒤 재발급)이 실패하는 것을 확인했다
+
 ## 계약 대조 수정(2026-10-31)
 
 서버(백엔드 `dev-latest` `fe423ed4`)와 프론트의 계약 대조에서 확인된 항목을 고치고 사용자 결정 둘을 반영했다. 항목마다 소스를 다시 보고 고쳤다. 브랜치 `fix/contract-audit-1031`. 리프레시 429(`src/api/auth-handlers.ts`, tech-decisions §4·api-contract §9의 "4xx = 세션 상실")는 다른 브랜치 몫이라 건드리지 않았다.
 
 **사용자 결정**
-- **가입 전화번호 = `010-1234-1234`**: `register-form.ts` `PHONE_PATTERN`·`formatPhoneInput`(숫자만 남겨 하이픈 자동, `+82 10-…` → `010-…`, 11자리에서 자름), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 `PHONE_FORMAT_MESSAGE`). 서버 `PhoneNumberVo`는 검사 없이 저장하고 꺼낼 때 `USER_400_2`라서다. 같은 사용자 전화 필드에 쓰는 다른 v2 입력은 없다(PM-2는 이름·이미지, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다 — 규칙 그대로). plan P4b, backend-questions B20
+- **가입 전화번호 = `010-1234-1234`**: `register-form.ts` `PHONE_PATTERN`·`formatPhoneInput`(숫자만 남겨 하이픈 자동, `+82 10-…` → `010-…`, 11자리에서 자름), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 `PHONE_FORMAT_MESSAGE`). 서버 `PhoneNumberVo`는 검사 없이 저장하고 꺼낼 때 `USER_400_2`라서다. 같은 사용자 전화 필드에 쓰는 다른 v2 입력은 없다(PM-2는 이름·이미지, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다 — 규칙 그대로). plan P4b, backend-questions B22
 - **SUPER_ADMIN 허용**: GM-1 `V2MeResponse`·JWT 어디에도 계정 역할이 없다. 대신 G+ 검사(`HostQualification.GUEST` → `Host.validateActiveHostUser`)는 활성 멤버가 아니면 403이고 건너뛰는 길은 `SuperAdminBypass`뿐, `myRole`은 `Host.getActiveRoleOf`(활성 멤버 아니면 null)라 **"G+ 조회 성공 + `myRole: null`" = SUPER_ADMIN**이 서버 의미로 안전하다. `can.ts`에 `ActorRole`(`HostRole | 'SUPER_ADMIN'`)·`superAdminOrRole`, `useEventScope().role`(GE-3), `useHostMembers`(GH-6 + viewer), `useHostSettings`(GH-3 viewer + **GH-6을 함께 읽음**). patterns §22, api-contract §2, plan P10a
 
 **고친 것 — 코드**
@@ -807,7 +816,7 @@
 - O-3·O-4 옵션 404를 `Event_400_17`보다 먼저(`withAppliedTicketLocks`)
 - 일반 멤버 연락처 완전 일치에서 `82…`와 `0…`을 같은 번호로(`phoneExactMatch` = `ContactSearch.phoneExact`, `contact-search.test`)
 
-**고친 것 — 문서**: patterns §19·§22·§23(주문 처리 뒤)·§24(P7 `Event_404_1`, P8b `Gift_400_8`, P8c, P9 `USER_400_4`·`BAD_REQUEST`, P11 `Event_400_20`·`Event_400_15`, P12 `Ticket_Item_400_15`), api-contract(§2 SUPER_ADMIN, GH-14 순서, 환불 계좌 입력 조건, 사용자 취소 차단 순서, O-3·O-4·O-5 검사 순서, `Event_400_20`), plan(P4b 전화번호·D2 계약 확인, P10a SUPER_ADMIN, P12 T-3 동의 #873), backend-questions(B19 관객 쪽 풀림, B20, B16 참고 둘), deploy-plan §9 12~16(Void 본문·로그인 전용 필드 이름·엑셀 403·쿠키 흐름·스테이징 `check:contract`)
+**고친 것 — 문서**: patterns §19·§22·§23(주문 처리 뒤)·§24(P7 `Event_404_1`, P8b `Gift_400_8`, P8c, P9 `USER_400_4`·`BAD_REQUEST`, P11 `Event_400_20`·`Event_400_15`, P12 `Ticket_Item_400_15`), api-contract(§2 SUPER_ADMIN, GH-14 순서, 환불 계좌 입력 조건, 사용자 취소 차단 순서, O-3·O-4·O-5 검사 순서, `Event_400_20`), plan(P4b 전화번호·D2 계약 확인, P10a SUPER_ADMIN, P12 T-3 동의 #873), backend-questions(B19 관객 쪽 풀림, B22 — 처음 B20으로 썼다가 지운 번호와 겹쳐 B22로, B16 참고 둘), deploy-plan §9 12~16(Void 본문·로그인 전용 필드 이름·엑셀 403·쿠키 흐름·스테이징 `check:contract`)
 
 **대조에서 틀린 것(그대로 두거나 고쳐 적음)**
 - P7 `Event_404_1`: 대조 메모는 "비공개 공연은 O-0 `Ticket_Item_404_1`"이었지만 O-0(`V2ReadCheckoutUseCase` → `onSaleItems` → `validatePublic`)은 비공개(준비중) 공연에 `Event_404_1`을 낸다. 문서에는 소스대로 "지운·없는 공연 + O-0의 비공개 공연 = `Event_404_1`, O-1의 비공개 = `Event_400_5`"로 적었다
@@ -824,6 +833,6 @@
 
 **남음**
 - 런타임 확인 5건(deploy-plan §9 12~16)은 D2 뒤
-- B20(서버 전화번호 검증), B19 호스트 쪽(GR-1·GR-2 `orderMethod`) 답 대기
+- B22(서버 전화번호 검증), B19 호스트 쪽(GR-1·GR-2 `orderMethod`) 답 대기
 
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2285) · test:stories(193) · build · e2e(374) 통과

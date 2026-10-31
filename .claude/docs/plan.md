@@ -26,7 +26,7 @@
 | 실기기(P4s-V로 옮김) | P2 바텀시트·모달 iOS Safari 스크롤 락·키보드 회피 |
 
 - **V(화면)**: 전부 시작 전 — 디자인을 기다린다(디자인 후속 보류, 사용자 결정 2026-10-25). P14·P15는 전 Phase의 L·V 뒤.
-- 지금까지의 작업(P0~P4a + 모든 L)은 브랜치 `feat/v2-foundation-logic`(옛 `feat/p0-scaffold`, 2026-10-31 이름 변경)에 있다 — 아래 "브랜치 계획".
+- 지금까지의 작업(P0~P4a + 모든 L)은 2026-10-31 PR #7(`feat/v2-foundation-logic`, 옛 `feat/p0-scaffold`)로 `main`에 머지됐다 — 아래 "브랜치 계획".
 
 ### 브랜치 계획 (2026-10-31)
 
@@ -369,7 +369,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [ ] 스테이징 첫 배포(D2) 완료 — 이후 Phase의 공개 URL 확인이 여기에 기댄다. D2에서 함께 볼 계약 확인(계약 대조 2026-10-31 — 소스로 확정할 수 없는 런타임 값)은 [`deploy-plan.md`](./deploy-plan.md) §9 12~16번. (2026-10-25 사실: 스테이징은 평소 꺼져 있다. Swagger는 staging·prod에서 꺼져 있다 — 백엔드 Develop 기획서. 이미지 레지스트리는 ECR로 결정(2026-10-29) — 백엔드 B15(ECR 저장소·푸시 역할) 처리 대기, deploy-plan §1)
 - [x] `AUTH_400_1`이면 로그인을 다시 시작
 - [ ] 두 탭이 동시에 만료돼도 실제 재발급 뒤 로그인이 유지됨(백엔드 #807로 기기별 세션 + 직전 토큰 30초 유예라 동시 재발급이 안전해졌다 — [`backend-questions.md`](./backend-questions.md) B1 해결. 실제 확인은 그대로 남긴다)
-- [x] **가입 전화번호는 `010-1234-1234` 모양만 보낸다(사용자 결정 2026-10-31)** — 백엔드는 받은 값을 검사 없이 저장하고(`PhoneNumberVo`) 나중에 형식을 바꿀 때 해석하지 못하면 `USER_400_2`다. 입력은 숫자만 남겨 하이픈을 자동으로 넣고(`formatPhoneInput` — 11자리에서 자름), 카카오 값 `+82 10-…`도 `010-…`으로 바꿔 채운다. 비어 있으면 `null`(선택 그대로), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 "휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요")으로 제출을 막는다(`register-form.test`·`useKakaoCallback.test`). 같은 사용자 전화번호 필드에 쓰는 다른 입력은 v2에 없다(PM-2는 이름·이미지뿐, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다). 백엔드 검증 요청은 backend-questions B20
+- [x] **가입 전화번호는 `010-1234-1234` 모양만 보낸다(사용자 결정 2026-10-31)** — 백엔드는 받은 값을 검사 없이 저장하고(`PhoneNumberVo`) 나중에 형식을 바꿀 때 해석하지 못하면 `USER_400_2`다. 입력은 숫자만 남겨 하이픈을 자동으로 넣고(`formatPhoneInput` — 11자리에서 자름), 카카오 값 `+82 10-…`도 `010-…`으로 바꿔 채운다. 비어 있으면 `null`(선택 그대로), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 "휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요")으로 제출을 막는다(`register-form.test`·`useKakaoCallback.test`). 같은 사용자 전화번호 필드에 쓰는 다른 입력은 v2에 없다(PM-2는 이름·이미지뿐, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다). 백엔드 검증 요청은 backend-questions B22
 - [ ] 가입 본문에 사용자가 체크한 동의 필드만 실림(UI 없는 것은 Q42 대기), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 이용약관 체크 → `termsAgreed` + `agreementVersion`, 미체크 → 키 없음(`register-form.test`), 강제 400 → 일반 실패(`useKakaoCallback.test`) 완료. `ageOver14Confirmed`는 Q42 칸이 정해진 뒤
 - [x] 오픈 리다이렉트 차단
 - [ ] 카카오톡 인앱 브라우저(iOS WKWebView · Android WebView) 실기기에서 Web Locks 동작과 `localStorage`(`dd:session`) 유지 확인. Web Locks가 없으면 대체 경로로 동작 — 인증 로직 확인이라 L에 둔다(D2 뒤, 화면 디자인과 무관)
