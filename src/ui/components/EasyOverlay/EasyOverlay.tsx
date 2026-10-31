@@ -19,7 +19,7 @@ export type ConfirmOptions = {
   cancelLabel?: string | null;
   /**
    * 확인을 누르면 부른다. 도는 동안 버튼·Esc·바깥 클릭·스와이프·뒤로가기를 잠근다.
-   * resolve → 닫히고 `true`, reject → 열린 채 남는다(실패 토스트는 전역 MutationCache.onError가 맡는다, patterns §4-5).
+   * resolve → 닫히고 `true`, reject → 열린 채 남는다. 실패 안내는 onConfirm이 `handleError`로 하고 throw한다(patterns §4-5).
    */
   onConfirm?: () => Promise<unknown>;
   /** popup(기본) = 확인 팝업, responsive = PC 모달 · 모바일 바텀시트 */
@@ -65,7 +65,7 @@ export function EasyOverlay({
     try {
       await onConfirm?.();
     } catch {
-      // 실패: 열린 채 둔다. 토스트는 전역이 맡는다
+      // 실패: 열린 채 둔다. 안내는 onConfirm이 맡는다(handleError)
       setPending(false);
       return;
     }
@@ -138,7 +138,14 @@ export function EasyOverlay({
  * ```ts
  * const ok = await openConfirm({
  *   title: '주문을 승인할까요?',
- *   onConfirm: () => approve.mutateAsync(orderUuid),
+ *   onConfirm: async () => {
+ *     try {
+ *       await approve.mutateAsync(orderUuid);
+ *     } catch (e) {
+ *       handleError(e); // 공용 토스트(표가 있으면 표로)
+ *       throw e; // reject → 열린 채 남는다
+ *     }
+ *   },
  * });
  * if (ok) router.push('/hosting/...');
  * ```

@@ -13,8 +13,8 @@ import { MOCK_S3_ORIGIN } from '@/api/__mocks__/upload-handlers';
 import { hostDetailQuery, hostViewerQuery, MY_HOSTS_KEY } from '@/api/host/queries';
 import { UpdateHostRequestSchema } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
-import { shouldToastMutationError } from '@/api/query-client';
 import { hostingAccessOfError } from '@/features/hosting/access/model/hosting-access';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -66,7 +66,6 @@ type Hook = ReturnType<typeof setup>['result'];
 const loaded = (result: Hook) => waitFor(() => expect(result.current).not.toBeNull());
 const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET');
-const lastMutation = (qc: QueryClient) => qc.getMutationCache().getAll().at(-1)!;
 const png = () => new File([new Uint8Array([0x89, 0x50])], 'logo.png', { type: 'image/png' });
 
 describe('호스트 설정 — 접근(비멤버 403 · 일반 멤버 읽기 전용)', () => {
@@ -215,25 +214,26 @@ describe('호스트 설정 — 저장(PH-4, 바뀐 필드만)', () => {
         ),
       ),
     );
-    const { result, queryClient } = setup();
+    const { result } = setup();
     await loaded(result);
     act(() => result.current.setContactValue(0, '@changed'));
     await act(() => result.current.save());
     expect(result.current.contactsServerError).toBe('연락처 형식을 확인해 주세요');
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
     act(() => result.current.setContactValue(0, '@changed2'));
     expect(result.current.contactsServerError).toBeNull();
   });
 
-  it('표에 없는 실패(5xx)는 전역 토스트로 간다', async () => {
+  it('표에 없는 실패(5xx)는 공용 토스트로 간다', async () => {
     server.use(http.patch('*/api/v2/hosts/11', ({ request }) => errors.serverError(request)));
-    const { result, queryClient } = setup();
+    const { result } = setup();
     await loaded(result);
     act(() => result.current.setName('새 이름'));
     await act(() => result.current.save());
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalledWith(
+      '서버 오류. 관리자에게 문의 부탁드립니다.',
+      'mutation:GLOBAL_500_1',
+    );
     expect(result.current.dirty).toBe(true);
   });
 });
@@ -281,13 +281,12 @@ describe('호스트 이미지 — PH-15 발급 → S3 PUT → PH-4', () => {
       }),
     );
     const sent = recordRequests();
-    const { result, queryClient } = setup();
+    const { result } = setup();
     await loaded(result);
     await act(() => result.current.images.COVER.change(png()));
     expect(result.current.images.COVER.error).toBe('이미지를 올리지 못했어요. 다시 시도해 주세요');
     expect(result.current.images.COVER.changed).toBe(false);
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
     await act(() => result.current.images.COVER.retry());
     expect(result.current.images.COVER.error).toBeNull();
     expect(result.current.images.COVER.changed).toBe(true);
@@ -322,7 +321,7 @@ describe('호스트 이미지 — PH-15 발급 → S3 PUT → PH-4', () => {
         ),
       ),
     );
-    const { result, queryClient } = setup();
+    const { result } = setup();
     await loaded(result);
     const before = result.current.images.PROFILE.url;
     await act(() => result.current.images.PROFILE.change(png()));
@@ -335,8 +334,7 @@ describe('호스트 이미지 — PH-15 발급 → S3 PUT → PH-4', () => {
     });
     // 다른 칸 변경은 남는다
     expect(result.current.values.name).toBe('새 이름');
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it('mock도 다른 호스트에 발급한 key는 HOST_400_17로 막는다', async () => {

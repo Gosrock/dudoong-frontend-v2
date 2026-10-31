@@ -5,11 +5,13 @@ import { useCallback, useRef, useState } from 'react';
 
 import { hostCheckInMutation } from '@/api/check-in/mutations';
 import { isSessionLost } from '@/api/errors';
+import { handleError } from '@/api/handle-error';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import {
   type CheckInResultView,
   checkInResultView,
 } from '@/features/shared/checkin-result/model/checkin-result';
+import { tryCatch } from '@/utils/try-catch';
 
 import { invalidateAfterScan, invalidateEventStatus } from './qr-cache';
 import {
@@ -58,7 +60,7 @@ export type ScanSubmitOutcome =
  * - 결과(200 + `result`) → `checkInResultView(…, 'host')`. 현장 확인 이름은 `ownerName`. 결과마다 GQ-1을 다시 읽는다
  * - 연속 스캔(patterns §19): 같은 값은 끝난 뒤 `cooldownMs` 동안 무시, 요청 중 들어온 다른 값은 하나만 대기시켰다가 이어서 보낸다
  * - `Event_400_27` → `eventNotCheckable` + GE-3 다시 읽기. 네트워크·5xx → `failed` + `retry()`(같은 값, 쿨다운 무시).
- *   에러는 모두 화면이 맡는다(`meta.handled` — 전역 토스트 없음). 세션 상실은 이동이 맡는다
+ *   에러는 모두 화면이 맡는다(`handleError`의 `otherwise` — 공용 토스트 없음). 세션 상실은 이동이 맡는다
  * - `reset()` — 결과·실패를 지우고 다음 스캔을 기다린다(요청 중이면 무시)
  */
 export function useHostScan(
@@ -74,11 +76,17 @@ export function useHostScan(
   const pendingValue = useRef<string | null>(null);
   const queued = useRef<string | null>(null);
 
-  const mutation = useMutation({ ...hostCheckInMutation(eventId), meta: { handled: true } });
-  const { mutate } = mutation;
+  // GQ-1 다시 읽기는 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다(기다리지 않는다)
+  const mutation = useMutation({
+    ...hostCheckInMutation(eventId),
+    onSuccess: (res) => {
+      void invalidateAfterScan(queryClient, eventId, res.result);
+    },
+  });
+  const { mutateAsync } = mutation;
 
   /** 요청이 끝났다 — 쿨다운 시각을 끝난 때로 옮기고, 대기 값이 있으면(`drain`) 돌려준다 */
-  const settle = useCallback(
+  const finish = useCallback(
     (value: string, next: HostScanState | null, drain: boolean): string | null => {
       pendingValue.current = null;
       last.current = { value, at: now() };
@@ -99,46 +107,51 @@ export function useHostScan(
         const then = (next: string | null) => {
           if (next !== null) run(next);
         };
-        mutate(
-          { ticketUuid: value },
-          {
-            onSuccess: (res) => {
-              const view = checkInResultView(res, 'host');
-              void invalidateAfterScan(queryClient, eventId, res.result);
-              // 호스트 스캔에 SELECT_TICKET이 오면 checkInResultView가 UNKNOWN으로 바꾼다 — `select`는 오지 않는다
-              then(
-                settle(
-                  value,
-                  view.kind === 'result' ? { status: 'result', value, view } : { status: 'idle' },
-                  true,
-                ),
-              );
+        void (async () => {
+          // 성공 뒤 대기 값을 이어 보내므로(`then` → `run`) try 블록에 넣지 않고 tryCatch로 받는다
+          const [res, error] = await tryCatch(mutateAsync({ ticketUuid: value }));
+          if (!error) {
+            const view = checkInResultView(res, 'host');
+            // 호스트 스캔에 SELECT_TICKET이 오면 checkInResultView가 UNKNOWN으로 바꾼다 — `select`는 오지 않는다
+            then(
+              finish(
+                value,
+                view.kind === 'result' ? { status: 'result', value, view } : { status: 'idle' },
+                true,
+              ),
+            );
+            return;
+          }
+          if (isSessionLost(error)) {
+            finish(value, null, false);
+            return;
+          }
+          handleError(
+            error,
+            {},
+            {
+              otherwise: (e) => {
+                const outcome = hostScanErrorOutcome(e);
+                if (outcome.kind === 'eventNotCheckable') {
+                  finish(
+                    value,
+                    { status: 'eventNotCheckable', message: EVENT_NOT_CHECKABLE_MESSAGE },
+                    false,
+                  );
+                  void invalidateEventStatus(queryClient, eventId);
+                } else if (outcome.kind === 'invalidQr') {
+                  then(finish(value, { status: 'invalidQr' }, true));
+                } else {
+                  then(finish(value, { status: 'failed', value, failure: outcome.failure }, true));
+                }
+              },
             },
-            onError: (e) => {
-              if (isSessionLost(e)) {
-                settle(value, null, false);
-                return;
-              }
-              const outcome = hostScanErrorOutcome(e);
-              if (outcome.kind === 'eventNotCheckable') {
-                settle(
-                  value,
-                  { status: 'eventNotCheckable', message: EVENT_NOT_CHECKABLE_MESSAGE },
-                  false,
-                );
-                void invalidateEventStatus(queryClient, eventId);
-              } else if (outcome.kind === 'invalidQr') {
-                then(settle(value, { status: 'invalidQr' }, true));
-              } else {
-                then(settle(value, { status: 'failed', value, failure: outcome.failure }, true));
-              }
-            },
-          },
-        );
+          );
+        })();
       };
       run(first);
     },
-    [mutate, now, settle, queryClient, eventId],
+    [mutateAsync, now, finish, queryClient, eventId],
   );
 
   const submitScan = useCallback(

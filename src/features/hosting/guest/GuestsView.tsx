@@ -16,11 +16,7 @@ import { useOrderList } from './model/useOrderList';
  */
 export function GuestsView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary
-      ignoreError={isSessionLost}
-      rejected={HostingAccessRejected}
-      resetKeys={[eventId]}
-    >
+    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
       <Guests eventId={eventId} />
     </AsyncBoundary>
   );

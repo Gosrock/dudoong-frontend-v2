@@ -12,9 +12,10 @@ import { userHandlers } from '@/api/__mocks__/user.handlers';
 import { hostViewerQuery } from '@/api/host/queries';
 import { followingHostsQuery, meQuery } from '@/api/me/queries';
 import { UpdateMeRequestSchema } from '@/api/me/schema';
-import { shouldToastMutationError, shouldToastQueryError } from '@/api/query-client';
+import { shouldToastQueryError } from '@/api/query-client';
 import { readSessionFlag, startSession } from '@/api/session-flag';
 import { browserLocation } from '@/features/shared/auth/browser-location';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -44,8 +45,6 @@ function setup() {
   return { queryClient, wrapper };
 }
 
-const lastMutation = (qc: ReturnType<typeof createTestQueryClient>) =>
-  qc.getMutationCache().getAll().at(-1)!;
 const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET');
 const png = () => new File(['x'], 'me.png', { type: 'image/png' });
@@ -90,24 +89,22 @@ describe('프로필 — useProfileEdit(GM-1 · PM-2 · PM-3)', () => {
 
   it('400 BAD_REQUEST(본문 검증 — #884 이후 공백만은 이 코드) → 같은 칸 오류, 토스트 없음', async () => {
     server.use(http.patch('*/api/v2/me', ({ request }) => errors.badRequest(request)));
-    const { result, queryClient } = await renderProfile();
+    const { result } = await renderProfile();
     await act(() => result.current.name.save('두둥두둥'));
     await waitFor(() =>
       expect(result.current.name.error).toBe('닉네임은 공백만으로 지을 수 없어요'),
     );
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it('에러 분기 USER_400_4(공백만) → 칸 오류, 토스트 없음', async () => {
     server.use(...meHandlers.updateFails('USER_400_4'));
-    const { result, queryClient } = await renderProfile();
+    const { result } = await renderProfile();
     await act(() => result.current.name.save('두둥두둥'));
     await waitFor(() =>
       expect(result.current.name.error).toBe('닉네임은 공백만으로 지을 수 없어요'),
     );
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it('이미지: PM-3 발급 → S3 PUT → PM-2 {profileImageKey} → 세션 키의 profileImageUrl이 바뀐다', async () => {
@@ -131,11 +128,10 @@ describe('프로필 — useProfileEdit(GM-1 · PM-2 · PM-3)', () => {
       http.patch('*/api/v2/me', ({ request }) => userError(request, 'USER_400_5'), { once: true }),
     );
     const sent = recordRequests();
-    const { result, queryClient } = await renderProfile();
+    const { result } = await renderProfile();
     await act(() => result.current.image.change(png()));
     await waitFor(() => expect(result.current.image.error).toBe('이미지를 다시 올려 주세요'));
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
 
     await act(() => result.current.image.retry());
     expect(
@@ -227,9 +223,9 @@ describe('마케팅 수신 설정 — useMarketingSetting(GM-1 · PM-2 marketing
     );
   });
 
-  it('실패하면 값은 그대로, 실패 문구(전역 토스트 없음)', async () => {
+  it('실패하면 값은 그대로, 실패 문구(공용 토스트 없음)', async () => {
     server.use(http.patch('*/api/v2/me', ({ request }) => errors.serverError(request)));
-    const { result, queryClient } = await renderMarketing();
+    const { result } = await renderMarketing();
     await act(() => result.current.set(true));
     await waitFor(() =>
       expect(result.current.notice).toEqual({
@@ -238,8 +234,7 @@ describe('마케팅 수신 설정 — useMarketingSetting(GM-1 · PM-2 marketing
       }),
     );
     expect(result.current.value).toBe(false);
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 });
 
@@ -391,12 +386,11 @@ describe('회원 탈퇴 — useWithdraw(v1 DELETE /api/v1/auth/me)', () => {
   it('에러 분기 USER_400_6 → "마스터를 양도한 뒤 탈퇴해 주세요", 이동 없음, 토스트 없음', async () => {
     server.use(...userHandlers.masterBlocked);
     const assign = vi.spyOn(browserLocation, 'assign').mockImplementation(() => {});
-    const { wrapper, queryClient } = setup();
+    const { wrapper } = setup();
     const { result } = renderHook(() => useWithdraw(), { wrapper });
     await act(() => result.current.withdraw());
     expect(result.current.error).toBe(WITHDRAW_MASTER_MESSAGE);
     expect(assign).not.toHaveBeenCalled();
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 });

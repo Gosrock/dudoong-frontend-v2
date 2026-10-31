@@ -9,7 +9,7 @@ import {
   createGiftMutation,
   returnGiftMutation,
 } from '@/api/gift/mutations';
-import { handleCodes } from '@/api/handle-codes';
+import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import { myTicketQuery, myTicketsQuery } from '@/api/my-ticket/queries';
 
 import { refreshAfterGiftChange } from './gift-cache';
@@ -25,28 +25,26 @@ import { giftShare } from './gift-share';
 
 export type GiftActionError = { message: string; field?: 'memo' };
 
-/** 표(`gift-errors.ts`)로 `handleCodes`를 만든다. 처리 뒤 다시 읽기는 표의 `refetch`대로 */
+/** 표(`gift-errors.ts`)로 `handleError` 표를 만든다. 처리 뒤 다시 읽기는 표의 `refetch`대로 */
 function useGiftCodes(
   action: GiftAction,
   ctx: GiftRefetchContext,
   onOutcome: (outcome: GiftErrorOutcome, code: string) => void | Promise<void>,
-) {
+): ErrorCodeHandlers {
   const queryClient = useQueryClient();
   const { ticketUuid, giftToken } = ctx;
   return useMemo(
     () =>
-      handleCodes(
-        Object.fromEntries(
-          Object.entries(GIFT_ERROR_TABLE[action]).map(([code, outcome]) => [
-            code,
-            () => {
-              void (async () => {
-                await refetchForGift(queryClient, outcome.refetch, { ticketUuid, giftToken });
-                await onOutcome(outcome, code);
-              })();
-            },
-          ]),
-        ),
+      Object.fromEntries(
+        Object.entries(GIFT_ERROR_TABLE[action]).map(([code, outcome]) => [
+          code,
+          () => {
+            void (async () => {
+              await refetchForGift(queryClient, outcome.refetch, { ticketUuid, giftToken });
+              await onOutcome(outcome, code);
+            })();
+          },
+        ]),
       ),
     [action, queryClient, ticketUuid, giftToken, onOutcome],
   );
@@ -98,16 +96,10 @@ export function useSendGift(ticketUuid: string) {
   );
   const codes = useGiftCodes('send', { ticketUuid }, onOutcome);
 
+  // 티켓 무효화는 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     ...createGiftMutation(ticketUuid),
-    ...codes,
-    onSuccess: async (created) => {
-      setLink({
-        giftId: created.giftId,
-        linkPath: created.linkPath,
-        memo: created.memo,
-        existing: false,
-      });
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: myTicketQuery(ticketUuid).queryKey,
@@ -127,9 +119,19 @@ export function useSendGift(ticketUuid: string) {
         setError({ message: memoError, field: 'memo' });
         return;
       }
-      await mutation.mutateAsync(createGiftBody(memo)).catch(() => undefined);
+      try {
+        const created = await mutation.mutateAsync(createGiftBody(memo));
+        setLink({
+          giftId: created.giftId,
+          linkPath: created.linkPath,
+          memo: created.memo,
+          existing: false,
+        });
+      } catch (e) {
+        handleError(e, codes);
+      }
     },
-    [mutation, link],
+    [mutation, link, codes],
   );
 
   return { send, pending: mutation.isPending, link, error, gone };
@@ -183,9 +185,7 @@ export function useGiftLink(input: UseGiftLinkInput) {
 
   const mutation = useMutation({
     ...changeGiftMemoMutation(giftId),
-    ...codes,
-    onSuccess: async (result) => {
-      setMemo(result.memo);
+    onSuccess: async () => {
       if (ticketUuid) {
         await queryClient.invalidateQueries({
           queryKey: myTicketQuery(ticketUuid).queryKey,
@@ -204,12 +204,16 @@ export function useGiftLink(input: UseGiftLinkInput) {
         setError({ message: memoError, field: 'memo' });
         return false;
       }
-      return mutation
-        .mutateAsync(changeMemoBody(next))
-        .then(() => true)
-        .catch(() => false);
+      try {
+        const saved = await mutation.mutateAsync(changeMemoBody(next));
+        setMemo(saved.memo);
+        return true;
+      } catch (e) {
+        handleError(e, codes);
+        return false;
+      }
     },
-    [mutation, closed],
+    [mutation, closed, codes],
   );
 
   return { share, memo, saveMemo, savingMemo: mutation.isPending, error, closed };
@@ -232,18 +236,19 @@ export function useCancelGift(giftId: number | null, ctx: GiftRefetchContext = {
 
   const mutation = useMutation({
     ...cancelGiftMutation(giftId ?? 0),
-    ...codes,
-    onSuccess: async () => {
-      setDone(true);
-      await refreshAfterGiftChange(queryClient);
-    },
+    onSuccess: () => refreshAfterGiftChange(queryClient),
   });
 
   const cancel = useCallback(async () => {
     if (giftId === null || mutation.isPending || done) return;
     setError(null);
-    await mutation.mutateAsync().catch(() => undefined);
-  }, [giftId, mutation, done]);
+    try {
+      await mutation.mutateAsync();
+      setDone(true);
+    } catch (e) {
+      handleError(e, codes);
+    }
+  }, [giftId, mutation, done, codes]);
 
   return { cancel, pending: mutation.isPending, error, done };
 }
@@ -269,7 +274,7 @@ export function useReturnGift(ticketUuid: string) {
 
   const mutation = useMutation({
     ...returnGiftMutation(ticketUuid),
-    ...codes,
+    // done(상세 닫기)을 옛 uuid T-2 제거보다 먼저 알려야 상세가 지운 쿼리를 다시 읽지 않는다 — 그래서 옵션에 둔다
     onSuccess: async () => {
       setDone(true);
       await refreshAfterGiftChange(queryClient, { staleTicketUuid: ticketUuid });
@@ -279,8 +284,12 @@ export function useReturnGift(ticketUuid: string) {
   const giveBack = useCallback(async () => {
     if (mutation.isPending || done) return;
     setError(null);
-    await mutation.mutateAsync().catch(() => undefined);
-  }, [mutation, done]);
+    try {
+      await mutation.mutateAsync();
+    } catch (e) {
+      handleError(e, codes);
+    }
+  }, [mutation, done, codes]);
 
   return { giveBack, pending: mutation.isPending, error, done, gone };
 }

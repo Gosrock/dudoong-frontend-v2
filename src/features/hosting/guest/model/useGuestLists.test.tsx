@@ -9,7 +9,7 @@ import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { hostingGuestHandlers } from '@/api/__mocks__/hosting-guest.handlers';
 import { server } from '@/api/__mocks__/server';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -105,8 +105,8 @@ describe('주문 탭(GR-1)', () => {
     expect(await sent.list()).toEqual([]);
   });
 
-  it('엑셀(매니저): 지금 필터로 xlsx를 받아 저장, 1만 행 초과는 안내(전역 토스트 없음)', async () => {
-    const { result, queryClient } = setup(() => useOrderList('101'));
+  it('엑셀(매니저): 지금 필터로 xlsx를 받아 저장, 1만 행 초과는 안내(공용 토스트 없음)', async () => {
+    const { result } = setup(() => useOrderList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
     act(() => result.current.setStatus('APPROVED'));
     const sent = recordRequests();
@@ -127,10 +127,9 @@ describe('주문 탭(GR-1)', () => {
       ok = await result.current.exportExcel();
     });
     expect([ok, result.current.exportError]).toEqual([false, EXPORT_TOO_MANY_MESSAGE]);
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
-  it('엑셀 403 HOST_400_1(화면을 연 뒤 일반 멤버가 됨) → GE-3 다시 읽기 → 엑셀 버튼이 사라진다(403은 전역 처리)', async () => {
+  it('엑셀 403 HOST_400_1(화면을 연 뒤 일반 멤버가 됨) → GE-3 다시 읽기 → 엑셀 버튼이 사라진다(403은 공용 토스트)', async () => {
     const { result } = setup(() => useOrderList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
     expect(result.current.canExport).toBe(true);
@@ -141,6 +140,7 @@ describe('주문 탭(GR-1)', () => {
       ok = await result.current.exportExcel();
     });
     expect(ok).toBe(false);
+    expect(errorToast).toHaveBeenCalledWith(expect.any(String), 'mutation:HOST_400_1');
     await waitFor(() => expect(result.current.canExport).toBe(false));
     expect(await sent.lines()).toContain('GET /api/v2/events/101/manage');
   });

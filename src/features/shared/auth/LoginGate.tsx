@@ -9,7 +9,7 @@ import { isSessionLost } from '@/api/errors';
 import { meQuery } from '@/api/me/queries';
 import {
   AsyncBoundary,
-  type AsyncBoundaryRejectedProps,
+  type ErrorFallbackProps,
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
@@ -35,7 +35,7 @@ import { useProtectedArea } from './protected-area';
 export function LoginGate({ children }: { children: ReactNode }) {
   useProtectedArea();
   return (
-    <AsyncBoundary pending={<GateSkeleton />} rejected={GateRejected} ignoreError={isSessionLost}>
+    <AsyncBoundary pending={<GateSkeleton />} rejected={GateRejected} holdOn={isSessionLost}>
       <GateContent>{children}</GateContent>
     </AsyncBoundary>
   );
@@ -80,7 +80,7 @@ function GateSkeleton() {
 }
 
 /** `AsyncBoundary`의 기본 재시도 화면과 같은 문구·동작을 전체 화면으로 */
-function GateRejected({ reset }: AsyncBoundaryRejectedProps) {
+function GateRejected({ reset }: ErrorFallbackProps) {
   return (
     <Flex align="center" justify="center" className={s.fullScreen}>
       <div role="alert">

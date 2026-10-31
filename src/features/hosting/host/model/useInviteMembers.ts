@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { type ApiError } from '@/api/errors';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { addHostMembersMutation } from '@/api/host/mutations';
 import type { AssignableHostRole } from '@/api/host/schema';
 import type { ActorRole } from '@/features/shared/permission/model/can';
@@ -31,7 +31,7 @@ import {
  * - 제출: 칸 오류(빈칸·이메일 모양·같은 이메일 두 번)가 있으면 요청하지 않는다. 요청 중에는 다시 보내지 않는다
  * - 성공: 응답(변경 뒤 멤버 전체 목록)을 GH-6 키에 넣고 멤버 수가 바뀐 GH-3 두 키를 무효화한 뒤, 폼을 한 줄로 비운다. `submit()`이 `true`
  * - 실패(patterns §24 P10b): `HOST_400_13`·`14`·`15`·`18` → `reason`의 이메일과 같은 줄에 사유(`rowErrors`). 맞는 줄이 없으면 `formError`.
- *   그 줄을 고치면 그 줄의 서버 오류를 지운다. 그 밖(400 `BAD_REQUEST`·403 등)은 전역 토스트
+ *   그 줄을 고치면 그 줄의 서버 오류를 지운다. 그 밖(400 `BAD_REQUEST`·403 등)은 공용 토스트(handleError)
  */
 export function useInviteMembers(hostId: string, myRole: ActorRole | null | undefined) {
   const queryClient = useQueryClient();
@@ -46,27 +46,11 @@ export function useInviteMembers(hostId: string, myRole: ActorRole | null | unde
 
   const localErrors = useMemo(() => inviteRowErrors(rows), [rows]);
 
-  const codes = useMemo(() => {
-    const mapToRows = (code: InviteErrorCode) => (e: ApiError) => {
-      const mapped = inviteServerErrors(code, e.reason, sentRows.current);
-      setServerErrors(mapped.rows);
-      setFormError(mapped.form);
-    };
-    return handleCodes(
-      Object.fromEntries(
-        (Object.keys(INVITE_ERROR_MESSAGE) as InviteErrorCode[]).map((c) => [c, mapToRows(c)]),
-      ),
-    );
-  }, []);
-
+  // 목록 반영·무효화는 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     ...addHostMembersMutation(hostId),
-    ...codes,
     onSuccess: async (list) => {
       applyMembers(queryClient, hostId, list);
-      setRows([emptyInviteRow()]);
-      setServerErrors([]);
-      setAttempted(false);
       await invalidateHostSummary(queryClient, hostId);
     },
   });
@@ -111,12 +95,26 @@ export function useInviteMembers(hostId: string, myRole: ActorRole | null | unde
     sentRows.current = rows;
     try {
       await mutation.mutateAsync(toAddMembersBody(rows));
-      return true;
-    } catch {
-      // 표에 없는 실패는 전역 토스트가 맡는다
-      return false;
-    } finally {
       inflight.current = false;
+      setRows([emptyInviteRow()]);
+      setServerErrors([]);
+      setAttempted(false);
+      return true;
+    } catch (error) {
+      inflight.current = false;
+      const mapToRows = (code: InviteErrorCode) => (e: ApiError) => {
+        const mapped = inviteServerErrors(code, e.reason, sentRows.current);
+        setServerErrors(mapped.rows);
+        setFormError(mapped.form);
+      };
+      // 표에 없는 실패는 공용 토스트
+      handleError(
+        error,
+        Object.fromEntries(
+          (Object.keys(INVITE_ERROR_MESSAGE) as InviteErrorCode[]).map((c) => [c, mapToRows(c)]),
+        ),
+      );
+      return false;
     }
   }, [localErrors, mutation, roleOptions.length, rows]);
 

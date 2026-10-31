@@ -1,6 +1,6 @@
 /**
  * 선물 변경 에러 → 처리(patterns §24 P8b 행). 동작마다 화면이 맡는 코드와 그 뒤 다시 읽을 것을 한 표에 둔다.
- * 표에 없는 코드는 전역 `reason` 토스트로 간다. 훅은 이 표로 `handleCodes`를 만든다.
+ * 표에 없는 코드는 공용 토스트(`reason`)로 간다. 훅은 이 표로 `handleError` 표를 만든다.
  */
 
 export type GiftAction = 'send' | 'cancel' | 'memo' | 'accept' | 'reject' | 'return';

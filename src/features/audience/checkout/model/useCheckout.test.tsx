@@ -12,7 +12,7 @@ import { server } from '@/api/__mocks__/server';
 import { meQuery } from '@/api/me/queries';
 import { checkoutQuery, myOrderQuery } from '@/api/order/queries';
 import { CreateOrderRequestSchema, type MyOrderDetail } from '@/api/order/schema';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 import { toast } from '@/ui/components/Toast/Toast';
@@ -397,19 +397,18 @@ describe('제출 — 중복 방지 · 검증', () => {
   });
 });
 
-describe('에러 분기 — patterns §24 P7 행(handleCodes)', () => {
+describe('에러 분기 — patterns §24 P7 행(handleError)', () => {
   it.each([
     ['Order_400_22', 'DEPOSITOR_NAME'],
     ['Order_400_23', 'OPTION_ANSWERS'],
-  ] as const)('%s → 폼 상단 오류(%s), 전역 토스트 없음', async (code, kind) => {
+  ] as const)('%s → 폼 상단 오류(%s), 공용 토스트 없음', async (code, kind) => {
     server.use(...orderHandlers.createFails(code));
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
     await submitAndWait(r.result);
     expect(r.result.current.submitError?.kind).toBe(kind);
     expect(r.result.current.submitting).toBe(false);
-    const m = lastMutation(r);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
   });
 
@@ -437,8 +436,7 @@ describe('에러 분기 — patterns §24 P7 행(handleCodes)', () => {
         'GET /api/v2/events/101/ticket-items/501/checkout',
       ]),
     );
-    const m = lastMutation(r);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -455,18 +453,16 @@ describe('에러 분기 — patterns §24 P7 행(handleCodes)', () => {
     await submitAndWait(r.result);
     expect(router.replace).toHaveBeenCalledWith(to);
     expect(toast).toHaveBeenCalledWith(expect.any(String), { id: `checkout:${code}` });
-    const m = lastMutation(r);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
-  it('표에 없는 코드(Order_400_21)는 화면이 맡지 않는다 — 전역 토스트', async () => {
+  it('표에 없는 코드(Order_400_21)는 화면이 맡지 않는다 — 공용 토스트', async () => {
     server.use(...orderHandlers.createFails('Order_400_21'));
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
     await submitAndWait(r.result);
     expect(r.result.current.submitError).toBeNull();
-    const m = lastMutation(r);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalledWith(expect.any(String), 'mutation:Order_400_21');
     // 실패 뒤에는 다시 낼 수 있다
     server.resetHandlers();
     await submitAndWait(r.result);
@@ -538,7 +534,7 @@ describe('동의 기록 필드(#840) — 칸은 Q42 대기, 체크한 것만 보
     expect(created()).not.toBeNull();
   });
 
-  it('동의 강제가 켜진 백엔드면 400 Agreement_400_1 — 화면 표에 없어 전역 토스트, 완료로 가지 않는다', async () => {
+  it('동의 강제가 켜진 백엔드면 400 Agreement_400_1 — 화면 표에 없어 공용 토스트, 완료로 가지 않는다', async () => {
     server.use(...orderHandlers.agreementEnforced);
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
@@ -547,7 +543,7 @@ describe('동의 기록 필드(#840) — 칸은 Q42 대기, 체크한 것만 보
     expect(r.result.current.submitError).toBeNull();
     const m = lastMutation(r);
     expect(m.state.error).toMatchObject({ status: 400, code: 'Agreement_400_1' });
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalledWith(expect.any(String), 'mutation:Agreement_400_1');
   });
 });
 
@@ -561,14 +557,13 @@ describe('무료 선착순 확정 실패 — 주문이 아니라 에러', () => 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('표에 없는 실패(5xx)도 화면이 "다시 시도" 안내로 맡고(전역 토스트 없음), 다시 내면 새 주문', async () => {
+  it('표에 없는 실패(5xx)도 화면이 "다시 시도" 안내로 맡고(공용 토스트 없음), 다시 내면 새 주문', async () => {
     server.use(http.post('*/api/v2/me/orders', ({ request }) => errors.serverError(request)));
     const r = await openCheckout(CHECKOUT_TICKET.freeFcfs, 1);
     fill(r.result);
     await submitAndWait(r.result);
     expect(r.result.current.submitError?.kind).toBe('FREE_FCFS_FAILED');
-    const m = lastMutation(r);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
 
     server.resetHandlers();
     await submitAndWait(r.result);
@@ -577,14 +572,13 @@ describe('무료 선착순 확정 실패 — 주문이 아니라 에러', () => 
     ).toBe('APPROVED');
   });
 
-  it('입금형의 5xx는 전역 토스트(화면 안내 없음)', async () => {
+  it('입금형의 5xx는 공용 토스트(화면 안내 없음)', async () => {
     server.use(http.post('*/api/v2/me/orders', ({ request }) => errors.serverError(request)));
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
     await submitAndWait(r.result);
     expect(r.result.current.submitError).toBeNull();
-    const m = lastMutation(r);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalled();
   });
 });
 

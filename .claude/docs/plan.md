@@ -52,7 +52,7 @@
 2026-10-21 사용자 결정. 화면 디자인이 아직 끝나지 않았다. 남은 Phase(P4s, P4b, P5a~P13b — 18개, 2026-10-31 P9c를 더해 19개)를 **로직(L)**과 **뷰(V)**로 나누고, **지금은 L만 진행한다.** V는 디자인이 나오는 순서대로 붙인다. Phase 번호는 그대로 두고 `P6-L` · `P6-V`처럼 부른다. P0~P4a는 끝났고 그대로 둔다. P14·P15는 나누지 않는다(전 Phase의 L·V 뒤).
 
 **L(로직)**
-- **API** — 남은 엔드포인트의 `schema`·`queries`·`mutations`, `handleCodes`로 처리할 코드, MSW fixture·핸들러. 핸들러는 정상·빈 상태·에러 코드별로 이름 붙인 세트로 둔다
+- **API** — 남은 엔드포인트의 `schema`·`queries`·`mutations`, `handleError` 표로 처리할 코드, MSW fixture·핸들러. 핸들러는 정상·빈 상태·에러 코드별로 이름 붙인 세트로 둔다
 - **도메인 규칙** — 순수 함수
 - **화면 상태 훅** — UI와 무관하다. "시트를 연다" 같은 UI 동작을 넣지 않고 상태·동작·파생값만 돌려준다
 - **라우트 로직** — 서버 조회, `notFound`, `generateMetadata`/OG, 크롤러 상태 코드, `redirects()`, 인증 콜백. 페이지는 스타일 없는 최소 시맨틱 마크업으로 두고 V에서 바꾼다
@@ -70,7 +70,7 @@
 1. **도메인 규칙** — 표 기반 단위 테스트(`it.each`). 경계값과 `openEnum`의 `UNKNOWN` 분기를 넣는다.
 2. **스키마** — fixture 파싱 테스트. fixture는 백엔드 DTO(`Gosrock/DuDoong-Backend` `dev`)와 백엔드 e2e 테스트(`e2e-tests/test_*.py`)의 요청·응답 예시를 근거로 만든다. 공개 GET은 `pnpm check:contract`.
 3. **훅** — `renderHook` + `renderWithProviders` + MSW. Given(핸들러 세트) / When(동작) / Then(상태 + **실제로 보낸 요청 본문**). 테스트 이름은 한국어 시나리오 문장.
-4. **에러 분기** — [`error-codes.md`](./error-codes.md)의 코드마다 한 행. `handleCodes`가 처리하는 코드와 전역 토스트로 가는 코드를 모두 적는다([`patterns.md`](./patterns.md) §24).
+4. **에러 분기** — [`error-codes.md`](./error-codes.md)의 코드마다 한 행. `handleError` 표가 처리하는 코드와 공용 토스트로 가는 코드를 모두 적는다([`patterns.md`](./patterns.md) §24).
 5. **라우트 로직** — Playwright e2e(빌드 + 가짜 백엔드)로 상태 코드·메타 태그·리다이렉트만 본다. 캡처는 없다.
 6. 각 Phase L의 **완료 기준 ↔ 테스트 이름 대응표**를 [`implementation-log.md`](./implementation-log.md)에 남긴다(P4a 기록 형식).
 

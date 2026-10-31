@@ -3,13 +3,14 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { createOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
 import { replaceTicketOptionsMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { tryCatch } from '@/utils/try-catch';
 
 import {
   hasOptionFormErrors,
@@ -78,7 +79,7 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     setError(TICKET_OPTION_ERRORS[code]);
     void reload?.();
   };
-  const replaceCodes = handleCodes({
+  const replaceCodes = {
     Item_Option_Group_400_2: show('Item_Option_Group_400_2', () =>
       invalidateTickets(queryClient, eventId),
     ),
@@ -87,14 +88,13 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     Option_Group_404_1: show('Option_Group_404_1', () => invalidateOptions(queryClient, eventId)),
     Ticket_Item_404_1: show('Ticket_Item_404_1', () => invalidateTickets(queryClient, eventId)),
     Event_400_17: show('Event_400_17'),
-  });
+  };
   const replaceMutation = useMutation({
     ...replaceTicketOptionsMutation(eventId),
-    ...replaceCodes,
     onSuccess: (t) => applyTicketOptions(queryClient, eventId, t),
   });
 
-  const createCodes = handleCodes({
+  const createCodes = {
     ...Object.fromEntries(
       Object.entries(OPTION_FIELD_ERRORS).map(([code, { field, message }]) => [
         code,
@@ -102,10 +102,9 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
       ]),
     ),
     Event_400_17: () => setError(TICKET_OPTION_ERRORS.Event_400_17),
-  });
+  };
   const createMutation = useMutation({
     ...createOptionMutation(eventId),
-    ...createCodes,
     onSuccess: (o) => applyCreatedOption(queryClient, eventId, o),
   });
 
@@ -120,7 +119,8 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
         body: { optionIds: next },
       });
       return true;
-    } catch {
+    } catch (e) {
+      handleError(e, replaceCodes);
       return false;
     } finally {
       inflight.current = false;
@@ -156,30 +156,31 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     inflight.current = true;
     setError(null);
     setPartial(null);
-    let created: TicketOptionManage;
-    try {
-      created = await createMutation.mutateAsync(toCreateOptionBody(values));
-    } catch {
+    const [created, createError] = await tryCatch(
+      createMutation.mutateAsync(toCreateOptionBody(values)),
+    );
+    if (createError) {
       inflight.current = false;
+      handleError(createError, createCodes);
       return 'failed';
     }
     // 만들었다 — 폼을 비우고 붙인다. 붙이기가 실패해도 옵션은 풀에 남는다
     setValues(initialOptionFormValues());
     setAttempted(false);
     setServerErrors({});
-    try {
-      await replaceMutation.mutateAsync({
+    const [, attachError] = await tryCatch(
+      replaceMutation.mutateAsync({
         ticketItemId: ticket.ticketItemId,
         body: { optionIds: [...attachedIds, created.optionId] },
-      });
-      return 'attached';
-    } catch {
-      setPartial(created);
-      setError(TICKET_OPTION_ERRORS.partial);
-      return 'createdOnly';
-    } finally {
-      inflight.current = false;
-    }
+      }),
+    );
+    inflight.current = false;
+    if (!attachError) return 'attached';
+    // 표의 처리(다시 읽기)는 하고, 안내는 "만들었지만 못 붙임"으로 덮는다
+    handleError(attachError, replaceCodes);
+    setPartial(created);
+    setError(TICKET_OPTION_ERRORS.partial);
+    return 'createdOnly';
   };
 
   /** 만들고 붙이지 못한 옵션을 다시 붙인다 */

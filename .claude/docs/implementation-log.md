@@ -929,6 +929,23 @@ GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseRespon
 - **카카오 프로필 `name`(= 닉네임)을 이름 칸 초깃값으로 유지** — 왜: 서버가 이미 닉네임으로 채워 주고, 사용자가 고칠 수 있으며 v1도 같은 값을 썼다. 비워 두면 모든 신규 가입자가 이름을 직접 쳐야 한다. 되돌리기: `initialRegisterValues`의 `name`을 `''`로.
 - **mock 전화번호 검사는 libphonenumber 근사**(휴대폰 `01[016789]`·지역번호 + 자릿수, 해외 10자리 이상) — 왜: mock에 라이브러리를 들이지 않는다. 실제 판정은 서버이고, FE는 코드(`USER_400_2`)로만 분기하므로 mock 규칙의 세부는 테스트 입력용이다.
 
+## 에러 처리 정리(2026-10-31)
+
+**변경**
+- `@suspensive/react` 3.21.4 도입. `src/ui/components/ErrorBoundary`(suspensive ErrorBoundary + `QueryErrorResetBoundary`, `shouldCatch`·`holdOn`·`resetKeys`, `ErrorBoundaryGroup` 등 재노출), `AsyncBoundary`를 그 위에 suspensive `Suspense`로 다시 구현. 자체 class 경계 삭제. 사용처 `ignoreError` → `holdOn`. `isLocalBoundaryError`(`src/api/errors.ts`)
+- `src/api/handle-error.ts`(`handleError`), `src/utils/try-catch.ts`(Go 스타일 `tryCatch` → `[data, error]`), `src/api/error-toast.ts`. 호출 쪽은 기본 try/catch, 연쇄만 `tryCatch`(사용자 결정 — 처음엔 결과값 유틸 `settle`로 했다가 TanStack 관례가 아니라 바꿨다). 전역 `MutationCache.onError`는 로그만. `handle-codes.ts`·`meta.handled*`·`shouldToastMutationError` 삭제. 변경 훅 약 30개 이관
+- eslint `no-restricted-syntax`: 옵션 onError/onSettled, try 블록 밖이면서 `tryCatch` 인자도 아닌 mutateAsync, mutate 금지. 테스트는 `errorToast` 스파이(`src/test/error-toast.ts`)
+- 문서: tech-decisions §4·§13·§15, patterns §4-3(바운더리 영역 설정 가이드)·§4-5·§24 앞
+
+**결정**(사용자, 관제탑 2026-10-31): 조회 전역 토스트 유지, 바운더리는 suspensive에서, 변경은 호출 쪽 명시 처리.
+
+**Claude 판단**
+- `handleError`는 로그를 다시 남기지 않는다(전역이 이미 남김). 세 번째 인자 `{ otherwise }`로 표 밖 실패를 화면이 맡는다(무료 선착순·셀프 체크인·마케팅·호스트 스캔)
+- 낙관 갱신 되돌리기(알림 읽음)는 옵션 onError를 eslint-disable로 예외
+- 옵션 onSuccess에 남긴 화면 반응: 선물 반환 `setDone`, 옵션 삭제 `setDeleted`(캐시 반영보다 먼저 세워야 해서), 탈퇴 세션 정리·이동
+- 관심 호스트 해제: 캐시 반영을 옵션 onSuccess로 옮겨 연달아 해제해도 모두 빠진다(이전엔 마지막 호출만 — 작은 동작 개선)
+- eslint는 실제로 `ui → api`를 허용하지만 경계는 일반 술어 prop으로 유지
+
 ## 동의 강제 임박 대응 — v1 Front #384 (2026-10-31)
 
 v1 Front #384(백엔드 담당 작성, 2026-10-31): v1에서 동의를 안 보내는 곳은 호스트 어드민 카카오 가입(`/admin/kakao/callback`)뿐이고, 그 수정이 배포되면 백엔드가 `AGREEMENT_ENFORCE=true`로 켠다. v2는 칸(Q42)이 없어 강제가 켜지면 가입·주문·두둥티켓 생성이 전부 400이다.

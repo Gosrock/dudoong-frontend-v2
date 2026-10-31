@@ -1,6 +1,6 @@
 /**
  * 주문 생성(P11/O-1) 에러 분기 — patterns §24 P7 행. 화면 문구는 `code`로 정하고 서버 `reason`은 쓰지 않는다(§11).
- * 여기 없는 코드는 전역 토스트(`reason`)로 간다. 단, 무료 선착순은 확정 실패가 원래 에러로 오므로
+ * 여기 없는 코드는 공용 토스트(`reason`)로 간다. 단, 무료 선착순은 확정 실패가 원래 에러로 오므로
  * 표에 없는 실패도 화면이 "다시 시도" 안내로 맡는다(`useCheckout`).
  */
 
@@ -41,7 +41,7 @@ const row = (
   navigate: CheckoutErrorOutcome['navigate'] = null,
 ): CheckoutErrorOutcome => ({ kind, message, refetchTickets, navigate });
 
-/** 코드 → 처리. `handleCodes`의 키가 이 표의 키다 */
+/** 코드 → 처리. `handleError` 표의 키가 이 표의 키다 */
 export const CHECKOUT_ERROR_TABLE = {
   Event_400_5: row('EVENT_CLOSED', '지금은 예매할 수 없는 공연이에요.', false, 'event'),
   Event_400_6: row('EVENT_CLOSED', '공연이 시작되어 예매할 수 없어요.', false, 'event'),

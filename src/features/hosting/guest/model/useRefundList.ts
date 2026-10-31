@@ -1,9 +1,9 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { completeRefundMutation } from '@/api/order/mutations';
 import { refundsQuery } from '@/api/order/queries';
 import type { RefundStatusFilter } from '@/api/order/schema';
@@ -31,19 +31,8 @@ export function useRefundList(eventId: string) {
   const [pendingUuid, setPendingUuid] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const codes = useMemo(() => {
-    const reread = (message: string) => {
-      setActionError(message);
-      void invalidateGuestLists(queryClient, eventId);
-    };
-    return handleCodes({
-      Order_400_17: () => reread(REFUND_ERROR_MESSAGE.Order_400_17),
-      Order_404_1: () => reread(DETAIL_MISSING_MESSAGE),
-    });
-  }, [eventId, queryClient]);
   const m = useMutation({
     ...completeRefundMutation(eventId),
-    ...codes,
     onSuccess: (d) =>
       applyChangedOrder(queryClient, eventId, d, { ticketAvailabilityChanged: false }),
   });
@@ -63,13 +52,22 @@ export function useRefundList(eventId: string) {
       try {
         await m.mutateAsync(orderUuid);
         return true;
-      } catch {
+      } catch (e) {
+        const reread = (message: string) => {
+          setActionError(message);
+          void invalidateGuestLists(queryClient, eventId);
+        };
+        // 표에 없는 실패는 공용 토스트
+        handleError(e, {
+          Order_400_17: () => reread(REFUND_ERROR_MESSAGE.Order_400_17),
+          Order_404_1: () => reread(DETAIL_MISSING_MESSAGE),
+        });
         return false;
       } finally {
         setPendingUuid(null);
       }
     },
-    [m, pendingUuid, rows],
+    [eventId, m, pendingUuid, queryClient, rows],
   );
 
   return {

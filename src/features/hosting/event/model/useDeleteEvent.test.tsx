@@ -9,7 +9,7 @@ import { hostingEventSets } from '@/api/__mocks__/hosting-event.handlers';
 import { server } from '@/api/__mocks__/server';
 import { MY_EVENTS_KEY } from '@/api/event/queries';
 import { MY_HOSTS_KEY } from '@/api/host/queries';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -69,7 +69,6 @@ describe('공연 삭제(DE-9) — 준비중 공연 카드 ⋮', () => {
     await act(() => result.current.deleteEvent(preparing));
     expect(result.current.error).toBe('등록된 공연은 삭제할 수 없어요');
     expect(invalidate).toHaveBeenCalledWith({ queryKey: MY_EVENTS_KEY });
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 });
