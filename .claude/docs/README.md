@@ -13,7 +13,7 @@
 | [`tech-decisions.md`](./tech-decisions.md) | 기술 결정(§0~§20), 검증·조사 기록(§21~§23·§26), 도구 세팅(§24), 배포 인프라(§25), 검토 기록(§27~§29), GUI 반영(§30 — 2026-10-15, 2026-10-25 갱신), P0 결과(§31), 테스트 환경 세팅(§32) |
 | [`api-contract.md`](./api-contract.md) | 백엔드 `/api/v2` 규약·권한·상태·API 색인(86개), v1 인증 API, 알림 문구. 코드 대조 기준 `432cce4`(2026-10-25) |
 | [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 203개(`24aa595` 자동 추출 200개 + 2026-10-25 `432cce4` 대조로 손으로 더한 `AUTH_401_2`·`Agreement_400_1`·`Notice_404_1`) |
-| [`plan.md`](./plan.md) | 26개 Phase(2026-10-31 P9c 서비스 공지 추가, 남은 Phase는 로직 L / 뷰 V로 나눔 — §0), 선행 관계, API 배정 |
+| [`plan.md`](./plan.md) | 26개 Phase(2026-10-31 P9c 서비스 공지 추가, 남은 Phase는 로직 L / 뷰 V로 나눔 — §0), 선행 관계, API 배정. **진행 현황**은 개요 끝(2026-10-31: L은 P4s-L만 남음, V는 전부 디자인 대기) |
 | [`legal-copy.md`](./legal-copy.md) | 약관 근거 화면 문구(2026-10-25 시행 약관) — v1 운영 원문, 조항, v2 Phase·위치, "약관 표시 의무 — v2 계획에 위치 없음(위험)" 표시. 문구가 바뀌면 `agreementVersion`을 올린다 |
 | [`gui-screens.md`](./gui-screens.md) | Figma "GUI 화면" 파일 — 관객·호스팅 화면 목록과 라우트·Phase 대응, 데스크탑 대시보드, GUI와 서버가 다른 것의 요약(원본은 design-requests §3) |
 | [`design-system.md`](./design-system.md) | 디자인 시스템(토큰·그리드·폰트·아이콘)과 컴포넌트 구현 결정(Radix + vanilla-extract, 컴포넌트별 출처·props) |
