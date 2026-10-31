@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 
 import { Txt } from '../../primitives/Txt';
 import { colors } from '../../theme/colors';
@@ -16,6 +16,8 @@ export type ConcertCardProps = {
   date?: string | null;
   /** 서버 포스터 주소. 없거나 못 읽으면 빈 상자(design-requests Q26 — 기본 이미지 자산 없음) */
   posterUrl?: string | null;
+  /** 포스터 왼쪽 위에 얹는 상태 표시(보통 `Chip` — 호스트 홈 "준비중"·"D-15", 와이어 `503:30867`). 없으면 그리지 않는다 */
+  badge?: ReactNode;
   className?: string;
 };
 
@@ -24,10 +26,13 @@ export type ConcertCardProps = {
  * 누른 뒤 응답을 기다리는 동안 날짜 줄 끝에 이동 표시(`LinkProgress`)가 나온다 — `(public)`에는 `loading.tsx`가 없다(patterns §6).
  * 제목은 2줄 말줄임(컴포넌트 설정), 날짜는 말줄임 없음.
  */
-export function ConcertCard({ href, title, date, posterUrl, className }: ConcertCardProps) {
+export function ConcertCard({ href, title, date, posterUrl, badge, className }: ConcertCardProps) {
   return (
     <Link href={href} className={className ? `${s.root} ${className}` : s.root}>
-      <Poster key={posterUrl ?? ''} src={posterUrl ?? null} />
+      <span className={s.posterWrap}>
+        <Poster key={posterUrl ?? ''} src={posterUrl ?? null} />
+        {badge ? <span className={s.badge}>{badge}</span> : null}
+      </span>
       <span className={s.meta}>
         <span className={s.dateRow}>
           <Txt typography="labelSm" color={colors.textSecondary} className={s.date}>
