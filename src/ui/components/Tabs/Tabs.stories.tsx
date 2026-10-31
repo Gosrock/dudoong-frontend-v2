@@ -116,3 +116,21 @@ export const Keyboard: Story = {
     await expect(c.getByTestId('tab')).toHaveTextContent('ticket');
   },
 };
+
+/** `size="responsive"` — 1024 미만 md(16), 1024부터 lg(20). 같은 DOM에서 CSS로 크기만 바뀐다(공연 상세 섹션 탭) */
+export const Responsive: Story = {
+  render: () => (
+    <Tabs defaultValue="intro">
+      <TabList aria-label="공연 안내" size="responsive">
+        <Tab value="intro">공연소개</Tab>
+        <Tab value="guide">예매안내</Tab>
+        <Tab value="setlist">세트리스트</Tab>
+        <Tab value="notice">유의사항</Tab>
+      </TabList>
+      <TabPanel value="intro">공연 소개 본문</TabPanel>
+      <TabPanel value="guide">예매 안내 본문</TabPanel>
+      <TabPanel value="setlist">세트리스트 본문</TabPanel>
+      <TabPanel value="notice">유의사항 본문</TabPanel>
+    </Tabs>
+  ),
+};

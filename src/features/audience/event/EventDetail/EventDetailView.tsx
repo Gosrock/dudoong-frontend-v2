@@ -164,7 +164,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
 
           {tabs.length > 0 && (
             <Tabs value={tab} onValueChange={setTab}>
-              <TabList aria-label="공연 안내" size="responsive">
+              <TabList aria-label="공연 안내" size="responsive" className={s.tabList}>
                 {tabs.map((t) => (
                   <Tab key={t.key} value={t.key}>
                     {t.title}
@@ -256,9 +256,9 @@ function PlaceAddress({ place }: { place: NonNullable<EventDetail['place']> }) {
 function EventPoster({ src, alt }: { src: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return null;
-  // 서버 이미지(자산 도메인). nginx가 `/_next/image`를 막아 next/image 최적화를 쓰지 않는다(v1 #378)
-
   return (
+    // 서버 이미지(자산 도메인). nginx가 `/_next/image`를 막아 next/image 최적화를 쓰지 않는다(v1 #378)
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       // 서버 HTML의 이미지는 하이드레이션 전에 실패할 수 있어 onError를 놓친다 — 붙을 때 한 번 더 본다
       ref={(img) => {

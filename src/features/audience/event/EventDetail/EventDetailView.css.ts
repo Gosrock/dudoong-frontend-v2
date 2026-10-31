@@ -196,3 +196,11 @@ export const weekDay = style({
     '&[data-event-day]': { background: vars.color.brand.primary, color: vars.color.text.onBrand },
   },
 });
+
+/** 섹션이 많으면(서버 상한 10) 탭 줄만 가로로 스크롤한다 — 페이지가 옆으로 밀리지 않게 */
+export const tabList = style({
+  overflowX: 'auto',
+  overflowY: 'hidden',
+  scrollbarWidth: 'none',
+  selectors: { '&::-webkit-scrollbar': { display: 'none' } },
+});
