@@ -3,10 +3,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { followHostMutation, unfollowHostMutation } from '@/api/host/mutations';
 import { hostViewerQuery } from '@/api/host/queries';
 import type { HostViewer } from '@/api/host/schema';
-import { handleError, settle } from '@/api/settle';
 
 /**
  * ♡ 상태(UI 무관).
@@ -59,20 +59,18 @@ export function useHostFollow(
     );
     queryClient.setQueryData(viewerKey, { ...current, isFollowing: next });
     void (async () => {
-      const r = await settle(mutateAsync(next));
-      if (!r.ok) {
-        handleError(r.error);
+      try {
+        const res = await mutateAsync(next);
+        if (id !== latest.current) return;
+        queryClient.setQueryData(viewerKey, (old) =>
+          old ? { ...old, isFollowing: res.isFollowing, followerCount: res.followerCount } : old,
+        );
+      } catch (e) {
+        handleError(e);
         if (id === latest.current) {
           void queryClient.invalidateQueries({ queryKey: viewerKey, exact: true });
         }
-        return;
       }
-      if (id !== latest.current) return;
-      queryClient.setQueryData(viewerKey, (old) =>
-        old
-          ? { ...old, isFollowing: r.data.isFollowing, followerCount: r.data.followerCount }
-          : old,
-      );
     })();
     // viewerKey는 hostId에서만 나온다
     // eslint-disable-next-line react-hooks/exhaustive-deps

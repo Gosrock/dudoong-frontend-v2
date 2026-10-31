@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import { deleteEventMutation } from '@/api/event/mutations';
 import { MY_EVENTS_KEY } from '@/api/event/queries';
 import type { EventStatus } from '@/api/event/schema';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import { applyDeleted } from './event-cache';
@@ -36,15 +36,18 @@ export function useDeleteEvent() {
     async (event: { eventId: number; status: EventStatus; myRole: ActorRole | null }) => {
       if (!canDeleteEvent(event) || mutation.isPending) return false;
       setError(null);
-      const r = await settle(mutation.mutateAsync(event.eventId));
-      if (r.ok) return true;
-      handleError(r.error, {
-        Event_400_19: () => {
-          setError(DELETE_EVENT_ERROR_MESSAGE.Event_400_19);
-          void queryClient.invalidateQueries({ queryKey: MY_EVENTS_KEY });
-        },
-      });
-      return false;
+      try {
+        await mutation.mutateAsync(event.eventId);
+        return true;
+      } catch (e) {
+        handleError(e, {
+          Event_400_19: () => {
+            setError(DELETE_EVENT_ERROR_MESSAGE.Event_400_19);
+            void queryClient.invalidateQueries({ queryKey: MY_EVENTS_KEY });
+          },
+        });
+        return false;
+      }
     },
     [mutation, queryClient],
   );

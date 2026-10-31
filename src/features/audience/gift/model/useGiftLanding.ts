@@ -8,7 +8,7 @@ import { isNotFound } from '@/api/errors';
 import { acceptGiftMutation, rejectGiftMutation } from '@/api/gift/mutations';
 import { giftLandingQuery, giftLandingViewerQuery } from '@/api/gift/queries';
 import type { GiftLanding } from '@/api/gift/schema';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import { useSession } from '@/features/shared/auth/useSession';
 
 import { refreshAfterGiftChange } from './gift-cache';
@@ -130,9 +130,12 @@ export function useGiftLanding(giftToken: string) {
     async (m: typeof accept | typeof reject, onSuccess?: () => void) => {
       if (receiveMode !== 'enabled') return;
       setActionError(null);
-      const r = await settle(m.mutateAsync());
-      if (!r.ok) return handleError(r.error, codes);
-      onSuccess?.();
+      try {
+        await m.mutateAsync();
+        onSuccess?.();
+      } catch (e) {
+        handleError(e, codes);
+      }
     },
     [receiveMode, codes],
   );

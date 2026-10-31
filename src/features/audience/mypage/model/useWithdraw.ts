@@ -3,8 +3,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { clearSessionFlag } from '@/api/session-flag';
-import { handleError, settle } from '@/api/settle';
 import { withdrawAccount } from '@/api/user/calls';
 import { browserLocation } from '@/features/shared/auth/browser-location';
 
@@ -31,8 +31,11 @@ export function useWithdraw() {
   const withdraw = useCallback(async () => {
     if (mutation.isPending || mutation.isSuccess) return;
     setError(null);
-    const r = await settle(mutation.mutateAsync());
-    if (!r.ok) handleError(r.error, { USER_400_6: () => setError(WITHDRAW_MASTER_MESSAGE) });
+    try {
+      await mutation.mutateAsync();
+    } catch (e) {
+      handleError(e, { USER_400_6: () => setError(WITHDRAW_MASTER_MESSAGE) });
+    }
   }, [mutation]);
   return { withdraw, pending: mutation.isPending || mutation.isSuccess, error };
 }

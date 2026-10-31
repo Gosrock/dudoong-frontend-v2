@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import type { Downloaded } from '@/api/client';
 import { getErrorCode } from '@/api/errors';
 import { eventManageQuery } from '@/api/event/queries';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import { can } from '@/features/shared/permission/model/can';
 import { saveBlob } from '@/utils/download';
 
@@ -34,23 +34,24 @@ export function useGuestExport<P>(
     async (params: P) => {
       if (!canExport || m.isPending) return false;
       setError(null);
-      const r = await settle(m.mutateAsync(params));
-      if (r.ok) {
-        saveBlob(r.data.blob, r.data.filename, fallbackName);
+      try {
+        const data = await m.mutateAsync(params);
+        saveBlob(data.blob, data.filename, fallbackName);
         return true;
-      }
-      if (getErrorCode(r.error) === 'HOST_400_1') {
-        void queryClient.invalidateQueries({
-          queryKey: eventManageQuery(eventId).queryKey,
-          exact: true,
+      } catch (e) {
+        if (getErrorCode(e) === 'HOST_400_1') {
+          void queryClient.invalidateQueries({
+            queryKey: eventManageQuery(eventId).queryKey,
+            exact: true,
+          });
+        }
+        // HOST_400_1을 포함해 표에 없는 실패는 공용 토스트
+        handleError(e, {
+          Order_400_19: () => setError(EXPORT_TOO_MANY_MESSAGE),
+          IssuedTicket_400_7: () => setError(EXPORT_TOO_MANY_MESSAGE),
         });
+        return false;
       }
-      // HOST_400_1을 포함해 표에 없는 실패는 공용 토스트
-      handleError(r.error, {
-        Order_400_19: () => setError(EXPORT_TOO_MANY_MESSAGE),
-        IssuedTicket_400_7: () => setError(EXPORT_TOO_MANY_MESSAGE),
-      });
-      return false;
     },
     [canExport, eventId, fallbackName, m, queryClient],
   );

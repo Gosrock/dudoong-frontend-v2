@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import {
   removeHostMemberMutation,
   transferMasterMutation,
@@ -11,9 +12,9 @@ import {
 import { hostMembersQuery, hostViewerQuery } from '@/api/host/queries';
 import type { AssignableHostRole } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
-import { handleError, settle, type Settled } from '@/api/settle';
 import { hostingAccessOfRole } from '@/features/hosting/access/model/hosting-access';
 import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
+import { type Result, tryCatch } from '@/utils/try-catch';
 
 import { applyMembers, invalidateHostSummary, invalidateMyRoleQueries } from './host-cache';
 import {
@@ -69,16 +70,16 @@ export function useHostMembers(hostId: string) {
 
   /** 한 번에 하나만. 성공하면 `true`. 표에 없는 실패는 공용 토스트 */
   const run = useCallback(
-    async (userId: number, call: () => Promise<Settled<unknown>>) => {
+    async (userId: number, call: () => Promise<Result<unknown>>) => {
       if (inflight.current) return false;
       inflight.current = true;
       setPendingUserId(userId);
       setActionError(null);
-      const r = await call();
+      const [, error] = await call();
       inflight.current = false;
       setPendingUserId(null);
-      if (r.ok) return true;
-      handleError(r.error, {
+      if (!error) return true;
+      handleError(error, {
         HOST_404_2: () => {
           setActionError(MEMBER_ACTION_ERROR_MESSAGE.HOST_404_2);
           void queryClient.invalidateQueries({
@@ -119,17 +120,17 @@ export function useHostMembers(hostId: string) {
     /** 역할 변경(PH-10, 마스터만). 행이 허용한 역할만 보낸다 */
     changeRole: (userId: number, role: AssignableHostRole) =>
       findActions(userId)?.changeRoleTo === role
-        ? run(userId, () => settle(roleMutation.mutateAsync({ userId, role })))
+        ? run(userId, () => tryCatch(roleMutation.mutateAsync({ userId, role })))
         : Promise.resolve(false),
     /** 삭제(DH-11) */
     remove: (userId: number) =>
       findActions(userId)?.remove
-        ? run(userId, () => settle(removeMutation.mutateAsync(userId)))
+        ? run(userId, () => tryCatch(removeMutation.mutateAsync(userId)))
         : Promise.resolve(false),
     /** 마스터 양도(PH-12) — 확인은 V */
     transferMaster: (userId: number) =>
       findActions(userId)?.transfer
-        ? run(userId, () => settle(transferMutation.mutateAsync({ userId })))
+        ? run(userId, () => tryCatch(transferMutation.mutateAsync({ userId })))
         : Promise.resolve(false),
     /** 요청 중인 멤버 */
     pendingUserId,

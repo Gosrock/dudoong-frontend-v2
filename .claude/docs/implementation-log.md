@@ -910,8 +910,8 @@ GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseRespon
 
 **변경**
 - `@suspensive/react` 3.21.4 도입. `src/ui/components/ErrorBoundary`(suspensive ErrorBoundary + `QueryErrorResetBoundary`, `shouldCatch`·`holdOn`·`resetKeys`, `ErrorBoundaryGroup` 등 재노출), `AsyncBoundary`를 그 위에 suspensive `Suspense`로 다시 구현. 자체 class 경계 삭제. 사용처 `ignoreError` → `holdOn`. `isLocalBoundaryError`(`src/api/errors.ts`)
-- `src/api/settle.ts`(`settle`, `handleError`), `src/api/error-toast.ts`. 전역 `MutationCache.onError`는 로그만. `handle-codes.ts`·`meta.handled*`·`shouldToastMutationError` 삭제. 변경 훅 약 30개 이관
-- eslint `no-restricted-syntax`: 옵션 onError/onSettled, settle 밖 mutateAsync, mutate 금지. 테스트는 `errorToast` 스파이(`src/test/error-toast.ts`)
+- `src/api/handle-error.ts`(`handleError`), `src/utils/try-catch.ts`(Go 스타일 `tryCatch` → `[data, error]`), `src/api/error-toast.ts`. 호출 쪽은 기본 try/catch, 연쇄만 `tryCatch`(사용자 결정 — 처음엔 결과값 유틸 `settle`로 했다가 TanStack 관례가 아니라 바꿨다). 전역 `MutationCache.onError`는 로그만. `handle-codes.ts`·`meta.handled*`·`shouldToastMutationError` 삭제. 변경 훅 약 30개 이관
+- eslint `no-restricted-syntax`: 옵션 onError/onSettled, try 블록 밖이면서 `tryCatch` 인자도 아닌 mutateAsync, mutate 금지. 테스트는 `errorToast` 스파이(`src/test/error-toast.ts`)
 - 문서: tech-decisions §4·§13·§15, patterns §4-3(바운더리 영역 설정 가이드)·§4-5·§24 앞
 
 **결정**(사용자, 관제탑 2026-10-31): 조회 전역 토스트 유지, 바운더리는 suspensive에서, 변경은 호출 쪽 명시 처리.

@@ -8,11 +8,11 @@ import {
 } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { unfollowHostMutation } from '@/api/host/mutations';
 import { hostViewerQuery } from '@/api/host/queries';
 import { FOLLOWING_HOSTS_KEY, followingHostsQuery } from '@/api/me/queries';
 import type { FollowingHost, FollowingHostFilter } from '@/api/me/schema';
-import { handleError, settle } from '@/api/settle';
 import { flattenPages, type Page } from '@/api/shared/page';
 
 import { eventHref, FOLLOWING_TABS, hostHref, representativeBadge } from './lists';
@@ -59,13 +59,17 @@ export function useFollowingHosts() {
       if (unfollowing.has(hostId)) return;
       setUnfollowing((s) => new Set(s).add(hostId));
       void (async () => {
-        const r = await settle(mutateAsync(hostId));
-        setUnfollowing((s) => {
-          const next = new Set(s);
-          next.delete(hostId);
-          return next;
-        });
-        if (!r.ok) handleError(r.error);
+        try {
+          await mutateAsync(hostId);
+        } catch (e) {
+          handleError(e);
+        } finally {
+          setUnfollowing((s) => {
+            const next = new Set(s);
+            next.delete(hostId);
+            return next;
+          });
+        }
       })();
     },
     [mutateAsync, unfollowing],

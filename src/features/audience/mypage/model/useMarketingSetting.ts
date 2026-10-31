@@ -3,9 +3,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { updateMeMutation } from '@/api/me/mutations';
 import { meQuery } from '@/api/me/queries';
-import { handleError, settle } from '@/api/settle';
 import { useSession } from '@/features/shared/auth/useSession';
 
 import { MARKETING_ERROR_MESSAGE, marketingResultMessage } from './profile';
@@ -35,22 +35,22 @@ export function useMarketingSetting(now: () => Date = () => new Date()) {
     async (next: boolean) => {
       if (mutation.isPending || value === undefined || next === value) return;
       setNotice(null);
-      const r = await settle(mutation.mutateAsync({ marketingAgree: next }));
-      if (r.ok) {
+      try {
+        const me = await mutation.mutateAsync({ marketingAgree: next });
         setNotice({
           tone: 'success',
-          message: marketingResultMessage(r.data.marketingAgree, now()),
+          message: marketingResultMessage(me.marketingAgree, now()),
         });
-        return;
+      } catch (e) {
+        // 모든 실패를 화면이 맡는다(세션 상실은 handleError가 거른다 — `onSessionLost`가 이동시킨다)
+        handleError(
+          e,
+          {},
+          {
+            otherwise: () => setNotice({ tone: 'error', message: MARKETING_ERROR_MESSAGE }),
+          },
+        );
       }
-      // 모든 실패를 화면이 맡는다(세션 상실은 handleError가 거른다 — `onSessionLost`가 이동시킨다)
-      handleError(
-        r.error,
-        {},
-        {
-          otherwise: () => setNotice({ tone: 'error', message: MARKETING_ERROR_MESSAGE }),
-        },
-      );
     },
     [mutation, value, now],
   );

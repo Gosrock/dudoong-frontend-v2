@@ -5,7 +5,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { updateEventSectionsMutation } from '@/api/event/mutations';
 import { eventManageQuery, eventSectionsManageQuery } from '@/api/event/queries';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED, uploadImage } from '@/api/upload';
 
 import { applySavedSections } from './event-cache';
@@ -84,14 +84,17 @@ export function useEventSections(eventId: string) {
     async (file: File): Promise<string | null> => {
       if (!canEdit) return null;
       setImageError(null);
-      const r = await settle(imageMutation.mutateAsync(file));
-      if (r.ok) return r.data.url;
-      const show = (code: keyof typeof IMAGE_ERROR) => () => setImageError(IMAGE_ERROR[code]);
-      handleError(r.error, {
-        [UPLOAD_INVALID_EXTENSION]: show(UPLOAD_INVALID_EXTENSION),
-        [UPLOAD_PUT_FAILED]: show(UPLOAD_PUT_FAILED),
-      });
-      return null;
+      try {
+        const uploaded = await imageMutation.mutateAsync(file);
+        return uploaded.url;
+      } catch (e) {
+        const show = (code: keyof typeof IMAGE_ERROR) => () => setImageError(IMAGE_ERROR[code]);
+        handleError(e, {
+          [UPLOAD_INVALID_EXTENSION]: show(UPLOAD_INVALID_EXTENSION),
+          [UPLOAD_PUT_FAILED]: show(UPLOAD_PUT_FAILED),
+        });
+        return null;
+      }
     },
     [canEdit, imageMutation],
   );
@@ -111,27 +114,29 @@ export function useEventSections(eventId: string) {
     inflight.current = true;
     setFormError(null);
     const wasRegistered = scope.registered;
-    const r = await settle(saveMutation.mutateAsync(toUpdateSectionsBody(values)));
-    inflight.current = false;
-    if (r.ok) {
-      const next = sectionInputsOf(r.data);
+    try {
+      const saved = await saveMutation.mutateAsync(toUpdateSectionsBody(values));
+      inflight.current = false;
+      const next = sectionInputsOf(saved);
       setBase(next);
       setValues(next);
       setAttempted(false);
       setSavedNotice(wasRegistered ? 'registeredChanged' : 'saved');
       return true;
+    } catch (e) {
+      inflight.current = false;
+      handleError(e, {
+        Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
+        Event_400_17: () => {
+          setFormError('끝난 공연은 수정할 수 없어요');
+          void queryClient.invalidateQueries({
+            queryKey: eventManageQuery(eventId).queryKey,
+            exact: true,
+          });
+        },
+      });
+      return false;
     }
-    handleError(r.error, {
-      Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
-      Event_400_17: () => {
-        setFormError('끝난 공연은 수정할 수 없어요');
-        void queryClient.invalidateQueries({
-          queryKey: eventManageQuery(eventId).queryKey,
-          exact: true,
-        });
-      },
-    });
-    return false;
   }, [blocked, dirty, errors, eventId, queryClient, saveMutation, scope.registered, values]);
 
   const canSave = !blocked && dirty && !hasSectionErrors(errors);

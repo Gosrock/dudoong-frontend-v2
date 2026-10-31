@@ -53,7 +53,7 @@ function makeQueryClient() {
         notifyError(errorMessageOf(error), `query:${query.queryHash}`);
       },
     }),
-    // 변경 실패는 로그만 남긴다. 화면 반응(토스트·안내·이동)은 호출 쪽이 `settle` + `handleError`로 한다(tech-decisions §4)
+    // 변경 실패는 로그만 남긴다. 화면 반응(토스트·안내·이동)은 호출 쪽이 try/catch(연쇄면 `tryCatch`) + `handleError`로 한다(tech-decisions §4)
     mutationCache: new MutationCache({
       onError: (error) => {
         if (isSessionLost(error)) return;

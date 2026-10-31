@@ -5,12 +5,13 @@ import { useCallback, useRef, useState } from 'react';
 
 import { hostCheckInMutation } from '@/api/check-in/mutations';
 import { isSessionLost } from '@/api/errors';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import {
   type CheckInResultView,
   checkInResultView,
 } from '@/features/shared/checkin-result/model/checkin-result';
+import { tryCatch } from '@/utils/try-catch';
 
 import { invalidateAfterScan, invalidateEventStatus } from './qr-cache';
 import {
@@ -107,9 +108,10 @@ export function useHostScan(
           if (next !== null) run(next);
         };
         void (async () => {
-          const r = await settle(mutateAsync({ ticketUuid: value }));
-          if (r.ok) {
-            const view = checkInResultView(r.data, 'host');
+          // 성공 뒤 대기 값을 이어 보내므로(`then` → `run`) try 블록에 넣지 않고 tryCatch로 받는다
+          const [res, error] = await tryCatch(mutateAsync({ ticketUuid: value }));
+          if (!error) {
+            const view = checkInResultView(res, 'host');
             // 호스트 스캔에 SELECT_TICKET이 오면 checkInResultView가 UNKNOWN으로 바꾼다 — `select`는 오지 않는다
             then(
               finish(
@@ -120,12 +122,12 @@ export function useHostScan(
             );
             return;
           }
-          if (isSessionLost(r.error)) {
+          if (isSessionLost(error)) {
             finish(value, null, false);
             return;
           }
           handleError(
-            r.error,
+            error,
             {},
             {
               otherwise: (e) => {

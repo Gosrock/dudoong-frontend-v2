@@ -193,7 +193,7 @@ export const addHostMembersMutation = (hostId: string) =>
 3. **독립 위젯 — 화면을 막지 않는 것.** 벨·배너·추천처럼 실패해도 화면에 영향이 없는 것은 경계 대신 `useQuery` + `meta.silent`(토스트 없음)로 조용히 숨기거나, 경계를 쓰면 `rejected={() => null}`.
 4. **지역 vs 전체 판단**: 실패한 데이터 없이 화면의 주 목적(주문 상세의 주문, 폼의 원래 값)을 할 수 없으면 화면 전체(1). 부가 정보·다른 탭·옆 패널이면 지역(2). 같은 쿼리를 여러 섹션이 읽으면 그 쿼리는 위쪽 경계 하나에서 읽는다(섹션마다 다른 fallback이 같은 에러를 두 번 그리지 않게).
 5. **Suspense 대기 단위 = 경계 단위.** 경계를 나누면 대기 화면도 나뉜다(섹션별 스켈레톤). 한 번에 보여야 하는 것은 같은 경계 안에.
-6. **변경(mutation) 실패는 경계로 보내지 않는다** — 호출 쪽 `settle` + `handleError`(§4-5). `throwOnError`는 조회의 첫 로딩 실패가 화면을 대체해야 할 때만.
+6. **변경(mutation) 실패는 경계로 보내지 않는다** — 호출 쪽 try/catch + `handleError`(§4-5). `throwOnError`는 조회의 첫 로딩 실패가 화면을 대체해야 할 때만.
 
 ### 4-4. 기본 옵션 요약
 
@@ -214,7 +214,7 @@ export const addHostMembersMutation = (hostId: string) =>
 |---|---|
 | `QueryCache.onError` | `query.state.data !== undefined`일 때(배경 재조회 실패)만 토스트. 무한 목록의 다음 페이지 실패는 제외(하단 재시도가 맡는다, §12). 첫 로딩 실패는 화면 상태(`model/` 훅의 `{status, retry}`)·`<AsyncBoundary>`·공용 403·404 화면이 맡는다 |
 | `MutationCache.onError` | **로그만**(2026-10-31). 토스트는 호출 쪽 `handleError`가 띄운다 |
-| 변경 호출 | `const r = await settle(m.mutateAsync(v)); if (!r.ok) return handleError(r.error, { 코드: 처리 })`(`src/api/settle.ts`). 표에 없는 코드는 공용 토스트 — `reason`, 검증 실패(400 `BAD_REQUEST`, `isValidationError`)는 고정 문구 `VALIDATION_ERROR_MESSAGE`, `reason`이 비면 `FALLBACK_ERROR_MESSAGE`. 표에 없는 실패도 화면이 다 맡으면 `{ otherwise }` |
+| 변경 호출 | `try { await m.mutateAsync(v) } catch (e) { handleError(e, { 코드: 처리 }) }`(`src/api/handle-error.ts`). 연쇄(단계마다 실패 처리가 다름)만 `const [data, error] = await tryCatch(m.mutateAsync(v))`(`src/utils/try-catch.ts`). 표에 없는 코드는 공용 토스트 — `reason`, 검증 실패(400 `BAD_REQUEST`, `isValidationError`)는 고정 문구 `VALIDATION_ERROR_MESSAGE`, `reason`이 비면 `FALLBACK_ERROR_MESSAGE`. 표에 없는 실패도 화면이 다 맡으면 `{ otherwise }` |
 | `meta.silent` 조회 | 배경 재조회가 실패해도 토스트하지 않는다(벨 GN-2처럼 사용자가 할 일이 없는 배경 조회, `src/api/query-client.ts` `shouldToastQueryError` 세 번째 인자 `meta`, §21) |
 | `SessionLostError` | 어디서도 토스트하지 않는다(`handleError`도 아무것도 안 한다). 경계는 `holdOn`으로 대기 화면 유지, 게이트도 무시한다(§5-1) |
 | 중복 | 토스트에 고정 id를 준다(쿼리는 queryKey 해시, 변경은 `mutation:<코드>`). 배경 재조회가 한꺼번에 실패해도 하나만 뜬다 |
@@ -230,22 +230,29 @@ const mutation = useMutation({
 });
 
 const submit = async (body: CreateOrderRequest) => {
-  const r = await settle(mutation.mutateAsync(body));      // 절대 throw하지 않는다
-  if (!r.ok) {
-    return handleError(r.error, {
+  try {
+    const order = await mutation.mutateAsync(body);
+    router.replace(orderCreatedHref(order.orderUuid));       // 성공 뒤 화면 반응(이동·안내)은 호출 쪽
+  } catch (e) {
+    handleError(e, {
       Order_400_22: () => setFormError('입금자명을 확인해 주세요'),
       Order_400_23: () => setFormError('옵션 답변을 확인해 주세요'),
     });                                                      // 표에 없으면 공용 토스트, 세션 상실이면 아무것도 안 함
   }
-  router.replace(orderCreatedHref(r.data.orderUuid));        // 성공 뒤 화면 반응(이동·안내)은 호출 쪽
 };
+
+// 연쇄(옵션 만들고 → 티켓에 붙이기)는 단계마다 실패 처리가 달라 tryCatch로
+const [option, createError] = await tryCatch(createOption.mutateAsync(body));
+if (createError) return handleError(createError, CREATE_CODES);
+const [, attachError] = await tryCatch(attachOption.mutateAsync(option.optionId));
+if (attachError) return handleError(attachError, {}, { otherwise: () => setNotice('partial') });
 ```
 
 | 어디에 | 무엇을 |
 |---|---|
 | `useMutation` 옵션 `onSuccess`(·`onMutate`) | 꼭 실행할 캐시 반영(`setQueryData`)·무효화·세션 정리. **화면 반응(setState·이동·토스트)은 두지 않는다** — `mutateAsync`는 옵션 `onSuccess`가 끝난 뒤 풀리므로 순서는 같다 |
-| 호출 쪽(`settle` 뒤) | 성공 뒤 이동·안내, 실패 처리(`handleError`) |
-| 금지(eslint `no-restricted-syntax`) | 옵션 `onError`/`onSettled`, `settle` 밖 `mutateAsync`, `mutate`. 예외: **낙관 갱신 되돌리기**는 옵션 `onError`에 두고 `eslint-disable-next-line`에 이유(알림 읽음 §21) |
+| 호출 쪽(try 블록 · catch) | 성공 뒤 이동·안내는 try 블록에서 `mutateAsync` 뒤에(짧게 — 여기서 throw하면 catch의 공용 토스트로 간다), 실패 처리는 catch에서 `handleError` |
+| 금지(eslint `no-restricted-syntax`) | 옵션 `onError`/`onSettled`, try 블록 밖이면서 `tryCatch(...)` 인자도 아닌 `mutateAsync`(catch 블록 안도), `mutate`. 예외: **낙관 갱신 되돌리기**는 옵션 `onError`에 두고 `eslint-disable-next-line`에 이유(알림 읽음 §21) |
 
 테스트는 `vitest.setup.ts`가 테스트마다 등록하는 공용 토스트 스파이 `errorToast`(`src/test/error-toast.ts`)로 "화면이 맡음(`not.toHaveBeenCalled`)"·"공용 토스트(`toHaveBeenCalledWith(문구, 'mutation:<코드>')`)"를 본다.
 

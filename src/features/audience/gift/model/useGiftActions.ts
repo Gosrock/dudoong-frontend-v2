@@ -9,8 +9,8 @@ import {
   createGiftMutation,
   returnGiftMutation,
 } from '@/api/gift/mutations';
+import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import { myTicketQuery, myTicketsQuery } from '@/api/my-ticket/queries';
-import { type ErrorCodeHandlers, handleError, settle } from '@/api/settle';
 
 import { refreshAfterGiftChange } from './gift-cache';
 import { GIFT_ERROR_TABLE, type GiftAction, type GiftErrorOutcome } from './gift-errors';
@@ -119,15 +119,17 @@ export function useSendGift(ticketUuid: string) {
         setError({ message: memoError, field: 'memo' });
         return;
       }
-      const r = await settle(mutation.mutateAsync(createGiftBody(memo)));
-      if (!r.ok) return handleError(r.error, codes);
-      const created = r.data;
-      setLink({
-        giftId: created.giftId,
-        linkPath: created.linkPath,
-        memo: created.memo,
-        existing: false,
-      });
+      try {
+        const created = await mutation.mutateAsync(createGiftBody(memo));
+        setLink({
+          giftId: created.giftId,
+          linkPath: created.linkPath,
+          memo: created.memo,
+          existing: false,
+        });
+      } catch (e) {
+        handleError(e, codes);
+      }
     },
     [mutation, link, codes],
   );
@@ -202,13 +204,14 @@ export function useGiftLink(input: UseGiftLinkInput) {
         setError({ message: memoError, field: 'memo' });
         return false;
       }
-      const r = await settle(mutation.mutateAsync(changeMemoBody(next)));
-      if (!r.ok) {
-        handleError(r.error, codes);
+      try {
+        const saved = await mutation.mutateAsync(changeMemoBody(next));
+        setMemo(saved.memo);
+        return true;
+      } catch (e) {
+        handleError(e, codes);
         return false;
       }
-      setMemo(r.data.memo);
-      return true;
     },
     [mutation, closed, codes],
   );
@@ -239,9 +242,12 @@ export function useCancelGift(giftId: number | null, ctx: GiftRefetchContext = {
   const cancel = useCallback(async () => {
     if (giftId === null || mutation.isPending || done) return;
     setError(null);
-    const r = await settle(mutation.mutateAsync());
-    if (!r.ok) return handleError(r.error, codes);
-    setDone(true);
+    try {
+      await mutation.mutateAsync();
+      setDone(true);
+    } catch (e) {
+      handleError(e, codes);
+    }
   }, [giftId, mutation, done, codes]);
 
   return { cancel, pending: mutation.isPending, error, done };
@@ -278,8 +284,11 @@ export function useReturnGift(ticketUuid: string) {
   const giveBack = useCallback(async () => {
     if (mutation.isPending || done) return;
     setError(null);
-    const r = await settle(mutation.mutateAsync());
-    if (!r.ok) handleError(r.error, codes);
+    try {
+      await mutation.mutateAsync();
+    } catch (e) {
+      handleError(e, codes);
+    }
   }, [mutation, done, codes]);
 
   return { giveBack, pending: mutation.isPending, error, done, gone };

@@ -301,7 +301,7 @@ export default async function Page({ params }: Props) {
 - `api` 객체가 응답 래퍼 `{success, status, data, timeStamp}`를 벗기고 실패를 `ApiError{status, code, reason}`로 바꾼다.
 - 변경 응답이 "화면을 다시 그릴 값"이므로 `setQueryData`로 바로 반영한다.
 - 클라이언트 조회 화면의 데이터 경계는 `src/ui`의 `<AsyncBoundary>`(에러만이면 `<ErrorBoundary>`)로 쓴다. **`@suspensive/react`의 `ErrorBoundary`·`Suspense`를 감싼 것**에 TanStack `QueryErrorResetBoundary`를 붙여, [다시 시도](`reset`)가 실패한 쿼리를 다시 조회한다(2026-10-31). 잡을 에러는 `shouldCatch`, 세션 상실 대기는 `holdOn`, 섹션 묶음 재시도는 `ErrorBoundaryGroup`. 어디에 경계를 두나는 patterns §4-3.
-- **변경 에러는 호출 쪽이 처리한다**(2026-10-31, TanStack 문서·TkDodo 권장과 같다). `mutateAsync`를 `settle()`로 감싸 결과값으로 받고, 실패면 `handleError(error, { 코드: 처리 })`. 화면이 사라져도 꼭 해야 하는 캐시 반영·무효화만 `useMutation` 옵션의 `onSuccess`에 둔다(옵션 콜백은 컴포넌트가 언마운트돼도 돈다).
+- **변경 에러는 호출 쪽이 처리한다**(2026-10-31, TanStack 문서·TkDodo 권장과 같다). `mutateAsync`를 **try/catch**로 부르고 catch에서 `handleError(error, { 코드: 처리 })`. 요청을 연달아 보내며 단계마다 실패를 다르게 다룰 때만 Go 스타일 `tryCatch(promise)` → `[data, error]`(`src/utils/try-catch.ts`)를 쓴다. 화면이 사라져도 꼭 해야 하는 캐시 반영·무효화만 `useMutation` 옵션의 `onSuccess`에 둔다(옵션 콜백은 컴포넌트가 언마운트돼도 돈다).
 
 ```tsx
 const queryClient = useQueryClient();
@@ -312,10 +312,19 @@ const mutation = useMutation({
 });
 
 const save = async (values: Values) => {
-  const r = await settle(mutation.mutateAsync(toBody(values)));       // 절대 throw하지 않는다
-  if (!r.ok) return handleError(r.error, { Event_400_9: () => setError('title', …) });  // 표에 없으면 공용 토스트
-  router.replace(next);                                                // 성공 뒤 화면 반응은 여기
+  try {
+    await mutation.mutateAsync(toBody(values));
+    router.replace(next);                                              // 성공 뒤 화면 반응은 여기
+  } catch (e) {
+    handleError(e, { Event_400_9: () => setError('title', …) });       // 표에 없으면 공용 토스트
+  }
 };
+
+// 연쇄 — 단계마다 실패 처리가 다를 때만 tryCatch
+const [created, createError] = await tryCatch(createMutation.mutateAsync(body));
+if (createError) return handleError(createError, { … });
+const [, attachError] = await tryCatch(attachMutation.mutateAsync(created.id));
+if (attachError) return handleError(attachError, {}, { otherwise: () => setPartial(true) });
 ```
 
 ### QueryClient
@@ -345,8 +354,8 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 | 폼 화면 | RHF는 `defaultValues`로 한 번만 초기화한다 | `refetchOnWindowFocus`로 쿼리가 다시 와도 편집 중인 값을 덮지 않는다 |
 | 전역 `QueryCache.onError` | 구조화 로그. 토스트는 **`query.state.data !== undefined`(배경 재조회 실패)일 때만**. 무한 목록의 다음 페이지 실패(`fetchNextPage`)는 제외하고, 토스트 id를 고정해 여러 쿼리가 한꺼번에 실패해도 하나만 띄운다 | 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다. 다음 페이지 실패는 목록 하단 재시도가 맡는다(patterns §12) |
 | 전역 `MutationCache.onError` | **구조화 로그만**(2026-10-31). 토스트·안내는 호출 쪽 `handleError`가 한다 | 전역이 토스트하면 화면이 맡는 코드를 미리 알려야 해서(`meta.handledCodes`) 목록과 분기가 두 곳에 갈렸다. 호출 쪽 처리로 바꿔 한 곳(`handleError`의 표)에만 쓴다 |
-| 변경 호출 `settle` + `handleError`(`src/api/settle.ts`) | `settle(promise)` → `{ ok: true, data } \| { ok: false, error }`(절대 throw 안 함). `handleError(error, 표?, { otherwise? })`: 세션 상실 → 아무것도 안 함, 표에 코드가 있으면 그 처리, `otherwise`가 있으면 그 처리, 아니면 **공용 토스트**(`reason`, 비면 — 네트워크·타임아웃·파싱 실패 — 고정 문구, 검증 실패 400 `BAD_REQUEST`는 `VALIDATION_ERROR_MESSAGE`, id `mutation:<코드>`) | `mutateAsync`는 실패하면 reject라 `try/catch`를 빠뜨리면 처리되지 않은 rejection이 된다 — 결과값으로 받아 빠뜨릴 수 없게. `otherwise`는 표에 없는 실패도 화면이 맡는 곳(무료 선착순 확정 실패, 셀프 체크인 결과, 마케팅 설정 실패 문구). 로그는 전역이 이미 남겨 다시 남기지 않는다 |
-| eslint(`no-restricted-syntax`, 테스트·스토리 제외) | `useMutation` 옵션의 `onError`/`onSettled`, `settle(...)` 바로 안이 아닌 `mutateAsync`, `mutate`(호출·구조분해) 금지 | 처리 누락을 정적으로 막는다. **예외 하나**: 낙관 갱신 되돌리기(`onMutate`에서 바꾼 캐시를 `onError`에서 되돌림)는 화면이 사라져도 해야 하므로 옵션에 두고 `eslint-disable-next-line`에 이유를 쓴다(알림 읽음) |
+| 변경 호출 try/catch + `handleError`(`src/api/handle-error.ts`) | 기본은 try/catch. 연쇄(단계별 실패 처리)만 `tryCatch(promise)` → `[data, null] \| [null, Error]`(`src/utils/try-catch.ts`, 절대 throw 안 함, Error가 아니면 감싸고 `cause`). `handleError(error, 표?, { otherwise? })`: 세션 상실 → 아무것도 안 함, 표에 코드가 있으면 그 처리, `otherwise`가 있으면 그 처리, 아니면 **공용 토스트**(`reason`, 비면 — 네트워크·타임아웃·파싱 실패 — 고정 문구, 검증 실패 400 `BAD_REQUEST`는 `VALIDATION_ERROR_MESSAGE`, id `mutation:<코드>`) | try/catch가 가장 흔한 모양이라 기본으로 둔다(2026-10-31 사용자 결정 — 처음 만든 결과값 유틸 `settle`은 TanStack 관례가 아니라 뺐다). 연쇄에서 try/catch를 겹치면 단계별 처리가 흐려져 그때만 `tryCatch`. try 블록 안 성공 후속 코드가 throw하면 catch로 가 공용 토스트가 뜨니 후속은 짧게 둔다. `otherwise`는 표에 없는 실패도 화면이 맡는 곳(무료 선착순 확정 실패, 셀프 체크인 결과, 마케팅 설정 실패 문구). 로그는 전역이 이미 남겨 다시 남기지 않는다 |
+| eslint(`no-restricted-syntax`, 테스트·스토리 제외) | `useMutation` 옵션의 `onError`/`onSettled`, try 블록 안도 `tryCatch(...)` 인자도 아닌 `mutateAsync`(catch 블록 안도 금지), `mutate`(호출·구조분해) 금지 | 처리 누락을 정적으로 막는다. **예외 하나**: 낙관 갱신 되돌리기(`onMutate`에서 바꾼 캐시를 `onError`에서 되돌림)는 화면이 사라져도 해야 하므로 옵션에 두고 `eslint-disable-next-line`에 이유를 쓴다(알림 읽음) |
 | `SessionLostError` | 토스트·에러 화면 모두 무시한다 | 세션 상실이면 `client.ts`가 `ApiError`의 하위 클래스인 이 에러를 던진다. 이동·다시 그리기가 결과를 보여 주므로 하드 이동 직전에 토스트나 에러 화면이 깜빡이지 않게 Query/MutationCache `onError`, `handleError`, `<AsyncBoundary holdOn={isSessionLost}>`, 게이트가 이것을 거른다 |
 
 `<Prefetch>`, `serverQuery`, 토큰 미전송, 404 처리는 구현해 돌려 확인했다(§22·§26). ky 2.x의 기본 URL 옵션은 `prefix`/`baseUrl`이고, 에러 변환은 훅이 아니라 `api` 객체 안에서 한다.
@@ -1236,7 +1245,7 @@ nginx 경로 분기(`nginx/site.conf`):
 | 로그인 콜백 성공은 하드 이동, 콜백 401 안내, 로그아웃은 응답과 상관없이 로컬 정리 | §4 |
 | ky 인스턴스는 기준 주소 없이, `http.ts`가 요청마다 `prefix`. JSON이 아닌 응답은 `ApiError(status, 'NON_JSON')` | §4 |
 | `<Prefetch>`에서 `infiniteQueries`를 뺌 — GH-14는 브라우저 `useInfiniteQuery` | §4 |
-| 변경 에러 처리는 `handleCodes(map)` 헬퍼 하나로(코드 목록을 한 곳에). 조회 토스트에서 다음 페이지 실패 제외·고정 id(2026-10-31: `handleCodes` → 호출 쪽 `settle` + `handleError`) | §4, §13 |
+| 변경 에러 처리는 `handleCodes(map)` 헬퍼 하나로(코드 목록을 한 곳에). 조회 토스트에서 다음 페이지 실패 제외·고정 id(2026-10-31: `handleCodes` → 호출 쪽 try/catch + `handleError`) | §4, §13 |
 | 뒤로가기는 열린 오버레이(시트·모달·팝업·주소 오버레이)를 닫는다 — `pushState`로 같은 주소 항목을 넣고 popstate로 닫는다(P2) | §5 |
 | `LinkProgress`은 카드 `<Link>` 안 인라인 표시(전역 막대 불가) | §3 |
 | 호스팅 센터 게이트는 P4a 게이트를 그대로 쓴다 | §3 |

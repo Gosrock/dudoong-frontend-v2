@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { eventManageQuery } from '@/api/event/queries';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import { formatKstDateTime } from '@/api/shared/date';
 import {
   deleteTicketItemMutation,
@@ -118,28 +118,32 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
           : action === 'resume'
             ? resumeMutation
             : deleteMutation;
-      const r = await settle<unknown>(mutation.mutateAsync(ticketItemId));
-      inflight.current = false;
-      setPendingId(null);
-      if (r.ok) return true;
-      handleError(r.error, {
-        Ticket_Item_400_7: () => {
-          setActionError(TICKET_ACTION_ERRORS.Ticket_Item_400_7);
-          void invalidateTickets(queryClient, eventId);
-        },
-        Ticket_Item_404_1: () => {
-          setActionError(TICKET_ACTION_ERRORS.Ticket_Item_404_1);
-          void invalidateTickets(queryClient, eventId);
-        },
-        Event_400_17: () => {
-          setActionError(TICKET_ACTION_ERRORS.Event_400_17);
-          void queryClient.invalidateQueries({
-            queryKey: eventManageQuery(eventId).queryKey,
-            exact: true,
-          });
-        },
-      });
-      return false;
+      try {
+        await mutation.mutateAsync(ticketItemId);
+        return true;
+      } catch (e) {
+        handleError(e, {
+          Ticket_Item_400_7: () => {
+            setActionError(TICKET_ACTION_ERRORS.Ticket_Item_400_7);
+            void invalidateTickets(queryClient, eventId);
+          },
+          Ticket_Item_404_1: () => {
+            setActionError(TICKET_ACTION_ERRORS.Ticket_Item_404_1);
+            void invalidateTickets(queryClient, eventId);
+          },
+          Event_400_17: () => {
+            setActionError(TICKET_ACTION_ERRORS.Event_400_17);
+            void queryClient.invalidateQueries({
+              queryKey: eventManageQuery(eventId).queryKey,
+              exact: true,
+            });
+          },
+        });
+        return false;
+      } finally {
+        inflight.current = false;
+        setPendingId(null);
+      }
     },
     [cards, deleteMutation, eventId, queryClient, resumeMutation, suspendMutation],
   );

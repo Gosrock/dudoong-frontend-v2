@@ -4,12 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { createHostMutation } from '@/api/host/mutations';
 import { MY_HOSTS_KEY } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
-import { handleError, settle } from '@/api/settle';
 import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/home/model/hosting-home';
+import { tryCatch } from '@/utils/try-catch';
 
 import {
   CREATE_HOST_ERROR_MESSAGE,
@@ -87,11 +88,12 @@ export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => v
     if (hasCreateHostErrors(errors) || inflight.current) return;
     inflight.current = true;
     setContactsServerError(null);
-    const r = await settle(mutation.mutateAsync(toCreateHostBody(values)));
-    if (!r.ok) {
+    // 성공 뒤 `onCreated`(부르는 쪽 콜백)가 던진 것까지 공용 토스트로 삼키지 않게 tryCatch로 받는다
+    const [created, error] = await tryCatch(mutation.mutateAsync(toCreateHostBody(values)));
+    if (error) {
       inflight.current = false;
       // 표에 없는 실패는 공용 토스트
-      return handleError(r.error, {
+      return handleError(error, {
         HOST_400_16: () => setContactsServerError(CREATE_HOST_ERROR_MESSAGE.HOST_400_16),
       });
     }
@@ -100,7 +102,7 @@ export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => v
       inflight.current = false;
       setValues(initialCreateHostValues());
       setAttempted(false);
-      onCreated(r.data.hostId);
+      onCreated(created.hostId);
       return;
     }
     // 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다

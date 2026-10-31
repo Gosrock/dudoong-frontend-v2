@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { createEventMutation } from '@/api/event/mutations';
+import { handleError } from '@/api/handle-error';
 import { myHostsQuery } from '@/api/host/queries';
-import { handleError, settle } from '@/api/settle';
 import { flattenPages } from '@/api/shared/page';
 import { useCreateHost } from '@/features/hosting/host/model/useCreateHost';
 
@@ -104,14 +104,17 @@ export function useNewEventWizard({ now = () => new Date() }: { now?: () => Date
     if (!selectedHost || hasCreateEventErrors(errors) || inflight.current) return;
     inflight.current = true;
     setScheduleServerError(null);
-    const r = await settle(mutation.mutateAsync(toCreateEventBody(selectedHost.hostId, values)));
-    // 성공하면 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다
-    if (r.ok) return router.replace(createdEventHref(r.data.eventId));
-    inflight.current = false;
-    // 표에 없는 실패는 공용 토스트
-    handleError(r.error, {
-      Event_400_2: () => setScheduleServerError(SCHEDULE_ERROR.Event_400_2),
-    });
+    try {
+      const created = await mutation.mutateAsync(toCreateEventBody(selectedHost.hostId, values));
+      // 성공하면 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다
+      router.replace(createdEventHref(created.eventId));
+    } catch (e) {
+      inflight.current = false;
+      // 표에 없는 실패는 공용 토스트
+      handleError(e, {
+        Event_400_2: () => setScheduleServerError(SCHEDULE_ERROR.Event_400_2),
+      });
+    }
   }, [errors, mutation, router, selectedHost, values]);
 
   return {

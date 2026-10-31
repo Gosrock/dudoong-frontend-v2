@@ -139,10 +139,11 @@ export function EasyOverlay({
  * const ok = await openConfirm({
  *   title: '주문을 승인할까요?',
  *   onConfirm: async () => {
- *     const r = await settle(approve.mutateAsync(orderUuid));
- *     if (!r.ok) {
- *       handleError(r.error); // 공용 토스트(표가 있으면 표로)
- *       throw r.error; // reject → 열린 채 남는다
+ *     try {
+ *       await approve.mutateAsync(orderUuid);
+ *     } catch (e) {
+ *       handleError(e); // 공용 토스트(표가 있으면 표로)
+ *       throw e; // reject → 열린 채 남는다
  *     }
  *   },
  * });

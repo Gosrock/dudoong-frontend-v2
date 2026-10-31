@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { openEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 
 import {
   checklistItemsOf,
@@ -105,18 +105,19 @@ export function useEventDashboard(eventId: string) {
   const register = useCallback(async () => {
     if (!canRegister) return false;
     setRegisterErrorCode(null);
-    const r = await settle(registerMutation.mutateAsync());
-    if (r.ok) {
+    try {
+      await registerMutation.mutateAsync();
       setJustRegistered(true);
       setJustCompleted(false);
       return true;
+    } catch (e) {
+      handleError(e, {
+        Event_400_7: () => refetchAfter('Event_400_7'),
+        Event_400_8: () => refetchAfter('Event_400_8'),
+        Event_400_15: () => refetchAfter('Event_400_15'),
+      });
+      return false;
     }
-    handleError(r.error, {
-      Event_400_7: () => refetchAfter('Event_400_7'),
-      Event_400_8: () => refetchAfter('Event_400_8'),
-      Event_400_15: () => refetchAfter('Event_400_15'),
-    });
-    return false;
   }, [canRegister, refetchAfter, registerMutation]);
 
   // ─── 등록 후 통계(GD-1, P13a) ───

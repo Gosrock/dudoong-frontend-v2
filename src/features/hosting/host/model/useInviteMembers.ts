@@ -4,9 +4,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { type ApiError } from '@/api/errors';
+import { handleError } from '@/api/handle-error';
 import { addHostMembersMutation } from '@/api/host/mutations';
 import type { AssignableHostRole } from '@/api/host/schema';
-import { handleError, settle } from '@/api/settle';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import { applyMembers, invalidateHostSummary } from './host-cache';
@@ -93,27 +93,29 @@ export function useInviteMembers(hostId: string, myRole: ActorRole | null | unde
     setServerErrors([]);
     setFormError(null);
     sentRows.current = rows;
-    const r = await settle(mutation.mutateAsync(toAddMembersBody(rows)));
-    inflight.current = false;
-    if (r.ok) {
+    try {
+      await mutation.mutateAsync(toAddMembersBody(rows));
+      inflight.current = false;
       setRows([emptyInviteRow()]);
       setServerErrors([]);
       setAttempted(false);
       return true;
+    } catch (error) {
+      inflight.current = false;
+      const mapToRows = (code: InviteErrorCode) => (e: ApiError) => {
+        const mapped = inviteServerErrors(code, e.reason, sentRows.current);
+        setServerErrors(mapped.rows);
+        setFormError(mapped.form);
+      };
+      // 표에 없는 실패는 공용 토스트
+      handleError(
+        error,
+        Object.fromEntries(
+          (Object.keys(INVITE_ERROR_MESSAGE) as InviteErrorCode[]).map((c) => [c, mapToRows(c)]),
+        ),
+      );
+      return false;
     }
-    const mapToRows = (code: InviteErrorCode) => (e: ApiError) => {
-      const mapped = inviteServerErrors(code, e.reason, sentRows.current);
-      setServerErrors(mapped.rows);
-      setFormError(mapped.form);
-    };
-    // 표에 없는 실패는 공용 토스트
-    handleError(
-      r.error,
-      Object.fromEntries(
-        (Object.keys(INVITE_ERROR_MESSAGE) as InviteErrorCode[]).map((c) => [c, mapToRows(c)]),
-      ),
-    );
-    return false;
   }, [localErrors, mutation, roleOptions.length, rows]);
 
   return {

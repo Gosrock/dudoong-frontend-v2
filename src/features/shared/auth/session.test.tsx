@@ -12,6 +12,7 @@ import { server } from '@/api/__mocks__/server';
 import { setAuthHandlers } from '@/api/auth-handlers';
 import { setErrorNotifier } from '@/api/error-toast';
 import { SessionLostError } from '@/api/errors';
+import { handleError } from '@/api/handle-error';
 import { api } from '@/api/http';
 import { meQuery } from '@/api/me/queries';
 import { getQueryClient } from '@/api/query-client';
@@ -22,7 +23,6 @@ import {
   SESSION_KEY,
   startSession,
 } from '@/api/session-flag';
-import { handleError } from '@/api/settle';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 
 import { browserLocation } from './browser-location';

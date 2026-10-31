@@ -3,10 +3,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { completeRefundMutation } from '@/api/order/mutations';
 import { refundsQuery } from '@/api/order/queries';
 import type { RefundStatusFilter } from '@/api/order/schema';
-import { handleError, settle } from '@/api/settle';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import { can } from '@/features/shared/permission/model/can';
 
@@ -49,19 +49,23 @@ export function useRefundList(eventId: string) {
       if (!row?.canComplete || pendingUuid !== null) return false;
       setPendingUuid(orderUuid);
       setActionError(null);
-      const r = await settle(m.mutateAsync(orderUuid));
-      setPendingUuid(null);
-      if (r.ok) return true;
-      const reread = (message: string) => {
-        setActionError(message);
-        void invalidateGuestLists(queryClient, eventId);
-      };
-      // 표에 없는 실패는 공용 토스트
-      handleError(r.error, {
-        Order_400_17: () => reread(REFUND_ERROR_MESSAGE.Order_400_17),
-        Order_404_1: () => reread(DETAIL_MISSING_MESSAGE),
-      });
-      return false;
+      try {
+        await m.mutateAsync(orderUuid);
+        return true;
+      } catch (e) {
+        const reread = (message: string) => {
+          setActionError(message);
+          void invalidateGuestLists(queryClient, eventId);
+        };
+        // 표에 없는 실패는 공용 토스트
+        handleError(e, {
+          Order_400_17: () => reread(REFUND_ERROR_MESSAGE.Order_400_17),
+          Order_404_1: () => reread(DETAIL_MISSING_MESSAGE),
+        });
+        return false;
+      } finally {
+        setPendingUuid(null);
+      }
     },
     [eventId, m, pendingUuid, queryClient, rows],
   );

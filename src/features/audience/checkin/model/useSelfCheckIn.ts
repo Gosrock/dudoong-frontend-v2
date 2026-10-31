@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { selfCheckInMutation } from '@/api/check-in/mutations';
 import type { CheckInTicket, SelfCheckInRequest } from '@/api/check-in/schema';
 import { getErrorCode } from '@/api/errors';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import {
   type CheckInResultView,
   checkInResultView,
@@ -47,33 +47,32 @@ export function useSelfCheckIn(token: string | null) {
   const send = useCallback(
     async (body: SelfCheckInRequest) => {
       setState({ status: 'checking', candidates: candidatesRef.current });
-      const r = await settle(mutateAsync(body));
-      if (r.ok) {
-        const view = checkInResultView(r.data, 'self');
+      try {
+        const view = checkInResultView(await mutateAsync(body), 'self');
         if (view.kind === 'select') {
           candidatesRef.current = view.candidates;
           setState({ status: 'select', candidates: view.candidates, error: null });
         } else {
           setState({ status: 'result', view });
         }
-        return;
-      }
-      handleError(
-        r.error,
-        {},
-        {
-          otherwise: (e) => {
-            const error = selfCheckInError(getErrorCode(e));
-            const candidates = candidatesRef.current;
-            // 후보를 고르다 실패하면 고르는 화면에 남는다(다시 고르거나 다시 시도)
-            if (body.ticketUuid !== undefined && candidates && error.kind !== 'EVENT_NOT_OPEN') {
-              setState({ status: 'select', candidates, error });
-            } else {
-              setState({ status: 'error', error });
-            }
+      } catch (e) {
+        handleError(
+          e,
+          {},
+          {
+            otherwise: (err) => {
+              const error = selfCheckInError(getErrorCode(err));
+              const candidates = candidatesRef.current;
+              // 후보를 고르다 실패하면 고르는 화면에 남는다(다시 고르거나 다시 시도)
+              if (body.ticketUuid !== undefined && candidates && error.kind !== 'EVENT_NOT_OPEN') {
+                setState({ status: 'select', candidates, error });
+              } else {
+                setState({ status: 'error', error });
+              }
+            },
           },
-        },
-      );
+        );
+      }
     },
     [mutateAsync],
   );

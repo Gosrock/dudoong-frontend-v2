@@ -3,6 +3,7 @@
 import { type InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { newApprovedTicketsQuery } from '@/api/my-ticket/queries';
 import { readNotificationsMutation } from '@/api/notification/mutations';
 import {
@@ -10,7 +11,6 @@ import {
   unreadNotificationCountQuery,
 } from '@/api/notification/queries';
 import type { NotificationPage, UnreadCount } from '@/api/notification/schema';
-import { handleError, settle } from '@/api/settle';
 
 import { isApprovalNotification, readRequestOf, type ReadTarget } from './notification-kind';
 
@@ -91,8 +91,11 @@ export function useReadNotifications() {
 
   const send = useCallback(
     async (target: ReadTarget) => {
-      const r = await settle(mutateAsync(target));
-      if (!r.ok) handleError(r.error);
+      try {
+        await mutateAsync(target);
+      } catch (e) {
+        handleError(e);
+      }
     },
     [mutateAsync],
   );

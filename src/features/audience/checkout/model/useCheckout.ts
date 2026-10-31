@@ -7,12 +7,12 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
 
 import { isNotFound, isSessionLost } from '@/api/errors';
+import { handleError } from '@/api/handle-error';
 import { meQuery } from '@/api/me/queries';
 import { createOrderMutation } from '@/api/order/mutations';
 import { orderTotalAmount } from '@/api/order/price';
 import { checkoutQuery, myOrderQuery } from '@/api/order/queries';
 import type { Checkout } from '@/api/order/schema';
-import { handleError, settle } from '@/api/settle';
 import { eventTicketItemsQuery } from '@/api/ticket-item/queries';
 import { toTicketView } from '@/features/audience/event/model/ticket-state';
 import { toast } from '@/ui/components/Toast/Toast';
@@ -228,11 +228,14 @@ export function useCheckout({
       if (inflight.current) return;
       inflight.current = true;
       const body = toOrderBody(values, { eventId, ticket, quantity, depositorName });
-      const r = await settle(mutation.mutateAsync(body));
-      if (!r.ok) {
+      try {
+        const order = await mutation.mutateAsync(body);
+        setSucceeded(true);
+        router.replace(orderCreatedHref(order.orderUuid));
+      } catch (e) {
         inflight.current = false;
         handleError(
-          r.error,
+          e,
           Object.fromEntries(
             Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
               code,
@@ -242,10 +245,7 @@ export function useCheckout({
           // 무료 선착순은 표에 없는 실패도 화면이 맡는다(공용 토스트 대신 재시도 안내)
           kind === 'FREE_FCFS' ? { otherwise: () => setSubmitError(FREE_FCFS_FAILED) } : {},
         );
-        return;
       }
-      setSucceeded(true);
-      router.replace(orderCreatedHref(r.data.orderUuid));
     })();
   }, [
     form,

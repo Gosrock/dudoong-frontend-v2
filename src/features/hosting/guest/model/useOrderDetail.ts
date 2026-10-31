@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getErrorCode } from '@/api/errors';
 import { eventManageQuery } from '@/api/event/queries';
+import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import {
   approveOrderMutation,
   cancelHostOrderMutation,
@@ -13,9 +14,9 @@ import {
 } from '@/api/order/mutations';
 import { hostOrderQuery } from '@/api/order/queries';
 import type { HostOrderDetail } from '@/api/order/schema';
-import { type ErrorCodeHandlers, handleError, settle, type Settled } from '@/api/settle';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import { can } from '@/features/shared/permission/model/can';
+import { type Result, tryCatch } from '@/utils/try-catch';
 
 import { applyChangedOrder, invalidateGuestLists, refetchOrder } from './guest-cache';
 import {
@@ -176,18 +177,18 @@ export function useOrderDetail(
   const run = useCallback(
     async (
       key: OrderActionKey,
-      call: (uuid: string) => Promise<Settled<unknown>>,
+      call: (uuid: string) => Promise<Result<unknown>>,
       codes: ErrorCodeHandlers,
     ) => {
       const allowed = actions.some((a) => a.key === key && a.enabled);
       if (!orderUuid || pending !== null || !allowed) return false;
       setPending(key);
       setActionError(null);
-      const r = await call(orderUuid);
+      const [, error] = await call(orderUuid);
       setPending(null);
-      if (r.ok) return true;
+      if (!error) return true;
       // 표의 코드는 화면이, 그 밖은 공용 토스트
-      handleError(r.error, codes);
+      handleError(error, codes);
       return false;
     },
     [orderUuid, pending, actions],
@@ -218,7 +219,7 @@ export function useOrderDetail(
     missingNotice,
     dismissMissingNotice: () => setMissingNotice(null),
 
-    approve: () => run('approve', (uuid) => settle(approveM.mutateAsync(uuid)), approveCodes),
+    approve: () => run('approve', (uuid) => tryCatch(approveM.mutateAsync(uuid)), approveCodes),
 
     refuseForm: {
       reasonType: refuse.reasonType,
@@ -250,7 +251,7 @@ export function useOrderDetail(
       const body = toRefuseBody({ ...refuse, reasonType: refuse.reasonType });
       return run(
         'refuse',
-        (uuid) => settle(refuseM.mutateAsync({ orderUuid: uuid, body })),
+        (uuid) => tryCatch(refuseM.mutateAsync({ orderUuid: uuid, body })),
         withdrawCodes,
       );
     },
@@ -269,12 +270,12 @@ export function useOrderDetail(
       const body = toCancelBody(cancelReason);
       return run(
         'cancel',
-        (uuid) => settle(cancelM.mutateAsync({ orderUuid: uuid, body })),
+        (uuid) => tryCatch(cancelM.mutateAsync({ orderUuid: uuid, body })),
         withdrawCodes,
       );
     },
 
     completeRefund: () =>
-      run('completeRefund', (uuid) => settle(refundM.mutateAsync(uuid)), refundCodes),
+      run('completeRefund', (uuid) => tryCatch(refundM.mutateAsync(uuid)), refundCodes),
   };
 }

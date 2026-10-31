@@ -3,13 +3,14 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { createOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
-import { handleError, settle } from '@/api/settle';
 import { replaceTicketOptionsMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { tryCatch } from '@/utils/try-catch';
 
 import {
   hasOptionFormErrors,
@@ -112,13 +113,18 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     if (!ticket || !canChange || inflight.current) return false;
     inflight.current = true;
     setError(null);
-    const r = await settle(
-      replaceMutation.mutateAsync({ ticketItemId: ticket.ticketItemId, body: { optionIds: next } }),
-    );
-    inflight.current = false;
-    if (r.ok) return true;
-    handleError(r.error, replaceCodes);
-    return false;
+    try {
+      await replaceMutation.mutateAsync({
+        ticketItemId: ticket.ticketItemId,
+        body: { optionIds: next },
+      });
+      return true;
+    } catch (e) {
+      handleError(e, replaceCodes);
+      return false;
+    } finally {
+      inflight.current = false;
+    }
   };
 
   const attachedIds = ticket?.options.map((o) => o.optionId) ?? [];
@@ -150,27 +156,28 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     inflight.current = true;
     setError(null);
     setPartial(null);
-    const c = await settle(createMutation.mutateAsync(toCreateOptionBody(values)));
-    if (!c.ok) {
+    const [created, createError] = await tryCatch(
+      createMutation.mutateAsync(toCreateOptionBody(values)),
+    );
+    if (createError) {
       inflight.current = false;
-      handleError(c.error, createCodes);
+      handleError(createError, createCodes);
       return 'failed';
     }
-    const created = c.data;
     // 만들었다 — 폼을 비우고 붙인다. 붙이기가 실패해도 옵션은 풀에 남는다
     setValues(initialOptionFormValues());
     setAttempted(false);
     setServerErrors({});
-    const r = await settle(
+    const [, attachError] = await tryCatch(
       replaceMutation.mutateAsync({
         ticketItemId: ticket.ticketItemId,
         body: { optionIds: [...attachedIds, created.optionId] },
       }),
     );
     inflight.current = false;
-    if (r.ok) return 'attached';
+    if (!attachError) return 'attached';
     // 표의 처리(다시 읽기)는 하고, 안내는 "만들었지만 못 붙임"으로 덮는다
-    handleError(r.error, replaceCodes);
+    handleError(attachError, replaceCodes);
     setPartial(created);
     setError(TICKET_OPTION_ERRORS.partial);
     return 'createdOnly';

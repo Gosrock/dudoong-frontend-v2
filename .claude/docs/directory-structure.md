@@ -229,7 +229,7 @@ src/api/
 ├─ session-flag.ts             # P4a  dd:session(로그인마다 새 무작위 값)·dd:refreshedAt 읽기·쓰기. 저장소 실패 = 없음. client.ts의 401 처리가 읽어야 해서 api에 둔다
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
 ├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
-├─ settle.ts                   # settle(promise) → {ok,data}|{ok:false,error}, handleError(error, { 코드: 처리 }, { otherwise }) — 변경 에러는 호출 쪽이 처리(2026-10-31)
+├─ handle-error.ts             # handleError(error, { 코드: 처리 }, { otherwise }) — 변경 에러는 호출 쪽 try/catch에서 처리(2026-10-31)
 ├─ error-toast.ts              # 공용 에러 토스트 주입(setErrorNotifier)·문구(errorMessageOf)
 ├─ upload.ts                   # P3  발급 → S3 PUT → key (호스트·공연·프로필 공용)
 ├─ server/                     # 'server-only' — 라우트 파일에서만 쓴다. src/api 중 유일하게 React(HydrationBoundary)·notFound를 쓴다
@@ -272,6 +272,7 @@ src/utils/
 ├─ clipboard.ts                # copyText()
 ├─ money.ts                    # 원 단위 표시
 ├─ download.ts                 # blob 저장 (엑셀) — saveBlob(blob, filename, fallback) (P13a-L 생성)
+├─ try-catch.ts                # Go 스타일 tryCatch(promise) → [data, error] — 변경 요청 연쇄에서만(2026-10-31)
 └─ redirect.ts                 # P4a  safeRedirect(raw, fallback) — 같은 출처 상대 경로만. //·\\·제어 문자·2048자 초과·/login*·/kakao/callback(되돌이) 거부
 ```
 

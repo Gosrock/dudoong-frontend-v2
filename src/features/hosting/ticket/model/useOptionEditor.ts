@@ -3,10 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { deleteOptionMutation, updateOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
-import { handleError, settle } from '@/api/settle';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 
 import {
@@ -109,18 +109,20 @@ export function useOptionEditor(eventId: string, optionId: number) {
     if (!canSave || !body || inflight.current) return false;
     inflight.current = true;
     setError(null);
-    const r = await settle(updateMutation.mutateAsync({ optionId, body }));
-    inflight.current = false;
-    if (!r.ok) {
-      handleError(r.error, codes);
+    try {
+      const updated = await updateMutation.mutateAsync({ optionId, body });
+      inflight.current = false;
+      const v = optionFormValuesOf(updated);
+      setBase(v);
+      setValues(v);
+      setAttempted(false);
+      setServerErrors({});
+      return true;
+    } catch (e) {
+      inflight.current = false;
+      handleError(e, codes);
       return false;
     }
-    const v = optionFormValuesOf(r.data);
-    setBase(v);
-    setValues(v);
-    setAttempted(false);
-    setServerErrors({});
-    return true;
   };
 
   const canDelete = canEdit && !locked;
@@ -128,11 +130,15 @@ export function useOptionEditor(eventId: string, optionId: number) {
     if (!canDelete || busy || inflight.current) return false;
     inflight.current = true;
     setError(null);
-    const r = await settle(deleteMutation.mutateAsync(optionId));
-    inflight.current = false;
-    if (r.ok) return true;
-    handleError(r.error, codes);
-    return false;
+    try {
+      await deleteMutation.mutateAsync(optionId);
+      return true;
+    } catch (e) {
+      handleError(e, codes);
+      return false;
+    } finally {
+      inflight.current = false;
+    }
   };
 
   const edit = (field: OptionFormField, update: (v: OptionFormValues) => OptionFormValues) => {

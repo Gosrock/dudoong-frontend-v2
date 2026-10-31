@@ -3,10 +3,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { updateMeMutation } from '@/api/me/mutations';
 import { meQuery } from '@/api/me/queries';
 import type { Me } from '@/api/me/schema';
-import { handleError, settle } from '@/api/settle';
 import { uploadImage } from '@/api/upload';
 import { useSession } from '@/features/shared/auth/useSession';
 
@@ -39,13 +39,15 @@ export function useProfileEdit() {
       const local = nicknameError(raw);
       setNameError(local);
       if (local || nameMutation.isPending) return;
-      const r = await settle(nameMutation.mutateAsync({ name: raw.trim() }));
-      if (r.ok) return;
-      handleError(r.error, {
-        USER_400_4: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
-        // 닉네임만 보내므로 본문 검증 실패(공백만·길이 — #884 이후 공백만은 이 코드)는 닉네임 칸 오류다
-        BAD_REQUEST: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
-      });
+      try {
+        await nameMutation.mutateAsync({ name: raw.trim() });
+      } catch (e) {
+        handleError(e, {
+          USER_400_4: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
+          // 닉네임만 보내므로 본문 검증 실패(공백만·길이 — #884 이후 공백만은 이 코드)는 닉네임 칸 오류다
+          BAD_REQUEST: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
+        });
+      }
     },
     [nameMutation],
   );
@@ -67,16 +69,18 @@ export function useProfileEdit() {
       if (imageMutation.isPending) return;
       setImageError(null);
       lastFile.current = file;
-      const r = await settle(imageMutation.mutateAsync(file));
-      if (r.ok) return;
-      const show = (code: keyof typeof PROFILE_ERROR_MESSAGE) => () =>
-        setImageError(PROFILE_ERROR_MESSAGE[code]);
-      // 표에 없는 실패(429·네트워크 등)는 공용 토스트
-      handleError(r.error, {
-        USER_400_5: show('USER_400_5'),
-        UPLOAD_INVALID_EXTENSION: show('UPLOAD_INVALID_EXTENSION'),
-        UPLOAD_PUT_FAILED: show('UPLOAD_PUT_FAILED'),
-      });
+      try {
+        await imageMutation.mutateAsync(file);
+      } catch (e) {
+        const show = (code: keyof typeof PROFILE_ERROR_MESSAGE) => () =>
+          setImageError(PROFILE_ERROR_MESSAGE[code]);
+        // 표에 없는 실패(429·네트워크 등)는 공용 토스트
+        handleError(e, {
+          USER_400_5: show('USER_400_5'),
+          UPLOAD_INVALID_EXTENSION: show('UPLOAD_INVALID_EXTENSION'),
+          UPLOAD_PUT_FAILED: show('UPLOAD_PUT_FAILED'),
+        });
+      }
     },
     [imageMutation],
   );

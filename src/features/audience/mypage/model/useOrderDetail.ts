@@ -4,11 +4,11 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useCallback, useMemo, useState } from 'react';
 
 import { banksQuery } from '@/api/bank/queries';
+import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import { MY_TICKETS_KEY } from '@/api/my-ticket/queries';
 import { cancelMyOrderMutation, putRefundAccountMutation } from '@/api/order/mutations';
 import { MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order/queries';
 import type { CancelMyOrderRequest, MyOrderDetail } from '@/api/order/schema';
-import { type ErrorCodeHandlers, handleError, settle } from '@/api/settle';
 
 import {
   cancelEntry,
@@ -135,9 +135,11 @@ export function useCancelOrder(orderUuid: string) {
       setError(null);
       setFieldErrors({});
       const send = async (body?: CancelMyOrderRequest) => {
-        const r = await settle(mutation.mutateAsync(body));
-        if (!r.ok) return handleError(r.error, codes);
-        setResult(cancelResult(r.data));
+        try {
+          setResult(cancelResult(await mutation.mutateAsync(body)));
+        } catch (e) {
+          handleError(e, codes);
+        }
       };
       if (!requiresRefundAccount) {
         await send(undefined);
@@ -205,9 +207,12 @@ export function useRefundAccount(orderUuid: string) {
         return;
       }
       setFieldErrors({});
-      const r = await settle(mutation.mutateAsync(checked.body));
-      if (!r.ok) return handleError(r.error, codes);
-      setSaved(true);
+      try {
+        await mutation.mutateAsync(checked.body);
+        setSaved(true);
+      } catch (e) {
+        handleError(e, codes);
+      }
     },
     [mutation, queryClient, codes],
   );

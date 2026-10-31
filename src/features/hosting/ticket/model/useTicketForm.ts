@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { eventManageQuery } from '@/api/event/queries';
-import { handleError, settle } from '@/api/settle';
+import { handleError } from '@/api/handle-error';
 import { formatKstDateTime } from '@/api/shared/date';
 import { createTicketItemMutation, updateTicketItemMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
@@ -191,27 +191,26 @@ export function useTicketForm(
     inflight.current = true;
     setFormError(null);
     const agreements = { refundObligationAgreed: agreed };
-    let r;
-    if (base === null || ticket === null) {
-      r = await settle(createMutation.mutateAsync(toCreateTicketBody(values, agreements)));
-      if (r.ok) setBase(ticketFormValuesOf(r.data));
-    } else {
-      const body = toUpdateTicketBody(base, values, agreements);
-      if (!body) {
-        inflight.current = false;
-        return false;
-      }
-      r = await settle(updateMutation.mutateAsync({ ticketItemId: ticket.ticketItemId, body }));
-      if (r.ok) {
-        const next = ticketFormValuesOf(r.data);
+    try {
+      if (base === null || ticket === null) {
+        const created = await createMutation.mutateAsync(toCreateTicketBody(values, agreements));
+        setBase(ticketFormValuesOf(created));
+      } else {
+        const body = toUpdateTicketBody(base, values, agreements);
+        if (!body) return false;
+        const updated = await updateMutation.mutateAsync({
+          ticketItemId: ticket.ticketItemId,
+          body,
+        });
+        const next = ticketFormValuesOf(updated);
         setBase(next);
         setValues(next);
       }
-    }
-    inflight.current = false;
-    if (!r.ok) {
-      handleError(r.error, codes);
+    } catch (e) {
+      handleError(e, codes);
       return false;
+    } finally {
+      inflight.current = false;
     }
     setAttempted(false);
     setServerErrors({});

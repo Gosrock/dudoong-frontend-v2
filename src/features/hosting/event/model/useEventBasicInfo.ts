@@ -5,8 +5,8 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { updateEventBasicMutation } from '@/api/event/mutations';
 import { eventManageQuery, eventTagsQuery } from '@/api/event/queries';
+import { handleError } from '@/api/handle-error';
 import type { HostContactType } from '@/api/host/schema';
-import { handleError, settle } from '@/api/settle';
 import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED, uploadImage } from '@/api/upload';
 import {
   emptyContact,
@@ -118,19 +118,18 @@ export function useEventBasicInfo(
       setPosterError(null);
       setSavedNotice(null);
       setServerErrors((prev) => ({ ...prev, poster: undefined }));
-      const r = await settle(posterMutation.mutateAsync(file));
-      if (r.ok) {
-        const uploaded = r.data;
+      try {
+        const uploaded = await posterMutation.mutateAsync(file);
         setValues((v) => ({ ...v, poster: { url: uploaded.url, key: uploaded.key } }));
-        return;
+      } catch (e) {
+        const show = (code: keyof typeof POSTER_UPLOAD_ERROR) => () =>
+          setPosterError(POSTER_UPLOAD_ERROR[code]);
+        // 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
+        handleError(e, {
+          [UPLOAD_INVALID_EXTENSION]: show(UPLOAD_INVALID_EXTENSION),
+          [UPLOAD_PUT_FAILED]: show(UPLOAD_PUT_FAILED),
+        });
       }
-      const show = (code: keyof typeof POSTER_UPLOAD_ERROR) => () =>
-        setPosterError(POSTER_UPLOAD_ERROR[code]);
-      // 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
-      handleError(r.error, {
-        [UPLOAD_INVALID_EXTENSION]: show(UPLOAD_INVALID_EXTENSION),
-        [UPLOAD_PUT_FAILED]: show(UPLOAD_PUT_FAILED),
-      });
     },
     [canEdit, posterMutation],
   );
@@ -240,10 +239,10 @@ export function useEventBasicInfo(
     inflight.current = true;
     setFormError(null);
     const wasRegistered = scope.registered;
-    const r = await settle(saveMutation.mutateAsync(toUpdateEventBasicBody(base, values)));
-    inflight.current = false;
-    if (r.ok) {
-      const next = basicInfoValuesOf(r.data);
+    try {
+      const saved = await saveMutation.mutateAsync(toUpdateEventBasicBody(base, values));
+      inflight.current = false;
+      const next = basicInfoValuesOf(saved);
       setBase(next);
       setValues(next);
       setAttempted(false);
@@ -252,38 +251,40 @@ export function useEventBasicInfo(
       lastPosterFile.current = null;
       setSavedNotice(wasRegistered ? 'registeredChanged' : 'saved');
       return true;
+    } catch (e) {
+      inflight.current = false;
+      const manageKey = eventManageQuery(eventId).queryKey;
+      const field = (code: FieldCode) => () => {
+        const { field: f, message } = BASIC_INFO_FIELD_ERRORS[code];
+        setServerErrors((prev) => ({ ...prev, [f]: message }));
+      };
+      handleError(e, {
+        Event_400_2: field('Event_400_2'),
+        Event_400_24: field('Event_400_24'),
+        Event_400_20: field('Event_400_20'),
+        Event_400_23: field('Event_400_23'),
+        Event_400_25: field('Event_400_25'),
+        // 이 공연에 발급한 key가 아님 — 올린 포스터를 버리고 다시 올리게(업로드를 처음부터)
+        Event_400_22: () => {
+          field('Event_400_22')();
+          setValues((v) => ({ ...v, poster: { url: base.poster.url } }));
+        },
+        // 정산중·지난 공연 — GE-3을 다시 읽으면 읽기 전용으로 바뀐다
+        Event_400_17: () => {
+          setFormError('끝난 공연은 수정할 수 없어요');
+          void queryClient.invalidateQueries({ queryKey: manageKey, exact: true });
+        },
+        // 등록 뒤 티켓 여부 변경 — GE-3을 다시 읽으면 토글이 잠긴다
+        Event_400_18: () => {
+          setServerErrors((prev) => ({
+            ...prev,
+            hasTicket: '등록된 공연은 티켓 여부를 바꿀 수 없어요',
+          }));
+          void queryClient.invalidateQueries({ queryKey: manageKey, exact: true });
+        },
+      });
+      return false;
     }
-    const manageKey = eventManageQuery(eventId).queryKey;
-    const field = (code: FieldCode) => () => {
-      const { field: f, message } = BASIC_INFO_FIELD_ERRORS[code];
-      setServerErrors((prev) => ({ ...prev, [f]: message }));
-    };
-    handleError(r.error, {
-      Event_400_2: field('Event_400_2'),
-      Event_400_24: field('Event_400_24'),
-      Event_400_20: field('Event_400_20'),
-      Event_400_23: field('Event_400_23'),
-      Event_400_25: field('Event_400_25'),
-      // 이 공연에 발급한 key가 아님 — 올린 포스터를 버리고 다시 올리게(업로드를 처음부터)
-      Event_400_22: () => {
-        field('Event_400_22')();
-        setValues((v) => ({ ...v, poster: { url: base.poster.url } }));
-      },
-      // 정산중·지난 공연 — GE-3을 다시 읽으면 읽기 전용으로 바뀐다
-      Event_400_17: () => {
-        setFormError('끝난 공연은 수정할 수 없어요');
-        void queryClient.invalidateQueries({ queryKey: manageKey, exact: true });
-      },
-      // 등록 뒤 티켓 여부 변경 — GE-3을 다시 읽으면 토글이 잠긴다
-      Event_400_18: () => {
-        setServerErrors((prev) => ({
-          ...prev,
-          hasTicket: '등록된 공연은 티켓 여부를 바꿀 수 없어요',
-        }));
-        void queryClient.invalidateQueries({ queryKey: manageKey, exact: true });
-      },
-    });
-    return false;
   }, [base, blocked, dirty, errors, eventId, queryClient, saveMutation, scope.registered, values]);
 
   const canSave = !blocked && dirty && !hasBasicInfoErrors(errors);
