@@ -102,11 +102,7 @@ export function Header({
   const hasLeading = Boolean(back || leading);
   const grid = effectiveAlign === 'start' && !hasLeading ? 'startNoLeading' : effectiveAlign;
   return (
-    <header
-      className={[s.root, s.align[grid], switcher && s.switcherRoot, className]
-        .filter(Boolean)
-        .join(' ')}
-    >
+    <header className={[s.root, s.align[grid], className].filter(Boolean).join(' ')}>
       {grid === 'startNoLeading' ? null : (
         <div className={`${s.slot} ${s.leadingSlot}`}>
           {back}

@@ -18,6 +18,7 @@
 ## 검사(사용자 결정 2026-11-01)
 - 고치는 동안: typecheck · 바꾼 파일 lint · `vitest related <바꾼 파일> --run` · 브라우저 눈 비교.
 - PR 직전: `pnpm qa <feature>` 한 번. 로컬 전체 게이트는 돌리지 않고 PR CI에 맡긴다.
+- **셸 명령은 단순하게**(2026-11-01 — 세션이 권한 확인으로 멈춘 일): zsh 전용 문법(`${arr:#…}` 필터, `F=($(…))` 배열), `eval`, 변수 안에 든 명령을 쓰지 않는다. Claude Code가 해석하지 못한 명령은 bypass 모드에서도 권한 확인으로 멈추고, 아무도 없으면 자동 거절된다. 파일 목록은 파이프·`xargs`로: `git diff --name-only --diff-filter=d | grep -v '\.md$' | xargs pnpm exec eslint`.
 
 ## 규칙
 - 프로젝트 지침(`CLAUDE.md`·`AGENTS.md`, `.claude/docs/README.md`)을 먼저 읽는다.

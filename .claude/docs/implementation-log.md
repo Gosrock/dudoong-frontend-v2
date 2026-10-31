@@ -1086,6 +1086,15 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
   - 아이콘 이름은 `ic` 체계를 유지하고 ic_v2 그림을 같은 이름으로 넣었다. `icon/link`(`760:2841`)는 REST 내보내기가 비어 있고 `ic_link`와 같은 그림으로 보여 뽑지 않음.
 - **Figma 코멘트**: 디자인 시스템 `758:1714` 다이얼로그 — "[개발 · 디자인 없음] 다이얼로그 — 버튼 하나 · 진행 중 · 추가 내용"(id 1989698280).
 
+## 디자인 시스템 #36 Top app bar spacing(2026-11-01, `9yujin/design-36`)
+
+`Design: 디자인 시스템` 이슈 #36. 비교·값은 design-system §8 "2026-11-01(2)". Top app bar 패딩·간격이 변수 `Space/4`·`Space/5`에 묶였고 숫자는 그대로 — 대신 앞 PR(#35)이 놓친 아이콘 쪽 패딩 8 → 16(전 변형)을 반영했다.
+
+- Header: 바깥 끝 아이콘 버튼의 추가 내보냄(-16, `switcher`면 -8)을 지움 → 아이콘 40 틀이 화면 끝에서 16, 제목 시작 72(Figma와 같음). 내부 `switcherRoot` 클래스 삭제, props는 그대로.
+- 사용처: 셸 로고 헤더(`AudienceShell`·`HostingShell`)와 `AudienceSubHeader`의 아이콘이 8 안쪽으로 들어간다 — 로고 헤더는 Figma(`basic title`·`host title`, 패딩 24)와 이제 맞는다.
+- 결정: 🤖 Claude 판단 — 로고 헤더(GUI 로컬·`host title`)는 Top app bar가 아니지만 같은 `Header`라 같이 바뀌는 것을 그대로 둠(Figma 아이콘 위치 24와 맞음 · 되돌리려면 logo일 때만 바깥 여백 -16).
+- 확인: typecheck · eslint(Header) · `vitest related`(11) 통과. Storybook 390폭에서 요소 위치를 재서 Figma `37:44`(16:22Z 판) 값과 대조 — 아이콘 틀 L16·R16, 프로필 R24, 제목 L72 · 다른 점 없음.
+
 ## P5b-V — 공연 상세 · 섹션 뷰어 · 호스트 연락처 시트 · 공유 · PC 두 열 (뷰)
 
 **상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것: 카카오 공유창·공유 디버거 실기기(D2 뒤, QA EVT-10 수동)
