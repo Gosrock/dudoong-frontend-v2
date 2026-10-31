@@ -53,7 +53,8 @@ describe('티켓 선택 — 조회', () => {
     ['매진', 'ALL_SOLD_OUT', ticketItemHandlers.soldOut, 'UPCOMING'],
     ['판매 불가', 'NOT_ON_SALE', ticketItemHandlers.notPurchasable, 'UPCOMING'],
     ['지난 공연', 'EVENT_ENDED', ticketItemHandlers.pastEvent, 'PAST'],
-    ['판매 중 티켓 없음', 'NO_TICKETS', ticketItemHandlers.empty, 'UPCOMING'],
+    ['판매 기간 안의 티켓 없음', 'NO_TICKETS', ticketItemHandlers.empty, 'UPCOMING'],
+    ['모두 판매 중단', 'NOT_ON_SALE', ticketItemHandlers.allSuspended, 'UPCOMING'],
   ] as const)(
     '%s이면 목록 상태 %s이고 아무것도 고를 수 없다',
     async (_, listState, set, status) => {
@@ -67,6 +68,38 @@ describe('티켓 선택 — 조회', () => {
       expect(result.current.checkoutHref).toBeNull();
     },
   );
+});
+
+describe('티켓 선택 — 판매 중단(딤드, #894)', () => {
+  it('판매 중단 티켓은 목록에 SUSPENDED로 남고 고를 수 없다', async () => {
+    server.use(...ticketItemHandlers.suspended);
+    const { result } = await loaded();
+    expect(result.current.tickets.map((t) => [t.ticket.ticketItemId, t.state])).toEqual([
+      [604, 'SUSPENDED'],
+      [605, 'PURCHASABLE'],
+    ]);
+    expect(result.current.listState).toBe('AVAILABLE');
+    act(() => result.current.select(604));
+    expect(result.current.selected).toBeNull();
+    act(() => result.current.select(605));
+    expect(result.current.selected?.ticket.ticketItemId).toBe(605);
+  });
+
+  it('고른 티켓이 판매 중단되면 다음 GP-5에서 선택이 풀린다', async () => {
+    server.use(...ticketItemHandlers.with(ticketItemSets.normal));
+    const { result, queryClient } = await loaded();
+    act(() => result.current.select(601));
+    expect(result.current.selected).not.toBeNull();
+    server.use(
+      ...ticketItemHandlers.with([
+        { ...ticketItemSets.normal[0]!, isSuspended: true, isPurchasable: false },
+      ]),
+    );
+    await act(() => queryClient.invalidateQueries());
+    await waitFor(() => expect(result.current.tickets[0]?.state).toBe('SUSPENDED'));
+    expect(result.current.selected).toBeNull();
+    expect(result.current.checkoutHref).toBeNull();
+  });
 });
 
 describe('티켓 선택 — 고르기 · 수량 · 금액', () => {

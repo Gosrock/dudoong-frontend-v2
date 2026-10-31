@@ -86,6 +86,14 @@ export const errors = {
     fail(request, 404, 'USER_404_1', '유저 정보를 찾을 수 없습니다.'),
   alreadyRegistered: (request: Request) =>
     fail(request, 400, 'USER_400_1', '이미 회원가입한 유저입니다.'),
+  /** 가입 전화번호가 무효(백엔드 #896 `PhoneNumberVo.validate`) */
+  userPhoneInvalid: (request: Request) =>
+    fail(
+      request,
+      400,
+      'USER_400_2',
+      '유저의 휴대폰 전화번호가 올바르지않습니다. 두둥 관리자에게 문의주세요',
+    ),
   /** 카카오 인가 코드 재사용·만료(백엔드 `KakaoKauthErrorCode.KOE320`) */
   kakaoCodeInvalid: (request: Request) =>
     fail(

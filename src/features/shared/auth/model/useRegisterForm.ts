@@ -16,8 +16,10 @@ import {
   hasRequiredConsents,
   initialRegisterValues,
   NO_CONSENTS,
+  PHONE_INVALID_CODE,
   type RegisterConsent,
   type RegisterConsents,
+  type RegisterErrors,
   type RegisterField,
   type RegisterValues,
   toRegisterBody,
@@ -30,6 +32,7 @@ export type RegisterInput = { idToken: string; profile: KakaoProfile };
 /**
  * 제출 실패.
  * - `invalid` — 400 `BAD_REQUEST`(이메일·이름이 비었음 — `isValidationError`). 폼에서 고쳐 다시 낸다
+ *   (400 `USER_400_2` 무효 전화번호는 제출 실패가 아니라 칸 오류 `errors.phoneNumber = 'phoneInvalid'`다 — 백엔드 #896)
  * - `suspended` — 이미 가입한 정지 계정(`USER_400_1` → 로그인 → `USER_403_1`)
  * - `failed` — 그 밖(5xx·네트워크, 카카오 id 토큰 만료 `KAKAO_KOE403` 등). 다시 내거나 로그인을 처음부터
  */
@@ -49,6 +52,8 @@ export function useRegisterForm(input: RegisterInput | null) {
   const [consents, setConsents] = useState<RegisterConsents>(NO_CONSENTS);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<RegisterSubmitError | null>(null);
+  /** 서버가 `USER_400_2`로 거절한 전화번호 — 칸 값이 이것과 같은 동안 칸 오류 `phoneInvalid` */
+  const [rejectedPhone, setRejectedPhone] = useState<string | null>(null);
   const inflight = useRef(false);
 
   // 입력(카카오 프로필)이 처음 오거나 바뀌면 폼을 새로 채운다(렌더 중 상태 조정 — effect를 쓰지 않는다)
@@ -58,6 +63,7 @@ export function useRegisterForm(input: RegisterInput | null) {
     setValues(input ? initialRegisterValues(input.profile) : EMPTY_VALUES);
     setConsents(NO_CONSENTS);
     setError(null);
+    setRejectedPhone(null);
   }
 
   /** 전화번호는 입력하는 대로 `010-XXXX-XXXX` 모양으로 하이픈을 넣는다(`formatPhoneInput`, 사용자 결정 2026-10-31) */
@@ -75,11 +81,19 @@ export function useRegisterForm(input: RegisterInput | null) {
     setConsents({ terms: value, privacy: value, marketing: value });
   }, []);
 
-  const errors = useMemo(() => validateRegister(values), [values]);
-  const canSubmit = canSubmitRegister(values, consents) && !submitting;
+  const errors = useMemo<RegisterErrors>(() => {
+    const local = validateRegister(values);
+    if (local.phoneNumber || rejectedPhone === null) return local;
+    return values.phoneNumber.trim() === rejectedPhone
+      ? { ...local, phoneNumber: 'phoneInvalid' }
+      : local;
+  }, [values, rejectedPhone]);
+  // 서버가 거절한 번호 그대로는 다시 내지 않는다(같은 400이 난다)
+  const phoneRejected = errors.phoneNumber === 'phoneInvalid';
+  const canSubmit = canSubmitRegister(values, consents) && !phoneRejected && !submitting;
 
   const submit = useCallback(async () => {
-    if (!input || inflight.current || !canSubmitRegister(values, consents)) return;
+    if (!input || inflight.current || !canSubmitRegister(values, consents) || phoneRejected) return;
     inflight.current = true;
     setSubmitting(true);
     setError(null);
@@ -103,9 +117,13 @@ export function useRegisterForm(input: RegisterInput | null) {
       inflight.current = false;
       setSubmitting(false);
       log('warn', 'auth.register_failed', { status: getErrorStatus(e), code: getErrorCode(e) });
+      if (getErrorCode(e) === PHONE_INVALID_CODE) {
+        setRejectedPhone(values.phoneNumber.trim());
+        return;
+      }
       setError(registerError(e));
     }
-  }, [input, values, consents]);
+  }, [input, values, consents, phoneRejected]);
 
   return {
     values,
@@ -117,7 +135,7 @@ export function useRegisterForm(input: RegisterInput | null) {
     requiredAgreed: hasRequiredConsents(consents),
     /** 선택까지 모두 동의했는지("전체 동의" 체크 표시) */
     allAgreed: hasAllConsents(consents),
-    /** 지금 값의 칸 오류. 언제 보여 줄지는 화면이 정한다 */
+    /** 지금 값의 칸 오류(서버가 거절한 전화번호 `phoneInvalid` 포함). 언제 보여 줄지는 화면이 정한다 */
     errors,
     canSubmit,
     submitting,

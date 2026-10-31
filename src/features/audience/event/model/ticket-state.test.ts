@@ -16,6 +16,7 @@ const ticket = (patch: Partial<PublicTicketItem> = {}): PublicTicketItem => ({
   remaining: 30,
   isSoldOut: false,
   isPurchasable: true,
+  isSuspended: false,
   purchaseLimit: 4,
   options: [],
   ...patch,
@@ -42,6 +43,24 @@ describe('ticketState — 티켓 하나의 표시 판정', () => {
     ],
     ['모르는 결제 방식(UNKNOWN)', { payType: 'UNKNOWN' }, 'UPCOMING', 'NOT_ON_SALE'],
     ['결제 방식 null', { payType: null }, 'UPCOMING', 'NOT_ON_SALE'],
+    [
+      '판매 중단(딤드 — #894)',
+      { isSuspended: true, isPurchasable: false },
+      'UPCOMING',
+      'SUSPENDED',
+    ],
+    [
+      '판매 중단 + 매진은 판매 중단이 먼저',
+      { isSuspended: true, isPurchasable: false, isSoldOut: true, remaining: 0 },
+      'UPCOMING',
+      'SUSPENDED',
+    ],
+    [
+      '지난 공연 + 판매 중단은 지난 공연',
+      { isSuspended: true, isPurchasable: false },
+      'PAST',
+      'EVENT_ENDED',
+    ],
     ['지난 공연은 티켓 값과 상관없이', {}, 'PAST', 'EVENT_ENDED'],
     ['지난 공연 + 매진도 지난 공연', { isSoldOut: true }, 'PAST', 'EVENT_ENDED'],
     ['공연 상태를 모르면(UNKNOWN) 티켓 값으로', {}, 'UNKNOWN', 'PURCHASABLE'],
@@ -56,6 +75,14 @@ describe('ticketState — 티켓 하나의 표시 판정', () => {
   ])('%s', (_, patch, status, expected) => {
     expect(ticketState(ticket(patch), status)).toBe(expected);
   });
+});
+
+it('판매 중단 티켓도 잔여는 그대로 노출한다(숨길지는 V)', () => {
+  const view = toTicketView(
+    ticket({ isSuspended: true, isPurchasable: false, remaining: 7 }),
+    'UPCOMING',
+  );
+  expect(view).toMatchObject({ state: 'SUSPENDED', remaining: 7, maxQuantity: 0 });
 });
 
 describe('toTicketView — 수량 상한 = min(purchaseLimit, remaining, 100)', () => {
@@ -74,6 +101,9 @@ describe('toTicketView — 수량 상한 = min(purchaseLimit, remaining, 100)', 
 
   it('살 수 없으면 상한 0', () => {
     expect(toTicketView(ticket({ isSoldOut: true }), 'UPCOMING').maxQuantity).toBe(0);
+    expect(
+      toTicketView(ticket({ isSuspended: true, isPurchasable: false }), 'UPCOMING').maxQuantity,
+    ).toBe(0);
     expect(toTicketView(ticket(), 'PAST').maxQuantity).toBe(0);
   });
 });
@@ -86,7 +116,15 @@ describe('ticketListState — 목록 전체', () => {
     ['지난 공연', ticketItemSets.pastEvent, 'PAST', 'EVENT_ENDED'],
     ['지난 공연은 티켓이 없어도 지난 공연', [], 'PAST', 'EVENT_ENDED'],
     ['잔여 적음', ticketItemSets.lowStock, 'UPCOMING', 'AVAILABLE'],
-    ['판매 중 티켓 없음', ticketItemSets.empty, 'UPCOMING', 'NO_TICKETS'],
+    ['판매 기간 안의 티켓 없음', ticketItemSets.empty, 'UPCOMING', 'NO_TICKETS'],
+    ['판매 중단 + 구매 가능', ticketItemSets.suspended, 'UPCOMING', 'AVAILABLE'],
+    ['모두 판매 중단', ticketItemSets.allSuspended, 'UPCOMING', 'NOT_ON_SALE'],
+    [
+      '매진 + 판매 중단 섞임은 모두 매진이 아니다',
+      [...ticketItemSets.soldOut, ...ticketItemSets.allSuspended],
+      'UPCOMING',
+      'NOT_ON_SALE',
+    ],
     [
       '매진 + 판매 불가 섞임',
       [...ticketItemSets.soldOut, ...ticketItemSets.notPurchasable],

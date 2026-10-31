@@ -31,7 +31,10 @@ export const kakaoTokens = (who: KakaoUser) => ({
 /** 가입한(또는 정지된) 사용자 — 4번에서 `canRegister=false` */
 export const isRegistered = (who: KakaoUser) => who === 'existing' || who === 'suspended';
 
-/** 5b `POST /oauth/kakao/info` 응답. 카카오 전화번호는 `+82 10-…` 꼴이다 */
+/**
+ * 5b `POST /oauth/kakao/info` 응답. 카카오 전화번호는 `+82 10-…` 꼴이다. `name`은 카카오 닉네임이다 — 콘솔에서 이름 항목을 쓰지 않아
+ * (B8) 서버가 `kakao_account.name ?: properties.nickname`으로 채운다. 이메일은 카카오 계정에 없으면 빈다(`noEmail`)
+ */
 export const kakaoProfiles: Record<KakaoUser, KakaoProfile> = {
   existing: {
     email: 'dudoong@example.com',

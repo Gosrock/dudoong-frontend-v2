@@ -122,7 +122,7 @@ describe('티켓 관리 목록(G10/T-1)', () => {
 });
 
 describe('판매 중단 · 재개(T-5 · T-6)', () => {
-  it('중단하면 목록 카드가 바뀌고 관객 GP-5 키를 정확히 무효화 — GP-5에서 빠진다, 재개하면 다시', async () => {
+  it('중단하면 목록 카드가 바뀌고 관객 GP-5 키를 정확히 무효화 — GP-5에 딤드(isSuspended)로 남고, 재개하면 풀린다(#894)', async () => {
     const { result, queryClient } = setup('101');
     await loaded(result);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
@@ -142,11 +142,15 @@ describe('판매 중단 · 재개(T-5 · T-6)', () => {
       exact: true,
     });
     const gp5 = () => queryClient.fetchQuery({ ...eventTicketItemsQuery('101'), staleTime: 0 });
-    expect((await gp5()).map((t) => t.ticketItemId)).toEqual([501, 502]);
+    expect((await gp5()).map((t) => [t.ticketItemId, t.isSuspended])).toEqual([
+      [501, false],
+      [502, false],
+      [503, true],
+    ]);
 
     expect(await act(() => result.current.resume(503))).toBe(true);
     await waitFor(() => expect(result.current.cards[2]!.chipLabel).toBe('판매중'));
-    expect((await gp5()).map((t) => t.ticketItemId)).toEqual([501, 502, 503]);
+    expect((await gp5()).map((t) => t.isSuspended)).toEqual([false, false, false]);
   });
 
   it('잠긴 티켓도 판매 중단할 수 있다', async () => {

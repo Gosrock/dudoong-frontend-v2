@@ -155,7 +155,10 @@ async function createOrder(request: Request) {
   if (ticket.payType !== 'DUDOONG' && ticket.payType !== 'FREE') {
     return orderError(request, 'Order_400_20');
   }
-  if (!ticket.isPurchasable && !ticket.isSoldOut) return orderError(request, 'Ticket_Item_400_10');
+  // 판매 중단은 매진이어도 판매 중 아님이 먼저(`OrderValidator` → `TicketItem.validateOnSale`)
+  if (ticket.isSuspended || (!ticket.isPurchasable && !ticket.isSoldOut)) {
+    return orderError(request, 'Ticket_Item_400_10');
+  }
 
   // validatePayment
   let depositorName: string | null = null;
@@ -237,8 +240,8 @@ const checkout = http.get(
     if (eventId === null || ticketItemId === null) return errors.typeMismatch(request);
     const { event, ticket } = findCheckoutTicket(eventId, ticketItemId);
     if (!event) return orderError(request, 'Event_404_1');
-    // 판매 중이 아니거나 다른 공연 티켓이면 404(`V2ReadCheckoutUseCase`)
-    if (!ticket) return orderError(request, 'Ticket_Item_404_1');
+    // 판매 중이 아니거나(판매 중단 포함 — #894) 다른 공연 티켓이면 404(`V2ReadCheckoutUseCase` → `onSaleItems`)
+    if (!ticket || ticket.isSuspended) return orderError(request, 'Ticket_Item_404_1');
     return ok(toCheckout(ticket));
   },
 );

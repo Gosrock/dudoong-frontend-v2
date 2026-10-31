@@ -27,12 +27,21 @@ const card = (page: Page, name: string) => cards(page).filter({ hasText: name })
 const menu = (page: Page) =>
   page.getByRole('navigation', { name: '공연 메뉴' }).getByRole('listitem');
 
-/** 관객 GP-5(공개) — 판매 중인 티켓 id */
+/** 관객 GP-5(공개) — 판매 기간 안의 티켓 id */
 async function publicTicketIds(page: Page, eventId: number) {
-  const res = await page.request.get(`/api/v2/events/${eventId}/ticket-items`);
-  const body = (await res.json()) as { data: { ticketItemId: number }[] };
-  return body.data.map((t) => t.ticketItemId);
+  return (await publicTickets(page, eventId)).map((t) => t.ticketItemId);
 }
+
+/** 관객 GP-5(공개) — 티켓 id와 판매 중단 여부(#894 — 판매 중단도 목록에 남는다) */
+async function publicTickets(page: Page, eventId: number) {
+  const res = await page.request.get(`/api/v2/events/${eventId}/ticket-items`);
+  const body = (await res.json()) as {
+    data: { ticketItemId: number; isSuspended: boolean; isPurchasable: boolean }[];
+  };
+  return body.data;
+}
+const suspendedIds = async (page: Page, eventId: number) =>
+  (await publicTickets(page, eventId)).filter((t) => t.isSuspended).map((t) => t.ticketItemId);
 
 async function fillDudoongForm(page: Page, name: string) {
   await page.getByLabel('티켓 이름').fill(name);
@@ -132,7 +141,7 @@ test.describe('새 티켓 만들기', () => {
 });
 
 test.describe('목록 · ⋮ 메뉴', () => {
-  test('판매된 티켓은 삭제 대신 판매 중단만 — 중단하면 GP-5에서 빠지고, 재개하면 돌아온다', async ({
+  test('판매된 티켓은 삭제 대신 판매 중단만 — 중단하면 GP-5에 딤드(isSuspended)로 남고, 재개하면 풀린다', async ({
     page,
   }) => {
     await setMockSession(page, 'loggedIn');
@@ -145,11 +154,12 @@ test.describe('목록 · ⋮ 메뉴', () => {
 
     await sold.getByRole('button', { name: '판매 중단' }).click();
     await expect(sold.getByTestId('ticket-chip')).toHaveText('판매 중단');
-    expect(await publicTicketIds(page, 101)).toEqual([502, 503]);
+    expect(await publicTicketIds(page, 101)).toEqual([501, 502, 503]);
+    expect(await suspendedIds(page, 101)).toEqual([501]);
 
     await sold.getByRole('button', { name: '판매 재개' }).click();
     await expect(sold.getByTestId('ticket-chip')).toHaveText('판매중');
-    expect(await publicTicketIds(page, 101)).toEqual([501, 502, 503]);
+    expect(await suspendedIds(page, 101)).toEqual([]);
   });
 
   test('판매 전 티켓을 지우면 목록과 GP-5에서 사라진다', async ({ page }) => {

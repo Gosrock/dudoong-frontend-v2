@@ -136,6 +136,7 @@ const ticketsFor101: PublicTicketItem[] = [
     remaining: 42,
     isSoldOut: false,
     isPurchasable: true,
+    isSuspended: false,
     purchaseLimit: 4,
     options: [
       {
@@ -164,6 +165,7 @@ const ticketsFor101: PublicTicketItem[] = [
     remaining: 0,
     isSoldOut: true,
     isPurchasable: false,
+    isSuspended: false,
     purchaseLimit: 1,
     options: [],
   },
@@ -178,6 +180,7 @@ const ticketsFor101: PublicTicketItem[] = [
     remaining: null,
     isSoldOut: false,
     isPurchasable: true,
+    isSuspended: false,
     purchaseLimit: null,
     options: [],
   },
@@ -250,6 +253,7 @@ export const events: MockEvent[] = [
         remaining: 13,
         isSoldOut: false,
         isPurchasable: true,
+        isSuspended: false,
         purchaseLimit: 2,
         options: [],
       },

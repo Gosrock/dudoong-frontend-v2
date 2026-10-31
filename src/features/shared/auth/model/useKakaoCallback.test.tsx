@@ -245,6 +245,51 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     expect(form().errors).toEqual({});
   });
 
+  it('서버가 전화번호를 거절(400 USER_400_2, #896)하면 칸 오류 phoneInvalid — 번호를 고치기 전엔 다시 낼 수 없다', async () => {
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => form().setAllConsents(true));
+    // 모양은 맞지만 무효인 한국 번호 — 기본 mock이 서버처럼 거절한다
+    act(() => form().setValue('phoneNumber', '010-0000-0000'));
+    expect(form().canSubmit).toBe(true);
+    const sent = recordRequests();
+    await act(() => form().submit());
+    expect(await sent.list()).toHaveLength(1);
+    expect(form().errors).toEqual({ phoneNumber: 'phoneInvalid' });
+    // 제출 실패가 아니라 칸 오류다(서버 문구를 쓰지 않는다)
+    expect(form().error).toBeNull();
+    expect(form().submitting).toBe(false);
+    expect(form().canSubmit).toBe(false);
+    await act(() => form().submit());
+    expect(await sent.list()).toHaveLength(1);
+    expect(replace).not.toHaveBeenCalled();
+
+    // 번호를 고치면 칸 오류가 풀리고 가입된다
+    act(() => form().setValue('phoneNumber', '010-9876-5432'));
+    expect(form().errors).toEqual({});
+    expect(form().canSubmit).toBe(true);
+    await act(() => form().submit());
+    expect(replace).toHaveBeenCalledWith('/gate-check');
+  });
+
+  it('거절된 번호를 지우고 비워 내면(번호 없음) 가입된다', async () => {
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => form().setAllConsents(true));
+    server.use(
+      http.post('*/api/v1/auth/oauth/kakao/register', ({ request }) =>
+        fail(request, 400, 'USER_400_2', '유저의 휴대폰 전화번호가 올바르지않습니다.'),
+      ),
+    );
+    await act(() => form().submit());
+    expect(form().errors).toEqual({ phoneNumber: 'phoneInvalid' });
+    server.resetHandlers();
+    act(() => form().setValue('phoneNumber', ''));
+    expect(form().canSubmit).toBe(true);
+    const sent = recordRequests();
+    await act(() => form().submit());
+    expect((await sent.list())[0]?.body).toMatchObject({ phoneNumber: null });
+    expect(replace).toHaveBeenCalledWith('/gate-check');
+  });
+
   it('가입이 5xx면 일반 실패를 보이고 다시 낼 수 있다', async () => {
     const form = await untilRegister('code=mock-new&state=s1');
     act(() => form().setAllConsents(true));

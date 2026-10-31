@@ -8,12 +8,16 @@ import type { PublicTicketItem } from '@/api/ticket-item/schema';
  * - 구매 가능 여부는 서버 `isPurchasable`로만 판단한다(기존 PG 티켓은 목록에 남고 `false`).
  * - `remaining`은 재고 공개 + 수량 지정일 때만 값이 있다. `null`을 0으로 보이지 않는다.
  * - 지난 공연(GP-3 `displayStatus = PAST`)이면 티켓 값과 상관없이 지난 공연으로 본다.
+ * - 판매 중단(`isSuspended`, 백엔드 #894)은 매진보다 먼저 본다 — 화면은 딤드(Q33 결정). 서버가 `remaining`·`isSoldOut`도
+ *   주므로 값은 그대로 노출하고, 딤드에서 남은 수량·매진을 숨길지는 V에서 정한다.
  * - 결제 방식이 v2에서 주문할 수 없는 것(PRICE · UNKNOWN · null)이면 서버가 `true`를 줘도 판매 불가로 본다 —
  *   체크아웃이 결제 방식을 정할 수 없다(`Order_400_20`).
  */
 export type TicketState =
   /** 살 수 있다 */
   | 'PURCHASABLE'
+  /** 판매 중단 — 딤드(Q33). 매진이어도 이것이 먼저 */
+  | 'SUSPENDED'
   /** 매진(승인 대기 차감 재고 ≤ 0) */
   | 'SOLD_OUT'
   /** 판매 불가(판매 기간 밖·PG 티켓·공연 시작 후 등 — 서버 판정) */
@@ -38,6 +42,7 @@ export function ticketState(
   eventDisplayStatus: EventDisplayStatus | null | undefined,
 ): TicketState {
   if (eventDisplayStatus === 'PAST') return 'EVENT_ENDED';
+  if (ticket.isSuspended) return 'SUSPENDED';
   if (ticket.isSoldOut) return 'SOLD_OUT';
   if (!ticket.isPurchasable) return 'NOT_ON_SALE';
   if (!ticket.payType || !ORDERABLE_PAY_TYPES.has(ticket.payType)) return 'NOT_ON_SALE';
@@ -68,11 +73,11 @@ export type TicketListState =
   | 'AVAILABLE'
   /** 지난 공연 */
   | 'EVENT_ENDED'
-  /** 판매 중인 티켓이 없다(서버가 판매 중단·기간 밖·삭제 티켓을 이미 뺀다) */
+  /** 판매 기간 안의 티켓이 없다(서버가 기간 밖·삭제 티켓을 이미 뺀다. 판매 중단 티켓은 목록에 남는다 — #894) */
   | 'NO_TICKETS'
   /** 모두 매진 */
   | 'ALL_SOLD_OUT'
-  /** 매진은 아니지만 살 수 있는 티켓이 없다(매진 + 판매 불가 섞임 포함) */
+  /** 매진은 아니지만 살 수 있는 티켓이 없다(매진 + 판매 불가·판매 중단 섞임, 모두 판매 중단 포함) */
   | 'NOT_ON_SALE';
 
 export function ticketListState(

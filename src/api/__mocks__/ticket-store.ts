@@ -210,11 +210,12 @@ export const isSold = (t: StoredTicket) => t.quantity < t.supplyCount;
 /** 잠김: 판매됨 또는 승인 대기 주문 있음 */
 export const isLocked = (t: StoredTicket) => isSold(t) || t.pendingApproveCount > 0;
 
+/** 판매 기간 안(설정 안 된 쪽은 열림 — `TicketItem.isInSalePeriod`). 판매 중단은 보지 않는다 */
+const isInSalePeriod = (t: StoredTicket, now: string) =>
+  (t.saleStartAt === null || now >= t.saleStartAt) && (t.saleEndAt === null || now < t.saleEndAt);
+
 /** 판매 중: 중단 아님 + 판매 기간 안(`TicketItem.isOnSale`) */
-const isOnSale = (t: StoredTicket, now: string) =>
-  t.isSellable &&
-  (t.saleStartAt === null || now >= t.saleStartAt) &&
-  (t.saleEndAt === null || now < t.saleEndAt);
+const isOnSale = (t: StoredTicket, now: string) => t.isSellable && isInSalePeriod(t, now);
 
 type EventView = { status: string; startAt: string | null };
 
@@ -302,8 +303,9 @@ const V2_ORDER_PAY_TYPES: readonly TicketPayType[] = [
 ] satisfies EditableTicketPayType[];
 
 /**
- * GP-5 판매 중 티켓(`V2PublicTicketItemMapper.onSaleItems`): 판매 중단·판매 기간 밖은 빼고, 잔여·매진·구매 가능은 승인 대기를 뺀 값.
- * `now`는 fixture 기준 시각(`PUBLIC_VIEW_NOW`)
+ * GP-5 판매 기간 안의 티켓(`V2PublicTicketItemMapper.publicItems`, 백엔드 #894 / 2.5.2): 판매 기간 밖은 빼고, 판매 중단은
+ * `isSuspended: true` + `isPurchasable: false`로 넣는다(딤드 — Q33). 잔여·매진·구매 가능은 승인 대기를 뺀 값이고
+ * 판매 중단 티켓도 잔여·매진을 계산한다. `now`는 fixture 기준 시각(`PUBLIC_VIEW_NOW`)
  */
 export function publicTicketsOf(
   eventId: number,
@@ -311,7 +313,7 @@ export function publicTicketsOf(
   now = PUBLIC_VIEW_NOW,
 ): PublicTicketItem[] {
   return ticketsOfEvent(eventId)
-    .filter((t) => isOnSale(t, now))
+    .filter((t) => isInSalePeriod(t, now))
     .map((t) => {
       const available = Math.max(0, t.quantity - t.pendingApproveCount);
       return {
@@ -325,6 +327,7 @@ export function publicTicketsOf(
         isSoldOut: available <= 0,
         isPurchasable:
           V2_ORDER_PAY_TYPES.includes(t.payType) && isPurchasable(t, event, now) && available > 0,
+        isSuspended: !t.isSellable,
         purchaseLimit: hasNoPurchaseLimit(t) ? null : t.purchaseLimit,
         options: appliedOptions(t).map((o) => ({
           optionId: o.optionId,

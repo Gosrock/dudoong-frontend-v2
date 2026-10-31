@@ -906,6 +906,29 @@ GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseRespon
 - **B7 null 허용 스키마는 그대로** — 왜: 운영에 null이 없다는 것은 지금 데이터 이야기이고 서버 타입은 nullable이다. 좁히면 계약 위반 위험만 생긴다.
 - **error-codes.md KOE010 행을 손으로 고침**(이 작업 목록 밖의 문서) — 왜: 소스(#887)와 다른 사실이 남아 있었다. 되돌리기: 그 한 줄.
 
+## 백엔드 최종 답변 2.5.2 반영(2026-10-31)
+
+백엔드 최종 답변("백엔드 질문 답변 최종 2026-10-31")과 백엔드 2.5.2(`dev` `cb53bfaa` — #894 `f7d4acd3`·#895 `1cb52ba6`·#896 `cb53bfaa`, 운영·스테이징 배포). 답마다 소스로 확인했다(`V2EventBrowseResponses.kt` `V2PublicTicketItemResponse.isSuspended`, `V2PublicTicketItemMapper.publicItems`·`onSaleItems`, `TicketItem.isInSalePeriod`, `V2ReadCheckoutUseCase`, `PhoneNumberVo.validate`, `RegisterRequest.toOauthInfo`·`RegisterUseCase`, `UserErrorCode.USER_PHONE_INVALID`, `ThrottlingInterceptor.AUTH_TOKEN_PATHS`, `IPRateLimiter.resolveAuthBucket`, `application.yml` `throttle.*`, `KakaoInformationResponse.getName`). 2.5.1 답(B2·B7·B9·B13·B15·B16 문구·B17·B19)은 위 "백엔드 답변 반영(2026-10-31)"(PR #14)에 있다.
+
+| 질문 | 답 | 반영 |
+|---|---|---|
+| Q33·B11 판매 중단 티켓 | GP-5가 판매 기간 안이면 판매 중단 티켓도 넣고 `isSuspended: Boolean`(true면 `isPurchasable` 항상 false, `remaining`·`isSoldOut`도 계산). 기간 밖·삭제는 빠짐. O-0은 판매 중단에 404 | `PublicTicketItemSchema.isSuspended`(필수 boolean), `ticket-state.ts` 상태 `SUSPENDED`(PAST 다음·매진보다 먼저), 목록은 모두 판매 중단이면 `NOT_ON_SALE`. mock: `ticket-store` `publicTicketsOf`가 `isInSalePeriod`로 거르고 `isSuspended: !isSellable`, 세트 `suspended`·`allSuspended`, O-0 mock 판매 중단 404, O-1 mock 판매 중단 `Ticket_Item_400_10`, fixture 전부 `isSuspended: false`. design-requests Q33 닫힘 |
+| B22(문서의 N2) 가입 전화번호 | 가입 때 서버 검사 — 빈 값·공백은 null 저장, 한국 번호는 유효 번호만, 해외는 가능한 번호, 형식 고정 없음. 실패 400 `USER_400_2`(서버 문구 "…두둥 관리자에게 문의주세요"). 운영 36,207건 중 거절 0 | `useRegisterForm`이 `USER_400_2`를 제출 실패가 아니라 칸 오류 `phoneInvalid`로(`PHONE_INVALID_MESSAGE` "전화번호를 확인해 주세요" — 잠정), 거절된 번호를 고치거나 지울 때까지 `canSubmit` false. 프론트 `010-1234-1234` 모양 검사(`phoneFormat`)는 그대로. mock 가입이 서버 규칙을 흉내 낸다(`isAcceptablePhone` — 근사), `errors.userPhoneInvalid`. patterns §24 P4b 행 |
+| B21 재발급 요청 제한 | 비로그인 `POST /token/refresh`·`/logout`은 인증 전용 IP 버킷(`auth:{ip}`, 분당 600, env `RATE_LIMIT_AUTH`). 다른 비로그인 요청은 분당 60. 운영·스테이징 모두 기본값 | 코드 변경 없음 — 429·408 일시 오류 처리(PR #10)는 상한이 남아 있어 유지. api-contract §9, tech-decisions §4 |
+| B8 카카오 콘솔 | 이메일·닉네임·프로필 사진·전화번호 필수 동의, 이름 사용 안 함, 콜백 staging·localhost:3000·운영 등록 | 코드 변경 없음(주석·fixture 설명만). `/oauth/kakao/info`의 `name`은 서버가 `kakao_account.name ?: properties.nickname`으로 채워 **사실상 닉네임** — 가입 폼 이름 칸 초깃값으로 그대로 둔다. api-contract §9 |
+| B15 보충 | main 수동 실행(workflow_dispatch)은 된다, 다른 브랜치는 안 연다 | `image.yml` 머리 주석·deploy-plan §5·§6 이미 같은 내용 — 변경 없음 |
+
+- 바뀐 코드: `src/api/ticket-item/schema.ts`·`queries.ts`(주석), `src/features/audience/event/model/ticket-state.ts`(+테스트), `useTicketSelection.test.tsx`(판매 중단 고르기·중단되면 선택 풀림), `src/api/ticket-item/ticket-manage-api.test.ts`(중단 → GP-5에 `isSuspended`), `src/features/shared/auth/model/register-form.ts`·`useRegisterForm.ts`, `useKakaoCallback.test.tsx`(`USER_400_2` 2건), mock `ticket-store.ts`·`ticket-item.handlers.ts`·`order.handlers.ts`·`auth.handlers.ts`·`respond.ts`·`fixtures/{event,order,kakao}.ts`, e2e `hosting-ticket.spec.ts`(중단 → GP-5에 남고 `isSuspended`)
+- 호스트 쪽 영향 없음: `ticketSaleChipOf`·티켓 관리는 T-1(`TicketItemManage.saleState`)을 보고 GP-5 모양과 무관하다. `guest-cache`의 GP-5 무효화도 그대로.
+- 문서: backend-questions(B8·B11·B21·B22 삭제 — 남은 것 B16·B18), README(개수·개정 이력), api-contract(머리, 구매 절 GP-5, §9 가입 전화번호·카카오 콘솔·요청 제한), tech-decisions §4·§30 Q33, patterns §15·§24, plan P6·P4b, design-requests(Q33 닫힘, 41건)
+
+**Claude 판단**
+- **판매 중단을 매진보다 먼저 판정** — 왜: 서버가 판매 중단 티켓에도 `isSoldOut`을 계산해 주므로 둘 다 참일 수 있고, 딤드(호스트가 판매를 멈춤)가 화면에서 더 강한 사실이다. 지난 공연은 그보다 먼저. 되돌리기: `ticketState`의 `isSuspended` 줄을 `isSoldOut` 아래로.
+- **모두 판매 중단인 목록은 새 목록 상태를 만들지 않고 `NOT_ON_SALE`** — 왜: 버튼·빈 상태 문구가 "살 수 있는 티켓이 없다"와 같고, 따로 문구가 필요한지는 V(디자인) 결정이다. 매진 + 판매 중단 섞임도 `ALL_SOLD_OUT`이 아니라 `NOT_ON_SALE`. 되돌리기: `ticketListState`에 분기 추가.
+- **`USER_400_2`는 거절된 번호를 기억해 그 번호 그대로는 다시 못 내게** — 왜: 같은 번호는 같은 400이 나고, 칸 오류가 고치면 풀리는 편이 다른 칸 오류(`phoneFormat`)와 같은 동작이다. 제출 실패(`error`)는 비워 둔다. 되돌리기: `rejectedPhone` 상태를 지우고 `registerError`에 분기.
+- **카카오 프로필 `name`(= 닉네임)을 이름 칸 초깃값으로 유지** — 왜: 서버가 이미 닉네임으로 채워 주고, 사용자가 고칠 수 있으며 v1도 같은 값을 썼다. 비워 두면 모든 신규 가입자가 이름을 직접 쳐야 한다. 되돌리기: `initialRegisterValues`의 `name`을 `''`로.
+- **mock 전화번호 검사는 libphonenumber 근사**(휴대폰 `01[016789]`·지역번호 + 자릿수, 해외 10자리 이상) — 왜: mock에 라이브러리를 들이지 않는다. 실제 판정은 서버이고, FE는 코드(`USER_400_2`)로만 분기하므로 mock 규칙의 세부는 테스트 입력용이다.
+
 ## 에러 처리 정리(2026-10-31)
 
 **변경**
