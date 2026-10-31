@@ -226,7 +226,7 @@ describe('거절 사유 · 금액 · 옵션 · 안내 종류', () => {
 
   it.each<[string, Pick<MyOrderDetail, 'ticket' | 'status'>, ReturnType<typeof cancelNotice>]>([
     [
-      '두둥 승인 대기 → ⑤-b(B18 위험)',
+      '두둥 승인 대기 → ⑤-b(승인 전 취소 안내 — 문구 확정 대기 B18)',
       {
         ticket: { ...order(P9_ORDER.approvedPaid).ticket, payType: 'DUDOONG' },
         status: 'PENDING_APPROVE',
