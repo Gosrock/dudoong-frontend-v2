@@ -105,6 +105,7 @@ scenario(
       'design-system §2 그리드',
       'DS host title 619:2116',
       'Q17 로고형(사용자 결정 2026-10-31)',
+      'design-requests Q4 → P9c-V "서비스 업데이트 노트" = 공지 목록(호스팅은 /hosting/notices)',
     ],
   },
   async ({ page, step, note, testInfo }) => {
@@ -129,14 +130,24 @@ scenario(
           expect(pad).toBe(width >= 1440 ? '80px' : '40px');
         });
       }
-      await step('아바타 ▾를 누르면 내 메뉴(My)가 열린다', async () => {
-        await page.setViewportSize({ width: 1440, height: 1024 });
-        await page.getByRole('button', { name: '내 메뉴' }).click();
-        const menu = page.getByRole('menu');
-        await expect(menu.getByRole('menuitem', { name: '주문내역' })).toBeVisible();
-        await expect(menu.getByRole('menuitem', { name: '로그아웃' })).toBeVisible();
-        await expect(menu.getByText('서비스 업데이트 노트')).toHaveCount(0);
-      });
+      await step(
+        '아바타 ▾를 누르면 내 메뉴(My)가 열리고 로그아웃 위 "서비스 업데이트 노트"를 누르면 공지 목록으로 간다',
+        async () => {
+          await page.setViewportSize({ width: 1440, height: 1024 });
+          await page.getByRole('button', { name: '내 메뉴' }).click();
+          const menu = page.getByRole('menu');
+          await expect(menu.getByRole('menuitem', { name: '주문내역' })).toBeVisible();
+          await expect(menu.getByRole('menuitem', { name: '로그아웃' })).toBeVisible();
+          // DS My 마지막 구획: 서비스 업데이트 노트(update) → 로그아웃(P9c-V — 호스팅 셸은 호스팅 공지 목록)
+          const names = await menu.getByRole('menuitem').allTextContents();
+          expect(names.slice(-2)).toEqual(['서비스 업데이트 노트', '로그아웃']);
+          const notes = menu.getByRole('menuitem', { name: '서비스 업데이트 노트' });
+          await expect(notes).toHaveAttribute('href', '/hosting/notices');
+          await notes.click();
+          await expect(page).toHaveURL('/hosting/notices');
+          await expect(page.getByRole('heading', { level: 1, name: '공지사항' })).toBeVisible();
+        },
+      );
     } else {
       await step('햄버거를 열면 벨이 드로어 머리 줄에 있고 같은 메뉴가 보인다', async () => {
         const drawer = await openDrawer(page);
@@ -146,6 +157,17 @@ scenario(
         await expect(
           page.getByRole('tooltip', { name: '두둥에서 공연을 시작해보세요!' }),
         ).toBeVisible();
+        // 로그아웃 위 "서비스 업데이트 노트" — 호스팅 드로어는 호스팅 공지 목록(P9c-V · Q4)
+        await expect(drawer.getByRole('link', { name: '서비스 업데이트 노트' })).toHaveAttribute(
+          'href',
+          '/hosting/notices',
+        );
+      });
+      await step('드로어의 "서비스 업데이트 노트"를 누르면 호스팅 공지 목록으로 간다', async () => {
+        const drawer = page.getByRole('dialog', { name: '메뉴' });
+        await drawer.getByRole('link', { name: '서비스 업데이트 노트' }).click();
+        await expect(page).toHaveURL('/hosting/notices');
+        await expect(page.getByTestId('notice').first()).toBeVisible();
       });
     }
   },
