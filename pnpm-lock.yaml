@@ -44,6 +44,9 @@ importers:
       '@radix-ui/react-visually-hidden':
         specifier: 1.2.13
         version: 1.2.13(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@suspensive/react':
+        specifier: 3.21.4
+        version: 3.21.4(react@19.3.1)
       '@tanstack/react-query':
         specifier: 5.104.3
         version: 5.104.3(react@19.3.1)
@@ -1830,6 +1833,11 @@ packages:
         optional: true
       typescript:
         optional: true
+
+  '@suspensive/react@3.21.4':
+    resolution: {integrity: sha512-o5otqY2qy5HejEx2zt4O/ZlCvwNAWT/nFY8H3wodXUePR0RoyGPudjNne3lYPKR54v2zezV5eTOsIIEgMehhKg==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@swc/core-darwin-arm64@1.16.18':
     resolution: {integrity: sha512-ozgiCHyFDCwfXzTnaLR+i8WxEyt06GTudn9rPh08vj+u3Z8vMvt5Pi8T+BikyNXm7y++h6UMdqsnJuWrV+tk2A==}
@@ -6043,6 +6051,10 @@ snapshots:
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
+
+  '@suspensive/react@3.21.4(react@19.3.1)':
+    dependencies:
+      react: 19.3.1
 
   '@swc/core-darwin-arm64@1.16.18':
     optional: true

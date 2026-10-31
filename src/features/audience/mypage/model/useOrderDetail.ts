@@ -4,11 +4,11 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useCallback, useMemo, useState } from 'react';
 
 import { banksQuery } from '@/api/bank/queries';
-import { handleCodes } from '@/api/handle-codes';
+import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import { MY_TICKETS_KEY } from '@/api/my-ticket/queries';
 import { cancelMyOrderMutation, putRefundAccountMutation } from '@/api/order/mutations';
 import { MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order/queries';
-import type { MyOrderDetail } from '@/api/order/schema';
+import type { CancelMyOrderRequest, MyOrderDetail } from '@/api/order/schema';
 
 import {
   cancelEntry,
@@ -59,31 +59,29 @@ export function useOrderDetail(orderUuid: string) {
   );
 }
 
-/** 표(`order-errors.ts`)의 코드 → `handleCodes`. 다시 읽기가 있으면 O-3을 새로 받은 뒤 안내를 정한다 */
+/** 표(`order-errors.ts`)의 코드 → `handleError` 표. 다시 읽기가 있으면 O-3을 새로 받은 뒤 안내를 정한다 */
 function useOrderCodes(
   orderUuid: string,
   table: Record<string, OrderActionOutcome>,
   onOutcome: (outcome: OrderActionOutcome, fresh: MyOrderDetail | undefined) => void,
-) {
+): ErrorCodeHandlers {
   const queryClient = useQueryClient();
   return useMemo(
     () =>
-      handleCodes(
-        Object.fromEntries(
-          Object.entries(table).map(([code, outcome]) => [
-            code,
-            () => {
-              if (!outcome.refetch) {
-                onOutcome(outcome, undefined);
-                return;
-              }
-              void queryClient
-                .fetchQuery({ ...myOrderQuery(orderUuid), staleTime: 0 })
-                .catch(() => undefined)
-                .then((fresh) => onOutcome(outcome, fresh));
-            },
-          ]),
-        ),
+      Object.fromEntries(
+        Object.entries(table).map(([code, outcome]) => [
+          code,
+          () => {
+            if (!outcome.refetch) {
+              onOutcome(outcome, undefined);
+              return;
+            }
+            void queryClient
+              .fetchQuery({ ...myOrderQuery(orderUuid), staleTime: 0 })
+              .catch(() => undefined)
+              .then((fresh) => onOutcome(outcome, fresh));
+          },
+        ]),
       ),
     [queryClient, orderUuid, table, onOutcome],
   );
@@ -121,13 +119,12 @@ export function useCancelOrder(orderUuid: string) {
   }, []);
   const codes = useOrderCodes(orderUuid, CANCEL_ERROR_TABLE, onOutcome);
 
+  // 캐시 반영은 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     ...cancelMyOrderMutation(orderUuid),
-    ...codes,
     onSuccess: (updated) => {
       queryClient.setQueryData(myOrderQuery(orderUuid).queryKey, updated);
       invalidateAfterOrderChange(queryClient);
-      setResult(cancelResult(updated));
     },
   });
 
@@ -137,8 +134,15 @@ export function useCancelOrder(orderUuid: string) {
       if (mutation.isPending) return;
       setError(null);
       setFieldErrors({});
+      const send = async (body?: CancelMyOrderRequest) => {
+        try {
+          setResult(cancelResult(await mutation.mutateAsync(body)));
+        } catch (e) {
+          handleError(e, codes);
+        }
+      };
       if (!requiresRefundAccount) {
-        await mutation.mutateAsync(undefined).catch(() => undefined);
+        await send(undefined);
         return;
       }
       if (!refundAccount) {
@@ -151,9 +155,9 @@ export function useCancelOrder(orderUuid: string) {
         return;
       }
       setRefundAccountMissing(false);
-      await mutation.mutateAsync({ refundAccount: checked.body }).catch(() => undefined);
+      await send({ refundAccount: checked.body });
     },
-    [mutation, requiresRefundAccount, queryClient],
+    [mutation, requiresRefundAccount, queryClient, codes],
   );
 
   return {
@@ -186,11 +190,9 @@ export function useRefundAccount(orderUuid: string) {
 
   const mutation = useMutation({
     ...putRefundAccountMutation(orderUuid),
-    ...codes,
     onSuccess: (updated) => {
       queryClient.setQueryData(myOrderQuery(orderUuid).queryKey, updated);
       void queryClient.invalidateQueries({ queryKey: [...MY_ORDERS_INFINITE_KEY] });
-      setSaved(true);
     },
   });
 
@@ -205,9 +207,14 @@ export function useRefundAccount(orderUuid: string) {
         return;
       }
       setFieldErrors({});
-      await mutation.mutateAsync(checked.body).catch(() => undefined);
+      try {
+        await mutation.mutateAsync(checked.body);
+        setSaved(true);
+      } catch (e) {
+        handleError(e, codes);
+      }
     },
-    [mutation, queryClient],
+    [mutation, queryClient, codes],
   );
 
   const defaults = useMemo(() => refundAccountDefaults(order.refundAccount), [order.refundAccount]);

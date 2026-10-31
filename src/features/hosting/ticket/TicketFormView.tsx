@@ -29,7 +29,7 @@ export function TicketFormView({
   if (ticketItemId !== undefined && id === null) return <HostingNotFound />;
   return (
     <AsyncBoundary
-      ignoreError={isSessionLost}
+      holdOn={isSessionLost}
       rejected={HostingAccessRejected}
       resetKeys={[eventId, id]}
     >

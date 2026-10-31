@@ -1,13 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setErrorNotifier } from './error-toast';
 import { ApiError, SessionLostError } from './errors';
-import { handleCodes } from './handle-codes';
-import {
-  FALLBACK_ERROR_MESSAGE,
-  getQueryClient,
-  setErrorNotifier,
-  VALIDATION_ERROR_MESSAGE,
-} from './query-client';
+import { getQueryClient } from './query-client';
 
 const retry = getQueryClient().getDefaultOptions().queries?.retry as (
   n: number,
@@ -44,41 +39,18 @@ describe('전역 에러 토스트', () => {
     vi.restoreAllMocks();
   });
 
-  const mutate = (error: unknown, meta?: Record<string, unknown>) =>
-    qc
+  it('변경 실패는 토스트하지 않고 로그만 남긴다(화면 반응은 호출 쪽 handleError)', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await qc
       .getMutationCache()
-      .build(qc, { mutationFn: () => Promise.reject(error), meta })
+      .build(qc, {
+        mutationFn: () => Promise.reject(new ApiError(400, 'Order_400_24', '취소할 수 없어요')),
+      })
       .execute(undefined)
       .catch(() => {});
-
-  it('변경 실패는 reason으로 토스트, id는 코드', async () => {
-    await mutate(new ApiError(400, 'Order_400_24', '취소할 수 없어요'));
-    expect(notify).toHaveBeenCalledWith('취소할 수 없어요', 'mutation:Order_400_24');
-  });
-
-  it('reason이 비면 고정 문구', async () => {
-    await mutate(new ApiError(0, 'NETWORK', ''));
-    expect(notify).toHaveBeenCalledWith(FALLBACK_ERROR_MESSAGE, 'mutation:NETWORK');
-  });
-
-  it.each([
-    ['BAD_REQUEST', '{"email":"비어 있을 수 없습니다"}'],
-    ['BAD_REQUEST', 'Bad Request'],
-    ['GLOBAL_400_1', '검증 오류'],
-  ])('검증 실패(%s)는 reason(%s)이 아니라 고정 문구', async (code, reason) => {
-    await mutate(new ApiError(400, code, reason));
-    expect(notify).toHaveBeenCalledWith(VALIDATION_ERROR_MESSAGE, `mutation:${code}`);
-  });
-
-  it('handleCodes로 맡긴 코드·meta.handled·세션 상실은 토스트하지 않는다', async () => {
-    const handled = handleCodes({ Order_400_22: () => {} });
-    await mutate(new ApiError(400, 'Order_400_22', '입금자명'), handled.meta);
-    await mutate(new ApiError(400, 'X', 'x'), { handled: true });
-    await mutate(new SessionLostError());
     expect(notify).not.toHaveBeenCalled();
-    // 맡기지 않은 코드는 그대로 토스트
-    await mutate(new ApiError(400, 'Order_400_23', '옵션'), handled.meta);
-    expect(notify).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain('mutation.failed');
   });
 
   it('조회 첫 로딩 실패는 토스트하지 않고, 배경 재조회 실패만 queryKey 해시 id로', async () => {

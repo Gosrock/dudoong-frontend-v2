@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { deleteOptionMutation, updateOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
@@ -37,7 +37,7 @@ export const OPTION_EDITOR_ERRORS = {
  * - 삭제는 옵션 자체를 지운다(붙은 판매 전 티켓에서도 떨어진다) — 이 티켓에서만 빼는 것은 `useTicketOptions.detach`
  * - 성공: 수정은 응답을 풀에, 삭제는 남은 풀을 넣고, 티켓 목록(붙은 옵션 이름·추가금)·관객 GP-5를 무효화
  * - 에러: `Option_Group_400_6` 설명 · `400_3`·`Item_Option_Group_400_4` 추가금 → 칸 오류, `Option_Group_400_5`·`400_2` 잠김 →
- *   안내 + 풀 다시 읽기, 404 → 안내 + 풀 다시 읽기, `Event_400_17` → 안내. 그 밖은 전역 토스트
+ *   안내 + 풀 다시 읽기, 404 → 안내 + 풀 다시 읽기, `Event_400_17` → 안내. 그 밖은 공용 토스트(handleError)
  */
 export function useOptionEditor(eventId: string, optionId: number) {
   const queryClient = useQueryClient();
@@ -70,7 +70,7 @@ export function useOptionEditor(eventId: string, optionId: number) {
     setError(OPTION_EDITOR_ERRORS.locked);
     void invalidateOptions(queryClient, eventId);
   };
-  const codes = handleCodes({
+  const codes = {
     ...Object.fromEntries(
       Object.entries(OPTION_FIELD_ERRORS).map(([code, { field, message }]) => [
         code,
@@ -84,24 +84,16 @@ export function useOptionEditor(eventId: string, optionId: number) {
       void invalidateOptions(queryClient, eventId);
     },
     Event_400_17: () => setError(OPTION_EDITOR_ERRORS.Event_400_17),
-  });
+  };
 
   const updateMutation = useMutation({
     ...updateOptionMutation(eventId),
-    ...codes,
-    onSuccess: async (saved) => {
-      const v = optionFormValuesOf(saved);
-      setBase(v);
-      setValues(v);
-      setAttempted(false);
-      setServerErrors({});
-      await applyUpdatedOption(queryClient, eventId, saved);
-    },
+    onSuccess: (saved) => applyUpdatedOption(queryClient, eventId, saved),
   });
   const deleteMutation = useMutation({
     ...deleteOptionMutation(eventId),
-    ...codes,
     onSuccess: async (remaining) => {
+      // 풀에서 빠지기 전에 세운다 — 늦으면 그사이 `missing`(풀에 없음)으로 보인다
       setDeleted(true);
       await applyDeletedOption(queryClient, eventId, remaining);
     },
@@ -118,12 +110,18 @@ export function useOptionEditor(eventId: string, optionId: number) {
     inflight.current = true;
     setError(null);
     try {
-      await updateMutation.mutateAsync({ optionId, body });
-      return true;
-    } catch {
-      return false;
-    } finally {
+      const updated = await updateMutation.mutateAsync({ optionId, body });
       inflight.current = false;
+      const v = optionFormValuesOf(updated);
+      setBase(v);
+      setValues(v);
+      setAttempted(false);
+      setServerErrors({});
+      return true;
+    } catch (e) {
+      inflight.current = false;
+      handleError(e, codes);
+      return false;
     }
   };
 
@@ -135,7 +133,8 @@ export function useOptionEditor(eventId: string, optionId: number) {
     try {
       await deleteMutation.mutateAsync(optionId);
       return true;
-    } catch {
+    } catch (e) {
+      handleError(e, codes);
       return false;
     } finally {
       inflight.current = false;

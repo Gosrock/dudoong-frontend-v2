@@ -68,10 +68,10 @@ describe('AsyncBoundary', () => {
     expect(await screen.findByText('값: 복구')).toBeInTheDocument();
   });
 
-  it('ignoreError가 true인 에러는 에러 화면 없이 pending을 유지한다(SessionLostError — 곧 이동)', async () => {
+  it('holdOn이 true인 에러는 에러 화면 없이 pending을 유지한다(SessionLostError — 곧 이동)', async () => {
     const fetcher = vi.fn<() => Promise<string>>().mockRejectedValue(new IgnoredError('세션 상실'));
     renderWithProviders(
-      <AsyncBoundary pending={<p>로딩</p>} ignoreError={(e) => e instanceof IgnoredError}>
+      <AsyncBoundary pending={<p>로딩</p>} holdOn={(e) => e instanceof IgnoredError}>
         <Data fetcher={fetcher} />
       </AsyncBoundary>,
     );

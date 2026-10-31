@@ -4,12 +4,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { createHostMutation } from '@/api/host/mutations';
 import { MY_HOSTS_KEY } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
 import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/home/model/hosting-home';
+import { tryCatch } from '@/utils/try-catch';
 
 import {
   CREATE_HOST_ERROR_MESSAGE,
@@ -36,7 +37,7 @@ import {
  * - 제출: 칸 오류가 있으면 요청하지 않고 `attempted`만 켠다(오류를 언제 보일지는 V). 요청 중·이동 중에는 다시 보내지 않는다
  * - 성공: 응답이 `{hostId}`뿐이라 GH-1(`MY_HOSTS_KEY`)을 무효화하고(새 호스트가 목록에 나온다), GM-1 세션(`hosts`·`hostCount` —
  *   햄버거 호스트 줄)도 다시 읽는다. 그 뒤 공연준비 홈 호스트 탭으로 `replace`(Q19 기본안, 뒤로가기로 폼에 돌아와 다시 내지 못하게)
- * - 에러: `HOST_400_16`(연락처 형식) → 연락처 영역 오류(`contactsServerError`), 토스트 없음. 그 밖은 전역 토스트
+ * - 에러: `HOST_400_16`(연락처 형식) → 연락처 영역 오류(`contactsServerError`), 토스트 없음. 그 밖은 공용 토스트(handleError)
  * - `onCreated`를 주면 이동하지 않고 만든 호스트 id를 넘긴다 — 간편 공연 만들기 Step1 안의 호스트 만들기(P11: 만든 호스트를 고른 채 Step2로)
  */
 export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => void } = {}) {
@@ -50,31 +51,14 @@ export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => v
 
   const errors = useMemo(() => validateCreateHost(values), [values]);
 
-  const codes = useMemo(
-    () =>
-      handleCodes({
-        HOST_400_16: () => setContactsServerError(CREATE_HOST_ERROR_MESSAGE.HOST_400_16),
-      }),
-    [],
-  );
+  // 목록·세션 무효화는 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     ...createHostMutation(),
-    ...codes,
-    onSuccess: async ({ hostId }) => {
-      await Promise.all([
+    onSuccess: () =>
+      Promise.all([
         queryClient.invalidateQueries({ queryKey: MY_HOSTS_KEY }),
         queryClient.invalidateQueries({ queryKey: meQuery().queryKey, exact: true }),
-      ]);
-      if (onCreated) {
-        // 이동하지 않으니 폼을 비우고 다시 만들 수 있게 푼다
-        inflight.current = false;
-        setValues(initialCreateHostValues());
-        setAttempted(false);
-        onCreated(hostId);
-        return;
-      }
-      router.replace(HOSTING_HOME_HOSTS_HREF);
-    },
+      ]),
   });
 
   const setName = useCallback((name: string) => setValues((v) => ({ ...v, name })), []);
@@ -104,11 +88,26 @@ export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => v
     if (hasCreateHostErrors(errors) || inflight.current) return;
     inflight.current = true;
     setContactsServerError(null);
-    // 표에 없는 실패는 전역 토스트가 맡는다. 성공하면 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다
-    await mutation.mutateAsync(toCreateHostBody(values)).catch(() => {
+    // 성공 뒤 `onCreated`(부르는 쪽 콜백)가 던진 것까지 공용 토스트로 삼키지 않게 tryCatch로 받는다
+    const [created, error] = await tryCatch(mutation.mutateAsync(toCreateHostBody(values)));
+    if (error) {
       inflight.current = false;
-    });
-  }, [errors, mutation, values]);
+      // 표에 없는 실패는 공용 토스트
+      return handleError(error, {
+        HOST_400_16: () => setContactsServerError(CREATE_HOST_ERROR_MESSAGE.HOST_400_16),
+      });
+    }
+    if (onCreated) {
+      // 이동하지 않으니 폼을 비우고 다시 만들 수 있게 푼다
+      inflight.current = false;
+      setValues(initialCreateHostValues());
+      setAttempted(false);
+      onCreated(created.hostId);
+      return;
+    }
+    // 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다
+    router.replace(HOSTING_HOME_HOSTS_HREF);
+  }, [errors, mutation, onCreated, router, values]);
 
   return {
     values,

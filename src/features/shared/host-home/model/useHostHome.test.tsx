@@ -10,6 +10,7 @@ import { meHandlers } from '@/api/__mocks__/me.handlers';
 import { hasAccessToken } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import type { HostRole } from '@/api/shared/common-schema';
+import { errorToast } from '@/test/error-toast';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
@@ -377,7 +378,7 @@ describe('호스트 홈 — 관심(♡, PH-13)', () => {
     },
   );
 
-  it('PH-13이 실패하면 viewer를 다시 읽어 실제 상태(안 팔로우)로 돌아간다', async () => {
+  it('PH-13이 실패하면 공용 토스트, viewer를 다시 읽어 실제 상태(안 팔로우)로 돌아간다', async () => {
     given('audience');
     server.use(...hostSets.followServerError(11));
     const { result, queryClient } = await settled();
@@ -387,6 +388,10 @@ describe('호스트 홈 — 관심(♡, PH-13)', () => {
     await waitFor(() => expect(queryClient.isMutating()).toBe(0));
     await waitFor(() => expect(result.current.follow.isFollowing).toBe(false));
     expect(await sent.lines()).toEqual(['PUT /api/v2/hosts/11/follow', 'GET /api/v2/hosts/11']);
+    expect(errorToast).toHaveBeenCalledWith(
+      '서버 오류. 관리자에게 문의 부탁드립니다.',
+      'mutation:GLOBAL_500_1',
+    );
   });
 
   it('팔로우는 공개 키(followerCount)를 바꾸거나 무효화하지 않는다', async () => {

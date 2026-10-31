@@ -17,11 +17,7 @@ import { useTicketOptions } from './model/useTicketOptions';
  */
 export function TicketListView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary
-      ignoreError={isSessionLost}
-      rejected={HostingAccessRejected}
-      resetKeys={[eventId]}
-    >
+    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
       <TicketList eventId={eventId} />
     </AsyncBoundary>
   );
