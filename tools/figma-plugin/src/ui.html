@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      /* themeColors: true — Figma가 --figma-color-* 변수를 넣어 준다 */
+      body {
+        margin: 0;
+        padding: 12px 16px 16px;
+        font:
+          12px/1.5 Inter,
+          'Pretendard',
+          system-ui,
+          sans-serif;
+        color: var(--figma-color-text, #222);
+        background: var(--figma-color-bg, #fff);
+      }
+      h2 {
+        margin: 16px 0 6px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--figma-color-text-secondary, #666);
+      }
+      ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      li {
+        padding: 4px 0;
+        border-bottom: 1px solid var(--figma-color-border, #eee);
+      }
+      input[type='text'],
+      input[type='password'],
+      textarea {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 6px 8px;
+        border: 1px solid var(--figma-color-border, #ddd);
+        border-radius: 4px;
+        font: inherit;
+        color: inherit;
+        background: var(--figma-color-bg, #fff);
+      }
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+      button {
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 4px;
+        font: inherit;
+        font-weight: 600;
+        color: var(--figma-color-text-onbrand, #fff);
+        background: var(--figma-color-bg-brand, #0d99ff);
+        cursor: pointer;
+      }
+      button.secondary {
+        color: var(--figma-color-text, #222);
+        background: var(--figma-color-bg-secondary, #f0f0f0);
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      a {
+        color: var(--figma-color-text-brand, #0d99ff);
+      }
+      label {
+        display: block;
+        padding: 2px 0;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .muted {
+        color: var(--figma-color-text-secondary, #888);
+      }
+      .warn {
+        color: var(--figma-color-text-warning, #b86200);
+      }
+      .error {
+        color: var(--figma-color-text-danger, #e03e1a);
+      }
+      .chip {
+        padding: 0 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        background: var(--figma-color-bg-success-tertiary, #dff5e3);
+      }
+      .state {
+        padding: 0 6px;
+        border-radius: 8px;
+        font-size: 10px;
+      }
+      .state.open {
+        background: var(--figma-color-bg-success-tertiary, #dff5e3);
+      }
+      .state.closed {
+        background: var(--figma-color-bg-secondary, #eee);
+      }
+      .name {
+        font-weight: 600;
+      }
+      .steps {
+        margin: 0 0 12px;
+        padding-left: 18px;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="view-connect" hidden>
+      <h2>GitHub 연결</h2>
+      <ol class="steps">
+        <li>
+          <a href="#" id="open-token-page">토큰 발급 페이지 열기</a> —
+          이름·조직(Gosrock)·만료(366일)·Issues 쓰기 권한이 미리 채워져 있어요.
+        </li>
+        <li>
+          Repository access에서 <b>Only select repositories</b> → <b>dudoong-frontend-v2</b>를
+          고르세요.
+        </li>
+        <li>[Generate token]을 누르고 토큰을 복사해 아래에 붙여 넣으세요.</li>
+        <li class="muted">조직 관리자가 승인해야 이슈를 쓸 수 있어요(승인 전에는 권한 오류).</li>
+      </ol>
+      <input type="password" id="token" placeholder="github_pat_…" autocomplete="off" />
+      <div class="actions"><button id="connect-button">연결</button></div>
+      <p id="connect-error" class="error"></p>
+      <p class="muted">토큰은 이 컴퓨터의 Figma 플러그인 저장소에만 저장돼요.</p>
+    </section>
+
+    <section id="view-file" hidden>
+      <h2>파일 링크</h2>
+      <p>
+        이 파일의 키를 Figma가 알려 주지 않았어요. 공유 → 링크 복사로 이 파일 링크를 붙여 넣어
+        주세요(한 번만).
+      </p>
+      <input type="text" id="file-link" placeholder="https://www.figma.com/design/…" />
+      <div class="actions"><button id="file-save">저장</button></div>
+      <p id="file-error" class="error"></p>
+    </section>
+
+    <section id="view-main" hidden>
+      <div class="row">
+        <div id="header"></div>
+        <button class="secondary" id="disconnect">연결 해제</button>
+      </div>
+
+      <h2>고른 프레임</h2>
+      <ul id="targets"></ul>
+
+      <div class="row">
+        <h2>이 프레임의 이슈</h2>
+        <a href="#" id="refresh">새로고침</a>
+      </div>
+      <ul id="history"></ul>
+
+      <h2>변경 유형</h2>
+      <div id="types"></div>
+
+      <h2>한 줄 요약(제목)</h2>
+      <input type="text" id="summary" placeholder="예: 판매 수량 기본값을 수량 지정으로" />
+
+      <h2>변경 내용</h2>
+      <textarea id="description" placeholder="무엇이 바뀌었는지, 개발이 확인할 점"></textarea>
+
+      <h2>보낼 곳</h2>
+      <div id="modes"></div>
+
+      <div class="actions"><button id="submit">확인</button></div>
+      <p id="error" class="error"></p>
+      <p id="result"></p>
+    </section>
+
+    <script>
+      /* build:script */
+    </script>
+  </body>
+</html>
