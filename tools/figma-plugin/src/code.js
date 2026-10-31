@@ -44,7 +44,7 @@ async function fileKey() {
 }
 
 async function init() {
-  figma.showUI(__html__, { width: 400, height: 640, themeColors: true });
+  figma.showUI(__html__, { width: 360, height: 520, themeColors: true });
   figma.ui.postMessage({
     type: 'init',
     token: (await figma.clientStorage.getAsync(TOKEN_KEY)) || null,

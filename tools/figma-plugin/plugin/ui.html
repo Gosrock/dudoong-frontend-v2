@@ -5,9 +5,12 @@
     <meta charset="utf-8" />
     <style>
       /* themeColors: true — Figma가 --figma-color-* 변수를 넣어 준다 */
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        padding: 12px 16px 16px;
+        padding: 16px;
         font:
           12px/1.5 Inter,
           'Pretendard',
@@ -16,170 +19,206 @@
         color: var(--figma-color-text, #222);
         background: var(--figma-color-bg, #fff);
       }
-      h2 {
-        margin: 16px 0 6px;
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--figma-color-text-secondary, #666);
+      p {
+        margin: 0 0 8px;
       }
-      ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
+      a {
+        color: var(--figma-color-text-brand, #0d99ff);
+        text-decoration: none;
+        cursor: pointer;
       }
-      li {
-        padding: 4px 0;
-        border-bottom: 1px solid var(--figma-color-border, #eee);
+      .muted {
+        color: var(--figma-color-text-secondary, #888);
+      }
+      .error {
+        color: var(--figma-color-text-danger, #e03e1a);
+      }
+      .warn {
+        color: var(--figma-color-text-warning, #b86200);
       }
       input[type='text'],
       input[type='password'],
       textarea {
-        box-sizing: border-box;
         width: 100%;
-        padding: 6px 8px;
+        padding: 8px 10px;
         border: 1px solid var(--figma-color-border, #ddd);
-        border-radius: 4px;
+        border-radius: 6px;
         font: inherit;
         color: inherit;
         background: var(--figma-color-bg, #fff);
       }
+      textarea:focus,
+      input:focus {
+        outline: none;
+        border-color: var(--figma-color-border-brand-strong, #0d99ff);
+      }
       textarea {
-        min-height: 120px;
+        min-height: 140px;
         resize: vertical;
       }
-      button {
-        padding: 6px 12px;
+      .primary {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px;
         border: 0;
-        border-radius: 4px;
+        border-radius: 6px;
         font: inherit;
+        font-size: 13px;
         font-weight: 600;
         color: var(--figma-color-text-onbrand, #fff);
         background: var(--figma-color-bg-brand, #0d99ff);
         cursor: pointer;
       }
-      button.secondary {
-        color: var(--figma-color-text, #222);
-        background: var(--figma-color-bg-secondary, #f0f0f0);
-      }
-      button:disabled {
+      .primary:disabled {
         opacity: 0.4;
         cursor: default;
       }
-      a {
-        color: var(--figma-color-text-brand, #0d99ff);
+
+      /* 고른 프레임 카드 */
+      .card {
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        background: var(--figma-color-bg-secondary, #f5f5f5);
       }
-      label {
-        display: block;
-        padding: 2px 0;
+      .card .frame {
+        font-weight: 600;
+        font-size: 13px;
       }
-      .row {
+      .card .frame + .frame {
+        margin-top: 2px;
+      }
+      .card.empty {
+        padding: 24px 12px;
+        text-align: center;
+      }
+      .badge {
+        margin-left: 4px;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 500;
+        vertical-align: 1px;
+        background: var(--figma-color-bg-success-tertiary, #dff5e3);
+      }
+      .badge.closed {
+        background: var(--figma-color-bg-tertiary, #e6e6e6);
+      }
+      .meta {
+        margin-top: 4px;
+      }
+
+      /* 유형 칩 */
+      .chips {
         display: flex;
-        gap: 8px;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .muted {
-        color: var(--figma-color-text-secondary, #888);
-      }
-      .warn {
-        color: var(--figma-color-text-warning, #b86200);
-      }
-      .error {
-        color: var(--figma-color-text-danger, #e03e1a);
+        flex-wrap: wrap;
+        gap: 4px;
+        margin: 10px 0 0;
       }
       .chip {
-        padding: 0 6px;
-        border-radius: 8px;
-        font-size: 10px;
+        padding: 4px 8px;
+        border: 1px solid var(--figma-color-border, #ddd);
+        border-radius: 14px;
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        cursor: pointer;
+      }
+      .chip.on {
+        border-color: var(--figma-color-border-brand-strong, #0d99ff);
+        color: var(--figma-color-text-brand, #0d99ff);
+        background: var(--figma-color-bg-brand-tertiary, #e5f4ff);
+      }
+
+      .target {
+        margin-top: 10px;
+      }
+      details {
+        margin-top: 16px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--figma-color-text-secondary, #888);
+      }
+      .history {
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .history li {
+        padding: 4px 0;
+        border-bottom: 1px solid var(--figma-color-border, #eee);
+      }
+      .done {
+        margin-top: 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
         background: var(--figma-color-bg-success-tertiary, #dff5e3);
       }
-      .state {
-        padding: 0 6px;
-        border-radius: 8px;
-        font-size: 10px;
-      }
-      .state.open {
-        background: var(--figma-color-bg-success-tertiary, #dff5e3);
-      }
-      .state.closed {
-        background: var(--figma-color-bg-secondary, #eee);
-      }
-      .name {
-        font-weight: 600;
+      footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+        font-size: 11px;
       }
       .steps {
         margin: 0 0 12px;
         padding-left: 18px;
       }
-      .actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 12px;
+      .steps li {
+        margin-bottom: 4px;
       }
     </style>
   </head>
   <body>
     <section id="view-connect" hidden>
-      <h2>GitHub 연결</h2>
+      <p><b>처음 한 번만 GitHub를 연결해요.</b></p>
       <ol class="steps">
         <li>
-          <a href="#" id="open-token-page">토큰 발급 페이지 열기</a> —
-          이름·조직(Gosrock)·만료(366일)·Issues 쓰기 권한이 미리 채워져 있어요.
+          <a href="#" id="open-token-page">토큰 만들기 페이지 열기</a> (내용은 미리 채워져 있어요)
         </li>
         <li>
-          Repository access에서 <b>Only select repositories</b> → <b>dudoong-frontend-v2</b>를
-          고르세요.
+          Repository access → <b>Only select repositories</b> → <b>dudoong-frontend-v2</b> 선택
         </li>
-        <li>[Generate token]을 누르고 토큰을 복사해 아래에 붙여 넣으세요.</li>
-        <li class="muted">조직 관리자가 승인해야 이슈를 쓸 수 있어요(승인 전에는 권한 오류).</li>
+        <li>[Generate token] → 나온 토큰을 아래에 붙여 넣기</li>
       </ol>
       <input type="password" id="token" placeholder="github_pat_…" autocomplete="off" />
-      <div class="actions"><button id="connect-button">연결</button></div>
+      <button class="primary" id="connect-button">연결</button>
       <p id="connect-error" class="error"></p>
-      <p class="muted">토큰은 이 컴퓨터의 Figma 플러그인 저장소에만 저장돼요.</p>
+      <p class="muted">조직 관리자 승인이 필요하면 승인 뒤에 보낼 수 있어요.</p>
     </section>
 
     <section id="view-file" hidden>
-      <h2>파일 링크</h2>
-      <p>
-        이 파일의 키를 Figma가 알려 주지 않았어요. 공유 → 링크 복사로 이 파일 링크를 붙여 넣어
-        주세요(한 번만).
-      </p>
+      <p>이 파일 링크를 한 번만 붙여 넣어 주세요(공유 → 링크 복사).</p>
       <input type="text" id="file-link" placeholder="https://www.figma.com/design/…" />
-      <div class="actions"><button id="file-save">저장</button></div>
+      <button class="primary" id="file-save">저장</button>
       <p id="file-error" class="error"></p>
     </section>
 
     <section id="view-main" hidden>
-      <div class="row">
-        <div id="header"></div>
-        <button class="secondary" id="disconnect">연결 해제</button>
+      <div id="card"></div>
+
+      <div id="form">
+        <textarea
+          id="description"
+          placeholder="무엇이 바뀌었나요?&#10;첫 줄이 이슈 제목이 돼요.&#10;&#10;예) 판매 수량 기본값을 '수량 지정'으로 바꿨어요"
+        ></textarea>
+        <div class="chips" id="types"></div>
+        <div class="target muted" id="target"></div>
+        <button class="primary" id="submit">이슈 만들기</button>
+        <p id="error" class="error"></p>
       </div>
+      <div id="done"></div>
 
-      <h2>고른 프레임</h2>
-      <ul id="targets"></ul>
+      <details id="history-box">
+        <summary id="history-summary"></summary>
+        <ul class="history" id="history"></ul>
+      </details>
 
-      <div class="row">
-        <h2>이 프레임의 이슈</h2>
-        <a href="#" id="refresh">새로고침</a>
-      </div>
-      <ul id="history"></ul>
-
-      <h2>변경 유형</h2>
-      <div id="types"></div>
-
-      <h2>한 줄 요약(제목)</h2>
-      <input type="text" id="summary" placeholder="예: 판매 수량 기본값을 수량 지정으로" />
-
-      <h2>변경 내용</h2>
-      <textarea id="description" placeholder="무엇이 바뀌었는지, 개발이 확인할 점"></textarea>
-
-      <h2>보낼 곳</h2>
-      <div id="modes"></div>
-
-      <div class="actions"><button id="submit">확인</button></div>
-      <p id="error" class="error"></p>
-      <p id="result"></p>
+      <footer>
+        <span class="muted" id="who"></span>
+        <a href="#" id="disconnect">연결 해제</a>
+      </footer>
     </section>
 
     <script>
@@ -197,11 +236,21 @@ const KNOWN_FILES = {
 };
 
 const CHANGE_TYPES = [
-  { id: 'new', label: '신규 화면', githubLabel: 'Design: 신규 화면' },
-  { id: 'update', label: '수정', githubLabel: 'Design: 수정' },
-  { id: 'delete', label: '삭제', githubLabel: 'Design: 삭제' },
-  { id: 'ready', label: 'Ready for dev 전환', githubLabel: 'Design: Ready for dev' },
-  { id: 'ds', label: '디자인 시스템 변경(토큰·컴포넌트)', githubLabel: 'Design: 디자인 시스템' },
+  { id: 'update', label: '수정', short: '수정', githubLabel: 'Design: 수정' },
+  { id: 'new', label: '신규 화면', short: '새 화면', githubLabel: 'Design: 신규 화면' },
+  {
+    id: 'ready',
+    label: 'Ready for dev 전환',
+    short: 'Ready for dev',
+    githubLabel: 'Design: Ready for dev',
+  },
+  {
+    id: 'ds',
+    label: '디자인 시스템 변경(토큰·컴포넌트)',
+    short: '디자인 시스템',
+    githubLabel: 'Design: 디자인 시스템',
+  },
+  { id: 'delete', label: '삭제', short: '삭제', githubLabel: 'Design: 삭제' },
 ];
 
 const SYNC_LABEL = 'Design Sync';
@@ -296,10 +345,20 @@ function sectionPath(node) {
   return names;
 }
 
-/** 고른 노드가 모두 Ready for dev면 유형을 미리 고른다 */
-function suggestType(targets) {
+const DS_FILE = '0QD9tGSt8ZciDqe7ol2gYH';
+
+/** 기본 변경 유형: 모두 Ready for dev → ready, 디자인 시스템 파일 → ds, 그 밖 → update */
+function suggestType(targets, fileKey) {
   if (targets.length > 0 && targets.every((t) => t.devStatus === 'READY_FOR_DEV')) return 'ready';
-  return null;
+  if (fileKey === DS_FILE) return 'ds';
+  return 'update';
+}
+
+/** 변경 내용의 첫 줄 → 이슈 제목에 붙는 요약(길면 자른다) */
+function summaryOf(text, max) {
+  const limit = max || 40;
+  const first = (text || '').trim().split(/\r?\n/)[0].trim();
+  return first.length > limit ? `${first.slice(0, limit - 1)}…` : first;
 }
 
 function changeType(id) {
@@ -425,7 +484,8 @@ function tokenUrl() {
 
 // 플러그인 UI(iframe). build.mjs가 core.mjs와 함께 plugin/ui.html에 넣는다.
 // iframe origin이 null이라 Access-Control-Allow-Origin: * 인 api.github.com만 부른다.
-/* global REPO, CHANGE_TYPES, SYNC_LABEL, buildIssue, buildComment, matchIssues, devStatusText, isKnownFile, parseFileKey, suggestType, tokenUrl */
+// 디자이너가 쓰는 칸은 "무엇이 바뀌었나요?" 하나 — 제목은 첫 줄, 유형·보낼 곳은 자동으로 고르고 바꿀 수만 있다.
+/* global REPO, CHANGE_TYPES, SYNC_LABEL, buildIssue, buildComment, matchIssues, devStatusText, isKnownFile, parseFileKey, suggestType, summaryOf, tokenUrl */
 
 const API = 'https://api.github.com';
 const MAX_ISSUE_PAGES = 5; // 100개씩, 최근 500개까지
@@ -443,9 +503,9 @@ const state = {
   issuesError: null,
   typeId: 'update',
   typeTouched: false,
-  mode: 'new', // 'new' | 이슈 번호
+  forceNew: false, // 열린 이슈가 있어도 새 이슈로
   busy: false,
-  result: null, // { url, number, kind }
+  result: null, // { url, text }
   error: null,
 };
 
@@ -552,10 +612,8 @@ function setTargets(targets) {
   state.targets = targets;
   state.result = null;
   state.error = null;
-  if (!state.typeTouched) state.typeId = suggestType(targets) || 'update';
-  // 고른 프레임이 바뀌면 댓글 대상이 그 프레임의 열린 이슈가 아닐 수 있다
-  if (state.mode !== 'new' && !openMatches().some((i) => i.number === state.mode))
-    state.mode = 'new';
+  state.forceNew = false;
+  if (!state.typeTouched) state.typeId = suggestType(targets, state.fileKey);
 }
 
 async function connect(token, opts) {
@@ -585,15 +643,22 @@ function disconnect() {
 
 // ── 제출 ──
 
+/** 이어서 기록할 이슈 — 고른 프레임이 든 열린 이슈 중 가장 최근 것. 없거나 "새 이슈로"면 null */
+function continueIssue() {
+  if (state.forceNew) return null;
+  return openMatches()[0] || null;
+}
+
 function context() {
+  const description = document.getElementById('description').value;
   return {
     fileKey: state.fileKey,
     fileName: state.fileName,
     pageName: state.pageName,
     targets: state.targets,
     typeId: state.typeId,
-    summary: document.getElementById('summary').value,
-    description: document.getElementById('description').value,
+    summary: summaryOf(description),
+    description,
     author: state.author,
   };
 }
@@ -601,17 +666,17 @@ function context() {
 async function submit() {
   const ctx = context();
   if (!ctx.targets.length) return fail('캔버스에서 프레임을 먼저 골라 주세요.');
-  if (!ctx.description.trim()) return fail('변경 내용을 적어 주세요.');
+  if (!ctx.description.trim()) return fail('무엇이 바뀌었는지 적어 주세요.');
+  const target = continueIssue();
   state.busy = true;
   state.error = null;
   render();
   try {
-    if (state.mode === 'new') {
-      const issue = buildIssue(ctx);
-      const created = await gh(`${repoPath}/issues`, { method: 'POST', body: issue });
-      state.result = { url: created.html_url, number: created.number, kind: '이슈를 만들었어요' };
+    if (!target) {
+      const created = await gh(`${repoPath}/issues`, { method: 'POST', body: buildIssue(ctx) });
+      state.result = { url: created.html_url, text: `#${created.number} 이슈를 만들었어요` };
     } else {
-      const number = state.mode;
+      const number = target.number;
       const current = await gh(`${repoPath}/issues/${number}`);
       const comment = buildComment(ctx, current.body);
       const created = await gh(`${repoPath}/issues/${number}/comments`, {
@@ -628,12 +693,12 @@ async function submit() {
         method: 'POST',
         body: { labels: [comment.label] },
       });
-      state.result = { url: created.html_url, number, kind: '댓글을 달았어요' };
+      state.result = { url: created.html_url, text: `#${number}에 이어서 기록했어요` };
     }
-    document.getElementById('summary').value = '';
     document.getElementById('description').value = '';
     state.typeTouched = false;
-    post({ type: 'notify', text: `#${state.result.number} ${state.result.kind}` });
+    state.typeId = suggestType(state.targets, state.fileKey);
+    post({ type: 'notify', text: state.result.text });
     loadIssues();
   } catch (e) {
     state.error = e.message;
@@ -674,6 +739,10 @@ function show(id, visible) {
   document.getElementById(id).hidden = !visible;
 }
 
+function setHtml(id, html) {
+  document.getElementById(id).innerHTML = html;
+}
+
 function render() {
   const connected = Boolean(state.token && state.login);
   show('view-connect', !connected);
@@ -681,83 +750,115 @@ function render() {
   show('view-main', connected && Boolean(state.fileKey));
   document.getElementById('connect-error').textContent = connected ? '' : state.error || '';
   document.getElementById('connect-button').disabled = state.busy;
-
   if (!connected || !state.fileKey) return;
 
-  const known = isKnownFile(state.fileKey);
-  document.getElementById('header').innerHTML =
-    `<div><strong>${esc(state.fileName)}</strong> · ${esc(state.pageName)}</div>` +
-    `<div class="muted">@${esc(state.login)}${known ? '' : ' · <span class="warn">테스트 파일 — 이슈에 테스트 라벨이 붙어요</span>'}</div>`;
+  renderCard();
+  const has = state.targets.length > 0;
+  show('form', has);
 
-  document.getElementById('targets').innerHTML = state.targets.length
-    ? state.targets
-        .map(
-          (t) =>
-            `<li><span class="name">${esc(t.name)}</span> <span class="muted">${esc(t.type)}${
-              t.sections.length ? ` · ${esc(t.sections.join(' › '))}` : ''
-            }</span>${t.devStatus ? ` <span class="chip">${esc(devStatusText(t.devStatus))}</span>` : ''}</li>`,
-        )
-        .join('')
-    : '<li class="muted">캔버스에서 프레임이나 컴포넌트를 골라 주세요. 여러 개를 고르면 이슈 하나로 묶어요.</li>';
+  setHtml(
+    'types',
+    CHANGE_TYPES.map(
+      (t) =>
+        `<button class="chip${state.typeId === t.id ? ' on' : ''}" data-type="${t.id}">${esc(t.short)}</button>`,
+    ).join(''),
+  );
 
-  renderHistory();
-
-  document.getElementById('types').innerHTML = CHANGE_TYPES.map(
-    (t) =>
-      `<label class="type"><input type="radio" name="type" value="${t.id}"${
-        state.typeId === t.id ? ' checked' : ''
-      }> ${esc(t.label)}</label>`,
-  ).join('');
-
-  const open = openMatches();
-  document.getElementById('modes').innerHTML = [
-    `<label><input type="radio" name="mode" value="new"${state.mode === 'new' ? ' checked' : ''}> 새 이슈</label>`,
-  ]
-    .concat(
-      open.map(
-        (i) =>
-          `<label><input type="radio" name="mode" value="${i.number}"${
-            state.mode === i.number ? ' checked' : ''
-          }> #${i.number}에 댓글 <span class="muted">${esc(i.title)}</span></label>`,
-      ),
-    )
-    .join('');
+  const target = continueIssue();
+  const open = openMatches()[0];
+  if (target) {
+    setHtml(
+      'target',
+      `<b>#${target.number}</b> 이슈에 이어서 기록돼요 · <a href="#" data-action="new">새 이슈로</a>`,
+    );
+  } else if (open) {
+    setHtml(
+      'target',
+      `새 이슈로 만들어요 · <a href="#" data-action="continue">#${open.number}에 이어서 쓰기</a>`,
+    );
+  } else {
+    setHtml('target', ''); // 이어 쓸 이슈가 없으면 버튼 문구(이슈 만들기)로 충분하다
+  }
 
   const submitButton = document.getElementById('submit');
-  submitButton.disabled = state.busy || !state.targets.length;
-  submitButton.textContent = state.busy ? '보내는 중…' : '확인';
+  submitButton.disabled = state.busy || !has;
+  submitButton.textContent = state.busy
+    ? '보내는 중…'
+    : target
+      ? `#${target.number}에 이어서 기록`
+      : '이슈 만들기';
 
   document.getElementById('error').textContent = state.error || '';
-  document.getElementById('result').innerHTML = state.result
-    ? `#${state.result.number} ${esc(state.result.kind)} — <a href="#" data-url="${esc(state.result.url)}">GitHub에서 보기</a>`
-    : '';
+  setHtml(
+    'done',
+    state.result
+      ? `<div class="done">✓ ${esc(state.result.text)} · <a href="#" data-url="${esc(state.result.url)}">보기</a></div>`
+      : '',
+  );
+
+  renderHistory();
+  const known = isKnownFile(state.fileKey);
+  setHtml(
+    'who',
+    `@${esc(state.login)}${known ? '' : ' · <span class="warn">테스트 파일(테스트 라벨)</span>'}`,
+  );
+}
+
+function renderCard() {
+  if (!state.targets.length) {
+    setHtml(
+      'card',
+      '<div class="card empty"><div class="frame">캔버스에서 프레임을 골라 주세요</div>' +
+        '<div class="muted meta">안쪽 레이어를 골라도 돼요. 여러 개를 고르면 이슈 하나로 묶어요.</div></div>',
+    );
+    return;
+  }
+  const frames = state.targets
+    .map(
+      (t) =>
+        `<div class="frame">${esc(t.name)}${
+          t.devStatus ? `<span class="badge">${esc(devStatusText(t.devStatus))}</span>` : ''
+        }</div>`,
+    )
+    .join('');
+  const sections = state.targets[0].sections;
+  const where = [state.fileName, state.pageName].concat(sections).join(' › ');
+  setHtml('card', `<div class="card">${frames}<div class="muted meta">${esc(where)}</div></div>`);
 }
 
 function renderHistory() {
-  const el = document.getElementById('history');
+  const box = document.getElementById('history-box');
+  box.hidden = !state.targets.length;
+  if (!state.targets.length) return;
   if (state.issuesError) {
-    el.innerHTML = `<li class="error">이력을 불러오지 못했어요: ${esc(state.issuesError)}</li>`;
+    setHtml('history-summary', `<span class="error">이력을 불러오지 못했어요</span>`);
+    setHtml('history', `<li class="error">${esc(state.issuesError)}</li>`);
     return;
   }
   if (!state.issuesLoaded) {
-    el.innerHTML = '<li class="muted">불러오는 중…</li>';
-    return;
-  }
-  if (!state.targets.length) {
-    el.innerHTML = '';
+    setHtml('history-summary', '이력 불러오는 중…');
+    setHtml('history', '');
     return;
   }
   const list = matches();
-  el.innerHTML = list.length
-    ? list
-        .map(
-          (i) =>
-            `<li><span class="state ${i.state}">${i.state === 'open' ? '열림' : '닫힘'}</span> ` +
-            `<a href="#" data-url="${esc(i.url)}">#${i.number}</a> ${esc(i.title)} ` +
-            `<span class="muted">${esc(i.createdAt.slice(0, 10))} · @${esc(i.author)}</span></li>`,
-        )
-        .join('')
-    : '<li class="muted">이 프레임으로 만든 이슈가 없어요.</li>';
+  const openCount = list.filter((i) => i.state === 'open').length;
+  setHtml(
+    'history-summary',
+    list.length
+      ? `이 프레임 이슈 ${list.length}개 (열림 ${openCount}) · <a href="#" data-action="refresh">새로고침</a>`
+      : `이 프레임으로 만든 이슈가 없어요 · <a href="#" data-action="refresh">새로고침</a>`,
+  );
+  setHtml(
+    'history',
+    list
+      .map(
+        (i) =>
+          `<li><span class="badge ${i.state}">${i.state === 'open' ? '열림' : '닫힘'}</span> ` +
+          `<a href="#" data-url="${esc(i.url)}">#${i.number}</a> ${esc(i.title)} ` +
+          `<span class="muted">${esc(i.createdAt.slice(0, 10))}</span></li>`,
+      )
+      .join(''),
+  );
 }
 
 // ── 이벤트 ──
@@ -768,11 +869,6 @@ document.getElementById('connect-button').onclick = () => {
   if (token) connect(token);
 };
 document.getElementById('disconnect').onclick = disconnect;
-document.getElementById('refresh').onclick = () => {
-  state.issuesLoaded = false;
-  render();
-  loadIssues();
-};
 document.getElementById('file-save').onclick = () => {
   const key = parseFileKey(document.getElementById('file-link').value);
   if (!key) {
@@ -784,24 +880,40 @@ document.getElementById('file-save').onclick = () => {
   render();
 };
 document.getElementById('submit').onclick = submit;
-
-document.addEventListener('change', (event) => {
-  const input = event.target;
-  if (input.name === 'type') {
-    state.typeId = input.value;
-    state.typeTouched = true;
-  } else if (input.name === 'mode') {
-    state.mode = input.value === 'new' ? 'new' : Number(input.value);
+document.getElementById('description').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) submit();
+});
+document.getElementById('description').addEventListener('input', () => {
+  if (state.result || state.error) {
+    state.result = null;
+    state.error = null;
+    render();
   }
-  render();
 });
 
 // UI 안의 링크는 모두 href="#"이다. 기본 동작을 두면 iframe이 부모 주소로 이동해 플러그인 화면이 사라진다
 document.addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-type]');
+  if (chip) {
+    state.typeId = chip.dataset.type;
+    state.typeTouched = true;
+    render();
+    return;
+  }
   const link = event.target.closest('a');
   if (!link) return;
   event.preventDefault();
-  if (link.dataset.url) openUrl(link.dataset.url);
+  const action = link.dataset.action;
+  if (action === 'new' || action === 'continue') {
+    state.forceNew = action === 'new';
+    render();
+  } else if (action === 'refresh') {
+    state.issuesLoaded = false;
+    render();
+    loadIssues();
+  } else if (link.dataset.url) {
+    openUrl(link.dataset.url);
+  }
 });
 
 render();

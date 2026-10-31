@@ -13,11 +13,21 @@ const KNOWN_FILES = {
 };
 
 const CHANGE_TYPES = [
-  { id: 'new', label: '신규 화면', githubLabel: 'Design: 신규 화면' },
-  { id: 'update', label: '수정', githubLabel: 'Design: 수정' },
-  { id: 'delete', label: '삭제', githubLabel: 'Design: 삭제' },
-  { id: 'ready', label: 'Ready for dev 전환', githubLabel: 'Design: Ready for dev' },
-  { id: 'ds', label: '디자인 시스템 변경(토큰·컴포넌트)', githubLabel: 'Design: 디자인 시스템' },
+  { id: 'update', label: '수정', short: '수정', githubLabel: 'Design: 수정' },
+  { id: 'new', label: '신규 화면', short: '새 화면', githubLabel: 'Design: 신규 화면' },
+  {
+    id: 'ready',
+    label: 'Ready for dev 전환',
+    short: 'Ready for dev',
+    githubLabel: 'Design: Ready for dev',
+  },
+  {
+    id: 'ds',
+    label: '디자인 시스템 변경(토큰·컴포넌트)',
+    short: '디자인 시스템',
+    githubLabel: 'Design: 디자인 시스템',
+  },
+  { id: 'delete', label: '삭제', short: '삭제', githubLabel: 'Design: 삭제' },
 ];
 
 const SYNC_LABEL = 'Design Sync';
@@ -112,10 +122,20 @@ function sectionPath(node) {
   return names;
 }
 
-/** 고른 노드가 모두 Ready for dev면 유형을 미리 고른다 */
-function suggestType(targets) {
+const DS_FILE = '0QD9tGSt8ZciDqe7ol2gYH';
+
+/** 기본 변경 유형: 모두 Ready for dev → ready, 디자인 시스템 파일 → ds, 그 밖 → update */
+function suggestType(targets, fileKey) {
   if (targets.length > 0 && targets.every((t) => t.devStatus === 'READY_FOR_DEV')) return 'ready';
-  return null;
+  if (fileKey === DS_FILE) return 'ds';
+  return 'update';
+}
+
+/** 변경 내용의 첫 줄 → 이슈 제목에 붙는 요약(길면 자른다) */
+function summaryOf(text, max) {
+  const limit = max || 40;
+  const first = (text || '').trim().split(/\r?\n/)[0].trim();
+  return first.length > limit ? `${first.slice(0, limit - 1)}…` : first;
 }
 
 function changeType(id) {
@@ -285,7 +305,7 @@ async function fileKey() {
 }
 
 async function init() {
-  figma.showUI(__html__, { width: 400, height: 640, themeColors: true });
+  figma.showUI(__html__, { width: 360, height: 520, themeColors: true });
   figma.ui.postMessage({
     type: 'init',
     token: (await figma.clientStorage.getAsync(TOKEN_KEY)) || null,

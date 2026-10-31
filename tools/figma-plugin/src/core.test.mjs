@@ -17,6 +17,7 @@ import {
   resolveTarget,
   sectionPath,
   suggestType,
+  summaryOf,
   TEST_LABEL,
   tokenUrl,
 } from './core.mjs';
@@ -174,10 +175,17 @@ describe('matchIssues', () => {
 });
 
 describe('그 밖', () => {
-  it('Ready for dev 자동 선택은 모두 Ready일 때만', () => {
-    expect(suggestType([target])).toBe('ready');
-    expect(suggestType([target, { ...target, devStatus: null }])).toBeNull();
-    expect(suggestType([])).toBeNull();
+  it('기본 유형: 모두 Ready → ready, 디자인 시스템 파일 → ds, 그 밖 → update', () => {
+    expect(suggestType([target], GUI)).toBe('ready');
+    expect(suggestType([target, { ...target, devStatus: null }], GUI)).toBe('update');
+    expect(suggestType([{ ...target, devStatus: null }], '0QD9tGSt8ZciDqe7ol2gYH')).toBe('ds');
+    expect(suggestType([], GUI)).toBe('update');
+  });
+
+  it('요약은 내용의 첫 줄, 40자 넘으면 자른다', () => {
+    expect(summaryOf('  판매 수량 기본값 변경\n자세한 설명')).toBe('판매 수량 기본값 변경');
+    expect(summaryOf('가'.repeat(50))).toBe(`${'가'.repeat(39)}…`);
+    expect(summaryOf('')).toBe('');
   });
 
   it('Figma 링크에서 fileKey를 꺼낸다', () => {

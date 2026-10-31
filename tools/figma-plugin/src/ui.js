@@ -1,6 +1,7 @@
 // 플러그인 UI(iframe). build.mjs가 core.mjs와 함께 plugin/ui.html에 넣는다.
 // iframe origin이 null이라 Access-Control-Allow-Origin: * 인 api.github.com만 부른다.
-/* global REPO, CHANGE_TYPES, SYNC_LABEL, buildIssue, buildComment, matchIssues, devStatusText, isKnownFile, parseFileKey, suggestType, tokenUrl */
+// 디자이너가 쓰는 칸은 "무엇이 바뀌었나요?" 하나 — 제목은 첫 줄, 유형·보낼 곳은 자동으로 고르고 바꿀 수만 있다.
+/* global REPO, CHANGE_TYPES, SYNC_LABEL, buildIssue, buildComment, matchIssues, devStatusText, isKnownFile, parseFileKey, suggestType, summaryOf, tokenUrl */
 
 const API = 'https://api.github.com';
 const MAX_ISSUE_PAGES = 5; // 100개씩, 최근 500개까지
@@ -18,9 +19,9 @@ const state = {
   issuesError: null,
   typeId: 'update',
   typeTouched: false,
-  mode: 'new', // 'new' | 이슈 번호
+  forceNew: false, // 열린 이슈가 있어도 새 이슈로
   busy: false,
-  result: null, // { url, number, kind }
+  result: null, // { url, text }
   error: null,
 };
 
@@ -127,10 +128,8 @@ function setTargets(targets) {
   state.targets = targets;
   state.result = null;
   state.error = null;
-  if (!state.typeTouched) state.typeId = suggestType(targets) || 'update';
-  // 고른 프레임이 바뀌면 댓글 대상이 그 프레임의 열린 이슈가 아닐 수 있다
-  if (state.mode !== 'new' && !openMatches().some((i) => i.number === state.mode))
-    state.mode = 'new';
+  state.forceNew = false;
+  if (!state.typeTouched) state.typeId = suggestType(targets, state.fileKey);
 }
 
 async function connect(token, opts) {
@@ -160,15 +159,22 @@ function disconnect() {
 
 // ── 제출 ──
 
+/** 이어서 기록할 이슈 — 고른 프레임이 든 열린 이슈 중 가장 최근 것. 없거나 "새 이슈로"면 null */
+function continueIssue() {
+  if (state.forceNew) return null;
+  return openMatches()[0] || null;
+}
+
 function context() {
+  const description = document.getElementById('description').value;
   return {
     fileKey: state.fileKey,
     fileName: state.fileName,
     pageName: state.pageName,
     targets: state.targets,
     typeId: state.typeId,
-    summary: document.getElementById('summary').value,
-    description: document.getElementById('description').value,
+    summary: summaryOf(description),
+    description,
     author: state.author,
   };
 }
@@ -176,17 +182,17 @@ function context() {
 async function submit() {
   const ctx = context();
   if (!ctx.targets.length) return fail('캔버스에서 프레임을 먼저 골라 주세요.');
-  if (!ctx.description.trim()) return fail('변경 내용을 적어 주세요.');
+  if (!ctx.description.trim()) return fail('무엇이 바뀌었는지 적어 주세요.');
+  const target = continueIssue();
   state.busy = true;
   state.error = null;
   render();
   try {
-    if (state.mode === 'new') {
-      const issue = buildIssue(ctx);
-      const created = await gh(`${repoPath}/issues`, { method: 'POST', body: issue });
-      state.result = { url: created.html_url, number: created.number, kind: '이슈를 만들었어요' };
+    if (!target) {
+      const created = await gh(`${repoPath}/issues`, { method: 'POST', body: buildIssue(ctx) });
+      state.result = { url: created.html_url, text: `#${created.number} 이슈를 만들었어요` };
     } else {
-      const number = state.mode;
+      const number = target.number;
       const current = await gh(`${repoPath}/issues/${number}`);
       const comment = buildComment(ctx, current.body);
       const created = await gh(`${repoPath}/issues/${number}/comments`, {
@@ -203,12 +209,12 @@ async function submit() {
         method: 'POST',
         body: { labels: [comment.label] },
       });
-      state.result = { url: created.html_url, number, kind: '댓글을 달았어요' };
+      state.result = { url: created.html_url, text: `#${number}에 이어서 기록했어요` };
     }
-    document.getElementById('summary').value = '';
     document.getElementById('description').value = '';
     state.typeTouched = false;
-    post({ type: 'notify', text: `#${state.result.number} ${state.result.kind}` });
+    state.typeId = suggestType(state.targets, state.fileKey);
+    post({ type: 'notify', text: state.result.text });
     loadIssues();
   } catch (e) {
     state.error = e.message;
@@ -249,6 +255,10 @@ function show(id, visible) {
   document.getElementById(id).hidden = !visible;
 }
 
+function setHtml(id, html) {
+  document.getElementById(id).innerHTML = html;
+}
+
 function render() {
   const connected = Boolean(state.token && state.login);
   show('view-connect', !connected);
@@ -256,83 +266,115 @@ function render() {
   show('view-main', connected && Boolean(state.fileKey));
   document.getElementById('connect-error').textContent = connected ? '' : state.error || '';
   document.getElementById('connect-button').disabled = state.busy;
-
   if (!connected || !state.fileKey) return;
 
-  const known = isKnownFile(state.fileKey);
-  document.getElementById('header').innerHTML =
-    `<div><strong>${esc(state.fileName)}</strong> · ${esc(state.pageName)}</div>` +
-    `<div class="muted">@${esc(state.login)}${known ? '' : ' · <span class="warn">테스트 파일 — 이슈에 테스트 라벨이 붙어요</span>'}</div>`;
+  renderCard();
+  const has = state.targets.length > 0;
+  show('form', has);
 
-  document.getElementById('targets').innerHTML = state.targets.length
-    ? state.targets
-        .map(
-          (t) =>
-            `<li><span class="name">${esc(t.name)}</span> <span class="muted">${esc(t.type)}${
-              t.sections.length ? ` · ${esc(t.sections.join(' › '))}` : ''
-            }</span>${t.devStatus ? ` <span class="chip">${esc(devStatusText(t.devStatus))}</span>` : ''}</li>`,
-        )
-        .join('')
-    : '<li class="muted">캔버스에서 프레임이나 컴포넌트를 골라 주세요. 여러 개를 고르면 이슈 하나로 묶어요.</li>';
+  setHtml(
+    'types',
+    CHANGE_TYPES.map(
+      (t) =>
+        `<button class="chip${state.typeId === t.id ? ' on' : ''}" data-type="${t.id}">${esc(t.short)}</button>`,
+    ).join(''),
+  );
 
-  renderHistory();
-
-  document.getElementById('types').innerHTML = CHANGE_TYPES.map(
-    (t) =>
-      `<label class="type"><input type="radio" name="type" value="${t.id}"${
-        state.typeId === t.id ? ' checked' : ''
-      }> ${esc(t.label)}</label>`,
-  ).join('');
-
-  const open = openMatches();
-  document.getElementById('modes').innerHTML = [
-    `<label><input type="radio" name="mode" value="new"${state.mode === 'new' ? ' checked' : ''}> 새 이슈</label>`,
-  ]
-    .concat(
-      open.map(
-        (i) =>
-          `<label><input type="radio" name="mode" value="${i.number}"${
-            state.mode === i.number ? ' checked' : ''
-          }> #${i.number}에 댓글 <span class="muted">${esc(i.title)}</span></label>`,
-      ),
-    )
-    .join('');
+  const target = continueIssue();
+  const open = openMatches()[0];
+  if (target) {
+    setHtml(
+      'target',
+      `<b>#${target.number}</b> 이슈에 이어서 기록돼요 · <a href="#" data-action="new">새 이슈로</a>`,
+    );
+  } else if (open) {
+    setHtml(
+      'target',
+      `새 이슈로 만들어요 · <a href="#" data-action="continue">#${open.number}에 이어서 쓰기</a>`,
+    );
+  } else {
+    setHtml('target', ''); // 이어 쓸 이슈가 없으면 버튼 문구(이슈 만들기)로 충분하다
+  }
 
   const submitButton = document.getElementById('submit');
-  submitButton.disabled = state.busy || !state.targets.length;
-  submitButton.textContent = state.busy ? '보내는 중…' : '확인';
+  submitButton.disabled = state.busy || !has;
+  submitButton.textContent = state.busy
+    ? '보내는 중…'
+    : target
+      ? `#${target.number}에 이어서 기록`
+      : '이슈 만들기';
 
   document.getElementById('error').textContent = state.error || '';
-  document.getElementById('result').innerHTML = state.result
-    ? `#${state.result.number} ${esc(state.result.kind)} — <a href="#" data-url="${esc(state.result.url)}">GitHub에서 보기</a>`
-    : '';
+  setHtml(
+    'done',
+    state.result
+      ? `<div class="done">✓ ${esc(state.result.text)} · <a href="#" data-url="${esc(state.result.url)}">보기</a></div>`
+      : '',
+  );
+
+  renderHistory();
+  const known = isKnownFile(state.fileKey);
+  setHtml(
+    'who',
+    `@${esc(state.login)}${known ? '' : ' · <span class="warn">테스트 파일(테스트 라벨)</span>'}`,
+  );
+}
+
+function renderCard() {
+  if (!state.targets.length) {
+    setHtml(
+      'card',
+      '<div class="card empty"><div class="frame">캔버스에서 프레임을 골라 주세요</div>' +
+        '<div class="muted meta">안쪽 레이어를 골라도 돼요. 여러 개를 고르면 이슈 하나로 묶어요.</div></div>',
+    );
+    return;
+  }
+  const frames = state.targets
+    .map(
+      (t) =>
+        `<div class="frame">${esc(t.name)}${
+          t.devStatus ? `<span class="badge">${esc(devStatusText(t.devStatus))}</span>` : ''
+        }</div>`,
+    )
+    .join('');
+  const sections = state.targets[0].sections;
+  const where = [state.fileName, state.pageName].concat(sections).join(' › ');
+  setHtml('card', `<div class="card">${frames}<div class="muted meta">${esc(where)}</div></div>`);
 }
 
 function renderHistory() {
-  const el = document.getElementById('history');
+  const box = document.getElementById('history-box');
+  box.hidden = !state.targets.length;
+  if (!state.targets.length) return;
   if (state.issuesError) {
-    el.innerHTML = `<li class="error">이력을 불러오지 못했어요: ${esc(state.issuesError)}</li>`;
+    setHtml('history-summary', `<span class="error">이력을 불러오지 못했어요</span>`);
+    setHtml('history', `<li class="error">${esc(state.issuesError)}</li>`);
     return;
   }
   if (!state.issuesLoaded) {
-    el.innerHTML = '<li class="muted">불러오는 중…</li>';
-    return;
-  }
-  if (!state.targets.length) {
-    el.innerHTML = '';
+    setHtml('history-summary', '이력 불러오는 중…');
+    setHtml('history', '');
     return;
   }
   const list = matches();
-  el.innerHTML = list.length
-    ? list
-        .map(
-          (i) =>
-            `<li><span class="state ${i.state}">${i.state === 'open' ? '열림' : '닫힘'}</span> ` +
-            `<a href="#" data-url="${esc(i.url)}">#${i.number}</a> ${esc(i.title)} ` +
-            `<span class="muted">${esc(i.createdAt.slice(0, 10))} · @${esc(i.author)}</span></li>`,
-        )
-        .join('')
-    : '<li class="muted">이 프레임으로 만든 이슈가 없어요.</li>';
+  const openCount = list.filter((i) => i.state === 'open').length;
+  setHtml(
+    'history-summary',
+    list.length
+      ? `이 프레임 이슈 ${list.length}개 (열림 ${openCount}) · <a href="#" data-action="refresh">새로고침</a>`
+      : `이 프레임으로 만든 이슈가 없어요 · <a href="#" data-action="refresh">새로고침</a>`,
+  );
+  setHtml(
+    'history',
+    list
+      .map(
+        (i) =>
+          `<li><span class="badge ${i.state}">${i.state === 'open' ? '열림' : '닫힘'}</span> ` +
+          `<a href="#" data-url="${esc(i.url)}">#${i.number}</a> ${esc(i.title)} ` +
+          `<span class="muted">${esc(i.createdAt.slice(0, 10))}</span></li>`,
+      )
+      .join(''),
+  );
 }
 
 // ── 이벤트 ──
@@ -343,11 +385,6 @@ document.getElementById('connect-button').onclick = () => {
   if (token) connect(token);
 };
 document.getElementById('disconnect').onclick = disconnect;
-document.getElementById('refresh').onclick = () => {
-  state.issuesLoaded = false;
-  render();
-  loadIssues();
-};
 document.getElementById('file-save').onclick = () => {
   const key = parseFileKey(document.getElementById('file-link').value);
   if (!key) {
@@ -359,24 +396,40 @@ document.getElementById('file-save').onclick = () => {
   render();
 };
 document.getElementById('submit').onclick = submit;
-
-document.addEventListener('change', (event) => {
-  const input = event.target;
-  if (input.name === 'type') {
-    state.typeId = input.value;
-    state.typeTouched = true;
-  } else if (input.name === 'mode') {
-    state.mode = input.value === 'new' ? 'new' : Number(input.value);
+document.getElementById('description').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) submit();
+});
+document.getElementById('description').addEventListener('input', () => {
+  if (state.result || state.error) {
+    state.result = null;
+    state.error = null;
+    render();
   }
-  render();
 });
 
 // UI 안의 링크는 모두 href="#"이다. 기본 동작을 두면 iframe이 부모 주소로 이동해 플러그인 화면이 사라진다
 document.addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-type]');
+  if (chip) {
+    state.typeId = chip.dataset.type;
+    state.typeTouched = true;
+    render();
+    return;
+  }
   const link = event.target.closest('a');
   if (!link) return;
   event.preventDefault();
-  if (link.dataset.url) openUrl(link.dataset.url);
+  const action = link.dataset.action;
+  if (action === 'new' || action === 'continue') {
+    state.forceNew = action === 'new';
+    render();
+  } else if (action === 'refresh') {
+    state.issuesLoaded = false;
+    render();
+    loadIssues();
+  } else if (link.dataset.url) {
+    openUrl(link.dataset.url);
+  }
 });
 
 render();
