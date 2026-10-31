@@ -9,6 +9,7 @@ import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 
 import { setMockSession } from './support/auth';
+import { goEventMenu } from './support/event-scope';
 import { expect, test } from './support/fixtures';
 
 /**
@@ -42,10 +43,7 @@ test.describe('[호스트가 스캔]', () => {
   }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/dashboard');
-    await page
-      .getByRole('navigation', { name: '공연 메뉴' })
-      .getByRole('link', { name: 'QR 체크인' })
-      .click();
+    await goEventMenu(page, 'QR 체크인');
     await expect(page).toHaveURL('/hosting/events/101/qr');
     await expect(stats(page)).toHaveText('입장 0/7 · 미입장 7 · 0%');
 

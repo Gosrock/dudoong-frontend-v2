@@ -114,7 +114,7 @@ pnpm test:e2e                           # 빌드 포함
 E2E_SKIP_BUILD=1 pnpm qa <그룹의 feature들>
 ```
 
-실패는 관제탑이 고치지 않는다 — 원인 한 줄과 함께 `fix/<요지>` 워크트리를 "다음 순서" 맨 앞에 넣고(정리 docs PR) 바로 띄운다.
+main 워크트리의 `node_modules`가 낡으면 빌드부터 깨진다 — 먼저 `pnpm install --frozen-lockfile`(2026-11-01 `@suspensive/react` 미설치로 첫 회귀가 빌드 실패). 실패는 관제탑이 고치지 않는다 — 원인 한 줄과 함께 `fix/<요지>` 워크트리를 "다음 순서" 맨 앞에 넣고(정리 docs PR) 바로 띄운다.
 
 ## ⑨ 기록하고 다시 ①
 
