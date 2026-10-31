@@ -29,6 +29,7 @@
 - **구현 덩어리마다**: `NEXT_PUBLIC_KAKAO_JS_KEY=dummy pnpm typecheck`, 바꾼 파일만 `pnpm exec eslint <파일>`, `pnpm exec vitest related <바꾼 파일> --run`, 브라우저로 Figma 눈 비교. **새 테스트를 쓰지 않는다.**
 - **Phase 끝(PR 직전) 한 번**: 스토리·QA 시나리오를 쓰고 `pnpm qa <feature>`. 로컬 전체 게이트(`pnpm test` 전체, `pnpm test:stories` 전체)는 돌리지 않는다 — push하고 PR CI(`pr-gate`)에 맡긴 뒤 실패만 고친다.
 - `pnpm test:e2e` 전체는 관제탑이 그룹 경계에서 돌린다. 세션은 자기 화면 spec만 필요하면 돌린다.
+- **셸 명령은 단순하게**(2026-11-01 — 세션이 권한 확인으로 멈춘 일): zsh 전용 문법(`${arr:#…}` 필터, `F=($(…))` 배열), `eval`, 변수 안에 든 명령을 쓰지 않는다. Claude Code가 해석하지 못한 명령은 bypass 모드에서도 권한 확인으로 멈추고, 아무도 없으면 자동 거절된다. 파일 목록은 파이프·`xargs`로: `git diff --name-only --diff-filter=d | grep -v '\.md$' | xargs pnpm exec eslint`.
 
 ## 질문(사용자 결정 2026-11-01)
 - 사용자 결정이 필요해 보이면 묻지 말고: `design-requests.md`에 기본안이 있으면 그것, 없으면 되돌리기 쉬운 쪽으로 정해 진행한다. implementation-log "결정"에 "🤖 Claude 판단 — 근거 / 되돌리려면"으로 적고 디스코드에 태그해 남긴다.
