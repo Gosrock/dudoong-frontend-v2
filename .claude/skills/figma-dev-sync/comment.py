@@ -3,12 +3,15 @@
 
   comment.py post <gui|ds|fileKey> <node_id> [--date YYYY-MM-DD --key 카드key] < 본문
       새 코멘트를 달고 id를 출력한다. --date·--key를 주면 기록부(~/.dudoong-figma-sync.json)에 남긴다
+  comment.py reply <gui|ds|wire|fileKey> <comment_id> [--date YYYY-MM-DD --key 카드key] < 본문
+      이미 열린 코멘트에 답글을 단다(같은 내용을 새 코멘트로 달지 않을 때)
+  comment.py list <gui|ds|wire|fileKey> [<node_id>]   # 열린 코멘트(id · 노드 · 첫 줄) — 답글 대상 찾기
   comment.py clear <YYYY-MM-DD>     # 그 날짜 리포트로 단 코멘트를 모두 지운다(같은 날짜 다시 실행 전에)
   comment.py delete <gui|ds|fileKey> <comment_id>
 """
 import json, os, sys, urllib.request, urllib.error
 
-FILES = {'gui': '1Cn4WOu6TDaSajbFIuH6fO', 'ds': '0QD9tGSt8ZciDqe7ol2gYH'}
+FILES = {'gui': '1Cn4WOu6TDaSajbFIuH6fO', 'ds': '0QD9tGSt8ZciDqe7ol2gYH', 'wire': 'FUQb8ldGBp3uYUuXPV5FDC'}
 LEDGER = os.path.expanduser('~/.dudoong-figma-sync.json')
 
 
@@ -61,17 +64,34 @@ def main(argv):
         save_ledger(d)
         print(f'지움 {len(rows)}건')
         return
-    if len(argv) < 3:
+    if len(argv) < 2 or (len(argv) < 3 and argv[0] != 'list'):
         sys.exit(__doc__)
-    cmd, f, target = argv[0], argv[1], argv[2]
+    cmd, f = argv[0], argv[1]
+    target = argv[2] if len(argv) > 2 and not argv[2].startswith('--') else None
     key = FILES.get(f, f)
-    opts = dict(zip(argv[3::2], argv[4::2]))
-    if cmd == 'post':
+    rest = argv[3:] if target else argv[2:]
+    opts = dict(zip(rest[0::2], rest[1::2]))
+    if cmd == 'list':
+        _, d = call('GET', f'/files/{key}/comments')
+        for c in d.get('comments', []):
+            if c.get('resolved_at') or c.get('parent_id'):
+                continue
+            node = (c.get('client_meta') or {}).get('node_id', '')
+            if target and node != target:
+                continue
+            first = (c.get('message') or '').splitlines()[0][:80] if c.get('message') else ''
+            print(f"{c['id']}\t{node}\t{first}")
+        return
+    if cmd in ('post', 'reply'):
         msg = sys.stdin.read().strip()
         if not msg:
             sys.exit('본문이 비었다')
-        _, d = call('POST', f'/files/{key}/comments',
-                    {'message': msg, 'client_meta': {'node_id': target, 'node_offset': {'x': 0, 'y': 0}}})
+        body = {'message': msg}
+        if cmd == 'reply':
+            body['comment_id'] = target
+        else:
+            body['client_meta'] = {'node_id': target, 'node_offset': {'x': 0, 'y': 0}}
+        _, d = call('POST', f'/files/{key}/comments', body)
         cid = d.get('id')
         if opts.get('--date'):
             led = ledger()

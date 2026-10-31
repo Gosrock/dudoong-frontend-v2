@@ -35,6 +35,7 @@ def get(path, timeout=300):
 
 
 def fetch(version, out):
+    os.makedirs(out, exist_ok=True)
     path = os.path.join(out, f'ds_{version or "now"}.json')
     if version and os.path.exists(path):
         return json.load(open(path))
