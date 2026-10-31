@@ -133,3 +133,4 @@ E2E_SKIP_BUILD=1 pnpm qa <그룹의 feature들>
 | 이슈가 세션 진행 중에 올라옴 | 진행 중 세션은 그대로. 그 화면이 그 세션 범위면 세션에 전달(`orca terminal send`), 아니면 다음 ②에서 처리 |
 | Ready for dev 노드 수가 바뀜 | `gui-screens.md` §0 baseline과 `progress.md` 집계를 다음 정리 PR에서 고친다 |
 | `progress.md`와 `plan.md`·`gui-screens.md`가 다름 | 정본(plan·gui-screens)이 맞다. progress를 고친다 |
+| 세션이 셸 명령 권한 확인으로 멈춤("Dangerous … not ruled out", bypass여도 뜸 — zsh 전용 문법·복잡한 확장을 Claude Code가 해석 못 함) | 관제탑이 대신 승인하지 않는다(자동 거절되면 세션이 다른 방법으로 이어 간다). 세션에 "셸 명령은 단순하게"(프롬프트 틀 "검사" 절)를 `orca terminal send`로 다시 전한다 |
