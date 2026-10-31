@@ -10,6 +10,7 @@
 
 | 문서 | 내용 |
 |---|---|
+| [`progress.md`](./progress.md) | **진행 현황판** — 지금 진행 중인 작업(브랜치·PR), Phase별 L/V 상태와 디자인 근거(GUI / 작업 중 / 와이어 / 없음), 외부 조건 대기. 작업 시작·PR·머지 때마다 고친다(2026-10-31) |
 | [`tech-decisions.md`](./tech-decisions.md) | 기술 결정(§0~§20), 검증·조사 기록(§21~§23·§26), 도구 세팅(§24), 배포 인프라(§25), 검토 기록(§27~§29), GUI 반영(§30 — 2026-10-15, 2026-10-25 갱신), P0 결과(§31), 테스트 환경 세팅(§32) |
 | [`api-contract.md`](./api-contract.md) | 백엔드 `/api/v2` 규약·권한·상태·API 색인(86개), v1 인증 API, 알림 문구. 코드 대조 기준 `432cce4`(2026-10-25) |
 | [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 203개(`24aa595` 자동 추출 200개 + 2026-10-25 `432cce4` 대조로 손으로 더한 `AUTH_401_2`·`Agreement_400_1`·`Notice_404_1`) |
@@ -32,6 +33,8 @@
 **디자인 변경 트래킹**: [`../../tools/figma-plugin/README.md`](../../tools/figma-plugin/README.md) — 디자이너가 Figma 플러그인으로 프레임별 변경을 GitHub 이슈(`Design Sync` 라벨, 본문에 `node-id` 링크·노드 번호)로 남긴다. Figma를 전수조사하기 전에 열린 `Design Sync` 이슈부터 본다(2026-10-31).
 
 **스킬**: [`../skills/qa-scenario/SKILL.md`](../skills/qa-scenario/SKILL.md) — 피처의 QA 시나리오를 이 문서들(plan 완료 기준, storyboard, gui-screens, api-contract, patterns §24)로 쓰고 `pnpm qa <feature>`로 실행해 단계별 캡처 HTML 리포트를 만든다(tech-decisions §10).
+
+**스킬**: [`../skills/main-phase/SKILL.md`](../skills/main-phase/SKILL.md) — main 관제탑 루프: `progress.md` "다음 순서"·열린 `Design Sync` 이슈로 다음 작업 고르기(이슈 먼저) → 프롬프트 틀(`prompt-v.md`·`prompt-issue.md`) → `task-kickoff`로 Orca 오프로드 → PR 검토·머지(매번 확인) → 그룹 끝 전체 회귀(2026-11-01).
 
 **스킬**: [`../skills/gui-implement/SKILL.md`](../skills/gui-implement/SKILL.md) — 화면(V) 구현·디자인 이슈 반영 절차: 열린 `Design Sync` 이슈 → 근거 판정(`figma_nodes.py ready`) → 노드 → DS 매핑 표(`figma_nodes.py map`, DS 파일 컴포넌트 key 대조) · 디자인 시스템 변경(`ds_diff.py` 버전 비교 → `design-system.md` §8) → 구현 → 주석·코멘트 → QA 캡처와 Figma 비교(`figma_nodes.py shot`) → `gui-screens.md` §0 갱신·`Closes #n`([`design-workflow.md`](./design-workflow.md)). 반대 방향(개발이 정한 것 → 디자이너)은 [`../skills/figma-dev-sync/SKILL.md`](../skills/figma-dev-sync/SKILL.md).
 

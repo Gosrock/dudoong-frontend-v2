@@ -3,6 +3,8 @@
 @AGENTS.md
 
 설계 문서는 `.claude/docs/`에 있다. 작업 전에 `README.md`(문서 지도)를 먼저 읽는다.
+**진행 현황판은 `.claude/docs/progress.md`** — 작업 전에 읽고, 작업을 시작·PR·머지할 때마다 같은 브랜치에서 고친다(문서 끝 "갱신 규칙").
+**main 워크트리는 관제탑** — 다음 작업 고르기·오프로드·PR 받기·머지는 스킬 `main-phase`(`.claude/skills/main-phase/SKILL.md`)로 한다. 검사 시점은 `design-workflow.md` §9(덩어리마다 빠른 검사, Phase 끝 한 번, 전체 게이트는 PR CI).
 Next.js 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확인한다(위 `AGENTS.md`).
 
 ## 규칙 요약
