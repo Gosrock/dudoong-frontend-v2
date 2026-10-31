@@ -1514,7 +1514,7 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 ## P5c-V — 호스트 홈(공개) · 관심(♡) · 관리 버튼 · 멤버 아바타 줄 (뷰)
 
-**상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것 없음(그려지지 않은 상태는 Figma 코멘트로 물음)
+**상태**: done (2026-11-01, PR #67) — 스킬 `gui-implement`. 남은 것 없음(그려지지 않은 상태는 Figma 코멘트로 물음)
 **근거(gui-screens §0)**: **와이어** — GUI Ready for dev 88개(2026-10-31T19:18Z 판)에 호스트 홈 프레임이 없다(`741:30896` `ready --contains` → Ready 밖). 와이어 `503:30867` 마스터·매니저 · `529:34027` 멤버 · `503:30477` 관객(섹션 `호스트홈_v1.0` `503:30368`). PC 와이어 없음 → 관객 PC 규칙(1024~, `Container` 최대 폭). 열린 Design Sync 이슈 #19·#29·#30·#61은 이 화면과 무관. 디자인 시스템은 기준 버전 `2416576694112599706` 그대로
 **변경**
 - `features/shared/host-home/HostHomeView`(+`.css.ts`) — L 최소 마크업을 화면으로: 배너(`coverImageUrl`, 없으면 회색) + 오른쪽 위 ⚙ 링크 · 원형 로고 `Avatar` 80(배너에 반쯤 걸침) · 이름 h1 + ♡(익명 `LoginRequiredLink`, 확정 전·viewer 실패 비활성, 관심 중 `aria-pressed` → 채운 하트) · 멤버 수·개설일(아이콘 + 읽기 프로그램용 뜻) · 소개 · 연락처 아이콘 원 → 연락처 시트 · viewer 실패 안내 + [다시 시도](`retryViewer`) · `ListHeader` [멤버 >](GH-6, `myRole` 있을 때만) + 아바타 가로 줄 · `ListHeader` 공연 리스트 + 가로 카드 줄(스켈레톤 3장 → 카드, 끝 sentinel이 보이면 다음 페이지, 실패면 재시도 버튼) · 빈 상태 `EmptyState` · 오른쪽 아래 고정 [+ 새 공연 만들기](`button({variant:'dark'})` 링크). ⚙·[새 공연 만들기]는 `nav[aria-label="호스트 관리"]` 하나에(L 마크업·e2e 그대로)
