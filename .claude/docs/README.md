@@ -34,6 +34,8 @@
 
 **스킬**: [`../skills/qa-scenario/SKILL.md`](../skills/qa-scenario/SKILL.md) — 피처의 QA 시나리오를 이 문서들(plan 완료 기준, storyboard, gui-screens, api-contract, patterns §24)로 쓰고 `pnpm qa <feature>`로 실행해 단계별 캡처 HTML 리포트를 만든다(tech-decisions §10).
 
+**스킬**: [`../skills/main-phase/SKILL.md`](../skills/main-phase/SKILL.md) — main 관제탑 루프: `progress.md` "다음 순서"·열린 `Design Sync` 이슈로 다음 작업 고르기(이슈 먼저) → 프롬프트 틀(`prompt-v.md`·`prompt-issue.md`) → `task-kickoff`로 Orca 오프로드 → PR 검토·머지(매번 확인) → 그룹 끝 전체 회귀(2026-11-01).
+
 **스킬**: [`../skills/gui-implement/SKILL.md`](../skills/gui-implement/SKILL.md) — 화면(V) 구현·디자인 이슈 반영 절차: 열린 `Design Sync` 이슈 → 근거 판정(`figma_nodes.py ready`) → 노드 → DS 매핑 표(`figma_nodes.py map`, DS 파일 컴포넌트 key 대조) · 디자인 시스템 변경(`ds_diff.py` 버전 비교 → `design-system.md` §8) → 구현 → 주석·코멘트 → QA 캡처와 Figma 비교(`figma_nodes.py shot`) → `gui-screens.md` §0 갱신·`Closes #n`([`design-workflow.md`](./design-workflow.md)). 반대 방향(개발이 정한 것 → 디자이너)은 [`../skills/figma-dev-sync/SKILL.md`](../skills/figma-dev-sync/SKILL.md).
 
 ## 충돌할 때 우선순위
