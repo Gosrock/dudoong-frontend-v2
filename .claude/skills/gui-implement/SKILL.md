@@ -59,7 +59,7 @@ gh issue view <n> --comments   # 본문 + 이어 쓴 댓글 모두
 ```
 
 - 본문의 `<!-- figma-node:<fileKey>/<nodeId> -->` 마커로 노드를 뽑는다. 이번 화면의 근거 노드(②)와 겹치는 이슈를 작업 범위에 넣는다. 노드가 Ready 프레임 안인지는 `F ready --contains <node>`.
-- `Design: 디자인 시스템` 이슈가 있으면 **먼저** 아래 "디자인 시스템 변경"부터. 화면은 그 뒤.
+- 처리 분기는 유형 라벨로 판정한다(design-workflow §4 "라벨로 가르기", 사용자 지시 2026-11-01). **Phase 세션**은 (a) `design-system.md` §8 "반영 대기" 중 이 화면이 쓰는 컴포넌트를 먼저 "디자인 시스템 변경"으로 반영하고, (b) 계획만 고쳐 둔 이 화면의 이슈(`gui-screens.md` §0 "열린 이슈" 칸 — `Design: 수정`·`Design: 신규 화면`)를 범위에 넣어 PR에서 `Closes`. **이슈 반영 세션**(`design-<n>`)은 `GUI 구현됨` 화면의 수정·DS 이슈만 받는다. 화면은 DS 변경 뒤.
 - 유형별 처리와 닫는 규칙은 `design-workflow.md` §4. 반영할 이슈 번호를 적어 둔다(⑦ PR 본문).
 
 ## 디자인 시스템 변경
@@ -86,7 +86,7 @@ gh issue view <n> --comments   # 본문 + 이어 쓴 댓글 모두
 
 1. `F ready`로 지금 Ready 노드 목록을 받는다. `gui-screens.md` §0의 기준 이후 목록이 바뀌었으면(늘거나 줄거나 id가 바뀜) §0을 먼저 갱신한다.
 2. 이번 화면(라우트)의 GUI 노드 중 Ready가 있나 본다 — 프레임 이름(`대시보드_공연등록후_모바일` 같은 `<화면>_<상태>_<폭>`)과 `gui-screens.md` §0·§1·§2의 대응으로 찾는다. 자식 노드는 `F ready --contains <node>`로 Ready 프레임 안인지 확인한다.
-3. **Ready 있음 → GUI 근거.** 그 화면의 Ready 노드 전부(폭·상태)를 대상으로 한다.
+3. **Ready 있음 → GUI 근거.** 그 화면의 Ready 노드 전부(폭·상태)를 대상으로 한다. **`Design: 신규 화면` 이슈의 노드도 GUI 근거다**(Ready 표시가 없어도 — 디자이너가 완성 GUI로 등록, 사용자 지시 2026-11-01).
    **Ready 없음 → 와이어 근거.** `figma-structure.md`에서 그 화면의 와이어 노드를 찾아 `F shot <node> … wire`. 와이어는 DS를 거의 안 써서 `map`은 쓸모없다. Ready가 아닌 GUI 프레임의 모양은 가져오지 않는다.
 4. 판정을 `gui-screens.md` §0 그 화면 줄에 적는다(근거 노드 id + 프레임 이름).
 
