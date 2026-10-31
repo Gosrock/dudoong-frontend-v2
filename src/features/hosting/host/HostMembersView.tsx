@@ -28,11 +28,7 @@ export function HostMembersView({ hostId }: { hostId: string }) {
       {id === null ? (
         <HostingNotFound />
       ) : (
-        <AsyncBoundary
-          ignoreError={isSessionLost}
-          rejected={HostingAccessRejected}
-          resetKeys={[id]}
-        >
+        <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
           <HostMembers hostId={id} />
         </AsyncBoundary>
       )}

@@ -12,7 +12,7 @@ export function OrdersView() {
   return (
     <main>
       <h1>주문내역</h1>
-      <AsyncBoundary ignoreError={isSessionLost}>
+      <AsyncBoundary holdOn={isSessionLost}>
         <OrderList />
       </AsyncBoundary>
     </main>

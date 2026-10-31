@@ -4,7 +4,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { OverlayProvider } from 'overlay-kit';
 import { type ReactNode, Suspense, useEffect } from 'react';
 
-import { getQueryClient, setErrorNotifier } from '@/api/query-client';
+import { setErrorNotifier } from '@/api/error-toast';
+import { getQueryClient } from '@/api/query-client';
 import { registerAuth } from '@/features/shared/auth/register-auth';
 import { toast, Toaster } from '@/ui/components/Toast/Toast';
 

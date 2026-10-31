@@ -6,10 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { hostingSets, resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { resetMeStore } from '@/api/__mocks__/me.handlers';
 import { server } from '@/api/__mocks__/server';
+import { VALIDATION_ERROR_MESSAGE } from '@/api/error-toast';
 import { myHostsQuery } from '@/api/host/queries';
 import { CreateHostRequestSchema } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -41,8 +42,6 @@ function setup() {
 
 const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET');
-const lastMutation = (qc: ReturnType<typeof createTestQueryClient>) =>
-  qc.getMutationCache().getAll().at(-1)!;
 
 type Hook = ReturnType<typeof setup>['result'];
 function fill(result: Hook) {
@@ -136,28 +135,25 @@ describe('호스트 만들기 — useCreateHost(PH-2)', () => {
 
   it('에러 분기 HOST_400_16(연락처 형식) → 연락처 영역 오류, 이동 없음, 토스트 없음 — 연락처를 고치면 지운다', async () => {
     server.use(...hostingSets.createFails('HOST_400_16'));
-    const { result, queryClient } = setup();
+    const { result } = setup();
     fill(result);
     await act(() => result.current.submit());
     await waitFor(() =>
       expect(result.current.contactsServerError).toBe('연락처 형식을 확인해 주세요'),
     );
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
     expect(result.current.submitting).toBe(false);
     act(() => result.current.setContactValue(0, 'https://youtube.com/@band2'));
     expect(result.current.contactsServerError).toBeNull();
   });
 
-  it('표에 없는 실패(BAD_REQUEST·5xx)는 전역 토스트로 간다', async () => {
+  it('표에 없는 실패(BAD_REQUEST·5xx)는 공용 토스트로 간다', async () => {
     server.use(...hostingSets.createFails('BAD_REQUEST'));
-    const { result, queryClient } = setup();
+    const { result } = setup();
     fill(result);
     await act(() => result.current.submit());
-    const m = lastMutation(queryClient);
-    expect(m.state.status).toBe('error');
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalledWith(VALIDATION_ERROR_MESSAGE, 'mutation:BAD_REQUEST');
     expect(result.current.contactsServerError).toBeNull();
     expect(router.replace).not.toHaveBeenCalled();
   });

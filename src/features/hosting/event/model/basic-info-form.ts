@@ -195,7 +195,7 @@ export function toUpdateEventBasicBody(
 
 // ─── 서버 오류(patterns §24 P11 행) ──────────────────────────
 
-/** 칸에 붙이는 PE-4 코드와 문구. 그 밖(검증 실패 400 `BAD_REQUEST` 등)은 전역 토스트 */
+/** 칸에 붙이는 PE-4 코드와 문구. 그 밖(검증 실패 400 `BAD_REQUEST` 등)은 공용 토스트(handleError) */
 export const BASIC_INFO_FIELD_ERRORS = {
   Event_400_2: { field: 'schedule', message: SCHEDULE_ERROR.Event_400_2 },
   Event_400_24: { field: 'schedule', message: '등록된 공연은 지금 이후로만 바꿀 수 있어요' },

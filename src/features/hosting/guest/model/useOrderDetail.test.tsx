@@ -16,8 +16,8 @@ import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { hostingGuestHandlers } from '@/api/__mocks__/hosting-guest.handlers';
 import { server } from '@/api/__mocks__/server';
 import { setTicketSold } from '@/api/__mocks__/ticket-store';
-import { shouldToastMutationError } from '@/api/query-client';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -76,10 +76,6 @@ const loaded = (result: Result) =>
   });
 const actionKeys = (result: Result) =>
   result.current.detail.actions.map((a) => `${a.key}:${a.enabled ? 'on' : 'off'}`);
-const lastMutationToasts = (queryClient: ReturnType<typeof createTestQueryClient>) => {
-  const m = queryClient.getMutationCache().getAll().at(-1)!;
-  return shouldToastMutationError(m.state.error, m.options.meta);
-};
 const startEvent = () =>
   saveStoredEvent({ ...storedEvent(Number(EVENT))!, displayStatus: 'ONGOING' });
 
@@ -124,10 +120,10 @@ describe('주문 상세(GR-2) · 승인(PR-3)', () => {
       'Order_400_14',
     ],
   ] as const)(
-    '승인 실패(%s) → 안내 후 주문은 승인 대기로 남고 거절할 수 있다(전역 토스트 없음)',
+    '승인 실패(%s) → 안내 후 주문은 승인 대기로 남고 거절할 수 있다(공용 토스트 없음)',
     async (_, arrange, uuid, code) => {
       arrange();
-      const { result, queryClient } = setup(uuid);
+      const { result } = setup(uuid);
       await loaded(result);
       let ok = true;
       await act(async () => {
@@ -138,7 +134,7 @@ describe('주문 상세(GR-2) · 승인(PR-3)', () => {
       expect(result.current.detail.detail?.order.status).toBe('PENDING_APPROVE');
       expect(storedGuestOrder(uuid)!.status).toBe('PENDING_APPROVE');
       expect(actionKeys(result)).toEqual(['approve:on', 'refuse:on']);
-      expect(lastMutationToasts(queryClient)).toBe(false);
+      expect(errorToast).not.toHaveBeenCalled();
     },
   );
 
@@ -156,7 +152,7 @@ describe('주문 상세(GR-2) · 승인(PR-3)', () => {
   });
 
   it('화면을 연 뒤 공연이 시작됨 — 승인 Event_400_6 → GR-2·GE-3 다시 읽기 → 버튼 비활성', async () => {
-    const { result, queryClient } = setup(GUEST_ORDER.pendingTransfer);
+    const { result } = setup(GUEST_ORDER.pendingTransfer);
     await loaded(result);
     startEvent();
     const sent = recordRequests();
@@ -168,7 +164,7 @@ describe('주문 상세(GR-2) · 승인(PR-3)', () => {
     const lines = await sent.lines();
     expect(lines).toContain(`GET /api/v2/events/101/orders/${GUEST_ORDER.pendingTransfer}`);
     expect(lines).toContain('GET /api/v2/events/101/manage');
-    expect(lastMutationToasts(queryClient)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it('운영자가 먼저 승인함(#828) — Order_400_3 → 다시 읽어 승인 완료로', async () => {
@@ -237,7 +233,7 @@ describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () =>
   });
 
   it('시작 후 거절·취소에 Order_400_9가 오면 GR-2 다시 읽기(경합)', async () => {
-    const { result, queryClient } = setup(GUEST_ORDER.approved);
+    const { result } = setup(GUEST_ORDER.approved);
     await loaded(result);
     startEvent();
     const sent = recordRequests();
@@ -247,7 +243,7 @@ describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () =>
     expect(result.current.detail.actionError).toBe(WITHDRAW_ERROR_MESSAGE.Order_400_9);
     await waitFor(() => expect(actionKeys(result)).toEqual(['cancel:off']));
     expect(await sent.lines()).toContain(`GET /api/v2/events/101/orders/${GUEST_ORDER.approved}`);
-    expect(lastMutationToasts(queryClient)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it('승인 후 취소(사유 선택) → 발급 티켓 취소, 유료면 환불 탭에 REQUESTED로 나타난다', async () => {

@@ -82,7 +82,7 @@ export const canAddInviteRow = (rows: readonly InviteRow[]) =>
 export const canRemoveInviteRow = (rows: readonly InviteRow[]) => rows.length > 1;
 
 /**
- * 이메일 모양 — 빈칸·`@` 없음 같은 명백한 실수만 거른다. 서버는 Bean Validation `@Email`(통과 못 하면 HTTP 400 `BAD_REQUEST` → 전역 토스트)이고
+ * 이메일 모양 — 빈칸·`@` 없음 같은 명백한 실수만 거른다. 서버는 Bean Validation `@Email`(통과 못 하면 HTTP 400 `BAD_REQUEST` → 공용 토스트)이고
  * 가입 여부는 서버만 안다(`HOST_400_13`).
  */
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+$/;
@@ -150,7 +150,7 @@ export function inviteServerErrors(
   };
 }
 
-/** 멤버 관리(역할 변경·삭제·양도)에서 화면이 처리하는 코드(patterns §24 P10b). 그 밖은 전역 토스트 */
+/** 멤버 관리(역할 변경·삭제·양도)에서 화면이 처리하는 코드(patterns §24 P10b, `handleError` 표). 그 밖은 공용 토스트 */
 export const MEMBER_ACTION_ERROR_MESSAGE = {
   /** 이미 없는 멤버(다른 사람이 먼저 지움 등) — 멤버 목록을 다시 읽는다 */
   HOST_404_2: '이미 멤버가 아니에요. 목록을 새로 불러왔어요',

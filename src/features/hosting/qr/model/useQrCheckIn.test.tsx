@@ -19,7 +19,7 @@ import { checkInStatsQuery } from '@/api/check-in/queries';
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { eventManageQuery } from '@/api/event/queries';
 import { hostIssuedTicketsKey } from '@/api/issued-ticket/queries';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -232,7 +232,7 @@ describe('[호스트가 스캔](PQ-2)', () => {
   it('네트워크 차단 → failed(network) + 토스트 없음, retry()가 같은 값을 다시 보내 입장', async () => {
     server.use(...hostCheckInSets.scanNetworkError);
     const sent = recordRequests();
-    const { result, queryClient } = await setupScan('101');
+    const { result } = await setupScan('101');
     act(() => void result.current.scan.submitScan(TICKET_UUID.approved));
     await scanDone(result);
     expect(result.current.scan.state).toMatchObject({
@@ -240,8 +240,7 @@ describe('[호스트가 스캔](PQ-2)', () => {
       value: TICKET_UUID.approved,
       failure: { kind: 'network', canRetry: true },
     });
-    const m = queryClient.getMutationCache().getAll()[0]!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
 
     server.resetHandlers();
     act(() => result.current.scan.retry());

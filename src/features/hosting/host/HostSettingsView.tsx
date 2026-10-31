@@ -33,11 +33,7 @@ export function HostSettingsView({ hostId }: { hostId: string }) {
       {id === null ? (
         <HostingNotFound />
       ) : (
-        <AsyncBoundary
-          ignoreError={isSessionLost}
-          rejected={HostingAccessRejected}
-          resetKeys={[id]}
-        >
+        <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
           <HostSettings hostId={id} />
         </AsyncBoundary>
       )}

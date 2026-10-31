@@ -10,7 +10,7 @@ import { hostingEventSets } from '@/api/__mocks__/hosting-event.handlers';
 import { server } from '@/api/__mocks__/server';
 import { eventChecklistQuery, eventManageQuery, eventSectionsQuery } from '@/api/event/queries';
 import { UpdateEventSectionsRequestSchema } from '@/api/event/schema';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -167,14 +167,13 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
 
   it('에러 분기 Event_400_21 → 폼 오류, 토스트 없음', async () => {
     server.use(...hostingEventSets.sectionsFails(140, 'Event_400_21'));
-    const { result, queryClient } = setup('140');
+    const { result } = setup('140');
     await loaded(result);
     act(() => result.current.setContent(result.current.sections[0]!.key, '<p>x</p>'));
     expect(await save(result)).toBe(false);
     expect(result.current.formError).toBe(
       '섹션 형식을 확인해 주세요(1~10개, 탭 이름 20자, 본문 20,000자)',
     );
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 });

@@ -211,7 +211,8 @@ src/ui/
    ├─ Popover/ Tooltip/ DropdownMenu/   # Radix 래퍼. 모바일 ⓘ 설명은 Popover(Tooltip은 터치로 안 열린다)
    ├─ Loader/ Skeleton/ EmptyState/ LinkProgress/   # LinkProgress: 카드 <Link> 안의 인라인 이동 표시(useLinkStatus, 100ms 지연)
    ├─ NotFoundView/ ForbiddenView/   # P2  클라이언트 조회 화면용 공용 404·403 안내 (P5a·P9·P10a가 쓴다)
-   ├─ AsyncBoundary/           # P2  QueryErrorResetBoundary + ErrorBoundary + Suspense + 재시도(reset). SessionLostError는 fallback 없이 무시
+   ├─ AsyncBoundary/           # P2  ErrorBoundary + suspensive Suspense. holdOn(SessionLostError)은 pending 유지
+   ├─ ErrorBoundary/           # @suspensive/react ErrorBoundary + QueryErrorResetBoundary(shouldCatch·holdOn·resetKeys), ErrorBoundaryGroup 재노출(2026-10-31)
    ├─ Accordion/ Header/ ListHeader/ InfoRow/   # Footer·NavBar는 쓰는 곳이 없어 보류(P2)   # Header = Figma Top app bar(관객·호스팅 공용, 뒤로가기·제목·공연 전환형). 로고 헤더(GUI 로컬 `basic title` 관객, `host title` 호스팅)는 각 셸이 Header의 변형으로 그린다. InfoRow = Figma list(라벨 + 값 행, 펼침형은 Accordion)
    └─ DataTable/
 ```
@@ -228,7 +229,8 @@ src/api/
 ├─ session-flag.ts             # P4a  dd:session(로그인마다 새 무작위 값)·dd:refreshedAt 읽기·쓰기. 저장소 실패 = 없음. client.ts의 401 처리가 읽어야 해서 api에 둔다
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
 ├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
-├─ handle-codes.ts             # handleCodes({ 코드: 처리 }) → { meta: { handledCodes }, onError } — 변경 에러를 화면이 처리할 코드를 한 곳에 쓴다
+├─ handle-error.ts             # handleError(error, { 코드: 처리 }, { otherwise }) — 변경 에러는 호출 쪽 try/catch에서 처리(2026-10-31)
+├─ error-toast.ts              # 공용 에러 토스트 주입(setErrorNotifier)·문구(errorMessageOf)
 ├─ upload.ts                   # P3  발급 → S3 PUT → key (호스트·공연·프로필 공용)
 ├─ server/                     # 'server-only' — 라우트 파일에서만 쓴다. src/api 중 유일하게 React(HydrationBoundary)·notFound를 쓴다
 │  ├─ serverQuery.ts           # 요청별 QueryClient + fetchQuery + 404 → notFound()
@@ -270,6 +272,7 @@ src/utils/
 ├─ clipboard.ts                # copyText()
 ├─ money.ts                    # 원 단위 표시
 ├─ download.ts                 # blob 저장 (엑셀) — saveBlob(blob, filename, fallback) (P13a-L 생성)
+├─ try-catch.ts                # Go 스타일 tryCatch(promise) → [data, error] — 변경 요청 연쇄에서만(2026-10-31)
 └─ redirect.ts                 # P4a  safeRedirect(raw, fallback) — 같은 출처 상대 경로만. //·\\·제어 문자·2048자 초과·/login*·/kakao/callback(되돌이) 거부
 ```
 

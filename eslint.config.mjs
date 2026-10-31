@@ -157,6 +157,45 @@ export default defineConfig([
     files: ['src/api/**'],
     rules: { 'no-restricted-imports': 'off' },
   },
+  {
+    // 변경 에러는 호출 쪽이 try/catch(연쇄면 tryCatch) + handleError로 처리한다(tech-decisions §4, patterns §4-5)
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}', '**/*.stories.tsx', 'src/test/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.name='useMutation'] > ObjectExpression > Property[key.name=/^(onError|onSettled)$/]",
+          message:
+            'useMutation 옵션에 onError/onSettled를 두지 않는다. 실패 처리는 호출 쪽 try/catch + handleError로(낙관 갱신 되돌리기만 예외 — eslint-disable에 이유).',
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name='mutateAsync']:not(TryStatement > BlockStatement.block *):not(CallExpression[callee.name='tryCatch'] > CallExpression)",
+          message:
+            'mutateAsync는 try 블록 안에서(catch에서 handleError) 또는 tryCatch(m.mutateAsync(v))로 부른다.',
+        },
+        {
+          selector:
+            "CallExpression[callee.name='mutateAsync']:not(TryStatement > BlockStatement.block *):not(CallExpression[callee.name='tryCatch'] > CallExpression)",
+          message:
+            'mutateAsync는 try 블록 안에서(catch에서 handleError) 또는 tryCatch(mutateAsync(v))로 부른다.',
+        },
+        {
+          selector: "CallExpression[callee.property.name='mutate']",
+          message:
+            'mutate 대신 mutateAsync + try/catch + handleError를 쓴다(실패 처리를 빠뜨리지 않게).',
+        },
+        {
+          selector:
+            "VariableDeclarator[init.callee.name='useMutation'] > ObjectPattern > Property[key.name='mutate']",
+          message:
+            'mutate 대신 mutateAsync + try/catch + handleError를 쓴다(실패 처리를 빠뜨리지 않게).',
+        },
+      ],
+    },
+  },
   prettier,
   globalIgnores([
     '.next/**',

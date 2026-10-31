@@ -28,7 +28,7 @@ export function EventScopeView({ eventId, children }: { eventId: string; childre
     );
   }
   return (
-    <AsyncBoundary ignoreError={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
+    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
       <EventScope eventId={id}>{children}</EventScope>
     </AsyncBoundary>
   );
@@ -56,7 +56,7 @@ function EventScope({ eventId, children }: { eventId: string; children: ReactNod
       {s.readOnlyMessage && <p data-testid="read-only">{s.readOnlyMessage}</p>}
       <main>
         <AsyncBoundary
-          ignoreError={isSessionLost}
+          holdOn={isSessionLost}
           rejected={HostingAccessRejected}
           resetKeys={[eventId]}
         >

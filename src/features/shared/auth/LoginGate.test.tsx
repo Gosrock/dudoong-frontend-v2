@@ -9,8 +9,9 @@ import { meHandlers } from '@/api/__mocks__/me.handlers';
 import { ok } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { setAuthHandlers } from '@/api/auth-handlers';
+import { setErrorNotifier } from '@/api/error-toast';
 import { api } from '@/api/http';
-import { getQueryClient, setErrorNotifier } from '@/api/query-client';
+import { getQueryClient } from '@/api/query-client';
 import {
   readSessionFlag,
   resetSessionFlagStateForTest,

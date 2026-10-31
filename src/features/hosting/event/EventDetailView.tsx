@@ -12,11 +12,7 @@ import { useEventSections } from './model/useEventSections';
  */
 export function EventDetailView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary
-      ignoreError={isSessionLost}
-      rejected={HostingAccessRejected}
-      resetKeys={[eventId]}
-    >
+    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
       <EventDetail eventId={eventId} />
     </AsyncBoundary>
   );

@@ -12,7 +12,7 @@ import { server } from '@/api/__mocks__/server';
 import { isEventManageQueryKey, MY_EVENTS_KEY } from '@/api/event/queries';
 import { hostMembersQuery, hostViewerQuery, MY_HOSTS_KEY } from '@/api/host/queries';
 import { AddHostMembersRequestSchema, HostMembersSchema } from '@/api/host/schema';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -225,15 +225,14 @@ describe('멤버 변경 — 응답(멤버 전체 목록)으로 캐시 갱신', (
   });
 
   it('에러 분기 HOST_404_2(이미 없는 멤버) → GH-6을 다시 읽고 actionError, 토스트 없음', async () => {
-    const { result, queryClient } = setup();
+    const { result } = setup();
     await loaded(result);
     // 다른 사람이 먼저 지웠다
     removeStoredMember(11, 3);
     const sent = recordRequests();
     await act(() => result.current.remove(3));
     expect(result.current.actionError).toBe('이미 멤버가 아니에요. 목록을 새로 불러왔어요');
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.members.map((x) => x.userId)).toEqual([1, 2, 4]));
     expect(await sent.lines()).toContain('GET /api/v2/hosts/11/members');
   });
@@ -339,7 +338,7 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
       expect(ok).toBe(false);
       const m = lastMutation(queryClient);
       expect(m.state.error).toMatchObject({ code });
-      expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+      expect(errorToast).not.toHaveBeenCalled();
       expect(result.current.serverErrors).toEqual([null, message]);
       expect(result.current.formError).toBeNull();
       // 그 줄을 고치면 그 줄의 사유를 지운다
@@ -348,7 +347,7 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
     },
   );
 
-  it('매니저가 MANAGER를 보내는 경로는 없다 — 서버도 403 HOST_400_11(전역 토스트)', async () => {
+  it('매니저가 MANAGER를 보내는 경로는 없다 — 서버도 403 HOST_400_11(공용 토스트)', async () => {
     actAsRole(11, 'MANAGER');
     const res = await fetch('http://localhost:8080/api/v2/hosts/11/members', {
       method: 'POST',

@@ -11,13 +11,13 @@ import { server } from '@/api/__mocks__/server';
 import { setTicketAgreementEnforced } from '@/api/__mocks__/ticket-store';
 import { createEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
-import { shouldToastMutationError } from '@/api/query-client';
 import { AGREEMENT_VERSION } from '@/api/shared/agreement';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import {
   CreateTicketItemRequestSchema,
   UpdateTicketItemRequestSchema,
 } from '@/api/ticket-item/schema';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -200,13 +200,12 @@ describe('새 티켓(P10/T-2)', () => {
 
   it('동의 강제가 켜졌는데 보내지 않으면 Agreement_400_1 → 폼 오류, 토스트 없음', async () => {
     setTicketAgreementEnforced(true);
-    const { result, queryClient } = setup('140');
+    const { result } = setup('140');
     await loaded(result);
     await fillDudoong(result);
     expect(await save(result)).toBe(false);
     await waitFor(() => expect(result.current.formError).toBe('필수 동의를 확인해 주세요'));
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it.each([

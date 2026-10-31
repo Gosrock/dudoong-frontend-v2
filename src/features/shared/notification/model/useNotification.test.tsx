@@ -12,6 +12,7 @@ import { server } from '@/api/__mocks__/server';
 import { newApprovedTicketsQuery } from '@/api/my-ticket/queries';
 import { unreadNotificationCountQuery } from '@/api/notification/queries';
 import { shouldToastQueryError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -264,7 +265,7 @@ describe('알림함 — useNotificationInbox', () => {
     ]);
   });
 
-  it('PN-3이 실패하면 이 요청이 바꾼 행만 안 읽음으로 되돌리고 벨은 그대로', async () => {
+  it('PN-3이 실패하면 이 요청이 바꾼 행만 안 읽음으로 되돌리고 벨은 그대로, 공용 토스트', async () => {
     loggedIn();
     // 낙관 표시를 볼 수 있게 실패 응답을 늦춘다
     server.use(
@@ -288,6 +289,12 @@ describe('알림함 — useNotificationInbox', () => {
     expect(queryClient.getQueryData(unreadNotificationCountQuery().queryKey)).toEqual({
       count: 5,
     });
+    await waitFor(() =>
+      expect(errorToast).toHaveBeenCalledWith(
+        '서버 오류. 관리자에게 문의 부탁드립니다.',
+        'mutation:GLOBAL_500_1',
+      ),
+    );
   });
 
   it('다음 페이지가 실패하면 기존 행을 지우지 않고 nextPageFailed → fetchNext로 다시', async () => {
