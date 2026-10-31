@@ -1218,3 +1218,20 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **Figma 코멘트(2026-11-01-impl, 와이어 `FUQb8ldGBp3uYUuXPV5FDC`)**: `218:4798` "[개발 · DS 컴포넌트로 구현] 로그인 말풍선"(1989705227) · `218:4797` "[개발 · DS 컴포넌트로 구현] 로그인 캐릭터 그림"(1989705229) · `218:4795` "[개발 · 디자인 없음] 로그인 뒤 화면들"(실패 안내 · 세션 만료 · 콜백 대기 · 정지/일반 실패 · 회원가입 입력, 1989705233)
 **범위 밖**: Ready 목록 23 → 35(gui-screens §0 머리 갱신은 관제탑 몫 — P10a-V와 같음). PC 상단 바의 [로그인] 버튼이 로그인 화면에서도 보임(셸 P4s-V)
 **검사**: typecheck · 바꾼 파일 eslint · `vitest related`(2373) · e2e `auth`·`auth-bfcache`·`shell`(42) · QA `pnpm qa login` 18/18(LOGIN-1~9 × mobile · desktop, 수동 1). 전체 게이트는 PR CI
+
+## 그룹 A 회귀 수정(2026-11-01, `9yujin/fix-group-a-regression`)
+
+관제탑이 그룹 A(#32·#35·#37·#39·#40·#42) 머지 뒤 `main` `4e0ed87`에서 돌린 전체 회귀 — e2e 14 실패 / 368 통과, QA shell 2 · auth-gate 5 · home 3 실패. PR CI(`pr-gate`)는 e2e 전체·QA를 돌리지 않아 여기서 처음 드러났다. 진짜 회귀는 하나, 나머지는 V 마크업·셸을 따라가지 못한 낡은 테스트다. 지키던 계약(서버 조회에 토큰 없음, 재고 HTML 없음, XSS 미실행, 404/500 상태 코드, 공개 화면 인증)은 그대로 검증한다.
+
+**원인별**
+- **회귀(화면 수정)** 공연준비 홈(P10a-V #39)이 본문을 `<main>` 대신 `<div>`로 감싸 `main` 랜드마크가 없어졌다 → `HostingHomeView` 루트를 `<main className={s.page}>`로(QA SHELL-2 desktop이 `getByRole('main')`으로 셸 여백을 재다 멈춤).
+- 공연 상세 섹션이 제목(heading)이 아니라 탭(P5b-V #40) → e2e `event-detail` :79·:121·:145, `hosting-event` :267을 `tablist "공연 안내"`의 탭·탭 패널로. 탭 본문은 고른 탭 하나만 그리므로 10개·기본 4탭은 탭마다 눌러 본문/빈 상태를 본다.
+- 공연 상세 `<main>`에 class가 붙음(#40) → XSS 테스트의 서버 HTML 추출 정규식 `<main>` → `<main[\s>]`(검사 내용은 같다).
+- 일시 문구가 모바일 아이콘 행(한 줄)·PC 정보 표(일자/시간)로 갈림(#40) → 보이는 하나만 센다(`filter({ visible: true })`).
+- 문의 입구가 "연락처 보기" → "문의하기"(모바일 하단 바 아이콘 · PC 호스트 옆), 연락처 행이 "전화: 값" → 라벨 + 값(#40) → 선택자만 바꾸고 원문 링크·가린 값·GP-3 호출 순서(서버 토큰 없음 → 열 때만 브라우저 쿠키) 검증은 그대로.
+- QA SHELL-2 모바일: "공연 준비 홈" 제목은 PC 전용(와이어 `424:11664`, 모바일은 셸 로고 헤더, #39) → `main` 안 탭 줄을 보고 제목은 PC에서만.
+- QA AUTH-3: 셸 벨 GN-2(`/api/v2/me/notifications/unread-count`, P4s-V #32)가 GM-1 필터(`startsWith('/api/v2/me')`)에 섞임 → GM-1 경로만 정확히 + "401은 첫 GM-1 하나뿐"을 더함.
+- QA AUTH-6a/b/c: ① 홈 `heading "장르"`는 P5a-L(ebf0786)에서 이미 없어진 마크업(그룹 A 이전부터 낡음) → `main`의 "다가오는 공연" 영역. ② "GM-1 없음"은 셸 전(P4a) 기준 — P4s-V 셸 헤더가 로그인/아바타를 가르려고 GM-1을 부른다(tech-decisions §4 세션 쿼리 "헤더·게이트·햄버거"). 🤖 Claude 판단: 상태별 GM-1·재발급 순서를 정확히 검증하도록 바꿈(로그인 `GM-1 200` / 비로그인 `GM-1 401`, 재발급 없음 / 만료 `GM-1 401 → 재발급 403 → reload → GM-1 401`) + GM-1 밖의 401 없음 + 주소 유지 + 홈 데이터 브라우저 재조회 없음. 되돌리려면 공개 화면 셸이 GM-1을 부르지 않게 하는 설계 변경이 필요하다.
+- QA HOME-1(desktop): PC 상단 바 주 메뉴에도 "공연 둘러보기" 링크(#32) → `main` 안으로. HOME-3: Next 기본 에러 화면 → 셸 안 공용 에러 화면(`(audience)/error.tsx`, #32) 문구 "화면을 불러오지 못했어요" + [다시 시도].
+
+**검사**: `pnpm test:e2e` 382 통과 / 0 실패. QA shell 10 · auth-gate 15 · home 6 · login 18 · event-detail 18 · hosting-home 18 통과(실패 0). typecheck · lint · `vitest src/features/hosting/home`(24).
