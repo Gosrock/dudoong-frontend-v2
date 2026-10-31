@@ -64,6 +64,13 @@
 - **영향**: 두둥 주문 취소 확인에 "직접 환불" 안내를 붙여야 한다(legal-copy C-3·C-4).
 - **답이 없으면**: `paymentChannel`이 두둥 값이거나, null이고 `totalAmount > 0`이면 안내를 붙인다(빠뜨리는 쪽보다 더 붙는 쪽).
 
+### B21. 재발급(`POST /api/v1/auth/token/refresh`)을 IP 요청 제한에서 빼 줄 수 있나?
+
+- **확인한 것**: `ThrottlingWebConfigure`가 `/api/v1/kakao-skill/my-orders`만 빼고 모든 경로에 `ThrottlingInterceptor`를 건다. 유효한 액세스 토큰이 없으면(userId 0) IP 버킷(`ipRateLimiter`, `application.yml` `RATE_LIMIT_OVERDRAFT`·`RATE_LIMIT_REFILL` 기본 분당 60)을 쓰고, 넘치면 429 `GLOBAL_429_1`이다(dev `fe423ed`). 재발급은 액세스 토큰이 만료된 뒤에 부르므로 늘 IP 버킷이다.
+- **영향**: 공연장 Wi-Fi(체크인 시간)처럼 한 IP 뒤에 사람이 몰리면 재발급이 429를 받는다. 프론트는 2026-10-31부터 429를 일시 오류로 보고 세션을 지키지만(tech-decisions §4), 그 요청은 실패로 끝나 사용자가 다시 시도해야 한다.
+- **요청**: 재발급을 IP 제한에서 빼거나(리프레시 토큰 단위 제한으로 바꾸거나) IP 버킷을 넉넉히 해 달라.
+- **답이 없으면**: 지금대로 — 429면 세션 유지 + 원 요청 실패(자동 재시도 없음).
+
 ### B15. v2 프론트 이미지를 ECR에 올릴 수 있게 Deploy `infra/ecr.yml`을 갱신해 줄 수 있나? — **v2 레지스트리 ECR 결정(2026-10-29)**
 
 - **확인한 것(Deploy `b5d4d20`)**: 운영·스테이징 이미지는 모두 비공개 ECR이고, 올리기는 저장소·ref별 OIDC 역할로만 된다(`infra/ecr.yml`). v2 저장소 `Gosrock/dudoong-frontend-v2`는 어느 역할의 신뢰 조건에도 없다. 서버 받기 권한(인스턴스 역할)도 5개 저장소로 한정돼 있다.

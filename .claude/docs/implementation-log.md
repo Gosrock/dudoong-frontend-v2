@@ -782,3 +782,13 @@
 
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2238) · test:stories(193) · build · e2e(374 — 새 10 = `shell.spec` 5건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
 **문서 반영**: plan(개요 진행 현황 — 남은 L 없음, P4s L 범위 위치·끝남 표시, L 완료 기준 5칸, §5 첫 문단), README(문서 지도 plan 행), directory-structure(`features/shared/shell`, hosting/shell은 V), patterns §21(셸 메뉴의 벨·항목 주소)
+
+## 2026-10-31 재발급 429를 세션 상실로 보던 버그 (`fix/refresh-429`)
+
+**변경**: `src/api/auth-handlers.ts` `refreshOnce` — 재발급 4xx 중 429·408(`TRANSIENT_4XX`)은 `RefreshRejected`가 아니라 일시 오류로 그 에러를 그대로 던진다(5xx·네트워크와 같은 길: 세션 유지, `onSessionLost` 없음, 상실 1회 플래그 그대로, 원 요청은 재발급 응답의 에러로 실패). 원인: 백엔드 `ThrottlingInterceptor`가 재발급에도 걸리고 재발급은 유효한 액세스 토큰 없이 나가 IP 버킷(기본 분당 60)을 쓴다 — 공유 NAT(공연장 Wi-Fi)에서 리프레시 토큰이 살아 있는데 `/login/expired`로 튕기고 다른 탭도 따라 나갔다(dev `fe423ed` `ThrottlingWebConfigure`·`application.yml`로 확인). 테스트 `auth-handlers.test` 5건 추가(429 실제 `authApi`·408 HTML·429 뒤 다음 401에서 다시 재발급해 성공·대조 401/403은 상실). 문서: tech-decisions §4 재발급 결과 판정·요약 표, api-contract §9 재발급 행, patterns §5-1, backend-questions B21
+**Claude 판단**(되돌리는 법 같이)
+1. **408도 일시 오류** — 백엔드는 408을 내지 않지만 앞단(ALB·nginx)이 요청 본문을 다 받기 전에 끊으면 낸다. 429와 같이 토큰을 보기 전의 응답이라 세션에 대해 아무것도 말하지 않는다. 되돌리기: `TRANSIENT_4XX`에서 408을 뺀다
+2. **429를 자동 재시도하지 않는다** — 쿼리 기본 retry(5xx·네트워크만)에 넣지 않았다. 제한에 걸린 IP에서 다시 두드리면 버킷만 더 빈다. `Retry-After`도 백엔드가 주지 않는다. 사용자는 전역 에러 처리(토스트·에러 화면 재시도)로 다시 시도한다. 되돌리기: `query-client.ts` `shouldRetry`
+3. B21 번호 — B20은 답을 받아 지운 번호라(backend-questions 머리말) 다음 번호를 썼다
+**검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`): typecheck · lint · prettier · test(2243) · build · e2e `auth.spec`·`auth-bfcache.spec`(32) 통과. 수정을 빼면 새 테스트 3건(429·408·429 뒤 재발급)이 실패하는 것을 확인했다
+
