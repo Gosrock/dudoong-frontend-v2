@@ -31,7 +31,7 @@
 ### 브랜치 계획 (2026-10-31)
 
 - **`main`이 기준**이다. 모든 작업 브랜치는 `main`에서 따고 PR로 `main`에 합친다(PR 게이트 `pr-gate.yml`). `main`에 머지되면 이미지 워크플로가 돈다(deploy-plan §5 — 스테이징은 `:dev`).
-- **지금 브랜치** `feat/v2-foundation-logic` — P0~P4a와 모든 L을 담는다. `main`으로 PR 하나를 열어 "L 완료" 기준점으로 머지한다. **머지 전 조건**: `image.yml`이 아직 GHCR로 올린다(공개 패키지) — ECR 전환(B15) 전에 머지하면 GHCR에 이미지가 올라가므로, 머지 전에 이미지 워크플로를 끄거나(`workflow_dispatch`만) B15 뒤 ECR로 바꾼 다음 머지한다.
+- **지금 브랜치** `feat/v2-foundation-logic` — P0~P4a와 모든 L을 담는다. `main`으로 PR 하나를 열어 "L 완료" 기준점으로 머지한다. **머지 전 조건**: `image.yml`이 아직 GHCR로 올린다(공개 패키지) — ECR 전환(B15) 전에 머지하면 GHCR에 이미지가 올라가므로, 머지 전에 이미지 워크플로를 끄거나(`workflow_dispatch`만) B15 뒤 ECR로 바꾼 다음 머지한다. → **2026-10-31 `image.yml`의 main 자동 실행을 끄고(`workflow_dispatch`만) 머지했다** — `ci/ecr-image`에서 ECR로 바꾸며 다시 켠다.
 - **이름 규칙** — `<종류>/<Phase>-<요지>`, 하나의 브랜치 = 하나의 Phase 단위(또는 하나의 주제):
 
 | 종류 | 쓰는 곳 | 예 |

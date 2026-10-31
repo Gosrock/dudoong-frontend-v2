@@ -1,7 +1,6 @@
 name: Image
+# main 자동 실행은 꺼 둔다 — 아직 GHCR(공개 패키지)로 올린다. B15 뒤 ECR로 바꾸면서 다시 켠다(plan "브랜치 계획", deploy-plan §5).
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
