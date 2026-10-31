@@ -396,6 +396,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
 ## 4. 구현 규칙
 
+- **화면에 반영할 때**: 근거 판정(Ready for dev), 커스텀 지양과 판단 표(Figma가 DS 인스턴스 / 커스텀인데 DS로 가능 / 커스텀이고 DS로 불가), `FIGMA-CUSTOM:` 주석·Figma 코멘트 형식, 완료 기준은 [`design-workflow.md`](./design-workflow.md)가 정본이다(2026-10-31). DS로 불가해 커스텀으로 만든 것이 반복되면 §3 "없는 컴포넌트"에 올린다.
 - **파일**: `src/ui/components/<Name>/{<Name>.tsx, <Name>.css.ts, <Name>.stories.tsx}`. 도메인 컴포넌트는 `features/*`.
 - **변형**: `recipe()`로 정의하고 `RecipeVariants`로 props 타입을 만든다. Figma에 듬성듬성 있는 변형(Button)은 축마다 규칙을 정해 빈 조합을 채운다.
 - **Radix 상태**: `data-state`·`data-disabled`를 `.css.ts`의 `selectors`로 받는다. 예: `'&[data-state="checked"]'`.
