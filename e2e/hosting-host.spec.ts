@@ -87,7 +87,7 @@ test.describe('호스트 설정', () => {
     await expect(name).toHaveValue('고스락');
     await name.fill('고스락 밴드');
     await page.getByRole('button', { name: '저장' }).click();
-    await expect(page.getByRole('status')).toHaveText('저장했어요');
+    await expect(page.getByText('저장했어요')).toBeVisible();
     const writes = mockApi.calls().filter((c) => c.method !== 'GET');
     expect(writes.map((c) => [c.from, c.method, c.path, c.status])).toEqual([
       ['browser', 'PATCH', '/api/v2/hosts/11', 200],
@@ -103,14 +103,16 @@ test.describe('호스트 설정', () => {
     const puts = await routeS3(page);
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/settings');
-    await page.getByLabel('프로필 이미지 올리기').setInputFiles(PNG);
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: '프로필 이미지 올리기' }).click();
+    await (await chooser).setFiles(PNG);
     const profile = page.getByTestId('image-PROFILE').getByRole('img');
     await expect(profile).toHaveAttribute('src', /\/host\/11\/[0-9a-f-]{36}\.png$/);
     expect(puts).toEqual([
       { url: expect.stringMatching(/\/host\/11\/[0-9a-f-]{36}\.png\?/), contentType: 'image/png' },
     ]);
     await page.getByRole('button', { name: '저장' }).click();
-    await expect(page.getByRole('status')).toHaveText('저장했어요');
+    await expect(page.getByText('저장했어요')).toBeVisible();
     expect(
       mockApi
         .calls()
@@ -139,6 +141,19 @@ test.describe('호스트 설정', () => {
 const roles = (page: Page) => page.getByTestId('member-role');
 const row = (page: Page, name: string) =>
   page.getByTestId('member-row').filter({ has: page.getByText(name, { exact: true }) });
+/** 행의 ⋮ 메뉴를 연다 — 항목은 `menuitem` */
+const openMenu = async (page: Page, name: string) => {
+  await row(page, name)
+    .getByRole('button', { name: `${name} 메뉴` })
+    .click();
+  return page.getByRole('menuitem');
+};
+/** [+ 멤버 초대하기] → 초대 모달의 역할 드롭다운을 열어 선택지를 본다 */
+const openInviteRoles = async (page: Page) => {
+  await page.getByRole('button', { name: '멤버 초대하기' }).click();
+  const role = page.getByRole('dialog', { name: '멤버 초대하기' }).getByLabel('역할');
+  return role;
+};
 
 test.describe('멤버 관리 — 3시점', () => {
   test('마스터: 역할 변경·삭제·양도와 초대(역할 매니저·일반)가 보이고 권한 가이드에 "호스트 삭제"가 없다', async ({
@@ -148,13 +163,20 @@ test.describe('멤버 관리 — 3시점', () => {
     await page.goto('/hosting/hosts/11/members');
     await expect(roles(page)).toHaveText(['마스터', '매니저', '일반', '일반']);
     await expect(row(page, '두둥이').getByRole('button')).toHaveCount(0);
-    await expect(row(page, '이드럼').getByRole('button')).toHaveText([
-      '매니저(으)로 변경',
-      '삭제',
-      '마스터 넘기기',
+    await expect(await openMenu(page, '이드럼')).toHaveText([
+      '권한 변경',
+      '마스터 양도',
+      '멤버 삭제',
     ]);
-    await expect(page.getByLabel('역할 1').locator('option')).toHaveText(['매니저', '일반']);
-    await expect(page.getByLabel('역할 1')).toHaveValue('GUEST');
+    await page.keyboard.press('Escape');
+    const role = await openInviteRoles(page);
+    await expect(role).toHaveText('일반');
+    await expect(role).toBeEnabled();
+    await role.click();
+    await expect(page.getByRole('option')).toHaveText(['매니저', '일반']);
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: '멤버 권한이란?' }).click();
     const guide = page.getByRole('table', { name: '권한 가이드' });
     await expect(guide).toBeVisible();
     await expect(guide).not.toContainText('호스트 삭제');
@@ -167,8 +189,11 @@ test.describe('멤버 관리 — 3시점', () => {
     await expect(roles(page)).toHaveText(['마스터', '매니저', '일반', '일반']);
     await expect(row(page, '김매니저').getByRole('button')).toHaveCount(0);
     await expect(row(page, '두둥이').getByRole('button')).toHaveCount(0);
-    await expect(row(page, '이드럼').getByRole('button')).toHaveText(['삭제']);
-    await expect(page.getByLabel('역할 1').locator('option')).toHaveText(['일반']);
+    await expect(await openMenu(page, '이드럼')).toHaveText(['멤버 삭제']);
+    await page.keyboard.press('Escape');
+    const role = await openInviteRoles(page);
+    await expect(role).toHaveText('일반');
+    await expect(role).toBeDisabled();
   });
 
   test('일반: 목록만 — 버튼·초대 없음', async ({ page }) => {
@@ -177,29 +202,34 @@ test.describe('멤버 관리 — 3시점', () => {
     await page.goto('/hosting/hosts/11/members');
     await expect(roles(page)).toHaveCount(4);
     await expect(page.getByTestId('member-row').getByRole('button')).toHaveCount(0);
-    await expect(page.getByRole('form', { name: '멤버 초대' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '멤버 초대하기' })).toHaveCount(0);
   });
 });
 
 test.describe('멤버 관리 — 변경', () => {
-  test('초대: 한 줄이 실패하면 그 줄에 사유, 아무도 추가되지 않는다 — 고쳐서 다시 내면 추가', async ({
+  // 화면은 한 명씩(와이어 503:32779) — 여러 줄 매핑은 L 단위 테스트(member-rules · useHostMembers)
+  test('초대: 실패하면 그 줄에 사유, 추가되지 않는다 — 고쳐서 다시 내면 추가되고 모달이 닫힌다', async ({
     page,
     mockApi,
   }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/members');
-    await page.getByRole('button', { name: '줄 추가' }).click();
-    await page.getByLabel('초대할 이메일 1').fill('vocal@example.com');
-    await page.getByLabel('초대할 이메일 2').fill('nobody@example.com');
-    await page.getByRole('button', { name: '초대하기' }).click();
-    const rows = page.getByTestId('invite-row');
-    await expect(rows.nth(1).getByRole('alert')).toHaveText('가입되지 않은 이메일이에요');
-    await expect(rows.nth(0).getByRole('alert')).toHaveCount(0);
+    await page.getByRole('button', { name: '멤버 초대하기' }).click();
+    const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
+    await expect(dialog).toContainText('바로 멤버로 추가됩니다');
+    const email = dialog.getByLabel('초대할 이메일');
+    await email.fill('nobody@example.com');
+    await dialog.getByRole('button', { name: '초대하기' }).click();
+    await expect(dialog.getByTestId('invite-row').getByRole('alert')).toHaveText(
+      '가입되지 않은 이메일이에요',
+    );
     await expect(roles(page)).toHaveCount(4);
-    await page.getByLabel('초대할 이메일 2').fill('guitar@example.com');
-    await page.getByRole('button', { name: '초대하기' }).click();
-    await expect(roles(page)).toHaveCount(6);
-    await expect(page.getByTestId('invite-row')).toHaveCount(1);
+    await email.fill('guitar@example.com');
+    await expect(dialog.getByRole('alert')).toHaveCount(0);
+    await dialog.getByRole('button', { name: '초대하기' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(roles(page)).toHaveCount(5);
+    await expect(page.getByText('멤버를 초대했어요')).toBeVisible();
     expect(
       mockApi
         .calls()
@@ -217,7 +247,12 @@ test.describe('멤버 관리 — 변경', () => {
   }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/members');
-    await row(page, '이드럼').getByRole('button', { name: '매니저(으)로 변경' }).click();
+    await (await openMenu(page, '이드럼')).filter({ hasText: '권한 변경' }).click();
+    const popup = page.getByRole('alertdialog', { name: '멤버 권한 변경' });
+    await expect(popup.getByTestId('role-change')).toHaveText(/일반.*매니저/);
+    await popup.getByRole('button', { name: '변경하기' }).click();
+    await expect(popup).toHaveCount(0);
+    await expect(page.getByText('멤버의 권한을 변경하였습니다.')).toBeVisible();
     await expect(row(page, '이드럼').getByTestId('member-role')).toHaveText('매니저');
     await expect(roles(page)).toHaveText(['마스터', '매니저', '매니저', '일반']);
     expect(
@@ -228,7 +263,11 @@ test.describe('멤버 관리 — 변경', () => {
   test('삭제: 행이 사라진다', async ({ page }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/members');
-    await row(page, '이드럼').getByRole('button', { name: '삭제' }).click();
+    await (await openMenu(page, '이드럼')).filter({ hasText: '멤버 삭제' }).click();
+    await page
+      .getByRole('alertdialog', { name: '이드럼님을 멤버에서 삭제할까요?' })
+      .getByRole('button', { name: '삭제하기' })
+      .click();
     await expect(roles(page)).toHaveText(['마스터', '매니저', '일반']);
     await expect(row(page, '이드럼')).toHaveCount(0);
   });
@@ -239,12 +278,18 @@ test.describe('멤버 관리 — 변경', () => {
   }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/members');
-    await row(page, '김매니저').getByRole('button', { name: '마스터 넘기기' }).click();
+    await (await openMenu(page, '김매니저')).filter({ hasText: '마스터 양도' }).click();
+    const popup = page.getByRole('alertdialog', { name: '마스터 권한을 양도하시겠어요?' });
+    await expect(popup).toContainText('받는 멤버: 김매니저');
+    await popup.getByRole('button', { name: '양도하기' }).click();
+    await expect(page.getByText('마스터 권한을 양도하였습니다.')).toBeVisible();
     await expect(row(page, '김매니저').getByTestId('member-role')).toHaveText('마스터');
     await expect(row(page, '두둥이').getByTestId('member-role')).toHaveText('매니저');
-    await expect(page.getByRole('button', { name: '마스터 넘기기' })).toHaveCount(0);
-    await expect(row(page, '이드럼').getByRole('button')).toHaveText(['삭제']);
-    await expect(page.getByLabel('역할 1').locator('option')).toHaveText(['일반']);
+    await expect(row(page, '김매니저').getByRole('button')).toHaveCount(0);
+    await expect(await openMenu(page, '이드럼')).toHaveText(['멤버 삭제']);
+    await page.keyboard.press('Escape');
+    await expect(await openInviteRoles(page)).toBeDisabled();
+    await page.keyboard.press('Escape');
     // GH-3 viewer를 다시 읽었다(처음 + 양도 뒤)
     expect(
       mockApi.calls().filter((c) => c.method === 'GET' && c.path === '/api/v2/hosts/11'),
