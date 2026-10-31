@@ -141,7 +141,7 @@ Figma 128:2583~2709는 거절된 주문에도, 498:703은 선물중 티켓이 �
    ├─ 소속 호스트 아바타 줄  GM-1 hosts(최대 10) · hostCount   (없으면 "아직 두둥에서 호스트가 없어요.")
    ├─ 공연 둘러보기 ↗ → /events · 공연 준비 ↗ → /hosting   128:2875 (옛 "호스팅 센터" — 문구만 "공연준비", 라우트 그대로)
    ├─ 새 공연 만들기 → /hosting/new/events · 새 호스트 만들기 → /hosting/new/hosts   (옛 454:556의 "빠른 …")
-   ├─ AD 배너 · 서비스 업데이트 노트  (목적지 미정 — [`design-requests.md`](./design-requests.md) Q4. 서비스 공지 API(#832)가 후보 — plan §7 "범위 밖·미정")
+   ├─ AD 배너 · 서비스 업데이트 노트  (목적지 미정 — [`design-requests.md`](./design-requests.md) Q4. 서비스 공지는 P9c(공지 목록 `/notices`)로 정해졌다 — 연결 여부는 Q4)
    ├─ 프로필  GM-1 / PM-2 / PM-3                 P9
    ├─ 주문내역  G11/O-2 → 주문상세  G11/O-3      P9    128:2772 ("전체 상태 ⌄" 선택지 없음 — Q36 대기)
    ├─ 관심 호스트  GM-4 (+ 해제 PH-13 DELETE)    P9    249:554

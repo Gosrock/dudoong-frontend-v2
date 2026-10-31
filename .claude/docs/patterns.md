@@ -697,6 +697,9 @@ useEffect(() => {
 | P13b | 호스트 스캔 | 네트워크 · 타임아웃 · 5xx | 실패 상태 + [다시 시도](같은 값, 쿨다운 무시). 전역 토스트 없음(`meta.handled`). 통계(GQ-1) 다시 읽기 실패는 지난 값 유지 + `refreshFailed`(`meta.silent`) (P13b-L) |
 | P13b | 호스트 스캔 | 400 `BAD_REQUEST` | 64자 넘는 값 — 화면이 요청 전에 "티켓 QR이 아니에요"로 막는다(`normalizeScanValue`). 오면 같은 안내 (P13b-L) |
 | P13b | 호스트 스캔 | 403 · 404 `Event_404_1` | 권한을 잃었거나 공연이 지워짐. 실패 상태(다시 시도 없음). 정상 흐름에선 공연 스코프가 먼저 공용 403·404로 보낸다 (P13b-L) |
+| P9c | 공지 상세 | 404 `Notice_404_1` | 숨김·없는 공지. 관객 `/notices/[id]`는 서버 조회라 `notFound()`(상태 코드 404), 호스팅 `/hosting/notices/[id]`는 공용 404 "공지를 찾을 수 없어요" + [공지 목록](클라이언트 판정, 200). 숫자가 아닌 id는 부르지 않고 같은 404 (P9c-L) |
+| P9c | 공지 목록 · 배너 | 5xx · 네트워크 | 목록 첫 페이지는 경계의 [다시 시도], 다음 페이지는 기존 행을 지우지 않고 하단 재시도(§12). 배너(GA-3)는 배너 없이 두고 전역 토스트 없음(`meta.silent`) (P9c-L) |
+| P9c | 공지 목록 · 배너 | 400 `BAD_REQUEST` | 모르는 `audience`·`size` 51 이상. FE는 `USER`·`HOST`와 기본 크기만 보내 정상 흐름에서 오지 않는다 — 전역 처리 (P9c-L) |
 
 표의 코드는 모두 `error-codes.md`에 있는 것을 확인했다(2026-10-14, 2회차 추가분 2026-10-15). 처리 문구는 백엔드 통합 기획서 각 장의 "프론트 처리" 열을 따른다. 화면에서 직접 처리하는 코드는 `handleCodes({...})`로 적는다(§4-5). 3회차(2026-10-15)에 백엔드 코드로 승인의 시작 후 코드(`OrderValidator.validCanApproveOrder` → `validTicketingTime` = `Event_400_6`)와 로그인·콜백의 401(JWT 필터)을 확인했다. 셀프 체크인의 `Event_400_5`는 백엔드 `V2CheckInDomainService.selfCheckIn` → `Event.validateNotOpenStatus()` → `EventNotOpenException`(`EVENT_NOT_OPEN`)에서 확인했다.
 

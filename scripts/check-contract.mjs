@@ -15,6 +15,7 @@ const event = await import('../src/api/event/schema.ts');
 const ticket = await import('../src/api/ticket-item/schema.ts');
 const host = await import('../src/api/host/schema.ts');
 const gift = await import('../src/api/gift/schema.ts');
+const notice = await import('../src/api/notice/schema.ts');
 
 // openEnum은 모르는 값을 UNKNOWN으로 바꾸며 경고 로그를 남긴다 — 결과에서 따로 찾아 보여 주므로 로그는 숨긴다
 const warn = console.warn;
@@ -100,6 +101,11 @@ const skip = (id, label, why) => results.push({ id, label, ok: null, detail: [wh
 // ─── 호출 ────────────────────────────────────────────────────
 
 await check('GE-11', '태그', 'tags', event.TagGroupsSchema);
+const notices = await check('GA-1', '공지 목록', 'notices?size=50', notice.NoticePageSchema);
+await check('GA-3', '공지 배너', 'notices/banners', notice.NoticeBannersSchema);
+const noticeId = notices?.content[0]?.noticeId;
+if (noticeId) await check('GA-2', '공지 상세', `notices/${noticeId}`, notice.NoticeDetailSchema);
+else skip('GA-2', '공지 상세', '운영에 공지가 없다');
 const home = await check('GP-1', '공연홈', 'home', event.HomeSchema);
 const list = await check(
   'GP-2',

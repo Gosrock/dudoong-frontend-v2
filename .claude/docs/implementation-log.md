@@ -691,3 +691,45 @@
 **남음**: V 전부(대시보드 카드·도넛·입장 막대·데스크탑 일정 패널(주간 줄 Q39)·NEW 배지 위치(사이드바 예매자 관리 배지 포함 — `newBadgeCount`), 예매자 관리 탭·DataTable·페이지 번호·검색 칸, 거절 사유 시트·확인 팝업(`EasyOverlay`)·주문/티켓 상세 모달(`?order=`는 L에 있다), 엑셀 버튼, 환불 계좌 `updatedAt` 표시, 발급 티켓 `ownerName`·`giftState` 표시), 크리티컬 패스 QA 시나리오 캡처, 스테이징 agent-browser 왕복(스테이징 생긴 뒤). Q32는 2026-10-31 사용자 결정으로 닫혔다 — 지금 L(주문 상태 5탭 + 환불 탭, "전체"에 결제 실패 주문 포함) 그대로
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, P13b-L이 끝난 뒤 작업 트리 전체): typecheck · lint · prettier · test(2153) · test:stories(193) · build · e2e(342 — 새 20 = `hosting-guests.spec` 10건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
 **문서 반영**: plan P13a 완료 기준 L(크리티컬 패스 상자는 스테이징 왕복 때문에 열어 둠), patterns §6(`?order=` 구현)·§23(주문 처리 뒤 반영·엑셀 저장)·§24(P13a 승인·거절·취소 검사 순서, 처리 404, 환불 완료 멱등 행), api-contract 운영(F9)(P13a-L 소스 확인 — 파라미터·GF-1 검색 없음·일반 멤버 검색·가림 형식·상태 분류·검사 순서·GD-1 계산), storyboard(`?order=` 열기·닫기 — patterns §6과 맞춤), directory-structure(api order·issued-ticket·dashboard, utils download, features guest·dashboard-stats, 라우트, mock)
+
+## P9c-L — 서비스 공지 (로직)
+
+**상태**: done (2026-10-31, 커밋 전) — V 전부 남음(GUI 없음 — design-requests Q44). 2026-10-31 사용자 결정(Q44 → "새 Phase로 지금 L 진행")으로 새로 만든 Phase
+**변경**: 새 `src/api/notice/`(`schema.ts` — `NOTICE_AUDIENCES`(USER·HOST)·`NoticeTargetSchema`(`openEnum` ALL·HOST)·`NOTICE_PAGE_SIZE`(20)·`NOTICE_PAGE_SIZE_MAX`(50)·`NOTICE_TITLE_MAX`(100)·`NoticeListItemSchema`·`NoticePageSchema`·`NoticeDetailSchema`·`NoticeBannerSchema`·`NoticeBannersSchema`, `queries.ts` — `NOTICES_KEY`·`noticesQuery`(GA-1 무한)·`noticeQuery`(GA-2)·`noticeBannersQuery`(GA-3, `meta.silent`)·`NOTICE_BANNERS_STALE_MS`. 모두 `public: true`, 변경 API 없음). 새 `features/shared/notice/`: `model/` notice-rules·banner-dismissal + 훅 3개(`useNoticeList`·`useNoticeDetail`·`useNoticeBanner`), 최소 마크업 `NoticeListView`·`NoticeDetailView`·`NoticeBannerView`. 라우트 `(audience)/(app)/notices/page.tsx`, `(audience)/(public)/notices/[noticeId]/page.tsx`(`instant = false`, `<Prefetch>`, `generateMetadata`, `notFound()`), `hosting/notices/page.tsx`, `hosting/notices/[noticeId]/page.tsx`. mock: `fixtures/notice.ts`(새, 읽기 전용), `notice.handlers.ts`(새 — default·empty·listServerError·bannersServerError·detailServerError), `handlers.ts`에 등록
+
+**백엔드 소스**: dev `d89d4f9`(로컬 클론 `dev-latest`, `git show`·`git grep`으로만 읽음). `432cce4..d89d4f9` 사이에 공지 코드 변경 없음. 근거 파일: `V2NoticeController`·`V2NoticeDtos`(`V2NoticeAudience`·`V2NoticeListItemResponse`·`V2NoticeDetailResponse`·`V2NoticeBannerResponse`)·`V2ReadNoticesUseCase`·`V2Paging`·`V2PageResponse`·`SecurityConfig`(공개 경로 3개, id는 `[0-9]+`), 도메인 `Notice`(`isBannerActive` — 시작 포함·종료 미포함)·`NoticeTarget.visibleTo`·`NoticeAdaptor`·`NoticeRepository`(정렬·배너 쿼리)·`NoticeErrorCode`, 어드민 `AdminNoticeUseCase`(저장 때 `HtmlSanitizer.sanitizeV2RichText`), 테스트 `V2NoticeTest`. 정리는 api-contract §5 "서비스 공지"
+
+**훅이 돌려주는 것**
+- `useNoticeList(audience, {size}?)` → `{items[{id, title, pinned, hostOnly, createdAt, href}], empty, hasNext, isFetchingNext, nextPageFailed, fetchNext}`
+- `useNoticeDetail(noticeId, audience)` → `{notice, html(sanitize 뒤, 비면 null), hostOnly, edited, listHref}`
+- `useNoticeBanner(audience, {now}?)` → `{banner: {id, title, href} | null, remaining, dismiss()}`
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `notice-api.test` 12건, `notice-rules.test` 27건, `useNotice.test` 14건, e2e `notices.spec` 11건(×2 프로젝트) |
+| 관객 ALL만 · 호스팅 ALL+HOST · 서버 순서 · `hasNext` | api 「관객(USER)은 ALL 공지만, 고정 먼저 → 최신순, 20건씩 …」·「호스팅 센터(HOST)는 ALL + HOST 공지」, 훅 「관객: 첫 페이지 20건(고정 먼저), 다음 페이지는 page=1로 …」·「호스팅 센터: HOST 공지가 섞이고 …」·「다음 페이지가 실패하면 …」, e2e 「목록은 브라우저에서만 audience=USER로 읽는다 …」·「로그인하면 목록에 HOST 공지가 섞이고 …」 |
+| 관객 상세 상태 코드·제목·토큰 없음 | e2e 「있는 공지는 200이고 제목에 공지 제목 …」·「HOST 공지도 관객 주소로 열린다」·「숨긴 공지는 404」·「없는 공지는 404」·「숫자가 아닌 id는 백엔드를 부르지 않고 404」·「GA-2가 5xx면 500」, api 「숨긴 공지·없는 공지는 404 Notice_404_1」 |
+| 본문 sanitize·빈 본문 | 규칙 「스크립트·이벤트 속성·javascript: 링크를 지우고 …」·「빈 문자열·공백만·sanitize 뒤 빈 본문 → null」, 훅 「본문은 sanitize한 html로 …」, e2e 「상세 본문은 sanitize되어 그려진다 …」 |
+| 호스팅 상세: 서버 조회 없음·공용 404 | 훅 「숨김·없는 공지(Notice_404_1)는 공용 404 + 공지 목록으로」·「숫자가 아닌 id는 GA-2를 부르지 않고 공용 404」·「GA-2가 5xx면 다시 시도」, e2e 「숨긴 공지는 공용 404 + 공지 목록으로(클라이언트 판정이라 200)」·「비로그인이면 로그인으로 …」 |
+| 배너 한 줄·닫기·기억·실패 | 훅 「관객: 상시 배너 한 줄 …」·「호스팅 센터: 닫으면 다음 배너(HOST)가 …」·「닫은 배너는 새로 열어도(새 캐시) 다시 뜨지 않고 …」·「응답을 받은 뒤 종료 시각이 지나면 …」·「GA-3이 실패하면 배너 없이 …(meta.silent)」·「배너 뷰: [닫기]를 누르면 사라진다」, 규칙 배너 종료 it.each 5행·닫기 기록 4건 |
+
+**결정**
+- Phase 번호 P9c(P9b 뒤 — 알림의 형제). 트랙은 공통: 코드는 `features/shared/notice`(S9), audience ↔ hosting import 금지를 지킨다
+- 관객 목록은 `(app)`(무한 목록은 프리페치하지 않는다 — 공연 리스트와 같다), 관객 상세는 `(public)` 서버 조회(공유 링크·404 상태 코드). 호스팅은 서버 조회 없음
+- 키: `['notices','list',audience,{size}]`·`['notices','detail',id]`(상세는 `audience`와 상관없이 같은 값이라 키에 넣지 않음)·`['notices','banners',audience]`
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. **배너 닫기를 이 브라우저에 기억한다** — `localStorage` `dd:noticeBannerDismissed`에 닫은 공지 id(최근 50개). 서버에 닫기 API가 없고, 기억하지 않으면 페이지를 옮길 때마다 다시 뜬다. 새 공지(새 id)는 다시 뜬다. 관객·호스팅이 같은 기록이라 한쪽에서 닫으면 다른 쪽도 닫힌다. 저장소가 막히면 탭 메모리만. 되돌리기: `banner-dismissal.ts`를 모듈 메모리만 쓰게(또는 `sessionStorage`)
+2. **배너는 한 줄 = 첫 배너 하나만**, 닫으면 다음 배너. Q44 기본안 "상단 배너 한 줄"을 "동시에 하나"로 읽었다. 되돌리기: `useNoticeBanner`가 `live` 전체를 돌려주게
+3. **배너 조회 `staleTime` 1분** — 셸에 붙으면 이동마다 다시 마운트돼 GA-3을 매번 부르게 된다. 끝난 배너는 FE가 `bannerEndAt`(분 단위, 종료 미포함)으로 바로 뺀다. 되돌리기: `NOTICE_BANNERS_STALE_MS` 제거
+4. **배너를 셸에 아직 붙이지 않았다** — 관객·호스팅 셸이 빈 자리(P4s-V)라 L은 훅과 최소 `NoticeBannerView`까지. 그래서 e2e가 아니라 훅·뷰 테스트로만 본다. 되돌리기: `(audience)/layout.tsx`·`hosting/layout.tsx`에 `<NoticeBannerView audience=…/>`
+5. **경로** `/notices`·`/notices/[id]`·`/hosting/notices`·`/hosting/notices/[id]` — 문서에 경로가 없었다(햄버거 "서비스 업데이트 노트"(Q4)가 목적지 후보). 되돌리기: `notice-rules.ts` `noticeListHref` + 라우트 폴더
+6. **본문 sanitize는 섹션 뷰어 허용 목록 그대로**(`sanitizeSectionHtml`) — 백엔드도 공지에 v2 리치 에디터 기준을 쓴다. 공지 본문은 언제나 HTML(마크다운 경로 없음). 되돌리기: `renderNoticeHtml`
+7. **화면 문구 잠정**: "공지사항", "아직 공지사항이 없어요", "공지를 찾을 수 없어요", [공지 목록], "내용이 없어요", "수정 {updatedAt}"(고친 공지 표시 — `createdAt ≠ updatedAt`), "고정" — V에서 디자인 문구로. 되돌리기: 각 뷰
+8. ~~`pnpm check:contract`에 공지 GET을 넣지 않았다~~ → 2026-10-31 운영 배포를 확인하고 GA-1·GA-3·GA-2(공지가 있을 때만)를 넣었다(`scripts/check-contract.mjs`, 통과)
+
+**남음**: V 전부(목록·상세·배너 화면, 셸에 배너 붙이기 — P4s-V 뒤, 햄버거 "서비스 업데이트 노트" 연결(Q4), 본문 타이포), QA 시나리오(V 때 — 화면이 최소 마크업이라 캡처할 것이 없다), storyboard 144행의 "plan §7 범위 밖·미정" 문구 갱신(다른 작업이 storyboard를 고치는 중이라 손대지 않음)
+**검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2206) · test:stories(193) · build · e2e(364 — 새 22 = `notices.spec` 11건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
+**문서 반영**: plan(개요 Phase 수 26·남은 19, §0, §2 L 레인, §3 S9, §4 P9c 새 절·P4s 배너 문장, §5·§6 표, §7 공지 절 닫음), README(Phase 수, 범위 문단), api-contract §5 서비스 공지(P9c-L 소스 확인), patterns §24(P9c 3행), directory-structure(라우트·features/shared/notice·api/notice·mock), design-requests Q44(P9c 안내 한 줄)

@@ -301,7 +301,16 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | GA-2 | GET `/notices/{noticeId}` — `{noticeId, title, content, target, pinned, createdAt, updatedAt}`. `content`는 HTML(저장 때 서버가 sanitize). 숨김·없음은 404 `Notice_404_1`. 상세는 `audience`와 상관없이 열린다 | P |
 | GA-3 | GET `/notices/banners?audience=` — 지금 띄울 상단 배너 `[{noticeId, title, bannerEndAt}]`(페이지 없음). 누르면 GA-2 | P |
 
-근거: `V2NoticeController`·`V2NoticeDtos`·`NoticeErrorCode` @432cce4. 백엔드 권고(PR #832 본문, Develop 기획서): 제목은 텍스트로만 그리고, 본문 HTML은 FE에서 한 번 더 sanitize한다. 화면 Phase는 아직 없다(plan "범위 밖·미정").
+근거: `V2NoticeController`·`V2NoticeDtos`·`NoticeErrorCode` @432cce4. 백엔드 권고(PR #832 본문, Develop 기획서): 제목은 텍스트로만 그리고, 본문 HTML은 FE에서 한 번 더 sanitize한다. 화면 Phase는 ~~아직 없다~~ → **P9c**(2026-10-31 사용자 결정, plan P9c).
+
+**P9c-L 소스 확인(2026-10-31, dev `d89d4f9` — `432cce4` 이후 공지 코드 변경 없음, `git log 432cce4..d89d4f9 -- v2/notice domains/notice` 빈 결과)**. 경로는 `DuDoong-Api/src/main/kotlin/band/gosrock/api/v2/notice/`(`controller/V2NoticeController.kt`·`dto/V2NoticeDtos.kt`·`usecase/V2ReadNoticesUseCase.kt`)와 `DuDoong-Domain/…/domains/notice/`(`domain/Notice.kt`·`NoticeTarget.kt`·`adaptor/NoticeAdaptor.kt`·`repository/NoticeRepository.kt`·`exception/NoticeErrorCode.kt`), 테스트 `DuDoong-Api/src/test/…/v2/notice/V2NoticeTest.kt`.
+- **공개**: `SecurityConfig.V2_PUBLIC_GET_PATHS`에 `/api/v2/notices`·`/api/v2/notices/banners`·`/api/v2/notices/{noticeId:[0-9]+}` — 숫자가 아닌 id는 공개 경로가 아니라 인증부터 본다(다른 공개 id 경로와 같다, B7). 쿠키 없이 부른다
+- **`audience`**: `V2NoticeAudience{USER, HOST}`, 기본 `USER`(`@RequestParam(defaultValue = "USER")`). 대상 목록은 `NoticeTarget.visibleTo(host)` — `USER` → `[ALL]`, `HOST` → `[ALL, HOST]`. 모르는 값은 400(`V2NoticeTest` `audience=NOPE`)
+- **GA-1**: `page` 기본 0·`@Min(0)`, `size` 기본 `V2Paging.DEFAULT_SIZE`(20)·`@Min(1) @Max(V2Paging.MAX_SIZE)`(50). `Page`라 `totalElements`·`totalPages`가 온다. 정렬은 `findAllByVisibleTrueAndTargetInOrderByPinnedDescIdDesc` — `visible`만, 고정 먼저 → id 내림차순(=최신순). 목록에는 본문이 없다
+- **GA-2**: `findByIdAndVisibleTrue` — 숨김(`visible=false`)·없음은 404 `Notice_404_1`. 대상(`target`)을 보지 않는다("공지 링크를 공유할 수 있게" — `V2ReadNoticesUseCase.detail` 주석). `content`는 저장 때 `HtmlSanitizer.sanitizeV2RichText`(v2 리치 에디터와 같은 기준, `AdminNoticeUseCase`) — `<p onclick>`·`<script>`·`http:` 이미지 주소가 지워진다(`V2NoticeTest`). `createdAt`·`updatedAt`은 `yyyy.MM.dd HH:mm`, 타입은 nullable
+- **GA-3**: 페이지 없는 배열, id 내림차순(최신순). 조건은 `visible && banner && target ∈ 대상 && (bannerStartAt == null || bannerStartAt ≤ now) && (bannerEndAt == null || bannerEndAt > now)` — 시작 포함·종료 미포함, null은 제한 없음(`NoticeRepository.findActiveBanners`·`Notice.isBannerActive`). 응답 `bannerEndAt`은 null이면 "운영자가 끌 때까지". 시작 시각은 응답에 없다. 배너 기간은 게시판 노출과 무관(지난 배너도 목록에 남는다)
+- **제약**: 제목 100자(`TITLE_MAX_LENGTH`), 본문 입력 20,000자(`CONTENT_MAX_LENGTH`). 작성·수정·삭제는 운영 어드민(`/internal-api/v1/notices`) — v2 FE에는 변경 API가 없다. `Notice_400_1`(배너 기간 역전)·`Notice_400_2`(sanitize 뒤 빈 본문)는 어드민 전용(error-codes 제외 규칙)
+- **확인 못 한 것**: 배너 "닫기"를 서버가 기억하는 API는 없다 — FE가 브라우저에 남긴다(implementation-log P9c-L Claude 판단). 운영(`dudoong.com`)에 공지 API가 배포돼 있다 — 2026-10-31 `pnpm check:contract` GA-1·GA-3 통과(공지 0건이라 GA-2는 건너뜀)
 
 ## 6. 플로우별 핵심 규칙
 

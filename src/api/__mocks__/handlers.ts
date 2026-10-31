@@ -10,6 +10,7 @@ import { hostingGuestHandlers } from './hosting-guest.handlers';
 import { hostingTicketHandlers } from './hosting-ticket.handlers';
 import { meHandlers } from './me.handlers';
 import { myTicketHandlers } from './my-ticket.handlers';
+import { noticeHandlers } from './notice.handlers';
 import { notificationHandlers } from './notification.handlers';
 import { orderHandlers } from './order.handlers';
 import { uploadHandlers } from './upload-handlers';
@@ -41,4 +42,5 @@ export const handlers = [
   ...meHandlers.mypage,
   ...userHandlers.default,
   ...notificationHandlers.default,
+  ...noticeHandlers.default,
 ];
