@@ -783,6 +783,75 @@
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2238) · test:stories(193) · build · e2e(374 — 새 10 = `shell.spec` 5건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
 **문서 반영**: plan(개요 진행 현황 — 남은 L 없음, P4s L 범위 위치·끝남 표시, L 완료 기준 5칸, §5 첫 문단), README(문서 지도 plan 행), directory-structure(`features/shared/shell`, hosting/shell은 V), patterns §21(셸 메뉴의 벨·항목 주소)
 
+## P4s-V — 레이아웃 셸: 관객 · 호스팅 (뷰)
+
+**상태**: done (2026-11-01, PR 대기) — V 레인 첫 번째. 스킬 `gui-implement` 첫 적용. 남은 것: iOS Safari 실기기(SHELL-7 수동)
+**근거(gui-screens §0)**: 호스팅 PC 셸 = GUI Ready(`712:1646` 안 `Top bar_Host` `712:1648` — DS `538:4262`, 3단 폭 `712:1646`·`669:2972`·`680:672`·`669:2350`·`727:23210`), 아바타 ▾ 펼침 = DS `My` `585:752`(GUI에 놓인 곳 없음). 호스팅 공연 밖·모바일 = 와이어 `128:2875` + DS `host title` `619:2116`. 관객 = 와이어 `128:738`·`128:2875`·`128:2931`·`626:19888`·`640:17991`·`128:2772`
+**변경**
+- `src/ui` 새 컴포넌트(스토리 포함): `TopBar`(+`TopBarIconButton`·`TopBarIconLink`, `plainNav`) — DS `Top bar_Host` / `AccountMenu`(+`AccountMenuTrigger`, Radix DropdownMenu) — DS `My` / `Drawer`(vaul `direction=left`, 전체 화면, 뒤로가기로 닫힘) — 와이어 햄버거, DS 후보
+- `src/ui` 고친 것: `breakpoints`(안 쓰이던 `wide` → `desktopS 1280`·`desktopL 1440` — 우측 패널 폭 구간용, 모바일↔PC 경계는 `desktop 1024` 하나 그대로), `tokens.shadow.drop2`(DS 이펙트 `drop shadow2`), `Container` 1440 미디어를 `media.desktopL`로, `Tooltip`에 `updatePositionStrategy`(드로어처럼 transform으로 들어오는 면 안에서 늘 열어 둘 때)
+- `features/shared/shell/`: `ShellMenuButton`(햄버거 — 드로어 모듈은 누를 때 `import()`), `ShellDrawer`(`openShellDrawer` + 본문), `ShellParts`(`ShellBell`·`ShellAccountMenu`·`ShellRetry`·`SHELL_LINK_ICON`)
+- `features/audience/shell/`: `AudienceShell`(모바일 로고 헤더 ☰·로고·검색·티켓 / PC 상단 바 검색 + [로그인]·아바타 ▾), `AudienceSubHeader`(하위 화면 뒤로가기 + 제목 — 있으면 로고 헤더가 CSS `:has`로 숨는다), `AudienceErrorView`
+- `features/hosting/shell/`: `HostingShell`(PC `Top bar_Host` 벨 + 아바타 ▾ / 모바일 `host title` + 드로어, 공연 밖 본문 = `container`), `EventScopeFrame`(`[data-event-scope]` 3단 틀 — 사이드바 268 자리 + 가운데) · `EventPanelLayout`(우측 일정 패널 286/335/388 자리, 등록 후 대시보드만)
+- `features/shared/auth/LoginGate`·`protected-area`: 하이드레이션 중에는 늘 스켈레톤, 스켈레톤에 보호 영역 표시(아래 "빌드에서만 …")
+- 라우트: `(audience)/layout.tsx` 셸, `(audience)/not-found.tsx`·`error.tsx`(셸 안), 루트 `not-found.tsx`(없는 주소 — 관객 셸을 직접 두름), `hosting/layout.tsx`(게이트 안 셸). 하위 화면 헤더를 단 페이지 5개: `/orders`·`/mypage`·`/mypage/following`·`/mypage/archive`·`/mypage/notifications`
+- L 화면 마크업 최소 수정: `EventScopeView`(사이드바 마크업을 `EventScopeFrame` 슬롯으로), `EventDashboardView`(등록 후만 `EventPanelLayout`)
+- QA `qa/scenarios/shell.qa.ts`(SHELL-1~7), e2e `event-detail.spec` 404 기대 문구(Next 기본 → 셸 공용 404)
+- 스킬 `gui-implement`: "단계마다 — 실제 화면 ↔ Figma 확인과 추론 점검"(ego-browser)·"디자인 없음 코멘트" 절(사용자 지시 2026-10-31)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 관객 1024 미만 헤더 + 햄버거 / 이상 상단 바 + 아바타 ▾, 404·에러가 셸 안 | SHELL-3·5·6, ego-browser 390·1024·1440. 하이드레이션 경고: 빌드 콘솔에 오류 0(SHELL 단계 + 디버그 런) |
+| 로그인 전 PC [로그인] | SHELL-3 |
+| 호스트 줄 0 · 10 · 10 초과 | SHELL-4(`mockApi.use`로 GM-1 hosts 0/0 · 10/10 · 10/13) |
+| 호스팅 1024 이상 상단 바(벨) / 미만 헤더 + 드로어, 공연 밖 최대 1280 | SHELL-1(1440·1280·1133·1024·1023 — 패널 x·폭 `1052/388 · 945/335 · 847/286 · 738/286`), SHELL-2(여백 80·40, 모바일 드로어 벨) |
+| "공연 둘러보기 ↗" · "공연 준비 ↗", "호스팅 센터" 없음 | SHELL-2·3 |
+| 캡처 | `qa/reports/shell/<시각>/`(커밋 안 함) |
+| 셸이 서버 조회 안 함, (public) 404 | SHELL-6(`/no-such-page`·`/events/99999` 크롤러 404) |
+| iOS 실기기 | SHELL-7 수동 — 사용자 |
+
+**ego-browser 확인(스킬 "단계마다")에서 고친 것**: 우측 패널 선이 내용 높이까지만(→ 가운데 `<main>` flex 1), 아바타 ▾ 줄 간격 36 → 32(DS `My` 줄 20), 드로어 말풍선 안 보임(`DrawerLink`가 Tooltip의 ref·props를 안 넘김 + 드로어 transform → `updatePositionStrategy="always"`), 드로어 항목 간격 64 → 40(와이어)
+
+**빌드에서만 보호 화면이 게이트 스켈레톤에서 멈추던 문제(고침 — `LoginGate`)**
+- 증상: `next build` 산출물에서 `/orders`·`/orders/<id>`·`/mypage`·체크아웃 등 게이트 안 화면이 가끔(타이밍) "로그인 확인 중"에서 멈춤. GM-1·GN-2는 200, 본문 쿼리는 안 나감. `next dev`에서는 안 남. e2e `mypage.spec`·`hosting-guests` 크리티컬 패스 실패로 드러남
+- 원인: 셸(게이트 밖)이 `useShellMenu` → GM-1을 먼저 받아 둔다. 게이트 경계가 나중에 하이드레이션될 때 캐시에 이미 세션이 있으면 `GateContent`가 바로 children을 그려 **서버 HTML(늘 스켈레톤 — 서버는 GM-1을 부르지 않는다)과 어긋난다** → React 파이버로 보면 게이트 `AsyncBoundary`의 Suspense가 dehydrated로 남는다(서버 HTML은 모든 경계를 `$RC`로 끝냈다). 셸이 없을 때는 게이트가 하이드레이션된 뒤에야 GM-1이 나가 늘 맞았다
+- 처리: `GateContent`가 하이드레이션 중에는 데이터와 상관없이 스켈레톤(`useSyncExternalStore` 서버 스냅숏 false), 하이드레이션 뒤에 children. 클라이언트 이동에서는 처음부터 children. 추적 중 넣었던 셸 머리 형제 Suspense는 원인이 아니어서 뺐다. 게이트 바로 위 화면 58건(mypage·hosting-guests·checkout·tickets) + 전체 e2e로 확인
+- 재현: `hydrated &&`를 빼고 `pnpm build` → e2e `mypage.spec` 「남의(없는) 주문 주소는 공용 404 안내」(타이밍이라 여러 번)
+
+**같은 이유로 생긴 두 번째 문제(고침 — `protected-area`)**: 정지·탈퇴 계정 토큰(재발급 `USER_403_1`)으로 보호 화면에 오면 `/login/expired`가 아니라 `/login`으로 갔다(e2e `auth.spec` 「정지·탈퇴 계정의 토큰 …」). 셸의 GM-1이 게이트 effect(`useProtectedArea`)보다 먼저 세션 상실을 내서 `isInProtectedArea()`가 false였다. 게이트 스켈레톤에 `data-protected-area`를 달고(서버 HTML에도 있다) `isInProtectedArea()`가 그 표시도 본다
+
+**셸 때문에 바뀐 테스트 기대값**: e2e `auth.spec`(GM-1을 정확한 경로로 셈) · `hosting.spec`(셸 벨 GN-2 뺌) · `home.spec`·`event-list.spec`("공연 둘러보기" 링크를 `main` 안으로 — 셸 상단 바에도 같은 링크) · `event-detail.spec`(404 문구) · QA `auth-gate`(GM-1 셈, [다시 시도]를 게이트 alert 안으로). **QA `auth-gate` AUTH 공연홈 시나리오는 셸 전부터 깨져 있다**(제목 "장르"가 지금 L 공연홈에 없다) — 그 시나리오의 "공개 화면에서 GM-1 0번"은 셸이 모든 화면에서 세션을 읽는 P4s 설계와도 맞지 않아 고치지 않고 남김(P5a-V에서 시나리오를 다시 쓸 때)
+
+**결정**(사용자 2026-10-31): 매핑 표대로 / 햄버거는 `src/ui` `Drawer` 신설 / Q17 로고형 + 벨은 드로어 안 / DS 14:26Z 변경은 별도 PR / 관객 PC 메뉴 둘 다 검정(`plainNav`) / 벨 안 읽음 빨간 점 유지 / 호스팅 상단 바 로고 → `/` / 관객 PC 벨은 와이어대로 없음 + 디자이너 질문(design-requests Q54)
+
+**문서·Figma와 다르게 한 것 / Claude 판단**(근거 없음 — 되돌리는 법 같이)
+1. 토큰 반올림 — `My` 패딩 20 → `space[4]` 16, 아이콘–글자 14 → 12, 상단 바 오른쪽 간격 20 → 16, 이름–▾ 0 → 8. 아이콘 20은 24 SVG를 CSS로 줄임(코드에 20 크기 없음). 되돌리기: `AccountMenu.css.ts`·`TopBar.css.ts`
+2. 상태 모양(Figma에 없음): 아바타 ▾·아이콘 hover와 열림 배경, 메뉴 항목 하이라이트 = `surface.container`. 되돌리기: 같은 파일 `selectors`
+3. 관객 검색 아이콘(모바일·PC) → `/events`, 티켓 아이콘 → `/tickets`(빨간 점은 데이터가 없어 안 그림 — 와이어에는 있음). 되돌리기: `AudienceShell`
+4. 드로어 아이콘: 새 호스트·새 공연 = DS `add`(와이어 사람+·음표+는 DS에 없음), 바로가기 ↗ = DS `diagonal`(와이어 검정 원은 안 그림), "N개 더 보기" 원 = `more`. 되돌리기: `SHELL_LINK_ICON`·`ShellDrawer`
+5. 드로어 글자·크기를 가까운 토큰으로: 프로필 Avatar 60·`headingMd2Emphasized`/`labelMd`, 항목 `headingMd2`(줄 40), 바로가기 `headingMdEmphasized`. 와이어 회색 상자(호스트 없음)는 그리지 않고 문구만(design-workflow §3)
+6. 미로그인 드로어는 L(GUI `331:11679`)대로 주문내역 · 관심 호스트만 — 와이어 `128:2931`에는 지난 공연 아카이빙도 있다(Figma 코멘트로 물음)
+7. 하위 화면 헤더를 단 화면 5개(위)와 제목(메뉴 문구, `/mypage`는 "마이페이지"), 헤더 제목은 `div`(페이지 h1과 중복 방지), 뒤로가기는 기록이 있으면 back · 없으면 `/`. 보호 화면이라 게이트가 끝난 뒤에 나타난다(그 전에는 로고 헤더). 되돌리기: 각 `page.tsx`·`AudienceSubHeader`
+8. 셸 메뉴 조회 실패 "메뉴를 불러오지 못했어요." + [다시 시도], 확인 중 "불러오는 중", 에러 화면 "화면을 불러오지 못했어요 / 잠시 후 다시 시도해 주세요." — 문구 근거 없음
+9. 모바일(1024 미만) 최대 폭은 두지 않음(Q39 2번 답 전 — 화면 끝까지), 상단 바는 1920 이상에서도 끝까지(대시보드 1920 프레임대로 — 공연준비 홈 1920 예시와 다름, Figma 코멘트)
+10. 하위 화면 헤더 숨김을 CSS `:has()`로 — 서버·클라이언트 같은 DOM. `:has` 없는 오래된 웹뷰(Chrome 105 미만)에서는 로고 헤더와 하위 헤더가 같이 보인다. 되돌리기: 헤더 변형을 라우트 그룹으로 나누기
+11. 드로어 모듈 지연 로드(`import()`) — 셸 첫 번들을 가볍게(위 빌드 문제 추적 중 넣었고 그대로 둠)
+12. e2e 기대값: `auth.spec` GM-1 세기를 정확한 경로로, `hosting.spec` 공연준비 홈 호출에서 셸 벨 GN-2를 뺌 — 셸이 벨을 부르기 시작해서
+
+**Figma 코멘트**(`[개발 · 디자인 없음]`, 기록부 `2026-10-31-impl`, @멘션 안 걸림): DS `538:4262` Top bar_Host 상태·로고 목적지 / DS `585:752` My 상태·호스트 0·초과 / 와이어 `626:19888` 관객 PC 벨·활성 표시 / 와이어 `128:2875` 호스트 많을 때·로딩/실패·DS에 없는 아이콘 / 와이어 `128:2931` 미로그인 아카이빙 / 와이어 `128:738` 티켓 빨간 점·검색 목적지 / GUI `712:2427` 1024 미만 최대 폭·1920 이상 상단 바. "커스텀인데 DS로 가능"(`FIGMA-CUSTOM:`) 줄은 없다
+
+**범위 밖(고치지 않음)**: 공연 사이드바 본문(검정 면·공연 카드·`사이드바 메뉴`) P11-V, 일정 패널 본문 P13a-V, 모바일 공연 어드민 메뉴(Q37) P11-V, 서비스 공지 배너 P9c-V, 페이지 본문(L 최소 마크업), mock 호스트 이미지 주소가 안 열림(목 데이터)
+
+**스킬 절차에서 막히거나 어색했던 곳(보고 — 고치지 않음)**
+- `ds_diff.py diff --out <dir>`이 폴더를 만들지 않아 실패한다(먼저 `mkdir -p`)
+- `design-system.md` 머리의 동기화 기준 버전 시각(13:25Z)과 버전 API 시각(13:45:22Z)이 다르다
+- `figma_nodes.py shot`이 gui·wire만 받아 DS 컴포넌트 PNG(`My`·`host title`)는 REST로 따로 받았다 — `ds` 대상이 있으면 좋다
+- ③ 매핑 표의 대상이 "Ready 프레임 안 노드"뿐인데, 셸처럼 GUI에 펼친 상태가 없는 DS 컴포넌트(`My`)를 어디에 적는지 없다
+- `comment.py`에 답글 기능이 없어, 이미 열린 디자이너 코멘트(`669:2109` "이정도 정의 충분한지")에 잇지 못하고 새 코멘트를 달았다
+- ④ 뒤 dev:mock을 `127.0.0.1`로 열면 Next dev 리소스가 막혀 하이드레이션이 안 된다 — `localhost`로 연다(단계마다 1에 적을 만함)
+
 ## 2026-10-31 재발급 429를 세션 상실로 보던 버그 (`fix/refresh-429`)
 
 **변경**: `src/api/auth-handlers.ts` `refreshOnce` — 재발급 4xx 중 429·408(`TRANSIENT_4XX`)은 `RefreshRejected`가 아니라 일시 오류로 그 에러를 그대로 던진다(5xx·네트워크와 같은 길: 세션 유지, `onSessionLost` 없음, 상실 1회 플래그 그대로, 원 요청은 재발급 응답의 에러로 실패). 원인: 백엔드 `ThrottlingInterceptor`가 재발급에도 걸리고 재발급은 유효한 액세스 토큰 없이 나가 IP 버킷(기본 분당 60)을 쓴다 — 공유 NAT(공연장 Wi-Fi)에서 리프레시 토큰이 살아 있는데 `/login/expired`로 튕기고 다른 탭도 따라 나갔다(dev `fe423ed` `ThrottlingWebConfigure`·`application.yml`로 확인). 테스트 `auth-handlers.test` 5건 추가(429 실제 `authApi`·408 HTML·429 뒤 다음 401에서 다시 재발급해 성공·대조 401/403은 상실). 문서: tech-decisions §4 재발급 결과 판정·요약 표, api-contract §9 재발급 행, patterns §5-1, backend-questions B21

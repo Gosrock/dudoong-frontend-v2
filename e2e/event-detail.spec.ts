@@ -113,7 +113,8 @@ test.describe('공연 상세 — 브라우저', () => {
     const res = await page.goto(`/events/${MISSING_EVENT_ID}`);
     // 켠 구성에서 브라우저 UA는 200 + not-found 화면이다(tech-decisions §2·§26). 크롤러는 404(위)
     expect([200, 404]).toContain(res?.status());
-    await expect(page.getByText('This page could not be found.')).toBeVisible();
+    // 셸 안의 공용 404(P4s-V `(audience)/not-found.tsx`)
+    await expect(page.getByText('찾을 수 없어요')).toBeVisible();
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
   });
 

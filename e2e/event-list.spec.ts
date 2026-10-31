@@ -64,7 +64,7 @@ test.describe('공연 리스트 /events', () => {
 
   test('필터를 바꿔도 기록이 쌓이지 않는다(뒤로가기는 이전 화면)', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('link', { name: '공연 둘러보기' }).click();
+    await page.getByRole('main').getByRole('link', { name: '공연 둘러보기' }).click();
     await expect(page).toHaveURL(/\/events$/);
     await chip(page, '락밴드').click();
     await chip(page, '서울').click();

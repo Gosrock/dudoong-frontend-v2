@@ -33,9 +33,13 @@ test.describe('공연준비 홈', () => {
     ).toHaveAttribute('href', '/hosting/events/140');
     const calls = mockApi.calls();
     expect(calls.filter((c) => c.from === 'server')).toEqual([]);
-    expect(calls.filter((c) => c.path.startsWith('/api/v2/me/')).map((c) => c.path)).toEqual([
-      '/api/v2/me/events?page=0',
-    ]);
+    // 셸 상단 바 벨(GN-2 unread-count, P4s-V)은 빼고 본다
+    expect(
+      calls
+        .filter((c) => c.path.startsWith('/api/v2/me/'))
+        .map((c) => c.path)
+        .filter((path) => !path.startsWith('/api/v2/me/notifications/unread-count')),
+    ).toEqual(['/api/v2/me/events?page=0']);
   });
 
   test('호스트 탭으로 바꾸면 주소에 ?tab=hosts, 카드에 역할 — 새로고침해도 호스트 탭', async ({

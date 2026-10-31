@@ -18,6 +18,11 @@ export type TooltipProps = {
   onOpenChange?: (open: boolean) => void;
   /** ms. 기본 200 */
   delayDuration?: number;
+  /**
+   * 트리거가 움직이는 곳(드로어처럼 transform으로 들어오는 면 안)에서 늘 열어 둘 때 `always` — 매 프레임 자리를 다시 잰다.
+   * 기본 `optimized`(스크롤·크기 변화 때만)
+   */
+  updatePositionStrategy?: 'optimized' | 'always';
 };
 
 /**
@@ -33,6 +38,7 @@ export function Tooltip({
   defaultOpen,
   onOpenChange,
   delayDuration = 200,
+  updatePositionStrategy,
 }: TooltipProps) {
   return (
     <RadixTooltip.Provider delayDuration={delayDuration}>
@@ -44,6 +50,7 @@ export function Tooltip({
             align={align}
             sideOffset={6}
             collisionPadding={16}
+            updatePositionStrategy={updatePositionStrategy}
             className={s.content}
           >
             {content}

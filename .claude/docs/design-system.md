@@ -307,11 +307,11 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 
 | Figma(이 파일 노드 · GUI 원격 노드) | 구성 · 크기 · 토큰 | 코드 | Phase |
 |---|---|---|---|
-| **`Top bar_Host`** `538:4262` · GUI `727:23925` | 1440×58, 배경 #FFFFFF(새 변수 `606:1921`), 아래 선 1px #F7F7F6(`120:982`), 좌우 패딩 24. 왼쪽 로고(dudoong, "host" 글자 없음) + 글자 메뉴 "공연 둘러보기"(`text/tertiary-label`)·"공연 준비하기"(`text/primary-label`), 둘 다 `Heading/sm - emphasized` 16 Bold, 메뉴 칸 높이 58. 오른쪽 `ic/notification` 24 + 간격 20 + Avatar 32 grey + 닉네임 `Label/md` + `ic/chevron-down` 12. 옛 `Top app bar` 사본 `495:457`은 지워졌다 | 호스팅 셸 전역 상단 바(plan P4s) | P4s |
+| **`Top bar_Host`** `538:4262` · GUI `727:23925` | 1440×58, 배경 #FFFFFF(새 변수 `606:1921`), 아래 선 1px #F7F7F6(`120:982`), 좌우 패딩 24. 왼쪽 로고(dudoong, "host" 글자 없음) + 글자 메뉴 "공연 둘러보기"(`text/tertiary-label`)·"공연 준비하기"(`text/primary-label`), 둘 다 `Heading/sm - emphasized` 16 Bold, 메뉴 칸 높이 58. 오른쪽 `ic/notification` 24 + 간격 20 + Avatar 32 grey + 닉네임 `Label/md` + `ic/chevron-down` 12. 옛 `Top app bar` 사본 `495:457`은 지워졌다 | 호스팅 셸 전역 상단 바(plan P4s). **코드 `TopBar`**(`src/ui/components/TopBar`, 2026-10-31 P4s-V) — 관객 PC 상단 바도 같은 컴포넌트(`plainNav` — 지금 있는 곳 표시 없이 메뉴 모두 검정, 와이어 `626:19888`·사용자 결정). 오른쪽 간격 20은 `space[4]` 16, 이름–▾ 0은 8(토큰 반올림). hover·안 읽은 벨(`notification-on`)은 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
 | **`host title`** `619:2116` · GUI `727:23982` | 390×64, 좌우 패딩 24. 왼쪽 `ic/menu` 24 + 로고("dudoong" + "host" 판). 벨 없음. GUI 로컬 `467:3169`가 이 파일로 옮겨졌다 | `Header` `logo="host"`(P2에 있음) | P2 · P10a |
 | **`사이드바 메뉴`** `91:913`(`true` `91:912` / `false` `91:766` / **`alert` `538:2786`** 새로 생김) · GUI `727:25256`~`727:25258` | 옛 Sample GUI 로컬 `Component 1`이 이름을 바꿔 Menu 페이지로 왔다. 행 249×47, 패딩 12, 아이콘 20 + 간격 16, 글자 #F7F7F6(`606:1920`) 18(`Heading/md2`, 선택은 `- emphasized`). 선택 배경은 #F7F7F6 10%(변수 없음, 모서리 12 `36:50`) — 옛 판은 `brand/primary`. `alert`는 오른쪽에 Badge large(빨강, 숫자) | 공연 사이드바 `SidebarItem` | P4s |
 | **`공연 리스트_Desktop`** `585:753` · GUI `741:28246` | 1196×205. `example poster` desktop 145×205 + 간격 24 + Concert state chip large + 공연명 `Heading/md - emphasized` 20 + 호스트·날짜·시각·장소 4줄 `Body/lg` `text/secondary-label`(각 1줄 말줄임) | 공연준비 홈 PC 목록 행 | P10a |
-| **`My`** `585:752` | 263×494, 배경 `Background/normal`, 모서리 20(`161:3481`), 패딩 20, 그림자 `drop shadow2`. 프로필(Avatar 45 + 닉네임 `Label/lg-emphasized` + 이메일 `Label/sm` + 검정 원 안 `ic/edit`) / 티켓·주문내역·관심 호스트·지난 공연 아카이빙(아이콘 20 `ticket`·`order detail`·`favorite`·`archiving` + `Label/md-emphasized`) / "내 호스트" + 호스트 줄(Avatar 24) + 새 호스트 만들기 / 서비스 업데이트 노트(`update`) · 로그아웃(`log out`). 구획 사이 `surface/default-border` 선. GUI 파일은 아직 이 컴포넌트를 쓰지 않는다. 항목은 와이어 관객 PC 상단 바 드롭다운(figma-structure 2026-10-25 절)과 같다 | PC 아바타 ▾ 메뉴(Radix `DropdownMenu`) | P4s(V) |
+| **`My`** `585:752` | 263×494, 배경 `Background/normal`, 모서리 20(`161:3481`), 패딩 20, 그림자 `drop shadow2`. 프로필(Avatar 45 + 닉네임 `Label/lg-emphasized` + 이메일 `Label/sm` + 검정 원 안 `ic/edit`) / 티켓·주문내역·관심 호스트·지난 공연 아카이빙(아이콘 20 `ticket`·`order detail`·`favorite`·`archiving` + `Label/md-emphasized`) / "내 호스트" + 호스트 줄(Avatar 24) + 새 호스트 만들기 / 서비스 업데이트 노트(`update`) · 로그아웃(`log out`). 구획 사이 `surface/default-border` 선. GUI 파일은 아직 이 컴포넌트를 쓰지 않는다. 항목은 와이어 관객 PC 상단 바 드롭다운(figma-structure 2026-10-25 절)과 같다 | PC 아바타 ▾ 메뉴(Radix `DropdownMenu`). **코드 `AccountMenu`·`AccountMenuTrigger`**(`src/ui/components/AccountMenu`, 2026-10-31 P4s-V). 업데이트 노트 뺌(Q4). 패딩 20 → `space[4]` 16, 아이콘–글자 14 → 12, 아이콘 20은 24를 CSS로 줄임(코드에 20 크기 없음), 그림자 새 토큰 `shadow.drop2`. 항목 선택 상태·호스트 0개/10개 초과는 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
 | **`승인 메뉴_desktop`** `538:2562` · GUI `727:23999` | 112×123, 배경 #F7F7F6(`120:982`), 모서리 20(`161:3481`), 패딩 12·16. `ic_대시보드` 36 + 라벨 `Label/md` `text/secondary-label` + "0건" `Heading/md - emphasized` + 오른쪽 위 `ic/diagonal` 24 | 대시보드 통계 카드(↗ 링크형) | P13a(V) |
 | **`승인 메뉴_mobile`** `605:1665` | 155×61, 같은 배경, 모서리 20(직접 값), 패딩 12, `ic_대시보드` 36 + 라벨 `Label/sm` + "0건" `Heading/md2 - emphasized` | 모바일 통계 카드 | P13a(V) |
 | **`ic_대시보드`** `538:2072`(승인대기·승인완료·승인거절·환불요청, 36×36) · GUI `727:14604`~`727:14607` | GUI 로컬 `illust_dashboard`(`14:1529`, 지워짐)를 대체. 칠한 색 구성(#1C7CE9·#27AF59·#FA5E6C·#FD5432·#FCBC2C·#FD8708)이 옛 것과 같다 — 코드 `dashboard-*.svg`와 같은 색이다(모양은 비교하지 않았다) | `<Illustration name="dashboard-*" />`(P2에 있음) | P2 |
@@ -347,7 +347,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 |---|---|---|
 | 바텀시트 | `759:21725`, `759:22015`(옛 `331:5853`, `324:4503`) | 티켓 선택. `vaul` |
 | 모달·확인 팝업 | `567:9468` | "주문 완료하기 / 입금 하셨나요?" 하나뿐. 등록 확인·삭제 확인·거절 사유는 없다 |
-| 햄버거 드로어 | `331:11622`, `331:11679` | 로그인·미로그인. 하단 내비게이션·Footer는 없다 |
+| 햄버거 드로어 | `331:11622`, `331:11679` | 로그인·미로그인. 하단 내비게이션·Footer는 없다. **코드 `Drawer`**(`src/ui/components/Drawer`, 2026-10-31 P4s-V — 전체 화면, vaul `direction=left`, 머리 줄 ✕ + 오른쪽 슬롯). GUI가 Ready가 아니라 와이어 `128:2875`·`128:2931` 구조로 — **DS 후보**(관객·호스팅 두 화면에서 쓴다) |
 | 수량 스테퍼 완성형(plan의 `Counter`) | `759:22015`(옛 `324:4503`) | numbering ± + 숫자 + 금액 + × 줄 |
 | 태그 다중선택 패널·칩(plan의 `TagButton`) | `759:11869`(옛 `324:3237`), `748:33451`(옛 `329:7170`) | 4분류 패널 + 선택 수 + 초기화. 호스팅 기본 정보는 4열 버튼, 선택은 검정 채움. 컴포넌트로는 잡히지 않는다 |
 | `SelectButton` | 로컬 `Check Button` `567:7982`(Default/selected) | 예/아니오, 결제방식 선택 |
@@ -647,10 +647,10 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | Chip | 새 `tag_v2` 72변형 | **반영함 — 옛 Tag 5종을 없애고 `Chip`을 `tag_v2`로 교체**(사용자 결정, §3 "옛 Tag → tag_v2"). 전용 토큰 `chip.cyan*`·`chip.purple*`, 옛 `role.*`·`chip.giftPendingBg` 삭제 |
 | Chip | 새 `Ticket state chip_host` | 만들지 않는다(GUI에서 안 씀, §5) |
 | Top app bar | 슬롯 40×40, 왼쪽 패딩 8 | **반영함** — 패딩 24는 두고 바깥 끝 아이콘 버튼만 16 더 내보낸다(아이콘이 화면 끝에서 16, 제목 위치는 그대로, 로고·아바타 슬롯은 24) |
-| Top bar_Host | 아이콘 40×40 틀 | P4s-V(호스팅 PC 상단 바)에서 |
+| Top bar_Host | 아이콘 40×40 틀 | **반영함**(2026-10-31 P4s-V — `TopBarIconButton`·`TopBarIconLink` 40×40) |
 | ic | 새 변형 11개(calendar·clock 16, chevron-left·right 12·16, more 16·20, gift·gift cancle·gift return 24), gift 12 삭제, 낱개 `lightbulb` | **반영함** — 11개 + `lightbulb`(다색) 추가, 쓰는 곳 없는 `gift-outline-12` 삭제 → 56종 80개 |
 | ic | 섹션 "ic_v2 (인스턴스 스왑용)" 세트 56개 | 미공개라 따라가지 않는다(§5) |
 | 페이지 | "┗ Tag" → "┗ Chip", Typography 페이지에 떠 있는 컴포넌트 `Property 1=ready, size=small`(`693:566`, Concert state chip 복사본으로 보임), image 페이지에서 사각형·원 2개 삭제 | 없음 |
 | 텍스트·이펙트 스타일 | 변화 없음 | 없음 |
 
-코드는 2026-10-31 별도 PR(`feat/ds-sync-2026-10-31`)로 반영했다 — implementation-log "디자인 시스템 10-31 판 코드 반영". 남은 것: Secondary 아이콘만 버튼의 아이콘 크기(small 16·medium 18)와 크기별 아이콘 색 확인, `Top bar_Host`는 P4s-V.
+코드는 2026-10-31 별도 PR(`feat/ds-sync-2026-10-31`)로 반영했다 — implementation-log "디자인 시스템 10-31 판 코드 반영". 남은 것: Secondary 아이콘만 버튼의 아이콘 크기(small 16·medium 18)와 크기별 아이콘 색 확인. `Top bar_Host`는 P4s-V에서 반영했다.
