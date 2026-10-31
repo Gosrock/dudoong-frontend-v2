@@ -21,7 +21,7 @@
 
 | 기다리는 것 | 열린 칸 |
 |---|---|
-| D2 스테이징 첫 배포(백엔드 B15 — ECR 저장소·푸시 역할) | P4b 스테이징 배포·두 탭 동시 재발급 실확인·카카오톡 인앱 실기기, P5b 카카오 공유 디버거, P7 스테이징 실제 주문 1회, P8b 미가입 수신자 가입 왕복, P13a 크리티컬 패스 실왕복 |
+| D2 스테이징 첫 배포(백엔드 B15 — ECR 저장소·푸시 역할 **2026-10-31 처리**, 남은 것은 Deploy §6 1~4번과 main `:dev` 첫 빌드) | P4b 스테이징 배포·두 탭 동시 재발급 실확인·카카오톡 인앱 실기기, P5b 카카오 공유 디버거, P7 스테이징 실제 주문 1회, P8b 미가입 수신자 가입 왕복, P13a 크리티컬 패스 실왕복 |
 | design-requests Q42(동의 체크 칸 위치) | P4b `ageOver14Confirmed`, P7 주문 동의 필드 |
 | 실기기(P4s-V로 옮김) | P2 바텀시트·모달 iOS Safari 스크롤 락·키보드 회피 |
 
@@ -31,7 +31,7 @@
 ### 브랜치 계획 (2026-10-31)
 
 - **`main`이 기준**이다. 모든 작업 브랜치는 `main`에서 따고 PR로 `main`에 합친다(PR 게이트 `pr-gate.yml`). `main`에 머지되면 이미지 워크플로가 돈다(deploy-plan §5 — 스테이징은 `:dev`).
-- **지금 브랜치** `feat/v2-foundation-logic` — P0~P4a와 모든 L을 담는다. `main`으로 PR 하나를 열어 "L 완료" 기준점으로 머지한다. **머지 전 조건**: `image.yml`이 아직 GHCR로 올린다(공개 패키지) — ECR 전환(B15) 전에 머지하면 GHCR에 이미지가 올라가므로, 머지 전에 이미지 워크플로를 끄거나(`workflow_dispatch`만) B15 뒤 ECR로 바꾼 다음 머지한다. → **2026-10-31 `image.yml`의 main 자동 실행을 끄고(`workflow_dispatch`만) 머지했다** — `ci/ecr-image`에서 ECR로 바꾸며 다시 켠다.
+- **지금 브랜치** `feat/v2-foundation-logic` — P0~P4a와 모든 L을 담는다. `main`으로 PR 하나를 열어 "L 완료" 기준점으로 머지한다. **머지 전 조건**: `image.yml`이 아직 GHCR로 올린다(공개 패키지) — ECR 전환(B15) 전에 머지하면 GHCR에 이미지가 올라가므로, 머지 전에 이미지 워크플로를 끄거나(`workflow_dispatch`만) B15 뒤 ECR로 바꾼 다음 머지한다. → **2026-10-31 `image.yml`의 main 자동 실행을 끄고(`workflow_dispatch`만) 머지했다** — `ci/ecr-image`에서 ECR로 바꾸며 다시 켠다. → **2026-10-31 B15 처리(Deploy #85) 뒤 `image.yml`(main → ECR `:dev`)·`release.yml`(`v*` → 버전 태그)을 ECR로 다시 쓰고 main 자동 실행을 켰다**(`feat/seo-backend-answers-1031`). 다음 main 머지부터 `:dev`가 ECR에 올라간다. 수동 실행도 main에서만 된다(푸시 역할 신뢰 조건).
 - **이름 규칙** — `<종류>/<Phase>-<요지>`, 하나의 브랜치 = 하나의 Phase 단위(또는 하나의 주제):
 
 | 종류 | 쓰는 곳 | 예 |
@@ -39,12 +39,12 @@
 | `feat/` | V(화면) Phase — 디자인이 나오는 순서대로 하나씩. 남은 L 칸(스테이징·Q42 대기)을 채우는 일도 그 Phase 이름으로 | `feat/p4s-v-shell`, `feat/p5a-v-home`, `feat/p11-v-event-info`, `feat/p7-l-agreement`(Q42 답 뒤) |
 | `fix/` | 버그 수정 | `fix/refresh-429` |
 | `refactor/` | 동작을 바꾸지 않는 정리 | `refactor/order-query-keys` |
-| `ci/` | 워크플로·배포 | `ci/ecr-image`(B15 뒤 `image.yml`·`release.yml` ECR 전환), `ci/staging-deploy`(`pnpm deploy:staging`) |
+| `ci/` | 워크플로·배포 | ~~`ci/ecr-image`~~(2026-10-31 `feat/seo-backend-answers-1031`에 들어갔다), `ci/staging-deploy`(`pnpm deploy:staging`) |
 | `docs/` | 문서만 | `docs/backend-questions-1031` |
 | `chore/` | 의존성·도구, P14 하드닝 단위 | `chore/p14-a11y`, `chore/p14-perf` |
 | `release/` | P15 컷오버 | `release/v2-cutover` |
 
-- **순서**: ① `feat/v2-foundation-logic` PR → (이미지 워크플로 조건 처리 뒤) 머지 ② `ci/ecr-image`(B15 답이 오면) → `ci/staging-deploy` → D2 스테이징 첫 배포 → 스테이징 대기 칸(P4b·P5b·P7·P8b·P13a)을 각 Phase 이름 브랜치로 ③ V는 `feat/p4s-v-shell`부터 디자인 순서대로 ④ P14 `chore/p14-*` ⑤ P15 `release/v2-cutover`.
+- **순서**: ① `feat/v2-foundation-logic` PR → (이미지 워크플로 조건 처리 뒤) 머지 ② ~~`ci/ecr-image`~~(2026-10-31 완료) → `ci/staging-deploy`(브랜치 빌드 없이 기존 태그 재배포만 — staging-deploy-plan 2026-10-31) → D2 스테이징 첫 배포 → 스테이징 대기 칸(P4b·P5b·P7·P8b·P13a)을 각 Phase 이름 브랜치로 ③ V는 `feat/p4s-v-shell`부터 디자인 순서대로 ④ P14 `chore/p14-*` ⑤ P15 `release/v2-cutover`.
 - 브랜치는 머지 뒤 지운다. 도구 작업(Figma 플러그인 `9yujin/figma-design-tracker`, 디스코드 기록 `9yujin/discord-worklog-share`)은 Orca 세션이 따로 관리한다.
 
 ## 0. 진행 방식: 로직 먼저
@@ -160,7 +160,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - 단일 Next 16 앱(App Router, `output: 'standalone'`, Cache Components는 기본값대로 켬), `src/{app,features,ui,api,utils,env}`, 라우트 그룹 `(audience)/(public)` · `(audience)/(app)/(protected)` · `hosting`
 - TS `strict` + `noUncheckedIndexedAccess`, alias `@/*`
 - vanilla-extract 연결(`@vanilla-extract/next-plugin`, `unstable_turbopack: { mode: 'auto' }`)
-- Dockerfile(멀티 스테이지, `HOSTNAME=127.0.0.1` `PORT=3000`), `/healthz`, `deploymentId`, 이미지 빌드 워크플로(P0에는 GHCR로 썼다 — 2026-10-29 ECR로 결정, Deploy 권한(backend-questions B15) 뒤 다시 쓴다) — [`deploy-plan.md`](./deploy-plan.md) D1. 스테이징 첫 배포(D2)는 P4b
+- Dockerfile(멀티 스테이지, `HOSTNAME=127.0.0.1` `PORT=3000`), `/healthz`, `deploymentId`, 이미지 빌드 워크플로(P0에는 GHCR로 썼다 — 2026-10-29 ECR로 결정, Deploy 권한(backend-questions B15) 뒤 다시 쓴다 → 2026-10-31 ECR로 다시 썼다) — [`deploy-plan.md`](./deploy-plan.md) D1. 스테이징 첫 배포(D2)는 P4b
 - 개발용 `rewrites`(`/api` → dev API), PR 게이트(`next typegen` → typecheck · lint · vitest)
 - 공개 env zod 검증(`env/client.ts`, 빌드 때). ky 인스턴스는 기준 주소 없이 만들고, `http.ts`가 요청마다 `prefix`를 넘긴다 — 서버(`typeof window === 'undefined'`)면 `process.env.API_INTERNAL_URL || 'http://localhost:8080/api/v2'`(`/api/v2`로 끝나야 한다), 브라우저면 `${location.origin}/api/v2`(`instrumentation.ts`·`env/server.ts`는 두지 않는다). 구조화 stdout 로그
 - ESLint(flat config) + Prettier + husky + lint-staged. 프로젝트 고유 규칙(계층, `ky` 직접 import 금지 등)은 [`tech-decisions.md`](./tech-decisions.md) §24
@@ -279,7 +279,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 ### P4a — 세션 · 401 처리 (게이트)
 
 **포함**: 세션 쿼리(GM-1, `staleTime` 5분 — 창 포커스 재조회는 5분이 지난 뒤에만 일어난다. 로그인·로그아웃·프로필 수정 때 명시적으로 갱신). 401 처리 규칙은 [`tech-decisions.md`](./tech-decisions.md) §4 인증의 표를 따른다.
-- **세션 플래그 `dd:session`** — `localStorage`에 로그인할 때마다 새로 만든 무작위 값을 둔다. 값이 있으면 "세션이 있었다", 값이 달라지면 "다른 세션"이다. 저장소 접근이 실패하면 플래그 없음으로 본다. Safari ITP가 7일 뒤 지우면 조용한 재로그인을 잃는다(리프레시 토큰 수명이 3600초인 동안은 영향 없음, [`backend-questions.md`](./backend-questions.md) B2와 함께 다시 본다).
+- **세션 플래그 `dd:session`** — `localStorage`에 로그인할 때마다 새로 만든 무작위 값을 둔다. 값이 있으면 "세션이 있었다", 값이 달라지면 "다른 세션"이다. 저장소 접근이 실패하면 플래그 없음으로 본다. Safari ITP가 7일 뒤 지우면 조용한 재로그인을 잃는다(운영·스테이징 리프레시 수명은 6일 — B2 답 2026-10-31 — 이라 7일 삭제 전에 이미 만료돼 영향 없음. 7일 이상으로 늘면 다시 본다, tech-decisions §4).
 - **플래그가 없으면 어떤 401도 재발급·`onSessionLost` 없이 `ApiError(401)`로 던진다**(익명 방문자의 요청 수를 늘리지 않는다).
 - 플래그가 있을 때 보호 요청의 401(코드 무관)은 재발급을 한 번 시도한 뒤 원 요청을 재시도한다. 탭 안에서는 재발급 1회로 묶고, 탭 사이는 `navigator.locks.request(name, { signal: AbortSignal.timeout(15000) }, …)`로 직렬화한다(잠금 대기가 끊기면 일시 오류). 잠금을 얻었을 때 `dd:refreshedAt`이 그 요청을 보낸 시각보다 늦으면(다른 탭이 이미 재발급) 재발급 없이 재시도만 한다. 재발급 HTTP 타임아웃 10초. Web Locks가 없으면 재발급이 403이어도 그 사이 `dd:refreshedAt`이 바뀌었으면 원 요청을 한 번 재시도한다.
 - **재발급 결과 판정**: 2xx 성공. 401·403과 그 밖의 4xx면 **세션 상실**(다시 시도하지 않는다 — 낡은 액세스 쿠키 401에 대한 재시도는 백엔드 #792로 재발급이 `permitAll` 익명이 돼 2026-10-25 지웠다). 5xx·네트워크 오류·타임아웃은 **일시 오류** — 세션을 유지하고 재발급 응답의 에러를 던진다(그래야 5xx 재시도 규칙이 그대로 적용된다).
@@ -366,7 +366,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 정지·탈퇴 계정 토큰(익명 처리) 시 로그인 화면으로 수렴, 정지 계정으로 로그인하면 `USER_403_1` 안내
 - [x] ~~로그인 화면·콜백의 401에 "잠시 후 다시 시도해 주세요"~~ → 2026-10-25 제거: #792로 그 401이 없어져 401도 일반 실패(`auth-outcome.test`·`useKakaoLogin.test`·`useKakaoCallback.test`, e2e `auth.spec`)
 - [x] 로그아웃 뒤 뒤로가기(bfcache 복원)에서 이전 사용자 화면이 보이지 않음(`pageshow`)
-- [ ] 스테이징 첫 배포(D2) 완료 — 이후 Phase의 공개 URL 확인이 여기에 기댄다. D2에서 함께 볼 계약 확인(계약 대조 2026-10-31 — 소스로 확정할 수 없는 런타임 값)은 [`deploy-plan.md`](./deploy-plan.md) §9 12~16번. (2026-10-25 사실: 스테이징은 평소 꺼져 있다. Swagger는 staging·prod에서 꺼져 있다 — 백엔드 Develop 기획서. 이미지 레지스트리는 ECR로 결정(2026-10-29) — 백엔드 B15(ECR 저장소·푸시 역할) 처리 대기, deploy-plan §1)
+- [ ] 스테이징 첫 배포(D2) 완료 — 이후 Phase의 공개 URL 확인이 여기에 기댄다. D2에서 함께 볼 계약 확인(계약 대조 2026-10-31 — 소스로 확정할 수 없는 런타임 값)은 [`deploy-plan.md`](./deploy-plan.md) §9 12~16번. (2026-10-25 사실: 스테이징은 평소 꺼져 있다. Swagger는 staging·prod에서 꺼져 있다 — 백엔드 Develop 기획서. 이미지 레지스트리는 ECR로 결정(2026-10-29) — 백엔드 B15(ECR 저장소·푸시 역할) 처리 대기 → 2026-10-31 처리(Deploy #85), 워크플로 ECR 전환, deploy-plan §1)
 - [x] `AUTH_400_1`이면 로그인을 다시 시작
 - [ ] 두 탭이 동시에 만료돼도 실제 재발급 뒤 로그인이 유지됨(백엔드 #807로 기기별 세션 + 직전 토큰 30초 유예라 동시 재발급이 안전해졌다 — [`backend-questions.md`](./backend-questions.md) B1 해결. 실제 확인은 그대로 남긴다)
 - [x] **가입 전화번호는 `010-1234-1234` 모양만 보낸다(사용자 결정 2026-10-31)** — 백엔드는 받은 값을 검사 없이 저장하고(`PhoneNumberVo`) 나중에 형식을 바꿀 때 해석하지 못하면 `USER_400_2`다. 입력은 숫자만 남겨 하이픈을 자동으로 넣고(`formatPhoneInput` — 11자리에서 자름), 카카오 값 `+82 10-…`도 `010-…`으로 바꿔 채운다. 비어 있으면 `null`(선택 그대로), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 "휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요")으로 제출을 막는다(`register-form.test`·`useKakaoCallback.test`). 같은 사용자 전화번호 필드에 쓰는 다른 입력은 v2에 없다(PM-2는 이름·이미지뿐, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다). 백엔드 검증 요청은 backend-questions B22
@@ -578,11 +578,11 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 **L 범위**: 프로필(GM-1, PM-2 닉네임 2~7자, PM-3 이미지 — P3 업로드 모듈), 주문내역(G11/O-2, 무한 스크롤), 주문상세(G11/O-3), 주문 상태 5종 + `refundStatus` → 표시 매핑 하나(목록·상세 공용), 주문 취소(P11/O-4 — 유료는 환불 계좌를 채워야 요청되고 환불 요청 상태가 된다, 무료는 바로 취소. 선물 때문에 취소가 막힌 경우에만 [주문취소] 자리에 "선물을 먼저 취소하거나 돌려받아 주세요" — 조건 `canCancel=false && status==='APPROVED' && event.displayStatus==='UPCOMING' && !issuedTickets.some(t=>t.entrance==='DONE') && issuedTickets.some(t=>(t.giftState==='PENDING'||t.giftState==='SENT') && t.entrance!=='CANCELED')`. 공연 시작 뒤·입장한 티켓이 있는 주문·호스트가 취소한 주문에는 뜨지 않는다. 경합으로 `Order_400_24`가 오면 같은 문구 + G11/O-3 다시 읽기), 주문상세의 호스트 문의(GP-3을 다시 읽어 연락처 — **쿠키를 싣는 `eventDetailViewerQuery`로**. 공개 키로 읽으면 가린 값이다 — 백엔드 #846, A안. 공연 상세의 `useEventContacts`는 프리페치 전제라 공개 GP-3을 `useSuspenseQuery`로 늘 읽는다 — viewer만 읽기로 정함(`useOrderHostContacts` — 보호 화면이라 세션 확정 뒤, 열 때 쿠키 GP-3 한 번), patterns §20), 환불 계좌 입력·수정(P11/O-5, 은행명 20자 · 예금주 20자 · 계좌번호 30자 숫자·하이픈. 은행은 `GET /api/v2/banks`(공개) 목록에서 고르고 `bankCode`를 보낸다 — 백엔드 #804·#813), 관심 호스트(GM-4, `status` 필터, 화면 안에서 해제 PH-13 DELETE, 무한 스크롤), 관람 공연 아카이빙(GM-5, 연도 탭), 로그아웃 · 회원 탈퇴(v1). 거절 주문의 금액 구성은 티켓금액·옵션금액·총액(v2에 할인 없음 — Q12). 남의 주문은 공용 404. **삭제된 공연의 주문**(2026-10-25 문서 반영, 백엔드 #789): G11/O-3이 404가 아니라 200 + `event: null`, `canCancel: false`로 온다 — 공연 정보 없이 그리고, 위 선물 안내 조건처럼 `event`를 읽는 판정은 `null`을 먼저 거른다(스키마는 이미 nullable, api-contract §6). 에러 분기 patterns §24 P9 행. 햄버거 자체는 P4s.
 
-**마케팅 수신 설정(2026-10-25, 범위 미정)**: 백엔드 Develop 기획서는 마이페이지 마케팅 수신 토글(v1 `PATCH /api/v1/users/me/marketing` — 본문 없는 반전, 응답 `UserInfoVo`)을 F10에 넣었고 v1 운영에 있다(Front #364, legal-copy B-6·B-7 참고). v2 계획에는 없다 — 넣을지 사용자 결정 대기. 넣는다면 `PATCH /api/v1/users/me/mail`(`receiveMail`, 거래 메일까지 끔)과 혼동하지 않는다. 초기값을 읽을 v2 API가 없다(backend-questions B17). 가입에서 마케팅 동의(선택)를 받으므로 철회 수단이 없으면 처리방침 10장(언제든 철회)과 어긋난다(위험).
+**마케팅 수신 설정(2026-10-25, 화면 범위 미정 — L 준비됨 2026-10-31)**: 백엔드 Develop 기획서는 마이페이지 마케팅 수신 토글을 F10에 넣었고 v1 운영에 있다(Front #364, legal-copy B-6·B-7 참고). v2 계획에는 없다 — 화면에 넣을지는 사용자 결정 대기. **API는 B17 답(백엔드 #888, 2026-10-31)으로 풀렸다**: 현재 값은 GM-1 `marketingAgree`, 바꾸기는 PM-2 `{marketingAgree: true|false}`(값 지정·멱등). v1 반전 API(`PATCH /api/v1/users/me/marketing`)와 v1 `GET /api/v1/users/me` 우회는 쓰지 않는다. `PATCH /api/v1/users/me/mail`(`receiveMail`, 거래 메일까지 끔)과 혼동하지 않는다. L은 `useMarketingSetting`(model — 요청 중 비활성, 성공 응답으로 세션 키 갱신 + 처리 결과 통지 "마케팅 정보 수신에 동의했어요 (YYYY.MM.DD, 두둥)", 실패는 값 그대로 + 실패 문구)로 준비했다(Claude 판단 — implementation-log "백엔드 답변 반영(2026-10-31)"). 가입에서 마케팅 동의(선택)를 받으므로 철회 화면이 없으면 처리방침 10장(언제든 철회)과 어긋난다(위험 — 화면 결정이 남았다).
 
-**약관 근거 안내(참고)**: v1 운영은 주문상세 예매취소 영역을 두둥/무료로 나눠 안내하고, 두둥 취소 확인 모달을 "취소 후 직접 환불을 요청해야 해요" + [호스트 연락처 확인하기]로 둔다(Front #345·#370, legal-copy A-8~A-11, 약관 제27조③·제29조). v2 계획(셀프 취소 + 환불 계좌, Q31)이 정본이다. 두둥 승인 전 앱 취소 불가(제27조③)와 달리 v2 `canCancel`은 두둥 승인 대기 주문에서 true다(@432cce4 소스) — backend-questions B18로 묻는다. 답 전까지 서버 값대로.
+**약관 근거 안내(참고)**: v1 운영은 주문상세 예매취소 영역을 두둥/무료로 나눠 안내하고, 두둥 취소 확인 모달을 "취소 후 직접 환불을 요청해야 해요" + [호스트 연락처 확인하기]로 둔다(Front #345·#370, legal-copy A-8~A-11, 약관 제27조③·제29조). v2 계획(셀프 취소 + 환불 계좌, Q31)이 정본이다. 두둥 승인 전 앱 취소 불가(제27조③)와 달리 v2 `canCancel`은 두둥 승인 대기 주문에서 true다(@432cce4 소스). **B18 답(2026-10-31)**: 서버는 그대로 — 관객은 승인 대기 주문을 취소할 수 있고 화면은 `canCancel`대로 그린다. 약관 제27조③·안내 문구를 백엔드(운영)가 고칠 예정이고 문구는 아직 오지 않았다(backend-questions B18).
 
-**위험 — 서버 동작과 안내가 다름(B18)**: 두둥 승인 대기 주문의 셀프 취소를 서버가 허용해 약관 제27조③·v1 안내(legal-copy A-2·A-7·A-8)와 다르다.
+**위험 — 서버 동작과 안내가 다름(B18)**: 두둥 승인 대기 주문의 셀프 취소를 서버가 허용해 약관 제27조③·v1 안내(legal-copy A-2·A-7·A-8)와 다르다. 서버는 바꾸지 않기로 했고(2026-10-31) 약관·안내 문구 개정을 기다린다 — 그 문구가 오기 전에 출시하면 안내와 동작이 어긋난다.
 
 **V 범위**: 프로필 편집, 주문내역·주문상세 화면, 환불 계좌 시트, 호스트 문의 시트, 관심 호스트·아카이빙 화면, 탈퇴 확인(문구에 "보낸 선물 중 대기 중인 것은 취소된다").
 
@@ -781,7 +781,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 **L 범위**: 등록 후 대시보드 파생값(GD-1 — 승인 대기 NEW 배지 수, 주문·발급 티켓·판매금액, 입장 현황 `entranceStats`는 분모 = 발급 수, 발급 0이면 0/0. 데스크탑 단계 타임라인 날짜 — 공연 등록일은 서버 `openedAt`(GD-1·GE-3, 2026-10-25 백엔드 #802: 최초 OPEN 시각, 준비중이면 `null`, **2026-10 이전 오픈 공연도 `null`**)을 쓰고 공연 시작까지를 홍보·판매 기간으로 그린다(PR #802 본문은 "등록일~공연 전날"). `null`일 때 표시는 design-requests Q43. 주간 줄·타임라인 날짜 규칙은 design-requests Q39(gui-screens §3 9번)). 예매자 관리 — 주문 탭(GR-1 상태 탭, 검색 `searchType` NAME · PHONE · DEPOSITOR_NAME, 승인 PR-3, 거절 PR-4 사유 4종(기타는 문구 필수), 주문 상세 GR-2, 승인 후 취소 PR-5 사유 100자, 엑셀 GR-6), 발급된 티켓 탭(GI-1 `entrance` 필터 · `searchType` NAME · PHONE, 상세 GI-2, 엑셀 GI-3), **일반 멤버(GUEST) 개인정보(2026-10-25, 백엔드 #846)**: 구매자 연락처·이메일·입금자명은 가린 값으로 오므로 그대로 그리고, 연락처·입금자명 검색은 완전 일치만 되므로 일반 멤버 검색 칸에 안내를 둔다. 엑셀(GR-6·GI-3)은 매니저 이상만(일반 멤버 403 `HOST_400_1`) — 버튼을 `myRole`로 숨긴다. 운영자가 주문을 대리 승인·거절·취소하거나 환불을 알림 없이 완료할 수 있다(#828) — 400이면 다시 읽기로 흡수, 환불 탭(GF-1 `status` 필터, 환불 완료 PF-2는 `refundStatus=REQUESTED`일 때만). 주문 상태 탭은 서버가 6개다 — 전체/승인대기/승인 완료/승인 거절/취소 5개로 두고 실패 탭은 두지 않는다. "전체"(서버 `status=ALL`)에는 결제 실패 주문이 그대로 들어간다(사용자 결정 2026-10-31, design-requests Q32 닫힘). Figma 예매자 관리는 주문·발급된 티켓 두 탭뿐이고 환불 화면이 없다 — 디자인이 오기 전까지 백엔드 GF-1을 그대로 세 번째 탭(`?tab=refunds`)으로 둔다. 와이어 `424:11710`은 6개 탭(주문 실패 포함) + 표의 "환불 여부" 열로 그렸다(2026-10-25 확인, 4개짜리는 `424:12165`·`503:27255` 배경뿐) — **계획대로 5탭 + 별도 환불 탭(`?tab=refunds`)으로 확정**(사용자 결정 2026-10-31, Q32 닫힘). **`?tab=`·`?order=` URL 상태 훅** — 주문 상세는 `?order=`를 보고 페이지가 선언적으로 렌더한다. 열 때는 `pushState`(state에 `ddOverlay` 표시), 닫을 때는 표시가 있으면 `router.back()`, 주소로 바로 들어와 표시가 없으면 `router.replace`로 `order`만 지운다(`?tab=`는 남긴다). 뒤로가기는 모달을 닫는다(P2 결정, patterns §6). 주문·티켓 상세의 404(`Order_404_1`·`IssuedTicket_404_1`)는 공용 404 화면이 아니라 닫고 목록을 다시 읽는다. 에러 분기 patterns §24 P13a 행.
 
-**약관 근거 안내(참고)**: v1 운영은 거절에 확인 모달을 새로 두고 두둥 주문이면 "이미 입금을 받았다면 구매자에게 직접 환불해야 해요", 승인 후 취소 확인에 "구매자에게 지체 없이 직접 환불해 주세요"를 붙인다(Front #350, legal-copy C-2~C-4, 약관 제29조③). v2 계획(거절 사유 시트)이 정본이다. 두둥 판정은 GR-1·GR-2 `paymentChannel`·`totalAmount`, v1 주문(`paymentChannel=null`)은 backend-questions B19.
+**약관 근거 안내(참고)**: v1 운영은 거절에 확인 모달을 새로 두고 두둥 주문이면 "이미 입금을 받았다면 구매자에게 직접 환불해야 해요", 승인 후 취소 확인에 "구매자에게 지체 없이 직접 환불해 주세요"를 붙인다(Front #350, legal-copy C-2~C-4, 약관 제29조③). v2 계획(거절 사유 시트)이 정본이다. 두둥 판정은 GR-1·GR-2 `orderMethod == APPROVAL && totalAmount > 0`(B19 답 — 백엔드 #888, 2026-10-31. v1 주문도 `orderMethod`가 있다. `orderMethod`가 null·모르는 값일 때만 예전 판정 `paymentChannel`·금액 — `guest-rules.isDudoongOrder`).
 
 **V 범위**: 등록 후 대시보드(통계 카드, 도넛, 입장 현황 막대, 데스크탑 우측 패널), 예매자 관리 탭 화면, 거절 사유 시트, 주문·티켓 상세 모달, 엑셀 버튼.
 
@@ -836,6 +836,8 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 ### P14 — 통합 하드닝
 
 **GA·카카오 애드핏(2026-10-31 사용자 결정)**: 전 기능 Phase가 끝난 뒤 사용자가 직접 넣는다(이 계획의 L·V 작업이 아니다). 처리방침이 이미 GA(5장 국외 이전 — 수집일부터 14개월, 9장)와 애드핏(9장 광고 행태정보)을 적고 있어 컷오버(P15) 전에 들어가야 처리방침과 실제 수집이 맞는다. 넣을 때 확인: 외부 스크립트는 `next/script`로 한 곳(`app` 루트 레이아웃)에, CSP가 오면 허용 목록(backend-questions #871 행), 광고 자리는 디자인. v1-additions L-3.
+
+**검색·AI 노출(이슈 #8, 2026-10-31)**: `robots.txt`·`sitemap.xml`·공연 상세 JSON-LD(`schema.org/Event`, 가격·재고 없음 — P5b 원칙)·`metadataBase`·검색엔진 소유 확인 메타 훅은 P5b의 확장으로 먼저 넣었다(implementation-log "이슈 #8"). 여기 남는 것: 기본 OG 이미지(디자인 대기 — `src/utils/site.ts` 값 하나), 리치 결과 테스트, 서치 콘솔·네이버 서치어드바이저 인증과 sitemap 제출(운영 도메인이 v2로 넘어간 뒤 — P15), 공연 수가 2,000개를 넘기 전 `generateSitemaps`.
 
 **포함**: 성능(LCP/TTFB/번들, 티켓 오픈 시 공연 상세의 백엔드 부하 — 캐시가 필요한지 여기서 판단), 보안(오픈 리다이렉트, 토큰 취급, 로그 PII, 선물 토큰·QR 유출 경로), 접근성, 회귀(공유 지점(S1~S8) 통합 시나리오 — `pnpm qa` 전체, Playwright를 PR 게이트에 넣을지 재검토), 부하(티켓 오픈 순간), 레거시 URL.
 

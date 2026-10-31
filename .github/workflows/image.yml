@@ -1,31 +1,54 @@
 name: Image
-# main 자동 실행은 꺼 둔다 — 아직 GHCR(공개 패키지)로 올린다. B15 뒤 ECR로 바꾸면서 다시 켠다(plan "브랜치 계획", deploy-plan §5).
+# main 머지마다 이미지를 만들어 비공개 ECR <계정>.dkr.ecr.ap-northeast-2.amazonaws.com/dudoong-front:dev 를 덮어쓴다(deploy-plan §5).
+# 스테이징 compose가 :dev를 쓴다. 버전 태그는 release.yml이 붙인다.
+# 푸시 역할(Deploy infra/ecr.yml FrontV2PushRole)의 신뢰 조건은 refs/heads/main과 refs/tags/v* 뿐이다.
+# 수동 실행(workflow_dispatch)도 main에서만 된다 — 다른 브랜치를 고르면 역할을 받지 못하므로 첫 단계에서 멈춘다.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
+  id-token: write # GitHub OIDC → dudoong-github-ecr-front-v2
+
+# :dev 하나만 덮어쓰므로 한 번에 하나씩 돈다. 대기 중인 실행은 더 새 실행으로 바뀌고(중간 커밋은 이미지가 없을 수 있다 —
+# 그 커밋에 버전 태그를 달면 release.yml이 새로 빌드한다), 도는 실행은 끝까지 간다 → 마지막에 끝나는 것이 main 최신이다.
+concurrency:
+  group: image-dev
+  cancel-in-progress: false
 
 jobs:
   build:
-    # 커밋마다 sha 태그 이미지를 만든다. 동시 실행 제한을 두지 않는다 — 연속 머지에서 중간 커밋 이미지가
-    # 빠지면 그 커밋에 버전 태그를 달 수 없다(release.yml).
-    # 서버가 ARM(t4g)이라 arm64만, ARM 러너에서 네이티브로 빌드한다(deploy-plan §5).
+    # 서버가 ARM(t4g)이라 arm64만, ARM 러너에서 네이티브로 빌드한다.
     runs-on: ubuntu-24.04-arm
     steps:
+      - name: main에서만
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::image.yml은 main에서만 돈다(ECR 푸시 역할 신뢰 조건: refs/heads/main, refs/tags/v*). 지금 ref: ${GITHUB_REF}"
+          exit 1
+      - name: 빌드 인자 확인
+        env:
+          KAKAO: ${{ vars.NEXT_PUBLIC_KAKAO_JS_KEY }}
+        run: |
+          [ -n "$KAKAO" ] || { echo "::error::저장소 variable NEXT_PUBLIC_KAKAO_JS_KEY가 없다(next build가 요구한다)"; exit 1; }
       - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/dudoong-github-ecr-front-v2
+          aws-region: ap-northeast-2
+          mask-aws-account-id: true
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
       - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/gosrock/dudoong-front
-          tags: type=sha,prefix=sha-,format=short
+          images: ${{ steps.ecr.outputs.registry }}/dudoong-front
+          # sha 태그는 만들지 않는다 — ECR 수명 정책이 태그 이미지를 10개만 남겨 운영 버전이 밀려난다(deploy-plan §1).
+          # org.opencontainers.image.revision 라벨(= 커밋)은 metadata-action이 붙인다. release.yml이 이 라벨로 :dev 승격을 판단한다.
+          tags: type=raw,value=dev
       - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -38,29 +61,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-  promote-main:
-    # :main은 main 브랜치에서, 그 커밋이 아직 main의 최신일 때만 옮긴다(늦게 끝난 빌드가 되돌리지 않게).
-    # 다음 커밋의 빌드가 실패하면 그 앞 커밋도 :main이 되지 않는다 — 실패를 고친 커밋이 :main이 된다(의도).
-    needs: build
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    concurrency:
-      group: promote-main
-      cancel-in-progress: false
-    steps:
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: move :main if still latest
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
-          if [ "$head" != "$GITHUB_SHA" ]; then
-            echo "main이 이미 ${head::7}로 앞서 있다 — :main을 옮기지 않는다"; exit 0
-          fi
-          docker buildx imagetools create -t ghcr.io/gosrock/dudoong-front:main "ghcr.io/gosrock/dudoong-front:sha-${GITHUB_SHA::7}"

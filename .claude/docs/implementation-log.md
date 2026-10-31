@@ -836,3 +836,72 @@
 - B22(서버 전화번호 검증), B19 호스트 쪽(GR-1·GR-2 `orderMethod`) 답 대기
 
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2285) · test:stories(193) · build · e2e(374) 통과
+
+## B15 ECR 이미지 워크플로(2026-10-31)
+
+B15 처리(Deploy #85, `deploy-latest` `e8e5bcf`의 `infra/ecr.yml`) 뒤 `image.yml`·`release.yml`을 GHCR에서 비공개 ECR로 다시 썼다. 근거: `FrontV2Repository`(`dudoong-front`, `IMMUTABLE_WITH_EXCLUSION` — `dev`만 덮어쓰기, 태그 이미지 10개·untagged 7일 수명 정책), `FrontV2PushRole`(`dudoong-github-ecr-front-v2`, 신뢰 조건 `repo:Gosrock/dudoong-frontend-v2:ref:refs/heads/main`·`ref:refs/tags/v*`, `aud` `sts.amazonaws.com`), 리전 `ap-northeast-2`(`scripts/ecr-login.sh`), 서버는 `${ECR_REGISTRY}/dudoong-<이름>:<태그>`로 받는다(compose). 로그인 방식은 Deploy `nginx-build.yml`·`infra-image-copy.yml`과 같다(`configure-aws-credentials@v4` + `role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/…` + `mask-aws-account-id`, `amazon-ecr-login@v2`, 승격은 `docker buildx imagetools create`).
+
+**`image.yml`** — `push: main` 다시 켬 + `workflow_dispatch`(main에서만 — 다른 ref면 첫 단계에서 오류로 멈춘다), `id-token: write`·`contents: read`(`packages: write` 뺌), `ubuntu-24.04-arm`·`linux/arm64`·`type=gha` 캐시·빌드 인자(`NEXT_PUBLIC_KAKAO_JS_KEY` variable, `GIT_SHA`) 그대로, 태그는 `:dev` 하나, revision 라벨은 `metadata-action`. 저장소 variable이 비면 빌드 전에 멈춘다.
+
+**`release.yml`** — `v*.*.*` 태그 → `:2.x.y`. ① 같은 버전 태그가 있으면 revision이 같을 때만 성공(재실행), 다르면 실패 ② `:dev`를 digest로 고정해 revision 라벨을 읽고 태그 커밋과 같으면 `imagetools create`로 승격 ③ 아니면(또는 `:dev` 없음) 태그 커밋으로 빌드. 판단 스크립트는 가짜 `docker`로 다섯 경우(승격·다른 커밋·`:dev` 없음·재실행 같은 커밋·재실행 다른 커밋)를 로컬에서 돌려 봤다. AWS CLI는 쓰지 않는다(ARM 러너 이미지에 있는지 확인하지 못해서 — `imagetools inspect`로 대신).
+
+문서: deploy-plan(머리말·결론 표·§1·§5·§6 7번·§6 끝 메모·§8 D1·§9 7번·17번 추가), staging-deploy-plan(브랜치 빌드 경로 삭제 — `pnpm deploy:staging`은 기존 태그 재배포만), plan.md 브랜치 계획·D2 대기 칸.
+
+**Claude 판단**
+- `image.yml` `concurrency: image-dev`, `cancel-in-progress: false` — 왜: `:dev` 하나만 덮어쓰므로 늦게 끝난 옛 빌드가 새 `:dev`를 되돌리면 안 된다. 직렬로 돌리면 대기 중 실행은 최신 하나로 바뀌고 마지막에 끝나는 실행이 main 최신이다(중간 커밋엔 이미지가 없을 수 있다 → 그 커밋에 버전 태그를 달면 `release.yml`이 빌드). 되돌리기: `concurrency` 블록 삭제.
+- 수동 실행을 main 밖에서 첫 단계 오류로 멈춤 — 왜: 신뢰 조건 밖이라 어차피 `configure-aws-credentials`에서 실패하는데, 원인을 바로 알 수 있게. 되돌리기: "main에서만" 단계 삭제.
+- `NEXT_PUBLIC_KAKAO_JS_KEY` 빈 값 사전 검사 — 왜: 2026-10-31 `gh variable list` 결과 저장소 variable이 없다(조직 variable도 없음). `next build`가 `src/env/client.ts` 검증에서 실패하므로 빌드 10분 전에 원인을 알린다. 되돌리기: "빌드 인자 확인" 단계 삭제.
+- revision 라벨은 `imagetools inspect --format '{{json .Image}}'` 출력에서 `Labels`를 재귀로 찾는다 — 왜: provenance 증명이 붙으면 인덱스가 되어 `.Image`가 플랫폼별 맵으로 나온다(단일이면 객체). 실제 출력 모양은 첫 태그에서 확인(deploy-plan §9 17번). 어긋나도 빌드 경로로 가므로 이미지는 나온다.
+- `release.yml` 빌드 경로는 `cache-to`를 두지 않는다(`cache-from`만) — 왜: 드문 경로라 main 캐시를 덮지 않게. 되돌리기: `cache-to: type=gha,mode=max` 추가.
+- `pr-gate.yml`은 바꾸지 않았다(ECR과 무관).
+
+## 이슈 #8 검색·AI 노출 — robots · sitemap · 공연 JSON-LD (2026-10-31)
+
+GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseResponses.kt`·`V2EventBrowseController.kt`·`V2Paging.kt`·`Event.kt`·`BaseTimeEntity.kt`), Next 16 설치 문서(`sitemap.md`·`generate-sitemaps.md`·`generate-metadata.md` "With Cache Components"·`json-ld.md`).
+
+- **`src/app/robots.ts`** — `*`와 AI 크롤러(`GPTBot`·`OAI-SearchBot`·`PerplexityBot`·`ClaudeBot`·`Google-Extended`) 두 그룹에 같은 규칙(이름이 맞는 그룹이 있으면 크롤러는 `*`를 보지 않는다). 허용 `/`·`/events/`·`/hosts/`·`/notices/`, 막음 `/hosting`·`/mypage`·`/orders`·`/tickets`·`/check-in`·`/gate-check`·`/kakao`·`/login`·`/gifts` + 아래 판단의 둘. `Sitemap:`은 요청 origin.
+- **`src/app/sitemap.ts`** + **`src/api/server/sitemap-source.ts`** — `/`, 종료 전 공연 상세(GP-2 `includePast=false` = 진행 중 + 시작 전 OPEN), 그 공연들의 호스트 홈. GP-2는 `size=50`(백엔드 `V2Paging.MAX_SIZE`)으로 `hasNext`까지, 같은 id는 한 번. GP-2 항목에 `hostId`가 없고(`hostName`만) 공개 호스트 목록 API도 없어 공연마다 GP-3(`eventDetailQuery`)을 5개씩 불러 `host.hostId`를 모은다 — 404면 그 공연도 빼고, 그 밖의 실패는 호스트만 빠진다(`sitemap.host_lookup_failed` warn, 개수만). GP-2가 실패하면 throw → 500. `lastModified`는 넣지 않는다 — GP-2·GP-3에 수정 시각이 없다(엔티티에는 `updatedAt`이 있다 → backend-questions B16에 `hostId`·`updatedAt` 추가 요청).
+- 둘 다 `headers()`(`requestOrigin`)를 읽어 빌드 표에서 `ƒ`(요청마다)다. 서버 캐시 없음 규칙 그대로.
+- **공연 상세 JSON-LD** — `features/audience/event/model/event-json-ld.ts`의 `eventJsonLd`(순수 함수)와 `serializeJsonLd`. `name`·`description`(OG 설명과 같은 요약)·`startDate`/`endDate`(KST → `+09:00` ISO. 종료는 `endAt`, 없으면 시작 + `runTime`분, 0분·모름이면 없음 — `eventSchedule` 규칙)·`location`(`Place` 이름 + `PostalAddress`(주소 + 상세주소, `KR`) + 좌표)·`image`(포스터)·`organizer`(`Organization` 호스트 이름 + `/hosts/{id}`)·`url`·`eventStatus` `EventScheduled`·`eventAttendanceMode` `Offline`. **`offers` 없음**(P5b — 응답 HTML에 가격·재고 없음). 직렬화는 `<`·`>`·`&`·U+2028·U+2029를 `\uXXXX`로(`</script>` 주입 방지, Next `json-ld.md`는 `<`만 바꾼다). 페이지(`events/[eventId]/page.tsx`)가 `<script type="application/ld+json">`을 `<Prefetch>` 앞에 둔다 — GP-3·GE-5를 `Promise.all`로 먼저 받고(요청 QueryClient라 `<Prefetch>`가 다시 부르지 않는다).
+- **`metadataBase`·기본 OG·소유 확인** — `(public)/layout.tsx`의 `generateMetadata`: `metadataBase` = 요청 origin, `DEFAULT_OG_IMAGE`(`src/utils/site.ts`)가 있으면 `openGraph.images`, 런타임 env `GOOGLE_SITE_VERIFICATION`·`NAVER_SITE_VERIFICATION`이 있으면 `verification`(tech-decisions §12 표, `.env.example`). 공연 상세는 `openGraph`를 통째로 덮으므로 `eventMetadata`가 포스터가 없을 때 같은 기본 이미지를 쓴다.
+- **기본 OG 이미지는 없다** — `public/`에는 `privacy.html`·`term.html`뿐이고 `src/ui/brand`는 로고 SVG 경로뿐(OG용 1200×630 래스터 없음). 그래서 `DEFAULT_OG_IMAGE = null`(지금 동작 그대로, 그림을 만들지 않았다). 이미지를 받으면 `public/`에 두고 값 하나만 바꾼다.
+- 테스트: 유닛 `event-json-ld.test.ts`(7 — 전체 값, 종료 계산, 자정 넘김, 빈 값, 장소 일부, 이스케이프), `event-metadata-default-og.test.ts`(2 — `vi.mock`으로 기본 이미지가 있을 때). e2e `e2e/seo.spec.ts`(4 — robots 두 그룹 규칙·sitemap 주소, sitemap 포함·제외·`lastmod` 없음, GP-2 5xx → 500, 공연 상세 원본 HTML의 ld+json). 소유 확인 메타는 env를 준 일회성 실행으로 `/`·`/events/101`·`/hosts/11`의 `<head>`에 나오고 `/hosting`에는 없는 것을 확인했다(스펙으로 남기지 않음 — e2e 서버 env가 고정).
+
+**Claude 판단**
+- `metadataBase`를 루트 레이아웃이 아니라 `(public)` 레이아웃에 — 왜: 사이트 origin을 값으로 두지 않는 규칙(§12) 때문에 요청 `Host`가 필요한데, 루트 `generateMetadata`에서 `headers()`를 읽으면 정적 프리렌더 화면(호스팅 센터·`/login` 등)의 메타가 요청 시점으로 밀려 Cache Components가 빌드를 막는다(`generate-metadata.md` "With Cache Components"). `(public)`은 원래 요청 시점 조회 그룹이다. 공유·검색되는 화면(공연·호스트·공지·홈·선물)이 모두 여기 있다. 되돌리기: `(public)/layout.tsx`의 `generateMetadata` 삭제.
+- 소유 확인 메타를 빌드 값이 아니라 런타임 env로 — 왜: 스테이징·운영이 같은 이미지(§12·deploy-plan §4). 비어 있으면 아무것도 넣지 않는다. 되돌리기: `verification` 블록 삭제.
+- robots에 `/events/*/checkout`·`/api/`를 더 막음 — 왜: 주문서는 로그인 뒤 화면인데 `/events/` 허용 아래에 있고, `/api/`는 JSON이라 색인할 것이 없다. 되돌리기: `DISALLOWED_PATHS`에서 두 줄 삭제.
+- sitemap에 `/`(공연홈)를 넣고 `/events`(공연 리스트)·공지는 넣지 않음 — 왜: 리스트는 브라우저 조회 화면(`(app)`)이라 원본 HTML에 공연이 없고, 공지 공개 목록은 서버 조회 화면이 아니다. 공지 상세는 robots로 허용만. 되돌리기: `sitemap.ts`에 항목 추가.
+- 호스트 홈을 GP-3 팬아웃으로 모음(5개씩) — 왜: 이슈가 호스트 홈을 넣으라 했고 다른 공개 원천이 없다. 비용은 sitemap 요청마다 종료 전 공연 수만큼 GP-3. 백엔드가 GP-2에 `hostId`를 주면 지운다(B16). 되돌리기: `withHosts` 호출을 빼고 공연만 넣는다.
+- `generateSitemaps`는 지금 쓰지 않음, 공연 상한 2,000개(`MAX_PAGES` 40 × 50) — 왜: 한 파일 50,000 URL 한도보다 한참 아래이고, 종료 전 공연이 수천 개가 될 일은 당장 없다. 상한은 요청마다 백엔드를 부르는 횟수를 묶기 위한 것. 넘기 전에 나눈다(plan P14).
+- JSON-LD에 `description`(OG 설명과 같은 요약)·`geo`를 더함, `eventStatus`는 언제나 `EventScheduled` — 왜: 검색 권장 필드이고 공개 값이다. 공개 응답에 취소·연기 상태가 없다(삭제 공연은 404). 장소가 없는 공연은 `location`을 빼서 리치 결과에서 오류로 남는다(필수 필드) — 지어내지 않는다.
+- JSON-LD를 `<head>`가 아니라 본문 첫머리에 — 왜: Next `json-ld.md` 권장 방식(페이지 컴포넌트의 `<script>`)이고 구글은 본문 JSON-LD도 읽는다.
+
+**남은 것**: 기본 OG 이미지(디자인), 리치 결과 테스트(공개 URL — D2 스테이징 뒤), 서치 콘솔·네이버 인증과 sitemap 제출(운영 도메인이 v2로 넘어간 뒤 — 운영 작업), 선물 OG(`gift-metadata.ts`)는 기본 이미지를 아직 쓰지 않는다(값이 정해질 때 같이).
+
+## 백엔드 답변 반영(2026-10-31)
+
+백엔드 2.5.1(`dev-latest` `78b1b6e7`, #887 `c80a3b73`·#888 `78b1b6e7`, 운영·스테이징 배포)과 백엔드 개발자 답변. 답마다 소스로 확인했다(`V2MyPageResponses.kt` `V2MeResponse`, `V2MyPageRequests.kt` `V2UpdateMeRequest`, `V2MeUseCase`·`V2UserDomainService.updateProfile`·`User.changeMarketingAgree`, `V2OrderResponses.kt` `V2OrderElement.orderMethod`·`V2OperationTypes.kt` `V2OrderMethod`·`V2OperationMapper`, `V2MyTicketUseCase.markApprovedReadOnView`·`V2NotificationDomainService.markOrderApprovedRead`(`timeout = 3`)·`V2GiftNotificationEventHandler`(비동기 핸들러 삭제), `OrderWithDrawRefundHostEmailService.subjectOf`·`HostRefundMailInfoHelper`, `KakaoKauthErrorCode`, `V2BankController`, v2 `README.md`).
+
+| 질문 | 답 | 반영 |
+|---|---|---|
+| B2 토큰 수명 | 운영·스테이징 액세스·리프레시 둘 다 518400초(6일). env 값이라 소스로는 기본 3600만 보인다 | 코드 변경 없음. 리프레시가 Safari 7일 `localStorage` 삭제보다 먼저 끝나 잃는 재발급이 없다 — tech-decisions §4·patterns·plan P4a 줄, api-contract §9 |
+| B7 운영 값 | `payType`·옵션 `type` null 행 없음(티켓 3,378·옵션 그룹 1,568), 업로드 URL 제한 기본 30, 자동 만료 스케줄 켜짐(19:00~22:30 KST 30분마다) | 스키마는 null 허용 그대로(지워도 되지만 이득이 없다). api-contract §1 업로드·§6 정산 줄 |
+| B8 카카오 | KOE010 코드 `KAKAO_KOE010`로 고침(#887). 동의 항목·콜백 등록은 콘솔 확인 중, 가입 폼에서 계속 받는다 | error-codes 행. 질문은 콘솔 두 줄만 남김 |
+| B9 T-3 | T-2·GG-7a가 응답 전에 읽음 처리(별도 트랜잭션 3초) → 직후 T-3 `hasNew:false`. 드문 실패도 T-2는 200 | 코드는 이미 "한 번 무효화, 기다림·재시도 없음"이라 **바꿀 것이 없다** — `useTicketDetail` 주석만(비동기 → 응답 전). mock T-2도 이미 동기 읽음. api-contract 마이페이지 절 |
+| B13 호스트 메일 | 그대로 보내되 승인 전 취소(`approvedAt == null`)면 제목·본문 "…승인 전 주문을 취소했습니다. 입금됐다면 환불해 주세요." | 화면 문구 없음. api-contract 취소 절, legal-copy 머리 |
+| B15 ECR | 저장소 `dudoong-front`, 역할 `dudoong-github-ecr-front-v2`(main·`v*`만, 브랜치 수동 실행 안 열림) | 워크플로는 다른 작업(위 "B15 ECR 이미지 워크플로") — 여기서는 backend-questions·README만 |
+| B16 | Swagger "(비로그인 공개)"·README `BAD_REQUEST` 고침(#887). `AGREEMENT_ENFORCE` 꺼짐, 날짜 없음 | 질문은 날짜·참고 항목만 남김(참고 3건은 `78b1b6e7`에서도 그대로) |
+| B17 마케팅 | GM-1·PM-2 응답 `marketingAgree`, 변경 PM-2 `{marketingAgree}`(값 지정·멱등, 생략 = 그대로) | `MeSchema.marketingAgree`(필수 boolean), `UpdateMeRequestSchema.marketingAgree?`, mock PM-2·fixture, L 훅 `useMarketingSetting`(아래 판단). v1 토글·`GET /api/v1/users/me` 우회 코드는 원래 없었다(만들기 전) |
+| B18 | 서버 그대로(승인 대기 셀프 취소 허용, `canCancel`대로). 약관 제27조③·안내 문구 개정 예정 | 코드 변경 없음. plan P9·legal-copy·v1-additions D-2. 질문은 문구 대기로 남김 |
+| B19 | GR-1·GR-2 `orderMethod`(APPROVAL/PAYMENT, v1 주문 포함) | `HostOrderElementSchema.orderMethod`(열린 enum, nullable), `isDudoongOrder` = `orderMethod === 'APPROVAL' && totalAmount > 0`, mock `StoredGuestOrder.orderMethod`(두둥 APPROVAL, 선착순 무료 PAYMENT, 관객 O-1 주문은 `approvalRequired`로). plan P13a·legal-copy C-3·v1-additions D-4 |
+| B21·B22 | 답 없음 — `78b1b6e7`의 `ThrottlingWebConfigure`(제외 경로 `kakao-skill/my-orders`뿐)·`RegisterRequest.phoneNumber`(검증 없음) 그대로 | 열린 질문으로 둔다 |
+
+- 바뀐 코드: `src/api/me/schema.ts`(+테스트), `src/api/order/schema.ts`(+`schema.test.ts`·`guest-manage-api.test.ts`), `src/features/hosting/guest/model/guest-rules.ts`(+테스트 10줄 표), `src/features/audience/mypage/model/{profile.ts,useMarketingSetting.ts}`(+`useMyPage.test.tsx` 3건), `src/features/audience/ticket/model/useTicketDetail.ts`(주석), mock `fixtures/me.ts`·`me.handlers.ts`·`guest-store.ts`, `LoginGate.test.tsx`(GM-1 응답에 `marketingAgree` — 없으면 스키마가 계약 위반으로 막는다).
+- 문서: backend-questions(답 받은 B2·B7·B9·B13·B15·B17·B19 삭제, B8·B16·B18 줄 정리, 머리말), api-contract, error-codes(KOE010), plan(P4a 줄·P9·P13a), legal-copy, v1-additions, tech-decisions §4, patterns(Safari 줄), README(질문 수·B15·마케팅 줄·개정 이력).
+
+**Claude 판단**
+- **마케팅 수신 L 훅을 지금 만듦**(`useMarketingSetting` — 화면에 넣을지는 여전히 사용자 결정) — 왜: B17로 API가 생겼고, 철회 수단이 없는 것이 처리방침 10장 위험이라 V 결정이 나오면 바로 붙일 수 있게. 낙관 갱신 없이 요청 중 비활성, 성공 응답으로 세션 키 갱신 + 통지(legal-copy B-7 v1 문구, 처리 일자 KST), 실패는 값 그대로 + B-7 실패 문구(`meta.handled` — 전역 토스트 없음). 되돌리기: `useMarketingSetting.ts`와 `profile.ts`의 마케팅 절, `useMyPage.test.tsx`의 그 describe 삭제(스키마 필드는 계약이라 남긴다).
+- **`orderMethod`가 null·모르는 값이면 예전 판정으로** — 왜: 서버 타입이 `V2OrderMethod?`(도메인 값이 없을 때 null)라 빠뜨리는 쪽보다 더 붙는 쪽을 유지. v1 PG 주문(`PAYMENT` + 금액 > 0)은 이제 안내가 붙지 않는다(전에는 붙었다). 되돌리기: `isDudoongOrder`의 null 분기를 `false`로.
+- **B7 null 허용 스키마는 그대로** — 왜: 운영에 null이 없다는 것은 지금 데이터 이야기이고 서버 타입은 nullable이다. 좁히면 계약 위반 위험만 생긴다.
+- **error-codes.md KOE010 행을 손으로 고침**(이 작업 목록 밖의 문서) — 왜: 소스(#887)와 다른 사실이 남아 있었다. 되돌리기: 그 한 줄.

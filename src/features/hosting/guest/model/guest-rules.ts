@@ -234,14 +234,21 @@ export function toCancelBody(reason: string): HostCancelOrderRequest | undefined
 // ─── 약관 근거 안내(legal-copy C-2~C-4, 약관 제29조③) ───────────
 
 /**
- * 두둥티켓 주문인지 — `paymentChannel`이 계좌이체(BANK_TRANSFER·TOSS_TRANSFER)면 두둥. v1 주문(`paymentChannel=null`)은 구분할 수 없어
- * 결제 금액이 있으면 두둥으로 본다(backend-questions B19 "답이 없으면" — 빠뜨리는 쪽보다 더 붙는 쪽)
+ * 두둥티켓 주문인지(직접 환불 안내 대상) — `orderMethod === 'APPROVAL'`(승인형)이고 결제 금액이 있으면 두둥(백엔드 #888 — v1 주문도 값이 있다).
+ * PAYMENT(v1 PG·선착순 무료)와 승인형 무료(0원)는 아니다. `orderMethod`가 null·모르는 값이면(서버 타입이 nullable) 예전 판정으로 —
+ * `paymentChannel`이 계좌이체거나 null(v1)이고 금액이 있으면 두둥(빠뜨리는 쪽보다 더 붙는 쪽)
  */
-export function isDudoongOrder(order: Pick<HostOrderElement, 'paymentChannel' | 'totalAmount'>) {
-  if (order.paymentChannel === 'BANK_TRANSFER' || order.paymentChannel === 'TOSS_TRANSFER') {
-    return order.totalAmount > 0;
-  }
-  return order.paymentChannel === null && order.totalAmount > 0;
+export function isDudoongOrder(
+  order: Pick<HostOrderElement, 'orderMethod' | 'paymentChannel' | 'totalAmount'>,
+) {
+  if (order.totalAmount <= 0) return false;
+  if (order.orderMethod === 'APPROVAL') return true;
+  if (order.orderMethod === 'PAYMENT') return false;
+  return (
+    order.paymentChannel === 'BANK_TRANSFER' ||
+    order.paymentChannel === 'TOSS_TRANSFER' ||
+    order.paymentChannel === null
+  );
 }
 
 /** C-2 거절 확인(v1 운영 문구 — 참고) · C-3 두둥이면 붙는 줄 */

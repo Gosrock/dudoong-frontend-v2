@@ -159,16 +159,26 @@ describe('거절 사유(PR-4) · 취소 사유(PR-5)', () => {
   });
 });
 
-describe('두둥 주문 판정(legal-copy C-3·C-4, backend-questions B19)', () => {
+describe('두둥 주문 판정(legal-copy C-3·C-4) — orderMethod(#888)', () => {
   it.each([
-    ['BANK_TRANSFER', 30000, true],
-    ['TOSS_TRANSFER', 15000, true],
-    ['FREE', 0, false],
-    [null, 15000, true],
-    [null, 0, false],
-    ['UNKNOWN', 15000, false],
-  ] as const)('%s · %d원 → %s', (paymentChannel, totalAmount, expected) => {
-    expect(isDudoongOrder({ paymentChannel, totalAmount })).toBe(expected);
+    // [orderMethod, paymentChannel, 금액, 두둥?]
+    ['APPROVAL', 'BANK_TRANSFER', 30000, true],
+    ['APPROVAL', 'TOSS_TRANSFER', 15000, true],
+    // v1 두둥 주문(paymentChannel null)
+    ['APPROVAL', null, 15000, true],
+    // 승인형 무료 — 환불할 돈이 없다
+    ['APPROVAL', 'FREE', 0, false],
+    // v1 PG 주문 — 금액이 있어도 두둥이 아니다(예전 판정은 여기서 안내를 더 붙였다)
+    ['PAYMENT', null, 15000, false],
+    // 선착순 무료
+    ['PAYMENT', 'FREE', 0, false],
+    // orderMethod를 모르면 예전 판정(paymentChannel·금액)
+    [null, 'BANK_TRANSFER', 30000, true],
+    [null, null, 15000, true],
+    [null, null, 0, false],
+    ['UNKNOWN', 'UNKNOWN', 15000, false],
+  ] as const)('%s · %s · %d원 → %s', (orderMethod, paymentChannel, totalAmount, expected) => {
+    expect(isDudoongOrder({ orderMethod, paymentChannel, totalAmount })).toBe(expected);
   });
 
   it('취소 안내 문구는 legal-copy C-4 그대로', () => {

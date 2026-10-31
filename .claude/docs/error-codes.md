@@ -275,7 +275,7 @@
 |---|---|---|---|
 | `KAKAO_KOE101` | 400 | invalid_client | `KOE101` |
 | `KAKAO_KOE009` | 400 | misconfigured | `KOE009` |
-| `KAKAO_KOE101` | 400 | invalid_client | `KOE010` |
+| `KAKAO_KOE010` | 400 | invalid_client | `KOE010` (2026-10-31 백엔드 #887 @c80a3b73 — 전에는 `KAKAO_KOE101`로 중복) |
 | `KAKAO_KOE303` | 400 | invalid_grant | `KOE303` |
 | `KAKAO_KOE319` | 400 | invalid_grant | `KOE319` |
 | `KAKAO_KOE320` | 400 | invalid_grant | `KOE320` |

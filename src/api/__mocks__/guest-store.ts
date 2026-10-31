@@ -11,6 +11,7 @@ import type {
   HostOrderElement,
   HostRefundAccount,
   MyOrderDetail,
+  OrderMethod,
   PaymentChannel,
   RefundElement,
   RefundStatus,
@@ -82,6 +83,8 @@ export type StoredGuestOrder = {
   /** 백엔드 `cancel_reason` — 거절이면 종류 문구(기타는 입력값), 취소면 취소 사유 */
   reasonText: string | null;
   paymentChannel: PaymentChannel | null;
+  /** 주문 방식(#888 — 승인형 = APPROVAL, PG·선착순 무료 = PAYMENT). v1 주문도 값이 있다 */
+  orderMethod: OrderMethod;
   depositorName: string | null;
   approvedAt: string | null;
   withdrawnAt: string | null;
@@ -183,6 +186,7 @@ function base(
     refuseReasonType: null,
     reasonText: null,
     paymentChannel: 'BANK_TRANSFER',
+    orderMethod: 'APPROVAL',
     depositorName: buyer.name,
     approvedAt: null,
     withdrawnAt: null,
@@ -299,6 +303,7 @@ function seed() {
     payType: 'FREE',
     totalAmount: 0,
     paymentChannel: 'FREE',
+    orderMethod: 'PAYMENT',
     depositorName: null,
     approvedAt: '2026.10.15 20:00',
     lines: [
@@ -363,6 +368,7 @@ function seed() {
       payType: 'FREE',
       totalAmount: 0,
       paymentChannel: 'FREE',
+      orderMethod: 'PAYMENT',
       depositorName: null,
       lines: [],
     }),
@@ -445,6 +451,7 @@ export function registerAudienceOrder(o: MyOrderDetail) {
     refuseReasonType: null,
     reasonText: null,
     paymentChannel: o.paymentChannel === 'UNKNOWN' ? null : o.paymentChannel,
+    orderMethod: o.approvalRequired ? 'APPROVAL' : 'PAYMENT',
     depositorName: o.depositorName,
     approvedAt: o.approvedAt,
     withdrawnAt: null,
@@ -685,6 +692,7 @@ export function toOrderElement(o: StoredGuestOrder, showContact: boolean): HostO
     refuseReason: o.status === 'REFUSED' ? o.reasonText : null,
     cancelReason: o.status === 'CANCELED' ? o.reasonText : null,
     paymentChannel: o.paymentChannel,
+    orderMethod: o.orderMethod,
     depositorName: o.depositorName && (showContact ? o.depositorName : maskName(o.depositorName)),
   };
 }

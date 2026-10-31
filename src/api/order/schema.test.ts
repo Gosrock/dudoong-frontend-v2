@@ -12,6 +12,7 @@ import {
   CancelMyOrderRequestSchema,
   CheckoutSchema,
   CreateOrderRequestSchema,
+  HostOrderElementSchema,
   MyOrderDetailSchema,
   MyOrderPageSchema,
   RefundAccountRequestSchema,
@@ -97,6 +98,38 @@ describe('응답 스키마', () => {
       paymentChannel: 'UNKNOWN',
       refundStatus: 'UNKNOWN',
     });
+  });
+
+  it('GR-1·GR-2 orderMethod(#888) — APPROVAL·PAYMENT·null, 모르는 값은 UNKNOWN, 필드가 없으면 계약 위반', () => {
+    const row = {
+      orderUuid: 'o-1',
+      orderNo: 'R1',
+      buyerName: '김민수',
+      buyerPhone: '010-1234-5678',
+      ticketName: '일반 예매',
+      quantity: 1,
+      totalAmount: 15000,
+      orderedAt: '2026.10.31 20:00',
+      status: 'APPROVED',
+      refundStatus: 'NONE',
+      refuseReasonType: null,
+      refuseReason: null,
+      cancelReason: null,
+      paymentChannel: null,
+      orderMethod: 'APPROVAL',
+      depositorName: null,
+    };
+    expect(HostOrderElementSchema.parse(row).orderMethod).toBe('APPROVAL');
+    expect(HostOrderElementSchema.parse({ ...row, orderMethod: 'PAYMENT' }).orderMethod).toBe(
+      'PAYMENT',
+    );
+    expect(HostOrderElementSchema.parse({ ...row, orderMethod: null }).orderMethod).toBeNull();
+    expect(HostOrderElementSchema.parse({ ...row, orderMethod: 'NEW' }).orderMethod).toBe(
+      'UNKNOWN',
+    );
+    const without: Record<string, unknown> = { ...row };
+    delete without.orderMethod;
+    expect(HostOrderElementSchema.safeParse(without).success).toBe(false);
   });
 
   it.each(Object.values(CHECKOUT_TICKET))('O-0 mock 응답(티켓 %s)', (ticketItemId) => {

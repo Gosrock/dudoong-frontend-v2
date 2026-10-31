@@ -21,6 +21,7 @@ import { recordRequests } from '@/test/requests';
 
 import { useArchive } from './useArchive';
 import { useFollowingHosts } from './useFollowingHosts';
+import { useMarketingSetting } from './useMarketingSetting';
 import { useProfileEdit } from './useProfileEdit';
 import { useWithdraw, WITHDRAW_MASTER_MESSAGE } from './useWithdraw';
 
@@ -174,6 +175,71 @@ describe('프로필 — useProfileEdit(GM-1 · PM-2 · PM-3)', () => {
     });
     expect(queryClient.getQueryData(meQuery().queryKey)?.profileImageUrl).toBeNull();
     await waitFor(() => expect(result.current.profile?.profileImageUrl).toBeNull());
+  });
+});
+
+describe('마케팅 수신 설정 — useMarketingSetting(GM-1 · PM-2 marketingAgree, #888)', () => {
+  // 2026-10-31 15:30 UTC = 2026-11-01 00:30 KST — 처리 일자는 KST로 적는다
+  const at = () => new Date('2026-10-31T15:30:00Z');
+
+  async function renderMarketing() {
+    const ctx = setup();
+    await ctx.queryClient.fetchQuery(meQuery());
+    const r = renderHook(() => useMarketingSetting(at), { wrapper: ctx.wrapper });
+    await waitFor(() => expect(r.result.current.value).toBe(false));
+    return { ...r, ...ctx };
+  }
+
+  it('초기값은 GM-1 marketingAgree, 켜면 PM-2 {marketingAgree: true}(v1 API 없음) → 세션 키 갱신 + 처리 결과 통지', async () => {
+    const sent = recordRequests();
+    const { result, queryClient } = await renderMarketing();
+    await act(() => result.current.set(true));
+    const list = await writes(sent);
+    expect(list).toMatchObject([
+      { method: 'PATCH', path: '/api/v2/me', body: { marketingAgree: true } },
+    ]);
+    expect(UpdateMeRequestSchema.safeParse(list[0]!.body).success).toBe(true);
+    expect((await sent.list()).some((r) => r.path.startsWith('/api/v1/users'))).toBe(false);
+    expect(queryClient.getQueryData(meQuery().queryKey)?.marketingAgree).toBe(true);
+    await waitFor(() => expect(result.current.value).toBe(true));
+    expect(result.current.notice).toEqual({
+      tone: 'success',
+      message: '마케팅 정보 수신에 동의했어요 (2026.11.01, 두둥)',
+    });
+  });
+
+  it('끄면 거부 통지, 같은 값은 보내지 않는다', async () => {
+    const sent = recordRequests();
+    const { result } = await renderMarketing();
+    await act(() => result.current.set(false));
+    expect(await writes(sent)).toEqual([]);
+    await act(() => result.current.set(true));
+    await waitFor(() => expect(result.current.pending).toBe(false));
+    await act(() => result.current.set(false));
+    expect((await writes(sent)).map((r) => r.body)).toEqual([
+      { marketingAgree: true },
+      { marketingAgree: false },
+    ]);
+    await waitFor(() =>
+      expect(result.current.notice?.message).toBe(
+        '마케팅 정보 수신을 거부했어요 (2026.11.01, 두둥)',
+      ),
+    );
+  });
+
+  it('실패하면 값은 그대로, 실패 문구(전역 토스트 없음)', async () => {
+    server.use(http.patch('*/api/v2/me', ({ request }) => errors.serverError(request)));
+    const { result, queryClient } = await renderMarketing();
+    await act(() => result.current.set(true));
+    await waitFor(() =>
+      expect(result.current.notice).toEqual({
+        tone: 'error',
+        message: '설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요.',
+      }),
+    );
+    expect(result.current.value).toBe(false);
+    const m = lastMutation(queryClient);
+    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
   });
 });
 

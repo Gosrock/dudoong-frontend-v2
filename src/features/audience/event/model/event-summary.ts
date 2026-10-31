@@ -27,3 +27,7 @@ export function eventSummary(
 /** 공개 상세 주소. `origin`은 브라우저는 `location.origin`, 서버는 요청 `Host`(tech-decisions §12) */
 export const eventPageUrl = (origin: string, eventId: string | number) =>
   `${origin.replace(/\/+$/, '')}/events/${eventId}`;
+
+/** 공개 호스트 홈 주소(구조화 데이터 `organizer.url`). `origin` 규칙은 `eventPageUrl`과 같다 */
+export const hostPageUrl = (origin: string, hostId: string | number) =>
+  `${origin.replace(/\/+$/, '')}/hosts/${hostId}`;

@@ -80,6 +80,7 @@ describe('로그인 게이트', () => {
           name: '두둥이',
           email: null,
           profileImageUrl: null,
+          marketingAgree: false,
           hosts: [],
           hostCount: 0,
         });
@@ -145,6 +146,7 @@ describe('로그인 게이트', () => {
               name: '두둥이',
               email: null,
               profileImageUrl: null,
+              marketingAgree: false,
               hosts: [],
               hostCount: 0,
             })

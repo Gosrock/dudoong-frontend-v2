@@ -14,6 +14,12 @@ describe('응답', () => {
     expect(MeSchema.parse(me)).toEqual(me);
   });
 
+  it('GM-1 marketingAgree는 필수 boolean(#888 — 없으면 계약 위반)', () => {
+    const without: Record<string, unknown> = { ...me };
+    delete without.marketingAgree;
+    expect(MeSchema.safeParse(without).success).toBe(false);
+  });
+
   it('GM-4 관심 호스트 페이지 — 대표 공연 없음(null)·D-day 키 `dDay`', () => {
     const page = paginate(followingHosts, 0, 50);
     expect(FollowingHostPageSchema.parse(page)).toEqual(page);
@@ -53,6 +59,9 @@ describe('PM-2 본문(엄격)', () => {
     ['이미지 key', { profileImageKey: 'user/1/a.png' }, true],
     ['기본 이미지(빈 문자열)', { profileImageKey: '' }, true],
     ['key 256자', { profileImageKey: 'k'.repeat(256) }, false],
+    ['마케팅 동의 켜기(#888)', { marketingAgree: true }, true],
+    ['마케팅 동의 끄기', { marketingAgree: false }, true],
+    ['마케팅 동의 문자열', { marketingAgree: 'true' }, false],
     ['바꿀 필드 없음', {}, false],
     ['모르는 필드', { name: '두둥', email: 'x' }, false],
   ])('%s → %s', (_, body, ok) => {

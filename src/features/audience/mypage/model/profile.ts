@@ -25,3 +25,24 @@ export const PROFILE_ERROR_MESSAGE = {
   [UPLOAD_INVALID_EXTENSION]: 'JPG·PNG 이미지만 올릴 수 있어요',
   [UPLOAD_PUT_FAILED]: '이미지를 올리지 못했어요. 다시 시도해 주세요',
 } as const;
+
+// ─── 마케팅 수신 설정(legal-copy B-6·B-7, v1-additions E-1) ───
+
+/** 처리 일자(KST `YYYY.MM.DD`) — 정보통신망법 제50조⑧ 처리 결과 통지의 "일자" */
+export function kstDate(at: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(at);
+  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${part('year')}.${part('month')}.${part('day')}`;
+}
+
+/** 바꾼 뒤 처리 결과 통지(legal-copy B-7 — v1 운영 문구: 전송자·일자·처리 내용) */
+export const marketingResultMessage = (agree: boolean, at: Date) =>
+  `${agree ? '마케팅 정보 수신에 동의했어요' : '마케팅 정보 수신을 거부했어요'} (${kstDate(at)}, 두둥)`;
+
+/** 바꾸지 못했을 때(legal-copy B-7). 값은 서버 값 그대로 남는다 */
+export const MARKETING_ERROR_MESSAGE = '설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요.';

@@ -181,6 +181,11 @@ describe('GR-2 주문 상세', () => {
     ]);
   });
 
+  it('orderMethod(#888): 두둥 주문 APPROVAL, 선착순 무료 PAYMENT', async () => {
+    expect((await detail(GUEST_ORDER.approved)).order.orderMethod).toBe('APPROVAL');
+    expect((await detail(GUEST_ORDER.approvedFree)).order.orderMethod).toBe('PAYMENT');
+  });
+
   it('승인 전에는 발급 티켓이 빈 배열, 다른 공연 주문 uuid는 404 Order_404_1', async () => {
     expect((await detail(GUEST_ORDER.pendingTransfer)).issuedTickets).toEqual([]);
     expect(await codeOf(detail('no-such-order'))).toEqual([404, 'Order_404_1']);
