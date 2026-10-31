@@ -1682,3 +1682,34 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **Figma 코멘트**(기록부 `2026-11-01-impl`, 와이어 `FUQb8ldGBp3uYUuXPV5FDC`): `[개발 · 디자인 없음]` `503:32383` 호스트 설정 — 이미지 칸 · 일반 멤버 화면(`1989728229`) · `503:31816` 멤버 ⋮ — 멤버 삭제 확인 · 역할별 메뉴(`1989728230`) · `503:31858` 권한 변경 · 양도 팝업(`1989728232`) · `503:31092` 초대 팝업 — 실패 · 완료(`1989728235`). `FIGMA-CUSTOM:` 없음(와이어 근거)
 **검사**: typecheck · eslint(바꾼 파일) · vitest related 8/8 · e2e `hosting-host`·`host-home`·`hosting` 104/104 · `pnpm qa host-settings` 28/28(14 × mobile·desktop). 전체 게이트는 PR CI
 **범위 밖(고치지 않음)**: dev mock 이미지 주소가 dev·QA에서 깨져 보이는 것(공용 fixture). 호스팅 셸의 PC 하단 바 위 테두리가 본문 폭(600)보다 넓게 그어지는 것(P11 `EditorBottomBar`와 같은 모양)
+
+## P8c-V — 셀프 체크인: 후보 고르기 · `result`별 화면 (뷰)
+
+**상태**: done (2026-11-01, PR #71) — 스킬 `gui-implement`. 남은 것: 실제 폰으로 호스트 [관객이 스캔] QR을 찍어 입장(QA CHK-8 수동, D2 뒤 — P13b QR-9와 같은 칸)
+**근거(gui-screens §0)**: **디자인 없음** — GUI Ready 89개(`figma_nodes.py ready`, lastModified 2026-10-31T19:18Z) 중 셀프 체크인 프레임 없음. 티켓탭 섹션 `908:3276` 안 `908:16734` "티켓 - 입장완료"는 티켓탭 QR 층(P8)이라 근거 아님. 와이어 파일에도 관객 쪽 화면이 없고(이름 "체크인·check·입장" 전수 검색) 입구만 `424:11976` 등록 후_공연 상세_qr체크인_관객("QR 코드를 스캔하면 입장이 완료됩니다"). 상태 표기는 `와이어로 구현됨`(DS로만)
+**디자인 이슈**: 없음(열린 #19는 P8b-V, #61 DS Filter Chip은 이 화면이 쓰지 않음)
+**디자인 시스템**: 기준 `2416576694112599706`(10-31T19:15Z) 그대로 — 바뀐 것 없음
+
+**변경**
+- `features/audience/checkin/SelfCheckInView.tsx`(P8c-L 최소 마크업 → DS 화면): 첫 요청 중 `ScreenLoader`("체크인하는 중", 전체 높이) · 여러 장이면 `region "티켓 고르기"` — 제목 · 장수 안내 · 실패 안내(`IssuedTicket_400_1`·`FAILED`, `role=alert`, 빨간 글자) · DS `RadioGroup`(세로, 티켓 이름 + 티켓 번호) · Primary lg [이 티켓으로 입장](고르기 전 비활성, 보내는 중 `loading`) · 결과 `region "체크인 결과"`(`data-result`) — `EmptyState` 배치(톤 아이콘 56 · 제목 · 설명) + 티켓 정보 `InfoRow` third(이름 · 티켓 · 티켓 번호) + Primary lg 링크 [티켓탭으로] · 실패 `region "체크인 실패"`(`data-error`, `aria-live=assertive`) — 같은 배치 + `FAILED`면 [다시 시도] + Secondary [티켓탭으로]
+- `features/audience/checkin/ui/SelfCheckIn.css.ts`: 가운데 390 한 열(주문 완료와 같은 틀) · 톤 아이콘 크기 · `InfoRow` 행을 화면 여백만큼 내어 글자를 버튼 끝에 맞춤
+- 훅·도메인(`useSelfCheckIn`·`checkin-result`·`self-check-in-errors`)은 그대로. 새 `src/ui` 컴포넌트 없음(스토리 없음)
+- 테스트: e2e `check-in.spec` 선택자만(후보 `button` → `radio` + [이 티켓으로 입장]). QA 새 `self-checkin.qa.ts` CHK-1~7 — **14/14**(수동 1)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| `result` 분기 전부 렌더 | CHK-1(1장 ENTERED) · CHK-2(SELECT_TICKET → 고르기 → ENTERED) · CHK-3(ALREADY_ENTERED · OTHER_EVENT · CANCELED · GIFT_PENDING · 모르는 값 → UNKNOWN, 티켓 정보 노출 여부까지) · CHK-4(INVALID_QR 두 경로 · EVENT_NOT_OPEN) · CHK-5(FAILED → [다시 시도]) · CHK-6(고른 티켓이 남의 것 — 고르기 화면 유지) · CHK-7(비로그인 → 로그인 → 같은 URL) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`, 390 · 1200)** — 비교할 Figma 프레임이 없어 와이어 입구(`424:11976`)·호스트 결과 카드(P13b `ScanResult`)와 톤·아이콘 짝만 맞춤. 고친 것: `InfoRow` 행이 화면 여백 안에서 24 더 들어가 버튼과 어긋나던 것(행을 여백만큼 바깥으로), 실패 영역의 `role=alert`가 region 역할을 덮던 것(`aria-live`로)
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 여러 장이면 라디오로 고른 뒤 [이 티켓으로 입장]을 한 번 더 누른다(L은 `select(uuid)` 한 번에 보냄) — 입장은 되돌릴 수 없어 잘못 누름을 막음 / 체크아웃·옵션 시트의 고르고 확정하는 흐름 / `SelectTicket`에서 라디오 `onValueChange`가 바로 `onSelect`
+2. 결과·실패 화면은 `EmptyState` 배치(아이콘 + 제목 + 설명) + [티켓탭으로] — 결과 후 갈 곳은 티켓탭(선물 대기 취소·입장 QR이 거기 있음) / 공용 에러 화면(`AudienceErrorView`)·주문 완료 / `SelfCheckInView` `Result`·`Failure`
+3. 톤 아이콘은 호스트 스캔 결과와 같은 짝(`circle-check`·`circle-request`·`circle-reject` filled, 상태 색), 크기 56 — DS 아이콘이 24뿐이라 CSS로 키움. DS 토큰상 `status/warning` = `status/error`(coralRed 400)라 "이미 입장 · 선물 대기"도 빨강 계열 / P13b `ScanResult` TONE / `SelfCheckIn.css.ts` `toneIcon`
+4. 티켓 정보는 이름(현재 소유자) · 티켓 · 티켓 번호(호스트 결과 카드와 같은 셋) — 입장 시각은 ALREADY_ENTERED 설명에만(L 문구) / P13b `ScanResult` / `Result`
+5. PC도 모바일 한 열을 가운데 390폭으로 — 폰으로 QR을 찍어 여는 화면이라 PC 배치를 따로 두지 않음 / 주문 완료 PC / `SelfCheckIn.css.ts` `content`
+6. 화면 문구(고르기 제목·안내, 버튼 이름)는 잠정 — 결과·실패 문구는 P8c-L 잠정 그대로(design-requests Q30) / — / `SelfCheckInView`
+
+**Figma 코멘트**(디자인 없음): 와이어 `424:12000` — "[개발 · 디자인 없음] 관객이 QR을 찍은 뒤 관객 폰에 뜨는 화면"(comment `1989730796`, 상태 목록 · 지금 배치)

@@ -575,7 +575,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 에러 분기: patterns §화면별 에러 처리의 P8c 행(OPEN 아님, `IssuedTicket_400_1`)
 
 **완료 기준 — V**
-- [ ] `result` 분기 전부 렌더
+- [x] `result` 분기 전부 렌더 — QA `self-checkin` CHK-1~7(2026-11-01, P8c-V)
 
 ### P9 — 마이페이지
 
