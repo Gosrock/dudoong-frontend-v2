@@ -272,6 +272,7 @@ describe('선물 반환 — useReturnGift(PG-6)', () => {
   });
 
   it.each([
+    ['Gift_400_8', '선물받은 티켓이 아니라 반환할 수 없어요', true],
     ['Gift_400_7', '반환할 수 없는 티켓이에요', false],
     ['IssuedTicket_404_1', '티켓 정보가 바뀌었어요', true],
   ] as const)('%s → "%s", gone=%s', async (code, message, gone) => {
@@ -286,8 +287,8 @@ describe('선물 반환 — useReturnGift(PG-6)', () => {
     expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
   });
 
-  it('표에 없는 Gift_400_8은 전역 토스트로 간다', async () => {
-    server.use(...giftHandlers.fails('return', 'Gift_400_8'));
+  it('표에 없는 코드(반환에 없는 Gift_400_1)는 전역 토스트로 간다', async () => {
+    server.use(...giftHandlers.fails('return', 'Gift_400_1'));
     const { wrapper, queryClient } = setup();
     const { result } = renderHook(() => useReturnGift(TICKET_UUID.approved), { wrapper });
     await act(() => result.current.giveBack());

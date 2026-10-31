@@ -792,3 +792,47 @@
 3. B21 번호 — B20은 답을 받아 지운 번호라(backend-questions 머리말) 다음 번호를 썼다
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`): typecheck · lint · prettier · test(2243) · build · e2e `auth.spec`·`auth-bfcache.spec`(32) 통과. 수정을 빼면 새 테스트 3건(429·408·429 뒤 재발급)이 실패하는 것을 확인했다
 
+## 계약 대조 수정(2026-10-31)
+
+서버(백엔드 `dev-latest` `fe423ed4`)와 프론트의 계약 대조에서 확인된 항목을 고치고 사용자 결정 둘을 반영했다. 항목마다 소스를 다시 보고 고쳤다. 브랜치 `fix/contract-audit-1031`. 리프레시 429(`src/api/auth-handlers.ts`, tech-decisions §4·api-contract §9의 "4xx = 세션 상실")는 다른 브랜치 몫이라 건드리지 않았다.
+
+**사용자 결정**
+- **가입 전화번호 = `010-1234-1234`**: `register-form.ts` `PHONE_PATTERN`·`formatPhoneInput`(숫자만 남겨 하이픈 자동, `+82 10-…` → `010-…`, 11자리에서 자름), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 `PHONE_FORMAT_MESSAGE`). 서버 `PhoneNumberVo`는 검사 없이 저장하고 꺼낼 때 `USER_400_2`라서다. 같은 사용자 전화 필드에 쓰는 다른 v2 입력은 없다(PM-2는 이름·이미지, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다 — 규칙 그대로). plan P4b, backend-questions B22
+- **SUPER_ADMIN 허용**: GM-1 `V2MeResponse`·JWT 어디에도 계정 역할이 없다. 대신 G+ 검사(`HostQualification.GUEST` → `Host.validateActiveHostUser`)는 활성 멤버가 아니면 403이고 건너뛰는 길은 `SuperAdminBypass`뿐, `myRole`은 `Host.getActiveRoleOf`(활성 멤버 아니면 null)라 **"G+ 조회 성공 + `myRole: null`" = SUPER_ADMIN**이 서버 의미로 안전하다. `can.ts`에 `ActorRole`(`HostRole | 'SUPER_ADMIN'`)·`superAdminOrRole`, `useEventScope().role`(GE-3), `useHostMembers`(GH-6 + viewer), `useHostSettings`(GH-3 viewer + **GH-6을 함께 읽음**). patterns §22, api-contract §2, plan P10a
+
+**고친 것 — 코드**
+- 거절(PR-4) 뒤에도 T-1·GP-5 무효화(`guest-cache.ts` 플래그 `stockChanged` → `ticketAvailabilityChanged`) — 서버가 잔여·매진·구매 가능·T-1 잠금에서 승인 대기 수량을 뺀다
+- QR 스캔 `ENTERED` 뒤 GI-1·GI-2·GD-1도 무효화(`qr-cache.ts` `invalidateAfterScan(qc, id, result)`)
+- 선물 반환 `Gift_400_8` → 목록 다시 읽기 + `gone`(`gift-errors.ts`, 문구 잠정)
+- 셀프 체크인 `Event_400_5` 문구를 "지금은 셀프 체크인을 할 수 없는 공연이에요"로(준비중에도 온다)
+- PE-8 `Event_400_15`인데 다시 읽은 GE-3이 등록 뒤면 `Event_400_8` 문구(`checklist.ts` `registerErrorMessageOf`, `useEventDashboard`가 코드를 들고 있다)
+- `me/schema.ts` 대표 공연 `startAt`·`endAt`, 관람 공연 `startAt` → `kstDateTime.nullable()`. 닉네임 공백 판정 `NOT_BLANK`를 서버 `\p{javaWhitespace}`와 같게(전각 공백·U+001C 등도 막는다), PM-2 400 `BAD_REQUEST` → 닉네임 칸 오류
+- 낡은 주석: `useLogout`(로그아웃은 permitAll, 항상 200 + 쿠키 삭제), `errors.ts` `isForbidden`(`AUTH_403_1`·`AUTH_403_2`·`AUTH_403_3`·`USER_403_1`도 403), `order/mutations.ts` PR-3 순서(`Order_404_1` 먼저, `Order_400_13`은 1인 제한 뒤), `profile.ts`
+- 거절·승인 후 취소 매핑에서 서버가 내지 않는 `Order_400_3`·`Event_400_6`을 뺐다(`validCanRefuse`·`validCanCancel` — 시작 시각은 `Order_400_9`가 먼저 막는다)
+
+**고친 것 — mock(테스트가 불가능한 경로를 증명하지 않게)**
+- GH-14 순서 = id 내림차순(`Sort.by(DESC, "id")`)
+- O-4 `cancelBlockCode` = 지운 공연 `Event_404_1` → 상태 `Order_400_5` → OPEN 아님 `Event_400_5` → 시작 후 `Order_400_9` → `Order_400_24`
+- O-3·O-4 옵션 404를 `Event_400_17`보다 먼저(`withAppliedTicketLocks`)
+- 일반 멤버 연락처 완전 일치에서 `82…`와 `0…`을 같은 번호로(`phoneExactMatch` = `ContactSearch.phoneExact`, `contact-search.test`)
+
+**고친 것 — 문서**: patterns §19·§22·§23(주문 처리 뒤)·§24(P7 `Event_404_1`, P8b `Gift_400_8`, P8c, P9 `USER_400_4`·`BAD_REQUEST`, P11 `Event_400_20`·`Event_400_15`, P12 `Ticket_Item_400_15`), api-contract(§2 SUPER_ADMIN, GH-14 순서, 환불 계좌 입력 조건, 사용자 취소 차단 순서, O-3·O-4·O-5 검사 순서, `Event_400_20`), plan(P4b 전화번호·D2 계약 확인, P10a SUPER_ADMIN, P12 T-3 동의 #873), backend-questions(B19 관객 쪽 풀림, B22 — 처음 B20으로 썼다가 지운 번호와 겹쳐 B22로, B16 참고 둘), deploy-plan §9 12~16(Void 본문·로그인 전용 필드 이름·엑셀 403·쿠키 흐름·스테이징 `check:contract`)
+
+**대조에서 틀린 것(그대로 두거나 고쳐 적음)**
+- P7 `Event_404_1`: 대조 메모는 "비공개 공연은 O-0 `Ticket_Item_404_1`"이었지만 O-0(`V2ReadCheckoutUseCase` → `onSaleItems` → `validatePublic`)은 비공개(준비중) 공연에 `Event_404_1`을 낸다. 문서에는 소스대로 "지운·없는 공연 + O-0의 비공개 공연 = `Event_404_1`, O-1의 비공개 = `Event_400_5`"로 적었다
+
+**Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. **SUPER_ADMIN 범위 = 매니저 + 역할 변경**: 서버가 권한 검사는 건너뛰지만 매니저 추가·삭제(`validateCanManageRole` 요청자 = 마스터)와 양도(`transferMaster` → `validateMasterHostUser(요청자)`)는 도메인이 다시 막는다. 역할 변경은 요청자를 보지 않아 열었다. 되돌리기: `can.ts` `SUPER_ADMIN_BLOCKED`
+2. **호스트 설정이 GH-6을 함께 읽는다**(요청 1개 늘어남): GH-3은 공개라 `myRole: null`만으로는 비멤버와 SUPER_ADMIN을 가를 수 없다. 비멤버는 이제 `access: 'forbidden'`이 아니라 GH-6 403 → 경계의 공용 403으로 간다. 되돌리기: `useHostSettings`를 `useSuspenseQuery(hostViewerQuery)` 하나로 + `hostingAccessOfRole(host.myRole)`
+3. **전화번호는 `010`만**: 결정 문구 그대로 `^010-\d{4}-\d{4}$`(011·016 등 옛 번호는 막힌다). 되돌리기: `PHONE_PATTERN`
+4. **카카오 전화번호도 자동 변환해 채운다**(`+82 10-…` → `010-…`): 그대로 두면 처음부터 칸 오류다. 되돌리기: `initialRegisterValues`의 `formatPhoneInput`
+5. **`Gift_400_8`은 목록 다시 읽기 + 상세 닫기(`gone`)**: 받은 티켓이 아니게 된 상태라 상세가 낡았다고 봤다. 되돌리기: `GIFT_ERROR_TABLE.return.Gift_400_8.refetch = ['ticket']`
+6. **`Event_400_15` + 등록 뒤 → `Event_400_8` 문구**: "시작 시각" 문구는 일정을 바꾸라는 안내라 이미 등록된 공연에 맞지 않는다. 되돌리기: `registerErrorMessageOf`가 코드 문구 그대로
+7. **PM-2 `BAD_REQUEST`를 닉네임 칸 오류로**: 이름만 보내는 요청이라 검증 실패는 닉네임 탓이다(이미지 요청은 따로 — 그쪽 `BAD_REQUEST`는 전역 그대로). 되돌리기: `useProfileEdit` `nameCodes`의 `BAD_REQUEST`
+8. **문구 잠정 셋**: 전화번호 형식, `Gift_400_8`, 셀프 체크인 `Event_400_5`. 되돌리기: 각 상수
+
+**남음**
+- 런타임 확인 5건(deploy-plan §9 12~16)은 D2 뒤
+- B22(서버 전화번호 검증), B19 호스트 쪽(GR-1·GR-2 `orderMethod`) 답 대기
+
+**검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2285) · test:stories(193) · build · e2e(374) 통과

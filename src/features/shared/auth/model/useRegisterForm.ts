@@ -11,6 +11,7 @@ import { classifyAuthFailure } from './auth-outcome';
 import { finishLogin } from './finish-login';
 import {
   canSubmitRegister,
+  formatPhoneInput,
   hasAllConsents,
   hasRequiredConsents,
   initialRegisterValues,
@@ -59,8 +60,12 @@ export function useRegisterForm(input: RegisterInput | null) {
     setError(null);
   }
 
+  /** 전화번호는 입력하는 대로 `010-XXXX-XXXX` 모양으로 하이픈을 넣는다(`formatPhoneInput`, 사용자 결정 2026-10-31) */
   const setValue = useCallback((field: RegisterField, value: string) => {
-    setValues((v) => ({ ...v, [field]: value }));
+    setValues((v) => ({
+      ...v,
+      [field]: field === 'phoneNumber' ? formatPhoneInput(value) : value,
+    }));
   }, []);
   const setConsent = useCallback((key: RegisterConsent, value: boolean) => {
     setConsents((c) => ({ ...c, [key]: value }));

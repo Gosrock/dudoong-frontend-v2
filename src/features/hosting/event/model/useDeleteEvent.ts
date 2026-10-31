@@ -7,7 +7,7 @@ import { deleteEventMutation } from '@/api/event/mutations';
 import { MY_EVENTS_KEY } from '@/api/event/queries';
 import type { EventStatus } from '@/api/event/schema';
 import { handleCodes } from '@/api/handle-codes';
-import type { HostRole } from '@/api/shared/common-schema';
+import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import { applyDeleted } from './event-cache';
 import { canDeleteEvent } from './event-scope';
@@ -44,7 +44,7 @@ export function useDeleteEvent() {
 
   /** 지웠으면 `true`. 지울 수 없는 공연·다른 삭제 중이면 요청하지 않고 `false` */
   const deleteEvent = useCallback(
-    async (event: { eventId: number; status: EventStatus; myRole: HostRole | null }) => {
+    async (event: { eventId: number; status: EventStatus; myRole: ActorRole | null }) => {
       if (!canDeleteEvent(event) || mutation.isPending) return false;
       setError(null);
       try {

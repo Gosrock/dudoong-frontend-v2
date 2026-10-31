@@ -44,10 +44,11 @@ export function useRefundList(eventId: string) {
   const m = useMutation({
     ...completeRefundMutation(eventId),
     ...codes,
-    onSuccess: (d) => applyChangedOrder(queryClient, eventId, d, { stockChanged: false }),
+    onSuccess: (d) =>
+      applyChangedOrder(queryClient, eventId, d, { ticketAvailabilityChanged: false }),
   });
 
-  const canManage = can(scope.event.myRole, 'manageOrders');
+  const canManage = can(scope.role, 'manageOrders');
   const rows = (query.data?.content ?? []).map((r) => ({
     refund: r,
     canComplete: canManage && r.refundStatus === 'REQUESTED' && r.orderUuid !== null,
@@ -88,7 +89,7 @@ export function useRefundList(eventId: string) {
     hasNext: query.data?.hasNext ?? false,
     setPage,
     /** 환불 계좌 전체 보기(매니저 이상) */
-    canSeeRefundAccount: can(scope.event.myRole, 'viewRefundAccount'),
+    canSeeRefundAccount: can(scope.role, 'viewRefundAccount'),
     complete,
     pendingUuid,
     actionError,

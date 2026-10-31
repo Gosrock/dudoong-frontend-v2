@@ -3,7 +3,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { eventManageQuery } from '@/api/event/queries';
-import { can } from '@/features/shared/permission/model/can';
+import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 
 import {
   eventMenuOf,
@@ -18,13 +18,17 @@ import {
  * 공연 스코프(`/hosting/events/[eventId]/layout.tsx`, GE-3, plan P11). 메뉴·읽기 전용 판정·공연 카드 값을 돌려준다. UI 동작은 없다.
  * `<AsyncBoundary rejected={HostingAccessRejected}>` 안에서 쓴다 — 비멤버 403(`HOST_400_2`) → 공용 403, 없는·지운 공연 404 → 공용 404(P10a).
  * 하위 화면(대시보드·기본 정보·상세 정보)도 같은 키를 읽으므로 요청은 한 번이다.
+ * 역할 판정은 `role`로 한다 — GE-3은 G+ 조회라 `myRole: null`이면 멤버가 아닌 SUPER_ADMIN이다(`superAdminOrRole`, 사용자 결정 2026-10-31).
  */
 export function useEventScope(eventId: string) {
   const { data: event } = useSuspenseQuery(eventManageQuery(eventId));
+  const role = superAdminOrRole(event.myRole);
   const readOnlyReason = readOnlyReasonOf(event);
   return {
     /** GE-3 응답 */
     event,
+    /** 판정 역할(`can(role, …)`) — `event.myRole`이 null이면 SUPER_ADMIN. 화면은 `event.myRole` 대신 이것을 쓴다 */
+    role,
     /** 등록(OPEN) 뒤인지 — 메뉴 6개, 대시보드는 등록 후 모드(P13a) */
     registered: isRegistered(event.status),
     /** 등록 전 4개 / 등록 후 6개 */
@@ -39,6 +43,6 @@ export function useEventScope(eventId: string) {
     /** 티켓 여부 잠금(등록 후) */
     hasTicketLocked: isHasTicketLocked(event.status),
     /** 매니저 이상 — 등록(PE-8)·삭제 버튼 */
-    isManager: can(event.myRole, 'editEvent'),
+    isManager: can(role, 'editEvent'),
   };
 }

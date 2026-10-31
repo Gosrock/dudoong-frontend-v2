@@ -10,8 +10,7 @@ import {
   REFUSE_REASON_TEXT_MAX,
   type RefuseOrderRequest,
 } from '@/api/order/schema';
-import type { HostRole } from '@/api/shared/common-schema';
-import { can } from '@/features/shared/permission/model/can';
+import { type ActorRole, can } from '@/features/shared/permission/model/can';
 
 /**
  * 예매자 관리(`/hosting/events/[eventId]/guests`, plan P13a) 규칙 — 탭·주소, 상태 탭, 검색 안내, 주문 처리 가능 여부, 거절·취소 본문,
@@ -113,7 +112,7 @@ export const REFUND_FILTER_OPTIONS = [
  */
 export const EXACT_MATCH_HINT = '연락처·입금자명은 전체를 정확히 입력해야 찾을 수 있어요';
 export function exactMatchHintOf(
-  role: HostRole | null | undefined,
+  role: ActorRole | null | undefined,
   searchType: OrderSearchType | IssuedTicketSearchType,
 ): string | null {
   if (can(role, 'viewRefundAccount') || searchType === 'NAME') return null;
@@ -159,7 +158,7 @@ export const ORDER_ACTION_BLOCK_MESSAGE: Record<OrderActionBlock, string> = {
  */
 export function orderActionsOf(
   order: Pick<HostOrderElement, 'status' | 'refundStatus'>,
-  event: EventForActions & { myRole: HostRole | null },
+  event: EventForActions & { myRole: ActorRole | null },
 ): OrderAction[] {
   if (!can(event.myRole, 'manageOrders')) return [];
   const blockedBy: OrderActionBlock | null = isEventStarted(event)
@@ -273,14 +272,16 @@ export const APPROVE_ERROR_MESSAGE = {
   Event_400_6: ORDER_ACTION_BLOCK_MESSAGE.started,
 } as const;
 
-/** 거절·승인 후 취소 실패 */
+/**
+ * 거절·승인 후 취소 실패. 서버 검사 순서(`OrderValidator.validCanRefuse`·`validCanCancel`, fe423ed4): 시작 전(`Order_400_9`) → 상태
+ * (`Order_400_5` — 거절도 이 코드) → 공연 OPEN(`Event_400_5`). `Order_400_3`(승인 전용)·`Event_400_6`(시작 시각은 `Order_400_9`가 먼저
+ * 막는다)은 오지 않아 두지 않는다(계약 대조 2026-10-31)
+ */
 export const WITHDRAW_ERROR_MESSAGE = {
   Order_400_5: '이미 처리된 주문이에요. 최신 상태를 불러왔어요',
   Order_400_9: ORDER_ACTION_BLOCK_MESSAGE.started,
-  Order_400_3: '이미 처리된 주문이에요. 최신 상태를 불러왔어요',
   Order_400_18: REFUSE_ERRORS.reasonText,
   Event_400_5: ORDER_ACTION_BLOCK_MESSAGE.notOpen,
-  Event_400_6: ORDER_ACTION_BLOCK_MESSAGE.started,
 } as const;
 
 export const REFUND_ERROR_MESSAGE = {

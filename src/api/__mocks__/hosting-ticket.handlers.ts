@@ -660,7 +660,8 @@ export const hostingTicketHandlers = [
     return ok(toManageOption(created));
   }),
 
-  // P10/O-3 — 본문 → 권한 → 수정 가능 → 옵션 404 → 추가금(잠금 · 무료 티켓) → 이름 → 설명 50자(바뀔 때만)
+  // P10/O-3 — 본문 → 권한 → 옵션 404 → 수정 가능 → 추가금(잠금 · 무료 티켓) → 이름 → 설명 50자(바뀔 때만).
+  // 옵션 404가 먼저인 것은 서버가 락 대상(옵션이 붙은 티켓)을 찾으며 옵션을 먼저 읽기 때문(`withAppliedTicketLocks`, fe423ed4)
   http.patch('*/api/v2/events/:eventId/options/:optionId', async ({ request, params, cookies }) => {
     const denied =
       requireAuth(request, cookies) ?? badPath(request, params.eventId, params.optionId);
@@ -669,9 +670,9 @@ export const hostingTicketHandlers = [
     if (!f) return errors.badRequest(request);
     const g = guard(request, cookies, params.eventId, 'MANAGER');
     if ('response' in g) return g.response;
-    if (!isEditable(g.event)) return ticketError(request, 'Event_400_17');
     const o = optionIn(g.event.eventId, params.optionId);
     if (!o) return ticketError(request, 'Option_Group_404_1');
+    if (!isEditable(g.event)) return ticketError(request, 'Event_400_17');
     const next: StoredOption = { ...o };
     if (f.yesAdditionalPrice !== undefined) {
       const price = optionPrice(o.type, f.yesAdditionalPrice);
@@ -697,16 +698,16 @@ export const hostingTicketHandlers = [
     return ok(toManageOption(next));
   }),
 
-  // D10/O-4 — 권한 → 수정 가능 → 옵션 404 → 잠금 → 붙은 티켓에서 떼고 삭제 → 남은 목록
+  // D10/O-4 — 권한 → 옵션 404 → 수정 가능 → 잠금 → 붙은 티켓에서 떼고 삭제 → 남은 목록
   http.delete('*/api/v2/events/:eventId/options/:optionId', ({ request, params, cookies }) => {
     const denied =
       requireAuth(request, cookies) ?? badPath(request, params.eventId, params.optionId);
     if (denied) return denied;
     const g = guard(request, cookies, params.eventId, 'MANAGER');
     if ('response' in g) return g.response;
-    if (!isEditable(g.event)) return ticketError(request, 'Event_400_17');
     const o = optionIn(g.event.eventId, params.optionId);
     if (!o) return ticketError(request, 'Option_Group_404_1');
+    if (!isEditable(g.event)) return ticketError(request, 'Event_400_17');
     const applied = ticketsWithOption(o);
     if (applied.some(isLocked)) return ticketError(request, 'Option_Group_400_2');
     for (const t of applied) {

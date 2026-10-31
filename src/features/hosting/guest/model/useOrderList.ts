@@ -60,7 +60,7 @@ export function useOrderList(eventId: string) {
 
   const exporter = useGuestExport(
     eventId,
-    scope.event.myRole,
+    scope.role,
     exportOrdersMutation(eventId),
     `orders-${eventId}.xlsx`,
   );
@@ -91,7 +91,7 @@ export function useOrderList(eventId: string) {
     /** 적용된 검색어(빈 문자열 = 검색 없음) */
     appliedKeyword: applied.keyword,
     /** 일반 멤버의 연락처·입금자명 검색 칸 안내(#846) */
-    exactMatchHint: exactMatchHintOf(scope.event.myRole, searchType),
+    exactMatchHint: exactMatchHintOf(scope.role, searchType),
     rows: data?.orders.content ?? [],
     empty: query.status === 'success' && data?.orders.content.length === 0,
     page,

@@ -5,7 +5,7 @@ import {
   type HostMember,
 } from '@/api/host/schema';
 import type { HostRole } from '@/api/shared/common-schema';
-import { can, type HostAction } from '@/features/shared/permission/model/can';
+import { type ActorRole, can, type HostAction } from '@/features/shared/permission/model/can';
 
 /**
  * 멤버 관리(`/hosting/hosts/[hostId]/members`, GH-6 · PH-7 · PH-10 · DH-11 · PH-12, plan P10b) 규칙.
@@ -41,7 +41,7 @@ const NONE: MemberActions = { changeRoleTo: null, remove: false, transfer: false
  * 역할 변경은 마스터만, 일반 멤버는 권한이 없다(백엔드 `V2RemoveHostMemberUseCase` "본인 삭제는 늘 막힌다").
  */
 export function memberActionsOf(
-  myRole: HostRole | null | undefined,
+  myRole: ActorRole | null | undefined,
   member: Pick<HostMember, 'role'>,
 ): MemberActions {
   const target = member.role;
@@ -61,9 +61,10 @@ export function memberActionsOf(
 
 /**
  * 초대할 때 고를 수 있는 역할. 마스터는 매니저·일반, **매니저는 "일반" 고정**(plan P10b, 서버 403 `HOST_400_11`).
- * 일반 멤버·비멤버는 초대할 수 없다(빈 배열). 마스터는 지정할 수 없다(양도로만).
+ * 일반 멤버·비멤버는 초대할 수 없다(빈 배열). 마스터는 지정할 수 없다(양도로만). SUPER_ADMIN은 매니저처럼 "일반" 고정이다
+ * (요청자 = 마스터 검사는 건너뛰지 않는다 — `can`의 `SUPER_ADMIN_BLOCKED`).
  */
-export function inviteRoleOptions(myRole: HostRole | null | undefined): AssignableHostRole[] {
+export function inviteRoleOptions(myRole: ActorRole | null | undefined): AssignableHostRole[] {
   if (!can(myRole, 'manageMembers')) return [];
   return can(myRole, 'manageManagers') ? ['MANAGER', 'GUEST'] : ['GUEST'];
 }

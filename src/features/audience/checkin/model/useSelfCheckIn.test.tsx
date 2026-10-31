@@ -100,7 +100,7 @@ describe('셀프 체크인 — useSelfCheckIn(PQ-5)', () => {
 
   it.each([
     ['invalid-token', 'INVALID_QR', '잘못된 체크인 QR이에요'],
-    [CHECK_IN_TOKEN.ended, 'EVENT_NOT_OPEN', '공연이 끝나 셀프 체크인을 할 수 없어요'],
+    [CHECK_IN_TOKEN.ended, 'EVENT_NOT_OPEN', '지금은 셀프 체크인을 할 수 없는 공연이에요'],
   ])('%s → %s "%s"(전역 토스트 없음)', async (token, kind, title) => {
     const { result, queryClient } = open(token);
     await waitFor(() =>

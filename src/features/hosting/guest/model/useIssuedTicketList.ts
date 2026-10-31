@@ -73,7 +73,7 @@ export function useIssuedTicketList(eventId: string) {
 
   const exporter = useGuestExport(
     eventId,
-    scope.event.myRole,
+    scope.role,
     exportIssuedTicketsMutation(eventId),
     `issued-tickets-${eventId}.xlsx`,
   );
@@ -105,7 +105,7 @@ export function useIssuedTicketList(eventId: string) {
     keywordMax: OPERATION_KEYWORD_MAX,
     submitSearch,
     appliedKeyword: applied.keyword,
-    exactMatchHint: exactMatchHintOf(scope.event.myRole, searchType),
+    exactMatchHint: exactMatchHintOf(scope.role, searchType),
     rows: data?.tickets.content ?? [],
     empty: query.status === 'success' && data?.tickets.content.length === 0,
     page,

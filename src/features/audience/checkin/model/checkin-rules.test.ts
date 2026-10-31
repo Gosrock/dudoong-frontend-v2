@@ -21,7 +21,7 @@ describe('셀프 체크인 토큰', () => {
 describe('셀프 체크인 에러 — patterns §24 P8c 행', () => {
   it.each([
     ['Event_400_26', 'INVALID_QR', '잘못된 체크인 QR이에요', false],
-    ['Event_400_5', 'EVENT_NOT_OPEN', '공연이 끝나 셀프 체크인을 할 수 없어요', false],
+    ['Event_400_5', 'EVENT_NOT_OPEN', '지금은 셀프 체크인을 할 수 없는 공연이에요', false],
     ['IssuedTicket_400_1', 'NOT_MY_TICKET', '내 티켓이 아니에요', false],
     ['GLOBAL_500_1', 'FAILED', '체크인하지 못했어요', true],
     ['NETWORK', 'FAILED', '체크인하지 못했어요', true],

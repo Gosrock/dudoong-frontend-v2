@@ -200,6 +200,20 @@ describe('대시보드 — 체크리스트 모드(준비중)', () => {
       expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
     },
   );
+
+  it('Event_400_15인데 다시 읽은 GE-3이 이미 등록(OPEN)이면 시작 시각 문구 대신 "이미 등록된 공연"', async () => {
+    // 서버 Event.open()은 시작 시각을 이미 오픈 검사보다 먼저 본다 — 다른 멤버가 먼저 등록했고 시작이 지난 공연
+    const id = arrangeEvent({ filled: true });
+    server.use(...hostingEventSets.openFails(Number(id), 'Event_400_15'));
+    const { result } = setup(id);
+    await checklistLoaded(result);
+    saveStoredEvent({ ...storedEvent(Number(id))!, status: 'OPEN' });
+    await act(async () => {
+      await result.current.register();
+    });
+    await waitFor(() => expect(result.current.mode).toBe('registered'));
+    expect(result.current.registerError).toBe('이미 등록된 공연이에요');
+  });
 });
 
 describe('대시보드 — 등록 후 · 만든 직후', () => {

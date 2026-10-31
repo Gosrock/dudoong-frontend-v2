@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { EventManage, EventStatus } from '@/api/event/schema';
 import type { HostRole } from '@/api/shared/common-schema';
+import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import {
   basicInfoValuesOf,
@@ -104,7 +105,9 @@ describe('공연 스코프 — 메뉴 · 읽기 전용 · 잠금 · 삭제', () 
     ['MANAGER', 'OPEN', null],
     ['GUEST', 'PREPARING', 'role'],
     ['GUEST', 'CLOSED', 'role'],
-    [null, 'OPEN', 'role'],
+    // GE-3(G+) 성공 + myRole null = 멤버가 아닌 SUPER_ADMIN(사용자 결정 2026-10-31) — 편집할 수 있다
+    [null, 'OPEN', null],
+    [null, 'CLOSED', 'ended'],
     ['UNKNOWN', 'OPEN', 'role'],
     ['MASTER', 'CALCULATING', 'ended'],
     ['MANAGER', 'CLOSED', 'ended'],
@@ -122,11 +125,12 @@ describe('공연 스코프 — 메뉴 · 읽기 전용 · 잠금 · 삭제', () 
     expect(isHasTicketLocked(status)).toBe(locked);
   });
 
-  it.each<[EventStatus, HostRole | null, boolean]>([
+  it.each<[EventStatus, ActorRole | null, boolean]>([
     ['PREPARING', 'MASTER', true],
     ['PREPARING', 'MANAGER', true],
     ['PREPARING', 'GUEST', false],
     ['PREPARING', null, false],
+    ['PREPARING', 'SUPER_ADMIN', true],
     ['OPEN', 'MASTER', false],
     ['CLOSED', 'MANAGER', false],
   ])('삭제(카드 ⋮): %s · %s → %s', (status, myRole, expected) => {

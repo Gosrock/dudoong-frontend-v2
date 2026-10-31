@@ -65,6 +65,7 @@ describe('에러 분기 — patterns §24 P8b 행', () => {
     ['memo', 'Gift_400_3', ['ticket'], {}],
     ['memo', 'Gift_400_9', [], { field: 'memo' }],
     ['memo', 'Gift_404_1', ['tickets'], {}],
+    ['return', 'Gift_400_8', ['tickets'], {}],
     ['return', 'Gift_400_7', ['ticket'], {}],
     ['return', 'IssuedTicket_404_1', ['tickets'], {}],
   ] as const)('%s %s → 다시 읽기 %o', (action, code, refetch, extra) => {
@@ -72,7 +73,6 @@ describe('에러 분기 — patterns §24 P8b 행', () => {
   });
 
   it.each([
-    ['return', 'Gift_400_8'],
     ['send', 'Gift_400_3'],
     ['accept', 'GLOBAL_500_1'],
     ['accept', null],

@@ -53,9 +53,10 @@ const hostOrderPath = (eventId: string | number, orderUuid: string, action: stri
   `events/${encodeURIComponent(eventId)}/orders/${encodeURIComponent(orderUuid)}/${action}`;
 
 /**
- * PR-3 승인. 검사 순서(`OrderApproveService` → `OrderValidator.validCanApproveOrder`): PG 주문 `Order_400_7` → 승인 대기 아님 `Order_400_3`
- * → 공연 OPEN 아님 `Event_400_5` → 시작 후 `Event_400_6` → 재고 `Ticket_Item_400_1` → 1인 제한 `Ticket_Item_400_6` → 탈퇴 `Order_400_14`.
- * 실패해도 주문은 승인 대기로 남는다
+ * PR-3 승인. 검사 순서(fe423ed4 — `V2OrderDomainService.validateEventOrder` → `OrderApproveService` →
+ * `OrderValidator.validCanApproveOrder`): 이 공연의 주문이 아님·없음 `Order_404_1` → PG 주문 `Order_400_7` → 승인 대기 아님 `Order_400_3`
+ * → 공연 OPEN 아님 `Event_400_5` → 시작 후 `Event_400_6` → 재고 `Ticket_Item_400_1` → 1인 제한 `Ticket_Item_400_6`
+ * → 옵션이 바뀜 `Order_400_13` → 탈퇴 `Order_400_14`. 실패해도 주문은 승인 대기로 남는다
  */
 export const approveOrderMutation = (eventId: string | number) =>
   mutationOptions({
