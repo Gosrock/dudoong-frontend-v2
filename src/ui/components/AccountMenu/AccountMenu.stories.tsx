@@ -52,7 +52,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** 디자인 시스템 `My`(`585:752`) — 프로필 / 항목 4 / 내 호스트 / 로그아웃. 업데이트 노트는 두지 않는다(Q4) */
+/** 디자인 시스템 `My`(`585:752`) — 프로필 / 항목 4 / 내 호스트 / 로그아웃. `footerItems`를 주지 않으면 업데이트 노트 줄이 없다 */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const trigger = within(canvasElement).getByRole('button', { name: '내 메뉴' });
@@ -63,6 +63,30 @@ export const Default: Story = {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
     await waitFor(() => expect(trigger).toHaveFocus());
+  },
+};
+
+/** 셸이 쓰는 모양(P9c-V) — 마지막 구획에 "서비스 업데이트 노트"(`update`, 공지 목록) + 로그아웃. DS `My`와 같은 순서 */
+export const WithUpdateNote: Story = {
+  args: {
+    footerItems: [
+      {
+        key: 'notices',
+        label: '서비스 업데이트 노트',
+        href: '#notices',
+        icon: <Icon name="update" />,
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '내 메뉴' }));
+    const menu = await screen.findByRole('menu');
+    const items = within(menu).getAllByRole('menuitem');
+    const names = items.map((i) => i.textContent);
+    await expect(names.slice(-2)).toEqual(['서비스 업데이트 노트', '로그아웃']);
+    await expect(
+      within(menu).getByRole('menuitem', { name: '서비스 업데이트 노트' }),
+    ).toHaveAttribute('href', '#notices');
   },
 };
 

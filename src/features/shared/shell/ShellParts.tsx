@@ -48,6 +48,9 @@ export function ShellRetry({ state }: { state: ShellMenuState }) {
   );
 }
 
+/** 공지 목록 입구 문구 — DS `My` · 와이어 PC 드롭다운 · GUI 햄버거 `331:11622`의 글자 그대로(design-requests Q4 → P9c-V) */
+export const SHELL_NOTICES_LABEL = '서비스 업데이트 노트';
+
 const linkProps = (l: ShellLink) => ({ key: l.key, label: l.label, href: l.href });
 
 /**
@@ -57,9 +60,12 @@ const linkProps = (l: ShellLink) => ({ key: l.key, label: l.label, href: l.href 
 export function ShellAccountMenu({
   menu,
   state,
+  noticesHref,
 }: {
   menu: ShellMenu & { kind: 'session' };
   state: ShellMenuState & { status: 'ready' };
+  /** "서비스 업데이트 노트"가 갈 공지 목록(P9c-V). 없으면 그 항목을 두지 않는다 */
+  noticesHref?: string;
 }) {
   const { hostRow } = menu;
   const newHost = menu.create.find((l) => l.key === 'newHost');
@@ -94,6 +100,18 @@ export function ShellAccountMenu({
         },
         create: newHost && { ...linkProps(newHost), icon: SHELL_LINK_ICON.newHost },
       }}
+      footerItems={
+        noticesHref
+          ? [
+              {
+                key: 'notices',
+                label: SHELL_NOTICES_LABEL,
+                href: noticesHref,
+                icon: <Icon name="update" />,
+              },
+            ]
+          : undefined
+      }
       onLogout={state.logout ? () => void state.logout?.logout() : undefined}
       logoutDisabled={state.logout?.disabled}
     />

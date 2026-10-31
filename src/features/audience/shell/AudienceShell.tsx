@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { NoticeBannerView } from '@/features/shared/notice/NoticeBannerView';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
 import { ShellMenuButton } from '@/features/shared/shell/ShellMenuButton';
 import { ShellAccountMenu, ShellRetry } from '@/features/shared/shell/ShellParts';
@@ -31,10 +32,12 @@ const NAV = [
 export function AudienceShell({ children }: { children: ReactNode }) {
   return (
     <div className={s.root}>
+      {/* 서비스 공지 상단 배너 한 줄(P9c-V) — 헤더보다 위. 하위 화면 헤더(AudienceSubHeader)는 페이지 안이라 헤더 아래에 두면 화면마다 자리가 달라진다 */}
+      <NoticeBannerView audience="USER" />
       <div className={s.mobileHeader}>
         <Header
           logo="audience"
-          leading={<ShellMenuButton />}
+          leading={<ShellMenuButton noticesHref="/notices" />}
           trailing={
             <>
               <TopBarIconLink
@@ -88,5 +91,5 @@ function AudienceAccount() {
       </Link>
     );
   }
-  return <ShellAccountMenu menu={state.menu} state={state} />;
+  return <ShellAccountMenu menu={state.menu} state={state} noticesHref="/notices" />;
 }

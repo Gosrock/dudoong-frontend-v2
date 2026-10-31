@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { NoticeBannerView } from '@/features/shared/notice/NoticeBannerView';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
 import { ShellMenuButton } from '@/features/shared/shell/ShellMenuButton';
 import { ShellAccountMenu, ShellBell, ShellRetry } from '@/features/shared/shell/ShellParts';
@@ -27,8 +28,10 @@ const NAV = [
 export function HostingShell({ children }: { children: ReactNode }) {
   return (
     <div className={s.root}>
+      {/* 서비스 공지 상단 배너 한 줄(P9c-V) — 헤더·상단 바보다 위(관객 셸과 같은 자리), 공연 안 3단 위에도 */}
+      <NoticeBannerView audience="HOST" />
       <div className={s.mobileHeader}>
-        <Header logo="host" leading={<ShellMenuButton />} />
+        <Header logo="host" leading={<ShellMenuButton noticesHref="/hosting/notices" />} />
       </div>
       <TopBar
         className={s.desktopOnly}
@@ -52,7 +55,7 @@ function HostingTopBarEnd() {
   return (
     <>
       <ShellBell state={state} />
-      <ShellAccountMenu menu={state.menu} state={state} />
+      <ShellAccountMenu menu={state.menu} state={state} noticesHref="/hosting/notices" />
     </>
   );
 }

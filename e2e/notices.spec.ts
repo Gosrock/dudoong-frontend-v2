@@ -10,10 +10,15 @@ import { setMockSession } from './support/auth';
 import { KAKAO_SCRAP_UA } from './support/env';
 import { expect, test } from './support/fixtures';
 
+/** 목록(GA-1)·상세(GA-2) 호출만 — 배너(GA-3)는 셸이 모든 화면에서 부른다 */
+const isListOrDetailCall = (c: { path: string }) =>
+  c.path.startsWith('/api/v2/notices') && !c.path.startsWith('/api/v2/notices/banners');
+
 /**
  * 서비스 공지(P9c-L) 라우트 로직 — 관객 상세(서버 조회)의 상태 코드·제목·본문 sanitize, 관객 목록(브라우저 조회),
- * 호스팅 센터 목록·상세(로그인 게이트, 서버 조회 없음). 화면은 L 단계의 최소 마크업이다. 캡처는 없다(V).
- * 상단 배너는 셸에 붙지 않아(P4s-V) 훅 테스트(`useNotice.test`)에서 본다.
+ * 호스팅 센터 목록·상세(로그인 게이트, 서버 조회 없음). 화면 캡처는 QA `notices`(P9c-V).
+ * 상단 배너는 셸(관객 · 호스팅)에 붙어 있다(P9c-V) — 아래 "상단 배너"에서 본다. GA-3(`/notices/banners`)은 모든 화면에서
+ * 브라우저가 부르므로 목록·상세 호출을 셀 때는 뺀다.
  */
 
 test.describe('관객 공지 상세 — 상태 코드', () => {
@@ -83,11 +88,11 @@ test.describe('관객 공지 — 화면', () => {
       'rel',
       'noopener noreferrer',
     );
-    await expect(page.getByRole('link', { name: '목록' })).toHaveAttribute('href', '/notices');
+    await expect(page.getByRole('link', { name: '목록으로' })).toHaveAttribute('href', '/notices');
     expect(dialogs).toEqual([]);
   });
 
-  test('목록은 브라우저에서만 audience=USER로 읽는다 — ALL 공지만, 고정 먼저, [더 보기]로 page=1', async ({
+  test('목록은 브라우저에서만 audience=USER로 읽는다 — ALL 공지만, 고정 먼저, 아래 끝에 닿으면 page=1', async ({
     page,
     mockApi,
   }) => {
@@ -101,9 +106,9 @@ test.describe('관객 공지 — 화면', () => {
       `/notices/${SANITIZE_NOTICE_ID}`,
     );
     await expect(page.locator('[data-host-only="true"]')).toHaveCount(0);
-    await page.getByRole('button', { name: '더 보기' }).click();
+    await rows.last().scrollIntoViewIfNeeded();
     await expect(rows).toHaveCount(24);
-    const calls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/notices'));
+    const calls = mockApi.calls().filter(isListOrDetailCall);
     expect(calls.map((c) => `${c.from} ${c.path}`)).toEqual([
       'browser /api/v2/notices?audience=USER&page=0',
       'browser /api/v2/notices?audience=USER&page=1',
@@ -135,13 +140,13 @@ test.describe('호스팅 센터 공지', () => {
     await expect(
       page.getByRole('heading', { name: '[호스트] 두둥티켓 환불 의무 안내' }),
     ).toBeVisible();
-    await expect(page.getByRole('link', { name: '목록' })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: '목록으로' })).toHaveAttribute(
       'href',
       '/hosting/notices',
     );
     const calls = mockApi.calls();
     expect(calls.filter((c) => c.from === 'server')).toEqual([]);
-    expect(calls.filter((c) => c.path.startsWith('/api/v2/notices')).map((c) => c.path)).toEqual([
+    expect(calls.filter(isListOrDetailCall).map((c) => c.path)).toEqual([
       '/api/v2/notices?audience=HOST&page=0',
       `/api/v2/notices/${HOST_NOTICE_ID}`,
     ]);
@@ -156,5 +161,47 @@ test.describe('호스팅 센터 공지', () => {
       'href',
       '/hosting/notices',
     );
+  });
+});
+
+test.describe('상단 배너(셸)', () => {
+  test('관객: 공연홈에 첫 배너 한 줄 — 누르면 관객 상세, 닫으면 새로고침해도 다시 뜨지 않는다', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const banner = page.getByTestId('notice-banner');
+    await expect(banner).toContainText('[점검] 11월 2일 새벽 서버 점검 안내');
+    // 관객(USER)에게는 HOST 배너가 없다 — 하나뿐
+    await banner.getByRole('link').click();
+    await expect(page).toHaveURL(`/notices/${SANITIZE_NOTICE_ID}`);
+    await page.getByRole('button', { name: '배너 닫기' }).click();
+    await expect(banner).toHaveCount(0);
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { name: '[점검] 11월 2일 새벽 서버 점검 안내' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('notice-banner')).toHaveCount(0);
+  });
+
+  test('호스팅 센터: 닫으면 다음 배너(HOST)가 뜨고 링크는 /hosting/notices/{id}', async ({
+    page,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting');
+    const banner = page.getByTestId('notice-banner');
+    await expect(banner).toContainText('[점검] 11월 2일 새벽 서버 점검 안내');
+    await page.getByRole('button', { name: '배너 닫기' }).click();
+    await expect(banner).toContainText('[호스트] 두둥티켓 환불 의무 안내');
+    await expect(banner.getByRole('link')).toHaveAttribute(
+      'href',
+      `/hosting/notices/${HOST_NOTICE_ID}`,
+    );
+  });
+
+  test('GA-3이 실패하면 배너 없이 화면은 그대로', async ({ page, mockApi }) => {
+    mockApi.use(...noticeHandlers.bannersServerError);
+    await page.goto('/notices');
+    await expect(page.getByTestId('notice').first()).toBeVisible();
+    await expect(page.getByTestId('notice-banner')).toHaveCount(0);
   });
 });

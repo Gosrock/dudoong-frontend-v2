@@ -78,6 +78,13 @@ export function formatKstKoreanDate(value: string): string {
   return `${p.year}년 ${p.month}월 ${p.day}일 (${weekday})`;
 }
 
+/** `'2026.10.30 18:00'`(KST) → `'2026.10.30'` — 공지 목록 날짜(P9c-V) */
+export function formatKstDotDate(value: string): string {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  return `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)}`;
+}
+
 /** `'2026.05.11 19:30'`(KST) → `'19:30'` */
 export function formatKstTime(value: string): string {
   const p = readParts(value);

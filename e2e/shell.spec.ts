@@ -41,9 +41,14 @@ test.describe('비로그인 /hosting/**', () => {
       await setMockSession(page, 'anonymous');
       await page.goto(path);
       await expect(page).toHaveURL(`/login?redirect=${encodeURIComponent(path)}`);
-      const api = mockApi
-        .calls()
-        .filter((c) => c.path.startsWith('/api/v2/'))
+      // 로그인 화면은 관객 셸이라 공지 배너(GA-3 audience=USER, 공개 GET — P9c-V)를 부른다. 호스팅 쪽 조회가 아니라 셈에서 뺀다
+      const calls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/'));
+      const banners = calls.filter((c) => c.path.startsWith('/api/v2/notices/banners'));
+      expect(banners.every((c) => c.from === 'browser' && c.path.includes('audience=USER'))).toBe(
+        true,
+      );
+      const api = calls
+        .filter((c) => !c.path.startsWith('/api/v2/notices/banners'))
         .map((c) => c.path.split('?')[0]);
       expect([...new Set(api)]).toEqual(['/api/v2/me']);
     });

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { AudienceSubHeader } from '@/features/audience/shell/AudienceSubHeader';
 import { NoticeListView } from '@/features/shared/notice/NoticeListView';
 
 export const metadata: Metadata = { title: '공지사항' };
@@ -9,5 +10,10 @@ export const metadata: Metadata = { title: '공지사항' };
  * 브라우저 `useInfiniteQuery`로만 읽는다(patterns §12, 공연 리스트와 같다). 상세는 `(public)/notices/[noticeId]`
  */
 export default function NoticesPage() {
-  return <NoticeListView audience="USER" />;
+  return (
+    <>
+      <AudienceSubHeader title="공지사항" />
+      <NoticeListView audience="USER" />
+    </>
+  );
 }
