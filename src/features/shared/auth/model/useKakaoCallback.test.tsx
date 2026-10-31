@@ -245,7 +245,7 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     expect(post?.body).toMatchObject({
       ageOver14Confirmed: true,
       termsAgreed: true,
-      agreementVersion: '2026-10',
+      agreementVersion: '2026-11',
     });
     expect(form().error).toBeNull();
     expect(replace).toHaveBeenCalledWith('/gate-check');

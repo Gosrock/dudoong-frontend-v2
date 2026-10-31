@@ -175,13 +175,13 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
       '만 14세 + 이용약관 체크 → 둘 다 + agreementVersion',
       true,
       true,
-      { ageOver14Confirmed: true, termsAgreed: true, agreementVersion: '2026-10' },
+      { ageOver14Confirmed: true, termsAgreed: true, agreementVersion: '2026-11' },
     ],
     [
       '만 14세만 체크 → ageOver14Confirmed·agreementVersion',
       true,
       false,
-      { ageOver14Confirmed: true, agreementVersion: '2026-10' },
+      { ageOver14Confirmed: true, agreementVersion: '2026-11' },
     ],
     ['아무것도 미체크 → 동의 키가 하나도 없다', false, false, {}],
   ])('%s', (_, ageOver14, terms, expected) => {

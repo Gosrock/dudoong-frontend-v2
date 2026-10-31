@@ -513,7 +513,7 @@ describe('동의 기록 필드(#840) — 칸은 Q42 대기, 체크한 것만 보
     expect(post?.body).toMatchObject({
       hostProvisionAgreed: true,
       dudoongTicketNoticeConfirmed: true,
-      agreementVersion: '2026-10',
+      agreementVersion: '2026-11',
     });
     expect(created()).not.toBeNull();
   });
@@ -529,7 +529,7 @@ describe('동의 기록 필드(#840) — 칸은 Q42 대기, 체크한 것만 보
     const sent = recordRequests();
     await submitAndWait(r.result);
     const [post] = await posted(sent);
-    expect(post?.body).toMatchObject({ hostProvisionAgreed: true, agreementVersion: '2026-10' });
+    expect(post?.body).toMatchObject({ hostProvisionAgreed: true, agreementVersion: '2026-11' });
     expect(post?.body).not.toHaveProperty('dudoongTicketNoticeConfirmed');
     expect(created()).not.toBeNull();
   });
