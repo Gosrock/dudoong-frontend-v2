@@ -1141,7 +1141,7 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 ## P4b-V — 로그인 · 세션 만료 · 콜백 대기/실패 안내 · 회원가입 오버레이 (뷰)
 
-**상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것: 만 14세 동의 칸(Q42 대기 — `AGE_OVER_14_FIELD` false 그대로), 실제 카카오 왕복 화면(D2 뒤, QA LOGIN-10 수동)
+**상태**: done (2026-11-01, #42) — 스킬 `gui-implement`. 남은 것: 만 14세 동의 칸(Q42 대기 — `AGE_OVER_14_FIELD` false 그대로), 실제 카카오 왕복 화면(D2 뒤, QA LOGIN-10 수동)
 **근거(gui-screens §0)**: 로그인은 **와이어** `218:4792` "로그인" — GUI `331:11720`은 Ready for dev가 아니다(GUI 2026-10-31T16:55Z 판 `2416543601942970448`, Ready 35개 중 없음). 세션 만료·콜백 대기·실패 안내·회원가입 오버레이는 GUI·와이어 모두 **없음** → DS 컴포넌트로만. 열린 Design Sync 이슈 #19·#29·#30은 티켓탭 — 무관. 디자인 시스템은 기준 버전 `2416531042358919300` 그대로. PR 직전 다시 받은 와이어 PNG가 구현 전과 바이트 단위로 같음
 **변경**
 - `features/shared/auth/LoginView`(+`.css.ts`) — 말풍선(DS `Tooltip` 늘 열림, 아래 꼬리) + 캐릭터(DS 일러스트 `login` 285) + [카카오 로그인/회원가입](`Button` dark lg, 폭 268) + 실패 한 줄(`role="alert"`). 제목은 숨김 h1. `?redirect=`를 읽는 것은 말단 `KakaoLoginAction`(자체 `<Suspense fallback={null}>`, patterns §6). 세션 만료는 같은 배치에 말풍선 문구만
