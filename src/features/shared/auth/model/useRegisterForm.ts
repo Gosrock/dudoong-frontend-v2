@@ -10,6 +10,7 @@ import { log } from '@/utils/log';
 import { classifyAuthFailure } from './auth-outcome';
 import { finishLogin } from './finish-login';
 import {
+  AGE_OVER_14_FIELD,
   canSubmitRegister,
   formatPhoneInput,
   hasAllConsents,
@@ -24,6 +25,7 @@ import {
   type RegisterValues,
   toRegisterBody,
   validateRegister,
+  withAllConsents,
 } from './register-form';
 
 /** 가입에 필요한 것 — 카카오 콜백(`useKakaoCallback`)이 신규 사용자로 판정하면 넘긴다 */
@@ -76,9 +78,9 @@ export function useRegisterForm(input: RegisterInput | null) {
   const setConsent = useCallback((key: RegisterConsent, value: boolean) => {
     setConsents((c) => ({ ...c, [key]: value }));
   }, []);
-  /** "전체 동의" — 선택 항목까지 모두 */
+  /** "전체 동의" — 화면에 있는 항목만, 선택 항목까지 모두(칸 없는 만 14세는 건드리지 않는다 — `AGE_OVER_14_FIELD`) */
   const setAllConsents = useCallback((value: boolean) => {
-    setConsents({ terms: value, privacy: value, marketing: value });
+    setConsents((c) => withAllConsents(c, value));
   }, []);
 
   const errors = useMemo<RegisterErrors>(() => {
@@ -131,6 +133,8 @@ export function useRegisterForm(input: RegisterInput | null) {
     consents,
     setConsent,
     setAllConsents,
+    /** 동의 칸 플래그 — `ageOver14`: 만 14세 확인 칸을 그리는지(Q42 대기 — 지금 false). 켜지면 필수 */
+    consentFields: { ageOver14: AGE_OVER_14_FIELD },
     /** 필수 동의를 마쳤는지 */
     requiredAgreed: hasRequiredConsents(consents),
     /** 선택까지 모두 동의했는지("전체 동의" 체크 표시) */

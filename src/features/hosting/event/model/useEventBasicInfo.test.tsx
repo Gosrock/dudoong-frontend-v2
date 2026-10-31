@@ -16,7 +16,7 @@ import {
   MY_EVENTS_KEY,
 } from '@/api/event/queries';
 import { type EventManage, UpdateEventBasicRequestSchema } from '@/api/event/schema';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -68,8 +68,6 @@ const loaded = (result: Hook) => waitFor(() => expect(result.current).not.toBeNu
 const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET' && !r.path.endsWith('/images'));
 const png = () => new File([new Uint8Array([0x89, 0x50])], 'poster.png', { type: 'image/png' });
-const lastMutation = (qc: ReturnType<typeof setup>['queryClient']) =>
-  qc.getMutationCache().getAll().at(-1)!;
 
 async function save(result: Hook) {
   let ok = false;
@@ -276,7 +274,7 @@ describe('기본 정보 — 에러 분기(patterns §24 P11)', () => {
     ['Event_400_23', 'tags', (r) => r.current.toggleTag(5)],
   ])('%s → %s 칸 오류, 토스트 없음 — 그 칸을 고치면 지운다', async (code, field, fix) => {
     server.use(...hostingEventSets.basicFails(140, code));
-    const { result, queryClient } = setup(PREPARING);
+    const { result } = setup(PREPARING);
     await loaded(result);
     act(() => {
       result.current.setName('바꾼 이름');
@@ -287,8 +285,7 @@ describe('기본 정보 — 에러 분기(patterns §24 P11)', () => {
     });
     expect(await save(result)).toBe(false);
     expect(result.current.serverErrors[field]).toBeTruthy();
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
     act(() => fix(result));
     expect(result.current.serverErrors[field]).toBeUndefined();
   });

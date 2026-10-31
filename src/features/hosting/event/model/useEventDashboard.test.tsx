@@ -11,7 +11,7 @@ import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { hostingEventSets } from '@/api/__mocks__/hosting-event.handlers';
 import { server } from '@/api/__mocks__/server';
 import { eventChecklistQuery, eventManageQuery, MY_EVENTS_KEY } from '@/api/event/queries';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -196,8 +196,7 @@ describe('대시보드 — 체크리스트 모드(준비중)', () => {
       expect(invalidate.mock.calls.map(([f]) => f?.queryKey)).toEqual(
         refetched.map((k) => keys[k]),
       );
-      const m = queryClient.getMutationCache().getAll().at(-1)!;
-      expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+      expect(errorToast).not.toHaveBeenCalled();
     },
   );
 

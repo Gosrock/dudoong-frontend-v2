@@ -20,7 +20,7 @@ export function TicketTabView() {
   return (
     <main>
       <h1>내 티켓</h1>
-      <AsyncBoundary ignoreError={isSessionLost}>
+      <AsyncBoundary holdOn={isSessionLost}>
         <TicketTabContent />
       </AsyncBoundary>
     </main>
@@ -90,7 +90,7 @@ function TicketTabContent() {
         })}
       </ul>
       {open && (
-        <AsyncBoundary ignoreError={isSessionLost}>
+        <AsyncBoundary holdOn={isSessionLost}>
           <TicketDetailSection target={open} onClose={() => setOpen(null)} />
         </AsyncBoundary>
       )}

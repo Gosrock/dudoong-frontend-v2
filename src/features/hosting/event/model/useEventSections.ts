@@ -3,10 +3,9 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { getErrorCode } from '@/api/errors';
 import { updateEventSectionsMutation } from '@/api/event/mutations';
 import { eventManageQuery, eventSectionsManageQuery } from '@/api/event/queries';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED, uploadImage } from '@/api/upload';
 
 import { applySavedSections } from './event-cache';
@@ -42,7 +41,7 @@ const IMAGE_ERROR = {
  *   GE-7·GE-3(체크리스트 ②)·관객 공연 상세 공개 키를 무효화. 등록된 공연이면 `savedNotice: 'registeredChanged'`
  * - 본문 이미지: `uploadImage(file)` = PE-10 발급(SECTION) → S3 PUT → 받은 `url`(에디터가 HTML에 넣는다). 실패하면 `null` + `imageError`
  * - 읽기 전용(일반 멤버·정산중·지난 공연)은 저장·업로드하지 않는다
- * - 에러: `Event_400_21` 형식 → 폼 오류(폼이 먼저 막는다), `Event_400_17` → GE-3을 다시 읽어 읽기 전용으로. 그 밖은 전역 토스트
+ * - 에러: `Event_400_21` 형식 → 폼 오류(폼이 먼저 막는다), `Event_400_17` → GE-3을 다시 읽어 읽기 전용으로. 그 밖은 공용 토스트(handleError)
  */
 export function useEventSections(eventId: string) {
   const queryClient = useQueryClient();
@@ -79,7 +78,6 @@ export function useEventSections(eventId: string) {
         target: { kind: 'event', eventId: Number(eventId), purpose: 'SECTION' },
         file,
       }),
-    meta: { handledCodes: Object.keys(IMAGE_ERROR) },
   });
   /** 올린 이미지 주소(에디터가 `<img src>`로 넣는다). 실패·읽기 전용이면 `null` */
   const uploadSectionImage = useCallback(
@@ -90,10 +88,11 @@ export function useEventSections(eventId: string) {
         const uploaded = await imageMutation.mutateAsync(file);
         return uploaded.url;
       } catch (e) {
-        const code = getErrorCode(e);
-        if (code !== null && Object.hasOwn(IMAGE_ERROR, code)) {
-          setImageError(IMAGE_ERROR[code as keyof typeof IMAGE_ERROR]);
-        }
+        const show = (code: keyof typeof IMAGE_ERROR) => () => setImageError(IMAGE_ERROR[code]);
+        handleError(e, {
+          [UPLOAD_INVALID_EXTENSION]: show(UPLOAD_INVALID_EXTENSION),
+          [UPLOAD_PUT_FAILED]: show(UPLOAD_PUT_FAILED),
+        });
         return null;
       }
     },
@@ -101,31 +100,9 @@ export function useEventSections(eventId: string) {
   );
 
   // ─── 저장(PE-6) ───
-  const codes = useMemo(
-    () =>
-      handleCodes({
-        Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
-        Event_400_17: () => {
-          setFormError('끝난 공연은 수정할 수 없어요');
-          void queryClient.invalidateQueries({
-            queryKey: eventManageQuery(eventId).queryKey,
-            exact: true,
-          });
-        },
-      }),
-    [eventId, queryClient],
-  );
   const saveMutation = useMutation({
     ...updateEventSectionsMutation(eventId),
-    ...codes,
-    onSuccess: async (saved) => {
-      const next = sectionInputsOf(saved);
-      setBase(next);
-      setValues(next);
-      setAttempted(false);
-      setSavedNotice(scope.registered ? 'registeredChanged' : 'saved');
-      await applySavedSections(queryClient, eventId, saved);
-    },
+    onSuccess: (saved) => applySavedSections(queryClient, eventId, saved),
   });
 
   const blocked = !canEdit || imageMutation.isPending || saveMutation.isPending;
@@ -136,15 +113,31 @@ export function useEventSections(eventId: string) {
     if (blocked || !dirty || hasSectionErrors(errors) || inflight.current) return false;
     inflight.current = true;
     setFormError(null);
+    const wasRegistered = scope.registered;
     try {
-      await saveMutation.mutateAsync(toUpdateSectionsBody(values));
-      return true;
-    } catch {
-      return false;
-    } finally {
+      const saved = await saveMutation.mutateAsync(toUpdateSectionsBody(values));
       inflight.current = false;
+      const next = sectionInputsOf(saved);
+      setBase(next);
+      setValues(next);
+      setAttempted(false);
+      setSavedNotice(wasRegistered ? 'registeredChanged' : 'saved');
+      return true;
+    } catch (e) {
+      inflight.current = false;
+      handleError(e, {
+        Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
+        Event_400_17: () => {
+          setFormError('끝난 공연은 수정할 수 없어요');
+          void queryClient.invalidateQueries({
+            queryKey: eventManageQuery(eventId).queryKey,
+            exact: true,
+          });
+        },
+      });
+      return false;
     }
-  }, [blocked, dirty, errors, saveMutation, values]);
+  }, [blocked, dirty, errors, eventId, queryClient, saveMutation, scope.registered, values]);
 
   const canSave = !blocked && dirty && !hasSectionErrors(errors);
 

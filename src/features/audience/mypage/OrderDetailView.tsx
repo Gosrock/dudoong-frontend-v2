@@ -8,7 +8,7 @@ import { banksQuery } from '@/api/bank/queries';
 import { isNotFound, isSessionLost } from '@/api/errors';
 import {
   AsyncBoundary,
-  type AsyncBoundaryRejectedProps,
+  type ErrorFallbackProps,
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 
@@ -28,7 +28,7 @@ const won = (n: number) => `${n.toLocaleString('ko-KR')}원`;
 export function OrderDetailView({ orderUuid }: { orderUuid: string }) {
   return (
     <main>
-      <AsyncBoundary ignoreError={isSessionLost} rejected={Rejected}>
+      <AsyncBoundary holdOn={isSessionLost} rejected={Rejected}>
         <OrderDetail orderUuid={orderUuid} />
       </AsyncBoundary>
     </main>
@@ -269,7 +269,7 @@ function HostInquiry({ eventId }: { eventId: number }) {
   );
 }
 
-function Rejected({ error, reset }: AsyncBoundaryRejectedProps) {
+function Rejected({ error, reset }: ErrorFallbackProps) {
   if (isNotFound(error)) {
     return <NotFoundView title="주문을 찾을 수 없어요" href="/orders" actionLabel="주문내역" />;
   }

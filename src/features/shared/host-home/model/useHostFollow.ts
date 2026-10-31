@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef } from 'react';
 
+import { handleError } from '@/api/handle-error';
 import { followHostMutation, unfollowHostMutation } from '@/api/host/mutations';
 import { hostViewerQuery } from '@/api/host/queries';
 import type { HostViewer } from '@/api/host/schema';
@@ -24,7 +25,7 @@ export type ViewerStatus = 'pending' | 'anonymous' | 'ready' | 'error';
  * 팔로우 토글. 누르는 즉시 viewer 키의 `isFollowing`을 바꾸고(낙관), PUT/DELETE를 보낸다.
  * 연타 대비: 같은 `scope`의 변경은 TanStack이 순서대로 하나씩 보낸다 — 마지막으로 누른 상태의 요청이 마지막에 도착하므로
  * 서버 상태 = 화면 상태다. PH-13은 멱등이라 같은 요청이 다시 가도 200이다(plan P5c).
- * 응답은 마지막 클릭의 것만 캐시에 반영하고, 마지막 요청이 실패하면 viewer를 다시 읽어 실제 상태로 돌린다(토스트는 전역).
+ * 응답은 마지막 클릭의 것만 캐시에 반영하고, 마지막 요청이 실패하면 viewer를 다시 읽어 실제 상태로 돌린다(실패 토스트는 공용 — handleError).
  * 공개 키는 건드리지 않는다(`followerCount`를 그리지 않는다 — tech-decisions §4).
  */
 export function useHostFollow(
@@ -36,7 +37,7 @@ export function useHostFollow(
   const latest = useRef(0);
   const viewerKey = hostViewerQuery(hostId).queryKey;
 
-  const { mutate, isPending } = useMutation({
+  const { mutateAsync, isPending } = useMutation({
     mutationKey: ['hosts', hostId, 'follow'],
     scope: { id: `host-follow:${hostId}` },
     mutationFn: (on: boolean, context) =>
@@ -57,21 +58,23 @@ export function useHostFollow(
       { revert: false, silent: true },
     );
     queryClient.setQueryData(viewerKey, { ...current, isFollowing: next });
-    mutate(next, {
-      onSuccess: (res) => {
+    void (async () => {
+      try {
+        const res = await mutateAsync(next);
         if (id !== latest.current) return;
         queryClient.setQueryData(viewerKey, (old) =>
           old ? { ...old, isFollowing: res.isFollowing, followerCount: res.followerCount } : old,
         );
-      },
-      onError: () => {
-        if (id !== latest.current) return;
-        void queryClient.invalidateQueries({ queryKey: viewerKey, exact: true });
-      },
-    });
+      } catch (e) {
+        handleError(e);
+        if (id === latest.current) {
+          void queryClient.invalidateQueries({ queryKey: viewerKey, exact: true });
+        }
+      }
+    })();
     // viewerKey는 hostId에서만 나온다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryClient, mutate, hostId]);
+  }, [queryClient, mutateAsync, hostId]);
 
   if (viewerStatus === 'anonymous') return { status: 'login', isFollowing: false };
   if (viewerStatus !== 'ready' || !viewer) return { status: 'disabled', isFollowing: false };

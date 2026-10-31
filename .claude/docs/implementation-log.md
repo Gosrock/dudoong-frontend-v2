@@ -929,6 +929,60 @@ GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseRespon
 - **카카오 프로필 `name`(= 닉네임)을 이름 칸 초깃값으로 유지** — 왜: 서버가 이미 닉네임으로 채워 주고, 사용자가 고칠 수 있으며 v1도 같은 값을 썼다. 비워 두면 모든 신규 가입자가 이름을 직접 쳐야 한다. 되돌리기: `initialRegisterValues`의 `name`을 `''`로.
 - **mock 전화번호 검사는 libphonenumber 근사**(휴대폰 `01[016789]`·지역번호 + 자릿수, 해외 10자리 이상) — 왜: mock에 라이브러리를 들이지 않는다. 실제 판정은 서버이고, FE는 코드(`USER_400_2`)로만 분기하므로 mock 규칙의 세부는 테스트 입력용이다.
 
+## 에러 처리 정리(2026-10-31)
+
+**변경**
+- `@suspensive/react` 3.21.4 도입. `src/ui/components/ErrorBoundary`(suspensive ErrorBoundary + `QueryErrorResetBoundary`, `shouldCatch`·`holdOn`·`resetKeys`, `ErrorBoundaryGroup` 등 재노출), `AsyncBoundary`를 그 위에 suspensive `Suspense`로 다시 구현. 자체 class 경계 삭제. 사용처 `ignoreError` → `holdOn`. `isLocalBoundaryError`(`src/api/errors.ts`)
+- `src/api/handle-error.ts`(`handleError`), `src/utils/try-catch.ts`(Go 스타일 `tryCatch` → `[data, error]`), `src/api/error-toast.ts`. 호출 쪽은 기본 try/catch, 연쇄만 `tryCatch`(사용자 결정 — 처음엔 결과값 유틸 `settle`로 했다가 TanStack 관례가 아니라 바꿨다). 전역 `MutationCache.onError`는 로그만. `handle-codes.ts`·`meta.handled*`·`shouldToastMutationError` 삭제. 변경 훅 약 30개 이관
+- eslint `no-restricted-syntax`: 옵션 onError/onSettled, try 블록 밖이면서 `tryCatch` 인자도 아닌 mutateAsync, mutate 금지. 테스트는 `errorToast` 스파이(`src/test/error-toast.ts`)
+- 문서: tech-decisions §4·§13·§15, patterns §4-3(바운더리 영역 설정 가이드)·§4-5·§24 앞
+
+**결정**(사용자, 관제탑 2026-10-31): 조회 전역 토스트 유지, 바운더리는 suspensive에서, 변경은 호출 쪽 명시 처리.
+
+**Claude 판단**
+- `handleError`는 로그를 다시 남기지 않는다(전역이 이미 남김). 세 번째 인자 `{ otherwise }`로 표 밖 실패를 화면이 맡는다(무료 선착순·셀프 체크인·마케팅·호스트 스캔)
+- 낙관 갱신 되돌리기(알림 읽음)는 옵션 onError를 eslint-disable로 예외
+- 옵션 onSuccess에 남긴 화면 반응: 선물 반환 `setDone`, 옵션 삭제 `setDeleted`(캐시 반영보다 먼저 세워야 해서), 탈퇴 세션 정리·이동
+- 관심 호스트 해제: 캐시 반영을 옵션 onSuccess로 옮겨 연달아 해제해도 모두 빠진다(이전엔 마지막 호출만 — 작은 동작 개선)
+- eslint는 실제로 `ui → api`를 허용하지만 경계는 일반 술어 prop으로 유지
+
+## 이용약관 일부 개정 반영 — v1 Front #385, 2026-11-07 시행 (2026-10-31)
+
+원본: v1 `Gosrock/DuDoong-Front` PR #385 "docs: 약관 제27조③ 두둥티켓 승인 전 취소 일부 개정" — **2026-10-31 기준 OPEN(머지 전)**, base `dev`, head `706b561d6828c63b912d819e07abe22d7c2b8e15`, 바뀐 파일 `apps/ticket/public/term.html` 하나(+6 −4). backend-questions B18(백엔드 이슈 #897)의 약관 원문이다. 사용자 결정(2026-10-31): 약관 내용 변경만 가져오고 v1 화면·코드는 가져오지 않는다.
+
+- **대조**: head의 부모 `eee59f1`의 `term.html`이 v2 `public/term.html`과 바이트 단위로 같다(`cmp`) → head 파일을 그대로 복사했다. 처리방침은 바뀌지 않았다.
+- **바뀐 조항**: 제27조③(승인 전에도 서비스에서 취소 가능, 못 하면 호스트에게 요청, 회사는 입금 여부를 확인하지 않고 취소, 입금액은 제29조③에 따라 호스트가 환불), 제29조③1호("예매를 취소(승인 전 취소를 포함합니다)하거나"), 제19조② 괄호("승인 전에 예매를 취소하거나 취소를 요청한 경우"), 부칙 제1조 ①②(② 개정 조항 2026-11-07 시행), 제3조 개정 이력 한 줄.
+- **코드**: `AGREEMENT_VERSION` `'2026-10'` → `'2026-11'`(`src/api/shared/agreement.ts` + 기대값 쓰는 테스트 5개). `order-detail.ts` `cancelNotice` 주석(B18 위험 → 약관 해결·문구 대기). 동작 변경 없음.
+- **e2e**: `e2e/legal.spec.ts` 출처 주석(#385 머지 전·head), 이용약관은 부칙 제1조①(10-25)과 ②(11-07 시행) 두 문장을 본다.
+- **문서**: `legal/terms-2026-10-25.md`(머리 출처·"시행 뒤 고친 것" 행·본문 4곳 — 새 파일을 만들지 않는 것은 #379와 같은 방식), legal-copy(머리, 위험 줄 → "승인 전 취소 안내 — v2 문구 확정 대기", A-2·A-7·A-8 ⑤ 표시, 약관 원문 파일 절, **"B18 잠정안" 절**), backend-questions B18(제목·약관 해결·남은 것), v1-additions(§1 #385 행, L-1·L-2, 제27조③ 행, D-2, 닫을 것 표), plan P9 두 줄, design-requests Q31, api-contract §4 동의 필드, README(표 2줄·미확정·개정 이력).
+
+**사용자 결정(2026-10-31)**
+- B18을 "약관 해결 / v2 안내 문구 확정 대기"로 좁힌다.
+- `agreementVersion`을 `'2026-11'`로 올린다. 근거: 동의 칸 문구는 그대로지만 동의 대상 약관의 판이 바뀌었다(시행 월 기준). #379 때는 올리지 않았던 것과 다르다. v1은 #385에서 올리지 않아 v1 값은 `'2026-10'`이다 — 서버 기록상 v1·v2 값이 다를 수 있다.
+
+**Claude 판단**
+- **v1 안내 문구 대신 쓸 잠정안을 legal-copy에 적음(확정 아님)** — 왜: v2는 `canCancel=true`라 v1 ⑤("승인 전에는 앱에서 취소할 수 없습니다")를 쓸 수 없고, 개정 약관 문장만으로 초안을 만들 수 있다. 잠정안은 제27조③·제29조③1호·제19조② 괄호(승인 전 취소에는 호스트 환불 기준이 우선하지 않음)만 옮겼다. 되돌리기: legal-copy "B18 잠정안" 절 삭제.
+- **시행 전(11-07 전) 게시해도 된다고 봄** — 왜: 게시본 부칙 제1조②가 개정 조항의 시행일을 따로 적어 그 전 예매·취소에는 종전 제27조③이 적용된다는 것이 문서 안에 드러난다. v1도 같은 파일 하나로 시행 전에 배포한다(#385 본문 "2026-11-07 전에 나가면 된다"). v2는 컷오버(P15) 전이라 운영 `/meta/term`은 v1이 게시하고, v2 V Phase가 모두 디자인 대기라 운영 출시는 11-07 뒤일 가능성이 크다(plan·deploy-plan에 날짜 없음). 스테이징에서는 개정본이 먼저 보인다.
+- **`useKakaoCallback`·`register-form`·`schema.test`의 버전 문자열도 `'2026-11'`로** — 왜: 앞 둘은 상수 값을 기대하는 테스트이고, `schema.test`는 임의 문자열이어도 되지만 다른 값이 섞이면 읽는 사람이 헷갈린다.
+
+## 동의 강제 임박 대응 — v1 Front #384 (2026-10-31)
+
+v1 Front #384(백엔드 담당 작성, 2026-10-31): v1에서 동의를 안 보내는 곳은 호스트 어드민 카카오 가입(`/admin/kakao/callback`)뿐이고, 그 수정이 배포되면 백엔드가 `AGREEMENT_ENFORCE=true`로 켠다. v2는 칸(Q42)이 없어 강제가 켜지면 가입·주문·두둥티켓 생성이 전부 400이다.
+
+- 사실 확인: v2 카카오 콜백은 `/kakao/callback` 하나(호스팅 트랙에 가입 경로 없음, `next.config.ts` 리다이렉트 표에 `/admin/kakao/callback` 없음), 가입 `idToken`은 본문(`toRegisterBody`) — #384의 어드민 경로 문제는 v2에 없다. 백엔드 `dev` `cb53bfaa` 검사 위치는 api-contract 동의 강제 줄·v1-additions §3 B.
+- 가입: `RegisterConsents.ageOver14` → 체크하면 `ageOver14Confirmed: true`. `AGE_OVER_14_FIELD`(false)가 켜지면 필수·"전체 동의"에 들어간다(`requiredConsents`·`visibleConsents`·`withAllConsents` — 플래그를 인자로 받아 테스트). `useRegisterForm().consentFields`.
+- 주문: 폼 값 `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed`(초깃값 false) → 체크한 것만 `agreementFields`로 본문에, 무료는 두둥 확인을 싣지 않는다. `HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`(false)가 켜지면 스키마가 `true`를 요구한다(두둥 확인은 두둥만 — `checkoutAgreementFields`). `useCheckout().agreementFields`.
+- 두둥티켓: `REFUND_OBLIGATION_FIELD` false 유지(변경 없음).
+- 테스트: `register-form.test`(플래그 켠 필수·전체 동의·본문), `useKakaoCallback.test`(전체 동의가 만 14세를 켜지 않음, 체크하면 강제 mock 통과), `option-form.test`(플래그 켠 스키마·본문 4경우), `useCheckout.test`(두둥·무료가 강제 mock 통과, MSW 본문 검사).
+- 문서: plan(L 열린 칸 Q42 행·P4b·P7·P12·P15 리허설), v1-additions(§3 B 머리·B-1·B-2·B-4·B-5·§5 Q42), design-requests Q42(우선순위 높음), backend-questions B16(시점 갱신 + 새 질문 2줄)·지켜볼 것, api-contract(동의 필드·동의 강제 줄).
+
+**사용자 결정**: 필수 판정은 칸마다 상수 플래그로 두고 기본 끔 — 칸(V)이 붙으면 켠다. 체크값은 사용자가 체크했을 때만 싣는다(자동 `true` 없음). 강제가 칸보다 먼저 켜지면 v2가 400인 위험은 문서(plan P4b 위험 줄·P15)와 B16 질문으로 남긴다.
+
+**Claude 판단**
+- **"전체 동의"는 칸이 없는 만 14세를 켜지 않는다** — 왜: 칸 없이 `ageOver14Confirmed: true`가 실리면 동의 위조다. 되돌리기: `withAllConsents`가 `visibleConsents` 대신 모든 키를 켜게.
+- **주문 동의 값은 RHF 폼 값으로 둔다**(별도 상태 아님) — 왜: 환불 규정 동의(`agreeRefundPolicy`)와 같은 자리이고, 플래그를 켜면 같은 resolver가 칸 오류를 낸다. 두둥 확인은 "입금하셨나요?" 확인에서 `form.setValue`로 켠다(V).
+- **무료 주문은 두둥 확인을 체크값과 상관없이 빼고 보낸다** — 왜: 서버가 두둥만 검사·기록하고, 무료 화면에는 그 칸이 없다. 되돌리기: `toOrderBody`의 `payType === 'DUDOONG'` 조건.
+
 ## 디자인 시스템 10-31 판 코드 반영(2026-10-31, `feat/ds-sync-2026-10-31`)
 
 design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.

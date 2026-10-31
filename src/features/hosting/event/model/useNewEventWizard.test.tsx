@@ -7,9 +7,10 @@ import { hostingSets, resetHostingStore } from '@/api/__mocks__/hosting.handlers
 import { hostingEventSets } from '@/api/__mocks__/hosting-event.handlers';
 import { resetMeStore } from '@/api/__mocks__/me.handlers';
 import { server } from '@/api/__mocks__/server';
+import { VALIDATION_ERROR_MESSAGE } from '@/api/error-toast';
 import { MY_EVENTS_KEY } from '@/api/event/queries';
 import { CreateEventRequestSchema } from '@/api/event/schema';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -195,24 +196,22 @@ describe('간편 공연 만들기 Step2 — PE-2', () => {
 
   it('에러 분기 Event_400_2 → 일정 칸 오류, 토스트 없음, 이동 없음 — 일정을 고치면 지운다', async () => {
     server.use(...hostingEventSets.createFails('Event_400_2'));
-    const { result, queryClient } = await toStep2();
+    const { result } = await toStep2();
     fillStep2(result);
     await act(() => result.current.submit());
     expect(result.current.scheduleServerError).toBe('종료 시각을 다시 확인해 주세요');
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
     expect(nav.router.replace).not.toHaveBeenCalled();
     act(() => result.current.setSchedule({ endTime: '02:00' }));
     expect(result.current.scheduleServerError).toBeNull();
   });
 
-  it('검증 실패(400 BAD_REQUEST — 시작이 그사이 지남)는 전역 토스트로', async () => {
+  it('검증 실패(400 BAD_REQUEST — 시작이 그사이 지남)는 공용 토스트로', async () => {
     server.use(...hostingEventSets.createFails('BAD_REQUEST'));
-    const { result, queryClient } = await toStep2();
+    const { result } = await toStep2();
     fillStep2(result);
     await act(() => result.current.submit());
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalledWith(VALIDATION_ERROR_MESSAGE, 'mutation:BAD_REQUEST');
     expect(result.current.submitting).toBe(false);
   });
 });

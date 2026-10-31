@@ -27,7 +27,7 @@ export function CheckoutView({
   return (
     <main>
       <h1>결제하기</h1>
-      <AsyncBoundary ignoreError={isSessionLost}>
+      <AsyncBoundary holdOn={isSessionLost}>
         <CheckoutContent eventId={eventId} params={params} />
       </AsyncBoundary>
     </main>

@@ -10,7 +10,8 @@ import { banksQuery } from '@/api/bank/queries';
 import { MY_TICKETS_KEY, myTicketsQuery } from '@/api/my-ticket/queries';
 import { myOrderQuery, myOrdersQuery } from '@/api/order/queries';
 import { RefundAccountRequestSchema } from '@/api/order/schema';
-import { shouldToastMutationError, shouldToastQueryError } from '@/api/query-client';
+import { shouldToastQueryError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -48,8 +49,6 @@ async function renderReady<T>(hook: () => T, ctx = setup()) {
   return { ...r, ...ctx };
 }
 
-const lastMutation = (qc: ReturnType<typeof createTestQueryClient>) =>
-  qc.getMutationCache().getAll().at(-1)!;
 const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET');
 const detailPath = (uuid: string) => `/api/v2/me/orders/${uuid}`;
@@ -217,7 +216,7 @@ describe('주문 취소 — useCancelOrder(P11/O-4)', () => {
   it('경합 Order_400_24: O-3을 다시 읽고, 다시 읽은 주문이 선물 조건이면 선물 안내 — [주문취소] 자리도 안내로 바뀐다', async () => {
     server.use(...orderHandlers.cancelRaceWithGift);
     const sent = recordRequests();
-    const { result, queryClient } = await renderReady(() => ({
+    const { result } = await renderReady(() => ({
       c: useCancelOrder(P9_ORDER.approvedPaid),
       d: useOrderDetail(P9_ORDER.approvedPaid),
     }));
@@ -228,8 +227,7 @@ describe('주문 취소 — useCancelOrder(P11/O-4)', () => {
       message: GIFT_BLOCKS_CANCEL_MESSAGE,
     });
     await waitFor(async () => expect(await detailReads(sent, P9_ORDER.approvedPaid)).toBe(2));
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -239,32 +237,29 @@ describe('주문 취소 — useCancelOrder(P11/O-4)', () => {
   ] as const)('에러 분기 %s → O-3 다시 읽기 + "%s"(토스트 없음)', async (code, message) => {
     server.use(...orderHandlers.cancelFails(code));
     const sent = recordRequests();
-    const { result, queryClient } = await renderReady(() => useCancelOrder(P9_ORDER.approvedPaid));
+    const { result } = await renderReady(() => useCancelOrder(P9_ORDER.approvedPaid));
     await act(() => result.current.cancel(validAccount));
     await waitFor(() => expect(result.current.error).toBe(message));
     await waitFor(async () => expect(await detailReads(sent, P9_ORDER.approvedPaid)).toBe(2));
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it('에러 분기 Order_400_25(계좌 없음) → 다시 읽지 않고 refundAccountMissing(계좌 시트)', async () => {
     server.use(...orderHandlers.cancelFails('Order_400_25'));
     const sent = recordRequests();
-    const { result, queryClient } = await renderReady(() => useCancelOrder(P9_ORDER.approvedPaid));
+    const { result } = await renderReady(() => useCancelOrder(P9_ORDER.approvedPaid));
     await act(() => result.current.cancel(validAccount));
     await waitFor(() => expect(result.current.refundAccountMissing).toBe(true));
     expect(result.current.error).toBe('환불받을 계좌를 입력해 주세요');
     expect(await detailReads(sent, P9_ORDER.approvedPaid)).toBe(1);
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
-  it('표에 없는 코드(Order_404_1)는 전역 토스트로 간다', async () => {
+  it('표에 없는 코드(Order_404_1)는 공용 토스트로 간다', async () => {
     server.use(...orderHandlers.cancelFails('Order_404_1'));
-    const { result, queryClient } = await renderReady(() => useCancelOrder(P9_ORDER.approvedPaid));
+    const { result } = await renderReady(() => useCancelOrder(P9_ORDER.approvedPaid));
     await act(() => result.current.cancel(validAccount));
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalledWith('주문을 찾을 수 없습니다.', 'mutation:Order_404_1');
     expect(result.current.error).toBeNull();
   });
 });
@@ -343,14 +338,11 @@ describe('환불 계좌 입력·수정 — useRefundAccount(P11/O-5)', () => {
 
   it('환불 완료된 주문에 보내면(서버 Order_400_28) O-3 다시 읽기 + 안내', async () => {
     const sent = recordRequests();
-    const { result, queryClient } = await renderReady(() =>
-      useRefundAccount(P9_ORDER.refundCompleted),
-    );
+    const { result } = await renderReady(() => useRefundAccount(P9_ORDER.refundCompleted));
     await act(() => result.current.submit(validAccount));
     await waitFor(() => expect(result.current.error).toBe('이미 환불이 완료된 주문이에요'));
     await waitFor(async () => expect(await detailReads(sent, P9_ORDER.refundCompleted)).toBe(2));
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -360,16 +352,13 @@ describe('환불 계좌 입력·수정 — useRefundAccount(P11/O-5)', () => {
   ] as const)('에러 분기 %s → "%s"(다시 읽기 %s)', async (code, message, refetch) => {
     server.use(...orderHandlers.refundAccountFails(code));
     const sent = recordRequests();
-    const { result, queryClient } = await renderReady(() =>
-      useRefundAccount(P9_ORDER.refusedAmount),
-    );
+    const { result } = await renderReady(() => useRefundAccount(P9_ORDER.refusedAmount));
     await act(() => result.current.submit(validAccount));
     await waitFor(() => expect(result.current.error).toBe(message));
     await waitFor(async () =>
       expect(await detailReads(sent, P9_ORDER.refusedAmount)).toBe(refetch ? 2 : 1),
     );
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 });
 

@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
 
-import { getErrorCode, isNotFound, isSessionLost } from '@/api/errors';
-import { handleCodes } from '@/api/handle-codes';
+import { isNotFound, isSessionLost } from '@/api/errors';
+import { handleError } from '@/api/handle-error';
 import { meQuery } from '@/api/me/queries';
 import { createOrderMutation } from '@/api/order/mutations';
 import { orderTotalAmount } from '@/api/order/price';
@@ -20,11 +20,11 @@ import { toast } from '@/ui/components/Toast/Toast';
 import {
   CHECKOUT_ERROR_TABLE,
   type CheckoutErrorOutcome,
-  classifyCheckoutError,
   FREE_FCFS_FAILED,
 } from './checkout-errors';
 import { type CheckoutParams, eventHref } from './checkout-params';
 import {
+  checkoutAgreementFields,
   checkoutFormSchema,
   type CheckoutFormValues,
   effectiveMode,
@@ -210,34 +210,11 @@ export function useCheckout({
     [refetchTickets, router, eventId],
   );
 
-  const codes = useMemo(
-    () =>
-      handleCodes(
-        Object.fromEntries(
-          Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
-            code,
-            () => onKnownError(outcome, code),
-          ]),
-        ),
-      ),
-    [onKnownError],
-  );
-
+  // 주문 캐시 반영은 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     ...createOrderMutation(),
-    // 무료 선착순은 표에 없는 실패도 화면이 맡는다(전역 토스트 대신 재시도 안내)
-    meta: kind === 'FREE_FCFS' ? { ...codes.meta, handled: true } : codes.meta,
-    onError: (e) => {
-      inflight.current = false;
-      codes.onError(e);
-      if (kind === 'FREE_FCFS' && !isSessionLost(e) && !classifyCheckoutError(getErrorCode(e))) {
-        setSubmitError(FREE_FCFS_FAILED);
-      }
-    },
     onSuccess: (order) => {
-      setSucceeded(true);
       queryClient.setQueryData(myOrderQuery(order.orderUuid).queryKey, order);
-      router.replace(orderCreatedHref(order.orderUuid));
     },
   });
 
@@ -252,9 +229,37 @@ export function useCheckout({
       if (inflight.current) return;
       inflight.current = true;
       const body = toOrderBody(values, { eventId, ticket, quantity, depositorName });
-      await mutation.mutateAsync(body).catch(() => undefined);
+      try {
+        const order = await mutation.mutateAsync(body);
+        setSucceeded(true);
+        router.replace(orderCreatedHref(order.orderUuid));
+      } catch (e) {
+        inflight.current = false;
+        handleError(
+          e,
+          Object.fromEntries(
+            Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
+              code,
+              () => onKnownError(outcome, code),
+            ]),
+          ),
+          // 무료 선착순은 표에 없는 실패도 화면이 맡는다(공용 토스트 대신 재시도 안내)
+          kind === 'FREE_FCFS' ? { otherwise: () => setSubmitError(FREE_FCFS_FAILED) } : {},
+        );
+      }
     })();
-  }, [form, mutation, eventId, ticket, quantity, depositorName, kind, succeeded]);
+  }, [
+    form,
+    mutation,
+    eventId,
+    ticket,
+    quantity,
+    depositorName,
+    kind,
+    succeeded,
+    onKnownError,
+    router,
+  ]);
 
   return {
     ticket,
@@ -264,8 +269,14 @@ export function useCheckout({
     ctaLabel: ctaLabel(kind),
     /** CTA 뒤 "입금하셨나요?" 확인을 거치는지 */
     needsDepositConfirm: needsDepositConfirm(kind),
-    /** RHF 폼(옵션 답·결제 방식·환불 규정 동의). 칸 연결은 V */
+    /** RHF 폼(옵션 답·결제 방식·환불 규정 동의·주문 동의). 칸 연결은 V */
     form,
+    /**
+     * 주문 동의 칸(#840 — Q42 대기라 지금 둘 다 false). `hostProvision`: 호스트 제공 동의(`hostProvisionAgreed`) 칸,
+     * `dudoongNotice`: 두둥 입금 전 확인(`dudoongTicketNoticeConfirmed`) 칸 — 두둥티켓만, "입금하셨나요?" 확인 단계에 둔다.
+     * 칸이 있으면 체크 전 제출이 막힌다
+     */
+    agreementFields: checkoutAgreementFields(ticket),
     hasOptions: hasOptions(ticket),
     /** 옵션 모드(수량 1이면 언제나 same — 모드 선택을 그리지 않는다) */
     mode,

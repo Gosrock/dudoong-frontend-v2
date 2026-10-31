@@ -3,8 +3,7 @@
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { getErrorCode } from '@/api/errors';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { updateHostMutation } from '@/api/host/mutations';
 import { hostMembersQuery, hostViewerQuery } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
@@ -50,9 +49,9 @@ const noImageErrors = (): Record<HostImageSlot, string | null> => ({ PROFILE: nu
  * - 저장: 바뀐 필드만 PH-4(patterns §23). 바뀐 것이 없거나 칸 오류가 있으면 요청하지 않는다. 성공하면 응답을 viewer 키에 넣고
  *   공개 GH-3·GH-1·GE-1·GM-1을 무효화한다(`applyUpdatedHost`)
  * - 이미지: `images.PROFILE|COVER.change(file)` = PH-15 발급 → S3 PUT(`src/api/upload.ts`) → 폼 값에 `key`(저장 때 PH-4로).
- *   `reset()`은 기본 이미지(`''`), `retry()`는 마지막 파일로 발급부터 다시. 확장자·S3 실패는 그 자리 오류, 429 등은 전역 토스트
+ *   `reset()`은 기본 이미지(`''`), `retry()`는 마지막 파일로 발급부터 다시. 확장자·S3 실패는 그 자리 오류, 429 등은 공용 토스트(handleError)
  * - 에러(patterns §24 P10b): `HOST_400_16` → 연락처 영역 오류(연락처를 고치면 지운다), `HOST_400_17` → 올린 이미지를 버리고
- *   그 자리 오류("다시 올려 주세요" — 업로드 처음부터). 그 밖은 전역 토스트
+ *   그 자리 오류("다시 올려 주세요" — 업로드 처음부터). 그 밖은 공용 토스트(handleError)
  */
 export function useHostSettings(hostId: string) {
   const queryClient = useQueryClient();
@@ -80,19 +79,6 @@ export function useHostSettings(hostId: string) {
     mutationKey: ['hosts', hostId, 'image-upload'],
     mutationFn: ({ slot, file }: { slot: HostImageSlot; file: File }) =>
       uploadImage({ target: { kind: 'host', hostId: Number(hostId), purpose: slot }, file }),
-    meta: { handledCodes: Object.keys(HOST_IMAGE_ERROR_MESSAGE) },
-    onError: (e, { slot }) => {
-      const code = getErrorCode(e);
-      if (code !== null && Object.hasOwn(HOST_IMAGE_ERROR_MESSAGE, code)) {
-        const message = HOST_IMAGE_ERROR_MESSAGE[code as keyof typeof HOST_IMAGE_ERROR_MESSAGE];
-        setImageErrors((prev) => ({ ...prev, [slot]: message }));
-      }
-    },
-    onSuccess: (uploaded, { slot }) =>
-      setValues((v) => ({
-        ...v,
-        images: { ...v.images, [slot]: { url: uploaded.url, key: uploaded.key } },
-      })),
   });
   const uploadingSlot = imageMutation.isPending ? (imageMutation.variables?.slot ?? null) : null;
 
@@ -101,8 +87,25 @@ export function useHostSettings(hostId: string) {
       if (!canEdit || imageMutation.isPending) return;
       lastFiles.current[slot] = file;
       setImageErrors((prev) => ({ ...prev, [slot]: null }));
-      // 표에 없는 실패(429·네트워크·403 등)는 전역 토스트가 맡는다
-      await imageMutation.mutateAsync({ slot, file }).catch(() => undefined);
+      try {
+        const uploaded = await imageMutation.mutateAsync({ slot, file });
+        setValues((v) => ({
+          ...v,
+          images: { ...v.images, [slot]: { url: uploaded.url, key: uploaded.key } },
+        }));
+      } catch (e) {
+        const show = (code: keyof typeof HOST_IMAGE_ERROR_MESSAGE) => () =>
+          setImageErrors((prev) => ({ ...prev, [slot]: HOST_IMAGE_ERROR_MESSAGE[code] }));
+        // 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
+        handleError(
+          e,
+          Object.fromEntries(
+            (
+              Object.keys(HOST_IMAGE_ERROR_MESSAGE) as (keyof typeof HOST_IMAGE_ERROR_MESSAGE)[]
+            ).map((c) => [c, show(c)]),
+          ),
+        );
+      }
     },
     [canEdit, imageMutation],
   );
@@ -124,27 +127,10 @@ export function useHostSettings(hostId: string) {
   );
 
   // ─── 저장(PH-4) ───
-  const codes = useMemo(
-    () =>
-      handleCodes({
-        HOST_400_16: () => setContactsServerError(HOST_SETTINGS_ERROR_MESSAGE.HOST_400_16),
-        // 버릴 이미지 자리는 보낸 본문으로 정한다 — `save`의 catch가 처리한다
-        HOST_400_17: () => undefined,
-      }),
-    [],
-  );
+  // 캐시 반영·무효화는 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const saveMutation = useMutation({
     ...updateHostMutation(hostId),
-    ...codes,
-    onSuccess: async (updated) => {
-      const next = hostSettingsValuesOf(updated);
-      setBase(next);
-      setValues(next);
-      setAttempted(false);
-      setImageErrors(noImageErrors());
-      lastFiles.current = {};
-      await applyUpdatedHost(queryClient, hostId, updated);
-    },
+    onSuccess: (updated) => applyUpdatedHost(queryClient, hostId, updated),
   });
 
   /** 저장했으면 `true`. 읽기 전용·바뀐 것 없음·칸 오류·업로드 중·저장 중이면 요청하지 않고 `false` */
@@ -156,29 +142,39 @@ export function useHostSettings(hostId: string) {
     setContactsServerError(null);
     const body = toUpdateHostBody(base, values);
     try {
-      await saveMutation.mutateAsync(body);
+      const updated = await saveMutation.mutateAsync(body);
+      inflight.current = false;
+      const next = hostSettingsValuesOf(updated);
+      setBase(next);
+      setValues(next);
+      setAttempted(false);
+      setImageErrors(noImageErrors());
+      lastFiles.current = {};
       return true;
     } catch (e) {
-      // HOST_400_17 — 어느 자리의 key인지 서버가 말하지 않는다. 이번에 새로 올려 보낸 자리를 모두 버리고(지운 자리 `''`는 남긴다)
-      // 그 자리에 "다시 올려 주세요". 표에 없는 실패는 전역 토스트가 맡는다
-      if (getErrorCode(e) === 'HOST_400_17') {
-        const failed = HOST_IMAGE_SLOTS.filter((slot) =>
-          Boolean(slot === 'PROFILE' ? body.profileImageKey : body.coverImageKey),
-        );
-        setValues((v) => {
-          const images = { ...v.images };
-          for (const slot of failed) images[slot] = { url: base.images[slot].url };
-          return { ...v, images };
-        });
-        setImageErrors((prev) => {
-          const next = { ...prev };
-          for (const slot of failed) next[slot] = HOST_SETTINGS_ERROR_MESSAGE.HOST_400_17;
-          return next;
-        });
-      }
-      return false;
-    } finally {
       inflight.current = false;
+      // 표에 없는 실패는 공용 토스트
+      handleError(e, {
+        HOST_400_16: () => setContactsServerError(HOST_SETTINGS_ERROR_MESSAGE.HOST_400_16),
+        // HOST_400_17 — 어느 자리의 key인지 서버가 말하지 않는다. 이번에 새로 올려 보낸 자리를 모두 버리고(지운 자리 `''`는 남긴다)
+        // 그 자리에 "다시 올려 주세요"
+        HOST_400_17: () => {
+          const failed = HOST_IMAGE_SLOTS.filter((slot) =>
+            Boolean(slot === 'PROFILE' ? body.profileImageKey : body.coverImageKey),
+          );
+          setValues((v) => {
+            const images = { ...v.images };
+            for (const slot of failed) images[slot] = { url: base.images[slot].url };
+            return { ...v, images };
+          });
+          setImageErrors((prev) => {
+            const next = { ...prev };
+            for (const slot of failed) next[slot] = HOST_SETTINGS_ERROR_MESSAGE.HOST_400_17;
+            return next;
+          });
+        },
+      });
+      return false;
     }
   }, [base, canEdit, dirty, errors, imageMutation.isPending, saveMutation, values]);
 
