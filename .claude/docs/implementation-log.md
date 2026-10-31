@@ -1498,3 +1498,47 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · DS 컴포넌트로 구현]` GUI `567:9756` 입금 확인 창(`1989720505`) / `[개발 · 디자인 없음]` `567:8004` 토스간편송금을 골랐을 때(`1989720508`) · `567:1245` 동일 옵션 다시 켤 때(`1989720512`) · `567:8010` 결제 버튼 · 무료 · PC · 오류 안내(`1989720514`) · `939:28045` 즉시 발급 문구(`1989720515`). `FIGMA-CUSTOM:` 1줄(→ DS)
 
 **범위 밖(고치지 않음)**: 주문상세(P9 — `/orders/[uuid]` 쿼리 없는 화면), 토스 은행 값 매핑(B3 실기기 뒤), full-page 캡처에서 하단 붙은 바가 중간에 찍히는 것(캡처 방식 — 실제 화면은 아래 고정)
+
+## P5a-V — 공연홈 · 공연 리스트 · 태그 패널 (뷰)
+
+**상태**: done (2026-11-01, PR #(이 PR)) — 스킬 `gui-implement`. 남은 것 없음(Kartrider 글꼴은 design-system §1 라이선스 확인 대기 — 공용)
+**근거(gui-screens §0)**: 전부 **GUI** — Ready 공연홈 `759:22391`, 예매하기 `759:7895`, 예매하기 - 태그선택 `759:11869`(2026-11-01 `figma_nodes.py ready`로 다시 확인 — 지금 Ready 90개). PC는 GUI가 없어 와이어 `626:19888`(공연홈) · `640:1032`·`640:1425`(공연 둘러보기) 배치를 따랐다. 열린 Design Sync 중 이 화면 것 없음 — #61(DS Filter Chip `number` 변형, 예매자 관리용)은 이 화면이 쓰지 않아 DS 세션 몫으로 둠
+**디자인 시스템**: 기준 `2416566330909386505`(10-31T18:56Z) 뒤 판(18:59 · 19:01 · 19:15Z) — Filter Chip `number` 변형 2개(#61) · Tabs 3·4개 항목뿐. 이 화면 영향 없음(design-system.md는 DS 세션 몫이라 고치지 않음)
+**변경**
+- `src/ui/components/ConcertCard/`(새 폴더 — DS ConcertCard): 카드 전체 `next/link` · 포스터 163:231 모서리 8(없거나 못 읽으면 빈 상자, Q26) · 날짜 `labelSm` 보조색 + 끝에 `LinkProgress`(링크 이동 표시) · 제목 `headingMd2Emphasized` + display 글꼴 2줄 말줄임. 스토리 4
+- `src/ui/components/LoadMoreSentinel/`: 공연준비 홈 전용(`features/hosting/home/ui`)이던 것을 두 번째 화면이 쓰게 돼 올림(주석의 규칙대로) — 코드 그대로, `HostingHomeView` import만 바꿈. 스토리 4
+- `features/audience/home/HomeView`(+ `.css.ts`, `assets/home-hero-780.jpg`·`-1170.jpg`): 숨은 h1 "두둥" · 히어로(GUI 그룹 `759:22590`을 REST로 내보낸 PNG → JPG 2·3배, `srcSet`) · "더 많은 공연 둘러보기 →" 한 링크(→ `/events`, 원형 화살표 = DS round Button 30) · 가로 캐러셀(scroll-snap, 모바일 163 · 간격 16, PC 282 · 간격 24, 본문 1200 왼쪽에서 화면 끝까지) · 빈 문구 · ↑
+- `EventListView`(+ `.css.ts`): PC 위 `login` 일러스트 128 · `SearchField`(PC 가운데 600, 지우기 = 바로 적용) · `Popover` + `FilterChip`(선택 수 배지) · "지난공연보기" + `Toggle`(switch) · "공연임박순" 고정 글자 · 격자 2/3(600~)/4(1024~)열 · 첫 페이지 스켈레톤 6 · 빈(`no-search-result`) · 실패 + [다시 시도] · `LoadMoreSentinel` · ↑. 헤더 검색 아이콘 숨김(`NO_SEARCH_ATTR` — 셸 CSS `:has`, 경로를 읽지 않음)
+- `ui/TagPanel`(+ `.css.ts`): GE-11 응답 순서대로 분류 묶음(`role=group`) · 구분선 · 첫 묶음 머리 오른쪽 "초기화"(고른 것 없으면 비활성) · 태그 글자 버튼 4열(`aria-pressed`, 고른 것 primary · 아니면 tertiary) · 로딩/실패/없음. `ui/ScrollTopButton`(DS Fab 40, 움직임 줄이기면 즉시). `model/card-date.ts`(`2026.01.01 수요일 (18:00)` — `api/shared/date` 포맷 조합)
+- 셸 `AudienceShell.css.ts` `NO_SEARCH_ATTR` 한 규칙(데이터·링크 그대로)
+- 테스트: e2e `event-list.spec` 선택자만(태그 칩은 [태그 ▾] 팝오버 안, 지난공연은 switch "지난공연보기"). QA `home.qa.ts` 다시 씀(HOME-1 히어로·캐러셀·하이드레이션 0 · PC 1440, HOME-5 링크·가로 넘침) — **8/8**(수동 1), 새 `events.qa.ts` EVL-1~10 — **19/19**. e2e event-list · home · shell · seo · event-detail · host-home · hosting 138/138, QA shell 10/10 · hosting-home 18/18
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 하이드레이션 경고 0 | QA HOME-1 · EVL-1 단계 "하이드레이션 경고가 없다"(mobile · desktop 1440, 콘솔 0건) |
+| 링크 이동 진행 표시(`(public)`에 `loading.tsx` 없이) | ConcertCard 안 `LinkProgress` — QA EVL-10(이동), 스토리 LinkProgress |
+| 공연홈·리스트·태그 패널 · PC 배치 | QA HOME-1 · HOME-5 · EVL-1 · EVL-2(패널 · 배지 · 주소 · 초기화 · Esc) · EVL-3(토글 · 검색 · 지우기) · EVL-4(무한 스크롤 · ↑) · EVL-9(700 → 3열) · 빈/실패 EVL-5~8 |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`)** — 공연홈 390(Figma `759:22391`과 히어로 · 머리 20 Bold · 화살표 30 · 카드 163/16 같음) · 700 · 1440, 리스트 390(검색 · 칩 행 · 2열 · ↑ 위치 `759:7895`과 같음) · 태그 패널 390(위치 칩 아래 8, 4열 · 구분선 · 초기화 `759:11869`과 같음 — 모서리·그림자만 DS) · 1440(와이어 `640:1032` 배치). 고친 것: 히어로 양옆 색을 그림 가장자리(#5881F7)에 가장 가까운 토큰으로
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. "두둥 소개"(GUI `759:22549` — 빈 파란 상자 + →)는 그리지 않음 / 내용·목적지 미정(figma-structure 개발 메모, Q4 묶음) / `HomeView`에 섹션 추가
+2. 600 이상 히어로 = 600 정사각 가운데 + 양옆 원시 색 Blue 300(Figma 사각형 #5B85FF는 변수 없음 — 반올림, `FIGMA-CUSTOM:`) / 와이어는 전체 폭 큰 상자 / `HomeView.css` `hero`·`heroImage`
+3. 히어로 그림 = GUI 그룹 `759:22590`을 그대로 내보낸 JPG(780 · 1170, q75 — 노이즈 질감이라 170·410KB). `next/image` 최적화는 nginx가 막아 `<img srcSet>`(v1 #378) / `assets/`
+4. 섹션 → 화살표(30) · ↑(40)는 DS round Button(코드 Fab 56)을 Figma 인스턴스 크기로 줄임(크기 변형이 DS에 없음) / `moreArrow`·`ScrollTopButton.css`
+5. 태그 패널 상자 = DS Popover(모서리 12 · 그림자 · 진한 테두리 — Figma 8 · 옅은 테두리, `FIGMA-CUSTOM:` + 코멘트), 글자 칸은 커스텀 4열(DS TagButton은 칩 모양이라 구조가 다름) / `TagPanel`
+6. "초기화"는 첫 분류 머리 오른쪽(GUI 그대로) · 고른 것 없으면 비활성, 태그 hover = 한 단계 진한 회색, 긴 이름은 칸 안 줄바꿈 / `TagPanel.css`
+7. "지난공연보기" → 토글 순서는 GUI 모바일대로 모든 폭(와이어 PC는 토글 → 글자) / `EventListView`
+8. 검색칸 자리표시 "검색어를 입력해주세요"(GUI, PC 와이어 "찾고 싶은 공연 제목이나 호스트를…"과 다름 — 한 DOM이라 GUI) / `EventListView`
+9. 리스트 상태 — 스켈레톤 6장, 빈 "조건에 맞는 공연이 없어요."(+ `no-search-result`), 실패 "공연 목록을 불러오지 못했어요." + [다시 시도], 태그 실패 "태그를 불러오지 못했어요." / 디자인 없음(코멘트)
+10. 공연홈 빈 문구 "예정된 공연이 없어요."(L 그대로), PC 캐러셀 카드 282 · 간격 24(와이어 실측), ↑는 공연홈 모든 폭(GUI 모바일 공연홈에는 없음) / `HomeView`
+11. `/events`에서 헤더 검색 아이콘 숨김(GUI `basic title (no search)` · PC 와이어도 없음) — 셸 CSS `:has([data-shell-no-search])`, 아이콘의 `href`·`aria-label`을 선택자로 / `AudienceShell.css` `NO_SEARCH_ATTR`
+12. 포스터 없음/깨짐 = `surface.imageBg` 빈 상자(Q26 기본안 — `poster-placeholder` 그림을 쓰지 않음) / `ConcertCard` `Poster`
+13. `LoadMoreSentinel`을 `src/ui` 새 폴더로 올림(두 번째 사용처 — 원래 주석의 규칙) / 되돌리려면 화면별 복사
+14. ConcertCard 제목 = `headingMd2Emphasized`(18/130%) + display 글꼴(Kartrider 스택) — Title 18 프리셋 없음(design-system §5 요청) / `ConcertCard.css` `title`
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · DS 컴포넌트로 구현]` GUI `759:12049` 태그 패널 상자(`1989724388`) / `[개발 · 디자인 없음]` `759:12054` 태그 패널 상태(`1989724391`) · `759:7993` 공연 목록 상태·폭(`1989724392`) · `759:22590` 넓은 화면 히어로(`1989724411`) · `759:22549` 두둥 소개(`1989724414`) · `759:22414` 캐러셀 상태(`1989724416`). `FIGMA-CUSTOM:` 3줄(→ DS 1 · 커스텀 2)
+
+**범위 밖(고치지 않음)**: Kartrider 글꼴 미탑재(제목이 Pretendard로 보임 — design-system §1 라이선스), DS `SearchField` 돋보기가 Figma 20 회색보다 작게 보임(공용 컴포넌트), dev 서버 "Next.js encountered the unstable value `Date.now()` while prerendering"(`<Prefetch>` 서버 조회 — 이 PR 전부터, P11-V 기록과 같음), mock 포스터 주소가 안 열려 QA 캡처의 포스터가 모두 빈 상자(목 데이터), 공연준비 홈 등 `LoadMoreSentinel`의 다른 사용처 모양(그대로)

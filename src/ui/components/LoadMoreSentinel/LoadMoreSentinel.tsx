@@ -2,11 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 
-import { Button } from '@/ui/components/Button/Button';
-import { Spinner } from '@/ui/components/Loader/Loader';
-import { Flex } from '@/ui/primitives/Flex';
-import { Txt } from '@/ui/primitives/Txt';
-import { colors } from '@/ui/theme/colors';
+import { Flex } from '../../primitives/Flex';
+import { Txt } from '../../primitives/Txt';
+import { colors } from '../../theme/colors';
+import { Button } from '../Button/Button';
+import { Spinner } from '../Loader/Loader';
 
 export type LoadMoreState = {
   hasNextPage: boolean;
@@ -18,7 +18,7 @@ export type LoadMoreState = {
 
 /**
  * 무한 목록 하단(patterns §12) — 화면에 들어오면 다음 페이지를 읽는다. 읽는 중엔 스피너, 실패하면 기존 행을 둔 채 하단 재시도.
- * 공연준비 홈 전용(관객 목록 화면과 나눠 쓰지 않는다 — 병렬 트랙 파일 소유). 두 화면 이상에서 같은 것이 생기면 `src/ui`로 올린다.
+ * 공연준비 홈(P10a)과 공연 리스트(P5a)가 같이 쓴다 — 2026-11-01 P5a-V에서 `features/hosting/home/ui`에서 올렸다.
  */
 export function LoadMoreSentinel({ list }: { list: LoadMoreState }) {
   const ref = useRef<HTMLDivElement>(null);

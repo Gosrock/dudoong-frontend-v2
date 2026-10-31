@@ -32,3 +32,13 @@ export const body = style({ flex: '1 0 auto', display: 'flex', flexDirection: 'c
 
 /** 세션 확인 중 PC 오른쪽 자리 — 아바타 ▾ 버튼 높이 */
 export const accountPending = style({ display: 'inline-block', width: 96, height: 40 });
+
+/**
+ * 페이지가 두는 "검색 아이콘 숨김" 표시. 공연 리스트(`/events`)는 화면 안에 검색칸이 있어 헤더 검색 아이콘을 뺀다
+ * (GUI `759:7895` Title `basic title (no search)`, PC 와이어 `640:1032`). 경로를 읽지 않고 CSS `:has`로(위 SUBHEADER_ATTR와 같은 방식).
+ */
+export const NO_SEARCH_ATTR = 'data-shell-no-search';
+
+globalStyle(`${root}:has([${NO_SEARCH_ATTR}]) a[href="/events"][aria-label="공연 검색"]`, {
+  display: 'none',
+});
