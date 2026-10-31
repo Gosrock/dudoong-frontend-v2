@@ -14,6 +14,14 @@ Next.js 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 
 - 조회는 `src/api/<도메인>/queries.ts`의 `queryOptions` 하나를 서버(`<Prefetch>`)와 브라우저가 같이 쓴다. 화면은 `ky`를 직접 쓰지 않고 `api` 객체를 쓴다.
 - 스타일은 vanilla-extract. 순서: 프리미티브(`Flex`·`Spacing`·`Txt`·`Divider`·`Container`) → `sprinkles()` → `Foo.css.ts`. 색은 `colors`(의미 색 우선), 간격·모서리는 토큰만. 글자는 `<Txt typography="bodyMd" color={colors.textSecondary}>`.
 - 컴포넌트 동작은 Radix 프리미티브, 모양은 vanilla-extract(`.claude/docs/design-system.md`).
+- 근거가 충돌하면 Swagger > `api-contract.md` > `tech-decisions`·`plan` > `figma-structure`. v1 운영과 v2 계획이 다르면 v2 계획이 정본(`.claude/docs/README.md`).
+- 반응형: 서버와 클라이언트가 같은 DOM을 그리고 무엇이 보일지는 CSS가 정한다. 화면 크기 JS 분기는 마운트 뒤에만. 관객·호스팅 모두 1024px부터 PC(patterns §1).
+- `usePathname`·`useSearchParams`를 쓰는 컴포넌트는 children을 감싸지 않는 말단에 두고 자체 `<Suspense fallback={null}>`로 감싼다 — 아니면 빌드 실패나 404 상태 코드가 깨진다(patterns §6).
+- 변경 에러는 호출 쪽에서 `handleError(e, { 코드: 처리 })`(`src/api/handle-error.ts`). 화면 문구는 `code`로 나누고 `reason`은 폴백만. 403은 HTTP 상태로 먼저, 400 "이미 처리됨"은 최신 상태를 다시 읽는다(patterns §4-5·§11).
+- 오버레이는 `overlay-kit`(`window.confirm` 금지). 뒤로가기가 오버레이를 닫고, 오버레이 안에서의 이동은 `replace`(patterns §6).
+- 권한은 `can(role, action)`(`features/shared/permission`) 한 곳에서만 판정한다. 역할 문자열을 직접 비교하지 않는다. `myRole`로 버튼을 숨기는 것은 편의일 뿐 권한의 근거가 아니다(patterns §22).
+- 로딩·debounce·클립보드·날짜·토스트·엑셀 저장 등은 직접 만들지 않고 있는 유틸을 쓴다(patterns §9 표).
+- 로그에 계좌번호·입금자명·토큰을 남기지 않는다. 약관 근거 문구는 빼거나 바꾸지 않고(`legal-copy.md`), 동의 문구가 바뀌면 `AGREEMENT_VERSION`(`src/api/shared/agreement.ts`)을 올린다.
 - 디자인 전에는 L(로직)만 — 훅·도메인 규칙은 `features/<track>/<feature>/model/`, UI 동작을 넣지 않는다(plan §0).
 - 화면(V)은 스킬 `gui-implement`로 — 근거는 GUI 화면 Figma의 Dev Mode **Ready for dev** 노드만, 없으면 와이어프레임으로 단순 와이어 수준(`.claude/docs/design-workflow.md`). 상태는 `gui-screens.md` §0.
 - 커스텀 구현은 지양하고 DS·`src/ui` 컴포넌트를 쓴다. Figma가 커스텀으로 그렸지만 DS로 되는 것은 DS로 + `FIGMA-CUSTOM:` 주석 + Figma 코멘트. 작업 시작·PR 직전에 열린 `Design Sync` 이슈를 보고, 반영 PR의 `Closes #n`으로만 닫는다.
