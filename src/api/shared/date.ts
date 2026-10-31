@@ -84,3 +84,11 @@ export function formatKstTime(value: string): string {
   if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
   return `${pad(p.hour)}:${pad(p.minute)}`;
 }
+
+/** `'2026.01.15 18:00'`(KST) → `'2026.01.15 목요일'` — 공연 대시보드 머리 "일자"(GUI `727:23257`) */
+export function formatKstDotDateWeekday(value: string): string {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
+  return `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)} ${weekday}요일`;
+}
