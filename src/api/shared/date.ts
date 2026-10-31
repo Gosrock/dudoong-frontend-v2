@@ -143,3 +143,24 @@ export function formatKstDotDateTimeWeekday(value: string): string {
   const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
   return `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)} (${weekday}) ${pad(p.hour)}:${pad(p.minute)}`;
 }
+
+/**
+ * 상대 시간 — 알림함 행 오른쪽(와이어 `128:2827`: "7분 전" · "1일 전" · "4월 25일", P9b-V).
+ * 1분 안 `'방금 전'` · 1시간 안 `'N분 전'` · 하루 안 `'N시간 전'` · 7일 안 `'N일 전'` · 그 밖은 `'M월 D일'`(올해가 아니면 `'yyyy.MM.dd'`).
+ * 시간·7일 경계는 와이어에 없어 정했다(implementation-log P9b-V 결정). `now`보다 뒤의 값(시계 차이)은 `'방금 전'`.
+ */
+export function formatKstRelative(value: string, now: Date): string {
+  const at = parseKstDateTime(value);
+  const minutes = Math.floor((now.getTime() - at.getTime()) / 60_000);
+  if (minutes < 1) return '방금 전';
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}일 전`;
+  const p = readParts(value)!;
+  const thisYear = new Date(now.getTime() + KST_OFFSET_MS).getUTCFullYear();
+  return p.year === thisYear
+    ? `${p.month}월 ${p.day}일`
+    : `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)}`;
+}

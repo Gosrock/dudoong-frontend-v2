@@ -1714,6 +1714,89 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 **Figma 코멘트**(디자인 없음): 와이어 `424:12000` — "[개발 · 디자인 없음] 관객이 QR을 찍은 뒤 관객 폰에 뜨는 화면"(comment `1989730796`, 상태 목록 · 지금 배치)
 
+## P8b-V — 선물하기(보내기 시트 · 링크 · 공유) · 선물 랜딩 · 수락/거절 (뷰)
+
+**상태**: done (2026-11-01, PR #72) — 스킬 `gui-implement`. 남은 것: 실기기 카카오 공유 · `sms:`(QA GIFT-10 수동), 실제 카카오 가입 왕복(GIFT-11 수동) — D2 뒤
+**근거(gui-screens §0)**: 전부 **GUI**(`figma_nodes.py ready` — GUI lastModified 2026-10-31T19:18Z 그대로, 시작·PR 직전 같음). 보내기는 Ready 섹션 `908:3276` 안 — 선물하기 `908:12032` · 링크 생성 완료 `908:13105` · 복사 토스트 `908:21508` · 취소 완료 `908:21359` · 반송 완료 `908:23165`. 랜딩은 Ready `939:27148` — 로그인시 `939:26721` · 비로그인시 `939:26412` · 거절하기 선택 `939:26858` · 거절 완료 `939:26992` · 선물취소 `939:27058`
+**디자인 이슈**: #19(`Design: 수정` — 선물하기 문구 + 유의사항 확인 체크) 반영 → `Closes #19`. #61(DS Filter Chip)은 이 화면이 쓰지 않음
+**디자인 시스템**: 기준 `2416576694112599706`(10-31T19:15Z) 그대로 — 바뀐 것 없음
+
+**변경**
+- `gift/GiftActionSections.tsx`(P8b-L 최소 마크업 → GUI): `SendGiftSheet` — DS `BottomSheet` "티켓을 선물할까요?" + 유의사항 상자(DS `Checkbox` round + 안내 두 줄) + Primary lg [티켓 선물하기](체크 전 disabled, PG-1 본문 그대로 `{}`). `GiftLinkView` — 링크 생성 완료(일러스트 `gift` · 메모 DS `Input`(PG-8, 칸을 떠나거나 Enter면 바뀐 때만 저장 → 토스트) · 공유 DS Button secondary md ×3 [메세지](`sms:` 링크) [카카오톡](`shareKakaoFeed`, 실패 시 링크 복사) [링크복사](`copyText` → "링크가 클립보드에 복사되었습니다!") · [티켓 페이지로])
+- `gift/ui/GiftResult.tsx`: 결과·상태 화면 틀(일러스트 170 + `Heading/lg-emphasized` + `Label/md` + 아래 칸, 간격 24/8/12, 헤더 아래 150 — 링크 생성 완료만 111). 링크 생성 완료 · 취소/반송/거절 완료 · 취소된 선물 · 비로그인 · 디자인 없는 상태가 같이 쓴다
+- `gift/GiftLandingView.tsx`(P8b-L 최소 마크업 → GUI): 확인 중 = 자리표시 · 404 = `NotFoundView` · AVAILABLE + 익명 = 비로그인 안내([카카오 로그인하기] = `LoginRequiredLink`) · AVAILABLE + 로그인 = 포스터 294(r16 · 그림자) + 공연명 `Title` + 일시/티켓 `Body/lg` + [거절하기](→ 확인 시트 [아니오] [예]) [선물받기] · OWN_LINK/EXPIRED = 같은 요약 + L 문구 + [선물 취소/회수](확인 시트) [티켓 페이지로] · 나머지 = `GiftResult`(방금 거절 → 거절 완료, 방금 취소 → 취소 완료, CANCELED → 취소된 선물, 그 밖 L 문구). 상태 영역 `region "선물 상태"` + `data-view-state` 유지
+- 티켓탭: `TicketGiftButton` — 보내기 시트를 `SendGiftSheet`로 바꾸고 `onDone`(`linked` · `canceled` · `returned`)을 더함(`onGone` 그대로). 취소 시트는 연 순간의 선물(`cancelTarget`)로 남아 T-2가 다시 와도 끝까지 결과를 알린다. `TicketQrLayer` `onGiftDone` 전달. `TicketTabView` — 결과가 오면 층을 닫고 `TicketGiftDone`(링크 생성 완료 · 취소 완료 · 반송 완료)을 티켓탭 자리에, 뒤로가기·[티켓 페이지로]로 돌아온다. 티켓탭 본문은 언마운트하지 않고 숨긴다(캐러셀 스크롤 감시 유지 — 언마운트하면 돌아와서 넘기기가 안 됐다, e2e desktop에서 발견)
+- `ui/illustrations`: `gift-return`(GUI `939:25480` 화살표 선물 — 직접 그린 벡터) · `gift-canceled`(GUI `939:27124` 회색 선물 — DS `img_선물` 색 덮어쓰기). GUI 파일 REST SVG 원본 그대로(스크립트·외부 참조 없음 확인)
+- 테스트: e2e `tickets.spec`(시트 이름 · 체크 · 링크 생성 완료 화면 · 메모 PATCH 1회 · [티켓 페이지로] 뒤 선물중) · `gift-landing.spec`(익명 [카카오 로그인하기]) 선택자만. QA 새 `gift.qa.ts` GIFT-1~9 **14/14**(수동 2), `tickets.qa` TIX-5 · TIX-6에 결과 화면 단계 — **13/13**(수동 1). e2e tickets · gift-landing · notifications · seo **42/42**
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| `viewState` 7종 화면 | QA GIFT-3 · GIFT-4(AVAILABLE 로그인/익명) · GIFT-5(→ REJECTED 거절 완료) · GIFT-6(ALREADY_ACCEPTED · REJECTED · CANCELED · OWN_LINK · EXPIRED · EXPIRED(보낸 사람) · RETURNED — 어디에도 수락 버튼 없음) · GIFT-7(보낸 사람 취소 → 취소 완료) |
+| 미가입 수신자 링크 → 가입 → 수락 화면 흐름 | QA GIFT-4(비로그인 안내 → `/login?redirect=` → 가짜 카카오 가입 → 같은 랜딩, 자동 수락 없음 → [선물받기] → 티켓탭). 실제 왕복 GIFT-11 수동(D2 뒤) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`, 390 · 1200)** — 선물하기 시트(`908:12032` — 상자 · 체크 · 문구 같음, DS 시트라 제목 왼쪽 정렬) · 링크 생성 완료(`908:13105` — 일러스트 · 메모 칸 · 공유 버튼 109×46 · 아이콘 18 같음) · 복사 토스트(DS 토스트 — 아래) · 취소 완료(`908:21359`) · 받기(`939:26721` — 포스터 위 여백 56으로 고침) · 거절 시트(`939:26858`) · 거절 완료(`939:26992`) · 취소된 선물(`939:27058`) · 비로그인(`939:26412`). 고친 것: 결과 화면 세로 위치(가운데 정렬 → GUI 위 여백 150/111), 랜딩 main이 flex가 아니어서 묶음이 위에 붙던 것, 취소 시트가 T-2 재조회로 사라져 완료 화면이 안 뜨던 것, 내 링크 화면의 h1 두 개
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 링크 생성 완료 · 취소 완료 · 반송 완료는 라우트가 아니라 **티켓탭 자리에 띄우는 화면**(뒤로가기 = 닫기, 오버레이 규칙) / GUI가 헤더 있는 전체 화면 · 링크 토큰을 주소에 두지 않음(tech-decisions §20) / `TicketTabView` `giftDone`
+2. 메모(PG-8)는 칸을 떠나거나 Enter일 때 바뀌었으면 저장 + 토스트 "메모를 저장했어요", 50자까지만 입력(`maxLength`) / Figma에 저장 버튼 없음 — 코멘트 `908:13334` / `GiftLinkView` `saveIfChanged`
+3. 보내기 시트에는 메모 칸이 없다 — PG-1은 `{}`로 보내고 메모는 링크 생성 뒤 PG-8 / GUI `908:12032`에 칸 없음 · `908:13105`에 있음 / `SendGiftSheet`
+4. [카카오톡]이 안 되면 링크를 복사하고 같은 토스트 / P5b 공유와 같은 폴백(작업 지시) / `GiftLinkView` `shareKakao`
+5. 익명 + AVAILABLE은 공연 요약 없이 비로그인 안내만(GUI `939:26412`) — 그래서 확인 중에는 요약도 그리지 않고 자리표시(익명 안내로 바뀌며 요약이 깜빡이지 않게) / P8b-L 주석 "요약은 바로"와 다름 / `GiftLandingView` pending
+6. "선물 거절 완료"·"선물 취소 완료"는 이 화면에서 거절·취소를 누르고 에러 없이 상태가 바뀐 때만. 남이 연 REJECTED는 L 문구 "거절한 선물이에요" / 거절 완료 문구("보낸분에게 알림이 전달됩니다")는 본인 행동 직후에만 맞다 / `resultScreen`
+7. 디자인 없는 상태(이미 받음 · 거절됨 · 반환됨 · 모름)는 취소된 선물 틀 + 회색 선물(`gift-canceled`) + [티켓 페이지로] [다른 공연 둘러보기], 내 링크 · 만료는 받기 틀 + 안내(`headingSmEmphasized`) + [선물 취소/회수] [티켓 페이지로] / design-requests §1 기본안 · Q30 잠정 문구 / Figma 코멘트 `939:26818`
+8. 랜딩의 보낸 사람 취소·회수 확인 시트 = 티켓탭 취소 시트와 같은 문구(`908:21252`) / 디자인 없음 / `CancelSheet`
+9. 취소 완료 문구의 "취소"는 공연이 끝난 선물이면 "회수"(선물 회수 완료) / P8-V 결정 7과 같게 / `TicketGiftDone`
+10. 유의사항 체크는 시트를 열 때마다 비어 있다(기억하지 않음) / #19 "체크해야 보내기" / `SendGiftSheet` `agreed`
+11. 공유 버튼 아이콘 18 — 아이콘 원본 24를 CSS로 줄임(`Icon`에 18 크기가 없다) / GUI 18 / `GiftSend.css` `shareIcon`
+12. PC(1024~) = 모바일 묶음을 가운데(결과 화면 위 80) / 디자인 없음 — 주문 완료와 같은 방식 / `GiftResult.css`
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · DS 컴포넌트로 구현]` `908:12096` 선물하기 시트(`1989731045`) · `939:26914` 거절 확인 시트(`1989731046`) · `908:21601` 복사 토스트(`1989731049`) / `[개발 · 디자인 없음]` `908:12227` 체크 전 상태(`1989731073`) · `908:13334` 메모 저장 시점 · PC(`1989731079`) · `939:26818` 랜딩 나머지 상태 · PC · 로딩(`1989731080`). `FIGMA-CUSTOM:` 4줄(→ DS 2 · 커스텀 2 — 유의사항 상자 · 받는 선물 포스터)
+
+**범위 밖(고치지 않음)**: Kartrider 글꼴 미탑재(공연명이 Pretendard), DS `BottomSheet` 제목 왼쪽 정렬 · 손잡이 화살표(공용 — 코멘트), DS 토스트 위치 · 모양(공용), mock 포스터 주소가 안 열려 캡처의 포스터가 빈 상자(목 데이터), `/tickets` dev "instant navigation" 안내(P8-V 라우트)
+
+## P9b-V — 알림함 · 벨 빨간 점 (뷰)
+
+**상태**: done (2026-11-01, PR #73) — 스킬 `gui-implement`
+**근거(gui-screens §0)**: **와이어** — 모바일 `128:2827`(마이페이지/알림창/주문상세 섹션) · PC `668:4772`(와이어 파일 `FUQb8ldGBp3uYUuXPV5FDC`). GUI `331:11574`·`336:13684`는 `figma_nodes.py ready --contains`로 Ready 프레임 밖(lastModified 2026-10-31T19:18Z) — 모양을 가져오지 않음. 상태 `와이어로 구현됨`
+**디자인 이슈**: 없음(열린 #61 DS Filter Chip은 예매자 관리 — 이 화면이 쓰지 않음)
+**디자인 시스템**: 기준 `2416576694112599706`(10-31T19:15Z) 그대로 — 바뀐 것 없음
+
+**변경**
+- `features/shared/notification/NotificationInboxView.tsx`(P9b-L 최소 마크업 → 와이어 화면) + `NotificationInboxView.css.ts`: `Container` 안 제목 줄(PC 가운데 "알림함" h1, 모바일은 셸 헤더가 제목이라 h1 글자만 숨김) + 오른쪽 DS `Button` secondary sm [모두 읽음](안 읽은 행이 없으면 꺼짐, 빈 목록이면 숨김). 행 = 카테고리 아이콘 24(안 읽음은 왼쪽 위 빨간 점 6px `status/error`) | 카테고리 이름 … 상대 시간 / 제목(안 읽음 `labelLgEmphasized` 진하게, 읽음 `labelLg` 흐리게) / 본문 `bodyMd`. 행 전체가 링크(갈 곳 없으면 버튼), 사이 선 `surface/defaultBorder`. 빈 상태 DS `EmptyState`, 다음 페이지 DS `LoadMoreSentinel`(P9b-L의 [더 보기] 버튼 대신 — 실패 시 아래 [다시 시도])
+- 아이콘: 선물 `gift` · 티켓 `ticket` · 공연 알림 `clock`(`alarm-clock` 없음 — Q47) · 모르는 타입 `notification`
+- `src/api/shared/date.ts` `formatKstRelative(value, now)` — 상대 시간(patterns §9 날짜 유틸 자리에 더함)
+- 라우트 `/mypage/notifications` 모바일 헤더 제목 "알림" → "알림함"(와이어)
+- 벨 빨간 점: 셸 `ShellBell`(P4s-V — 관객 드로어 · 호스팅 드로어 · 호스팅 PC 상단 바, DS `notification-on`)이 이미 `useNotificationBell`에 붙어 있어 코드 변경 없음 — QA로 확인
+- 훅·도메인(`notification-kind`·`useNotificationInbox`·`useNotificationBell`)은 그대로. 새 `src/ui` 컴포넌트 없음(스토리 없음)
+- 테스트: QA 새 `notifications.qa.ts` NOTI-1~7 — **14/14**. e2e `notifications`·`shell`·`auth`·`hosting` 110/110(선택자 변경 없음)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 17종 타입 렌더(모르는 타입 포함) | NOTI-1(25건 두 페이지 — 카테고리 3종 + 모르는 타입 1건 "알림"·벨 아이콘, 모르는 대상 행도 렌더) |
+| 안 읽음 빨간 점 + 진한 글자, 상대 시간 | NOTI-2(굵기 700, "30분 전"·"4시간 전" — 브라우저 시계 고정) |
+| 벨 빨간 점 | NOTI-4(모바일 관객 드로어 · PC 호스팅 상단 바 — 안 읽음 있으면 "알림(새 알림 있음)", [모두 읽음] 뒤 "알림") |
+| 그 밖 | NOTI-3(누르면 읽음 + 이동), NOTI-5(빈 상태), NOTI-6(GN-1 5xx), NOTI-7(다음 페이지 실패 → 다시 시도) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`, 390 · 1440)** — 와이어와 구조·문구·동작만. 고친 것: 모바일 헤더 제목 "알림" → "알림함". 다른 점(일부러): 와이어는 본문 한 덩어리에 강조 글자(색·굵기)가 섞여 있지만 서버는 `title`·`body`를 따로 평문으로 보낸다 — 제목 + 본문 두 줄, 강조 색 없음
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 상대 시간 경계: 1분 안 "방금 전" · "N분 전" · "N시간 전" · 7일 안 "N일 전" · 그 뒤 "M월 D일"(올해 아니면 `yyyy.MM.dd`) / 와이어 "7분 전 · 1일 전 · 4월 25일" / `formatKstRelative`
+2. 모바일 오른쪽 위 "ㅍ ⌄"(뜻 불명) 자리에 PC와 같은 [모두 읽음] — L에 필터가 없음 / 와이어 PC "모두읽음처리" / `NotificationInboxView` 제목 줄
+3. [모두 읽음]은 DS Button secondary sm, 안 읽은 행이 없으면 비활성 · 빈 목록이면 숨김 / 와이어는 글자 버튼 / 같은 곳
+4. 읽은 행은 아이콘·글자를 한 단계 흐리게(제목 `secondaryLabel`, 나머지 `tertiaryLabel`) / 와이어 회색 행 / CSS·`Txt color`
+5. 모르는 타입의 카테고리 자리는 "알림" + 벨 아이콘 / 와이어에 없음 / `NotificationRow`
+6. 빈 상태 "아직 받은 알림이 없어요" 한 줄(일러스트 없음) / 디자이너 코멘트 "빈상태 만들기"(미완) / `EmptyState`
+7. 빨간 점은 모바일·PC 모두 아이콘 왼쪽 위(와이어 PC는 오른쪽 위) / 한 벌로 / `unreadDot`
+8. 화면 읽기 도구용 "안 읽음 · " 숨김 글자 / — / `srOnly`
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · 디자인 없음]` 와이어 `128:2827` — 기존 디자이너 코멘트 "빈상태 만들기"(`1980093387`)에 답글 `1989733640`(빈 상태 · 상대 시간 · 오른쪽 위 버튼 · 모르는 알림 · 제목/본문 두 줄)
+
+**범위 밖(고치지 않음)**: 관객 PC 상단 바 벨 없음(Q54 — 와이어대로), 공연 알림 아이콘 `alarm-clock`(Q47 — DS에 없음), `GIFT_TICKET_CANCELED` 카테고리(Q46 기본안 그대로), `NOTIFICATIONS_KEY` 두 곳 정의(P9b-L 정리할 거리 — gift 파일은 P8b 소유)
+
 ## P9-V — 마이페이지 · 주문내역 · 주문상세 · 환불 계좌 · 취소 · 호스트 문의 · 관심 호스트 · 아카이빙 · 탈퇴 (뷰)
 
 **상태**: done (2026-11-01, PR #PR) — 스킬 `gui-implement`. 남은 것: B18 승인 전 취소 안내 확정 문구(잠정안 사용 중), 마케팅 수신 토글 화면 여부(사용자 결정 대기 — 넣지 않음)
