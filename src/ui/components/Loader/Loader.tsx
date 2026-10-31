@@ -2,9 +2,11 @@ import type { ReactNode } from 'react';
 
 import * as s from './Loader.css';
 
+export type SpinnerSize = 'sm' | 'base' | 'md';
+
 export type SpinnerProps = {
-  /** sm 16(Button sm·md), md 24(Button lg·화면 로딩) */
-  size?: 'sm' | 'md';
+  /** sm 16(Button sm·md), base 20(디자인 시스템 `Spinner` `772:1176` — 다이얼로그 로딩), md 24(Button lg·화면 로딩) */
+  size?: SpinnerSize;
   /** 주면 role="status" + 이름. 버튼 안처럼 다른 곳이 상태를 알리면 비운다(장식) */
   label?: string;
   className?: string;
@@ -56,7 +58,7 @@ export function LoadingLabel({
   children,
 }: {
   loading?: boolean;
-  size?: 'sm' | 'md';
+  size?: SpinnerSize;
   children: ReactNode;
 }) {
   if (!loading) return <>{children}</>;

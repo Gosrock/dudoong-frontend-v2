@@ -10,11 +10,12 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** sm 16 · md 24. 색은 currentColor */
+/** sm 16 · base 20(디자인 시스템 `Spinner`) · md 24. 색은 currentColor */
 export const Sizes: Story = {
   render: () => (
     <Flex gap={4} align="center" style={{ color: colors.brandPrimary }}>
       <Spinner size="sm" label="불러오는 중" />
+      <Spinner size="base" label="불러오는 중" />
       <Spinner size="md" label="불러오는 중" />
     </Flex>
   ),

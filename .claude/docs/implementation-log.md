@@ -1095,6 +1095,19 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 - 결정: 🤖 Claude 판단 — 로고 헤더(GUI 로컬·`host title`)는 Top app bar가 아니지만 같은 `Header`라 같이 바뀌는 것을 그대로 둠(Figma 아이콘 위치 24와 맞음 · 되돌리려면 logo일 때만 바깥 여백 -16).
 - 확인: typecheck · eslint(Header) · `vitest related`(11) 통과. Storybook 390폭에서 요소 위치를 재서 Figma `37:44`(16:22Z 판) 값과 대조 — 아이콘 틀 L16·R16, 프로필 R24, 제목 L72 · 다른 점 없음.
 
+## 디자인 시스템 11-01 b 판 반영(2026-11-01, `9yujin/ds-sync-1101b`)
+
+이슈 없이 바뀐 10-31 17:25Z~19:15Z 판(세션들이 PR #45·#52·#58·#62에서 보고) + 그사이 들어온 `Design: 디자인 시스템` #61. 비교·값은 design-system §8 "2026-11-01(4)". 코드는 Spinner 20 하나.
+
+- 범위 조정(관제탑): 16:22Z → 18:56Z 판(Checkbox 미선택 테두리 #60 · 다이얼로그 4종)은 P7-V #63이 반영했다. 이 세션은 처음에 같은 것(Checkbox · Spinner 20)을 고쳤다가 되돌리고 #63 것을 쓴다.
+- 18:56Z → 19:15Z: Filter Chip `number` 2변형(#61) · Tabs 견본 `tab` 탭 4개. 변수·텍스트 스타일 그대로.
+- 분기: Filter Chip `number`를 쓰는 곳은 GUI `↳예매자관리`(`724:5256`, Ready 아님)뿐이고 예매자 관리는 "와이어로 구현됨" → **반영 대기**(design-system §3·§8, gui-screens §0 예매자 관리 줄 열린 이슈 칸). PR `Refs #61`. Tabs는 견본만 바뀌어 영향 없음.
+- 확인(문서): GUI 파일 전체(REST)에서 `Filter Chip`·`Box`·새 다이얼로그 인스턴스를 훑음. 디자인 시스템 버전 목록은 PR 직전에 다시 봄.
+- Spinner 20(관제탑 검토로 범위에 넣음): `Popup` 로딩 스피너가 16이었다 — DS `Spinner`(`772:1176`)·`다이얼로그 - 로딩`(`772:1180`)은 20 틀(원 16 · 선 2.5). `Spinner`·`LoadingLabel` `size`에 `'base'`(20)를 더하고 `Popup`이 쓴다(`sm`·`md`·기본값 그대로 — Button·EasyOverlay 시트는 영향 없음). 코드 스피너(24 viewBox 원 r9 · 선 3)를 20으로 줄이면 원 15 · 선 2.5라 Figma(원 16)와 1px 차이. 스토리 `Loader/Sizes`에 base, `Popup/Loading` play에 계산 폭 20 확인(열림 애니메이션 scale 때문에 화면 폭이 아니라 `getComputedStyle`).
+- 확인(코드): typecheck · eslint(Loader·Popup) · `vitest related`(26파일 182 — 스토리 포함) · e2e `checkout`·`hosting-ticket`(30) 통과. Storybook 390폭 `Popup/Loading` 캡처를 Figma `772:1180`과 나란히 봄 — 다른 점 없음.
+- **결정(🤖 Claude 판단)**: Filter Chip `number`를 "펼침 없는 단일 선택 필터"로 읽음 — chevron·Badge가 없고 GUI에서 "필터_전체" 같은 이름으로 한 줄에 놓여서. 예매자 관리 GUI가 Ready가 되면 거기서 확인.
+- **Figma 코멘트**: 디자인 시스템 `758:1714` 다이얼로그 기존 코멘트(`1989698280`)에 답글 `1989722496` — 버튼 하나·로딩은 기존 팝업과 같음(스피너 16 vs 20 차이), 결제 요약 금액 줄에 텍스트 스타일이 없음(14 SemiBold·14 Regular, 합계 Body/lg + Bold). 처음 단 답글 `1989722317`("로딩 반영했다")은 범위 조정으로 사실이 아니게 돼 지웠다.
+
 ## P5b-V — 공연 상세 · 섹션 뷰어 · 호스트 연락처 시트 · 공유 · PC 두 열 (뷰)
 
 **상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것: 카카오 공유창·공유 디버거 실기기(D2 뒤, QA EVT-10 수동)
