@@ -145,7 +145,14 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
       // 카카오 값(+82 10-…)을 010-XXXX-XXXX로 바꿔 채운다(사용자 결정 2026-10-31)
       phoneNumber: '010-9876-5432',
     });
-    expect(form.consents).toEqual({ terms: false, privacy: false, marketing: false });
+    expect(form.consents).toEqual({
+      ageOver14: false,
+      terms: false,
+      privacy: false,
+      marketing: false,
+    });
+    // 만 14세 칸은 Q42 대기 — 그리지 않고 필수도 아니다
+    expect(form.consentFields).toEqual({ ageOver14: false });
     expect(form.canSubmit).toBe(false);
     expect(replace).not.toHaveBeenCalled();
     expect(readSessionFlag()).toBeNull();
@@ -178,7 +185,7 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
           marketingAgree: false,
           // 이용약관 체크 값(#850). 만 14세(ageOver14Confirmed)는 칸이 없어 키가 없다(Q42)
           termsAgreed: true,
-          agreementVersion: '2026-10',
+          agreementVersion: '2026-11',
         },
         credentials: 'include',
       },
@@ -204,11 +211,44 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     const sent = recordRequests();
     await act(() => form().submit());
     const [post] = await sent.list();
-    expect(post?.body).toMatchObject({ termsAgreed: true, agreementVersion: '2026-10' });
+    expect(post?.body).toMatchObject({ termsAgreed: true, agreementVersion: '2026-11' });
     expect(post?.body).not.toHaveProperty('ageOver14Confirmed');
     expect(form().error).toBe('failed');
     expect(form().submitting).toBe(false);
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it('전체 동의는 칸 없는 만 14세를 켜지 않는다 — 체크하지 않은 동의를 보내지 않는다', async () => {
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => form().setAllConsents(true));
+    expect(form().consents.ageOver14).toBe(false);
+    act(() => form().setAllConsents(false));
+    expect(form().consents).toEqual({
+      ageOver14: false,
+      terms: false,
+      privacy: false,
+      marketing: false,
+    });
+  });
+
+  it('만 14세를 체크하면 ageOver14Confirmed까지 실려 동의 강제 백엔드도 통과한다(#384)', async () => {
+    server.use(...authHandlers.registerAgreementEnforced);
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => {
+      form().setConsent('ageOver14', true);
+      form().setConsent('terms', true);
+      form().setConsent('privacy', true);
+    });
+    const sent = recordRequests();
+    await act(() => form().submit());
+    const [post] = await sent.list();
+    expect(post?.body).toMatchObject({
+      ageOver14Confirmed: true,
+      termsAgreed: true,
+      agreementVersion: '2026-11',
+    });
+    expect(form().error).toBeNull();
+    expect(replace).toHaveBeenCalledWith('/gate-check');
   });
 
   it('카카오 이메일이 없으면 칸 오류가 있고 제출할 수 없다. 적으면 제출된다', async () => {

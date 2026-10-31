@@ -7,7 +7,7 @@ import { isNotFound, isSessionLost } from '@/api/errors';
 import { myOrderQuery } from '@/api/order/queries';
 import {
   AsyncBoundary,
-  type AsyncBoundaryRejectedProps,
+  type ErrorFallbackProps,
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 
@@ -21,7 +21,7 @@ import { ORDER_RESULT_MESSAGE, orderResultKind } from './model/order-result';
 export function OrderCompleteView({ orderUuid, created }: { orderUuid: string; created: boolean }) {
   return (
     <main>
-      <AsyncBoundary ignoreError={isSessionLost} rejected={Rejected}>
+      <AsyncBoundary holdOn={isSessionLost} rejected={Rejected}>
         <OrderSummary orderUuid={orderUuid} created={created} />
       </AsyncBoundary>
     </main>
@@ -62,7 +62,7 @@ function OrderSummary({ orderUuid, created }: { orderUuid: string; created: bool
   );
 }
 
-function Rejected({ error, reset }: AsyncBoundaryRejectedProps) {
+function Rejected({ error, reset }: ErrorFallbackProps) {
   if (isNotFound(error)) {
     return <NotFoundView title="주문을 찾을 수 없어요" href="/orders" actionLabel="주문내역" />;
   }

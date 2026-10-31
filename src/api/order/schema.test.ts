@@ -234,11 +234,11 @@ describe('요청 스키마(P11/O-1) — 엄격', () => {
     ['입금자명 공백만', { depositorName: '   ' }],
     ['입금자명 21자', { depositorName: '가'.repeat(21) }],
     ['모르는 키', { couponId: 1 }],
-    ['동의 필드 없이 agreementVersion만', { agreementVersion: '2026-10' }],
+    ['동의 필드 없이 agreementVersion만', { agreementVersion: '2026-11' }],
     ['동의 필드가 있는데 agreementVersion 없음', { hostProvisionAgreed: true }],
     [
       '동의 필드 false(true일 때만 보낸다)',
-      { hostProvisionAgreed: false, agreementVersion: '2026-10' },
+      { hostProvisionAgreed: false, agreementVersion: '2026-11' },
     ],
     ['agreementVersion 51자', { hostProvisionAgreed: true, agreementVersion: 'v'.repeat(51) }],
   ])('%s → 실패', (_, patch) => {
@@ -248,13 +248,13 @@ describe('요청 스키마(P11/O-1) — 엄격', () => {
   // #840 동의 필드(선택) — 사용자가 체크한 것만 true로, 하나라도 있으면 agreementVersion을 같이
   it.each([
     ['동의 필드 없음(지금 화면 — Q42)', {}],
-    ['호스트 제공 동의 + 버전', { hostProvisionAgreed: true, agreementVersion: '2026-10' }],
+    ['호스트 제공 동의 + 버전', { hostProvisionAgreed: true, agreementVersion: '2026-11' }],
     [
       '두둥: 호스트 제공 동의 + 고지 확인 + 버전',
       {
         hostProvisionAgreed: true,
         dudoongTicketNoticeConfirmed: true,
-        agreementVersion: '2026-10',
+        agreementVersion: '2026-11',
       },
     ],
   ])('%s → 통과', (_, patch) => {

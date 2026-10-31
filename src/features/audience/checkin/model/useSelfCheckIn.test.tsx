@@ -7,7 +7,7 @@ import { checkInHandlers } from '@/api/__mocks__/check-in.handlers';
 import { CHECK_IN_TOKEN, resetTicketStore, TICKET_UUID } from '@/api/__mocks__/fixtures/my-ticket';
 import { server } from '@/api/__mocks__/server';
 import { SelfCheckInRequestSchema } from '@/api/check-in/schema';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -101,13 +101,12 @@ describe('셀프 체크인 — useSelfCheckIn(PQ-5)', () => {
   it.each([
     ['invalid-token', 'INVALID_QR', '잘못된 체크인 QR이에요'],
     [CHECK_IN_TOKEN.ended, 'EVENT_NOT_OPEN', '지금은 셀프 체크인을 할 수 없는 공연이에요'],
-  ])('%s → %s "%s"(전역 토스트 없음)', async (token, kind, title) => {
-    const { result, queryClient } = open(token);
+  ])('%s → %s "%s"(공용 토스트 없음)', async (token, kind, title) => {
+    const { result } = open(token);
     await waitFor(() =>
       expect(result.current.state).toMatchObject({ status: 'error', error: { kind, title } }),
     );
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it.each([[CHECK_IN_TOKEN.none, 'OTHER_EVENT', '이 공연에 입장할 수 있는 내 티켓이 없어요']])(

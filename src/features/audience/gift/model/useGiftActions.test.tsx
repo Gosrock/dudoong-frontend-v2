@@ -13,7 +13,7 @@ import { giftHandlers } from '@/api/__mocks__/gift.handlers';
 import { server } from '@/api/__mocks__/server';
 import { GiftMemoRequestSchema } from '@/api/gift/schema';
 import { myTicketQuery, myTicketsQuery } from '@/api/my-ticket/queries';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -38,8 +38,6 @@ function setup() {
   return { queryClient, wrapper };
 }
 
-const lastMutation = (qc: ReturnType<typeof createTestQueryClient>) =>
-  qc.getMutationCache().getAll().at(-1)!;
 const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET');
 
@@ -92,9 +90,9 @@ describe('선물 보내기 — useSendGift(PG-1)', () => {
     expect(await writes(sent)).toEqual([]);
   });
 
-  it('Gift_400_2(이미 선물 중) → T-2를 다시 읽어 기존 링크 화면, 전역 토스트 없음', async () => {
+  it('Gift_400_2(이미 선물 중) → T-2를 다시 읽어 기존 링크 화면, 공용 토스트 없음', async () => {
     const sent = recordRequests();
-    const { wrapper, queryClient } = setup();
+    const { wrapper } = setup();
     const { result } = renderHook(() => useSendGift(TICKET_UUID.giftPending), { wrapper });
     await act(() => result.current.send());
     await waitFor(() => expect(result.current.link).not.toBeNull());
@@ -105,8 +103,7 @@ describe('선물 보내기 — useSendGift(PG-1)', () => {
       existing: true,
     });
     expect(await sent.lines()).toContain(`GET /api/v2/me/tickets/${TICKET_UUID.giftPending}`);
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -135,8 +132,7 @@ describe('선물 보내기 — useSendGift(PG-1)', () => {
         expect(lines).toContain(reread);
       }
     }
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 });
 
@@ -277,22 +273,20 @@ describe('선물 반환 — useReturnGift(PG-6)', () => {
     ['IssuedTicket_404_1', '티켓 정보가 바뀌었어요', true],
   ] as const)('%s → "%s", gone=%s', async (code, message, gone) => {
     server.use(...giftHandlers.fails('return', code));
-    const { wrapper, queryClient } = setup();
+    const { wrapper } = setup();
     const { result } = renderHook(() => useReturnGift(TICKET_UUID.received), { wrapper });
     await act(() => result.current.giveBack());
     await waitFor(() => expect(result.current.error?.message).toBe(message));
     expect(result.current.gone).toBe(gone);
     expect(result.current.done).toBe(false);
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
-  it('표에 없는 코드(반환에 없는 Gift_400_1)는 전역 토스트로 간다', async () => {
+  it('표에 없는 코드(반환에 없는 Gift_400_1)는 공용 토스트로 간다', async () => {
     server.use(...giftHandlers.fails('return', 'Gift_400_1'));
-    const { wrapper, queryClient } = setup();
+    const { wrapper } = setup();
     const { result } = renderHook(() => useReturnGift(TICKET_UUID.approved), { wrapper });
     await act(() => result.current.giveBack());
-    const m = lastMutation(queryClient);
-    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(true);
+    expect(errorToast).toHaveBeenCalledWith(expect.any(String), 'mutation:Gift_400_1');
   });
 });

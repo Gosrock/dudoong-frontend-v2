@@ -105,7 +105,7 @@ export function toUpdateHostBody(
   };
 }
 
-/** 화면이 처리하는 PH-4 코드(patterns §24 P10b). 그 밖(400 `BAD_REQUEST`·403 등)은 전역 토스트 */
+/** 화면이 처리하는 PH-4 코드(patterns §24 P10b). 그 밖(400 `BAD_REQUEST`·403 등)은 `handleError` 공용 토스트 */
 export const HOST_SETTINGS_ERROR_MESSAGE = {
   /** 연락처 형식 — 연락처 영역 전체 오류, 연락처를 고치면 지운다 */
   HOST_400_16: HOST_CONTACTS_SERVER_ERROR,
@@ -113,7 +113,7 @@ export const HOST_SETTINGS_ERROR_MESSAGE = {
   HOST_400_17: '이미지를 다시 올려 주세요',
 } as const;
 
-/** 이미지 자리의 업로드 오류(`src/api/upload.ts`가 만드는 코드). 발급의 429·네트워크 등은 전역 토스트 */
+/** 이미지 자리의 업로드 오류(`src/api/upload.ts`가 만드는 코드). 발급의 429·네트워크 등은 공용 토스트(handleError) */
 export const HOST_IMAGE_ERROR_MESSAGE = {
   [UPLOAD_INVALID_EXTENSION]: 'JPG·PNG 이미지만 올릴 수 있어요',
   [UPLOAD_PUT_FAILED]: '이미지를 올리지 못했어요. 다시 시도해 주세요',

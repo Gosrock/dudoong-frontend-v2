@@ -1,6 +1,6 @@
 'use client';
 
-import type { AsyncBoundaryRejectedProps } from '@/ui/components/AsyncBoundary/AsyncBoundary';
+import type { ErrorFallbackProps } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { ForbiddenView } from '@/ui/components/ForbiddenView/ForbiddenView';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 
@@ -20,7 +20,7 @@ export function HostingNotFound() {
  * 호스팅 센터 하위 화면의 `<AsyncBoundary rejected={HostingAccessRejected}>`. 조회 에러를 판정해 403 → 공용 403 안내,
  * 404 → 공용 404 안내, 그 밖 → 다시 시도(patterns §11). 문구·모양은 P10a-V에서 정한다.
  */
-export function HostingAccessRejected({ error, reset }: AsyncBoundaryRejectedProps) {
+export function HostingAccessRejected({ error, reset }: ErrorFallbackProps) {
   const access = hostingAccessOfError(error);
   if (access === 'forbidden') return <HostingForbidden />;
   if (access === 'notFound') return <HostingNotFound />;

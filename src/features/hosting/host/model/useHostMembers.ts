@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import {
   removeHostMemberMutation,
   transferMasterMutation,
@@ -14,6 +14,7 @@ import type { AssignableHostRole } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
 import { hostingAccessOfRole } from '@/features/hosting/access/model/hosting-access';
 import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
+import { type Result, tryCatch } from '@/utils/try-catch';
 
 import { applyMembers, invalidateHostSummary, invalidateMyRoleQueries } from './host-cache';
 import {
@@ -34,7 +35,7 @@ import {
  * - 변경 응답(변경 뒤 멤버 전체 목록)을 GH-6 키에 그대로 넣는다. 삭제는 멤버 수가 바뀌어 GH-3 두 키도 무효화한다
  * - 양도(PH-12) 뒤에는 `myRole`을 주는 쿼리(GH-1 · GH-3 viewer · GE-1 · GE-3 · GM-1)를 무효화한다 — viewer가 다시 오면 버튼이 매니저
  *   기준으로 바뀐다. 다른 멤버의 역할 변경(PH-10)은 내 `myRole`을 바꾸지 않아 무효화하지 않는다
- * - 에러: `HOST_404_2`(이미 없는 멤버) → GH-6을 다시 읽고 `actionError`. 그 밖(403·`HOST_400_5`·`10`·`11`·`12` — 버튼을 미리 숨긴다)은 전역 토스트
+ * - 에러: `HOST_404_2`(이미 없는 멤버) → GH-6을 다시 읽고 `actionError`. 그 밖(403·`HOST_400_5`·`10`·`11`·`12` — 버튼을 미리 숨긴다)은 공용 토스트(handleError)
  * - 한 번에 한 변경만(`pendingUserId`) — 요청 중에는 다른 행 동작도 보내지 않는다
  */
 export function useHostMembers(hostId: string) {
@@ -48,28 +49,12 @@ export function useHostMembers(hostId: string) {
   const [pendingUserId, setPendingUserId] = useState<number | null>(null);
   const inflight = useRef(false);
 
-  const codes = useMemo(
-    () =>
-      handleCodes({
-        HOST_404_2: () => {
-          setActionError(MEMBER_ACTION_ERROR_MESSAGE.HOST_404_2);
-          void queryClient.invalidateQueries({
-            queryKey: hostMembersQuery(hostId).queryKey,
-            exact: true,
-          });
-        },
-      }),
-    [hostId, queryClient],
-  );
-
   const roleMutation = useMutation({
     ...updateHostMemberRoleMutation(hostId),
-    ...codes,
     onSuccess: (list) => applyMembers(queryClient, hostId, list),
   });
   const removeMutation = useMutation({
     ...removeHostMemberMutation(hostId),
-    ...codes,
     onSuccess: async (list) => {
       applyMembers(queryClient, hostId, list);
       await invalidateHostSummary(queryClient, hostId);
@@ -77,29 +62,36 @@ export function useHostMembers(hostId: string) {
   });
   const transferMutation = useMutation({
     ...transferMasterMutation(hostId),
-    ...codes,
     onSuccess: async (list) => {
       applyMembers(queryClient, hostId, list);
       await invalidateMyRoleQueries(queryClient, hostId);
     },
   });
 
-  /** 한 번에 하나만. 성공하면 `true`. 표에 없는 실패는 전역 토스트 */
-  const run = useCallback(async (userId: number, call: () => Promise<unknown>) => {
-    if (inflight.current) return false;
-    inflight.current = true;
-    setPendingUserId(userId);
-    setActionError(null);
-    try {
-      await call();
-      return true;
-    } catch {
-      return false;
-    } finally {
+  /** 한 번에 하나만. 성공하면 `true`. 표에 없는 실패는 공용 토스트 */
+  const run = useCallback(
+    async (userId: number, call: () => Promise<Result<unknown>>) => {
+      if (inflight.current) return false;
+      inflight.current = true;
+      setPendingUserId(userId);
+      setActionError(null);
+      const [, error] = await call();
       inflight.current = false;
       setPendingUserId(null);
-    }
-  }, []);
+      if (!error) return true;
+      handleError(error, {
+        HOST_404_2: () => {
+          setActionError(MEMBER_ACTION_ERROR_MESSAGE.HOST_404_2);
+          void queryClient.invalidateQueries({
+            queryKey: hostMembersQuery(hostId).queryKey,
+            exact: true,
+          });
+        },
+      });
+      return false;
+    },
+    [hostId, queryClient],
+  );
 
   const rows = useMemo(
     () =>
@@ -128,17 +120,17 @@ export function useHostMembers(hostId: string) {
     /** 역할 변경(PH-10, 마스터만). 행이 허용한 역할만 보낸다 */
     changeRole: (userId: number, role: AssignableHostRole) =>
       findActions(userId)?.changeRoleTo === role
-        ? run(userId, () => roleMutation.mutateAsync({ userId, role }))
+        ? run(userId, () => tryCatch(roleMutation.mutateAsync({ userId, role })))
         : Promise.resolve(false),
     /** 삭제(DH-11) */
     remove: (userId: number) =>
       findActions(userId)?.remove
-        ? run(userId, () => removeMutation.mutateAsync(userId))
+        ? run(userId, () => tryCatch(removeMutation.mutateAsync(userId)))
         : Promise.resolve(false),
     /** 마스터 양도(PH-12) — 확인은 V */
     transferMaster: (userId: number) =>
       findActions(userId)?.transfer
-        ? run(userId, () => transferMutation.mutateAsync({ userId }))
+        ? run(userId, () => tryCatch(transferMutation.mutateAsync({ userId })))
         : Promise.resolve(false),
     /** 요청 중인 멤버 */
     pendingUserId,

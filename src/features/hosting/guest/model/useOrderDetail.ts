@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getErrorCode } from '@/api/errors';
 import { eventManageQuery } from '@/api/event/queries';
-import { handleCodes } from '@/api/handle-codes';
+import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import {
   approveOrderMutation,
   cancelHostOrderMutation,
@@ -16,6 +16,7 @@ import { hostOrderQuery } from '@/api/order/queries';
 import type { HostOrderDetail } from '@/api/order/schema';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import { can } from '@/features/shared/permission/model/can';
+import { type Result, tryCatch } from '@/utils/try-catch';
 
 import { applyChangedOrder, invalidateGuestLists, refetchOrder } from './guest-cache';
 import {
@@ -118,36 +119,33 @@ export function useOrderDetail(
     [eventId, orderUuid, queryClient],
   );
 
-  const approveCodes = useMemo(
-    () =>
-      handleCodes({
-        Ticket_Item_400_1: () => setActionError(APPROVE_ERROR_MESSAGE.Ticket_Item_400_1),
-        Ticket_Item_400_6: () => setActionError(APPROVE_ERROR_MESSAGE.Ticket_Item_400_6),
-        Order_400_14: () => setActionError(APPROVE_ERROR_MESSAGE.Order_400_14),
-        Order_400_3: () => reread(APPROVE_ERROR_MESSAGE.Order_400_3, false),
-        Event_400_5: () => reread(APPROVE_ERROR_MESSAGE.Event_400_5, true),
-        Event_400_6: () => reread(APPROVE_ERROR_MESSAGE.Event_400_6, true),
-        Order_404_1: missing,
-      }),
+  const approveCodes = useMemo<ErrorCodeHandlers>(
+    () => ({
+      Ticket_Item_400_1: () => setActionError(APPROVE_ERROR_MESSAGE.Ticket_Item_400_1),
+      Ticket_Item_400_6: () => setActionError(APPROVE_ERROR_MESSAGE.Ticket_Item_400_6),
+      Order_400_14: () => setActionError(APPROVE_ERROR_MESSAGE.Order_400_14),
+      Order_400_3: () => reread(APPROVE_ERROR_MESSAGE.Order_400_3, false),
+      Event_400_5: () => reread(APPROVE_ERROR_MESSAGE.Event_400_5, true),
+      Event_400_6: () => reread(APPROVE_ERROR_MESSAGE.Event_400_6, true),
+      Order_404_1: missing,
+    }),
     [missing, reread],
   );
-  const withdrawCodes = useMemo(
-    () =>
-      handleCodes({
-        Order_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_5, false),
-        Order_400_9: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_9, true),
-        Event_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Event_400_5, true),
-        Order_400_18: () => setRefuseServerError(WITHDRAW_ERROR_MESSAGE.Order_400_18),
-        Order_404_1: missing,
-      }),
+  const withdrawCodes = useMemo<ErrorCodeHandlers>(
+    () => ({
+      Order_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_5, false),
+      Order_400_9: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_9, true),
+      Event_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Event_400_5, true),
+      Order_400_18: () => setRefuseServerError(WITHDRAW_ERROR_MESSAGE.Order_400_18),
+      Order_404_1: missing,
+    }),
     [missing, reread],
   );
-  const refundCodes = useMemo(
-    () =>
-      handleCodes({
-        Order_400_17: () => reread(REFUND_ERROR_MESSAGE.Order_400_17, false),
-        Order_404_1: missing,
-      }),
+  const refundCodes = useMemo<ErrorCodeHandlers>(
+    () => ({
+      Order_400_17: () => reread(REFUND_ERROR_MESSAGE.Order_400_17, false),
+      Order_404_1: missing,
+    }),
     [missing, reread],
   );
 
@@ -155,23 +153,19 @@ export function useOrderDetail(
     applyChangedOrder(queryClient, eventId, d, { ticketAvailabilityChanged });
   const approveM = useMutation({
     ...approveOrderMutation(eventId),
-    ...approveCodes,
     onSuccess: onChanged(true),
   });
   const refuseM = useMutation({
     ...refuseOrderMutation(eventId),
-    ...withdrawCodes,
     // 거절도 승인 대기 수량이 빠져 잔여·구매 가능·T-1 잠금이 바뀐다(계약 대조 2026-10-31)
     onSuccess: onChanged(true),
   });
   const cancelM = useMutation({
     ...cancelHostOrderMutation(eventId),
-    ...withdrawCodes,
     onSuccess: onChanged(true),
   });
   const refundM = useMutation({
     ...completeRefundMutation(eventId),
-    ...refundCodes,
     onSuccess: onChanged(false),
   });
 
@@ -181,20 +175,21 @@ export function useOrderDetail(
   );
 
   const run = useCallback(
-    async (key: OrderActionKey, call: (uuid: string) => Promise<unknown>) => {
+    async (
+      key: OrderActionKey,
+      call: (uuid: string) => Promise<Result<unknown>>,
+      codes: ErrorCodeHandlers,
+    ) => {
       const allowed = actions.some((a) => a.key === key && a.enabled);
       if (!orderUuid || pending !== null || !allowed) return false;
       setPending(key);
       setActionError(null);
-      try {
-        await call(orderUuid);
-        return true;
-      } catch {
-        // 표의 코드는 handleCodes가, 그 밖은 전역 토스트가 맡는다
-        return false;
-      } finally {
-        setPending(null);
-      }
+      const [, error] = await call(orderUuid);
+      setPending(null);
+      if (!error) return true;
+      // 표의 코드는 화면이, 그 밖은 공용 토스트
+      handleError(error, codes);
+      return false;
     },
     [orderUuid, pending, actions],
   );
@@ -224,7 +219,7 @@ export function useOrderDetail(
     missingNotice,
     dismissMissingNotice: () => setMissingNotice(null),
 
-    approve: () => run('approve', (uuid) => approveM.mutateAsync(uuid)),
+    approve: () => run('approve', (uuid) => tryCatch(approveM.mutateAsync(uuid)), approveCodes),
 
     refuseForm: {
       reasonType: refuse.reasonType,
@@ -254,7 +249,11 @@ export function useOrderDetail(
         return false;
       }
       const body = toRefuseBody({ ...refuse, reasonType: refuse.reasonType });
-      return run('refuse', (uuid) => refuseM.mutateAsync({ orderUuid: uuid, body }));
+      return run(
+        'refuse',
+        (uuid) => tryCatch(refuseM.mutateAsync({ orderUuid: uuid, body })),
+        withdrawCodes,
+      );
     },
 
     cancelReason,
@@ -269,9 +268,14 @@ export function useOrderDetail(
     cancel: async () => {
       if (cancelError) return false;
       const body = toCancelBody(cancelReason);
-      return run('cancel', (uuid) => cancelM.mutateAsync({ orderUuid: uuid, body }));
+      return run(
+        'cancel',
+        (uuid) => tryCatch(cancelM.mutateAsync({ orderUuid: uuid, body })),
+        withdrawCodes,
+      );
     },
 
-    completeRefund: () => run('completeRefund', (uuid) => refundM.mutateAsync(uuid)),
+    completeRefund: () =>
+      run('completeRefund', (uuid) => tryCatch(refundM.mutateAsync(uuid)), refundCodes),
   };
 }

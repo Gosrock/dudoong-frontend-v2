@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { createEventMutation } from '@/api/event/mutations';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError } from '@/api/handle-error';
 import { myHostsQuery } from '@/api/host/queries';
 import { flattenPages } from '@/api/shared/page';
 import { useCreateHost } from '@/features/hosting/host/model/useCreateHost';
@@ -37,7 +37,7 @@ import { SCHEDULE_ERROR, type ScheduleInput, toScheduleRange } from './schedule'
  * - 만들기(PE-2): 성공하면 GE-1·GH-1을 무효화하고 대시보드로 `replace`(`?created=1` — 토스트 상태, design-requests Q7 기본안)
  * - `?step=2`인데 고른 호스트가 없으면(새로고침 등 — 지역 상태가 사라진다) Step1로 `replace`
  * - 에러: `Event_400_2` → 일정 칸 오류(FE가 다음 날로 계산하므로 정상 흐름에서는 나지 않는다). 검증 실패(400 `BAD_REQUEST` —
- *   시작이 그사이 지남 등)·권한(403)은 전역 토스트
+ *   시작이 그사이 지남 등)·권한(403)은 공용 토스트(handleError)
  */
 export function useNewEventWizard({ now = () => new Date() }: { now?: () => Date } = {}) {
   const router = useRouter();
@@ -94,17 +94,9 @@ export function useNewEventWizard({ now = () => new Date() }: { now?: () => Date
     [values],
   );
 
-  const codes = useMemo(
-    () => handleCodes({ Event_400_2: () => setScheduleServerError(SCHEDULE_ERROR.Event_400_2) }),
-    [],
-  );
   const mutation = useMutation({
     ...createEventMutation(),
-    ...codes,
-    onSuccess: async ({ eventId }) => {
-      await invalidateAfterCreate(queryClient);
-      router.replace(createdEventHref(eventId));
-    },
+    onSuccess: () => invalidateAfterCreate(queryClient),
   });
 
   const submit = useCallback(async () => {
@@ -112,11 +104,18 @@ export function useNewEventWizard({ now = () => new Date() }: { now?: () => Date
     if (!selectedHost || hasCreateEventErrors(errors) || inflight.current) return;
     inflight.current = true;
     setScheduleServerError(null);
-    // 성공하면 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다. 표에 없는 실패는 전역 토스트
-    await mutation.mutateAsync(toCreateEventBody(selectedHost.hostId, values)).catch(() => {
+    try {
+      const created = await mutation.mutateAsync(toCreateEventBody(selectedHost.hostId, values));
+      // 성공하면 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다
+      router.replace(createdEventHref(created.eventId));
+    } catch (e) {
       inflight.current = false;
-    });
-  }, [errors, mutation, selectedHost, values]);
+      // 표에 없는 실패는 공용 토스트
+      handleError(e, {
+        Event_400_2: () => setScheduleServerError(SCHEDULE_ERROR.Event_400_2),
+      });
+    }
+  }, [errors, mutation, router, selectedHost, values]);
 
   return {
     step,
