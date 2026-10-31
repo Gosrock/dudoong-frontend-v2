@@ -9,8 +9,12 @@
  * 강제는 v1 호스트 어드민 가입 수정 배포 직후 켜진다(v1 Front #384, 2026-10-31) — 칸보다 먼저 켜지면 v2 가입·주문·두둥티켓 생성이 400.
  */
 
-/** 화면에 보여 준 동의 문구 버전. 약관 문구가 바뀌면 올린다(legal-copy 머리말, api-contract §4). v2는 앱 하나라 상수 하나 */
-export const AGREEMENT_VERSION = '2026-10';
+/**
+ * 화면에 보여 준 동의 문구 버전. 약관 문구가 바뀌면 올린다(legal-copy 머리말, api-contract §4). v2는 앱 하나라 상수 하나.
+ * `'2026-10'`(2026-10-25 전면 개정) → `'2026-11'`(제19조②·제27조③·제29조③1호 일부 개정, 2026-11-07 시행 — v1 Front #385,
+ * 사용자 결정 2026-10-31). v1은 #385에서 올리지 않아 v1 값은 `'2026-10'` 그대로다.
+ */
+export const AGREEMENT_VERSION = '2026-11';
 /** `AgreementLog.VERSION_MAX_LENGTH` */
 export const AGREEMENT_VERSION_MAX = 50;
 

@@ -159,7 +159,7 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
       name: '새내기',
       marketingAgree: true,
       termsAgreed: true,
-      agreementVersion: '2026-10',
+      agreementVersion: '2026-11',
     });
   });
 
@@ -169,7 +169,7 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
       '이용약관 체크 → termsAgreed·agreementVersion',
       false,
       true,
-      { termsAgreed: true, agreementVersion: '2026-10' },
+      { termsAgreed: true, agreementVersion: '2026-11' },
     ],
     [
       '만 14세 + 이용약관 체크 → 둘 다 + agreementVersion',
