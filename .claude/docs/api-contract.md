@@ -386,7 +386,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
   - PQ-2 검사 순서: 본문 `@NotBlank @Size(max = 64)`(400 `BAD_REQUEST`) → `@HostRolesAllowed(GUEST)`(없는·지운 공연 404 `Event_404_1`, 비멤버 403 `HOST_400_2`) → 공연 상태(`Event_400_27` "입장 처리를 할 수 없는 공연 상태입니다.") → 판정. 판정은 티켓 행 잠금 후 `classify`: 없음·다른 공연 → `OTHER_EVENT`(티켓 null) → 취소 `CANCELED` → 입장 후 `ALREADY_ENTERED` → 선물 대기 `GIFT_PENDING` → `ENTERED`(입장 처리). 선물 수락으로 uuid가 바뀐 옛 QR은 `OTHER_EVENT`.
   - GQ-4 `{token, qrPath}` — 토큰은 32바이트 base64url 43자, 처음 읽을 때 만든다. **공연 상태를 보지 않는다**(없는·지운 공연만 404) — 셀프 체크인이 되는지는 화면이 GE-3 `status`로 판정한다(P13b). `qrPath` = `/check-in?token=` + URL 인코딩 토큰.
   - 셀프 체크인 판정은 `status == OPEN`만 본다(표시 상태가 아니다) — 종료 시각이 지났어도 OPEN이면 된다.
-  - **정산중(CALCULATING)이 되는 길**: v2에는 없다. v1 `PATCH` 공연 상태(`UpdateEventStatusUseCase`)로만 된다. 자동 만료 배치(`EventExpiration` → `closeExpiredEventsEndAtBefore`)는 종료된 OPEN 공연을 CALCULATING → CLOSED로 한 번에 바꿔 **CLOSED로 저장**한다 — 배치가 돈 뒤에는 호스트 스캔도 `Event_400_27`. 배치 주기는 저장소에 없다(backend-questions 후보 — P13b-L 보고).
+  - **정산중(CALCULATING)이 되는 길**: v2에는 없다. v1 `PATCH` 공연 상태(`UpdateEventStatusUseCase`)로만 된다. 자동 만료 배치(`EventExpiration` → `closeExpiredEventsEndAtBefore`)는 종료된 OPEN 공연을 CALCULATING → CLOSED로 한 번에 바꿔 **CLOSED로 저장**한다 — 배치가 돈 뒤에는 호스트 스캔도 `Event_400_27`. 배치 주기는 Deploy `infra/batch.yml` `EventExpirationSchedule` — 매일 19:00~22:30 KST 30분마다, 실행 시각 기준(2026-10-31 확인). 22:30 뒤에 끝나는 공연은 다음 날 19:00까지 OPEN이다. 운영에서 켜져 있는지는 backend-questions B7.
 
 ### 운영 (F9)
 
