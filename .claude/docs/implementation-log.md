@@ -1596,6 +1596,51 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **검사**: typecheck · eslint(바꾼 파일) · `pnpm qa host-home` 14/14 · e2e `host-home`·`seo`·`hosting`·`notifications` 92/92(마크업을 바꿔도 선택자 그대로 통과). 전체 게이트는 PR CI
 **범위 밖(고치지 않음)**: dev mock 이미지 주소(`MOCK_IMAGE_ORIGIN`)가 dev·QA에서 깨져 보이는 것(공용 fixture). 공연준비 홈 `eventChipOf`와 칩 대응이 두 벌(`features/hosting` ↔ `features/shared` import 금지) — 셋째가 생기면 `src/ui`·`api` 쪽으로
 
+## P8-V — 티켓탭 · 입장 QR 층 · 선물 취소/반환 확인 (뷰)
+
+**상태**: done (2026-11-01, PR #68) — 스킬 `gui-implement`. 남은 것: 실기기 스와이프·QR 판독(QA TIX-10 수동, D2 뒤)
+**근거(gui-screens §0)**: 전부 **GUI** — Ready 섹션 `908:3276` 티켓페이지 GUI 적용(`figma_nodes.py ready --contains`로 확인, GUI lastModified 2026-10-31T19:18Z 그대로). 프레임 12장: 사용가능 3종 이상 `908:10027` · 한 주문 2장 이상 `908:11275`·`908:22658` · 입장 QR `908:11335` · 선물중 `908:16571` · 선물 취소 확인 `908:21252` · 입장완료 `908:16734` · 선물 수신자 `908:23011` · 반송 확인 `908:23087` · 승인거절 `939:25571` · 승인대기 `939:25698`(#30) · 공연중 `939:25755` · 티켓 없음 `908:3137`. 선물하기 보내기·링크 생성·취소 완료 프레임은 P8b-V 몫. 메모 `908:11393`(#29 근거)
+**디자인 이슈**: #29(`Design: 수정` — 정렬 라벨 "공연임박순" 삭제 · 유료옵션 금액 표시 없음) · #30(`Design: 신규 화면` — 승인대기 칩 cyan) 반영 → `Closes`. #19(선물하기)는 P8b-V. #61(DS Filter Chip)은 이 화면이 쓰지 않음
+**디자인 시스템**: 기준 `2416576694112599706`(10-31T19:15Z) 그대로 — 바뀐 것 없음
+
+**변경**
+- `features/audience/ticket/TicketTabView.tsx`(P8-L 최소 마크업 → GUI): 숨은 h1 · 공지 바(새 승인 → `role=status` NEW + [티켓보기 →]로 그 주문 카드까지 넘김, 없으면 Notice 기본 문구) · "탭하여 입장 QR 보기"(지금 카드가 열 수 있을 때만 — 승인대기·거절 프레임에 없음) · 묶음 카드 가로 캐러셀 · 지금 카드의 공연명(`title`)·일시(`2026.01.01.화 18:00`)·티켓 이름·[주문상세] · 빈 상태(`no-ticket` + "이용 가능한 티켓이 없어요" + [공연 둘러보기] → `/`)
+- `ui/useSnapCarousel.ts`: CSS scroll-snap 캐러셀 — 가운데에 가장 가까운 칸이 지금 칸(스크롤 위치만 읽음, 화면 크기 JS 분기 없음), `scrollTo(i)`
+- `ui/PosterCard.tsx`: 포스터 294×416 모서리 16 · 그림자 · 한 주문 2장 이상이면 뒤에 4.7° 기운 카드(포스터 + 검정 40%) · 오른쪽 위 상태 칩. 가운데가 아닌 카드를 누르면 넘기기만
+- `ui/ticket-chips.tsx`: 상태별 개수 칩(`tag_v2` sm · round · weak) — tone → 색, 상태가 섞이거나 2장 이상이면 "승인완료 2". 공연 진행 중이면 "공연중 ON AIR"(violet fill)가 승인완료 칩 자리
+- `ui/TicketQrLayer.tsx`: 입장 QR 층(QR 전체화면) — Radix Dialog(포커스 가둠 · Esc) + `useCloseOnBack` + 바깥 탭 닫기(카드·버튼은 `data-keep-open`, 포털 시트 안 클릭은 무시). 카드가 티켓탭의 같은 자리에 오도록 위 여백을 연 쪽이 잰다. 묶음 안 티켓을 넘김(`(n/m)`, 이웃은 #DDDCDA 빈 카드) — **지금 칸의 티켓만 T-2**(또는 선물 완료 GG-7a). 뒷면: QR(`QrCode` 재사용, 220) + 티켓 번호(검정 120×30) + "입장 QR을 찍어주세요" · 선물중 그림 + "선물중인 티켓" · 입장 완료 회색 티켓 그림 + 회색 번호 + "입장 완료 티켓" · 그 밖은 P8-L 안내 문구. 층 아래 공연 정보는 밝은 글자
+- `ui/TicketGiftButton.tsx`: 층 왼쪽 위 DS Button secondary md 아이콘 — `canGift` 선물(시트 안에 P8b-L 최소 마크업 `SendGiftSection` — 보내기 GUI는 P8b-V) · 대기 중 선물 → [선물 취소](공연 끝난 선물은 "회수") 확인 시트 · `canReturn` → [선물 반환] 확인 시트 · 그 밖 꺼짐. 시트는 DS `BottomSheet` + Primary lg
+- `ui/EventInfo.tsx` · `ui/TicketTab.css.ts`. `api/shared/date.ts` `formatKstDotDateWeekdayTime` 추가
+- 테스트: e2e `tickets.spec` 선택자만(카드 → `입장 QR 보기` → `dialog "입장 QR"`, QR은 `data-value`, 선물 보내기는 시트 안). QA 새 `tickets.qa.ts` TIX-1~9 — **13/13**(수동 1). e2e tickets · notifications · seo · gift-landing 42/42
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| `state` 11값 렌더 | QA TIX-1 — 상태마다 묶음 하나(T-1 mock)로 11값의 칩 문구와(티켓 있는 9값은) 카드 뒷면을 모두 찍음 |
+| 카드 스와이프(N/M 페이저) · 상태별 개수 배지 · 공지 바 · QR 전체화면 | TIX-2(공지 바 · #29) · TIX-3([티켓보기 →] · 겹친 카드 · 개수 칩) · TIX-4((1/3)→(2/3)→(3/3) · 바깥 탭 닫기 · T-2는 연 티켓만) · TIX-5/6(선물 취소 · 반환) · TIX-7(빈) · TIX-8(실패) · TIX-9(PC) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`, 390 · 1280)** — 카드 캐러셀(`908:10027`·`908:11275`과 카드 294/이웃 200 · 간격 24 · 칩 위치 같음) · 입장 QR(`908:11335` — 선물 버튼 46 · 뒷면 · 번호 · 문구 · 공연 정보 흰 글자 같음) · 선물중(`908:16571`) · 선물 취소 시트(`908:21252`, DS 시트라 제목 왼쪽 정렬). 고친 것: 캐러셀 칸 위치 기준(`position: relative`), 넘길 때 캐러셀이 다시 마운트되던 것(상세 조회를 캐러셀 밖으로), 층이 시트를 덮던 z-index(층을 시트와 같은 단), 층이 열리면 티켓탭 힌트 숨김
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 상태 칩 색 — Figma에 있는 승인완료 green · 승인대기 cyan · 승인거절 red 밖의 상태는 P8-L tone별로(선물 대기중·받은 선물 purple, 환불 요청 cyan, 선물 만료·취소됨 red, 선물완료·입장 완료·환불 완료·UNKNOWN grey) / L의 tone · `tag_v2` 6색 / `ticket-chips.tsx` `TONE_COLOR`
+2. 상태가 섞인 묶음 · 2장 이상은 칩을 위아래로 쌓고 개수를 붙임(Figma는 칩 하나 · 와이어 `455:8958` "승인완료 ③") / `TicketStateChips` `showCount`
+3. 공연중 ON AIR 칩은 `event.displayStatus === 'ONGOING'`일 때 승인완료 칩 자리(다른 상태 칩은 남김) / 와이어 "공연중"은 공연 표시 상태(plan P8) / `TicketStateChips`
+4. 공지 바는 T-3이 주는 두 가지만(Q55 기본안) — 승인대기·거절·공연중 문구는 서버 값이 없어 그리지 않음 / Figma 코멘트 `939:29864` / `TicketTabView` 공지 바
+5. 입장 완료 티켓은 `qrValue`가 와도 QR 대신 Figma 회색 뒷면(`908:16734`) — P8-L은 QR을 그리게 했다 / `BackArt`
+6. 뒷면이 Figma에 없는 상태(선물 만료 · 선물완료 · 취소 · 환불 · 삭제된 공연)는 그림(선물 계열 `gift`, 나머지 `no-ticket`) + 번호 + P8-L 안내 문구, 불러오는 중은 스피너 / Figma 코멘트 `908:16587` / `BackFace`
+7. 공연이 끝난 대기 중 선물(GIFT_EXPIRED)의 확인 시트 문구는 "취소" → "회수" / P8-L 안내 문구("선물을 회수해 주세요") / `TicketGiftButton` `verb`
+8. [선물하기]는 P8b-V 전까지 바텀시트 안에 P8b-L 최소 마크업(메모 · 선물하기 · 링크) / 작업 지시 "자리만" + e2e 선물 흐름 유지 / P8b-V가 시트 내용을 GUI `908:12032`로 바꾼다
+9. 포스터 없음 · 깨짐 = 빈 상자(Q26 기본안 · P5a ConcertCard와 같게) / `PosterCard`
+10. PC(1024~) = 모바일 배치 그대로 가운데(공지 바 · 정보 390, 캐러셀은 화면 폭 전체) / 와이어 `671:7048`은 카드 3장 가로 — 디자인 없음 코멘트 `908:11286` / `TicketTab.css`
+11. 공지 바 #202020(직접 값) → 가장 가까운 의미 색 Neutral 700(`surface.inverseHover`), 이웃 카드 · 입장 완료 번호 #DDDCDA → `interaction.disabled`(Neutral 200) / `TicketTab.css`
+12. 입장 QR 층 = Radix Dialog(포커스 · Esc) + 뒤로가기 닫기, 바깥 탭 닫기는 카드·버튼 밖 아무 곳. 층은 시트와 같은 z 단(선물 시트가 위에) / patterns §6 · `TicketQrLayer`
+13. [공연 둘러보기] → `/`(공연홈) / Figma 목적지 없음 — P7 주문 완료와 같은 홈 / `TicketTabView` 빈 상태
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · DS 컴포넌트로 구현]` GUI `908:21340` 선물 취소·반환 확인 시트(`1989727899`) / `[개발 · 디자인 없음]` `939:29864` 공지 바 변형(`1989727892`) · `908:22655` 상태 칩 나머지 색 · 여러 상태(`1989727894`) · `908:16587` 뒷면 나머지 상태(`1989727895`) · `908:11286` PC 폭(`1989727896`). `FIGMA-CUSTOM:` 5줄(→ DS 2 · 커스텀 3)
+
+**범위 밖(고치지 않음)**: Kartrider 글꼴 미탑재(공연명이 Pretendard), DS `EmptyState` 문구가 Figma(옅은 회색 · 큰 글자)보다 진함(공용 컴포넌트), DS `BottomSheet` 제목 왼쪽 정렬 · 손잡이 화살표(공용 — 코멘트), mock 포스터 주소가 안 열려 캡처의 카드가 빈 상자(목 데이터), 층이 열려도 티켓탭의 겹친 카드 모서리가 딤 아래로 비침(Figma 입장 QR 프레임에는 겹친 카드가 없음 — 층 아래 원래 화면)
+
 ## P10b-V — 호스트 설정 · 멤버 관리 · 초대 · 역할 변경 · 양도 · 권한 가이드 (뷰)
 
 **상태**: done (2026-11-01, PR #69) — 스킬 `gui-implement`. 남은 것 없음(그려지지 않은 상태는 Figma 코멘트로 물음). 이 PR로 그룹 D(관객 조회) 끝
