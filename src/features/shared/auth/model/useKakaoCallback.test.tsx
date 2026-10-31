@@ -142,7 +142,8 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     expect(form.values).toEqual({
       name: kakaoProfiles.new.name,
       email: kakaoProfiles.new.email,
-      phoneNumber: kakaoProfiles.new.phoneNumber,
+      // 카카오 값(+82 10-…)을 010-XXXX-XXXX로 바꿔 채운다(사용자 결정 2026-10-31)
+      phoneNumber: '010-9876-5432',
     });
     expect(form.consents).toEqual({ terms: false, privacy: false, marketing: false });
     expect(form.canSubmit).toBe(false);
@@ -171,7 +172,7 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
         body: {
           idToken: 'kakao-id-new',
           email: 'newbie@example.com',
-          phoneNumber: '+82 10-9876-5432',
+          phoneNumber: '010-9876-5432',
           profileImage: 'http://k.kakaocdn.net/dn/mock/new.jpg',
           name: '새내기',
           marketingAgree: false,
@@ -228,6 +229,20 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
       phoneNumber: null,
     });
     expect(replace).toHaveBeenCalledWith('/gate-check');
+  });
+
+  it('전화번호는 입력하는 대로 하이픈이 들어가고, 모양이 틀리면 칸 오류로 제출할 수 없다', async () => {
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => form().setAllConsents(true));
+    act(() => form().setValue('phoneNumber', '0101234'));
+    expect(form().values.phoneNumber).toBe('010-1234');
+    expect(form().errors).toEqual({ phoneNumber: 'phoneFormat' });
+    expect(form().canSubmit).toBe(false);
+    act(() => form().setValue('phoneNumber', '010-1234-56789'));
+    expect(form().values.phoneNumber).toBe('010-1234-5678');
+    expect(form().canSubmit).toBe(true);
+    act(() => form().setValue('phoneNumber', ''));
+    expect(form().errors).toEqual({});
   });
 
   it('가입이 5xx면 일반 실패를 보이고 다시 낼 수 있다', async () => {

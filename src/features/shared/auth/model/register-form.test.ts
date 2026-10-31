@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   canSubmitRegister,
+  formatPhoneInput,
   hasAllConsents,
   hasRequiredConsents,
   initialRegisterValues,
@@ -24,7 +25,27 @@ describe('가입 폼 초기값', () => {
         phoneNumber: '+82 10-9876-5432',
         profileImage: null,
       }),
-    ).toEqual({ name: '새내기', email: '', phoneNumber: '+82 10-9876-5432' });
+    ).toEqual({ name: '새내기', email: '', phoneNumber: '010-9876-5432' });
+  });
+});
+
+describe('전화번호 자동 하이픈(사용자 결정 2026-10-31 — 010-1234-1234)', () => {
+  it.each([
+    ['', ''],
+    ['0', '0'],
+    ['010', '010'],
+    ['0101', '010-1'],
+    ['0101234', '010-1234'],
+    ['01012345', '010-1234-5'],
+    ['01012345678', '010-1234-5678'],
+    ['010123456789', '010-1234-5678'],
+    ['010-1234-5678', '010-1234-5678'],
+    ['010 1234 5678', '010-1234-5678'],
+    ['010-', '010'],
+    ['+82 10-9876-5432', '010-9876-5432'],
+    ['abc', ''],
+  ])('%j → %j', (raw, formatted) => {
+    expect(formatPhoneInput(raw)).toBe(formatted);
   });
 });
 
@@ -35,6 +56,19 @@ describe('가입 폼 칸 검증', () => {
     ['이름이 공백뿐이어도 required', { name: '   ' }, { name: 'required' }],
     ['이메일이 비면 required(카카오 이메일 미동의)', { email: '' }, { email: 'required' }],
     ['둘 다 비면 둘 다', { name: '', email: ' ' }, { name: 'required', email: 'required' }],
+    ['전화번호 010-1234-5678은 통과', { phoneNumber: '010-1234-5678' }, {}],
+    [
+      '전화번호 하이픈 없음은 phoneFormat',
+      { phoneNumber: '01012345678' },
+      { phoneNumber: 'phoneFormat' },
+    ],
+    ['전화번호 덜 적음은 phoneFormat', { phoneNumber: '010-1234' }, { phoneNumber: 'phoneFormat' }],
+    [
+      '전화번호 국제 형식은 phoneFormat',
+      { phoneNumber: '+82 10-1234-5678' },
+      { phoneNumber: 'phoneFormat' },
+    ],
+    ['010이 아니면 phoneFormat', { phoneNumber: '011-123-4567' }, { phoneNumber: 'phoneFormat' }],
   ])('%s', (_, patch, expected) => {
     expect(validateRegister({ ...filled, ...patch })).toEqual(expected);
   });
@@ -60,6 +94,7 @@ describe('제출 가능', () => {
     ['칸 정상 + 필수 하나 빠짐', filled, { ...required, privacy: false }, false],
     ['필수 동의 + 이메일 빔', { ...filled, email: '' }, required, false],
     ['필수 동의 + 이름 공백', { ...filled, name: ' ' }, required, false],
+    ['필수 동의 + 전화번호 모양 틀림', { ...filled, phoneNumber: '010-12' }, required, false],
   ])('%s → %s', (_, values, consents, expected) => {
     expect(canSubmitRegister(values, consents)).toBe(expected);
   });
@@ -109,14 +144,14 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
     expect('ageOver14Confirmed' in body).toBe(false);
   });
 
-  it('전화번호가 있으면 그대로, 마케팅 미동의는 false', () => {
+  it('전화번호가 있으면 그대로(010-1234-1234 모양), 마케팅 미동의는 false', () => {
     const body = toRegisterBody({
       idToken: 't',
-      values: { ...filled, phoneNumber: '+82 10-9876-5432' },
+      values: { ...filled, phoneNumber: '010-9876-5432' },
       consents: required,
       profileImage: null,
     });
-    expect(body.phoneNumber).toBe('+82 10-9876-5432');
+    expect(body.phoneNumber).toBe('010-9876-5432');
     expect(body.marketingAgree).toBe(false);
     expect(body.profileImage).toBeNull();
   });
