@@ -32,7 +32,7 @@ describe('연락처 유형 6종과 유형별 placeholder(plan P10a, Q8)', () => 
     ['ETC', '기타', 'URL 혹은 텍스트 입력'],
     ['YOUTUBE', '유튜브', 'URL'],
     // 문서·GUI에 없다 — design-requests 확인 요청
-    ['EMAIL', '이메일', null],
+    ['EMAIL', '이메일', 'example@dudoong.com'],
   ] as const)('%s — 라벨 "%s", placeholder %j', (type, label, placeholder) => {
     const option = HOST_CONTACT_OPTIONS.find((o) => o.type === type);
     expect(option).toEqual({ type, label, placeholder });

@@ -681,9 +681,9 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 연락처 유형 6종(`YOUTUBE` 포함)과 유형별 placeholder 데이터 — 이메일 placeholder는 문서·GUI에 없어 비워 둠(design-requests Q49)
 
 **완료 기준 — V**
-- [ ] 카드에 호스트별 `myRole` 배지
-- [ ] 연락처 유형 6종이 선택되고 유형별 placeholder가 나옴
-- [ ] 비멤버 403 안내 화면
+- [x] 카드에 호스트별 `myRole` 배지 — 마스터 purple · 매니저 cyan · 일반 grey(`Chip`, 2026-11-01 P10a-V, QA `HH-2`)
+- [x] 연락처 유형 6종이 선택되고 유형별 placeholder가 나옴 — `Dropdown` 6종 · 이메일 "example@dudoong.com"(Q49 닫힘)(QA `HH-7`)
+- [x] 비멤버 403 안내 화면 — `HostingForbidden`(P2 `ForbiddenView` + 호스팅 문구)(QA `HH-9`)
 
 ### P10b — 호스트 설정 · 멤버
 

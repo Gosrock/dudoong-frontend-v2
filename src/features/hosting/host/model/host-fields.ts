@@ -18,7 +18,8 @@ import type { Contact } from '@/api/shared/common-schema';
 /**
  * 연락처 유형 6종 — 서버 enum 순서. GUI 드롭다운(`748:33557`)은 5종이고 서버의 `YOUTUBE`를 더한다(design-requests Q8 기본안).
  * 라벨은 GUI 드롭다운 문구, placeholder는 GUI `748:33564`~`748:33573`과 plan P10a("유튜브 URL").
- * **이메일 placeholder는 GUI·문서에 없다**(design-requests Q49) — `null`이면 V가 placeholder 없이 그린다.
+ * 이메일 placeholder "example@dudoong.com"은 Ready 기본 정보 `748:33351`·와이어 `495:14815`와 같다(design-requests Q49 닫힘 — P10a-V에서 반영).
+ * `null`이면 V가 placeholder 없이 그린다.
  */
 export const HOST_CONTACT_OPTIONS: readonly {
   type: HostContactType;
@@ -26,7 +27,7 @@ export const HOST_CONTACT_OPTIONS: readonly {
   placeholder: string | null;
 }[] = [
   { type: 'PHONE', label: '전화번호', placeholder: '-없이 입력해 주세요' },
-  { type: 'EMAIL', label: '이메일', placeholder: null },
+  { type: 'EMAIL', label: '이메일', placeholder: 'example@dudoong.com' },
   { type: 'INSTAGRAM', label: '인스타그램', placeholder: '@dudoong' },
   { type: 'OPEN_CHAT', label: '오픈채팅방', placeholder: 'URL' },
   { type: 'YOUTUBE', label: '유튜브', placeholder: 'URL' },

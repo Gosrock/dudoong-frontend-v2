@@ -67,3 +67,20 @@ export function formatKstDateTime(date: Date): string {
   if (year < 0 || year > 9999) throw new RangeError('연도가 0~9999 밖이다');
   return `${pad(year, 4)}.${pad(k.getUTCMonth() + 1)}.${pad(k.getUTCDate())} ${pad(k.getUTCHours())}:${pad(k.getUTCMinutes())}`;
 }
+
+const KOREAN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
+
+/** `'2026.05.11 19:30'`(KST) → `'2026년 5월 11일 (월)'` — 공연준비 홈 카드 날짜 줄(plan P10a, GUI 카드 문구 2026-10-25) */
+export function formatKstKoreanDate(value: string): string {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
+  return `${p.year}년 ${p.month}월 ${p.day}일 (${weekday})`;
+}
+
+/** `'2026.05.11 19:30'`(KST) → `'19:30'` */
+export function formatKstTime(value: string): string {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  return `${pad(p.hour)}:${pad(p.minute)}`;
+}
