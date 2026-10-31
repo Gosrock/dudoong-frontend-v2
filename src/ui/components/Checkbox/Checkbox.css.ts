@@ -17,7 +17,8 @@ export const root = recipe({
     width: 20,
     height: 20,
     padding: 0,
-    border: `2px solid ${vars.color.text.primaryLabel}`,
+    // 미선택 테두리 `interaction/inactive`(DS 2026-10-31T17:25Z 판 — 옛 `text/primary-label`), 선택은 아래 검정
+    border: `2px solid ${vars.color.interaction.inactive}`,
     background: 'transparent',
     color: vars.color.text.onBrand,
     cursor: 'pointer',
