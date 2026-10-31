@@ -18,17 +18,24 @@ export const Checked: Story = { args: { defaultChecked: true } };
 export const Disabled: Story = { args: { disabled: true } };
 export const DisabledChecked: Story = { args: { disabled: true, defaultChecked: true } };
 
-/** Figma Box — checked × Status(default/disabled) */
+/** Figma Box — checked × Status(default/disabled) × type(round/square, 2026-11-01) */
 export const Matrix: Story = {
   render: () => (
-    <Flex gap={3}>
-      <Checkbox aria-label="꺼짐" />
-      <Checkbox aria-label="켜짐" defaultChecked />
-      <Checkbox aria-label="꺼짐 disabled" disabled />
-      <Checkbox aria-label="켜짐 disabled" disabled defaultChecked />
+    <Flex direction="column" gap={3}>
+      {(['round', 'square'] as const).map((shape) => (
+        <Flex key={shape} gap={3}>
+          <Checkbox shape={shape} aria-label={`${shape} 꺼짐`} />
+          <Checkbox shape={shape} aria-label={`${shape} 켜짐`} defaultChecked />
+          <Checkbox shape={shape} aria-label={`${shape} 꺼짐 disabled`} disabled />
+          <Checkbox shape={shape} aria-label={`${shape} 켜짐 disabled`} disabled defaultChecked />
+        </Flex>
+      ))}
     </Flex>
   ),
 };
+
+/** Figma `type=square`(모서리 4) */
+export const Square: Story = { args: { shape: 'square', defaultChecked: true } };
 
 /** Space로 토글, 글자를 눌러도 토글 */
 export const Keyboard: Story = {

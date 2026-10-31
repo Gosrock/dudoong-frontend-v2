@@ -8,6 +8,8 @@ import { typography } from '../../theme/typography.css';
  * 상태 색은 2026-10-25 판(68개 변형, design-system §3 "Button 상태 색"). 빈 조합(Selected는 Secondary medium에만,
  * primary 2는 medium 아이콘형·Large에만)은 같은 규칙으로 채운다.
  * Disabled는 모든 색에서 배경 `interaction/disabled-bg` + 글자 `interaction/disabled-text`, 테두리 없음.
+ * 2026-11-01: primary 2 글자만(`Icon=False`) medium·Large × 4상태가 생겼다 — 색은 아래 tonal과 같다(Figma medium 글자만은 45h, 코드는 46 하나).
+ * 아이콘 자리는 Figma에서 인스턴스 스왑(`ic_blank`)으로 바뀌었다 — 코드는 원래 `icon` prop이라 바뀌는 것 없음.
  * Secondary 글자색은 크기마다 달랐는데 `text.secondaryLabel` 하나로 통일했다(design-system §5 정리 요청).
  */
 export const button = recipe({
@@ -56,7 +58,7 @@ export const button = recipe({
       },
       /**
        * Figma "primary 2"(토큰 primarySubtle과 다른 색이라 subtle로 부르지 않는다).
-       * Normal 배경 `brand/Primary container fixed`(Violet 100) + 글자·아이콘 `brand/on Primary container`(Violet 300),
+       * Normal 배경 `brand/Primary container fixed`(Violet 100) + 글자·아이콘 `brand/on Primary container`(Violet 400),
        * Hover `brand/Primary container-hover`(Violet 200) + `brand/on Primary container-hover`(Violet 400),
        * Pressed `brand/Primary container-pressed`(Violet 300) + `text/on-brand fixed`(Neutral 50).
        * Normal 대비가 2.75:1이라 디자이너 확인 중(design-system §3·§5) — Figma 값대로 둔다.

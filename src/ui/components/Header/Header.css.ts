@@ -142,3 +142,7 @@ globalStyle(`${leadingSlot} > ${iconButton}:first-child`, { marginLeft: -16 });
 globalStyle(`${leadingSlot} > ${iconButton}:last-child`, { marginRight: 0 });
 globalStyle(`${trailingSlot} > ${iconButton}:last-child`, { marginRight: -16 });
 globalStyle(`${trailingSlot} > ${iconButton}:first-child`, { marginLeft: 0 });
+
+/** 공연 전환형(`510:1947`)만 오른쪽 패딩이 16이다(2026-10-31T16:15Z 판, 다른 변형은 8) — 끝 아이콘 버튼을 8만 내보낸다 */
+export const switcherRoot = style({});
+globalStyle(`${switcherRoot} ${trailingSlot} > ${iconButton}:last-child`, { marginRight: -8 });

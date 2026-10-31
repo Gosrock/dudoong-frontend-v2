@@ -4,8 +4,7 @@ import { vars } from '../../theme/tokens.css';
 
 /**
  * Figma Toggle(`77:8`): 트랙 45×24 원형, 꺼짐 `interaction/inactive` · 켜짐 `brand/primary`, 손잡이 20 흰색(Common/100).
- * disabled는 Figma 컴포넌트에 없고 GUI(`584:4775` 관리자 승인 여부)에 옅은 보라로 그려져 있다 —
- * 켜짐은 `brand/primary-container`, 꺼짐은 `interaction/disabled-bg`.
+ * `disabled?=true`(2026-11-01 새로): 켜짐 `brand/Primary container`(Violet 100) · 꺼짐 `interaction/disabled`(Neutral 200), 손잡이 흰색 그대로.
  */
 export const root = style({
   position: 'relative',
@@ -21,7 +20,7 @@ export const root = style({
   selectors: {
     '&[data-state="checked"]': { background: vars.color.brand.primary },
     '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-    '&:disabled': { cursor: 'not-allowed', background: vars.color.interaction.disabledBg },
+    '&:disabled': { cursor: 'not-allowed', background: vars.color.interaction.disabled },
     '&:disabled[data-state="checked"]': { background: vars.color.brand.primaryContainer },
   },
 });

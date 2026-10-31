@@ -110,7 +110,11 @@ export function Modal({
           )}
           {description && (
             <Dialog.Description className={s.description}>
-              <Txt typography="labelMd" color={colors.textPrimary}>
+              {/* 확인 팝업(DS `다이얼로그`)은 본문 `Label/sm` `text/secondary-label` */}
+              <Txt
+                typography={compact ? 'labelSm' : 'labelMd'}
+                color={compact ? colors.textSecondaryLabel : colors.textPrimary}
+              >
                 {description}
               </Txt>
             </Dialog.Description>

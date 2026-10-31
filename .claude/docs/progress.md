@@ -29,7 +29,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | # | 워크트리 | Phase | V 선행 | 상태 | 그룹 |
 |---|---|---|---|---|---|
 | 1 | `p4s-v-shell` | P4s-V 레이아웃 셸 | P4s-L · P2 | 끝(#32) | A 기반 |
-| 1a | `ds-sync-1101` | 디자인 시스템 이슈 #23 · #25 · #26 · #27 · #28 + 이슈 없는 DS 변경(14:26Z — Button 아이콘 슬롯 · Checkbox type · gift filled · Box 모서리) — 별도 DS PR(사용자 결정, P4s-V 중) | P4s-V | 대기 | A 기반 |
+| 1a | `ds-sync-1101` | 디자인 시스템 이슈 #23 · #25 · #26 · #27 · #28 + 이슈 없는 DS 변경(14:26Z — Button 아이콘 슬롯 · Checkbox type · gift filled · Box 모서리) — 별도 DS PR(사용자 결정, P4s-V 중) | P4s-V | 끝(#35) | A 기반 |
 | 2 | `p5b-v-event-detail` ∥ 3 | P5b-V 공연 상세 · 섹션 뷰어 · 공유 | P4s-V | 대기 | A 기반 |
 | 3 | `p10a-v-hosting-home` ∥ 2 | P10a-V 공연준비 홈 · 호스트 만들기 | P4s-V | 대기 | A 기반 |
 | 4 | `p4b-v-login` | P4b-V 로그인 · 세션 만료(동의 칸 Q42 대기 — 칸 없이) | P4s-V | 대기 | A 기반 **(끝)** |
