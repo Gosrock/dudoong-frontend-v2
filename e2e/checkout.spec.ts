@@ -6,7 +6,7 @@ import { setMockSession } from './support/auth';
 import { expect, test } from './support/fixtures';
 
 /**
- * P7-L 라우트 로직 — 체크아웃(보호)과 주문 완료 주소. 화면 모양은 보지 않는다(최소 마크업, V에서 바뀐다).
+ * P7 라우트 로직 — 체크아웃(보호)과 주문 완료 주소. 화면 모양·흐름은 QA `checkout`(P7-V)이 본다.
  * 상세 화면의 [티켓 구매하기] 연결은 P6-V라, 여기서는 상세가 만드는 것과 같은 주소(`checkoutHref`)로 들어간다.
  */
 const href = checkoutHref(101, { ticketItemId: CHECKOUT_TICKET.paidWithOptions, quantity: 2 });
@@ -19,29 +19,29 @@ test.describe('체크아웃 → 주문 완료', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto(href);
 
-    await expect(page.getByRole('heading', { name: '일반 예매' })).toBeVisible();
-    await expect(page.getByLabel('수량', { exact: true })).toHaveText('2');
+    await expect(page.getByRole('button', { name: /일반 예매.*\(1\/2\)/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /일반 예매.*\(2\/2\)/ })).toBeVisible();
     await page
-      .getByRole('group', { name: /뒤풀이 참석/ })
-      .getByLabel('네')
-      .check();
+      .getByRole('radiogroup', { name: /뒤풀이 참석/ })
+      .getByRole('radio', { name: '예' })
+      .click();
     await page.getByRole('textbox', { name: '응원하는 멤버' }).fill('보컬');
-    await page.getByLabel('환불 규정에 동의합니다').check();
+    await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
     // (15,000 + 10,000) × 2
-    await expect(page.getByTestId('checkout-amount')).toHaveText('50,000원');
+    await expect(page.getByTestId('checkout-amount')).toHaveText('50,000 원');
 
     await page.getByRole('button', { name: '결제하기' }).click();
     await page
-      .getByRole('dialog', { name: '주문 완료하기' })
+      .getByRole('alertdialog', { name: '주문 완료하기' })
       .getByRole('button', { name: '결제완료' })
       .click();
 
     await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
-    await expect(page.getByRole('heading', { name: '주문이 완료되었어요' })).toBeVisible();
-    await expect(page.getByText('호스트가 입금을 확인하면 티켓이 발급돼요.')).toBeVisible();
-    const orderNo = await page.getByTestId('order-no').textContent();
-    await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
-    await expect(page.getByTestId('order-status')).toHaveText('PENDING_APPROVE');
+    await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+    await expect(page.getByTestId('order-result')).toHaveAttribute(
+      'data-kind',
+      'AWAITING_DEPOSIT_APPROVAL',
+    );
 
     const orderPath = new URL(page.url()).pathname;
     // 생성 응답을 캐시에 넣었으므로 완료 화면은 O-3을 부르지 않는다
@@ -52,9 +52,11 @@ test.describe('체크아웃 → 주문 완료', () => {
     ).toHaveLength(1);
 
     await page.reload();
-    await expect(page.getByRole('heading', { name: '주문이 완료되었어요' })).toBeVisible();
-    await expect(page.getByTestId('order-no')).toHaveText(orderNo!);
-    await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
+    await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+    await expect(page.getByTestId('order-result')).toHaveAttribute(
+      'data-kind',
+      'AWAITING_DEPOSIT_APPROVAL',
+    );
     const reads = mockApi.calls().filter((c) => c.path === `/api/v2/me${orderPath}`);
     expect(reads.map((c) => [c.from, c.status])).toEqual([['browser', 200]]);
 

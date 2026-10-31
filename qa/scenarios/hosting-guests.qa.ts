@@ -426,10 +426,10 @@ scenario(
       await page.goto(
         checkoutHref(101, { ticketItemId: CHECKOUT_TICKET.paidNoOptions, quantity: 1 }),
       );
-      await page.getByLabel('환불 규정에 동의합니다').check();
+      await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
       await page.getByRole('button', { name: '결제하기' }).click();
       await page
-        .getByRole('dialog', { name: '주문 완료하기' })
+        .getByRole('alertdialog', { name: '주문 완료하기' })
         .getByRole('button', { name: '결제완료' })
         .click();
       await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);

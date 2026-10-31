@@ -181,10 +181,10 @@ test('등록 후 대시보드: 승인 대기 수(= 사이드바 배지 수), 카
 test('크리티컬 패스: 체크아웃 → 주문 → 호스트 승인 → 티켓탭에 발급', async ({ page }) => {
   await setMockSession(page, 'loggedIn');
   await page.goto(checkoutHref(101, { ticketItemId: CHECKOUT_TICKET.paidNoOptions, quantity: 1 }));
-  await page.getByLabel('환불 규정에 동의합니다').check();
+  await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
   await page.getByRole('button', { name: '결제하기' }).click();
   await page
-    .getByRole('dialog', { name: '주문 완료하기' })
+    .getByRole('alertdialog', { name: '주문 완료하기' })
     .getByRole('button', { name: '결제완료' })
     .click();
   await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);

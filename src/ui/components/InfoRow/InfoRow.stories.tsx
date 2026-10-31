@@ -42,7 +42,7 @@ export const ThirdBadge: Story = {
   },
 };
 
-/** Figma `Hierarchy=third, value type=account` — 복사 버튼은 navigator.clipboard + 성공 콜백 */
+/** Figma `Hierarchy=third, value type=account` — 복사 버튼은 클립보드 유틸 `copyText` + 성공 콜백 */
 export const ThirdAccount: Story = {
   args: {
     hierarchy: 'third',

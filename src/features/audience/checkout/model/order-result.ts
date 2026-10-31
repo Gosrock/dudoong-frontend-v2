@@ -28,10 +28,13 @@ export function orderResultKind(order: Pick<MyOrderDetail, 'status' | 'payment'>
   return 'OTHER';
 }
 
-/** 안내 문구(V에서 디자인 문구로 바꿀 수 있다). 계좌·금액은 Q16 기본안대로 완료 화면에 다시 보이지 않고 주문상세에서 본다 */
+/**
+ * 완료 안내 문구(P7-V). 승인 대기 둘은 GUI `939:27829` 글자 그대로, 즉시 발급·그 밖은 GUI에 없어 정했다(디자인 없음 — Figma 코멘트).
+ * 계좌·금액은 Q16 기본안대로 완료 화면에 다시 보이지 않고 주문상세에서 본다
+ */
 export const ORDER_RESULT_MESSAGE: Record<OrderResultKind, string> = {
-  AWAITING_DEPOSIT_APPROVAL: '호스트가 입금을 확인하면 티켓이 발급돼요.',
-  AWAITING_APPROVAL: '호스트가 승인하면 티켓이 발급돼요.',
-  ISSUED: '티켓이 발급됐어요. 티켓 페이지에서 확인해 주세요.',
-  OTHER: '주문 상태를 주문내역에서 확인해 주세요.',
+  AWAITING_DEPOSIT_APPROVAL: '티켓 승인여부는 티켓 페이지에서 확인 가능합니다!',
+  AWAITING_APPROVAL: '티켓 승인여부는 티켓 페이지에서 확인 가능합니다!',
+  ISSUED: '티켓이 발급됐어요. 티켓 페이지에서 확인해 주세요!',
+  OTHER: '주문 상태는 주문내역에서 확인해 주세요.',
 };

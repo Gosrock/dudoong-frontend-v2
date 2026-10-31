@@ -1,21 +1,54 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useId, useState } from 'react';
+import { Controller } from 'react-hook-form';
 
 import { isSessionLost } from '@/api/errors';
-import type { Checkout } from '@/api/order/schema';
+import { eventDetailQuery } from '@/api/event/queries';
+import type { Checkout, PaymentChannel } from '@/api/order/schema';
+import { AudienceSubHeader } from '@/features/audience/shell/AudienceSubHeader';
+import { Accordion } from '@/ui/components/Accordion/Accordion';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
+import { Button } from '@/ui/components/Button/Button';
+import { button } from '@/ui/components/Button/Button.css';
+import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { CopyButton } from '@/ui/components/InfoRow/CopyButton';
+import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
+import { Input } from '@/ui/components/Input/Input';
+import { ScreenLoader } from '@/ui/components/Loader/Loader';
+import { Popup } from '@/ui/components/Popup/Popup';
+import { SelectButton } from '@/ui/components/SelectButton/SelectButton';
+import { toast } from '@/ui/components/Toast/Toast';
+import { useCloseOnBack } from '@/ui/hooks/useCloseOnBack';
+import { Flex } from '@/ui/primitives/Flex';
+import { Txt } from '@/ui/primitives/Txt';
+import { colors } from '@/ui/theme/colors';
 
-import type { CheckoutParams } from './model/checkout-params';
-import type { AnswerValue } from './model/option-form';
-import { PAYMENT_CHANNEL_LABEL } from './model/payment';
+import * as s from './CheckoutView.css';
+import { type CheckoutParams, eventHref } from './model/checkout-params';
+import { firstInvalidTicket } from './model/option-form';
 import { type CheckoutState, useCheckout, useCheckoutData } from './model/useCheckout';
 
+/** 결제 방식 버튼 글자 — GUI `564:4156` "토스간편송금"·"계좌이체" */
+const CHANNEL_LABEL: Record<'BANK_TRANSFER' | 'TOSS_TRANSFER', string> = {
+  TOSS_TRANSFER: '토스간편송금',
+  BANK_TRANSFER: '계좌이체',
+};
+
+/** 동의 줄 — GUI `564:4156` 글자 그대로 */
+const AGREE_LABEL = '주문내용과 환불/취소 규정을 확인하였으며 이에 동의합니다.';
+
+const won = (n: number) => `${n.toLocaleString('ko-KR')} 원`;
+
 /**
- * 체크아웃(`/events/[eventId]/checkout?ticketItemId=&quantity=`) — 스타일 없는 최소 마크업(P7-L).
- * 화면(옵션 아코디언, 계좌 복사, 입금 확인 모달 등)은 P7-V에서 이 훅들에 붙인다.
+ * 체크아웃(`/events/[eventId]/checkout?ticketItemId=&quantity=`) — GUI 근거(plan P7 V, gui-screens §0):
+ * 모든 옵션 동일 `564:4156` · 유료옵션 `567:9316` · 무옵션 `567:9159` · 긴제목 `567:10452` · 개별 옵션 `567:8532` ·
+ * 입금 확인 `567:9468`. 서버 기준으로 바꾼 것(plan P7 ①~④): 예매번호·티켓번호 줄 없음, 결제정보에 은행 줄, CTA "결제하기"·"신청하기",
+ * 무료는 결제 블록(결제정보·결제금액·결제방식) 없이.
  */
 export function CheckoutView({
   eventId,
@@ -24,13 +57,21 @@ export function CheckoutView({
   eventId: number;
   params: CheckoutParams | null;
 }) {
+  // 공연 이름(헤더 제목). 공개 GP-3 — 상세에서 왔으면 캐시가 있다. 실패해도 체크아웃은 그린다
+  const event = useQuery(eventDetailQuery(eventId));
+  const eventName = event.data?.name ?? '';
   return (
-    <main>
-      <h1>결제하기</h1>
-      <AsyncBoundary holdOn={isSessionLost}>
-        <CheckoutContent eventId={eventId} params={params} />
-      </AsyncBoundary>
-    </main>
+    <>
+      <AudienceSubHeader title={eventName} fallbackHref={eventHref(eventId)} />
+      <main className={s.page}>
+        <Txt as="h1" typography="headingMdEmphasized" className={s.title}>
+          {eventName ? `${eventName} 결제하기` : '결제하기'}
+        </Txt>
+        <AsyncBoundary holdOn={isSessionLost}>
+          <CheckoutContent eventId={eventId} params={params} />
+        </AsyncBoundary>
+      </main>
+    </>
   );
 }
 
@@ -43,12 +84,19 @@ function CheckoutContent({ eventId, params }: { eventId: number; params: Checkou
     if (backHref) router.replace(backHref);
   }, [backHref, router]);
 
-  if (state.status === 'pending') return <p role="status">불러오는 중</p>;
+  if (state.status === 'pending') {
+    return <ScreenLoader />;
+  }
   if (state.status === 'unavailable') {
     return (
-      <p role="alert">
-        지금은 이 티켓을 구매할 수 없어요. <Link href={state.backHref}>티켓 다시 고르기</Link>
-      </p>
+      <Flex direction="column" align="center" gap={3} paddingY={8} paddingX={5}>
+        <Txt typography="bodyMd" color={colors.textSecondary} align="center">
+          <span role="alert">지금은 이 티켓을 구매할 수 없어요.</span>
+        </Txt>
+        <Link href={state.backHref} className={button({ variant: 'secondary', size: 'md' })}>
+          티켓 다시 고르기
+        </Link>
+      </Flex>
     );
   }
   return (
@@ -68,149 +116,353 @@ function CheckoutForm(props: {
   quantity: number;
 }) {
   const c = useCheckout(props);
+  const errors = c.form.formState.errors;
+
+  // 티켓 아코디언 — 처음에는 1번만 펼친다(GUI)
+  const [openTickets, setOpenTickets] = useState<Record<number, boolean>>({ 0: true });
+  const setTicketOpen = (i: number, open: boolean) =>
+    setOpenTickets((prev) => ({ ...prev, [i]: open }));
+
+  // 입금 확인 다이얼로그(두둥만). 뒤로가기가 닫는다(patterns §6) — 요청 중에는 잡아 둔다
   const [confirming, setConfirming] = useState(false);
-  const { register, formState } = c.form;
-  const errors = formState.errors;
+  const { release } = useCloseOnBack(confirming, () => setConfirming(false), {
+    hold: c.submitting,
+  });
+
+  const focusFirstError = () => {
+    // 첫 오류 티켓의 아코디언을 열고(tech-decisions §18) 다음 프레임에 포커스 — 닫힌 Collapsible 안 칸은 그려져 있지 않다
+    const ticket = c.mode === 'individual' ? firstInvalidTicket(c.form.formState.errors) : null;
+    const target = ticket ?? (c.form.formState.errors.options ? 0 : null);
+    if (target !== null) setTicketOpen(target, true);
+    window.setTimeout(() => void c.form.trigger(undefined, { shouldFocus: true }), 0);
+  };
 
   const onCta = async () => {
+    if (c.submitting) return;
+    if (!(await c.validate())) return focusFirstError();
     if (!c.needsDepositConfirm) return void c.submit();
-    if (await c.validate()) setConfirming(true);
+    setConfirming(true);
   };
+
+  const onConfirmDeposit = async () => {
+    // 다이얼로그가 넣은 기록을 먼저 소비한다 — 성공하면 훅이 완료 주소로 replace하므로 뒤로가기가 체크아웃으로 돌아오지 않는다
+    await release();
+    await c.submit();
+    // 실패하면 다이얼로그를 닫고 폼 위 안내를 보인다(성공이면 화면이 바뀐다)
+    setConfirming(false);
+  };
+
+  const onToggleSame = async (same: boolean) => {
+    if (!same) return void c.setMode('individual');
+    if (c.setMode('same') === 'ok') return;
+    // 티켓별 답이 서로 다르면 어느 답으로 맞출지 — 1번 티켓 답으로(잠정, 디자인 없음)
+    const ok = await openConfirm({
+      title: '모든 티켓에 같은 옵션을 적용할까요?',
+      description: '1번 티켓에 입력한 옵션으로 나머지 티켓을 맞춰요.',
+      confirmLabel: '적용',
+    });
+    if (ok) c.setMode('same', 0);
+  };
+
+  const isTransfer = c.kind === 'TRANSFER';
+  const approvalLabel = c.kind === 'FREE_FCFS' ? '신청 즉시 확정' : '호스트 승인 후 확정';
+  const ticketName = c.ticket.name ?? '티켓';
 
   return (
     <form
+      className={s.form}
       onSubmit={(e) => {
         e.preventDefault();
         void onCta();
       }}
       noValidate
     >
-      {c.submitError && <p role="alert">{c.submitError.message}</p>}
+      {c.submitError && (
+        <div className={s.errorBanner} role="alert">
+          <Txt typography="labelMd" color={colors.textDangerLabel}>
+            {c.submitError.message}
+          </Txt>
+        </div>
+      )}
+      {c.quantityAdjusted && (
+        <div className={s.errorBanner} role="status">
+          <Txt typography="labelMd" color={colors.textSecondaryLabel}>
+            남은 수량에 맞춰 {c.quantity}매로 줄였어요.
+          </Txt>
+        </div>
+      )}
 
-      <section aria-label="티켓">
-        <h2>{c.ticket.name}</h2>
-        <p>
-          수량{' '}
-          <button
-            type="button"
-            onClick={() => c.setQuantity(c.quantity - 1)}
-            disabled={c.quantity <= 1}
-            aria-label="수량 줄이기"
-          >
-            −
-          </button>
-          <output aria-label="수량">{c.quantity}</output>
-          <button
-            type="button"
-            onClick={() => c.setQuantity(c.quantity + 1)}
-            disabled={c.quantity >= c.maxQuantity}
-            aria-label="수량 늘리기"
-          >
-            +
-          </button>
-        </p>
-      </section>
+      {c.canChooseMode && (
+        <section aria-label="옵션 적용">
+          <InfoRow hierarchy="first" label="옵션적용" />
+          <InfoRow
+            hierarchy="second"
+            className={s.collapseTopLine}
+            label={<label htmlFor="checkout-same-options">모든 티켓에 동일 옵션 적용</label>}
+            value={
+              <Checkbox
+                id="checkout-same-options"
+                checked={c.mode === 'same'}
+                onCheckedChange={(v) => void onToggleSame(v)}
+              />
+            }
+          />
+          <div className={s.sectionGap} />
+        </section>
+      )}
 
-      {c.hasOptions && (
-        <section aria-label="옵션">
-          <h2>옵션</h2>
-          {c.canChooseMode && (
-            <p>
-              <button
-                type="button"
-                aria-pressed={c.mode === 'same'}
-                onClick={() => c.setMode('same', 0)}
-              >
-                모든 티켓 동일
-              </button>
-              <button
-                type="button"
-                aria-pressed={c.mode === 'individual'}
-                onClick={() => c.setMode('individual')}
-              >
-                티켓별로 입력
-              </button>
-            </p>
-          )}
-          {c.mode === 'same' ? (
-            <OptionFields c={c} base="options.same" errors={errors.options?.same} />
-          ) : (
-            Array.from({ length: c.quantity }, (_, t) => (
-              <fieldset key={t}>
-                <legend>
-                  티켓 {t + 1}/{c.quantity}
-                </legend>
+      <section aria-labelledby="checkout-tickets">
+        <InfoRow hierarchy="first" label={<span id="checkout-tickets">예매정보</span>} />
+        {Array.from({ length: c.quantity }, (_, t) => (
+          <Accordion
+            key={t}
+            label={ticketName}
+            meta={`(${t + 1}/${c.quantity})`}
+            className={s.collapseTopLine}
+            open={openTickets[t] ?? false}
+            onOpenChange={(open) => setTicketOpen(t, open)}
+          >
+            {c.hasOptions && (c.mode === 'individual' || t === 0) && (
+              <div className={s.optionBox}>
                 <OptionFields
                   c={c}
-                  base={`options.tickets.${t}`}
-                  errors={errors.options?.tickets?.[t]}
+                  base={c.mode === 'same' ? 'options.same' : `options.tickets.${t}`}
+                  errors={c.mode === 'same' ? errors.options?.same : errors.options?.tickets?.[t]}
+                  idPrefix={`t${t}`}
                 />
-              </fieldset>
-            ))
-          )}
-        </section>
-      )}
-
-      <section aria-label="결제 정보">
-        <h2>결제 정보</h2>
-        <p>
-          총 결제금액{' '}
-          <strong data-testid="checkout-amount">{c.amount.toLocaleString('ko-KR')}원</strong>
-        </p>
-        {c.account && (
-          <dl>
-            <dt>은행</dt>
-            <dd>{c.account.bankName}</dd>
-            <dt>계좌번호</dt>
-            <dd>{c.account.accountNumber}</dd>
-            <dt>예금주</dt>
-            <dd>{c.account.accountHolder}</dd>
-          </dl>
-        )}
-        {c.kind === 'TRANSFER' && <p>입금자명 {c.depositorName}</p>}
+              </div>
+            )}
+            <InfoRow label="예매자명" value={c.depositorName ?? '—'} />
+            <InfoRow label="승인방식" value={approvalLabel} />
+          </Accordion>
+        ))}
       </section>
 
-      {c.kind === 'TRANSFER' && (
-        <fieldset>
-          <legend>결제 방식</legend>
-          {(['BANK_TRANSFER', 'TOSS_TRANSFER'] as const).map((channel) => (
-            <label key={channel}>
-              <input type="radio" value={channel} {...register('paymentChannel')} />
-              {PAYMENT_CHANNEL_LABEL[channel]}
-            </label>
-          ))}
-          {c.paymentChannel === 'TOSS_TRANSFER' && c.tossLink && (
-            <a href={c.tossLink} data-testid="toss-link">
-              토스 앱에서 송금하기
-            </a>
-          )}
-        </fieldset>
+      {isTransfer && (
+        <>
+          <div className={s.sectionGap} />
+          <PaymentInfo c={c} />
+          <div className={s.sectionGap} />
+          <AmountInfo c={c} />
+          <div className={s.sectionGap} />
+          <PaymentChannelField c={c} />
+        </>
       )}
 
-      <label>
-        <input type="checkbox" {...register('agreeRefundPolicy')} />
-        환불 규정에 동의합니다
-      </label>
-      {errors.agreeRefundPolicy && <p role="alert">{errors.agreeRefundPolicy.message}</p>}
+      <div className={s.bottomBar}>
+        <Controller
+          control={c.form.control}
+          name="agreeRefundPolicy"
+          render={({ field, fieldState }) => (
+            <Flex direction="column" align="center" gap={1}>
+              <Checkbox
+                ref={field.ref}
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                onBlur={field.onBlur}
+                aria-invalid={fieldState.error ? true : undefined}
+                label={
+                  <Txt typography="labelSm" color={colors.textSecondaryLabel}>
+                    {AGREE_LABEL}
+                  </Txt>
+                }
+              />
+              {fieldState.error && (
+                <Txt typography="labelSm" color={colors.textDangerLabel}>
+                  <span role="alert">{fieldState.error.message}</span>
+                </Txt>
+              )}
+            </Flex>
+          )}
+        />
+        <Button type="submit" size="lg" fullWidth disabled={c.submitting}>
+          {c.ctaLabel}
+        </Button>
+      </div>
 
-      <button type="submit" disabled={c.submitting}>
-        {c.ctaLabel}
-      </button>
-
-      {confirming && (
-        <section role="dialog" aria-label="주문 완료하기">
-          <p>입금 하셨나요?</p>
-          <button type="button" onClick={() => setConfirming(false)} disabled={c.submitting}>
-            취소
-          </button>
-          <button type="button" onClick={() => void c.submit()} disabled={c.submitting}>
-            결제완료
-          </button>
-        </section>
+      {isTransfer && (
+        <Popup
+          open={confirming}
+          onOpenChange={(open) => {
+            if (!open && !c.submitting) setConfirming(false);
+          }}
+          closeOnBack={false}
+          title="주문 완료하기"
+          description={
+            <>
+              입금 하셨나요?
+              <br />
+              확인을 누르면 즉시 호스트에게 주문이 전달됩니다.
+            </>
+          }
+          confirmLabel="결제완료"
+          onConfirm={() => void onConfirmDeposit()}
+          loading={c.submitting}
+        >
+          <DepositSummary c={c} />
+        </Popup>
       )}
     </form>
   );
 }
+
+// ─── 결제정보 · 결제금액 · 결제방식 ─────────────────────────────
+
+const copyToast = {
+  onCopied: () => toast('계좌번호를 복사했어요', { id: 'checkout:copy' }),
+  onCopyError: () =>
+    toast('복사하지 못했어요. 계좌번호를 직접 입력해 주세요', { id: 'checkout:copy' }),
+};
+
+function PaymentInfo({ c }: { c: CheckoutState }) {
+  const account = c.account;
+  return (
+    <section aria-label="결제정보">
+      <InfoRow hierarchy="first" label="결제정보" value="입금자명은 닉네임과 동일하게 해주세요" />
+      <InfoRow label="입금자명" value={c.depositorName ?? '—'} />
+      {/* plan P7 ② — GUI는 계좌·예금주만. 토스 송금·입금에 은행이 필요해 은행 줄을 더한다 */}
+      <InfoRow label="입금은행" value={account?.bankName ?? '—'} />
+      {account?.accountNumber ? (
+        <InfoRow label="결제계좌" account={{ number: account.accountNumber, ...copyToast }} />
+      ) : (
+        <InfoRow label="결제계좌" value="—" />
+      )}
+      <InfoRow label="예금주" value={account?.accountHolder ?? '—'} />
+    </section>
+  );
+}
+
+function amounts(c: CheckoutState) {
+  const ticketAmount = c.ticket.price * c.quantity;
+  // 총액은 훅의 `amount`(= 서버 totalAmount 식) 하나 — 옵션 금액은 그 차이로 보인다
+  return { ticketAmount, optionAmount: Math.max(0, c.amount - ticketAmount), total: c.amount };
+}
+
+function AmountInfo({ c }: { c: CheckoutState }) {
+  const { ticketAmount, optionAmount, total } = amounts(c);
+  return (
+    <section aria-label="결제금액">
+      <InfoRow hierarchy="first" label="결제금액" />
+      <InfoRow label="티켓금액" value={won(ticketAmount)} />
+      <InfoRow label="옵션금액" value={won(optionAmount)} />
+      <div className={s.totalDivider} />
+      <InfoRow
+        label={
+          <Txt typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
+            총 결제금액
+          </Txt>
+        }
+        value={
+          <Txt typography="headingSmEmphasized" color={colors.textBrandLabel}>
+            <span data-testid="checkout-amount">{won(total)}</span>
+          </Txt>
+        }
+      />
+    </section>
+  );
+}
+
+function PaymentChannelField({ c }: { c: CheckoutState }) {
+  const titleId = useId();
+  // 토스 송금은 링크를 만들 수 있고 은행 코드가 있을 때만(plan P7 L — `bankCode`가 null이면 토스 버튼을 숨긴다, B3)
+  const tossAvailable = c.tossLink !== null && Boolean(c.account?.bankCode);
+  const channels: ('TOSS_TRANSFER' | 'BANK_TRANSFER')[] = tossAvailable
+    ? ['TOSS_TRANSFER', 'BANK_TRANSFER']
+    : ['BANK_TRANSFER'];
+  return (
+    <section aria-labelledby={titleId}>
+      <InfoRow hierarchy="first" label={<span id={titleId}>결제방식</span>} />
+      <div className={s.paymentChannels}>
+        <Controller
+          control={c.form.control}
+          name="paymentChannel"
+          render={({ field }) => (
+            <SelectButton
+              ref={field.ref}
+              aria-labelledby={titleId}
+              value={field.value}
+              onValueChange={(v) => field.onChange(v as PaymentChannel)}
+              onBlur={field.onBlur}
+              options={channels.map((ch) => ({ value: ch, label: CHANNEL_LABEL[ch] }))}
+            />
+          )}
+        />
+        {tossAvailable && c.paymentChannel === 'TOSS_TRANSFER' && c.tossLink && (
+          <Flex direction="column" gap={2} style={{ marginTop: 12 }}>
+            {/* 디자인 없음 — 토스 앱 열기 버튼(Figma 코멘트 2026-11-01) */}
+            <a
+              href={c.tossLink}
+              data-testid="toss-link"
+              className={button({ variant: 'secondary', size: 'md', fullWidth: true })}
+            >
+              토스 앱에서 송금하기
+            </a>
+            <Txt typography="labelSm" color={colors.textTertiaryLabel}>
+              송금한 뒤 이 화면으로 돌아와 [{c.ctaLabel}]를 눌러 주세요.
+            </Txt>
+          </Flex>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── 입금 확인 다이얼로그 요약 ─────────────────────────────────
+
+function SummaryRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className={s.summaryRow}>
+      <Txt typography="labelMd" color={colors.textSecondaryLabel}>
+        {label}
+      </Txt>
+      <span className={s.summaryValue}>{children}</span>
+    </div>
+  );
+}
+
+function DepositSummary({ c }: { c: CheckoutState }) {
+  const { ticketAmount, optionAmount, total } = amounts(c);
+  const account = c.account;
+  const channel = c.paymentChannel === 'TOSS_TRANSFER' ? 'TOSS_TRANSFER' : 'BANK_TRANSFER';
+  const value = (v: ReactNode) => (
+    <Txt typography="labelMd" color={colors.textSecondary}>
+      {v}
+    </Txt>
+  );
+  return (
+    // FIGMA-CUSTOM: 입금 확인 결제 요약(gui 567:9756 "Frame 1707480412" 회색 판 + 흰 카드 둘) 커스텀 → DS 다이얼로그 - 결제 요약(772:1195, Popup children). Figma 코멘트 2026-11-01
+    <div className={s.summaryBox}>
+      <SummaryRow label="입금자명">{value(c.depositorName ?? '—')}</SummaryRow>
+      <SummaryRow label="결제방식">{value(CHANNEL_LABEL[channel])}</SummaryRow>
+      <SummaryRow label="입금은행">{value(account?.bankName ?? '—')}</SummaryRow>
+      <SummaryRow label="결제계좌">
+        {account?.accountNumber ? (
+          <>
+            <CopyButton text={account.accountNumber} aria-label="계좌번호 복사" {...copyToast} />
+            {value(account.accountNumber)}
+          </>
+        ) : (
+          value('—')
+        )}
+      </SummaryRow>
+      <SummaryRow label="예금주">{value(account?.accountHolder ?? '—')}</SummaryRow>
+      <div className={s.summaryDivider} />
+      <SummaryRow label="티켓금액">{value(won(ticketAmount))}</SummaryRow>
+      <SummaryRow label="옵션금액">{value(won(optionAmount))}</SummaryRow>
+      <div className={s.summaryDivider} />
+      <div className={s.summaryRow}>
+        <Txt typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
+          총 결제금액
+        </Txt>
+        <Txt typography="headingSmEmphasized" color={colors.textBrandLabel}>
+          {won(total)}
+        </Txt>
+      </div>
+    </div>
+  );
+}
+
+// ─── 옵션 응답 ────────────────────────────────────────────────
 
 type AnswerErrors = ({ answer?: { message?: string } } | undefined)[] | undefined;
 
@@ -218,10 +470,12 @@ function OptionFields({
   c,
   base,
   errors,
+  idPrefix,
 }: {
   c: CheckoutState;
   base: 'options.same' | `options.tickets.${number}`;
   errors: unknown;
+  idPrefix: string;
 }) {
   const fieldErrors = errors as AnswerErrors;
   return (
@@ -229,29 +483,58 @@ function OptionFields({
       {c.ticket.options.map((option, i) => {
         const name = `${base}.${i}.answer` as `options.same.${number}.answer`;
         const error = fieldErrors?.[i]?.answer?.message;
+        const titleId = `${idPrefix}-option-${option.optionId}`;
+        const optionName = option.name ?? '옵션';
         return (
-          <fieldset key={option.optionId}>
-            <legend>
-              {option.name}
-              {option.type === 'YES_NO' && option.yesAdditionalPrice
-                ? ` (+${option.yesAdditionalPrice.toLocaleString('ko-KR')}원)`
-                : ''}
-            </legend>
-            {option.description && <p>{option.description}</p>}
+          <Flex key={option.optionId} direction="column" gap={3} fullWidth>
+            {i > 0 && <div className={s.optionDivider} />}
+            <Flex direction="column" gap={1}>
+              <Txt typography="labelLgEmphasized" color={colors.textSecondaryLabel}>
+                <span id={titleId}>{optionName}</span>
+                {option.type === 'YES_NO' && option.yesAdditionalPrice ? (
+                  <Txt typography="labelLgEmphasized" color={colors.textBrandLabel}>
+                    {` (+${option.yesAdditionalPrice.toLocaleString('ko-KR')}원)`}
+                  </Txt>
+                ) : null}
+              </Txt>
+              {option.description && (
+                <Txt typography="labelMd" color={colors.textTertiaryLabel}>
+                  {option.description}
+                </Txt>
+              )}
+            </Flex>
             {option.type === 'YES_NO' ? (
-              (['YES', 'NO'] as const satisfies readonly NonNullable<AnswerValue['answer']>[]).map(
-                (v) => (
-                  <label key={v}>
-                    <input type="radio" value={v} {...c.form.register(name)} />
-                    {v === 'YES' ? '네' : '아니오'}
-                  </label>
-                ),
-              )
+              <Controller
+                control={c.form.control}
+                name={name}
+                render={({ field }) => (
+                  <SelectButton
+                    ref={field.ref}
+                    aria-labelledby={titleId}
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                    onBlur={field.onBlur}
+                    options={[
+                      { value: 'YES', label: '예' },
+                      { value: 'NO', label: '아니오' },
+                    ]}
+                  />
+                )}
+              />
             ) : (
-              <input type="text" aria-label={option.name ?? '답변'} {...c.form.register(name)} />
+              <Input
+                aria-labelledby={titleId}
+                placeholder="답변을 입력해 주세요"
+                error={error}
+                {...c.form.register(name)}
+              />
             )}
-            {error && <p role="alert">{error}</p>}
-          </fieldset>
+            {option.type === 'YES_NO' && error && (
+              <Txt typography="labelSm" color={colors.textDangerLabel}>
+                <span role="alert">{error}</span>
+              </Txt>
+            )}
+          </Flex>
         );
       })}
     </>

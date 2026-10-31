@@ -10,7 +10,9 @@
 >
 > **2026-11-01 갱신(2)**: 지금 판(버전 `2416531042358919300`, 2026-10-31T16:22Z)을 16:15Z 판과 비교했다 — `Design: 디자인 시스템` 이슈 #36(Top app bar spacing 토큰). Top app bar 7변형의 패딩·간격이 변수 `Space/4`(16)·`Space/5`(24)에 묶였고 숫자는 그대로다. 앞 갱신이 놓친 아이콘 쪽 패딩 8 → 16(전 변형)을 같이 바로잡았다. §8.
 >
-> **동기화 기준 버전: `2416531042358919300`(2026-10-31T16:22Z).** 다음 갱신은 이 버전과 비교한다. 디자인 시스템이 바뀌면 디자이너가 `Design: 디자인 시스템` 이슈(Figma 플러그인)를 남기고, 개발은 그 이슈를 화면 이슈보다 먼저 반영한다 — 이 문서 + 토큰·`src/ui` 컴포넌트·스토리를 고치고 PR `Closes #n`, 기준 버전을 올린다([`design-workflow.md`](./design-workflow.md) §4). 이슈 없이 바뀐 것도 잡도록 화면 작업을 시작할 때 버전 목록을 본다(스킬 `gui-implement` "디자인 시스템 변경").
+> **2026-11-01 갱신(3)**: 지금 판(버전 `2416566330909386505`, 2026-10-31T18:56Z)을 16:22Z 판과 비교했다(P7-V) — Checkbox 미선택 테두리 `interaction/inactive`, 새 다이얼로그 4종(버튼하나·로딩·결제 요약·Spinner — 모두 `Popup`으로 됨). §8.
+>
+> **동기화 기준 버전: `2416566330909386505`(2026-10-31T18:56Z).** 다음 갱신은 이 버전과 비교한다. 디자인 시스템이 바뀌면 디자이너가 `Design: 디자인 시스템` 이슈(Figma 플러그인)를 남기고, 개발은 그 이슈를 화면 이슈보다 먼저 반영한다 — 이 문서 + 토큰·`src/ui` 컴포넌트·스토리를 고치고 PR `Closes #n`, 기준 버전을 올린다([`design-workflow.md`](./design-workflow.md) §4). 이슈 없이 바뀐 것도 잡도록 화면 작업을 시작할 때 버전 목록을 본다(스킬 `gui-implement` "디자인 시스템 변경").
 >
 > 관련 문서: 스타일링 방식 [`tech-decisions.md`](./tech-decisions.md) §6, 반응형·텍스트·레이아웃 패턴 [`patterns.md`](./patterns.md) §1~§3, Phase [`plan.md`](./plan.md) P1·P2, 와이어프레임 관측 [`figma-structure.md`](./figma-structure.md).
 
@@ -252,7 +254,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | **Search Field** — Default/Focus/Filled(disabled 없음) | `<input type="search">` | Input | 검색 아이콘이 외부 `icon/search`다. 코드는 `ic/search`를 쓴다 | P2 |
 | **Dropdown** — 트리거(상태 1개) + dropdown item(selected) | Radix `Select` | Select / Combobox | 트리거 아이콘이 위아래 화살표(`ic/up down`)라 shadcn Combobox 모양에 가깝다. 열린 목록은 컴포넌트가 아닌 예시 프레임(`284:1755`)이다. placeholder·disabled·에러 상태 없음. placeholder 스타일은 Radix의 `[data-placeholder]`로 받는다 **2026-10-31**: dropdown item 높이 28 → **36** | P2 |
 | **SortButton**(페이지 이름 Sort Dropdown) — 라벨이 변형(공연임박순/최신등록순) | — | — | 정렬값이 서버에 하나뿐이라 **고정 라벨**(patterns §13). Figma에 chevron-down 12가 붙어 있지만 코드는 chevron 없이 누를 수 없게 | P5a, P8 |
-| **Checkbox**(`Box`) — `checked` × `Status` default/disabled × `type` round/square(2026-11-01) | Radix `Checkbox` | Checkbox | 20px. 채움 색이 `text/primary-label`(검정)이다 — 브랜드색이 아니다 **2026-10-31**: disabled 채움·테두리가 Neutral 200(`interaction/disabled` 값 변경) **2026-11-01**(#23): `type=square`(모서리 4 `Space/1`)가 생겨 8변형. round 모서리 17 → 16(`Space/4`에 묶임 — 20의 원형 그대로). 코드 `<Checkbox shape="round" \| "square">`(기본 round — Figma `type`은 버튼 `type` 속성과 겹쳐 `shape`) | P2 |
+| **Checkbox**(`Box`) — `checked` × `Status` default/disabled × `type` round/square(2026-11-01) | Radix `Checkbox` | Checkbox | 20px. 채움 색이 `text/primary-label`(검정)이다 — 브랜드색이 아니다 **2026-10-31**: disabled 채움·테두리가 Neutral 200(`interaction/disabled` 값 변경) **2026-11-01**(#23): `type=square`(모서리 4 `Space/1`)가 생겨 8변형. round 모서리 17 → 16(`Space/4`에 묶임 — 20의 원형 그대로). 코드 `<Checkbox shape="round" \| "square">`(기본 round — Figma `type`은 버튼 `type` 속성과 겹쳐 `shape`) **2026-11-01(3)**: 미선택 테두리 `text/primary-label` → `interaction/inactive`(#B8B7B3, §8) | P2 |
 | **Radio** — `selected` × `disabled?`(2026-11-01) | Radix `RadioGroup` | Radio Group | 20px, 점 10 검정. **2026-11-01**(#25·#26): 테두리 1.25가 바깥 → **가운데** 정렬(바깥 지름 21.25 → 20), 미선택 테두리 `surface/default-border` → **`surface/strong-border`**(선택과 같음), `disabled?=true`가 생김 — 테두리·점 `interaction/disabled`(Neutral 200), 채움 없음 | P2 |
 | **Toggle** — `State` Off/On × `disabled?`(2026-11-01) | Radix `Switch` | Switch | 45×24. **2026-11-01**(#27): `disabled?=true`가 생김 — 꺼짐 트랙 `interaction/disabled`(Neutral 200) · 켜짐 `brand/Primary container`(Violet 100), 손잡이 흰색 | P2 |
 | **Tabs** — `tab`(공연/호스트 2개 고정) + tab item(`selected` × `type` 모바일/데스크탑) | Radix `Tabs` | Tabs | 밑줄형. **2026-10-25 변경**: 선택 = 글자 `Label/lg-emphasized` + 아래 2px 모두 `text/primary-label`(검정, 옛 `brand/primary` 보라), 미선택 = `Label/lg`(16 Regular) `interaction/inactive`(회색, 옛 16 Bold `text/primary`). 모바일은 선택·미선택 모두 44h(옛 42h 차이 해소). `type=데스크탑`이 새로 생겼다 — 20px(`Heading/md` / `Heading/md - emphasized`), 선택 48h·미선택 44h. **코드(2026-10-25)**: `TabList`의 `size` — `md`(기본, `type=모바일` 16, 44h) · `lg`(`type=데스크탑` 20, **48h 하나로 통일** — Figma 선택 48·미선택 44와 다르다. 한 줄에서 밑줄 높이가 달라지지 않게). disabled 글자는 `interaction/disabled-text`(Neutral 300)라 미선택과 같은 색이다(§5 확인 요청). 탭 개수는 코드에서 자유롭게. 값은 URL과 묶을 수 있게 제어형(`?tab=`, tech-decisions §3) **2026-10-31**: 데스크탑 미선택 44 → **48** — 선택·미선택 모두 48이 됐다(개발 싱크 요청 `tabs-lg-48`이 반영됨, 코드는 이미 48) | P2 |
@@ -632,6 +634,15 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 ## 8. 디자인 시스템 변경 반영 기록
 
 디자인 시스템 파일이 바뀔 때마다 절 하나를 위에 더한다. 받는 길은 둘이다 — 디자이너의 `Design: 디자인 시스템` 이슈, 그리고 화면 작업 시작 때 버전 목록 확인(이슈 없이 바뀐 것). 비교는 `python3 -I .claude/skills/gui-implement/ds_diff.py diff <기준 버전> --out <scratchpad>`, 변수 값은 Desktop Bridge(스킬 `gui-implement` "디자인 시스템 변경"). 끝나면 머리의 "동기화 기준 버전"을 올린다.
+
+### 2026-11-01(3) — `2416531042358919300`(10-31T16:22Z) → `2416566330909386505`(10-31T18:56Z)
+
+P7-V 시작 때 버전 목록으로 찾았고, PR 직전에 같은 변경의 이슈 **#60**(Box — "active 상태이고 선택되지 않았을 때 색이 너무 진해서 토큰값 수정", 18:56Z)이 들어왔다 — P7-V PR `Closes #60`. 그 뒤 판(18:59Z·19:01Z 공개 — #61 Filter Chip `number` 변형 2개, Tabs `tab`에 3·4개 탭 항목)은 이 절에 넣지 않았다(체크아웃이 안 씀 — 기준 버전은 18:56Z로 둔다). `ds_diff.py` 결과는 아래 둘뿐이고 변수·텍스트·이펙트 스타일 이름은 그대로. 바뀐 테두리 변수는 Desktop Bridge로 이름을 읽음(`33:121` = `Color/interaction/inactive`, `36:173` = `Color/text/primary-label`).
+
+| 영역 | 바뀐 것 | 코드 |
+|---|---|---|
+| Checkbox(`Box`, #60) | `checked=false` · default 두 모양(round·square)의 테두리 `text/primary-label`(#141413) → **`interaction/inactive`**(#B8B7B3) | **반영함**(P7-V) — `Checkbox.css.ts` 미선택 테두리 `interaction.inactive`. 선택·disabled는 그대로 |
+| 다이얼로그(┗ Dialogue 페이지 이름 `┗Dialogue` → `┗ Dialogue`) | 새 단독 컴포넌트 넷 — `다이얼로그-버튼하나` `769:2008`(310 · [확인] Primary 하나 꽉), `다이얼로그 - 로딩` `772:1180`([취소] disabled + 확인 자리 스피너, 확인은 보라 그대로), `Spinner` `772:1176`(20), `다이얼로그 - 결제 요약` `772:1195`(310 · 제목·본문 아래 회색 판 모서리 12 · 패딩 16 — 티켓금액·옵션금액 / 선 / 총 결제금액 보라 · [텍스트][결제하기]) | **새 컴포넌트 없이 기존 `Popup`으로 된다** — 버튼하나 = `cancelLabel={null}`, 로딩 = `loading`(확인 버튼 `aria-busy`라 보라 유지 + `LoadingLabel` 스피너, 취소 disabled), Spinner = `Spinner`, 결제 요약 = `children`(회색 판은 P7-V 체크아웃 `DepositSummary` — 쓰는 곳 하나라 `src/ui`로 올리지 않음) |
 
 ### 2026-11-01(2) — `2416533563521197729`(10-31T16:15Z) → `2416531042358919300`(10-31T16:22Z)
 

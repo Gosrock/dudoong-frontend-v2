@@ -276,7 +276,7 @@
 | 11 | `src/api/__mocks__/auth.handlers.ts` 시나리오 `kakaoLinkStaleAccess`·`kakaoExchangeStaleAccess`·`kakaoLoginStaleAccess`·`refreshStaleAccess`·`logoutStaleAccess` | 백엔드에 더는 없는 응답을 흉내 낸다. 대신 "보호 API + 위조 쿠키 → 401 `GLOBAL_401_1` + `accessToken` 삭제 `Set-Cookie`" 시나리오가 없다 | #792·#793 | **완료** |
 | 12 | `src/api/__mocks__/respond.ts` `errors.refreshRejected` 주석 | 사유 "다른 기기에서 덮어씀"이 #807로 없어졌다(기기별 세션) | #807 | **완료** |
 | 13 | `src/api/order/schema.ts` `AccountSchema`·`MyRefundAccountSchema`, `src/api/__mocks__/fixtures/order.ts` | 응답 `bankCode`가 없다(z.object라 파싱은 깨지지 않는다) | #804 | **완료** |
-| 14 | `src/features/audience/checkout/model/payment.ts` `tossTransferLink`(TODO(B3), `bank: account.bankName.trim()`) | B3 해결 — 토스 은행 값을 `bankCode` 매핑으로 만들고 `bankCode`가 `null`이면 토스 버튼을 숨긴다. 매핑 값은 실기기 확인(P7) | #804 | **`bankCode` 수신만, 매핑 TODO(B3)** |
+| 14 | `src/features/audience/checkout/model/payment.ts` `tossTransferLink`(TODO(B3), `bank: account.bankName.trim()`) | B3 해결 — 토스 은행 값을 `bankCode` 매핑으로 만들고 `bankCode`가 `null`이면 토스 버튼을 숨긴다. 매핑 값은 실기기 확인(P7) | #804 | **`bankCode` null이면 토스 버튼 숨김 — P7-V(화면 판정). 매핑 TODO(B3, 실기기 뒤)** |
 | 15 | `/api/v2/banks` mock 핸들러 | 없다(P9 환불 계좌·P12 티켓 폼에서 필요) | #804·#813 | **완료** — 해소(P9-L `banksQuery`가 이 mock으로 테스트, 커밋 `0022755`) |
 | 16 | `public/term.html`·`public/privacy.html` | 개정 전 약관이다(v1 #355 직전 파일과 바이트 동일, 2026-10-25 비교). 2026-10-25 시행 개정본(Front #355, `release/ticket` `fc3278d`)으로 교체. `next.config.ts`의 `/meta/term`·`/meta/privacy` rewrite는 이미 있다 | Front #355 | **완료** |
 | 17 | `public/no-poster.png` | v1 운영은 포스터 로드 실패 때 `/no-poster.png`로 바꾼다(Front #348). v2 `public/`에 자산이 없다(참고 — 쓸지는 V, design-requests Q26) | Front #348 | 참고(Q26 대기) |
@@ -1416,3 +1416,43 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **Figma 코멘트(2026-11-01-impl, GUI)**: 답글 `910:3358`(1989717381 — 메뉴·확인 창·판매 중단은 #55~#57로 반영, 남은 것) · `943:2219`(1989717383 — 옵션 ✕ 동작 질문) · `793:2469` "[개발 · DS 컴포넌트로 구현] 새 티켓 만들기 + 버튼"(1989715585) · `931:1314` "[개발 · DS 컴포넌트로 구현] 옵션 시트"(1989715589) · `910:3358` "[개발 · 디자인 없음] 티켓 카드 — ⋮ 메뉴 · 확인 창 · 판매 중단 · 수량 · 무료"(1989715592) · `943:2219` "[개발 · 디자인 없음] 옵션 삭제 입구"(1989715595) · `767:46671` "[개발 · 디자인 없음] 티켓 수정 화면"(1989715597)
 **범위 밖**: DS BottomSheet에 ✕가 없음(공용 컴포넌트). DS Fab에 보라 변형 없음. gui-screens §0 머리의 Ready 수(35 → 66)는 관제탑 몫
 **검사**: typecheck · 바꾼 파일 eslint · `vitest related`(126) · e2e `hosting-ticket`·`hosting-event`·`hosting`(102 — #53~#57 반영 뒤 `hosting-ticket`·`hosting-event` 44 다시) · QA `pnpm qa hosting-ticket` 30/30(HT-1~13 · 15 · 16 × mobile · desktop, 수동 HT-14). 전체 게이트는 PR CI
+
+## P7-V — 체크아웃 · 입금 확인 다이얼로그 · 주문 완료 (뷰)
+
+**상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것: 토스 앱 실기기 송금 링크(QA CHK-7 수동 — D2 뒤, progress "사용자 대기"), 스테이징 실주문 1회(L 상자, D2 뒤)
+**근거(gui-screens §0)**: 전부 **GUI** — Ready 체크아웃 `564:4156` 모든 옵션 동일 · `567:9316` 유료옵션 · `567:9159` 무옵션 · `567:10452` 긴제목 · `567:8532` 개별 옵션 · `567:9468` 직접계좌이체(확인 모달), 주문 완료 `939:27829`. 무료 [신청하기]·무료 선착순은 GUI에 없어 같은 레이아웃에서 결제 블록만 뺐다(plan P7 ④). 열린 Design Sync #19·#29·#30(티켓탭 P8)은 이 화면과 겹치지 않음. PR 직전 #60(DS Box 미선택 색 — 반영함, `Closes #60`)·#61(DS Filter Chip — 예매자 관리, 범위 밖)이 새로 열림. 근거 노드 7개 PR 직전 다시 받음 — `567:8532`만 달라졌고 그 차이는 미선택 체크 원이 회색(#60 반영)
+**디자인 시스템**: 기준 판 `2416531042358919300` → `2416566330909386505`(10-31T18:56Z) 비교 — Checkbox 미선택 테두리 `interaction/inactive`(반영), 새 다이얼로그 4종(버튼하나·로딩·결제 요약·Spinner)은 기존 `Popup`으로 됨(design-system §8 "2026-11-01(3)")
+**변경**
+- `features/audience/checkout/CheckoutView`(+ `.css.ts`): 모바일 하위 헤더(← + 공연 이름, `AudienceSubHeader` — GP-3 캐시) · 옵션적용(InfoRow first + second `Checkbox`, 수량 2 이상 + 옵션 있을 때만) · 예매정보(티켓 수만큼 DS `Accordion` "(i/n)", 동일 옵션이면 1번에만 옵션 칸, 개별이면 티켓마다 — 회색 판 안 `SelectButton` 예/아니오 · `Input` 주관식 · 예매자명 · 승인방식) · 결제정보(첫 줄 보라 "입금자명은 닉네임과 동일하게 해주세요" · 입금자명 · **입금은행** · 결제계좌 `InfoRow account` 복사 · 예금주) · 결제금액(티켓금액 · 옵션금액 · 선 · 총 결제금액 보라) · 결제방식(`SelectButton` 토스간편송금/계좌이체, 토스면 [토스 앱에서 송금하기]) · 하단 붙은 동의 `Checkbox` + [결제하기]/[신청하기]. 입금 확인은 DS 다이얼로그(`Popup` + `DepositSummary` 회색 판, [취소][결제완료], `useCloseOnBack`). 검증 실패면 첫 오류 티켓 아코디언을 열고 포커스. 폼 위 안내(제출 실패·수량 줄임)
+- `OrderCompleteView`(+ `.css.ts`): 셸 로고 헤더 아래 `booking-complete` 일러스트 · "주문 완료!" · 안내 · [주문내역](Secondary) [티켓 페이지로](Primary) Large 같은 폭. 예매번호·상태·금액 줄 삭제(plan ⑤)
+- `model/order-result.ts` `ORDER_RESULT_MESSAGE` → GUI 문구(승인 대기 둘) + 정한 문구(즉시 발급·그 밖). `src/ui` `CopyButton`이 `navigator.clipboard` 대신 `copyText`(patterns §9 폴백) — props 그대로. `Checkbox` 미선택 테두리(DS)
+- 테스트: e2e `checkout.spec`(선택자·문구 — 완료 문구 `order-no` 대신 `order-result` `data-kind`), `hosting-guests.spec`·QA `hosting-guests` HG-12의 체크아웃 단계 선택자(동의 칸 · `alertdialog`). QA `qa/scenarios/checkout.qa.ts` CHK-1~19 — **27/27 통과**(mobile · desktop, 수동 1). e2e checkout · hosting-guests · mypage · event-detail 82/82, QA HG-12 2/2
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 상세 → 선택 → 체크아웃 → 주문 생성 흐름 + P7 에러 분기 | QA CHK-1(상세 시트/PC 카드 → 체크아웃 → 확인 → 완료, 뒤로가기는 체크아웃 아님) · CHK-2~4 · CHK-8~10 · 에러 CHK-11~19(`Ticket_Item_400_1`·`Ticket_Item_400_6`·`Order_400_15`·`Order_400_22`·`Order_400_23`·`Order_400_26`·`Event_400_6`·무료 선착순 확정 실패·`Agreement_400_1`) |
+| 체크아웃·주문 완료에 예매번호·티켓번호 없음, 결제정보에 은행명 | QA CHK-1 단계 2·3·6 |
+| 토스 실기기 | 수동 CHK-7(D2 뒤) |
+
+**ego-browser 확인(단계마다)에서 고친 것**: 아코디언·second 행이 맞닿는 곳의 선이 2px(둘 다 위·아래 선) → 위로 1px 겹침(`collapseTopLine`). QA에서: 완료 뒤에도 Next 16이 앞 화면(상세·체크아웃)을 숨긴 채 DOM에 남겨 `getByText`가 겹침 → 시나리오는 정확 일치·보이는 것만
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 입금 확인 = DS `다이얼로그 - 결제 요약`(새 판)으로 — GUI `567:9468`의 342 회색 판 + 흰 카드 둘 + X는 커스텀이라 `Popup` + 회색 요약 판 하나, [취소][결제완료](`FIGMA-CUSTOM:` + 코멘트). 요약에 입금자명·결제방식·입금은행·계좌(복사)·예금주·금액 셋. 되돌리기: `DepositSummary`
+2. 확인 다이얼로그에서 [결제완료]를 누르면 다이얼로그 기록 항목을 먼저 소비(`release`)하고 주문 — 성공하면 훅의 `replace`가 체크아웃 항목을 바꿔 뒤로가기가 상세로 간다. 실패하면 다이얼로그를 닫고 폼 위 안내. 요청 중 뒤로가기는 막지 못한다(짧은 창). 되돌리기: `onConfirmDeposit`
+3. 수량 스테퍼를 두지 않는다 — GUI에 없고 수량은 상세(P6)에서 고른다. 수량이 상한보다 크면 훅이 줄이고 폼 위 "남은 수량에 맞춰 n매로 줄였어요." 되돌리기: `CheckoutForm`에 `Counter`
+4. 동일 옵션이면 1번 티켓 아코디언에만 옵션 칸(GUI `564:4156`), 2번부터는 예매자명·승인방식만. 개별로 바꿨다 다시 켤 때 답이 다르면 확인 창 "1번 티켓 답으로 맞춤"(코멘트). 되돌리기: `onToggleSame`
+5. 승인방식 값 — 승인형(두둥·무료 승인) "호스트 승인 후 확정"(GUI), 무료 선착순 "신청 즉시 확정"(정함). 예매자명 = 닉네임(입금자명과 같은 값)
+6. 은행 줄 이름 "입금은행", 순서 입금자명 → 입금은행 → 결제계좌 → 예금주(plan ②)
+7. 토스 — [토스간편송금]을 고르면 아래에 [토스 앱에서 송금하기](Secondary md 꽉) + 안내 한 줄. **`bankCode`가 null이면 [토스간편송금]을 숨긴다**(plan P7 L, 코드 수정 거리 #14의 숨김 절반 — `tossLink`·`bankCode`를 화면에서 판정, 훅·`payment.ts`는 그대로). 토스 은행 값 매핑은 실기기 뒤(B3). 되돌리기: `PaymentChannelField` `tossAvailable`
+8. PC(1024~) — 그림 없음. 한 열 가운데 640, 제목 h1 "<공연명> 결제하기"(모바일은 숨긴 h1 + 헤더 제목). 동의 + CTA는 하단에 붙인다(모바일·PC 같게). 되돌리기: `CheckoutView.css.ts` `page`·`title`·`bottomBar`
+9. 폼 위 안내 판 — 옅은 붉은 바탕(`status.warningSubtle`) + 붉은 글자(제출 실패), 회색 글자(수량 줄임). 칸 오류는 칸 아래 붉은 글자(Input `error`, 예/아니오는 아래 글). 되돌리기: `errorBanner`
+10. 주관식 자리표시 "답변을 입력해 주세요"(GUI "stakeholder"는 자리표시 견본). 무료 티켓 화면에도 같은 동의 줄(환불/취소 규정)
+11. 주문 완료 PC — 같은 묶음을 390폭 가운데. 즉시 발급 "티켓이 발급됐어요. 티켓 페이지에서 확인해 주세요!", 그 밖 "주문 상태는 주문내역에서 확인해 주세요."(코멘트)
+12. 약관 표시 의무(legal-copy B-1·A-5·A-6·A-7)는 계획에 자리가 없어 넣지 않았다(사용자 결정 — 계획 그대로). 주문 동의 칸 Q42 기본안대로 없음(`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD` false), `AGREEMENT_VERSION` 그대로. 체크아웃 하단 "판매정보"(Q34) 넣지 않음
+13. DS 새 판 Checkbox 미선택 테두리를 이 PR에서 반영(쓰는 화면이 이 화면 — 작은 변경). PR 직전에 같은 변경의 이슈 #60이 들어와 `Closes #60`. 되돌리기: `Checkbox.css.ts` 한 줄
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · DS 컴포넌트로 구현]` GUI `567:9756` 입금 확인 창(`1989720505`) / `[개발 · 디자인 없음]` `567:8004` 토스간편송금을 골랐을 때(`1989720508`) · `567:1245` 동일 옵션 다시 켤 때(`1989720512`) · `567:8010` 결제 버튼 · 무료 · PC · 오류 안내(`1989720514`) · `939:28045` 즉시 발급 문구(`1989720515`). `FIGMA-CUSTOM:` 1줄(→ DS)
+
+**범위 밖(고치지 않음)**: 주문상세(P9 — `/orders/[uuid]` 쿼리 없는 화면), 토스 은행 값 매핑(B3 실기기 뒤), full-page 캡처에서 하단 붙은 바가 중간에 찍히는 것(캡처 방식 — 실제 화면은 아래 고정)
