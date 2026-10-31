@@ -647,8 +647,9 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 |---|---|---|---|
 | Filter Chip(#61) | `state` `selected/number`·`deselected/number` 2변형(§3 줄) | GUI `↳예매자관리`(`724:5256` — 2026-10-31에 프레임 7개가 생김: `980:24267` 데스크탑1440 · `980:24474` 모바일 · `987:500` 검색 안내 · `987:596` 검색 결과 없음 · `987:790` 불러오기 실패 · `989:693` 여러 개 선택 · `989:916` 승인 완료, **모두 Ready 아님**)의 25곳. 예매자 관리는 "와이어로 구현됨". 기존 변형(closed·selected/open)을 쓰는 공연 리스트(`759:7895`·`759:11869`)는 미구현이고 바뀐 것도 없음 | **반영 대기 → 예매자 관리 GUI**(Ready가 되면 그 화면 PR이 `FilterChip` 개수형을 더하고 `Closes #61`). 이 PR은 `Refs #61` |
 | Tabs 견본 `tab`(`271:1234`) | 미선택 tab item 2개 추가(2 → 4개, 레이어 `3/tab item`·`4/tab item`) | — | 없음 — 견본이고 tab item 모양은 그대로 |
+| `Spinner`(`772:1176`) · `다이얼로그 - 로딩`(`772:1180`) — 앞 절(3)에서 남은 것 | 스피너 20 틀(원 16 · 선 2.5 `text/on-brand`). 코드 `Popup` 로딩은 16이었다 | `Popup`(= `openConfirm` `variant: 'popup'`) — P11·P12·P7 확인 창 | **바로 반영**(관제탑 검토) — `Spinner`·`LoadingLabel` `size`에 `'base'`(20)를 더하고(기존 `sm`·`md` 그대로) `Popup` 로딩이 씀. 스토리 `Loader/Sizes`·`Popup/Loading`(계산 폭 20 확인) |
 
-코드는 바꾸지 않았다 — 문서만(`9yujin/ds-sync-1101b`, implementation-log "디자인 시스템 11-01 b 판 반영").
+코드는 이 문서와 같은 PR(`9yujin/ds-sync-1101b`) — implementation-log "디자인 시스템 11-01 b 판 반영".
 
 ### 2026-11-01(3) — `2416531042358919300`(10-31T16:22Z) → `2416566330909386505`(10-31T18:56Z)
 
@@ -657,7 +658,7 @@ P7-V 시작 때 버전 목록으로 찾았고, PR 직전에 같은 변경의 이
 | 영역 | 바뀐 것 | 코드 |
 |---|---|---|
 | Checkbox(`Box`, #60) | `checked=false` · default 두 모양(round·square)의 테두리 `text/primary-label`(#141413) → **`interaction/inactive`**(#B8B7B3) | **반영함**(P7-V) — `Checkbox.css.ts` 미선택 테두리 `interaction.inactive`. 선택·disabled는 그대로 |
-| 다이얼로그(┗ Dialogue 페이지 이름 `┗Dialogue` → `┗ Dialogue`) | 새 단독 컴포넌트 넷 — `다이얼로그-버튼하나` `769:2008`(310 · [확인] Primary 하나 꽉), `다이얼로그 - 로딩` `772:1180`([취소] disabled + 확인 자리 스피너, 확인은 보라 그대로), `Spinner` `772:1176`(20), `다이얼로그 - 결제 요약` `772:1195`(310 · 제목·본문 아래 회색 판 모서리 12 · 패딩 16 — 티켓금액·옵션금액 / 선 / 총 결제금액 보라 · [텍스트][결제하기]) | **새 컴포넌트 없이 기존 `Popup`으로 된다** — 버튼하나 = `cancelLabel={null}`, 로딩 = `loading`(확인 버튼 `aria-busy`라 보라 유지 + `LoadingLabel` 스피너, 취소 disabled), Spinner = `Spinner`, 결제 요약 = `children`(회색 판은 P7-V 체크아웃 `DepositSummary` — 쓰는 곳 하나라 `src/ui`로 올리지 않음) |
+| 다이얼로그(┗ Dialogue 페이지 이름 `┗Dialogue` → `┗ Dialogue`) | 새 단독 컴포넌트 넷 — `다이얼로그-버튼하나` `769:2008`(310 · [확인] Primary 하나 꽉), `다이얼로그 - 로딩` `772:1180`([취소] disabled + 확인 자리 스피너, 확인은 보라 그대로), `Spinner` `772:1176`(20), `다이얼로그 - 결제 요약` `772:1195`(310 · 제목·본문 아래 회색 판 모서리 12 · 패딩 16 — 티켓금액·옵션금액 / 선 / 총 결제금액 보라 · [텍스트][결제하기]) | **새 컴포넌트 없이 기존 `Popup`으로 된다** — 버튼하나 = `cancelLabel={null}`, 로딩 = `loading`(확인 버튼 `aria-busy`라 보라 유지 + `LoadingLabel` 스피너, 취소 disabled), Spinner = `Spinner`(**크기는 2026-11-01(4)에서 16 → 20으로 맞춤** — `size="base"`), 결제 요약 = `children`(회색 판은 P7-V 체크아웃 `DepositSummary` — 쓰는 곳 하나라 `src/ui`로 올리지 않음) |
 
 ### 2026-11-01(2) — `2416533563521197729`(10-31T16:15Z) → `2416531042358919300`(10-31T16:22Z)
 

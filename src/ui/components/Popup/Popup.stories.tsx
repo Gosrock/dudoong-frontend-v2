@@ -65,11 +65,14 @@ export const Opened: Story = { args: { defaultOpen: true } };
 /** 버튼 하나 */
 export const ConfirmOnly: Story = { args: { defaultOpen: true, cancelLabel: null } };
 
-/** 진행 중 — 버튼 잠금 + 스피너 */
+/** 진행 중 — 버튼 잠금 + 스피너 20(디자인 시스템 `다이얼로그 - 로딩` `772:1180`) */
 export const Loading: Story = {
   args: { defaultOpen: true, loading: true },
   play: async () => {
     const dialog = await screen.findByRole('alertdialog');
+    const spinner = within(dialog).getByRole('button', { name: '확인' }).querySelector('svg');
+    // 열림 애니메이션(scale) 중이라 화면 크기가 아니라 계산된 폭으로 본다
+    await expect(spinner && getComputedStyle(spinner).width).toBe('20px');
     await expect(within(dialog).getByRole('button', { name: '확인' })).toBeDisabled();
     await expect(within(dialog).getByRole('button', { name: '취소' })).toBeDisabled();
     await userEvent.keyboard('{Escape}');

@@ -15,9 +15,13 @@ export const spinner = style({
   },
 });
 
-/** sm 16 — Button sm·md 라벨(12·14px) 자리, md 24 — Button lg·화면 로딩 */
+/**
+ * sm 16 — Button sm·md 라벨(12·14px) 자리, base 20 — 디자인 시스템 `Spinner`(`772:1176`, 2026-10-31T17:25Z: 20 틀 · 원 16 · 선 2.5 —
+ * 24 viewBox 원 r9·선 3을 20으로 줄이면 원 15 · 선 2.5), md 24 — Button lg·화면 로딩
+ */
 export const spinnerSize = styleVariants({
   sm: { width: 16, height: 16 },
+  base: { width: 20, height: 20 },
   md: { width: 24, height: 24 },
 });
 
