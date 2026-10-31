@@ -3,21 +3,38 @@
 import Link from 'next/link';
 import { type FormEvent, useState } from 'react';
 
+import { NICKNAME_MAX, NICKNAME_MIN } from '@/api/me/schema';
 import { useLogout } from '@/features/shared/auth/useLogout';
+import { Avatar } from '@/ui/components/Avatar/Avatar';
+import { Button } from '@/ui/components/Button/Button';
+import { Input } from '@/ui/components/Input/Input';
+import { Icon } from '@/ui/icons/Icon';
+import { Divider } from '@/ui/primitives/Divider';
+import { Flex } from '@/ui/primitives/Flex';
+import { Txt } from '@/ui/primitives/Txt';
+import { colors } from '@/ui/theme/colors';
 
 import { useProfileEdit } from './model/useProfileEdit';
-import { useWithdraw } from './model/useWithdraw';
+import * as s from './ui/mypage.css';
+import { openWithdraw } from './ui/WithdrawPopup';
+
+/** 마이페이지 바로가기(와이어 햄버거 `128:2875`의 세 줄 — 아이콘·문구 같음) */
+const SHORTCUTS = [
+  { href: '/orders', label: '주문내역', icon: 'order-detail' },
+  { href: '/mypage/following', label: '관심 호스트', icon: 'favorite' },
+  { href: '/mypage/archive', label: '지난 공연 아카이빙', icon: 'archiving' },
+] as const;
 
 /**
- * `/mypage` — 프로필 편집 · 바로가기 · 로그아웃 · 탈퇴의 스타일 없는 최소 마크업(P9-L). 화면 모양은 P9-V에서 바꾼다.
+ * `/mypage` — 프로필(사진 · 닉네임 · 이메일) · 바로가기 · 로그아웃 · 회원 탈퇴(P9-V).
+ * 근거: 와이어 햄버거 `128:2875`의 프로필 줄(아바타 + 연필 배지 · 닉네임 · 이메일)과 메뉴. 프로필 편집 화면 · 탈퇴는 GUI·와이어에 없어
+ * DS 컴포넌트로만 만들었다(Figma 코멘트 — 디자인 없음). 사진을 바꾸면 세션 키가 바뀌어 헤더 · 햄버거 아바타도 같이 바뀐다.
  * 보호 레이아웃(게이트)이 세션을 확정한 뒤에만 그려진다.
  */
 export function MyPageView() {
   const { profile, name, image } = useProfileEdit();
   const logout = useLogout();
-  const withdraw = useWithdraw();
   const [draft, setDraft] = useState(profile?.name ?? '');
-  const [confirming, setConfirming] = useState(false);
 
   const onSubmitName = (e: FormEvent) => {
     e.preventDefault();
@@ -25,89 +42,133 @@ export function MyPageView() {
   };
 
   return (
-    <main>
-      <h1>마이페이지</h1>
+    <main className={s.narrowPage}>
+      <Txt as="h1" typography="headingMdEmphasized" className={s.title}>
+        마이페이지
+      </Txt>
+
       <section aria-label="프로필">
-        {profile?.profileImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- 최소 마크업(V에서 Avatar로 바꾼다)
-          <img src={profile.profileImageUrl} alt="프로필 이미지" width={64} height={64} />
-        ) : (
-          <p>기본 프로필 이미지</p>
-        )}
-        <p data-testid="profile-name">{profile?.name}</p>
-        <p>{profile?.email}</p>
-        <label>
-          프로필 이미지 바꾸기
-          <input
-            type="file"
-            accept="image/jpeg,image/png"
-            disabled={image.pending}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void image.change(file);
-            }}
-          />
-        </label>
-        <button type="button" onClick={() => void image.reset()} disabled={image.pending}>
-          기본 이미지로
-        </button>
-        {image.error && (
-          <p role="alert">
-            {image.error}{' '}
-            <button type="button" onClick={() => void image.retry()}>
-              다시 올리기
-            </button>
-          </p>
-        )}
-        <form onSubmit={onSubmitName}>
-          <label>
-            닉네임
-            <input value={draft} onChange={(e) => setDraft(e.target.value)} />
-          </label>
-          <button type="submit" disabled={name.pending}>
-            저장
-          </button>
-          {name.error && <p role="alert">{name.error}</p>}
-        </form>
-      </section>
-      <nav aria-label="마이페이지 메뉴">
-        <ul>
-          <li>
-            <Link href="/orders">주문내역</Link>
-          </li>
-          <li>
-            <Link href="/mypage/following">관심 호스트</Link>
-          </li>
-          <li>
-            <Link href="/mypage/archive">관람 공연 아카이빙</Link>
-          </li>
-        </ul>
-      </nav>
-      <button type="button" onClick={() => void logout.logout()} disabled={logout.disabled}>
-        로그아웃
-      </button>
-      <section aria-label="회원 탈퇴">
-        {!confirming ? (
-          <button type="button" onClick={() => setConfirming(true)}>
-            회원 탈퇴
-          </button>
-        ) : (
-          <div role="group" aria-label="탈퇴 확인">
-            <p>탈퇴하면 보낸 선물 중 대기 중인 것은 취소돼요.</p>
-            <button
-              type="button"
-              onClick={() => void withdraw.withdraw()}
-              disabled={withdraw.pending}
-            >
-              탈퇴하기
-            </button>
-            <button type="button" onClick={() => setConfirming(false)}>
-              취소
-            </button>
+        <Flex align="center" gap={4} paddingX={5} paddingY={5}>
+          <span className={s.avatarWrap}>
+            <Avatar size={80} src={profile?.profileImageUrl} alt="프로필 이미지" />
+            {/* 연필 배지 = 사진 고르기(와이어 `128:2875`). 파일 칸은 숨기고 label로 연다 */}
+            <label className={s.editBadge} aria-disabled={image.pending || undefined}>
+              <Icon name="edit" className={s.editIcon} />
+              <span className={s.visuallyHidden}>프로필 이미지 바꾸기</span>
+              <input
+                type="file"
+                accept="image/jpeg,image/png"
+                className={s.visuallyHidden}
+                disabled={image.pending}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) void image.change(file);
+                }}
+              />
+            </label>
+          </span>
+          <Flex direction="column" gap={1} className={s.grow}>
+            <Txt typography="headingSmEmphasized" lines={1}>
+              <span data-testid="profile-name">{profile?.name}</span>
+            </Txt>
+            <Txt typography="bodyMd" color={colors.textSecondaryLabel} lines={1}>
+              {profile?.email}
+            </Txt>
+            {profile?.profileImageUrl && (
+              <span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void image.reset()}
+                  disabled={image.pending}
+                >
+                  기본 이미지로
+                </Button>
+              </span>
+            )}
+          </Flex>
+        </Flex>
+        {image.pending && (
+          <div role="status">
+            <Flex paddingX={5}>
+              <Txt typography="labelSm" color={colors.textTertiaryLabel}>
+                사진을 바꾸는 중이에요
+              </Txt>
+            </Flex>
           </div>
         )}
-        {withdraw.error && <p role="alert">{withdraw.error}</p>}
+        {image.error && (
+          <div className={s.warningNotice} role="alert">
+            <Txt typography="labelMd" color={colors.textDangerLabel}>
+              {image.error}
+            </Txt>
+            <span>
+              <Button variant="secondary" size="sm" onClick={() => void image.retry()}>
+                다시 올리기
+              </Button>
+            </span>
+          </div>
+        )}
+
+        <form onSubmit={onSubmitName} aria-label="닉네임 바꾸기">
+          <Flex direction="column" gap={3} paddingX={5} paddingY={4}>
+            <Input
+              label="닉네임"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              maxLength={NICKNAME_MAX}
+              showCount
+              error={name.error ?? undefined}
+              helper={`${NICKNAME_MIN}~${NICKNAME_MAX}자로 지어 주세요`}
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              fullWidth
+              loading={name.pending}
+              disabled={name.pending || draft.trim() === profile?.name}
+            >
+              저장
+            </Button>
+          </Flex>
+        </form>
       </section>
+
+      <div className={s.sectionGap} />
+
+      <nav aria-label="마이페이지 메뉴">
+        <ul className={s.list}>
+          {SHORTCUTS.map((l) => (
+            <li key={l.href}>
+              <Link href={l.href} className={s.menuRow}>
+                <Icon name={l.icon} />
+                <Txt typography="labelLg">{l.label}</Txt>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <Divider />
+
+      <Flex direction="column">
+        <button
+          type="button"
+          className={s.menuRow}
+          onClick={() => void logout.logout()}
+          disabled={logout.disabled}
+        >
+          <Icon name="log-out" />
+          <Txt typography="labelLg">로그아웃</Txt>
+        </button>
+        <button type="button" className={s.menuRow} onClick={openWithdraw}>
+          <Txt typography="labelMd" color={colors.textTertiaryLabel}>
+            회원 탈퇴
+          </Txt>
+        </button>
+      </Flex>
     </main>
   );
 }
