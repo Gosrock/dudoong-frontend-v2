@@ -15,7 +15,8 @@ import { expect, http, HttpResponse, scenario } from '../scenario';
  *   SameSite=Strict, bfcache)은 e2e/auth.spec.ts·auth-bfcache.spec.ts가 보고, 화면 캡처는 P4b-V에서 더한다
  */
 
-const meCalls = (calls: ApiCall[]) => calls.filter((c) => c.path.startsWith('/api/v2/me'));
+// GM-1만 — 셸 벨 GN-2(`/api/v2/me/notifications/unread-count`, P4s-V)는 세지 않는다
+const meCalls = (calls: ApiCall[]) => calls.filter((c) => c.path.split('?')[0] === '/api/v2/me');
 const refreshCalls = (calls: ApiCall[]) =>
   calls.filter((c) => c.path.startsWith('/api/v1/auth/token/refresh'));
 const describeCalls = (calls: ApiCall[]) =>
@@ -169,12 +170,15 @@ scenario(
     await step('보호 화면을 열면 "불러오지 못했어요"와 [다시 시도]가 보인다', async () => {
       await page.goto('/gate-check');
       await expect(page.getByRole('alert').filter({ hasText: '불러오지 못했어요' })).toBeVisible();
-      await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible();
+      // 셸 메뉴도 GM-1 실패면 [다시 시도]를 그린다 — 게이트(alert) 안의 것을 본다
+      await expect(
+        page.getByRole('alert').getByRole('button', { name: '다시 시도' }),
+      ).toBeVisible();
       await expect(page).toHaveURL(/\/gate-check$/);
       expect(await readSessionFlag(page)).not.toBeNull();
     });
     await step('[다시 시도]를 누르면 화면이 보인다', async () => {
-      await page.getByRole('button', { name: '다시 시도' }).click();
+      await page.getByRole('alert').getByRole('button', { name: '다시 시도' }).click();
       await expect(page.getByText('두둥이님으로 로그인했어요.')).toBeVisible();
     });
   },

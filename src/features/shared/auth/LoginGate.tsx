@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useRef } from 'react';
+import { type ReactNode, useEffect, useRef, useSyncExternalStore } from 'react';
 
 import { hasSessionLostFired } from '@/api/auth-handlers';
 import { isSessionLost } from '@/api/errors';
@@ -20,7 +20,7 @@ import { Flex } from '@/ui/primitives/Flex';
 import { browserLocation } from './browser-location';
 import { loginHref } from './login-href';
 import * as s from './LoginGate.css';
-import { useProtectedArea } from './protected-area';
+import { PROTECTED_AREA_ATTR, useProtectedArea } from './protected-area';
 
 /**
  * 로그인 게이트(tech-decisions §4 인증 표 "게이트", plan P4a). `(protected)` 레이아웃과 `hosting` 레이아웃이 children을 감싼다.
@@ -41,7 +41,22 @@ export function LoginGate({ children }: { children: ReactNode }) {
   );
 }
 
+const noopSubscribe = () => () => {};
+
+/**
+ * 하이드레이션 중이면 false. 서버 HTML은 언제나 스켈레톤이라(서버는 GM-1을 부르지 않는다) 하이드레이션 때도 스켈레톤을 그려야 맞는다.
+ * 게이트 위(셸 — P4s-V)가 GM-1을 먼저 받아 두면 게이트가 하이드레이션 때 바로 children을 그려 서버 HTML과 어긋나고,
+ * 빌드에서 게이트 경계가 dehydrated로 남아 본문이 그려지지 않았다(implementation-log P4s-V). 클라이언트 이동에서는 처음부터 true
+ */
+const useHydrated = () =>
+  useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+
 function GateContent({ children }: { children: ReactNode }) {
+  const hydrated = useHydrated();
   const queryClient = useQueryClient();
   const router = useRouter();
   const { data } = useQuery({
@@ -61,13 +76,19 @@ function GateContent({ children }: { children: ReactNode }) {
     router.replace(loginHref(browserLocation.currentPath()));
   }, [data, queryClient, router]);
 
-  return data ? children : <GateSkeleton />;
+  return hydrated && data ? children : <GateSkeleton />;
 }
 
 /** 세션 확인 중. 화면 모양을 모르므로 제목·본문 줄 정도의 일반 자리표시 */
 function GateSkeleton() {
   return (
-    <div role="status" aria-label="로그인 확인 중" aria-busy className={s.fullScreen}>
+    <div
+      role="status"
+      aria-label="로그인 확인 중"
+      aria-busy
+      className={s.fullScreen}
+      {...{ [PROTECTED_AREA_ATTR]: '' }}
+    >
       <Container>
         <Flex direction="column" gap={4} paddingY={6} fullWidth>
           <Skeleton shape="text" height={24} width="40%" />

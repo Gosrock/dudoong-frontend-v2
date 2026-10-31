@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 
+import { EventPanelLayout } from '@/features/hosting/shell/EventScopeFrame';
+
 import { useEventDashboard } from './model/useEventDashboard';
 
 /**
@@ -10,7 +12,7 @@ import { useEventDashboard } from './model/useEventDashboard';
  */
 export function EventDashboardView({ eventId }: { eventId: string }) {
   const d = useEventDashboard(eventId);
-  return (
+  const content = (
     <section aria-labelledby="dashboard-title">
       <h1 id="dashboard-title">대시보드</h1>
       {d.createdNotice && (
@@ -111,5 +113,11 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
         </div>
       )}
     </section>
+  );
+  // 등록 후만 우측 일정 패널 자리(P4s-V 슬롯). 패널 본문(`일정 패널`)은 P13a-V
+  return d.mode === 'registered' ? (
+    <EventPanelLayout panel={null}>{content}</EventPanelLayout>
+  ) : (
+    content
   );
 }

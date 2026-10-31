@@ -296,7 +296,8 @@ test.describe('SameSite=Strict(운영 쿠키) 재현', () => {
     expect(
       mockApi
         .calls()
-        .filter((c) => c.path.startsWith('/api/v2/me'))
+        // GM-1만(셸 벨 GN-2 `/api/v2/me/notifications/unread-count`는 P4s-V부터 따로 나간다)
+        .filter((c) => c.path.split('?')[0] === '/api/v2/me')
         .map((c) => `${c.from} ${c.status}`),
     ).toEqual(['browser 200']);
   });

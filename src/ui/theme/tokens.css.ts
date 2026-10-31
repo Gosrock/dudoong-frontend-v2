@@ -127,7 +127,8 @@ export const vars = createGlobalTheme(':root', {
     number: '"Pretendard Variable", Pretendard, sans-serif',
   },
   zIndex: { header: '100', sheet: '1000', modal: '1100', popover: '1150', toast: '1200' },
-  shadow: { drop: '0 4px 4px rgba(0, 0, 0, 0.1)' },
+  /** Figma 이펙트 스타일 — `drop shadow`(Toast) · `drop shadow2`(`538:5174`, y 0 · blur 9.2 · 검정 10% — PC 아바타 ▾ 메뉴 `My`) */
+  shadow: { drop: '0 4px 4px rgba(0, 0, 0, 0.1)', drop2: '0 0 9.2px rgba(0, 0, 0, 0.1)' },
 });
 
 globalStyle(':root', {

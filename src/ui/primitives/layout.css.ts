@@ -27,6 +27,6 @@ export const container = style({
   maxWidth: 1280 + 80 * 2,
   '@media': {
     [media.desktop]: { paddingLeft: 40, paddingRight: 40 },
-    'screen and (min-width: 1440px)': { paddingLeft: 80, paddingRight: 80 },
+    [media.desktopL]: { paddingLeft: 80, paddingRight: 80 },
   },
 });

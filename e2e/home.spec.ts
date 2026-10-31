@@ -21,10 +21,9 @@ test.describe('공연홈 /', () => {
       'href',
       '/events/101',
     );
-    await expect(page.getByRole('link', { name: '공연 둘러보기' })).toHaveAttribute(
-      'href',
-      '/events',
-    );
+    await expect(
+      page.getByRole('main').getByRole('link', { name: '공연 둘러보기' }),
+    ).toHaveAttribute('href', '/events');
     const homeCalls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/home'));
     expect(homeCalls.map((c) => c.from)).toEqual(['server']);
   });
