@@ -44,6 +44,8 @@
 - `GET /api/v2/banks`의 Swagger summary가 "[T-7] 은행 목록 (로그인, #797)"이다. 실제로는 #813부터 비로그인 공개다(`SecurityConfig.V2_PUBLIC_GET_PATHS`). `cb8d24e`도 그대로.
 - 백엔드 `api/v2/README.md`(91행)는 DTO 검증 실패를 `GLOBAL_400_1`이라고 적지만 실제는 400 `code: "BAD_REQUEST"`다(`GlobalExceptionHandler`. `GLOBAL_400_1`은 던지는 곳이 없다). 문서나 코드 중 하나를 맞춰 달라 — 프론트는 둘 다 검증 오류로 처리한다.
 - 동의 강제(env `AGREEMENT_ENFORCE`, 기본 false)를 켜는 날짜가 정해지면 미리 알려 달라. 컷오버 체크리스트에 들어간다.
+- (계약 대조 2026-10-31, 참고) 멤버 일괄 추가(PH-7)가 동시 추가로 unique 위반이 나면 `HOST_400_15` 사유에 **요청한 이메일 전부**를 붙인다(`V2AddHostMembersUseCase` `DataIntegrityViolationException` 분기 @fe423ed4) — 실제로 이미 멤버인 이메일만이 아니다. 프론트는 사유의 이메일을 줄에 맞추므로 이 경우 모든 줄에 "이미 멤버"가 붙는다. 가능하면 겹친 이메일만 알려 달라.
+- (계약 대조 2026-10-31, 참고) 백엔드 `api/v2/README.md` M-2 설명("유니코드 공백만인 이름은 `V2UserDomainService`가 400 `USER_400_4`")이 #884 뒤 동작과 다르다. 지금은 `@Pattern`(`\p{javaWhitespace}`)이 먼저라 공백만인 이름은 400 `BAD_REQUEST`이고, `USER_400_4`는 줄바꿈 금지 공백(U+00A0 등)만인 이름에만 온다. 문서만 맞춰 달라.
 
 ### B17. 마이페이지 마케팅 수신 토글의 현재 값을 v2에서 어떻게 읽나?
 
@@ -63,6 +65,14 @@
 - **확인한 것**: 거절(승인 대기) 확인은 `totalAmount > 0`이면 두둥이다(승인 대기는 승인형으로만 생긴다). 승인 완료 주문은 v1 APPROVED(두둥)와 CONFIRM(PG)이 `APPROVED` 하나로 합쳐지고, GR-1·GR-2에 `orderMethod`가 없다. v1에서 만든 주문은 `paymentChannel`도 null이다(`V2OrderResponses.kt`).
 - **영향**: 두둥 주문 취소 확인에 "직접 환불" 안내를 붙여야 한다(legal-copy C-3·C-4).
 - **답이 없으면**: `paymentChannel`이 두둥 값이거나, null이고 `totalAmount > 0`이면 안내를 붙인다(빠뜨리는 쪽보다 더 붙는 쪽).
+- **관객 쪽은 풀렸다(계약 대조 2026-10-31)**: 관객 주문상세 G11/O-3에는 `approvalRequired`(= 주문 시점 `orderMethod == APPROVAL`, 백엔드 README #742 후속)가 있어 v1 주문도 두둥(승인형)과 PG(`PAYMENT`)를 가를 수 있다. 남은 것은 호스트 쪽(GR-1·GR-2 — `orderMethod`·`approvalRequired` 둘 다 없음)이다. 질문은 호스트 응답에 같은 값을 넣어 줄 수 있는지로 좁힌다.
+
+### B20. 가입 전화번호(`phoneNumber`)를 서버에서도 검증할 수 있나? — 프론트는 `010-1234-1234`만 보낸다(사용자 결정 2026-10-31)
+
+- **확인한 것(@fe423ed4)**: v1 `POST /api/v1/auth/oauth/kakao/register`의 `RegisterRequest.phoneNumber`는 검증 없이 `PhoneNumberVo`에 그대로 저장된다. 꺼내서 형식을 바꿀 때(`getNationalFormat`·`getInternationalFormat` — libphonenumber `parse(raw, "KR")`) 해석하지 못하면 `USER_400_2`("유저의 휴대폰 전화번호가 올바르지않습니다")가 그때 난다.
+- **프론트가 한 것**: 가입 폼이 숫자만 남겨 `010-XXXX-XXXX`로 하이픈을 넣고, 그 모양이 아니면 제출을 막는다(plan P4b). 다른 클라이언트(v1 프론트·직접 호출)는 여전히 아무 값이나 보낼 수 있다.
+- **요청**: 저장 전에 같은 규칙(또는 libphonenumber 해석 가능 여부)으로 검증해 400을 달라. 프론트는 칸 오류로 받는다.
+- **답이 없으면**: 프론트 검증만으로 둔다.
 
 ### B15. v2 프론트 이미지를 ECR에 올릴 수 있게 Deploy `infra/ecr.yml`을 갱신해 줄 수 있나? — **v2 레지스트리 ECR 결정(2026-10-29)**
 

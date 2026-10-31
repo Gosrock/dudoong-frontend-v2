@@ -222,3 +222,8 @@ D2는 백엔드 마이그레이션이 스테이징에 실행돼 있어야 의미
 | 9 | `isomorphic-dompurify`가 띄우는 jsdom의 메모리 — 섹션 10개짜리 공연 상세를 연속으로 열 때의 RSS, jsdom이 standalone 산출물에 빠지지 않고 기동되는지. 부담이 크면 `sanitize-html`로 바꾼다(tech-decisions §17) | D1 |
 | 10 | nginx 버퍼링 — 호스팅 센터의 정적 셸이 먼저 흘러 나가는지. Next 문서는 nginx 뒤에서 스트리밍하려면 `X-Accel-Buffering: no`가 필요하다고 한다(self-hosting #streaming-and-suspense). 필요하면 `next.config.ts`의 `headers()`로 `/hosting/:path*`에 붙인다. 공개 화면은 어차피 블로킹이라 영향이 없다 | D2 |
 | 11 | ~~`next typegen`(CI)과 `next build`가 카카오 키를 요구하는지~~ — **확인됨(P0)**: 둘 다 요구한다. PR 게이트는 자리 값(`ci-placeholder`), 이미지 빌드는 GitHub variable을 넘긴다 | D1 |
+| 12 | (계약 대조 2026-10-31) 본문이 `Void`인 응답 — 탈퇴(`DELETE /api/v1/auth/me`)·로그아웃(`POST /api/v1/auth/logout`)이 빈 본문인지 `{success, data: null}` 래퍼인지. 소스(`ResponseEntity<Void>` + 응답 래퍼 어드바이스)만으로는 실제 바이트를 확정할 수 없다 — FE 파서가 둘 다 받는지 실제 응답으로 본다 | D2 |
+| 13 | (계약 대조 2026-10-31) 로그인해야만 오는 필드 이름 — `is*` 불리언(`isFollowing` 등)과 `dDay`가 백엔드 #884(Jackson 3) 뒤에도 그 이름으로 오는지. `pnpm check:contract`는 운영 공개 GET만 봐서 이 필드를 못 본다 — 로그인한 스테이징 응답으로 본다 | D2 |
+| 14 | (계약 대조 2026-10-31) 엑셀(GR-6·GI-3) 일반 멤버 거부의 실제 상태·본문 — 403 + JSON 에러인지(blob으로 받는 요청이라 FE가 에러 본문을 읽는지) | D2 |
+| 15 | (계약 대조 2026-10-31) 쿠키 흐름 — 로그인 → 만료 → 재발급 → 로그아웃에서 `Set-Cookie`의 `Domain`·`Path`·`SameSite`, 로그아웃이 낡은 쿠키에도 200 + 쿠키 삭제인지(#793) | D2 |
+| 16 | (계약 대조 2026-10-31) `pnpm check:contract`를 스테이징 주소에 대고 돌린다(지금은 운영 공개 GET 기준) | D2 |
