@@ -330,7 +330,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 정지·탈퇴 계정 토큰(익명 처리) 시 로그인 화면으로 수렴, 정지 계정으로 로그인하면 `USER_403_1` 안내
 - [x] ~~로그인 화면·콜백의 401에 "잠시 후 다시 시도해 주세요"~~ → 2026-10-25 제거: #792로 그 401이 없어져 401도 일반 실패(`auth-outcome.test`·`useKakaoLogin.test`·`useKakaoCallback.test`, e2e `auth.spec`)
 - [x] 로그아웃 뒤 뒤로가기(bfcache 복원)에서 이전 사용자 화면이 보이지 않음(`pageshow`)
-- [ ] 스테이징 첫 배포(D2) 완료 — 이후 Phase의 공개 URL 확인이 여기에 기댄다. (2026-10-25 사실: 스테이징은 평소 꺼져 있다. Swagger는 staging·prod에서 꺼져 있다 — 백엔드 Develop 기획서. 이미지 레지스트리는 사용자 결정 대기 — deploy-plan §1)
+- [ ] 스테이징 첫 배포(D2) 완료 — 이후 Phase의 공개 URL 확인이 여기에 기댄다. (2026-10-25 사실: 스테이징은 평소 꺼져 있다. Swagger는 staging·prod에서 꺼져 있다 — 백엔드 Develop 기획서. 이미지 레지스트리는 ECR로 결정(2026-10-29) — 백엔드 B15(ECR 저장소·푸시 역할) 처리 대기, deploy-plan §1)
 - [x] `AUTH_400_1`이면 로그인을 다시 시작
 - [ ] 두 탭이 동시에 만료돼도 실제 재발급 뒤 로그인이 유지됨(백엔드 #807로 기기별 세션 + 직전 토큰 30초 유예라 동시 재발급이 안전해졌다 — [`backend-questions.md`](./backend-questions.md) B1 해결. 실제 확인은 그대로 남긴다)
 - [ ] 가입 본문에 사용자가 체크한 동의 필드만 실림(UI 없는 것은 Q42 대기), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 이용약관 체크 → `termsAgreed` + `agreementVersion`, 미체크 → 키 없음(`register-form.test`), 강제 400 → 일반 실패(`useKakaoCallback.test`) 완료. `ageOver14Confirmed`는 Q42 칸이 정해진 뒤
