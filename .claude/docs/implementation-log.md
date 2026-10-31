@@ -1417,6 +1417,48 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **범위 밖**: DS BottomSheet에 ✕가 없음(공용 컴포넌트). DS Fab에 보라 변형 없음. gui-screens §0 머리의 Ready 수(35 → 66)는 관제탑 몫
 **검사**: typecheck · 바꾼 파일 eslint · `vitest related`(126) · e2e `hosting-ticket`·`hosting-event`·`hosting`(102 — #53~#57 반영 뒤 `hosting-ticket`·`hosting-event` 44 다시) · QA `pnpm qa hosting-ticket` 30/30(HT-1~13 · 15 · 16 × mobile · desktop, 수동 HT-14). 전체 게이트는 PR CI
 
+## P13b-V — QR 체크인 (뷰)
+
+**상태**: done (2026-11-01, PR #62) — 스킬 `gui-implement`. 남은 것(사람 · D2 스테이징): 실기기 3종 판독(QA QR-8 수동), [관객이 스캔] QR을 실제 폰으로 찍어 `/check-in` 입장(QR-9 수동)
+**근거(gui-screens §0)**: **와이어** — `424:11941` 등록 후_공연 상세_qr체크인_호스트 · `424:11976` …_관객 · `108:4656` qr체크인_호스트_전체화면전환 · `108:4693` qr체크인_관객_전체화면전환. GUI 페이지 `724:5257`은 비어 있고 Ready for dev 88개(2026-11-01) 중 QR 체크인은 없다. 결과 화면 · 카메라 권한 거부 · 네트워크 실패 · 공연 상태 안내는 **없음**(DS로만 + 코멘트). 열린 Design Sync 이슈 중 이 화면에 닿는 것 없음. Q39(1133 "Tablet-QR만")는 기본안(1024부터 PC 레이아웃 그대로)
+**변경**
+- 의존성: `@yudiel/react-qr-scanner` 2.6.0(plan §3 QR 스캐너), `qr-code-styling` 1.9.2(plan §3 QR 생성 — P8과 같이 쓴다)
+- `src/ui` 새 컴포넌트(스토리 포함): `QrCode`(값 그대로 svg QR, effect 안에서 불러옴 — patterns §17, 검정 · 흰 바탕 · 바깥 여백 0, 부모 폭을 채움)
+- 화면 `features/hosting/qr/`: `QrCheckInView`(통계 3칸 + 막대 + 입장률 → DS `Tabs` 모드 전환 → 카메라/QR 자리 → [전체화면 전환]), `ui/CameraScanner`(라이브러리 래퍼, `next/dynamic` ssr false — 뒤 카메라 · QR만 · 소리 없음 · 손전등/확대 없음 · 켜지 못하면 이유 + [카메라 다시 켜기]), `ui/camera-errors`(ScannerErrorKind → 문구), `ui/ScanResult`(결과 카드 — 카메라 위 아래쪽에 겹침), `ui/useStageFullscreen`(화면 안 고정 층 + 되면 브라우저 전체화면, 뒤로가기 `useCloseOnBack`), `ui/scan-injection`(판독 값 주입 어댑터 — `window` `dd:qr-scan` 이벤트 → `submitScan`), `ui/QrCheckIn.css`. L 훅(`model/`)은 고치지 않았다
+- e2e `hosting-checkin.spec` 선택자를 V 마크업으로(글자 입력 → 주입 어댑터, 통계 한 줄 → 칸 3개 + 입장률, `관객이 스캔` 버튼 → 탭 `관객이 QR 스캔`, 주소 글자 → QR `data-value` + svg). QA `qa/scenarios/hosting-qr.qa.ts` QR-1~7(+4b) + QR-8 · QR-9 수동
+
+**매핑(③)** — 와이어 근거라 `map`은 직접 그린 상자뿐이다
+
+| 와이어 노드 | 코드 | 판단 |
+|---|---|---|
+| `424:11946`·`11956`·`11960` 통계 칸 100×73 r10 | `statBox`(`surface.container` · `radius[4]`) + `Txt labelMd`/`headingLgEmphasized` | 와이어 구조, 토큰만 |
+| `424:11964` 막대 + "58% 입장 완료" | `track`/`fill`(대시보드 `EntranceCard` 막대와 같은 토큰) + `role="progressbar"` | — |
+| `424:11950`/`11953` 세그먼트(호스트가 QR 스캔 \| 관객이 QR 스캔) | DS `Tabs`(밑줄, `responsive`) | DS에 세그먼트 없음 → 주석 + 코멘트(예매자 관리와 같음) |
+| `424:11945` 카메라 화면(회색 큰 상자) | `stage`(4:5, PC 4:3, `radius[6]`) + `CameraScanner`(라이브러리 finder) | — |
+| `424:11968` 전체화면 전환(검정 버튼) | DS `Button variant="dark"` | — |
+| `424:12001` QR코드 자리 · `424:12000` 문구 | `QrCode` 흰 카드 + 와이어 문구 그대로 | 카메라가 읽게 흰 바탕 |
+| `108:4656`·`108:4693` 전체화면 + `<` | 같은 요소를 고정 층으로 + DS `Button` 아이콘(`chevron-left`) | 카메라를 다시 켜지 않음 |
+
+**단계마다 비교**(`pnpm dev:mock` — ego-browser 390 첫 화면, 이후 카메라 권한 창 때문에 headless Playwright 390 · 1280, 가짜 카메라 = 캔버스 영상): 호스트 기본 · 결과 5종 · 티켓 QR 아님 · 네트워크 실패 · 권한 거부 · 전체화면, 관객 QR · 전체화면 · 뒤로가기. 와이어와 구조 · 순서 · 문구 같음. 다른 점: 세그먼트 → 밑줄 탭(결정 1), QR 자리 진한 회색 → 흰 카드(결정 6), 상단 안내/결과 카드(디자인 없음). 고친 것: 카메라를 못 켰을 때 "카메라에 비춰 주세요" 안내가 겹쳐 보이던 것
+
+**결정** (🤖 Claude 판단 — 근거 / 되돌리려면)
+1. 🤖 모드 전환은 DS `Tabs`(밑줄) — 와이어 세그먼트, DS에 없음(P13a-V 예매자 관리와 같음) / 코멘트 `424:11950`, `QrCheckInView`
+2. 🤖 결과는 카메라 위 아래쪽 흰 카드(색 아이콘 `circle-check`/`circle-request`/`circle-reject` filled + 제목 + 설명 + 이름 · 티켓 · 티켓 번호 + [다음 스캔], 실패면 [다시 시도]) — design-requests "결과마다 아이콘 + 문구 한 줄 + 다음 스캔 버튼" 기본안 / `ScanResult`
+3. 🤖 카메라는 결과가 떠 있어도 멈추지 않는다(다음 티켓을 비추면 결과가 바뀜). 같은 QR이 계속 보이면 라이브러리가 다시 부르지 않고(`allowMultiple` false), 그 위에 L 쿨다운 3초 — L이 연속 스캔을 전제로 설계됨 / `CameraScanner`에 `paused`를 주면 멈춤형
+4. 🤖 판독 소리 없음 · 손전등/확대 버튼 없음 · 뒤 카메라 · QR 형식만 — 근거 없음(현장 소음 · 단순함) / `CameraScanner` props
+5. 🤖 카메라 실패 문구 5종(권한 · 없음 · 사용 중 · 지원 안 함 · 그 밖) + [카메라 다시 켜기](지원 안 함은 버튼 없음) — 디자인 없음 / `camera-errors.ts`
+6. 🤖 [관객이 스캔] QR은 흰 카드 위 검정(바깥 여백 16 = quiet zone), 전체화면은 흰 바탕 큰 QR(`min(70vw, 60vh, 480px)`) + 큰 글자 — 와이어 `108:4693` 흰 바탕 · 카메라 판독성 / `QrCheckIn.css` `qrCard`·`qrImageLarge`
+7. 🤖 전체화면 = 화면 안 고정 층(셸을 덮음) + 되면 브라우저 Fullscreen API(iPhone Safari는 화면 안만). 뒤로가기 · [‹] · Esc로 닫힘 — 와이어 `108:4656`, patterns §6 / `useStageFullscreen`
+8. 🤖 공연 상태로 막혔을 때(호스트 스캔 지난 · 준비중, 셀프 체크인 정산중 등)는 카메라/QR 자리에 `EmptyState` 문구 — 문구는 L 잠정 그대로 / 코멘트 `424:12001`
+9. 🤖 PC(와이어 없음): 본문 최대 640 · 왼쪽 정렬 · PC 제목 "QR 체크인"(기본 정보 · 예매자 관리와 같은 머리), 카메라 상자 4:3 — design-requests PC 기본안("사이드바 + 본문, 최대 폭 제한") / `QrCheckIn.css` `page`·`stage`
+10. 🤖 판독 값 주입 어댑터는 운영에서도 열려 있다(`window` 이벤트) — 카메라에 QR을 비추는 것과 같은 일만 하고 PQ-2 권한 · 검사는 서버. 테스트 전용 빌드 분기를 두지 않으려고 / `scan-injection.ts`(지우면 e2e · QA 주입이 안 됨)
+11. 🤖 판독 엔진: BarcodeDetector가 없는 브라우저(iPhone Safari 등)는 라이브러리 기본대로 zxing wasm(약 0.9MB)을 jsdelivr에서 받는다 — 자체 호스팅 · CSP 허용 목록은 P14 보안에서 정한다 / `setZXingModuleOverrides`로 `public/`에서 받게 바꿀 수 있다
+12. 🤖 통계 칸 숫자는 불러오기 전 "–", 실패는 줄 아래 "통계를 불러오지 못했어요" + [통계 다시 시도], 스캔 뒤 다시 읽기 실패는 입장률 앞 "통계를 새로 고치지 못했어요 ·" — 디자인 없음 / `CheckInStats`
+
+**Figma 코멘트(2026-11-01-impl, 와이어 파일)**: `424:11950` "[개발 · DS 컴포넌트로 구현] QR 체크인 모드 전환"(1989719584) · `424:11945` "[개발 · 디자인 없음] 호스트 스캔 결과·실패·카메라 권한 화면"(1989719587) · `424:12001` "[개발 · 디자인 없음] 관객이 스캔 — QR을 못 보여 줄 때"(1989719590)
+**범위 밖**: 디자인 시스템 16:22Z → 17:25Z 판의 새 다이얼로그 컴포넌트 4개(다이얼로그-버튼하나 · Spinner · 다이얼로그 - 로딩 · 결제 요약)과 19:01Z 판(Checkbox Box 기본 테두리 #141413 → #b8b7b3 · Filter Chip 숫자 변형 2개) — design-system §8 미반영, 이 화면은 안 씀(관제탑에 알림). 대시보드 mock 포스터 깨짐(P11 그대로)
+**검사**: typecheck · 바꾼 파일 eslint · `vitest related`(관련 테스트 없음) · e2e `hosting-checkin` · `hosting` 72/72 · QA `pnpm qa hosting-qr` 16/16(QR-1~7 · 4b × mobile · desktop, 수동 2). 스토리 · 전체 게이트는 PR CI
+
 ## P7-V — 체크아웃 · 입금 확인 다이얼로그 · 주문 완료 (뷰)
 
 **상태**: done (2026-11-01, PR #63) — 스킬 `gui-implement`. 남은 것: 토스 앱 실기기 송금 링크(QA CHK-7 수동 — D2 뒤, progress "사용자 대기"), 스테이징 실주문 1회(L 상자, D2 뒤)

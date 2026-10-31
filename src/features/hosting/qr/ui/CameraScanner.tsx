@@ -1,0 +1,78 @@
+'use client';
+
+import { type IScannerError, Scanner } from '@yudiel/react-qr-scanner';
+import { useState } from 'react';
+
+import { Button } from '@/ui/components/Button/Button';
+import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
+import { Icon } from '@/ui/icons/Icon';
+
+import { type CameraProblem, cameraProblemOf } from './camera-errors';
+import * as s from './QrCheckIn.css';
+
+type Props = {
+  /** 인식한 값 — 그대로 `submitScan`에 넘긴다(같은 값이 계속 보이면 라이브러리가 다시 부르지 않는다) */
+  onScan: (value: string) => void;
+  /** 카메라를 켜지 못했는지 — 화면이 "카메라에 비춰 주세요" 안내를 숨긴다 */
+  onProblemChange?: (hasProblem: boolean) => void;
+};
+
+/**
+ * 카메라 스캐너(`@yudiel/react-qr-scanner`, plan P13b V). 뒤 카메라 · QR만 · 소리 없음 · 손전등·확대 버튼 없음.
+ * 켜지 못하면(권한 거부·카메라 없음·사용 중·지원 안 함) 카메라 자리에 이유와 [카메라 다시 켜기]를 그린다.
+ * 카메라가 없는 곳(Playwright·CI)은 여기서 실패 화면이 되고, 판독 값은 `scan-injection`으로 들어온다.
+ */
+export function CameraScanner({ onScan, onProblemChange }: Props) {
+  const [problem, setProblem] = useState<CameraProblem | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  if (problem) {
+    return (
+      <div className={s.cameraProblem} role="alert" data-testid="camera-problem">
+        <EmptyState
+          illustration={
+            <span className={s.problemIcon} aria-hidden>
+              <Icon name="qr" />
+            </span>
+          }
+          title={problem.title}
+          description={problem.description}
+          action={
+            problem.canRetry ? (
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => {
+                  setProblem(null);
+                  onProblemChange?.(false);
+                  setAttempt((n) => n + 1);
+                }}
+              >
+                카메라 다시 켜기
+              </Button>
+            ) : undefined
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <Scanner
+      key={attempt}
+      onScan={(codes) => {
+        const value = codes[0]?.rawValue;
+        if (value) onScan(value);
+      }}
+      onError={(e: IScannerError) => {
+        setProblem(cameraProblemOf(e.kind));
+        onProblemChange?.(true);
+      }}
+      constraints={{ facingMode: 'environment' }}
+      formats={['qr_code']}
+      sound={false}
+      components={{ finder: true, torch: false, zoom: false, onOff: false }}
+      classNames={{ container: s.scannerContainer, video: s.scannerVideo }}
+    />
+  );
+}
