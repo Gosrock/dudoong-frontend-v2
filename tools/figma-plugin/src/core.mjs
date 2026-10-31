@@ -243,10 +243,14 @@ export function matchIssues(issues, fileKey, nodeIds) {
     });
 }
 
-/** fine-grained PAT 발급 페이지(미리 채움). 저장소는 문서상 미리 고를 수 없어 디자이너가 고른다. */
-export function tokenUrl() {
+/** fine-grained PAT 발급 페이지(미리 채움). 저장소는 문서상 미리 고를 수 없어 디자이너가 고른다. now는 테스트용 */
+export function tokenUrl(now) {
+  // 토큰 이름은 계정 안에서 겹치면 안 된다 — 다시 발급할 때(만료·분실) 막히지 않게 발급 시각을 붙인다
+  const d = now || new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const params = [
-    ['name', 'DuDoong Figma 디자인 트래커'],
+    ['name', `DuDoong Figma 트래커 ${stamp}`],
     ['description', `Figma 플러그인에서 ${REPO.owner}/${REPO.name} 이슈 작성용`],
     ['target_name', REPO.owner],
     ['expires_in', '366'],

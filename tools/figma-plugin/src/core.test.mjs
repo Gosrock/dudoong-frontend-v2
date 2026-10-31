@@ -201,7 +201,8 @@ describe('그 밖', () => {
   });
 
   it('토큰 발급 링크는 Gosrock·Issues 쓰기·366일', () => {
-    const url = new URL(tokenUrl());
+    const url = new URL(tokenUrl(new Date(2026, 9, 31, 9, 5)));
+    expect(url.searchParams.get('name')).toBe('DuDoong Figma 트래커 2026-10-31 09:05');
     expect(url.origin + url.pathname).toBe(
       'https://github.com/settings/personal-access-tokens/new',
     );
