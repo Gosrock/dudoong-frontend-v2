@@ -1,7 +1,7 @@
 # 진행 현황판
 
 > **지금 어디까지 왔는지 한 장으로 본다.** 작업을 시작·끝낼 때마다 이 문서를 고친다(규칙은 아래 "갱신 규칙").
-> 마지막 갱신: **2026-11-01** — 그룹 D 끝(회귀 통과). 그룹 E: P8 끝(#68), P8b ∥ P8c 진행 중.
+> 마지막 갱신: **2026-11-01** — 그룹 E: P8 · P8b · P8c · P9 · P9b 끝, P9c 진행 중. P14를 주제 4개(보안 · 성능 · 접근성 · 회귀)로 나눔.
 > 정본은 따로 있다 — Phase 정의·선행·완료 기준은 [`plan.md`](./plan.md), 화면별 구현 상태·Figma 노드는 [`gui-screens.md`](./gui-screens.md) §0, 구현 기록은 [`implementation-log.md`](./implementation-log.md). 이 문서는 그 셋을 요약해 이어 붙인 판이다. 어긋나면 정본이 맞고, 이 문서를 고친다.
 
 ## 한 줄 요약
@@ -23,6 +23,8 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 토스 앱 송금 링크 실기기(QA CHK-7) · 스테이징 실주문 1회 | P7-V | D2 스테이징 배포 뒤 — 두둥 티켓 체크아웃 → [토스간편송금] → [토스 앱에서 송금하기]: 은행·계좌·금액(총액)이 채워지는지. 은행이 비면 `bankCode` → 토스 은행 값 매핑(B3) |
 | QR 체크인 실기기 3종 판독 · [관객이 스캔] QR을 실제 폰으로 `/check-in` 입장 | P13b-V #62 · P8c-V #71 | D2 스테이징(HTTPS) 뒤 — QA QR-8 · QR-9 · CHK-8 수동(iPhone Safari · Android Chrome · 태블릿/노트북) |
 | 카카오맵 · 우편번호 SDK 실환경(카카오 앱 도메인 · 키) | P11-V #45 | D2 스테이징 뒤 — QA HE-11 수동(기본 정보 주소 검색 → 지도 미리보기 마커) |
+| 기본 OG 이미지 | plan P14 검색 노출 | 디자인 대기 — 이미지가 오면 `src/utils/site.ts` 값 하나 |
+| GA · 카카오 애드핏 넣기 | plan P14(사용자 결정 2026-10-31) | 사용자가 직접 — `next/script`로 루트 레이아웃 한 곳, CSP 허용 목록(P14 보안 PR 뒤), 광고 자리는 디자인. P15 전에 |
 | iOS Safari 실기기 확인(SHELL-7) | P4s-V #32 | `pnpm storybook --host 0.0.0.0` → iPhone Safari에서 BottomSheet `LongContent`·`WithInput`, Modal, Drawer `LongContent` — 뒤 화면 스크롤 잠김 · 입력칸 키보드 위 · 닫은 뒤 스크롤 위치 |
 
 ## 다음 순서
@@ -53,7 +55,10 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 17 | `p9-v-mypage` ∥ 18 | P9-V 마이페이지 · 주문내역 · 관심 호스트 · 아카이빙 | P4s-V | 끝(#74) | E 관객 보유 |
 | 18 | `p9b-v-notifications` ∥ 17 | P9b-V 알림함 | P4s-V | 끝(#73) | E 관객 보유 |
 | 19 | `p9c-v-notices` | P9c-V 서비스 공지 · 상단 배너(디자인 없음 — Q44) | P4s-V | 대기 | E 관객 보유 **(끝)** |
-| 20 | `chore/p14-*` | P14 하드닝(주제별로 나눔) | 전 Phase L·V | 대기 | — |
+| 20a | `p14-security` ∥ 20b | P14 보안 — 오픈 리다이렉트 · 토큰 · 로그 PII · 선물 토큰/QR 유출 · sanitize · CSP(Report-Only부터) · zxing wasm 자체 호스팅 · 의존성 감사 | 전 Phase L·V | 대기 | F 하드닝 |
+| 20b | `p14-perf` ∥ 20a | P14 성능 · 부하 — 라우트별 번들 · LCP/TTFB · 동적 import · 공연 상세 캐시 판단(tech-decisions §2) · 부하 시험 스크립트 초안 | 전 Phase L·V | 대기 | F 하드닝 |
+| 20c | `p14-a11y` ∥ 20d | P14 접근성 — axe 자동 검사 · 키보드 핵심 흐름 · 포커스 · 랜드마크/제목 · 대비 | 전 Phase L·V | 대기 | F 하드닝 |
+| 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 대기 | F 하드닝 **(끝)** |
 | 21 | `release/v2-cutover` | P15 컷오버 | P14 | 대기 | — |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
