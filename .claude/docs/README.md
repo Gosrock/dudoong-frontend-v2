@@ -18,8 +18,8 @@
 | [`legal-copy.md`](./legal-copy.md) | 약관 근거 화면 문구(2026-10-25 시행 약관) — v1 운영 원문, 조항, v2 Phase·위치, "약관 표시 의무 — v2 계획에 위치 없음(위험)" 표시. 문구가 바뀌면 `agreementVersion`을 올린다 |
 | [`gui-screens.md`](./gui-screens.md) | Figma "GUI 화면" 파일 — 관객·호스팅 화면 목록과 라우트·Phase 대응, 데스크탑 대시보드, GUI와 서버가 다른 것의 요약(원본은 design-requests §3) |
 | [`design-system.md`](./design-system.md) | 디자인 시스템(토큰·그리드·폰트·아이콘)과 컴포넌트 구현 결정(Radix + vanilla-extract, 컴포넌트별 출처·props) |
-| [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문, **프론트가 정한 것(핸드오프 원본, 30건)**, 해결된 것 |
-| [`backend-questions.md`](./backend-questions.md) | 백엔드 질문과 지켜보는 변경 |
+| [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문(41건), **프론트가 정한 것(핸드오프 원본, 30건)**, 해결된 것 |
+| [`backend-questions.md`](./backend-questions.md) | 백엔드 질문(남은 것 B16·B18 — 2026-10-31)과 지켜보는 변경 |
 | [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
 | [`staging-deploy-plan.md`](./staging-deploy-plan.md) | 로컬에서 명령 하나로 스테이징에 배포하는 계획(미구현) — Deploy 저장소 변경, `pnpm deploy:staging` 스크립트, 준비물 |
 | [`directory-structure.md`](./directory-structure.md) | 폴더, 라우트, 계층 규칙 |
@@ -60,6 +60,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 | 2026-10-31 | 사용자 결정 반영 — **관객·호스팅 모두 1024px부터 PC**(Q38 닫힘. 호스팅 GUI 스펙의 1133 경계 대신 1024, 1024~1132는 GUI가 1133에서 그린 레이아웃. 코드 `breakpoints.ts` `desktop: 1024` 그대로), 예매자 관리 주문 상태 5탭 + 환불 탭은 계획대로이고 "전체"(`status=ALL`)에 결제 실패 주문 포함(Q32 닫힘), 은행은 서버 목록 선택으로 확정(디자이너에게 수정 요청 전달), plan·storyboard 본문의 옛 호스팅 GUI 노드 id를 새 id로(gui-screens §2 대응표) |
 | 2026-10-31 | v1 신규 요건 정리 — [`v1-additions.md`](./v1-additions.md)(요건만, v1 화면·구현은 가져오지 않음)와 약관 전문 `legal/`. 10-25 조사 뒤 v1에 들어온 #379(약관 제19조② 승인 전 취소 제외)·#382(처리방침 GA 14개월)·#378(nginx `/_next/image` 차단) 반영. v2 `public/term.html`·`privacy.html`은 #379·#382가 빠진 상태(교체 할 일) |
 | 2026-10-31 | 백엔드 답변 반영(백엔드 2.5.1 `78b1b6e7` — #887·#888, 운영·스테이징 배포) — 토큰 수명 6일(B2, Safari 영향 없음), 운영 값(B7), GM-1·PM-2 `marketingAgree` 값 지정(B17 — v1 반전 API 안 씀, L 훅 준비), T-2·GG-7a 읽음 처리 동기화(B9), GR-1·GR-2 `orderMethod`로 두둥 판정(B19), 승인 전 취소 호스트 메일 문구(B13), KOE010 코드(B8), Swagger·README(B16), ECR(B15). 남은 질문 B8 콘솔·B16·B18·B21·B22 |
+| 2026-10-31 | 백엔드 최종 답변 반영(백엔드 2.5.2 `cb53bfaa` — #894·#895·#896, 운영·스테이징 배포) — GP-5 판매 중단 티켓 포함 `isSuspended`(Q33·B11 — 딤드로 결정, L 상태 `SUSPENDED`), 가입 전화번호 서버 검사 `USER_400_2` → 칸 오류 "전화번호를 확인해 주세요"(B22), 재발급·로그아웃 인증 전용 IP 버킷 분당 600(B21 — 코드 변경 없음), 카카오 콘솔 동의 항목·콜백(B8 — 이름은 카카오에서 안 와 서버가 닉네임으로 채움, 가입 폼에서 받는 방식 유지). 남은 백엔드 질문 B16·B18 |
 
 ## 원본 위치
 
@@ -91,8 +92,8 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 
 ### 물어야 하는 것
 
-- **백엔드 질문 — 답 못 받은 것만(B8 콘솔·B16 동의 강제 날짜와 참고 항목·B18 약관 문구·B21·B22, 후보 B11)과 지켜보는 항목** — 2026-10-31 백엔드 2.5.1 답변으로 B2·B7·B9·B13·B15·B17·B19는 닫혔다 → [`backend-questions.md`](./backend-questions.md)
-- **기획 질문 — 답 못 받은 것만 42건 + 문구 정정 요청** → [`design-requests.md`](./design-requests.md) §2
+- **백엔드 질문 — 답 못 받은 것만 2건(B16 동의 강제 날짜와 참고 항목·B18 약관 문구)과 지켜보는 항목** — 2026-10-31 백엔드 2.5.1 답변으로 B2·B7·B9·B13·B15·B17·B19, 2.5.2 최종 답변으로 B8·B11·B21·B22가 닫혔다 → [`backend-questions.md`](./backend-questions.md)
+- **기획 질문 — 답 못 받은 것만 41건 + 문구 정정 요청** → [`design-requests.md`](./design-requests.md) §2
 - **약관 표시 의무 — v2 계획에 위치 없음(위험)** 목록 → [`legal-copy.md`](./legal-copy.md) (공연 상세 중개자 고지·판매정보 굵은 문단, 첫 화면 중개자 고지, 체크아웃 호스트 제공 동의·중개자 문장·두둥 입금 전 고지, 가입 만 14세, 두둥티켓 개설 환불 의무 동의)
 
 ### 실제 환경에서 확인할 것
