@@ -130,7 +130,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   );
 }
 
-/** 환불 탭(GF-1 · PF-2) — Figma 없음(Q32), 스타일 없는 최소 마크업 */
+/** 환불 탭(GF-1 · PF-2) — Figma 없음(탭 구성은 사용자 결정 2026-10-31, Q32), 스타일 없는 최소 마크업 */
 export function RefundsTab({ eventId }: { eventId: string }) {
   const l = useRefundList(eventId);
   return (

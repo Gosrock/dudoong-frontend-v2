@@ -19,7 +19,7 @@ import { useGuestExport } from './useGuestExport';
  * 예매자 관리 주문 탭(GR-1, plan P13a). 상태 탭·검색·페이지 번호와 엑셀(GR-6)을 돌려준다. UI 동작은 없다.
  * 공연 스코프 레이아웃 안에서 쓴다(GE-3 `useEventScope` — `myRole`).
  *
- * - 상태 탭 5개(FAILED 숨김 — Q32 대기). 탭 건수는 서버 `counts`(검색어 반영, 상태 필터 무시). 상태·검색·페이지는 주소에 남기지 않는다
+ * - 상태 탭 5개(FAILED 숨김 — 사용자 결정 2026-10-31, Q32). 탭 건수는 서버 `counts`(검색어 반영, 상태 필터 무시). 상태·검색·페이지는 주소에 남기지 않는다
  * - 검색: 기준(이름·연락처·입금자명) + 검색어 50자. `submitSearch()`로 적용하고 첫 페이지부터. 일반 멤버의 연락처·입금자명은
  *   완전 일치 안내(`exactMatchHint`, #846)
  * - 표는 페이지 번호(patterns §12 — `keepPreviousData`로 넘기는 동안 이전 행을 둔다)

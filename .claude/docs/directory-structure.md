@@ -102,7 +102,7 @@ src/app/
 │           └─ gifts/page.tsx          # (보류) 보낸·받은 선물 내역 GG-7 — Figma에 화면이 있을 때만
 │
 ├─ hosting/                            # 호스팅 센터 — 전부 클라이언트 조회
-│  ├─ layout.tsx                       # P4s <Suspense>, 로그인 게이트, 셸 — 데스크탑(1133 이상) 전역 상단 바(GUI `Top bar_Host` — 로고·공연 둘러보기·공연 준비하기·알림 벨·아바타 ▾) / 모바일 HostingHeader(`host title` 로고 헤더, 벨 없음) + 드로어(알림 벨은 드로어 안 — design-requests Q17). 공연 밖 화면은 사이드바 없이 본문 최대 1280. 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
+│  ├─ layout.tsx                       # P4s <Suspense>, 로그인 게이트, 셸 — 데스크탑(1024 이상) 전역 상단 바(GUI `Top bar_Host` — 로고·공연 둘러보기·공연 준비하기·알림 벨·아바타 ▾) / 모바일 HostingHeader(`host title` 로고 헤더, 벨 없음) + 드로어(알림 벨은 드로어 안 — design-requests Q17). 공연 밖 화면은 사이드바 없이 본문 최대 1280. 활성 표시는 경로를 읽는 말단 + 자체 Suspense (tech-decisions §3)
 │  ├─ page.tsx                         # P10a 공연준비 홈 (호스트 탭 / 공연 탭 / 검색) — 탭은 `?tab=hosts`(기본 공연 탭은 주소에 없음). P10a-L 생성 — HostingHomeView
 │  ├─ new/
 │  │  ├─ hosts/page.tsx                # P10a 호스트 만들기 (P10a-L 생성 — CreateHostView)
@@ -157,7 +157,7 @@ src/features/
 │  ├─ access/                  # P10a 하위 화면(호스트 P10b·공연 P11)의 비멤버 403·404 판정. HostingAccessRejected(AsyncBoundary rejected)·HostingForbidden(P2 ForbiddenView). model/hosting-access(조회 에러 → forbidden·notFound·error, myRole → `can(role, 'viewManagement')`)
 │  ├─ event/                   # P11  NewEventWizard, EventLayout, Checklist, EventInfo(PlaceInput: 우편번호 + 카카오 Geocoder), EventDetailEditor(SectionTabs + Tiptap). 지금은 로직 연결 자리 NewEventView·EventScopeView·EventDashboardView·EventInfoView·EventDetailView. model/: event-scope(주소 id·메뉴 등록 전 4/후 6·읽기 전용 이유·티켓 여부 잠금·`canDeleteEvent`), schedule(날짜 1칸 + 시각, 종료 ≤ 시작이면 다음 날), place(주소 → 좌표 어댑터 `Geocoder`·4필드·상세주소), kakao-geocoder(카카오맵 SDK `services.Geocoder` 어댑터), basic-info-form(PE-4 바뀐 필드만·문의처 0~10·태그 10·서버 코드 → 칸), sections-form(PE-6 전체 교체·기본 4탭·1~10/20자/20,000자), checklist(행 3개·③ 면제·PE-8 코드), create-event-form(Step·호스트 선택 가능·PE-2 본문·`?created=1`), event-cache(저장·등록·삭제 뒤 반영), useEventScope, useNewEventWizard(Step1 안 호스트 만들기는 `useCreateHost({onCreated})`), useEventDashboard, useEventBasicInfo, useEventSections, useDeleteEvent
 │  ├─ ticket/                  # P12  TicketManage, TicketForm, TicketMenu, OptionManage. 지금은 로직 연결 자리 TicketListView·TicketFormView. model/: ticket-rules(잠금 `isSold || hasPendingOrders`·⋮ 메뉴·상태 칩·추가 가능·붙일 수 있는 옵션·주소), ticket-form(기본값·무제한 → 재고 공개 끔·두둥 승인 잠금·칸 검사·T-2 본문·T-3 바뀐 필드 + `clear[]`·동의 `REFUND_OBLIGATION_FIELD`(Q42)·서버 코드 → 칸), option-form(O-2·O-3 본문 — 형식 없음·잠긴 옵션 추가금 제외), bank-select(검색 거르기), ticket-cache(변경 뒤 T-1·O-1·GP-5·체크리스트 ③), useTicketList, useTicketForm, useBankSelect, useTicketOptions(붙이기·떼기·새 옵션 O-2 + O-5), useOptionEditor(O-3·O-4)
-│  ├─ guest/                   # P13a OrderTab, IssuedTicketTab, RefundTab, OrderDetail(?order= 값으로 페이지가 선언적으로 렌더). 지금은 로직 연결 자리 GuestsView·GuestTabs. model/: guest-rules(탭·주소 `?tab=`·`?order=`, 상태 탭 5개(Q32), 검색 안내(#846), 처리 버튼 `orderActionsOf`, 거절·취소 본문, 두둥 판정·약관 안내 C-2~C-4, 에러 문구), guest-cache(처리 뒤 GR-2·GR-1·GF-1·GI-1·GD-1·T-1·GP-5), useGuestsUrlState, useOrderList, useOrderDetail, useIssuedTicketList, useRefundList, useGuestExport. 등록 후 대시보드 파생값은 event/model/dashboard-stats(+ useEventDashboard `stats`)
+│  ├─ guest/                   # P13a OrderTab, IssuedTicketTab, RefundTab, OrderDetail(?order= 값으로 페이지가 선언적으로 렌더). 지금은 로직 연결 자리 GuestsView·GuestTabs. model/: guest-rules(탭·주소 `?tab=`·`?order=`, 상태 탭 5개(Q32 닫힘 2026-10-31 — "전체"에 결제 실패 포함), 검색 안내(#846), 처리 버튼 `orderActionsOf`, 거절·취소 본문, 두둥 판정·약관 안내 C-2~C-4, 에러 문구), guest-cache(처리 뒤 GR-2·GR-1·GF-1·GI-1·GD-1·T-1·GP-5), useGuestsUrlState, useOrderList, useOrderDetail, useIssuedTicketList, useRefundList, useGuestExport. 등록 후 대시보드 파생값은 event/model/dashboard-stats(+ useEventDashboard `stats`)
 │  ├─ qr/                      # P13b HostScan, AudienceScan. 지금은 로직 연결 자리 QrCheckInView(스캐너 대신 글자 입력, QR 대신 주소 글자). model/: qr-check-in-rules(공연 상태별 안내 `hostScanBlockOf`·`selfCheckInBlockOf`, 스캔 값 정리 64자, 연속 스캔 쿨다운, PQ-2 실패 분류, `selfCheckInUrl` = origin + qrPath), qr-cache(스캔 뒤 GQ-1, `Event_400_27` 뒤 GE-3), useCheckInStats(GQ-1), useHostScan(PQ-2 — `submitScan(value)`·`retry`·`reset`), useSelfCheckInQr(GQ-4)
 │  └─ overlays/                # 도메인별로 모은다 — 라우트가 아니라 누락되기 쉽다. 데이터를 읽으면 안에 AsyncBoundary
 │     ├─ OpenEvent/ DeleteEvent/ UnsavedGuard/ NotifyGuestsNotice/
@@ -186,7 +186,7 @@ src/ui/
 │  ├─ colors.ts                # colors — <Txt color={colors.textSecondary} />처럼 값으로 넘기는 색(의미 색 + 원시 색)
 │  ├─ typography.css.ts        # Figma 텍스트 스타일 21개(bodyMd, headingSmEmphasized …)
 │  ├─ sprinkles.css.ts         # 조건(mobile/desktop) + 토큰 유틸리티
-│  ├─ breakpoints.ts           # 지금 desktop ≥ 1024, wide ≥ 1280(P1). 기준값: 호스팅 1133 / 1280 / 1440(GUI), 관객 1024(Q38 대기) — 나누는 방식은 P4s 착수 전
+│  ├─ breakpoints.ts           # desktop ≥ 1024, wide ≥ 1280(P1). 관객·호스팅 모두 1024부터 PC(사용자 결정 2026-10-31, Q38 닫힘 — GUI의 1133 경계 대신). 호스팅 우측 패널 폭은 1280 · 1440(GUI)
 │  ├─ types.ts                 # 공개 props 타입(SpaceKey, Responsive<T> …) — vanilla-extract 타입을 밖에 내보내지 않는다
 │  └─ global.css.ts            # reset, 본문 폰트, focus-visible
 ├─ primitives/                 # Flex(+ .Center 등), Spacing, Txt, Divider, Container
