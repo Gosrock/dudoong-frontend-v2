@@ -19,7 +19,7 @@ import { cardTarget } from '../model/my-ticket-state';
 import { pagerLabel, type TicketGroupView } from '../model/ticket-groups';
 import { type TicketDetailView, useTicketDetail } from '../model/useTicketDetail';
 import { EventInfo } from './EventInfo';
-import { TicketGiftButton } from './TicketGiftButton';
+import { type GiftDone, TicketGiftButton } from './TicketGiftButton';
 import * as s from './TicketTab.css';
 import { useSnapCarousel } from './useSnapCarousel';
 
@@ -33,12 +33,15 @@ export function TicketQrLayer({
   index,
   onIndexChange,
   onClose,
+  onGiftDone,
   top,
 }: {
   group: TicketGroupView;
   index: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
+  /** 선물 동작이 끝남 — 연 쪽이 층을 닫고 결과 화면을 띄운다 */
+  onGiftDone: (done: GiftDone) => void;
   /** 카드가 티켓탭의 같은 자리에 오게 하는 위 여백(px). 모르면 기본 */
   top: number | null;
 }) {
@@ -72,6 +75,7 @@ export function TicketQrLayer({
               index={index}
               onIndexChange={onIndexChange}
               onClose={onClose}
+              onGiftDone={onGiftDone}
             />
           </AsyncBoundary>
           <div className={s.layerInfo}>
@@ -89,11 +93,13 @@ function QrLayerBody({
   index,
   onIndexChange,
   onClose,
+  onGiftDone,
 }: {
   group: TicketGroupView;
   index: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
+  onGiftDone: (done: GiftDone) => void;
 }) {
   const tickets = group.group.tickets;
   const {
@@ -117,6 +123,7 @@ function QrLayerBody({
             key={current?.ticketUuid ?? `i${activeIndex}`}
             view={view}
             onGone={onClose}
+            onDone={onGiftDone}
           />
         </span>
         <Txt typography="labelMd" color={colors.textSecondary}>
