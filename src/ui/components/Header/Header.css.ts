@@ -4,7 +4,8 @@ import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
 /**
- * Figma Top app bar(`37:44`) — 390×64, 패딩 16·24(아이콘이 있는 쪽은 8 — 2026-10-31), 슬롯 40×40, 간격 16. 모든 변형이 모바일 폭이다(데스크탑 헤더 없음).
+ * Figma Top app bar(`37:44`) — 390×64, 패딩 위아래 16, 좌우는 아이콘 슬롯 쪽 16(`Space/4`) · 제목·프로필 쪽 24(`Space/5`)
+ * (변수 바인딩 2026-11-01 — 이슈 #36), 슬롯 40×40, 간격 16(`Space/4`). 모든 변형이 모바일 폭이다(데스크탑 헤더 없음).
  * 제목은 1줄 말줄임으로 통일했다(Figma는 변형마다 다름 — 디자이너 확인 대기, design-system §5).
  */
 export const root = style({
@@ -134,15 +135,9 @@ export const leadingSlot = style({});
 export const trailingSlot = style({});
 
 /*
- * Figma Top app bar 2026-10-31: 아이콘 자리 40×40, 아이콘 쪽 바깥 패딩 8(제목·프로필 쪽은 24 그대로).
- * 패딩은 24로 두고 바깥 끝 아이콘 버튼만 16 더 내보낸다 — 로고·아바타 같은 아이콘 아닌 슬롯은 24에 남는다.
- * 제목 시작 위치(8 + 40 + 16 = 64)는 옛 판과 같다.
+ * 아이콘 슬롯 쪽 바깥 패딩 16(`Space/4`), 제목·프로필 쪽 24(`Space/5`) — Figma 2026-10-31T16:15Z 판부터, 변수 바인딩은 16:18Z(#36).
+ * 패딩은 24로 두고 바깥 끝 아이콘 버튼은 기본 바깥 여백 -8을 그대로 쓴다 → 40 틀이 화면 끝에서 16, 아이콘은 24.
+ * 안쪽(제목 쪽)은 여백 0이라 제목 시작은 16 + 40 + 16 = 72(Figma와 같다). 로고·아바타 같은 아이콘 아닌 슬롯은 24에 남는다.
  */
-globalStyle(`${leadingSlot} > ${iconButton}:first-child`, { marginLeft: -16 });
 globalStyle(`${leadingSlot} > ${iconButton}:last-child`, { marginRight: 0 });
-globalStyle(`${trailingSlot} > ${iconButton}:last-child`, { marginRight: -16 });
 globalStyle(`${trailingSlot} > ${iconButton}:first-child`, { marginLeft: 0 });
-
-/** 공연 전환형(`510:1947`)만 오른쪽 패딩이 16이다(2026-10-31T16:15Z 판, 다른 변형은 8) — 끝 아이콘 버튼을 8만 내보낸다 */
-export const switcherRoot = style({});
-globalStyle(`${switcherRoot} ${trailingSlot} > ${iconButton}:last-child`, { marginRight: -8 });
