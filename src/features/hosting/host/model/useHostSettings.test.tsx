@@ -1,19 +1,20 @@
 import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { type ReactNode, Suspense } from 'react';
+import { Component, type ReactNode, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetHostMockState } from '@/api/__mocks__/host.handlers';
-import { actAsRole } from '@/api/__mocks__/host-store';
+import { actAsRole, membersOf } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
-import { errors } from '@/api/__mocks__/respond';
+import { errors, ok } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { MOCK_S3_ORIGIN } from '@/api/__mocks__/upload-handlers';
 import { hostDetailQuery, hostViewerQuery, MY_HOSTS_KEY } from '@/api/host/queries';
 import { UpdateHostRequestSchema } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
 import { shouldToastMutationError } from '@/api/query-client';
+import { hostingAccessOfError } from '@/features/hosting/access/model/hosting-access';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -32,13 +33,33 @@ afterEach(() => {
   resetHostMockState();
 });
 
+/** 경계(`AsyncBoundary rejected`) 대신 — 조회 에러를 받아 둔다 */
+class Catch extends Component<
+  { children: ReactNode; onError: (e: unknown) => void },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(error: unknown) {
+    this.props.onError(error);
+  }
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 function setup(hostId = '11', queryClient: QueryClient = createTestQueryClient()) {
+  const onError = vi.fn();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
-      <Suspense fallback="불러오는 중">{children}</Suspense>
+      <Catch onError={onError}>
+        <Suspense fallback="불러오는 중">{children}</Suspense>
+      </Catch>
     </QueryClientProvider>
   );
-  return { ...renderHook(() => useHostSettings(hostId), { wrapper }), queryClient };
+  return { ...renderHook(() => useHostSettings(hostId), { wrapper }), queryClient, onError };
 }
 
 type Hook = ReturnType<typeof setup>['result'];
@@ -57,16 +78,30 @@ describe('호스트 설정 — 접근(비멤버 403 · 일반 멤버 읽기 전�
     expect(result.current.canEdit).toBe(true);
     expect(result.current.values.name).toBe('고스락');
     expect(result.current.values.contacts.map((c) => c.value)).toContain('gosrock@example.com');
-    expect(await sent.list()).toMatchObject([
-      { method: 'GET', path: '/api/v2/hosts/11', credentials: 'include' },
+    // GH-3은 공개라 비멤버도 200이다 — G+ 조회 GH-6을 같이 읽어 접근을 가린다(SUPER_ADMIN 판정, 2026-10-31)
+    expect(
+      (await sent.list())
+        .map((r) => [r.method, r.path, r.credentials])
+        .sort((a, b) => String(a[1]).localeCompare(String(b[1]))),
+    ).toEqual([
+      ['GET', '/api/v2/hosts/11', 'include'],
+      ['GET', '/api/v2/hosts/11/members', 'include'],
     ]);
   });
 
-  it('비멤버: GH-3이 200 + myRole null이어도 forbidden(공용 403 안내)', async () => {
+  it('비멤버: GH-3은 200 + myRole null이지만 GH-6이 403 → 경계가 공용 403', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { onError } = setup('12');
+    await waitFor(() => expect(onError).toHaveBeenCalled());
+    expect(hostingAccessOfError(onError.mock.calls[0]![0])).toBe('forbidden');
+  });
+
+  it('SUPER_ADMIN(비멤버인데 GH-6 성공 + myRole null): 매니저처럼 편집할 수 있다', async () => {
+    server.use(http.get('*/api/v2/hosts/12/members', () => ok(membersOf(12))));
     const { result } = setup('12');
     await loaded(result);
-    expect(result.current.access).toBe('forbidden');
-    expect(result.current.canEdit).toBe(false);
+    expect(result.current.access).toBe('ok');
+    expect(result.current.canEdit).toBe(true);
   });
 
   it('일반 멤버: 읽기 전용 — 저장하지 않는다', async () => {
@@ -210,9 +245,9 @@ describe('호스트 이미지 — PH-15 발급 → S3 PUT → PH-4', () => {
     await loaded(result);
     await act(() => result.current.images.PROFILE.change(png()));
     expect(result.current.images.PROFILE.changed).toBe(true);
-    const lines = await sent.lines();
-    expect(lines[1]).toBe('POST /api/v2/hosts/11/images');
-    expect(lines[2]).toMatch(/^PUT \/host\/11\/[0-9a-f-]{36}\.png$/);
+    const lines = (await sent.lines()).filter((l) => !l.startsWith('GET'));
+    expect(lines[0]).toBe('POST /api/v2/hosts/11/images');
+    expect(lines[1]).toMatch(/^PUT \/host\/11\/[0-9a-f-]{36}\.png$/);
     const [issue] = await writes(sent);
     expect(issue!.body).toEqual({ purpose: 'PROFILE', extension: 'PNG' });
     await act(() => result.current.save());

@@ -53,7 +53,11 @@ export const isSessionLost = (e: unknown): e is SessionLostError => e instanceof
 /** HTTP 401. `SessionLostError`도 401이라 참이다 — 세션 상실을 따로 거를 곳은 `isSessionLost`를 먼저 본다. */
 export const isUnauthorized = (e: unknown): e is ApiError => getErrorStatus(e) === 401;
 
-/** HTTP 403. 호스트 권한 실패뿐이다(code는 `HOST_400_*` 그대로 — 상태로 분기하고 code로 사유를 구분한다, api-contract §1). */
+/**
+ * HTTP 403. 대부분 호스트 권한 실패(code는 `HOST_400_*` 그대로 — 상태로 분기하고 code로 사유를 구분한다, api-contract §1)지만
+ * 그것만은 아니다(fe423ed4): 재발급 실패 `AUTH_403_1`, 허용되지 않은 출처 `AUTH_403_3`(`CookieOriginFilter`), 정지·탈퇴 계정
+ * 로그인 `USER_403_1`, 역할 부족 `AUTH_403_2`. 호스트 화면 판정(`hostingAccessOfError`)은 호스트 API의 응답에만 쓴다.
+ */
 export const isForbidden = (e: unknown): e is ApiError => getErrorStatus(e) === 403;
 
 /** HTTP 404. 없는·남의·비공개 리소스(존재를 숨긴다). */

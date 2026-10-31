@@ -1,16 +1,16 @@
 'use client';
 
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { getErrorCode } from '@/api/errors';
 import { handleCodes } from '@/api/handle-codes';
 import { updateHostMutation } from '@/api/host/mutations';
-import { hostViewerQuery } from '@/api/host/queries';
+import { hostMembersQuery, hostViewerQuery } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
 import { uploadImage } from '@/api/upload';
 import { hostingAccessOfRole } from '@/features/hosting/access/model/hosting-access';
-import { can } from '@/features/shared/permission/model/can';
+import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 
 import { applyUpdatedHost } from './host-cache';
 import {
@@ -39,9 +39,12 @@ const noImageErrors = (): Record<HostImageSlot, string | null> => ({ PROFILE: nu
 
 /**
  * 호스트 설정(`/hosting/hosts/[hostId]/settings`, PH-4 · PH-15, plan P10b). 값·칸 오류·이미지 업로드·저장만 돌려주고 UI 동작은 없다(plan §0).
- * `<AsyncBoundary rejected={HostingAccessRejected}>` 안에서 쓴다 — GH-3 viewer(쿠키, `myRole`·원문 연락처)를 Suspense로 읽는다.
+ * `<AsyncBoundary rejected={HostingAccessRejected}>` 안에서 쓴다 — GH-3 viewer(쿠키, `myRole`·원문 연락처)와 GH-6(멤버 목록, G+)을
+ * 함께 Suspense로 읽는다.
  *
- * - 접근: 비멤버는 GH-3이 200 + `myRole: null`이라 `access: 'forbidden'`(공용 403, P10a `hostingAccessOfRole`). 없는 호스트는 404 → 경계.
+ * - 접근: GH-3은 공개라 비멤버도 200 + `myRole: null`이다 — 그래서 G+ 조회 GH-6을 같이 읽는다. 비멤버는 GH-6이 403 → 경계가 공용 403.
+ *   GH-6이 성공했는데 `myRole`이 null이면 멤버가 아닌 SUPER_ADMIN이라 매니저처럼 편집할 수 있다(`superAdminOrRole`, 사용자 결정
+ *   2026-10-31). 모르는 역할은 `access: 'forbidden'`(P10a `hostingAccessOfRole`). 없는 호스트는 404 → 경계.
  *   일반 멤버는 읽기 전용(`canEdit: false` — patterns §22 "일반 멤버 = 읽기 전용", 저장하지 않는다)
  * - 폼은 처음 받은 값으로 한 번만 채운다 — 다시 온 조회가 편집 중인 값을 덮지 않는다(patterns §4-4). 저장이 끝나면 응답이 새 기준이다
  * - 저장: 바뀐 필드만 PH-4(patterns §23). 바뀐 것이 없거나 칸 오류가 있으면 요청하지 않는다. 성공하면 응답을 viewer 키에 넣고
@@ -53,9 +56,13 @@ const noImageErrors = (): Record<HostImageSlot, string | null> => ({ PROFILE: nu
  */
 export function useHostSettings(hostId: string) {
   const queryClient = useQueryClient();
-  const { data: host } = useSuspenseQuery(hostViewerQuery(hostId));
-  const access = hostingAccessOfRole(host.myRole);
-  const canEdit = can(host.myRole, 'editHost');
+  const [{ data: host }] = useSuspenseQueries({
+    queries: [hostViewerQuery(hostId), hostMembersQuery(hostId)],
+  });
+  // GH-6(G+)이 함께 성공했다 — null이면 SUPER_ADMIN
+  const role = superAdminOrRole(host.myRole);
+  const access = hostingAccessOfRole(role);
+  const canEdit = can(role, 'editHost');
 
   const [base, setBase] = useState<HostSettingsValues>(() => hostSettingsValuesOf(host));
   const [values, setValues] = useState<HostSettingsValues>(base);

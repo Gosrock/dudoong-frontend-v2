@@ -1,6 +1,5 @@
 import type { EventManage, EventStatus } from '@/api/event/schema';
-import type { HostRole } from '@/api/shared/common-schema';
-import { can } from '@/features/shared/permission/model/can';
+import { type ActorRole, can, superAdminOrRole } from '@/features/shared/permission/model/can';
 
 /**
  * 공연 스코프(`/hosting/events/[eventId]/…`, plan P11) 규칙 — 등록 상태별 메뉴, 읽기 전용 판정, 티켓 여부 잠금, 삭제 가능.
@@ -48,14 +47,15 @@ export const eventPublicHref = (eventId: string | number, status: EventStatus) =
 
 /**
  * 읽기 전용인 이유. `role` — 일반 멤버(관리 화면은 볼 수만 있다, api-contract §2), `ended` — 정산중·지난 공연(`Event_400_17`).
- * 둘 다면 역할을 먼저 말한다. 모르는 상태(`UNKNOWN`)도 수정하지 않는다(서버가 상태를 늘려도 잘못 열리지 않게)
+ * 둘 다면 역할을 먼저 말한다. 모르는 상태(`UNKNOWN`)도 수정하지 않는다(서버가 상태를 늘려도 잘못 열리지 않게).
+ * GE-3은 일반 멤버 이상(G+) 조회라 `myRole: null`은 멤버가 아닌 SUPER_ADMIN이다 — 막지 않는다(`superAdminOrRole`, 사용자 결정 2026-10-31)
  */
 export type ReadOnlyReason = 'role' | 'ended';
 
 export function readOnlyReasonOf(
   event: Pick<EventManage, 'myRole' | 'status'>,
 ): ReadOnlyReason | null {
-  if (!can(event.myRole, 'editEvent')) return 'role';
+  if (!can(superAdminOrRole(event.myRole), 'editEvent')) return 'role';
   if (event.status !== 'PREPARING' && event.status !== 'OPEN') return 'ended';
   return null;
 }
@@ -70,7 +70,7 @@ export const isHasTicketLocked = (status: EventStatus) => status !== 'PREPARING'
 
 /**
  * 공연을 지울 수 있는지(DE-9) — 준비중 공연 + 매니저 이상만. 등록 후에는 삭제가 없다(`Event_400_19`).
- * 공연준비 홈 공연 카드의 ⋮(P10a)와 공연 화면이 같이 쓴다
+ * 공연준비 홈 공연 카드의 ⋮(P10a — GE-1 `myRole`)와 공연 화면(GE-3 — `useEventScope().role`, SUPER_ADMIN 포함)이 같이 쓴다
  */
-export const canDeleteEvent = (event: { status: EventStatus; myRole: HostRole | null }) =>
+export const canDeleteEvent = (event: { status: EventStatus; myRole: ActorRole | null }) =>
   event.status === 'PREPARING' && can(event.myRole, 'editEvent');

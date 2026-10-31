@@ -21,7 +21,7 @@ describe('비멤버 403 판정 — 조회 에러(HTTP 상태로 분기)', () => 
   });
 });
 
-describe('비멤버 403 판정 — 공개 응답의 myRole', () => {
+describe('비멤버 403 판정 — 판정 역할', () => {
   it.each([
     [null, 'forbidden'],
     [undefined, 'forbidden'],
@@ -29,6 +29,8 @@ describe('비멤버 403 판정 — 공개 응답의 myRole', () => {
     ['GUEST', 'ok'],
     ['MANAGER', 'ok'],
     ['MASTER', 'ok'],
+    // G+ 조회 성공 + myRole null → superAdminOrRole이 만든 값(사용자 결정 2026-10-31)
+    ['SUPER_ADMIN', 'ok'],
   ] as const)('myRole %j → %s', (role, access) => {
     expect(hostingAccessOfRole(role)).toBe(access);
   });

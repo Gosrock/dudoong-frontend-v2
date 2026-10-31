@@ -51,3 +51,17 @@ export const REGISTER_ERROR_MESSAGE = {
   /** 체크리스트는 찼지만 시작 시각이 지났다(`Event.validateStartAt`, 432cce4) — GE-7·GE-3을 다시 읽는다 */
   Event_400_15: '공연 시작 시각이 지나 등록할 수 없어요. 일정을 바꿔 주세요',
 } as const;
+
+/**
+ * 등록 실패 문구. 서버 `Event.open()`은 시작 시각(`Event_400_15`)을 "이미 오픈"(`Event_400_8`)보다 먼저 본다(fe423ed4) — 다른 멤버가
+ * 이미 등록했고 시작도 지난 공연이면 `Event_400_15`가 온다. 다시 읽은 GE-3이 등록 뒤(준비중 아님)면 시작 시각 문구 대신
+ * "이미 등록된 공연" 문구를 쓴다
+ */
+export function registerErrorMessageOf(
+  code: keyof typeof REGISTER_ERROR_MESSAGE | null,
+  registered: boolean,
+): string | null {
+  if (code === null) return null;
+  if (code === 'Event_400_15' && registered) return REGISTER_ERROR_MESSAGE.Event_400_8;
+  return REGISTER_ERROR_MESSAGE[code];
+}

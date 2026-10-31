@@ -9,6 +9,7 @@ import {
   REFUND_ACCOUNT_NUMBER_PATTERN,
 } from '../order/schema';
 import type { PublicTicketItem } from '../ticket-item/schema';
+import { storedEvent } from './event-store';
 import { banks } from './fixtures/bank';
 import {
   buildMockOrder,
@@ -333,9 +334,18 @@ const isPaid = (o: MyOrderDetail) => (o.payment?.totalAmount ?? 0) > 0;
 const NOW = '2026.10.25 12:00';
 
 /** `cancelBlocker` 순서를 플래그로 흉내 낸다: 상태 → 공연(삭제·시작 후) → 그 밖(입장·선물 티켓) */
+/**
+ * O-4가 막힐 때의 코드 — 서버 순서(fe423ed4 `V2UserOrderDomainService.cancel` → `cancelBlocker`): 지운 공연은 공연 조회에서
+ * `Event_404_1` → (PG 결제 `Order_400_24` — mock 주문에 없다) → 상태 `Order_400_5` → 공연 OPEN 아님 `Event_400_5` → 시작 후
+ * `Order_400_9` → 선물·입장 티켓 `Order_400_24`. 공연 상태는 공연 저장소, 없으면 표시 상태(지난 공연 = OPEN 아님)로 본다
+ */
 function cancelBlockCode(o: MyOrderDetail) {
+  if (o.event === null) return 'Event_404_1' as const;
   if (o.status !== 'PENDING_APPROVE' && o.status !== 'APPROVED') return 'Order_400_5' as const;
-  if (o.event === null || o.event.displayStatus === 'PAST' || o.event.displayStatus === 'ONGOING') {
+  const status =
+    storedEvent(o.event.eventId)?.status ?? (o.event.displayStatus === 'PAST' ? 'CLOSED' : 'OPEN');
+  if (status !== 'OPEN') return 'Event_400_5' as const;
+  if (o.event.displayStatus === 'PAST' || o.event.displayStatus === 'ONGOING') {
     return 'Order_400_9' as const;
   }
   return 'Order_400_24' as const;

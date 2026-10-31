@@ -111,6 +111,12 @@ describe('주문 처리 버튼', () => {
       [],
     ],
     [
+      'SUPER_ADMIN(GE-3 myRole null) — 매니저처럼 처리 버튼',
+      { status: 'PENDING_APPROVE', refundStatus: 'NONE' },
+      { ...open, myRole: 'SUPER_ADMIN' },
+      ['approve:on', 'refuse:on'],
+    ],
+    [
       '모르는 표시 상태는 시작 후로',
       { status: 'APPROVED', refundStatus: 'NONE' },
       { ...open, displayStatus: 'UNKNOWN' },

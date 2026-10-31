@@ -1,4 +1,4 @@
-import { http } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -148,7 +148,63 @@ describe('세션 표시가 있으면', () => {
     });
   });
 
-  describe('재발급이 401·403·그 밖의 4xx면 세션 상실', () => {
+  describe('재발급이 429(IP 제한)·408이면 4xx여도 일시 오류 — 세션을 유지한다', () => {
+    const refreshStatus = (status: number, code: string) =>
+      http.post('*/api/v1/auth/token/refresh', () =>
+        Response.json({ success: false, status, code, reason: '' }, { status }),
+      );
+
+    it.each([
+      ['429 GLOBAL_429_1(백엔드 IP 버킷)', 429, 'GLOBAL_429_1', refreshStatus(429, 'GLOBAL_429_1')],
+      [
+        '408 HTML(앞단 프록시)',
+        408,
+        'NON_JSON',
+        http.post(
+          '*/api/v1/auth/token/refresh',
+          () => new HttpResponse('<html>408</html>', { status: 408 }),
+        ),
+      ],
+    ])('%s — 실제 authApi로', async (_, status, code, handler) => {
+      server.use(handler);
+      register(() => authApi.post('token/refresh', z.unknown()));
+      const all = await Promise.all(
+        Array.from({ length: 3 }, () => api.get('probe', Probe).catch((x: unknown) => x)),
+      );
+      for (const e of all) {
+        expect(e).not.toBeInstanceOf(SessionLostError);
+        expect(e).toMatchObject({ status, code });
+      }
+      expect(onSessionLost).not.toHaveBeenCalled();
+      expect(readSessionFlag()).not.toBeNull();
+    });
+
+    it('429 뒤에도 상실 플래그가 서지 않아 다음 401에서 다시 재발급하고, 성공하면 원 요청이 통과한다', async () => {
+      const refresh = vi
+        .fn<() => Promise<unknown>>()
+        .mockRejectedValueOnce(new ApiError(429, 'GLOBAL_429_1', ''))
+        .mockImplementationOnce(async () => {
+          valid = true;
+        });
+      register(refresh);
+      await expect(api.get('probe', Probe)).rejects.toMatchObject({ status: 429 });
+      await expect(api.get('probe', Probe)).resolves.toEqual({ ok: true });
+      expect(refresh).toHaveBeenCalledTimes(2);
+      expect(onSessionLost).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [401, 'AUTH_401_2'],
+      [403, 'AUTH_403_1'],
+    ])('대조: %s %s는 그대로 세션 상실', async (status, code) => {
+      server.use(refreshStatus(status, code));
+      register(() => authApi.post('token/refresh', z.unknown()));
+      await expect(api.get('probe', Probe)).rejects.toBeInstanceOf(SessionLostError);
+      expect(onSessionLost).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('재발급이 401·403·그 밖의 4xx(429·408 제외)면 세션 상실', () => {
     it.each([
       ['403 AUTH_403_1', authHandlers.refreshRejected],
       [

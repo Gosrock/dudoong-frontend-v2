@@ -87,8 +87,10 @@ function RegisterForm({
         <input
           name="phoneNumber"
           type="tel"
+          inputMode="numeric"
           value={form.values.phoneNumber}
           onChange={(e) => form.setValue('phoneNumber', e.target.value)}
+          aria-invalid={!!form.errors.phoneNumber}
         />
       </label>
       <fieldset>

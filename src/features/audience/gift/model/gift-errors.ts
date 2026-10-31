@@ -1,6 +1,6 @@
 /**
  * 선물 변경 에러 → 처리(patterns §24 P8b 행). 동작마다 화면이 맡는 코드와 그 뒤 다시 읽을 것을 한 표에 둔다.
- * 표에 없는 코드(`Gift_400_8` 등)는 전역 `reason` 토스트로 간다. 훅은 이 표로 `handleCodes`를 만든다.
+ * 표에 없는 코드는 전역 `reason` 토스트로 간다. 훅은 이 표로 `handleCodes`를 만든다.
  */
 
 export type GiftAction = 'send' | 'cancel' | 'memo' | 'accept' | 'reject' | 'return';
@@ -69,6 +69,8 @@ export const GIFT_ERROR_TABLE: Record<GiftAction, Record<string, GiftErrorOutcom
   accept: RECEIVE,
   reject: RECEIVE,
   return: {
+    // 서버 `returnBlocker`가 가장 먼저 보는 사유(받은 티켓 아님 — 선물 상태가 바뀜, fe423ed4). 목록부터 다시 읽는다(계약 대조 2026-10-31, 문구 잠정)
+    Gift_400_8: { message: '선물받은 티켓이 아니라 반환할 수 없어요', refetch: ['tickets'] },
     Gift_400_7: { message: '반환할 수 없는 티켓이에요', refetch: ['ticket'] },
     IssuedTicket_404_1: TICKET_GONE,
   },

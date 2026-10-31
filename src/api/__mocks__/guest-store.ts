@@ -730,6 +730,18 @@ export function toRefundElement(o: StoredGuestOrder, showRefundAccount: boolean)
 
 /** 검색(`V2OrderSearchType`) — 일반 멤버는 연락처 숫자 완전 일치·입금자명 완전 일치, 이름은 언제나 부분 일치 */
 const digits = (v: string) => v.replace(/\D/g, '');
+
+/**
+ * 연락처 완전 일치(서버 `ContactSearch.phoneExact`, #822 — fe423ed4): 입력의 숫자만 남겨 국내(`010…`)·국제(`8210…`) 두 형태로,
+ * 저장 값에서 `-`·공백·`+`를 뺀 숫자열과 비교한다. `+82 10-1234-5678`과 `010-1234-5678`은 같은 번호다
+ */
+export function phoneExactMatch(stored: string, keyword: string): boolean {
+  const d = digits(keyword);
+  if (d === '') return false;
+  const national = d.startsWith('82') && d.length >= 11 ? `0${d.slice(2)}` : d;
+  const candidates = national.startsWith('0') ? [national, `82${national.slice(1)}`] : [national];
+  return candidates.includes(stored.replace(/[- +]/g, ''));
+}
 export function matchesOrderSearch(
   o: StoredGuestOrder,
   searchType: string,
@@ -738,9 +750,7 @@ export function matchesOrderSearch(
 ): boolean {
   if (searchType === 'PHONE') {
     const phone = o.buyer.phone ?? '';
-    return exact
-      ? digits(keyword) !== '' && digits(phone) === digits(keyword)
-      : phone.includes(keyword);
+    return exact ? phoneExactMatch(phone, keyword) : phone.includes(keyword);
   }
   if (searchType === 'DEPOSITOR_NAME') {
     const name = o.depositorName ?? '';
@@ -787,9 +797,7 @@ export function matchesTicketSearch(
 ): boolean {
   if (searchType === 'PHONE') {
     const phone = r.ticket.owner.phone ?? '';
-    return exact
-      ? digits(keyword) !== '' && digits(phone) === digits(keyword)
-      : phone.includes(keyword);
+    return exact ? phoneExactMatch(phone, keyword) : phone.includes(keyword);
   }
   return (r.ticket.owner.name ?? '').includes(keyword);
 }

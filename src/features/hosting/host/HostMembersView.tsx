@@ -4,13 +4,13 @@ import Link from 'next/link';
 
 import { isSessionLost } from '@/api/errors';
 import type { AssignableHostRole } from '@/api/host/schema';
-import type { HostRole } from '@/api/shared/common-schema';
 import {
   HostingAccessRejected,
   HostingForbidden,
   HostingNotFound,
 } from '@/features/hosting/access/HostingAccessRejected';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
+import type { ActorRole } from '@/features/shared/permission/model/can';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 
 import { HOST_ROLE_LABEL } from './model/member-rules';
@@ -93,7 +93,7 @@ function HostMembers({ hostId }: { hostId: string }) {
   );
 }
 
-function InviteForm({ hostId, myRole }: { hostId: string; myRole: HostRole | null }) {
+function InviteForm({ hostId, myRole }: { hostId: string; myRole: ActorRole | null }) {
   const f = useInviteMembers(hostId, myRole);
   return (
     <form
