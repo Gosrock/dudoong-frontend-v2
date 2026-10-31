@@ -281,8 +281,10 @@ test.describe('등록된 공연 수정', () => {
     ]);
     await expect(page.getByTestId('registered-saved-notice')).toBeVisible();
     await page.goto('/events/101');
-    await expect(page.getByRole('heading', { name: '유의사항', exact: true })).toBeVisible();
-    await expect(page.getByRole('heading', { name: '세트리스트', exact: true })).toHaveCount(0);
+    // 공연 상세는 섹션을 탭으로 그린다(P5b-V)
+    const tabs = page.getByRole('tablist', { name: '공연 안내' }).getByRole('tab');
+    await expect(tabs).toHaveText(['공연 소개', '예매안내', '유의사항']);
+    await expect(tabs.filter({ hasText: '세트리스트' })).toHaveCount(0);
   });
 });
 

@@ -77,7 +77,7 @@ export function HostingHomeView() {
     });
 
   return (
-    <div className={s.page}>
+    <main className={s.page}>
       <div className={s.desktopTitle}>
         <Txt as="h1" typography="headingLgEmphasized" color={colors.textPrimaryLabel}>
           {me.data?.name ? `${me.data.name}님의 공연 준비 홈` : '공연 준비 홈'}
@@ -198,7 +198,7 @@ export function HostingHomeView() {
           </ListArea>
         </TabPanel>
       </Tabs>
-    </div>
+    </main>
   );
 }
 

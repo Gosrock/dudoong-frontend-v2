@@ -21,8 +21,10 @@ scenario(
       expect(res?.status()).toBe(200);
     });
     await step('공연 카드 링크와 공연 둘러보기 링크가 보인다', async () => {
-      await expect(page.getByRole('link', { name: '고스락 제37회 정기공연' })).toBeVisible();
-      await expect(page.getByRole('link', { name: '공연 둘러보기' })).toBeVisible();
+      // 본문(main) 안 — PC 상단 바 주 메뉴에도 같은 이름의 링크가 있다(P4s-V 셸)
+      const main = page.getByRole('main');
+      await expect(main.getByRole('link', { name: '고스락 제37회 정기공연' })).toBeVisible();
+      await expect(main.getByRole('link', { name: '공연 둘러보기' })).toBeVisible();
     });
     await step(
       'GP-1은 서버에서 한 번만 불리고 브라우저는 다시 부르지 않는다',
@@ -62,7 +64,7 @@ scenario(
   {
     kind: '에러',
     summary:
-      '(public)에는 Suspense가 없어 카카오 크롤러가 상태 코드를 그대로 받는다(잘못된 미리보기를 캐시하지 않게). 브라우저는 스트리밍이라 200이고 에러 화면이 그려진다. error.tsx는 P5a 범위라 지금은 Next 기본 화면이다.',
+      '(public)에는 Suspense가 없어 카카오 크롤러가 상태 코드를 그대로 받는다(잘못된 미리보기를 캐시하지 않게). 브라우저는 스트리밍이라 200이고 에러 화면이 그려진다. 에러 화면은 셸 안의 공용 화면(P4s-V `(audience)/error.tsx`)이다.',
     basis: ['tech-decisions §31 상태 코드 표', 'plan P0 산출물 B-3', 'patterns §11'],
     mocks: [
       http.get('*/api/v2/home', () =>
@@ -86,9 +88,11 @@ scenario(
       expect(res?.status()).toBe(200);
     });
     await step('공연 목록 대신 에러 화면이 보인다', async () => {
-      await expect(page.getByRole('link', { name: '공연 둘러보기' })).toHaveCount(0);
-      // Next 기본 에러 화면. P5a에서 error.tsx가 생기면 그 문구로 바꾼다
-      await expect(page.getByText(/couldn.t load/)).toBeVisible();
+      // 셸은 남고 본문만 공용 에러 화면으로 바뀐다(P4s-V `(audience)/error.tsx`)
+      const main = page.getByRole('main');
+      await expect(main.getByRole('link', { name: '공연 둘러보기' })).toHaveCount(0);
+      await expect(main.getByText('화면을 불러오지 못했어요')).toBeVisible();
+      await expect(main.getByRole('button', { name: '다시 시도' })).toBeVisible();
     });
   },
 );
