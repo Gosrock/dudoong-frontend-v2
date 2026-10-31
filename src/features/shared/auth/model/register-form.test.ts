@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AGE_OVER_14_FIELD,
   canSubmitRegister,
   formatPhoneInput,
   hasAllConsents,
@@ -9,12 +10,21 @@ import {
   NO_CONSENTS,
   type RegisterConsents,
   type RegisterValues,
+  REQUIRED_CONSENTS,
   toRegisterBody,
   validateRegister,
+  visibleConsents,
+  withAllConsents,
 } from './register-form';
 
 const filled: RegisterValues = { name: '새내기', email: 'newbie@example.com', phoneNumber: '' };
-const required: RegisterConsents = { terms: true, privacy: true, marketing: false };
+const required: RegisterConsents = {
+  ageOver14: false,
+  terms: true,
+  privacy: true,
+  marketing: false,
+};
+const ON = { ageOver14: true };
 
 describe('가입 폼 초기값', () => {
   it('카카오 프로필로 채우고 없는 값은 빈 문자열, 앞뒤 공백은 지운다', () => {
@@ -75,16 +85,48 @@ describe('가입 폼 칸 검증', () => {
 });
 
 describe('동의 상태', () => {
+  const c = (p: Partial<RegisterConsents>): RegisterConsents => ({ ...NO_CONSENTS, ...p });
   it.each<[string, RegisterConsents, boolean, boolean]>([
     ['아무것도 안 함', NO_CONSENTS, false, false],
-    ['이용약관만', { terms: true, privacy: false, marketing: false }, false, false],
-    ['개인정보만', { terms: false, privacy: true, marketing: false }, false, false],
+    ['이용약관만', c({ terms: true }), false, false],
+    ['개인정보만', c({ privacy: true }), false, false],
     ['필수 둘(마케팅 선택 안 함)', required, true, false],
-    ['마케팅만', { terms: false, privacy: false, marketing: true }, false, false],
-    ['전부', { terms: true, privacy: true, marketing: true }, true, true],
+    ['마케팅만', c({ marketing: true }), false, false],
+    [
+      '화면 항목 전부(만 14세 칸 없음)',
+      c({ terms: true, privacy: true, marketing: true }),
+      true,
+      true,
+    ],
   ])('%s → 필수 %s · 전체 %s', (_, consents, req, all) => {
     expect(hasRequiredConsents(consents)).toBe(req);
     expect(hasAllConsents(consents)).toBe(all);
+  });
+
+  it('만 14세 칸은 Q42 대기 — 지금은 필수·전체 동의에 없다', () => {
+    expect(AGE_OVER_14_FIELD).toBe(false);
+    expect(REQUIRED_CONSENTS).toEqual(['terms', 'privacy']);
+    expect(visibleConsents()).toEqual(['terms', 'privacy', 'marketing']);
+    expect(withAllConsents(NO_CONSENTS, true)).toEqual(
+      c({ terms: true, privacy: true, marketing: true }),
+    );
+  });
+
+  // 칸이 생겨 AGE_OVER_14_FIELD를 켠 뒤(#384 — 강제가 켜지면 만 14세 없이는 가입 400)
+  it.each<[string, RegisterConsents, boolean, boolean]>([
+    ['이용약관·개인정보만', required, false, false],
+    ['만 14세 + 필수 둘', { ...required, ageOver14: true }, true, false],
+    ['전부', c({ ageOver14: true, terms: true, privacy: true, marketing: true }), true, true],
+  ])('칸을 켜면 만 14세가 필수: %s → 필수 %s · 전체 %s', (_, consents, req, all) => {
+    expect(hasRequiredConsents(consents, ON)).toBe(req);
+    expect(hasAllConsents(consents, ON)).toBe(all);
+    expect(canSubmitRegister(filled, consents, ON)).toBe(req);
+  });
+
+  it('칸을 켜면 전체 동의가 만 14세도 켠다', () => {
+    expect(withAllConsents(NO_CONSENTS, true, ON)).toEqual(
+      c({ ageOver14: true, terms: true, privacy: true, marketing: true }),
+    );
   });
 });
 
@@ -106,7 +148,7 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
       toRegisterBody({
         idToken: 'kakao-id-new',
         values: { name: ' 새내기 ', email: ' newbie@example.com ', phoneNumber: '  ' },
-        consents: { terms: true, privacy: true, marketing: true },
+        consents: { ageOver14: false, terms: true, privacy: true, marketing: true },
         profileImage: 'http://k.kakaocdn.net/dn/mock/new.jpg',
       }),
     ).toEqual({
@@ -121,19 +163,32 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
     });
   });
 
-  // 동의 기록(#840·#850): 사용자가 체크한 값만. 만 14세는 칸이 없어 보내지 않는다(Q42)
-  it.each([
+  // 동의 기록(#840·#850): 사용자가 체크한 값만(true를 만들어 넣지 않는다)
+  it.each<[string, boolean, boolean, Record<string, unknown>]>([
     [
       '이용약관 체크 → termsAgreed·agreementVersion',
+      false,
       true,
       { termsAgreed: true, agreementVersion: '2026-10' },
     ],
-    ['이용약관 미체크 → 동의 키가 하나도 없다', false, {}],
-  ])('%s', (_, terms, expected) => {
+    [
+      '만 14세 + 이용약관 체크 → 둘 다 + agreementVersion',
+      true,
+      true,
+      { ageOver14Confirmed: true, termsAgreed: true, agreementVersion: '2026-10' },
+    ],
+    [
+      '만 14세만 체크 → ageOver14Confirmed·agreementVersion',
+      true,
+      false,
+      { ageOver14Confirmed: true, agreementVersion: '2026-10' },
+    ],
+    ['아무것도 미체크 → 동의 키가 하나도 없다', false, false, {}],
+  ])('%s', (_, ageOver14, terms, expected) => {
     const body = toRegisterBody({
       idToken: 't',
       values: filled,
-      consents: { terms, privacy: true, marketing: false },
+      consents: { ageOver14, terms, privacy: true, marketing: false },
       profileImage: null,
     });
     const agreementKeys = ['termsAgreed', 'ageOver14Confirmed', 'agreementVersion'] as const;
@@ -141,7 +196,6 @@ describe('제출 본문(POST /oauth/kakao/register)', () => {
       agreementKeys.filter((k) => k in body).map((k) => [k, body[k]]),
     );
     expect(picked).toEqual(expected);
-    expect('ageOver14Confirmed' in body).toBe(false);
   });
 
   it('전화번호가 있으면 그대로(010-1234-1234 모양), 마케팅 미동의는 false', () => {

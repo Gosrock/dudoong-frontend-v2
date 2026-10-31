@@ -25,6 +25,7 @@ import {
 } from './checkout-errors';
 import { type CheckoutParams, eventHref } from './checkout-params';
 import {
+  checkoutAgreementFields,
   checkoutFormSchema,
   type CheckoutFormValues,
   effectiveMode,
@@ -264,8 +265,14 @@ export function useCheckout({
     ctaLabel: ctaLabel(kind),
     /** CTA 뒤 "입금하셨나요?" 확인을 거치는지 */
     needsDepositConfirm: needsDepositConfirm(kind),
-    /** RHF 폼(옵션 답·결제 방식·환불 규정 동의). 칸 연결은 V */
+    /** RHF 폼(옵션 답·결제 방식·환불 규정 동의·주문 동의). 칸 연결은 V */
     form,
+    /**
+     * 주문 동의 칸(#840 — Q42 대기라 지금 둘 다 false). `hostProvision`: 호스트 제공 동의(`hostProvisionAgreed`) 칸,
+     * `dudoongNotice`: 두둥 입금 전 확인(`dudoongTicketNoticeConfirmed`) 칸 — 두둥티켓만, "입금하셨나요?" 확인 단계에 둔다.
+     * 칸이 있으면 체크 전 제출이 막힌다
+     */
+    agreementFields: checkoutAgreementFields(ticket),
     hasOptions: hasOptions(ticket),
     /** 옵션 모드(수량 1이면 언제나 same — 모드 선택을 그리지 않는다) */
     mode,

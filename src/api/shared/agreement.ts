@@ -4,7 +4,9 @@
  * `true`가 아닐 때 400 `Agreement_400_1`(api-contract §4·§6·§9).
  *
  * 규칙: **사용자가 화면에서 체크한 값만 보낸다.** 화면 칸 없이 `true`를 만들어 보내지 않는다(동의 위조).
- * 값을 만들 칸이 v2 계획에 없는 필드(만 14세·호스트 제공 동의·두둥티켓 고지·환불 의무)는 보내지 않는다 — design-requests Q42.
+ * 칸이 아직 없는 필드(만 14세·호스트 제공 동의·두둥티켓 고지·환불 의무 — design-requests Q42)는 모델에 상태만 있고, 칸 플래그
+ * (`AGE_OVER_14_FIELD`·`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`·`REFUND_OBLIGATION_FIELD`, 기본 false)를 켜면 필수가 된다.
+ * 강제는 v1 호스트 어드민 가입 수정 배포 직후 켜진다(v1 Front #384, 2026-10-31) — 칸보다 먼저 켜지면 v2 가입·주문·두둥티켓 생성이 400.
  */
 
 /** 화면에 보여 준 동의 문구 버전. 약관 문구가 바뀌면 올린다(legal-copy 머리말, api-contract §4). v2는 앱 하나라 상수 하나 */

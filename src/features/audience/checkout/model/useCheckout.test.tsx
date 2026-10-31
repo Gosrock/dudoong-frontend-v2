@@ -74,11 +74,21 @@ const answers = (yesNo: 'YES' | 'NO', text: string): AnswerValue[] => [
   { optionId: 702, answer: text },
 ];
 
-function fill(result: Hook, patch: { same?: AnswerValue[]; agree?: boolean } = {}) {
+function fill(
+  result: Hook,
+  patch: {
+    same?: AnswerValue[];
+    agree?: boolean;
+    hostProvision?: boolean;
+    dudoongNotice?: boolean;
+  } = {},
+) {
   act(() => {
     const { form } = result.current;
     if (patch.same) form.setValue('options.same', patch.same);
     form.setValue('agreeRefundPolicy', patch.agree ?? true);
+    if (patch.hostProvision) form.setValue('hostProvisionAgreed', true);
+    if (patch.dudoongNotice) form.setValue('dudoongTicketNoticeConfirmed', true);
   });
 }
 
@@ -464,7 +474,7 @@ describe('에러 분기 — patterns §24 P7 행(handleCodes)', () => {
   });
 });
 
-describe('동의 기록 필드(#840) — 화면 칸이 없어 보내지 않는다(Q42)', () => {
+describe('동의 기록 필드(#840) — 칸은 Q42 대기, 체크한 것만 보낸다', () => {
   const AGREEMENT_KEYS = [
     'hostProvisionAgreed',
     'dudoongTicketNoticeConfirmed',
@@ -474,7 +484,7 @@ describe('동의 기록 필드(#840) — 화면 칸이 없어 보내지 않는�
   it.each([
     ['두둥(입금형)', CHECKOUT_TICKET.paidNoOptions],
     ['무료 승인형', CHECKOUT_TICKET.freeApproval],
-  ])('%s 주문 본문에 동의 필드 키가 하나도 없다', async (_, ticketItemId) => {
+  ])('%s 주문 — 체크하지 않으면 본문에 동의 필드 키가 하나도 없다', async (_, ticketItemId) => {
     const r = await openCheckout(ticketItemId, 1);
     fill(
       r.result,
@@ -487,6 +497,45 @@ describe('동의 기록 필드(#840) — 화면 칸이 없어 보내지 않는�
     const [post] = await posted(sent);
     expect(post).toBeDefined();
     for (const key of AGREEMENT_KEYS) expect(post?.body).not.toHaveProperty(key);
+  });
+
+  it('칸 플래그(Q42)는 지금 둘 다 꺼져 있다', async () => {
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    expect(r.result.current.agreementFields).toEqual({
+      hostProvision: false,
+      dudoongNotice: false,
+    });
+  });
+
+  it('두둥: 둘 다 체크하면 둘 다 실려 동의 강제 백엔드도 통과한다(#384)', async () => {
+    server.use(...orderHandlers.agreementEnforced);
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    fill(r.result, { hostProvision: true, dudoongNotice: true });
+    const sent = recordRequests();
+    await submitAndWait(r.result);
+    const [post] = await posted(sent);
+    expect(post?.body).toMatchObject({
+      hostProvisionAgreed: true,
+      dudoongTicketNoticeConfirmed: true,
+      agreementVersion: '2026-10',
+    });
+    expect(created()).not.toBeNull();
+  });
+
+  it('무료: 호스트 제공 동의만 싣는다(두둥 확인은 체크돼 있어도 없다) — 동의 강제 백엔드 통과', async () => {
+    server.use(...orderHandlers.agreementEnforced);
+    const r = await openCheckout(CHECKOUT_TICKET.freeApproval, 1);
+    fill(r.result, {
+      same: [{ optionId: 702, answer: '드럼' }],
+      hostProvision: true,
+      dudoongNotice: true,
+    });
+    const sent = recordRequests();
+    await submitAndWait(r.result);
+    const [post] = await posted(sent);
+    expect(post?.body).toMatchObject({ hostProvisionAgreed: true, agreementVersion: '2026-10' });
+    expect(post?.body).not.toHaveProperty('dudoongTicketNoticeConfirmed');
+    expect(created()).not.toBeNull();
   });
 
   it('동의 강제가 켜진 백엔드면 400 Agreement_400_1 — 화면 표에 없어 전역 토스트, 완료로 가지 않는다', async () => {

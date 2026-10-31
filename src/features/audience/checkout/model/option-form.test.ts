@@ -7,14 +7,18 @@ import {
 } from '@/api/__mocks__/fixtures/order';
 import { orderTotalAmount } from '@/api/order/price';
 import { CreateOrderRequestSchema } from '@/api/order/schema';
+import { AGREEMENT_VERSION } from '@/api/shared/agreement';
 import type { PublicTicketItem } from '@/api/ticket-item/schema';
 
 import {
   type AnswerValue,
+  checkoutAgreementFields,
   checkoutFormSchema,
   type CheckoutFormValues,
+  DUDOONG_NOTICE_FIELD,
   effectiveMode,
   firstInvalidTicket,
+  HOST_PROVISION_FIELD,
   initialCheckoutValues,
   OPTION_ERROR,
   resizeTickets,
@@ -57,6 +61,8 @@ describe('초기값 · 모드', () => {
       options: { mode: 'same', same: a(undefined, undefined), tickets: [] },
       paymentChannel: 'BANK_TRANSFER',
       agreeRefundPolicy: false,
+      hostProvisionAgreed: false,
+      dudoongTicketNoticeConfirmed: false,
     });
     expect(initialCheckoutValues(free).paymentChannel).toBe('FREE');
   });
@@ -154,6 +160,89 @@ describe('검증 — 옵션 전부 필수', () => {
       paymentChannel: 'BANK_TRANSFER' as const,
     };
     expect(issues(freeV, 1, free).map(([p]) => p)).toEqual(['paymentChannel']);
+  });
+});
+
+describe('주문 동의 칸(#840 — Q42 대기, #384 강제 임박)', () => {
+  const ON = { hostProvision: true, dudoongNotice: true };
+  const issues = (v: CheckoutFormValues, t: PublicTicketItem, fields = ON) =>
+    checkoutFormSchema(t, 1, fields)
+      .safeParse(v)
+      .error?.issues.map((i) => [i.path.join('.'), i.message]) ?? [];
+
+  it('지금은 칸이 없다 — 미체크여도 통과', () => {
+    expect([HOST_PROVISION_FIELD, DUDOONG_NOTICE_FIELD]).toEqual([false, false]);
+    expect(checkoutAgreementFields(noOptions)).toEqual({
+      hostProvision: false,
+      dudoongNotice: false,
+    });
+    expect(checkoutFormSchema(noOptions, 1).safeParse(values({}, noOptions)).success).toBe(true);
+  });
+
+  it('칸을 켜면 두둥은 둘 다, 무료는 호스트 제공 동의만 필수', () => {
+    expect(checkoutAgreementFields(noOptions, ON)).toEqual(ON);
+    expect(checkoutAgreementFields(free, ON)).toEqual({
+      hostProvision: true,
+      dudoongNotice: false,
+    });
+    expect(issues(values({}, noOptions), noOptions)).toEqual([
+      ['hostProvisionAgreed', OPTION_ERROR.hostProvision],
+      ['dudoongTicketNoticeConfirmed', OPTION_ERROR.dudoongNotice],
+    ]);
+    const freeV = { ...initialCheckoutValues(free), agreeRefundPolicy: true };
+    expect(issues(freeV, free)).toEqual([['hostProvisionAgreed', OPTION_ERROR.hostProvision]]);
+    expect(issues({ ...freeV, hostProvisionAgreed: true }, free)).toEqual([]);
+    expect(
+      issues(
+        { ...values({}, noOptions), hostProvisionAgreed: true, dudoongTicketNoticeConfirmed: true },
+        noOptions,
+      ),
+    ).toEqual([]);
+  });
+
+  it.each<[string, PublicTicketItem, boolean, boolean, Record<string, unknown>]>([
+    ['미체크 → 동의 키가 하나도 없다', noOptions, false, false, {}],
+    [
+      '두둥 + 둘 다 체크 → 둘 다 + agreementVersion',
+      noOptions,
+      true,
+      true,
+      {
+        hostProvisionAgreed: true,
+        dudoongTicketNoticeConfirmed: true,
+        agreementVersion: AGREEMENT_VERSION,
+      },
+    ],
+    [
+      '두둥 + 호스트 제공만 → hostProvisionAgreed + agreementVersion',
+      noOptions,
+      true,
+      false,
+      { hostProvisionAgreed: true, agreementVersion: AGREEMENT_VERSION },
+    ],
+    [
+      '무료 + 둘 다 체크 → 두둥 확인은 싣지 않는다',
+      free,
+      true,
+      true,
+      { hostProvisionAgreed: true, agreementVersion: AGREEMENT_VERSION },
+    ],
+  ])('본문: %s', (_, t, host, notice, expected) => {
+    const v = {
+      ...(t === free ? { ...initialCheckoutValues(free), agreeRefundPolicy: true } : values({}, t)),
+      hostProvisionAgreed: host,
+      dudoongTicketNoticeConfirmed: notice,
+    };
+    const body = toOrderBody(v, ctx(t, 1));
+    const keys = [
+      'hostProvisionAgreed',
+      'dudoongTicketNoticeConfirmed',
+      'agreementVersion',
+    ] as const;
+    expect(Object.fromEntries(keys.filter((k) => k in body).map((k) => [k, body[k]]))).toEqual(
+      expected,
+    );
+    expect(CreateOrderRequestSchema.safeParse(body).success).toBe(true);
   });
 });
 
