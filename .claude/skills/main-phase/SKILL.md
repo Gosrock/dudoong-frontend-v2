@@ -45,10 +45,10 @@ gh issue list --label "Design Sync" --state open --search '-label:"Test: figma-p
   --json number,title,labels,createdAt,body
 ```
 
-- 새 이슈가 있으면 본문의 `node-id`로 어느 화면인지 보고 `gui-screens.md` §0에서 Phase를 찾는다.
-  - **이미 구현된 화면**(상태가 `GUI 구현됨`·`와이어로 구현됨`) → 이슈 반영 워크트리가 다음 순서보다 먼저다. 이름 `design-<이슈번호>`, 틀 `prompt-issue.md`.
-  - **아직 미구현 화면** → 따로 띄우지 않는다. 그 Phase의 V 프롬프트 "열린 이슈" 칸에 넣는다(구현하면서 같이 반영).
-  - Ready가 아닌 프레임의 이슈는 와이어 화면에 반영할 것만 하고 `Refs #n`, 이슈는 열어 둔다(design-workflow §4).
+- 위 출력의 **유형 라벨로 가른다**(사용자 지시 2026-11-01 — design-workflow §4 "라벨로 가르기"). 대상 화면은 본문의 `figma-node` 마커 + `gui-screens.md` §0으로 찾는다.
+  - `Design: 신규 화면` → **띄우지 않는다.** 그 화면 근거를 와이어 → GUI(이슈 노드)로 `gui-screens.md` §0·`progress.md`에서 고치는 docs PR만. 이슈는 그 Phase 구현 PR이 `Closes`.
+  - `Design: 수정` → 대상이 **`GUI 구현됨`이면** 이슈 반영 워크트리가 다음 순서보다 먼저(이름 `design-<이슈번호>`, 틀 `prompt-issue.md`). `미구현`·`와이어로 구현됨`이면 **계획만** — gui-screens §0 "열린 이슈" 칸 + plan 그 Phase 절 한 줄(docs PR), 그 Phase V 프롬프트 "열린 이슈" 칸에 넣어 구현 때 `Closes`.
+  - `Design: 디자인 시스템` → 바뀐 컴포넌트를 **`GUI 구현됨` 화면이 쓰면** 바로(`design-<n>` 또는 DS 묶음 워크트리). 아니면 `design-system.md` §8 "반영 대기"로 적고(docs PR) 그 컴포넌트를 쓰는 Phase 프롬프트에 넣는다.
 - `Test` 라벨 없이 시험으로 만든 이슈(본문 "테스트")는 건너뛰고 "사용자 대기"에 "닫을지"로 올린다. 관제탑이 닫지 않는다.
 
 ## ③ 다음 작업 고르기
