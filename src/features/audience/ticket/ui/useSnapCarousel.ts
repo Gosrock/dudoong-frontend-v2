@@ -34,7 +34,9 @@ export function useSnapCarousel({
     const item = itemAt(index);
     if (!root || !item) return;
     const left = item.offsetLeft + item.offsetWidth / 2 - root.clientWidth / 2;
-    root.scrollTo({ left, behavior });
+    // 축소 모션이면 미끄러지지 않고 바로 간다(P14 접근성)
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    root.scrollTo({ left, behavior: reduce && behavior === 'smooth' ? 'instant' : behavior });
   }, []);
 
   // 처음 칸으로(애니메이션 없이)

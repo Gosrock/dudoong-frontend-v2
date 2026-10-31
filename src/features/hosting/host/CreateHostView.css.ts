@@ -7,6 +7,9 @@ import { vars } from '@/ui/theme/tokens.css';
  * 호스트 만들기(와이어 `495:14815`) — 와이어는 모바일 한 장뿐이다. PC는 폼이 1280까지 늘어나지 않게 600에서 멈춘다
  * (🤖 판단 — 디자인 시스템 바텀시트 PC 최대 폭과 같은 값).
  */
+/** 화면 본문 랜드마크(`main`). 셸 본문의 세로 흐름을 그대로 잇는다(P14 접근성) */
+export const page = style({ display: 'flex', flexDirection: 'column', flex: '1 0 auto' });
+
 export const form = style({
   display: 'flex',
   flexDirection: 'column',

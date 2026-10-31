@@ -80,7 +80,7 @@ scenario(
       const sold = card(page, '일반 예매');
       await expect(sold.getByTestId('ticket-chip')).toHaveText('판매 중');
       await expect(sold.getByTestId('ticket-stock')).toHaveText('42/100매 (공개)');
-      await expect(sold.getByRole('button', { name: '뒤풀이 참석 옵션 상세' })).toBeVisible();
+      await expect(sold.getByRole('button', { name: /^뒤풀이 참석 .*옵션 상세$/ })).toBeVisible();
       await expect(sold.getByRole('button', { name: '티켓 옵션 추가' })).toHaveCount(0);
       await expect(sold.getByRole('button', { name: /옵션 빼기/ })).toHaveCount(0);
       await expect(
@@ -201,7 +201,9 @@ scenario(
     await setUp(page, testInfo);
     await page.goto('/hosting/events/101/tickets');
     await step('옵션 행을 누르면 상세(칸 비활성)', async () => {
-      await card(page, '일반 예매').getByRole('button', { name: '뒤풀이 참석 옵션 상세' }).click();
+      await card(page, '일반 예매')
+        .getByRole('button', { name: /^뒤풀이 참석 .*옵션 상세$/ })
+        .click();
       const detail = page.getByTestId('option-detail');
       await expect(detail.getByLabel('옵션 이름')).toBeDisabled();
       await expect(detail.getByRole('button', { name: '수정' })).toBeVisible();

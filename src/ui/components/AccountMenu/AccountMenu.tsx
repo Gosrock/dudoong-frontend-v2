@@ -1,6 +1,7 @@
 'use client';
 
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import type { ComponentPropsWithRef, ElementType, ReactNode } from 'react';
 
 import { Icon } from '../../icons/Icon';
@@ -182,16 +183,13 @@ export function AccountMenuTrigger({
   imageUrl?: string | null;
 }) {
   return (
-    <button
-      type="button"
-      className={className ? `${s.trigger} ${className}` : s.trigger}
-      aria-label="내 메뉴"
-      {...rest}
-    >
+    <button type="button" className={className ? `${s.trigger} ${className}` : s.trigger} {...rest}>
       <Avatar size={32} src={imageUrl} />
+      {/* 접근성 이름은 보이는 닉네임 + "내 메뉴"(WCAG 2.5.3 — 보이는 글자가 이름 안에, P14 접근성) */}
       <Txt typography="labelMd" className={s.ellipsis}>
         {name}
       </Txt>
+      <VisuallyHidden> 내 메뉴</VisuallyHidden>
       <Icon name="chevron-down" size={12} />
     </button>
   );

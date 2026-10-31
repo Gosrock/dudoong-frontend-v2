@@ -31,7 +31,11 @@ export function HostingShell({ children }: { children: ReactNode }) {
       {/* 서비스 공지 상단 배너 한 줄(P9c-V) — 헤더·상단 바보다 위(관객 셸과 같은 자리), 공연 안 3단 위에도 */}
       <NoticeBannerView audience="HOST" />
       <div className={s.mobileHeader}>
-        <Header logo="host" leading={<ShellMenuButton noticesHref="/hosting/notices" />} />
+        <Header
+          logo="host"
+          titleAs="div"
+          leading={<ShellMenuButton noticesHref="/hosting/notices" />}
+        />
       </div>
       <TopBar
         className={s.desktopOnly}
