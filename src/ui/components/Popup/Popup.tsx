@@ -27,7 +27,8 @@ export type PopupProps = {
 
 /**
  * 확인 팝업 — 디자인 시스템 `다이얼로그`(`758:1714`, 2026-11-01): 제목 `Heading/sm - emphasized`, 본문 `Label/sm`,
- * [취소](Secondary medium)[확인](Primary medium). 옛 근거는 GUI 확인 모달 `567:9468`(342폭 · Large 버튼).
+ * [취소](Secondary medium)[확인](Primary medium). 진행 중은 `다이얼로그 - 로딩`(`772:1180`) — 취소 Disabled, 확인은 Primary 색 그대로 +
+ * `Spinner` 20(`772:1176`, 코드 `size="base"`). 옛 근거는 GUI 확인 모달 `567:9468`(342폭 · Large 버튼).
  * 사용자의 결정을 받는 창이라 `role="alertdialog"`이고, 바깥 클릭으로는 닫지 않는다(Esc·취소로 닫는다).
  * 첫 포커스는 [취소](Radix가 첫 버튼에 둔다) — 되돌릴 수 없는 확인을 Enter 한 번에 하지 않게.
  * 확인을 눌러도 스스로 닫지 않는다. 서버 호출 후 닫기는 `EasyOverlay`의 `openConfirm`을 쓴다.
@@ -75,7 +76,7 @@ export function Popup({
             </Button>
           )}
           <Button size="md" disabled={loading} aria-busy={loading || undefined} onClick={onConfirm}>
-            <LoadingLabel loading={loading} size="sm">
+            <LoadingLabel loading={loading} size="base">
               {confirmLabel}
             </LoadingLabel>
           </Button>
