@@ -22,7 +22,7 @@
 | 기다리는 것 | 열린 칸 |
 |---|---|
 | D2 스테이징 첫 배포(백엔드 B15 — ECR 저장소·푸시 역할 **2026-10-31 처리**, 남은 것은 Deploy §6 1~4번과 main `:dev` 첫 빌드) | P4b 스테이징 배포·두 탭 동시 재발급 실확인·카카오톡 인앱 실기기, P5b 카카오 공유 디버거, P7 스테이징 실제 주문 1회, P8b 미가입 수신자 가입 왕복, P13a 크리티컬 패스 실왕복 |
-| design-requests Q42(동의 체크 칸 위치) | P4b `ageOver14Confirmed`, P7 주문 동의 필드 |
+| design-requests Q42(동의 체크 칸 위치 — **우선순위 높음**: 백엔드 동의 강제가 v1 어드민 가입 수정 배포 직후 켜진다, v1 Front #384) | P4b `ageOver14Confirmed`, P7 주문 동의 필드, P12 `refundObligationAgreed` — L은 끝났고(2026-10-31 필드별 플래그 `AGE_OVER_14_FIELD`·`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`·`REFUND_OBLIGATION_FIELD`, 기본 끔) 칸이 생기면 플래그를 켠다 |
 | 실기기(P4s-V로 옮김) | P2 바텀시트·모달 iOS Safari 스크롤 락·키보드 회피 |
 
 - **V(화면)**: 전부 시작 전 — 디자인을 기다린다(디자인 후속 보류, 사용자 결정 2026-10-25). P14·P15는 전 Phase의 L·V 뒤.
@@ -370,7 +370,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] `AUTH_400_1`이면 로그인을 다시 시작
 - [ ] 두 탭이 동시에 만료돼도 실제 재발급 뒤 로그인이 유지됨(백엔드 #807로 기기별 세션 + 직전 토큰 30초 유예라 동시 재발급이 안전해졌다 — [`backend-questions.md`](./backend-questions.md) B1 해결. 실제 확인은 그대로 남긴다)
 - [x] **가입 전화번호는 `010-1234-1234` 모양만 보낸다(사용자 결정 2026-10-31)** — 입력은 숫자만 남겨 하이픈을 자동으로 넣고(`formatPhoneInput` — 11자리에서 자름), 카카오 값 `+82 10-…`도 `010-…`으로 바꿔 채운다. 비어 있으면 `null`(선택 그대로), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 "휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요")으로 제출을 막는다(`register-form.test`·`useKakaoCallback.test`). 같은 사용자 전화번호 필드에 쓰는 다른 입력은 v2에 없다(PM-2는 이름·이미지뿐, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다). 서버도 가입 때 검사한다(백엔드 #896 / 2.5.2 — B22 답, 빈 값 null·한국 번호는 유효 번호만): 400 `USER_400_2`는 서버 문구 대신 칸 오류 `phoneInvalid` "전화번호를 확인해 주세요"(문구 잠정)로 보이고 그 번호를 고칠 때까지 제출을 막는다(`useKakaoCallback.test`, patterns §24 P4b)
-- [ ] 가입 본문에 사용자가 체크한 동의 필드만 실림(UI 없는 것은 Q42 대기), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 이용약관 체크 → `termsAgreed` + `agreementVersion`, 미체크 → 키 없음(`register-form.test`), 강제 400 → 일반 실패(`useKakaoCallback.test`) 완료. `ageOver14Confirmed`는 Q42 칸이 정해진 뒤
+- [ ] 가입 본문에 사용자가 체크한 동의 필드만 실림(UI 없는 것은 Q42 대기), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 이용약관 체크 → `termsAgreed` + `agreementVersion`, 미체크 → 키 없음(`register-form.test`), 강제 400 → 일반 실패(`useKakaoCallback.test`) 완료. `ageOver14Confirmed`는 Q42 칸이 정해진 뒤. 2026-10-31(#384 대응): `RegisterConsents.ageOver14` → 체크하면 `ageOver14Confirmed: true`(`register-form.test`), 체크하면 강제 백엔드 통과(`useKakaoCallback.test`), 필수 판정은 `AGE_OVER_14_FIELD`(기본 false — 사용자 결정 필드별 플래그)가 켜질 때만, "전체 동의"는 칸 없는 만 14세를 켜지 않는다. 남은 것: 칸(V) + 플래그 켜기. **위험(2026-10-31, v1 Front #384)**: 백엔드는 v1 호스트 어드민 가입 수정이 배포되면 바로 `AGREEMENT_ENFORCE=true`로 켠다 — v2 칸(Q42)·출시보다 먼저 켜질 가능성이 크다. 켜지면 v2는 가입(만 14세)·주문(호스트 제공 동의, 두둥 입금 전 확인)·두둥티켓 생성·무료 → 두둥 수정(환불 의무 동의)이 **전부 400 `Agreement_400_1`**이다(운영·스테이징 같은 env — 스테이징 백엔드를 쓰는 v2 스테이징도)
 - [x] 오픈 리다이렉트 차단
 - [ ] 카카오톡 인앱 브라우저(iOS WKWebView · Android WebView) 실기기에서 Web Locks 동작과 `localStorage`(`dd:session`) 유지 확인. Web Locks가 없으면 대체 경로로 동작 — 인증 로직 확인이라 L에 둔다(D2 뒤, 화면 디자인과 무관)
 - [x] **`SameSite=Strict` 재현**: 로컬에서 응답 쿠키를 `SameSite=Strict`로 바꿔(개발 프록시 또는 브라우저 확장) 외부 링크로 보호 화면 진입, 카카오 로그인 복귀 직후 로그인 상태 유지를 확인. 스테이징 쿠키는 `Lax`라 이 확인을 대신하지 못한다. 운영 확인은 P15 리허설 체크리스트
@@ -501,7 +501,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 3분기 각각 주문 생성 응답의 상태가 맞음(승인은 dev 서버의 v1 어드민이나 API 직접 호출로 대신한다)
 - [x] 주문 완료 주소에서 새로고침해도 같은 내용(G11/O-3 재조회)
 - [x] 토스 송금 링크의 금액 = `totalAmount`, 은행명 값은 [`backend-questions.md`](./backend-questions.md) B3 결과에 따라 P12 은행 목록 값 (B3 해결 2026-10-25: `bankCode` 기반 매핑으로 바꾸는 일이 남았다 — implementation-log 코드 수정 거리)
-- [ ] 주문 본문의 동의 필드(`hostProvisionAgreed`, 두둥은 `dudoongTicketNoticeConfirmed`, 그때만 `agreementVersion`)는 사용자가 체크한 필드만 실리고 동의 전 제출이 막힘(MSW 본문 검사), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 스키마(`order/schema.test`)·칸이 없어 안 보냄·강제 400 → 전역 토스트, 완료로 안 감(`useCheckout.test`) 완료. 실리는 것·동의 전 막힘은 Q42 칸이 생긴 뒤
+- [ ] 주문 본문의 동의 필드(`hostProvisionAgreed`, 두둥은 `dudoongTicketNoticeConfirmed`, 그때만 `agreementVersion`)는 사용자가 체크한 필드만 실리고 동의 전 제출이 막힘(MSW 본문 검사), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 스키마(`order/schema.test`)·칸이 없어 안 보냄·강제 400 → 전역 토스트, 완료로 안 감(`useCheckout.test`) 완료. 실리는 것·동의 전 막힘은 Q42 칸이 생긴 뒤. 2026-10-31(#384 대응): 폼 값 `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed` → 체크한 것만 실림(무료는 두둥 확인을 싣지 않음), 체크하면 강제 백엔드 통과(`option-form.test`·`useCheckout.test`), 동의 전 막힘은 `HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`(기본 false)가 켜질 때만(스키마 테스트). `useCheckout().agreementFields`로 그릴 칸을 알려 준다(두둥 확인은 두둥만 — "입금하셨나요?" 단계). 남은 것: 칸(V) + 플래그 켜기
 - [x] `Order_400_15`·`Ticket_Item_400_1`(재고)·`Ticket_Item_400_6`(1인 제한) 뒤 GP-5를 다시 읽어 수량 상한이 갱신됨
 - [x] 에러 분기: patterns §화면별 에러 처리의 P7 행
 - [ ] 스테이징에서 agent-browser로 실제 주문 생성 1회(D2 뒤). 승인 → 티켓 발급까지의 전 구간은 P13a
@@ -771,7 +771,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 옵션 수정 본문에서 응답 형식을 바꿀 수 없음
 - [x] 에러 분기: patterns §화면별 에러 처리의 P12 행
 - [x] 새 티켓 폼을 기본값 그대로 저장해도 서버가 받는 조합(무제한이면 재고 공개 꺼짐)
-- [x] 두둥 티켓 생성 본문에 사용자가 체크한 `refundObligationAgreed`와 그때만 `agreementVersion`(칸은 Q42 대기), 무료 티켓에는 없음. 계좌 본문에 `bankCode`(2026-10-25 추가)
+- [x] 두둥 티켓 생성 본문에 사용자가 체크한 `refundObligationAgreed`와 그때만 `agreementVersion`(칸은 Q42 대기), 무료 티켓에는 없음. 계좌 본문에 `bankCode`(2026-10-25 추가). 2026-10-31(#384): `REFUND_OBLIGATION_FIELD`는 칸이 생길 때까지 false 유지(사용자 결정 — 필드별 플래그, 기본 끔). 강제가 먼저 켜지면 두둥 생성·무료 → 두둥 수정이 400(P4b 위험 줄)
 
 **완료 기준 — V**
 - [ ] 라벨이 두둥 티켓/무료 티켓, 무제한이면 재고 공개 토글이 비활성으로 그려짐
@@ -846,7 +846,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 ### P15 — 컷오버 & 롤백
 
-**포함**: URL 연속성(기존 공유 링크, 없어진 라우트와 `/admin/*` 301). Deploy 저장소 변경(tech-decisions §25): compose에서 `admin` 서비스 삭제·`front` 이미지 교체, nginx `location /admin/` 삭제, nginx `/_next/image` 차단 삭제(v1 티켓용 — 운영에서 안 지우면 v2 이미지가 404, deploy-plan §3·§6 9번). 컷오버 순서(스테이징 → 운영. 호스팅 센터만 먼저 열려면 nginx에 `/hosting` 분기를 임시로 추가), 프리즈 윈도우(진행 중·임박 공연 없는 시간대), 롤백(compose의 이미지 태그와 nginx 설정을 되돌림), 리허설. 리허설 체크리스트에 운영 쿠키(`SameSite=Strict`)에서 외부 링크 진입과 카카오 로그인 복귀를 넣는다(P4b는 로컬 재현까지). 데이터는 v1·v2가 같은 테이블을 쓰므로 FE 이관 대상이 아니다 — 백엔드 마이그레이션 실행과 순서만 맞춘다(2026-10-25: V001~V017·V019 실행, V018은 열린 PR #839 — backend-questions B5).
+**포함**: URL 연속성(기존 공유 링크, 없어진 라우트와 `/admin/*` 301). Deploy 저장소 변경(tech-decisions §25): compose에서 `admin` 서비스 삭제·`front` 이미지 교체, nginx `location /admin/` 삭제, nginx `/_next/image` 차단 삭제(v1 티켓용 — 운영에서 안 지우면 v2 이미지가 404, deploy-plan §3·§6 9번). 컷오버 순서(스테이징 → 운영. 호스팅 센터만 먼저 열려면 nginx에 `/hosting` 분기를 임시로 추가), 프리즈 윈도우(진행 중·임박 공연 없는 시간대), 롤백(compose의 이미지 태그와 nginx 설정을 되돌림), 리허설. 리허설 체크리스트에 운영 쿠키(`SameSite=Strict`)에서 외부 링크 진입과 카카오 로그인 복귀를 넣는다(P4b는 로컬 재현까지). **동의 강제(2026-10-31, v1 Front #384)**: 컷오버 전에 백엔드 `AGREEMENT_ENFORCE` 값을 확인하고, 켜져 있으면(v1 어드민 배포 직후 켜진다) 동의 칸 4개(Q42)와 플래그가 켜진 v2여야 한다 — 스테이징 리허설에서 강제 켠 백엔드로 가입·주문(두둥·무료)·두둥티켓 생성·무료 → 두둥 수정이 200인지 본다. 칸 없이 출시하면 이 흐름이 전부 400이다. 데이터는 v1·v2가 같은 테이블을 쓰므로 FE 이관 대상이 아니다 — 백엔드 마이그레이션 실행과 순서만 맞춘다(2026-10-25: V001~V017·V019 실행, V018은 열린 PR #839 — backend-questions B5).
 
 **선행**: P14
 

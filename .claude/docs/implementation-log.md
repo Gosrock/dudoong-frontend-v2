@@ -928,3 +928,21 @@ GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseRespon
 - **`USER_400_2`는 거절된 번호를 기억해 그 번호 그대로는 다시 못 내게** — 왜: 같은 번호는 같은 400이 나고, 칸 오류가 고치면 풀리는 편이 다른 칸 오류(`phoneFormat`)와 같은 동작이다. 제출 실패(`error`)는 비워 둔다. 되돌리기: `rejectedPhone` 상태를 지우고 `registerError`에 분기.
 - **카카오 프로필 `name`(= 닉네임)을 이름 칸 초깃값으로 유지** — 왜: 서버가 이미 닉네임으로 채워 주고, 사용자가 고칠 수 있으며 v1도 같은 값을 썼다. 비워 두면 모든 신규 가입자가 이름을 직접 쳐야 한다. 되돌리기: `initialRegisterValues`의 `name`을 `''`로.
 - **mock 전화번호 검사는 libphonenumber 근사**(휴대폰 `01[016789]`·지역번호 + 자릿수, 해외 10자리 이상) — 왜: mock에 라이브러리를 들이지 않는다. 실제 판정은 서버이고, FE는 코드(`USER_400_2`)로만 분기하므로 mock 규칙의 세부는 테스트 입력용이다.
+
+## 동의 강제 임박 대응 — v1 Front #384 (2026-10-31)
+
+v1 Front #384(백엔드 담당 작성, 2026-10-31): v1에서 동의를 안 보내는 곳은 호스트 어드민 카카오 가입(`/admin/kakao/callback`)뿐이고, 그 수정이 배포되면 백엔드가 `AGREEMENT_ENFORCE=true`로 켠다. v2는 칸(Q42)이 없어 강제가 켜지면 가입·주문·두둥티켓 생성이 전부 400이다.
+
+- 사실 확인: v2 카카오 콜백은 `/kakao/callback` 하나(호스팅 트랙에 가입 경로 없음, `next.config.ts` 리다이렉트 표에 `/admin/kakao/callback` 없음), 가입 `idToken`은 본문(`toRegisterBody`) — #384의 어드민 경로 문제는 v2에 없다. 백엔드 `dev` `cb53bfaa` 검사 위치는 api-contract 동의 강제 줄·v1-additions §3 B.
+- 가입: `RegisterConsents.ageOver14` → 체크하면 `ageOver14Confirmed: true`. `AGE_OVER_14_FIELD`(false)가 켜지면 필수·"전체 동의"에 들어간다(`requiredConsents`·`visibleConsents`·`withAllConsents` — 플래그를 인자로 받아 테스트). `useRegisterForm().consentFields`.
+- 주문: 폼 값 `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed`(초깃값 false) → 체크한 것만 `agreementFields`로 본문에, 무료는 두둥 확인을 싣지 않는다. `HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`(false)가 켜지면 스키마가 `true`를 요구한다(두둥 확인은 두둥만 — `checkoutAgreementFields`). `useCheckout().agreementFields`.
+- 두둥티켓: `REFUND_OBLIGATION_FIELD` false 유지(변경 없음).
+- 테스트: `register-form.test`(플래그 켠 필수·전체 동의·본문), `useKakaoCallback.test`(전체 동의가 만 14세를 켜지 않음, 체크하면 강제 mock 통과), `option-form.test`(플래그 켠 스키마·본문 4경우), `useCheckout.test`(두둥·무료가 강제 mock 통과, MSW 본문 검사).
+- 문서: plan(L 열린 칸 Q42 행·P4b·P7·P12·P15 리허설), v1-additions(§3 B 머리·B-1·B-2·B-4·B-5·§5 Q42), design-requests Q42(우선순위 높음), backend-questions B16(시점 갱신 + 새 질문 2줄)·지켜볼 것, api-contract(동의 필드·동의 강제 줄).
+
+**사용자 결정**: 필수 판정은 칸마다 상수 플래그로 두고 기본 끔 — 칸(V)이 붙으면 켠다. 체크값은 사용자가 체크했을 때만 싣는다(자동 `true` 없음). 강제가 칸보다 먼저 켜지면 v2가 400인 위험은 문서(plan P4b 위험 줄·P15)와 B16 질문으로 남긴다.
+
+**Claude 판단**
+- **"전체 동의"는 칸이 없는 만 14세를 켜지 않는다** — 왜: 칸 없이 `ageOver14Confirmed: true`가 실리면 동의 위조다. 되돌리기: `withAllConsents`가 `visibleConsents` 대신 모든 키를 켜게.
+- **주문 동의 값은 RHF 폼 값으로 둔다**(별도 상태 아님) — 왜: 환불 규정 동의(`agreeRefundPolicy`)와 같은 자리이고, 플래그를 켜면 같은 resolver가 칸 오류를 낸다. 두둥 확인은 "입금하셨나요?" 확인에서 `form.setValue`로 켠다(V).
+- **무료 주문은 두둥 확인을 체크값과 상관없이 빼고 보낸다** — 왜: 서버가 두둥만 검사·기록하고, 무료 화면에는 그 칸이 없다. 되돌리기: `toOrderBody`의 `payType === 'DUDOONG'` 조건.
