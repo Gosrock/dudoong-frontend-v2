@@ -8,6 +8,7 @@ import { build } from '../build.mjs';
 import {
   buildComment,
   buildIssue,
+  CHANGE_TYPES,
   LABELS,
   marker,
   matchIssues,
@@ -210,6 +211,13 @@ describe('그 밖', () => {
     expect(url.searchParams.get('issues')).toBe('write');
     expect(url.searchParams.get('expires_in')).toBe('366');
     expect(url.searchParams.get('name').length).toBeLessThanOrEqual(40);
+  });
+
+  it('변경 유형마다 칩 이름·설명이 있다', () => {
+    for (const t of CHANGE_TYPES) {
+      expect(t.short).toBeTruthy();
+      expect(t.hint).toBeTruthy();
+    }
   });
 
   it('라벨 이름이 겹치지 않고 GitHub 제한(이름 50·설명 100자) 안', () => {

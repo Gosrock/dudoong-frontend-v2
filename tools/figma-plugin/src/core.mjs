@@ -11,21 +11,41 @@ export const KNOWN_FILES = {
 };
 
 export const CHANGE_TYPES = [
-  { id: 'update', label: '수정', short: '수정', githubLabel: 'Design: 수정' },
-  { id: 'new', label: '신규 화면', short: '새 화면', githubLabel: 'Design: 신규 화면' },
+  {
+    id: 'update',
+    label: '수정',
+    short: '수정',
+    hint: '있던 화면의 문구·간격·색·배치를 바꿨을 때',
+    githubLabel: 'Design: 수정',
+  },
+  {
+    id: 'new',
+    label: '신규 화면',
+    short: '새 화면',
+    hint: '없던 화면(프레임)을 새로 그렸을 때',
+    githubLabel: 'Design: 신규 화면',
+  },
   {
     id: 'ready',
     label: 'Ready for dev 전환',
     short: 'Ready for dev',
+    hint: '작업이 끝나 개발해도 될 때(Dev Mode Ready for dev와 같은 뜻)',
     githubLabel: 'Design: Ready for dev',
   },
   {
     id: 'ds',
     label: '디자인 시스템 변경(토큰·컴포넌트)',
     short: '디자인 시스템',
+    hint: '토큰(색·간격·글꼴)이나 공용 컴포넌트를 바꿨을 때',
     githubLabel: 'Design: 디자인 시스템',
   },
-  { id: 'delete', label: '삭제', short: '삭제', githubLabel: 'Design: 삭제' },
+  {
+    id: 'delete',
+    label: '삭제',
+    short: '삭제',
+    hint: '화면을 없앨 때 — 지우기 전에 골라서 보내 주세요',
+    githubLabel: 'Design: 삭제',
+  },
 ];
 
 export const SYNC_LABEL = 'Design Sync';

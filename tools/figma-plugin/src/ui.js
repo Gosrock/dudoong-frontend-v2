@@ -276,7 +276,7 @@ function render() {
     'types',
     CHANGE_TYPES.map(
       (t) =>
-        `<button class="chip${state.typeId === t.id ? ' on' : ''}" data-type="${t.id}">${esc(t.short)}</button>`,
+        `<button class="chip${state.typeId === t.id ? ' on' : ''}" data-type="${t.id}" title="${esc(t.hint)}">${esc(t.short)}</button>`,
     ).join(''),
   );
 
