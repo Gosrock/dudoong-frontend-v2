@@ -207,10 +207,10 @@ function HostEvents({ events }: { events: Events }) {
     return (
       <div className={s.scroller} aria-hidden="true">
         {[0, 1, 2].map((i) => (
-          <div key={i} className={card.item}>
-            <Skeleton className={card.posterWrap} />
+          <Flex key={i} direction="column" gap={2} className={card.item}>
+            <Skeleton className={card.skeletonPoster} />
             <Skeleton shape="text" width="80%" />
-          </div>
+          </Flex>
         ))}
       </div>
     );

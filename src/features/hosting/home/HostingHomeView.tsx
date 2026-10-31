@@ -11,6 +11,10 @@ import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
+import {
+  LoadMoreSentinel,
+  type LoadMoreState,
+} from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
 import { SearchField } from '@/ui/components/SearchField/SearchField';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
@@ -35,7 +39,6 @@ import {
 import { useHostingHome } from './model/useHostingHome';
 import { MyEventCard, MyHostCard } from './ui/HomeCards';
 import * as cards from './ui/HomeCards.css';
-import { LoadMoreSentinel, type LoadMoreState } from './ui/LoadMoreSentinel';
 
 type ListLike = LoadMoreState & {
   status: 'pending' | 'error' | 'empty' | 'success';
