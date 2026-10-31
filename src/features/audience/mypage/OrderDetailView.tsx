@@ -305,9 +305,10 @@ function Tickets({ d }: { d: Detail }) {
   const common = (
     <>
       <InfoRow label="예매자명" value={order.depositorName ?? '—'} />
-      <span data-testid="order-no">
-        <InfoRow label="예매번호" value={order.orderNo ?? '—'} />
-      </span>
+      <InfoRow
+        label="예매번호"
+        value={<span data-testid="order-no">{order.orderNo ?? '—'}</span>}
+      />
     </>
   );
   const issued = order.issuedTickets;

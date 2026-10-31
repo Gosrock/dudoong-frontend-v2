@@ -35,7 +35,7 @@ test.describe('마이페이지(보호)', () => {
     await expect(page).toHaveURL('/mypage/following');
     await expect(page.getByTestId('following-host').first()).toBeVisible();
     await page.goBack();
-    await page.getByRole('link', { name: '관람 공연 아카이빙' }).click();
+    await page.getByRole('link', { name: '지난 공연 아카이빙' }).click();
     await expect(page).toHaveURL('/mypage/archive');
     await expect(page.getByTestId('archive-event').first()).toBeVisible();
     expect(
@@ -63,7 +63,7 @@ test.describe('주문내역 → 주문상세', () => {
     await expect(page).toHaveURL(`/orders/${P9_ORDER.approvedPaid}`);
     // 앞 화면(주문내역)은 숨긴 채 DOM에 남는다(Activity) — 상세 <main>으로 좁힌다
     const detail = page.locator('main', {
-      has: page.getByRole('heading', { name: '주문 상세' }),
+      has: page.getByRole('heading', { name: '주문상세' }),
     });
     await expect(detail.getByTestId('order-no')).toHaveText('R9000001');
     await expect(detail.getByTestId('order-status')).toHaveText('승인완료');
