@@ -11,8 +11,8 @@ import { server } from '@/api/__mocks__/server';
 import { createEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
 import { eventOptionsQuery } from '@/api/option/queries';
-import { shouldToastMutationError } from '@/api/query-client';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -200,7 +200,6 @@ describe('삭제(T-4)', () => {
       queryKey: ticketItemsManageQuery('101').queryKey,
       exact: true,
     });
-    const m = queryClient.getMutationCache().getAll().at(-1)!;
-    expect(shouldToastMutationError(m.state.error, m.options.meta)).toBe(false);
+    expect(errorToast).not.toHaveBeenCalled();
   });
 });

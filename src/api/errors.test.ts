@@ -5,6 +5,7 @@ import {
   getErrorCode,
   getErrorStatus,
   isForbidden,
+  isLocalBoundaryError,
   isNotFound,
   isSessionLost,
   isUnauthorized,
@@ -72,5 +73,18 @@ describe('isValidationError', () => {
     expect(isValidationError(new ApiError(0, 'NETWORK', ''))).toBe(false);
     expect(isValidationError(new Error('BAD_REQUEST'))).toBe(false);
     expect(isValidationError(null)).toBe(false);
+  });
+});
+
+describe('isLocalBoundaryError', () => {
+  it('세션 상실·403·404는 부모 경계로 올린다(false)', () => {
+    expect(isLocalBoundaryError(new SessionLostError())).toBe(false);
+    expect(isLocalBoundaryError(new ApiError(403, 'HOST_400_2', ''))).toBe(false);
+    expect(isLocalBoundaryError(new ApiError(404, 'Event_404_1', ''))).toBe(false);
+  });
+  it('그 밖(5xx·네트워크·코드 오류)은 지역에서 잡는다(true)', () => {
+    expect(isLocalBoundaryError(new ApiError(500, 'X', ''))).toBe(true);
+    expect(isLocalBoundaryError(new ApiError(0, 'NETWORK', ''))).toBe(true);
+    expect(isLocalBoundaryError(new TypeError('x'))).toBe(true);
   });
 });

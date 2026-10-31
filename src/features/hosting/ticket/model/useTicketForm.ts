@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { eventManageQuery } from '@/api/event/queries';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError, settle } from '@/api/settle';
 import { formatKstDateTime } from '@/api/shared/date';
 import { createTicketItemMutation, updateTicketItemMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
@@ -60,7 +60,7 @@ type ServerErrors = Partial<Record<TicketFormField, string>>;
  *   `agreement.field`가 false — 지금은 보내지 않는다. 칸이 생기면 동의 전 저장을 막는다
  * - 에러(patterns §24 P12): `Ticket_Item_400_3` 가격 · `400_8` 계좌 · `400_13` 판매 기간 · `400_2` 수량 → 칸 오류(고치면 지운다).
  *   `400_12` 티켓 없음 공연 · `Event_400_17` → 폼 오류 + GE-3 다시 읽기, `400_14` 잠긴 필드 · 404 → 폼 오류 + 목록 다시 읽기,
- *   `400_15` · `400_11` · `Item_Option_Group_400_4` · `Agreement_400_1` → 폼 오류. 그 밖은 전역 토스트
+ *   `400_15` · `400_11` · `Item_Option_Group_400_4` · `Agreement_400_1` → 폼 오류. 그 밖은 공용 토스트(handleError)
  */
 export function useTicketForm(
   eventId: string,
@@ -156,7 +156,7 @@ export function useTicketForm(
         exact: true,
       });
     const reloadList = () => void invalidateTickets(queryClient, eventId);
-    return handleCodes({
+    return {
       Ticket_Item_400_3: field('Ticket_Item_400_3'),
       Ticket_Item_400_8: field('Ticket_Item_400_8'),
       Ticket_Item_400_13: field('Ticket_Item_400_13'),
@@ -169,33 +169,16 @@ export function useTicketForm(
       Ticket_Item_400_11: form('Ticket_Item_400_11'),
       Item_Option_Group_400_4: form('Item_Option_Group_400_4'),
       Agreement_400_1: form('Agreement_400_1'),
-    });
+    };
   }, [eventId, queryClient]);
 
-  const onSaved = () => {
-    setAttempted(false);
-    setServerErrors({});
-    router.replace(ticketsHref(eventId));
-  };
   const createMutation = useMutation({
     ...createTicketItemMutation(eventId),
-    ...codes,
-    onSuccess: async (created) => {
-      setBase(ticketFormValuesOf(created));
-      await applyCreatedTicket(queryClient, eventId, created);
-      onSaved();
-    },
+    onSuccess: (created) => applyCreatedTicket(queryClient, eventId, created),
   });
   const updateMutation = useMutation({
     ...updateTicketItemMutation(eventId),
-    ...codes,
-    onSuccess: async (updated) => {
-      const next = ticketFormValuesOf(updated);
-      setBase(next);
-      setValues(next);
-      await applyUpdatedTicket(queryClient, eventId, updated);
-      onSaved();
-    },
+    onSuccess: (updated) => applyUpdatedTicket(queryClient, eventId, updated),
   });
   const saving = createMutation.isPending || updateMutation.isPending;
   const agreementMissing = REFUND_OBLIGATION_FIELD && agreementRequired && !agreed;
@@ -208,21 +191,44 @@ export function useTicketForm(
     inflight.current = true;
     setFormError(null);
     const agreements = { refundObligationAgreed: agreed };
-    try {
-      if (base === null || ticket === null) {
-        await createMutation.mutateAsync(toCreateTicketBody(values, agreements));
-      } else {
-        const body = toUpdateTicketBody(base, values, agreements);
-        if (!body) return false;
-        await updateMutation.mutateAsync({ ticketItemId: ticket.ticketItemId, body });
+    let r;
+    if (base === null || ticket === null) {
+      r = await settle(createMutation.mutateAsync(toCreateTicketBody(values, agreements)));
+      if (r.ok) setBase(ticketFormValuesOf(r.data));
+    } else {
+      const body = toUpdateTicketBody(base, values, agreements);
+      if (!body) {
+        inflight.current = false;
+        return false;
       }
-      return true;
-    } catch {
-      return false;
-    } finally {
-      inflight.current = false;
+      r = await settle(updateMutation.mutateAsync({ ticketItemId: ticket.ticketItemId, body }));
+      if (r.ok) {
+        const next = ticketFormValuesOf(r.data);
+        setBase(next);
+        setValues(next);
+      }
     }
-  }, [agreed, base, canSave, createMutation, ticket, updateMutation, values]);
+    inflight.current = false;
+    if (!r.ok) {
+      handleError(r.error, codes);
+      return false;
+    }
+    setAttempted(false);
+    setServerErrors({});
+    router.replace(ticketsHref(eventId));
+    return true;
+  }, [
+    agreed,
+    base,
+    canSave,
+    codes,
+    createMutation,
+    eventId,
+    router,
+    ticket,
+    updateMutation,
+    values,
+  ]);
 
   const guarded =
     <A extends unknown[]>(

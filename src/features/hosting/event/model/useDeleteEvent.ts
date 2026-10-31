@@ -1,12 +1,12 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { deleteEventMutation } from '@/api/event/mutations';
 import { MY_EVENTS_KEY } from '@/api/event/queries';
 import type { EventStatus } from '@/api/event/schema';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError, settle } from '@/api/settle';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import { applyDeleted } from './event-cache';
@@ -21,24 +21,13 @@ export const DELETE_EVENT_ERROR_MESSAGE = {
 /**
  * 공연 삭제(DE-9, plan P11) — 공연준비 홈 준비중 공연 카드의 ⋮(P10a 자리). 확인 팝업은 V.
  * 준비중 공연 + 매니저 이상만(`canDeleteEvent`) — 아니면 요청하지 않는다. 성공하면 GE-1·GH-1을 무효화하고 그 공연의 관리 캐시를 버린다.
- * `Event_400_19`(준비중 아님) → GE-1을 다시 읽고 `error`. 그 밖은 전역 토스트.
+ * `Event_400_19`(준비중 아님) → GE-1을 다시 읽고 `error`. 그 밖은 공용 토스트(handleError).
  */
 export function useDeleteEvent() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const codes = useMemo(
-    () =>
-      handleCodes({
-        Event_400_19: () => {
-          setError(DELETE_EVENT_ERROR_MESSAGE.Event_400_19);
-          void queryClient.invalidateQueries({ queryKey: MY_EVENTS_KEY });
-        },
-      }),
-    [queryClient],
-  );
   const mutation = useMutation({
     ...deleteEventMutation(),
-    ...codes,
     onSuccess: (_, eventId) => applyDeleted(queryClient, eventId),
   });
 
@@ -47,14 +36,17 @@ export function useDeleteEvent() {
     async (event: { eventId: number; status: EventStatus; myRole: ActorRole | null }) => {
       if (!canDeleteEvent(event) || mutation.isPending) return false;
       setError(null);
-      try {
-        await mutation.mutateAsync(event.eventId);
-        return true;
-      } catch {
-        return false;
-      }
+      const r = await settle(mutation.mutateAsync(event.eventId));
+      if (r.ok) return true;
+      handleError(r.error, {
+        Event_400_19: () => {
+          setError(DELETE_EVENT_ERROR_MESSAGE.Event_400_19);
+          void queryClient.invalidateQueries({ queryKey: MY_EVENTS_KEY });
+        },
+      });
+      return false;
     },
-    [mutation],
+    [mutation, queryClient],
   );
 
   return {

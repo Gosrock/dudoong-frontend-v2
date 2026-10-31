@@ -18,11 +18,7 @@ type Mode = 'host' | 'audience';
  */
 export function QrCheckInView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary
-      ignoreError={isSessionLost}
-      rejected={HostingAccessRejected}
-      resetKeys={[eventId]}
-    >
+    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
       <QrCheckIn eventId={eventId} />
     </AsyncBoundary>
   );

@@ -12,6 +12,7 @@ import { unfollowHostMutation } from '@/api/host/mutations';
 import { hostViewerQuery } from '@/api/host/queries';
 import { FOLLOWING_HOSTS_KEY, followingHostsQuery } from '@/api/me/queries';
 import type { FollowingHost, FollowingHostFilter } from '@/api/me/schema';
+import { handleError, settle } from '@/api/settle';
 import { flattenPages, type Page } from '@/api/shared/page';
 
 import { eventHref, FOLLOWING_TABS, hostHref, representativeBadge } from './lists';
@@ -30,7 +31,7 @@ const withoutHost = (data: FollowingPages | undefined, hostId: number) =>
  * 읽는다(patterns §12). 탭이 경계 밖에 남도록 `useInfiniteQuery`로 읽고 `listStatus`·`retry`를 준다.
  *
  * `unfollow(hostId)` — DELETE 성공 응답 뒤 모든 필터의 목록 캐시에서 그 호스트를 뺀다(목록을 다시 읽지 않는다). 호스트 홈의 viewer 키
- * (`isFollowing`)도 맞춘다. 실패는 전역 토스트, 목록은 그대로. 알려진 한계: 페이지 방식이라 뺀 뒤 다음 페이지를 읽으면 한 줄이
+ * (`isFollowing`)도 맞춘다. 실패는 공용 토스트(handleError), 목록은 그대로. 알려진 한계: 페이지 방식이라 뺀 뒤 다음 페이지를 읽으면 한 줄이
  * 앞 페이지로 밀려 보이지 않을 수 있다(서버 offset).
  */
 export function useFollowingHosts() {
@@ -39,33 +40,35 @@ export function useFollowingHosts() {
   const list = useInfiniteQuery(followingHostsQuery({ status }));
   const [unfollowing, setUnfollowing] = useState<ReadonlySet<number>>(new Set());
 
-  const { mutate } = useMutation({
+  // 캐시 반영은 화면이 사라져도(연달아 해제해도) 해야 하므로 옵션의 onSuccess에 둔다
+  const { mutateAsync } = useMutation({
     mutationFn: (hostId: number, context) =>
       unfollowHostMutation(hostId).mutationFn!(undefined, context),
+    onSuccess: (res, hostId) => {
+      queryClient.setQueriesData<FollowingPages>({ queryKey: [...FOLLOWING_HOSTS_KEY] }, (d) =>
+        withoutHost(d, hostId),
+      );
+      queryClient.setQueryData(hostViewerQuery(String(hostId)).queryKey, (old) =>
+        old ? { ...old, isFollowing: res.isFollowing, followerCount: res.followerCount } : old,
+      );
+    },
   });
 
   const unfollow = useCallback(
     (hostId: number) => {
       if (unfollowing.has(hostId)) return;
       setUnfollowing((s) => new Set(s).add(hostId));
-      mutate(hostId, {
-        onSuccess: (res) => {
-          queryClient.setQueriesData<FollowingPages>({ queryKey: [...FOLLOWING_HOSTS_KEY] }, (d) =>
-            withoutHost(d, hostId),
-          );
-          queryClient.setQueryData(hostViewerQuery(String(hostId)).queryKey, (old) =>
-            old ? { ...old, isFollowing: res.isFollowing, followerCount: res.followerCount } : old,
-          );
-        },
-        onSettled: () =>
-          setUnfollowing((s) => {
-            const next = new Set(s);
-            next.delete(hostId);
-            return next;
-          }),
-      });
+      void (async () => {
+        const r = await settle(mutateAsync(hostId));
+        setUnfollowing((s) => {
+          const next = new Set(s);
+          next.delete(hostId);
+          return next;
+        });
+        if (!r.ok) handleError(r.error);
+      })();
     },
-    [mutate, queryClient, unfollowing],
+    [mutateAsync, unfollowing],
   );
 
   const hosts = useMemo(

@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
 
-import { getErrorCode, isNotFound, isSessionLost } from '@/api/errors';
-import { handleCodes } from '@/api/handle-codes';
+import { isNotFound, isSessionLost } from '@/api/errors';
 import { meQuery } from '@/api/me/queries';
 import { createOrderMutation } from '@/api/order/mutations';
 import { orderTotalAmount } from '@/api/order/price';
 import { checkoutQuery, myOrderQuery } from '@/api/order/queries';
 import type { Checkout } from '@/api/order/schema';
+import { handleError, settle } from '@/api/settle';
 import { eventTicketItemsQuery } from '@/api/ticket-item/queries';
 import { toTicketView } from '@/features/audience/event/model/ticket-state';
 import { toast } from '@/ui/components/Toast/Toast';
@@ -20,7 +20,6 @@ import { toast } from '@/ui/components/Toast/Toast';
 import {
   CHECKOUT_ERROR_TABLE,
   type CheckoutErrorOutcome,
-  classifyCheckoutError,
   FREE_FCFS_FAILED,
 } from './checkout-errors';
 import { type CheckoutParams, eventHref } from './checkout-params';
@@ -210,34 +209,11 @@ export function useCheckout({
     [refetchTickets, router, eventId],
   );
 
-  const codes = useMemo(
-    () =>
-      handleCodes(
-        Object.fromEntries(
-          Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
-            code,
-            () => onKnownError(outcome, code),
-          ]),
-        ),
-      ),
-    [onKnownError],
-  );
-
+  // 주문 캐시 반영은 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     ...createOrderMutation(),
-    // 무료 선착순은 표에 없는 실패도 화면이 맡는다(전역 토스트 대신 재시도 안내)
-    meta: kind === 'FREE_FCFS' ? { ...codes.meta, handled: true } : codes.meta,
-    onError: (e) => {
-      inflight.current = false;
-      codes.onError(e);
-      if (kind === 'FREE_FCFS' && !isSessionLost(e) && !classifyCheckoutError(getErrorCode(e))) {
-        setSubmitError(FREE_FCFS_FAILED);
-      }
-    },
     onSuccess: (order) => {
-      setSucceeded(true);
       queryClient.setQueryData(myOrderQuery(order.orderUuid).queryKey, order);
-      router.replace(orderCreatedHref(order.orderUuid));
     },
   });
 
@@ -252,9 +228,37 @@ export function useCheckout({
       if (inflight.current) return;
       inflight.current = true;
       const body = toOrderBody(values, { eventId, ticket, quantity, depositorName });
-      await mutation.mutateAsync(body).catch(() => undefined);
+      const r = await settle(mutation.mutateAsync(body));
+      if (!r.ok) {
+        inflight.current = false;
+        handleError(
+          r.error,
+          Object.fromEntries(
+            Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
+              code,
+              () => onKnownError(outcome, code),
+            ]),
+          ),
+          // 무료 선착순은 표에 없는 실패도 화면이 맡는다(공용 토스트 대신 재시도 안내)
+          kind === 'FREE_FCFS' ? { otherwise: () => setSubmitError(FREE_FCFS_FAILED) } : {},
+        );
+        return;
+      }
+      setSucceeded(true);
+      router.replace(orderCreatedHref(r.data.orderUuid));
     })();
-  }, [form, mutation, eventId, ticket, quantity, depositorName, kind, succeeded]);
+  }, [
+    form,
+    mutation,
+    eventId,
+    ticket,
+    quantity,
+    depositorName,
+    kind,
+    succeeded,
+    onKnownError,
+    router,
+  ]);
 
   return {
     ticket,

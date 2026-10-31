@@ -7,7 +7,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { openEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError, settle } from '@/api/settle';
 
 import {
   checklistItemsOf,
@@ -42,7 +42,7 @@ type RegisterErrorCode = keyof typeof REGISTER_ERROR_MESSAGE;
  * - 등록(PE-8): 매니저 이상 + `canOpen`일 때만. 성공하면 GE-3·GE-1만 무효화하고(`invalidateAfterRegister`) GE-3이 다시 오면
  *   등록 후 모드로 바뀐다. `justRegistered` — "공연이 등록되었습니다." 토스트(`424:11427`, V)를 띄울 상태
  * - 에러(patterns §24 P11): `Event_400_7` 조건 미충족 → GE-7 다시 읽기, `Event_400_8` 이미 오픈 → GE-3 다시 읽기,
- *   `Event_400_15` 시작이 지남 → 둘 다 다시 읽기. 문구는 `registerError`. 그 밖은 전역 토스트.
+ *   `Event_400_15` 시작이 지남 → 둘 다 다시 읽기. 문구는 `registerError`. 그 밖은 공용 토스트(handleError).
  *   서버는 시작 시각을 "이미 오픈" 검사보다 먼저 보므로(`Event.open()`) 이미 등록된 공연도 시작이 지났으면 `Event_400_15`다 —
  *   다시 읽은 GE-3이 준비중이 아니면 "이미 등록된 공연" 문구로 바꾼다(`registerErrorMessageOf`, 계약 대조 2026-10-31)
  * - `?created=1`(간편 만들기 직후, design-requests Q7) → `createdNotice` — "새로운 공연이 추가되었습니다!" 토스트(V).
@@ -90,23 +90,9 @@ export function useEventDashboard(eventId: string) {
     },
     [eventId, queryClient],
   );
-  const codes = useMemo(
-    () =>
-      handleCodes({
-        Event_400_7: () => refetchAfter('Event_400_7'),
-        Event_400_8: () => refetchAfter('Event_400_8'),
-        Event_400_15: () => refetchAfter('Event_400_15'),
-      }),
-    [refetchAfter],
-  );
   const registerMutation = useMutation({
     ...openEventMutation(eventId),
-    ...codes,
-    onSuccess: async () => {
-      setJustRegistered(true);
-      setJustCompleted(false);
-      await invalidateAfterRegister(queryClient, eventId);
-    },
+    onSuccess: () => invalidateAfterRegister(queryClient, eventId),
   });
 
   const canRegister =
@@ -119,14 +105,19 @@ export function useEventDashboard(eventId: string) {
   const register = useCallback(async () => {
     if (!canRegister) return false;
     setRegisterErrorCode(null);
-    try {
-      await registerMutation.mutateAsync();
+    const r = await settle(registerMutation.mutateAsync());
+    if (r.ok) {
+      setJustRegistered(true);
+      setJustCompleted(false);
       return true;
-    } catch {
-      // 표의 코드는 handleCodes가, 그 밖은 전역 토스트가 맡는다
-      return false;
     }
-  }, [canRegister, registerMutation]);
+    handleError(r.error, {
+      Event_400_7: () => refetchAfter('Event_400_7'),
+      Event_400_8: () => refetchAfter('Event_400_8'),
+      Event_400_15: () => refetchAfter('Event_400_15'),
+    });
+    return false;
+  }, [canRegister, refetchAfter, registerMutation]);
 
   // ─── 등록 후 통계(GD-1, P13a) ───
   const statsQuery = useQuery({ ...eventDashboardQuery(eventId), enabled: mode === 'registered' });

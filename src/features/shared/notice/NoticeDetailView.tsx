@@ -6,7 +6,7 @@ import { isNotFound } from '@/api/errors';
 import type { NoticeAudience } from '@/api/notice/schema';
 import {
   AsyncBoundary,
-  type AsyncBoundaryRejectedProps,
+  type ErrorFallbackProps,
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 
@@ -35,7 +35,7 @@ export function NoticeDetailView({
   // 숫자가 아닌 id는 부르지 않는다(호스팅 센터 — 관객 라우트는 서버가 먼저 notFound())
   if (id === null) return <main>{notFound}</main>;
   // AsyncBoundary는 rejected를 함수로 부른다(컴포넌트로 그리지 않는다)
-  const rejected = (props: AsyncBoundaryRejectedProps) =>
+  const rejected = (props: ErrorFallbackProps) =>
     isNotFound(props.error) ? notFound : <Retry {...props} />;
   return (
     <main>
@@ -46,7 +46,7 @@ export function NoticeDetailView({
   );
 }
 
-function Retry({ reset }: AsyncBoundaryRejectedProps) {
+function Retry({ reset }: ErrorFallbackProps) {
   return (
     <div role="alert">
       <p>불러오지 못했어요</p>

@@ -2,8 +2,8 @@ import { isServer, MutationCache, QueryCache, QueryClient } from '@tanstack/reac
 
 import { log } from '@/utils/log';
 
-import { ApiError, isApiError, isSessionLost, isValidationError } from './errors';
-import { isHandledByScreen } from './handle-codes';
+import { errorMessageOf, notifyError } from './error-toast';
+import { ApiError, isApiError, isSessionLost } from './errors';
 
 /**
  * 5xx와 네트워크 오류에서만 1회 재시도한다(tech-decisions §4 QueryClient 기본 옵션).
@@ -18,39 +18,15 @@ function shouldRetry(failureCount: number, error: unknown) {
   return false;
 }
 
-// ─── 전역 에러 토스트 ────────────────────────────────────────
+// ─── 전역 에러 처리 ──────────────────────────────────────────
 
-/** `reason`이 비었을 때(네트워크·타임아웃·파싱 실패·HTML 502) 띄우는 고정 문구 */
-export const FALLBACK_ERROR_MESSAGE = '일시적인 오류가 발생했어요. 잠시 후 다시 시도해 주세요.';
-
-/**
- * 형식·길이 검증 실패(`BAD_REQUEST`)에 띄우는 고정 문구. 이 응답의 `reason`은 필드→메시지 JSON이나 "Bad Request"라
- * 그대로 보이지 않는다(api-contract §1). 보통은 폼이 먼저 막아 여기까지 오지 않는다.
- */
-export const VALIDATION_ERROR_MESSAGE = '입력한 내용을 다시 확인해 주세요.';
-
-export type ErrorNotifier = (message: string, id: string) => void;
-
-/**
- * `src/api`는 `src/ui`를 import할 수 없어(계층 규칙) 토스트를 주입받는다. 등록은 앱 셸(`providers.tsx`)이
- * `setErrorNotifier((message, id) => toast(message, { id }))`로 한 번 한다. 등록 전에는 로그만 남긴다.
- */
-let notify: ErrorNotifier | null = null;
-export function setErrorNotifier(fn: ErrorNotifier | null) {
-  notify = fn;
-}
-
-const messageOf = (e: unknown) => {
-  if (isValidationError(e)) return VALIDATION_ERROR_MESSAGE;
-  return (isApiError(e) && e.reason) || FALLBACK_ERROR_MESSAGE;
-};
 const logFields = (e: unknown) =>
   isApiError(e)
     ? { status: e.status, code: e.code, route: e.route }
     : { name: e instanceof Error ? e.name : typeof e };
 
 /**
- * 조회 실패: 배경 재조회 실패(`data`가 이미 있음)만 토스트. 첫 로딩 실패는 `<AsyncBoundary>`·공용 404 화면,
+ * 조회 실패: 배경 재조회 실패(`data`가 이미 있음)만 토스트. 첫 로딩 실패는 화면 상태(`{status, retry}`)·`<AsyncBoundary>`·공용 404 화면,
  * 무한 목록 다음 페이지 실패는 목록 하단 재시도가 맡는다(patterns §4-5, §12). 세션 상실은 띄우지 않는다.
  * `meta.silent`인 조회(벨처럼 사용자가 할 일이 없는 배경 조회)도 띄우지 않는다.
  */
@@ -66,15 +42,6 @@ export function shouldToastQueryError(
   return fetchMore === undefined;
 }
 
-/** 변경 실패: `handleCodes`로 화면이 맡은 코드(`meta.handledCodes`)·`meta.handled`·세션 상실이 아니면 토스트. */
-export function shouldToastMutationError(
-  error: unknown,
-  meta: Record<string, unknown> | undefined,
-): boolean {
-  if (isSessionLost(error)) return false;
-  return !isHandledByScreen(meta, error);
-}
-
 function makeQueryClient() {
   return new QueryClient({
     queryCache: new QueryCache({
@@ -83,15 +50,14 @@ function makeQueryClient() {
         log('warn', 'query.failed', logFields(error));
         if (!shouldToastQueryError(error, query.state, query.meta)) return;
         // 같은 쿼리가 한꺼번에 실패해도 하나만 뜨게 queryKey 해시를 id로
-        notify?.(messageOf(error), `query:${query.queryHash}`);
+        notifyError(errorMessageOf(error), `query:${query.queryHash}`);
       },
     }),
+    // 변경 실패는 로그만 남긴다. 화면 반응(토스트·안내·이동)은 호출 쪽이 `settle` + `handleError`로 한다(tech-decisions §4)
     mutationCache: new MutationCache({
-      onError: (error, _variables, _context, mutation) => {
+      onError: (error) => {
         if (isSessionLost(error)) return;
         log('warn', 'mutation.failed', logFields(error));
-        if (!shouldToastMutationError(error, mutation.meta)) return;
-        notify?.(messageOf(error), `mutation:${isApiError(error) ? error.code : 'UNKNOWN'}`);
       },
     }),
     defaultOptions: {

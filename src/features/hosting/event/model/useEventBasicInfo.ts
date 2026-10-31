@@ -3,11 +3,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { getErrorCode } from '@/api/errors';
 import { updateEventBasicMutation } from '@/api/event/mutations';
 import { eventManageQuery, eventTagsQuery } from '@/api/event/queries';
-import { handleCodes } from '@/api/handle-codes';
 import type { HostContactType } from '@/api/host/schema';
+import { handleError, settle } from '@/api/settle';
 import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED, uploadImage } from '@/api/upload';
 import {
   emptyContact,
@@ -60,7 +59,7 @@ export type SavedNotice = 'saved' | 'registeredChanged';
  *   등록된 공연이면 `savedNotice: 'registeredChanged'`(안내 팝업, V)
  * - 에러(patterns §24 P11): `Event_400_2`·`24` 일정 · `20` 문의처 · `23` 태그 · `22` 포스터(올린 key를 버리고 다시 올리게) ·
  *   `25` 티켓 여부 → 칸 오류(그 칸을 고치면 지운다). `17` 정산중·지난 공연 → GE-3을 다시 읽어 읽기 전용으로. `18` 등록 뒤 티켓 여부 →
- *   GE-3을 다시 읽어 토글 잠금. 그 밖은 전역 토스트
+ *   GE-3을 다시 읽어 토글 잠금. 그 밖은 공용 토스트(handleError)
  */
 export function useEventBasicInfo(
   eventId: string,
@@ -110,15 +109,6 @@ export function useEventBasicInfo(
     mutationKey: ['events', eventId, 'poster-upload'],
     mutationFn: (file: File) =>
       uploadImage({ target: { kind: 'event', eventId: Number(eventId), purpose: 'POSTER' }, file }),
-    meta: { handledCodes: Object.keys(POSTER_UPLOAD_ERROR) },
-    onError: (e) => {
-      const code = getErrorCode(e);
-      if (code !== null && Object.hasOwn(POSTER_UPLOAD_ERROR, code)) {
-        setPosterError(POSTER_UPLOAD_ERROR[code as keyof typeof POSTER_UPLOAD_ERROR]);
-      }
-    },
-    onSuccess: (uploaded) =>
-      setValues((v) => ({ ...v, poster: { url: uploaded.url, key: uploaded.key } })),
   });
 
   const changePoster = useCallback(
@@ -128,8 +118,19 @@ export function useEventBasicInfo(
       setPosterError(null);
       setSavedNotice(null);
       setServerErrors((prev) => ({ ...prev, poster: undefined }));
-      // 표에 없는 실패(429·네트워크·403 등)는 전역 토스트가 맡는다
-      await posterMutation.mutateAsync(file).catch(() => undefined);
+      const r = await settle(posterMutation.mutateAsync(file));
+      if (r.ok) {
+        const uploaded = r.data;
+        setValues((v) => ({ ...v, poster: { url: uploaded.url, key: uploaded.key } }));
+        return;
+      }
+      const show = (code: keyof typeof POSTER_UPLOAD_ERROR) => () =>
+        setPosterError(POSTER_UPLOAD_ERROR[code]);
+      // 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
+      handleError(r.error, {
+        [UPLOAD_INVALID_EXTENSION]: show(UPLOAD_INVALID_EXTENSION),
+        [UPLOAD_PUT_FAILED]: show(UPLOAD_PUT_FAILED),
+      });
     },
     [canEdit, posterMutation],
   );
@@ -225,13 +226,39 @@ export function useEventBasicInfo(
   );
 
   // ─── 저장(PE-4) ───
-  const manageKey = eventManageQuery(eventId).queryKey;
-  const codes = useMemo(() => {
+  const saveMutation = useMutation({
+    ...updateEventBasicMutation(eventId),
+    onSuccess: (saved) => applySavedBasic(queryClient, eventId, saved),
+  });
+
+  const blocked = !canEdit || posterMutation.isPending || geocoding || saveMutation.isPending;
+
+  /** 저장했으면 `true`. 읽기 전용·바뀐 것 없음·칸 오류·업로드·좌표 변환·저장 중이면 요청하지 않고 `false` */
+  const save = useCallback(async () => {
+    setAttempted(true);
+    if (blocked || !dirty || hasBasicInfoErrors(errors) || inflight.current) return false;
+    inflight.current = true;
+    setFormError(null);
+    const wasRegistered = scope.registered;
+    const r = await settle(saveMutation.mutateAsync(toUpdateEventBasicBody(base, values)));
+    inflight.current = false;
+    if (r.ok) {
+      const next = basicInfoValuesOf(r.data);
+      setBase(next);
+      setValues(next);
+      setAttempted(false);
+      setServerErrors({});
+      setPosterError(null);
+      lastPosterFile.current = null;
+      setSavedNotice(wasRegistered ? 'registeredChanged' : 'saved');
+      return true;
+    }
+    const manageKey = eventManageQuery(eventId).queryKey;
     const field = (code: FieldCode) => () => {
       const { field: f, message } = BASIC_INFO_FIELD_ERRORS[code];
       setServerErrors((prev) => ({ ...prev, [f]: message }));
     };
-    return handleCodes({
+    handleError(r.error, {
       Event_400_2: field('Event_400_2'),
       Event_400_24: field('Event_400_24'),
       Event_400_20: field('Event_400_20'),
@@ -256,43 +283,8 @@ export function useEventBasicInfo(
         void queryClient.invalidateQueries({ queryKey: manageKey, exact: true });
       },
     });
-    // manageKey는 eventId에서 나온다
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base.poster.url, eventId, queryClient]);
-  const saveMutation = useMutation({
-    ...updateEventBasicMutation(eventId),
-    ...codes,
-    onSuccess: async (saved) => {
-      const wasRegistered = scope.registered;
-      const next = basicInfoValuesOf(saved);
-      setBase(next);
-      setValues(next);
-      setAttempted(false);
-      setServerErrors({});
-      setPosterError(null);
-      lastPosterFile.current = null;
-      setSavedNotice(wasRegistered ? 'registeredChanged' : 'saved');
-      await applySavedBasic(queryClient, eventId, saved);
-    },
-  });
-
-  const blocked = !canEdit || posterMutation.isPending || geocoding || saveMutation.isPending;
-
-  /** 저장했으면 `true`. 읽기 전용·바뀐 것 없음·칸 오류·업로드·좌표 변환·저장 중이면 요청하지 않고 `false` */
-  const save = useCallback(async () => {
-    setAttempted(true);
-    if (blocked || !dirty || hasBasicInfoErrors(errors) || inflight.current) return false;
-    inflight.current = true;
-    setFormError(null);
-    try {
-      await saveMutation.mutateAsync(toUpdateEventBasicBody(base, values));
-      return true;
-    } catch {
-      return false;
-    } finally {
-      inflight.current = false;
-    }
-  }, [base, blocked, dirty, errors, saveMutation, values]);
+    return false;
+  }, [base, blocked, dirty, errors, eventId, queryClient, saveMutation, scope.registered, values]);
 
   const canSave = !blocked && dirty && !hasBasicInfoErrors(errors);
   const range = toScheduleRange(values.schedule);

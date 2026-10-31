@@ -8,7 +8,7 @@ import { giftHandlers } from '@/api/__mocks__/gift.handlers';
 import { server } from '@/api/__mocks__/server';
 import { giftLandingQuery } from '@/api/gift/queries';
 import { myTicketsQuery } from '@/api/my-ticket/queries';
-import { shouldToastMutationError } from '@/api/query-client';
+import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -175,7 +175,7 @@ describe('받는 사람', () => {
     async (code, message, screen) => {
       login();
       server.use(...giftHandlers.fails('accept', code));
-      const { result, queryClient } = await open(GIFT_TOKEN.forMe);
+      const { result } = await open(GIFT_TOKEN.forMe);
       await waitFor(() => expect(result.current?.receiveMode).toBe('enabled'));
       const sent = recordRequests();
       await act(() => result.current.accept());
@@ -183,8 +183,7 @@ describe('받는 사람', () => {
       expect(viewerCalls(await sent.list(), GIFT_TOKEN.forMe).length).toBeGreaterThan(0);
       expect(result.current.state).toMatchObject({ screen: { viewState: screen } });
       expect(router.push).not.toHaveBeenCalled();
-      const m = queryClient.getMutationCache().getAll().at(-1)!;
-      expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
+      expect(errorToast).not.toHaveBeenCalled();
     },
   );
 

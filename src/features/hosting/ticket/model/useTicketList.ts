@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { eventManageQuery } from '@/api/event/queries';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError, settle } from '@/api/settle';
 import { formatKstDateTime } from '@/api/shared/date';
 import {
   deleteTicketItemMutation,
@@ -58,7 +58,7 @@ export type TicketCard = {
  * - 메뉴: 수정 · 삭제(잠기지 않은 티켓만) · 판매 중단/재개(`ticketMenuOf`). 일반 멤버·끝난 공연은 메뉴가 없다
  * - 판매 중단·재개(멱등): 응답을 목록에 넣고 관객 GP-5를 무효화 — 공연 상세 티켓 목록에 바로 반영
  * - 삭제: 응답(남은 목록)을 넣고 체크리스트 ③·GP-5·옵션 풀을 무효화. 잠긴 티켓은 요청하지 않는다
- * - 에러: `Ticket_Item_400_7`(그새 팔림) · 404 → 목록 다시 읽기 + 안내, `Event_400_17` → GE-3 다시 읽기(읽기 전용으로). 그 밖은 전역 토스트
+ * - 에러: `Ticket_Item_400_7`(그새 팔림) · 404 → 목록 다시 읽기 + 안내, `Event_400_17` → GE-3 다시 읽기(읽기 전용으로). 그 밖은 공용 토스트(handleError)
  */
 export function useTicketList(eventId: string, { now = () => new Date() } = {}) {
   const queryClient = useQueryClient();
@@ -68,42 +68,17 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
   const [pendingId, setPendingId] = useState<number | null>(null);
   const inflight = useRef(false);
 
-  const codes = useMemo(
-    () =>
-      handleCodes({
-        Ticket_Item_400_7: () => {
-          setActionError(TICKET_ACTION_ERRORS.Ticket_Item_400_7);
-          void invalidateTickets(queryClient, eventId);
-        },
-        Ticket_Item_404_1: () => {
-          setActionError(TICKET_ACTION_ERRORS.Ticket_Item_404_1);
-          void invalidateTickets(queryClient, eventId);
-        },
-        Event_400_17: () => {
-          setActionError(TICKET_ACTION_ERRORS.Event_400_17);
-          void queryClient.invalidateQueries({
-            queryKey: eventManageQuery(eventId).queryKey,
-            exact: true,
-          });
-        },
-      }),
-    [eventId, queryClient],
-  );
-
   const onUpdated = (t: TicketItemManage) => applyUpdatedTicket(queryClient, eventId, t);
   const suspendMutation = useMutation({
     ...suspendTicketItemMutation(eventId),
-    ...codes,
     onSuccess: onUpdated,
   });
   const resumeMutation = useMutation({
     ...resumeTicketItemMutation(eventId),
-    ...codes,
     onSuccess: onUpdated,
   });
   const deleteMutation = useMutation({
     ...deleteTicketItemMutation(eventId),
-    ...codes,
     onSuccess: (remaining) => applyDeletedTicket(queryClient, eventId, remaining),
   });
 
@@ -143,17 +118,30 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
           : action === 'resume'
             ? resumeMutation
             : deleteMutation;
-      try {
-        await mutation.mutateAsync(ticketItemId);
-        return true;
-      } catch {
-        return false;
-      } finally {
-        inflight.current = false;
-        setPendingId(null);
-      }
+      const r = await settle<unknown>(mutation.mutateAsync(ticketItemId));
+      inflight.current = false;
+      setPendingId(null);
+      if (r.ok) return true;
+      handleError(r.error, {
+        Ticket_Item_400_7: () => {
+          setActionError(TICKET_ACTION_ERRORS.Ticket_Item_400_7);
+          void invalidateTickets(queryClient, eventId);
+        },
+        Ticket_Item_404_1: () => {
+          setActionError(TICKET_ACTION_ERRORS.Ticket_Item_404_1);
+          void invalidateTickets(queryClient, eventId);
+        },
+        Event_400_17: () => {
+          setActionError(TICKET_ACTION_ERRORS.Event_400_17);
+          void queryClient.invalidateQueries({
+            queryKey: eventManageQuery(eventId).queryKey,
+            exact: true,
+          });
+        },
+      });
+      return false;
     },
-    [cards, deleteMutation, resumeMutation, suspendMutation],
+    [cards, deleteMutation, eventId, queryClient, resumeMutation, suspendMutation],
   );
 
   return {

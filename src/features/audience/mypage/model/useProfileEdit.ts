@@ -1,12 +1,12 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
-import { handleCodes } from '@/api/handle-codes';
 import { updateMeMutation } from '@/api/me/mutations';
 import { meQuery } from '@/api/me/queries';
 import type { Me } from '@/api/me/schema';
+import { handleError, settle } from '@/api/settle';
 import { uploadImage } from '@/api/upload';
 import { useSession } from '@/features/shared/auth/useSession';
 
@@ -32,26 +32,20 @@ export function useProfileEdit() {
 
   // ─── 닉네임 ───
   const [nameError, setNameError] = useState<string | null>(null);
-  const nameCodes = useMemo(
-    () =>
-      handleCodes({
-        USER_400_4: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
-        // 닉네임만 보내므로 본문 검증 실패(공백만·길이 — #884 이후 공백만은 이 코드)는 닉네임 칸 오류다
-        BAD_REQUEST: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
-      }),
-    [],
-  );
-  const nameMutation = useMutation({
-    ...updateMeMutation(),
-    ...nameCodes,
-    onSuccess: applyProfile,
-  });
+  // 세션 키 반영은 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
+  const nameMutation = useMutation({ ...updateMeMutation(), onSuccess: applyProfile });
   const saveName = useCallback(
     async (raw: string) => {
       const local = nicknameError(raw);
       setNameError(local);
       if (local || nameMutation.isPending) return;
-      await nameMutation.mutateAsync({ name: raw.trim() }).catch(() => undefined);
+      const r = await settle(nameMutation.mutateAsync({ name: raw.trim() }));
+      if (r.ok) return;
+      handleError(r.error, {
+        USER_400_4: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
+        // 닉네임만 보내므로 본문 검증 실패(공백만·길이 — #884 이후 공백만은 이 코드)는 닉네임 칸 오류다
+        BAD_REQUEST: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
+      });
     },
     [nameMutation],
   );
@@ -59,15 +53,6 @@ export function useProfileEdit() {
   // ─── 이미지 ───
   const [imageError, setImageError] = useState<string | null>(null);
   const lastFile = useRef<File | null>(null);
-  const imageCodes = useMemo(() => {
-    const show = (code: keyof typeof PROFILE_ERROR_MESSAGE) => () =>
-      setImageError(PROFILE_ERROR_MESSAGE[code]);
-    return handleCodes({
-      USER_400_5: show('USER_400_5'),
-      UPLOAD_INVALID_EXTENSION: show('UPLOAD_INVALID_EXTENSION'),
-      UPLOAD_PUT_FAILED: show('UPLOAD_PUT_FAILED'),
-    });
-  }, []);
   const imageMutation = useMutation({
     mutationKey: ['me', 'profile-image'],
     mutationFn: async (file: File | null, context) => {
@@ -75,7 +60,6 @@ export function useProfileEdit() {
         file === null ? '' : (await uploadImage({ target: { kind: 'profile' }, file })).key;
       return updateMeMutation().mutationFn!({ profileImageKey }, context);
     },
-    ...imageCodes,
     onSuccess: applyProfile,
   });
   const runImage = useCallback(
@@ -83,8 +67,16 @@ export function useProfileEdit() {
       if (imageMutation.isPending) return;
       setImageError(null);
       lastFile.current = file;
-      // 표에 없는 실패(429·네트워크 등)는 전역 토스트가 맡는다
-      await imageMutation.mutateAsync(file).catch(() => undefined);
+      const r = await settle(imageMutation.mutateAsync(file));
+      if (r.ok) return;
+      const show = (code: keyof typeof PROFILE_ERROR_MESSAGE) => () =>
+        setImageError(PROFILE_ERROR_MESSAGE[code]);
+      // 표에 없는 실패(429·네트워크 등)는 공용 토스트
+      handleError(r.error, {
+        USER_400_5: show('USER_400_5'),
+        UPLOAD_INVALID_EXTENSION: show('UPLOAD_INVALID_EXTENSION'),
+        UPLOAD_PUT_FAILED: show('UPLOAD_PUT_FAILED'),
+      });
     },
     [imageMutation],
   );

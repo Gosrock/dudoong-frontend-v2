@@ -1,10 +1,10 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { handleCodes } from '@/api/handle-codes';
 import { clearSessionFlag } from '@/api/session-flag';
+import { handleError, settle } from '@/api/settle';
 import { withdrawAccount } from '@/api/user/calls';
 import { browserLocation } from '@/features/shared/auth/browser-location';
 
@@ -18,14 +18,10 @@ export const WITHDRAW_MASTER_MESSAGE = '마스터를 양도한 뒤 탈퇴해 주
 export function useWithdraw() {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
-  const codes = useMemo(
-    () => handleCodes({ USER_400_6: () => setError(WITHDRAW_MASTER_MESSAGE) }),
-    [],
-  );
+  // 세션 정리·이동은 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     mutationKey: ['me', 'withdraw'],
     mutationFn: withdrawAccount,
-    ...codes,
     onSuccess: () => {
       queryClient.clear();
       clearSessionFlag();
@@ -35,7 +31,8 @@ export function useWithdraw() {
   const withdraw = useCallback(async () => {
     if (mutation.isPending || mutation.isSuccess) return;
     setError(null);
-    await mutation.mutateAsync().catch(() => undefined);
+    const r = await settle(mutation.mutateAsync());
+    if (!r.ok) handleError(r.error, { USER_400_6: () => setError(WITHDRAW_MASTER_MESSAGE) });
   }, [mutation]);
   return { withdraw, pending: mutation.isPending || mutation.isSuccess, error };
 }

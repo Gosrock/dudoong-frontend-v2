@@ -905,3 +905,20 @@ GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseRespon
 - **`orderMethod`가 null·모르는 값이면 예전 판정으로** — 왜: 서버 타입이 `V2OrderMethod?`(도메인 값이 없을 때 null)라 빠뜨리는 쪽보다 더 붙는 쪽을 유지. v1 PG 주문(`PAYMENT` + 금액 > 0)은 이제 안내가 붙지 않는다(전에는 붙었다). 되돌리기: `isDudoongOrder`의 null 분기를 `false`로.
 - **B7 null 허용 스키마는 그대로** — 왜: 운영에 null이 없다는 것은 지금 데이터 이야기이고 서버 타입은 nullable이다. 좁히면 계약 위반 위험만 생긴다.
 - **error-codes.md KOE010 행을 손으로 고침**(이 작업 목록 밖의 문서) — 왜: 소스(#887)와 다른 사실이 남아 있었다. 되돌리기: 그 한 줄.
+
+## 에러 처리 정리(2026-10-31)
+
+**변경**
+- `@suspensive/react` 3.21.4 도입. `src/ui/components/ErrorBoundary`(suspensive ErrorBoundary + `QueryErrorResetBoundary`, `shouldCatch`·`holdOn`·`resetKeys`, `ErrorBoundaryGroup` 등 재노출), `AsyncBoundary`를 그 위에 suspensive `Suspense`로 다시 구현. 자체 class 경계 삭제. 사용처 `ignoreError` → `holdOn`. `isLocalBoundaryError`(`src/api/errors.ts`)
+- `src/api/settle.ts`(`settle`, `handleError`), `src/api/error-toast.ts`. 전역 `MutationCache.onError`는 로그만. `handle-codes.ts`·`meta.handled*`·`shouldToastMutationError` 삭제. 변경 훅 약 30개 이관
+- eslint `no-restricted-syntax`: 옵션 onError/onSettled, settle 밖 mutateAsync, mutate 금지. 테스트는 `errorToast` 스파이(`src/test/error-toast.ts`)
+- 문서: tech-decisions §4·§13·§15, patterns §4-3(바운더리 영역 설정 가이드)·§4-5·§24 앞
+
+**결정**(사용자, 관제탑 2026-10-31): 조회 전역 토스트 유지, 바운더리는 suspensive에서, 변경은 호출 쪽 명시 처리.
+
+**Claude 판단**
+- `handleError`는 로그를 다시 남기지 않는다(전역이 이미 남김). 세 번째 인자 `{ otherwise }`로 표 밖 실패를 화면이 맡는다(무료 선착순·셀프 체크인·마케팅·호스트 스캔)
+- 낙관 갱신 되돌리기(알림 읽음)는 옵션 onError를 eslint-disable로 예외
+- 옵션 onSuccess에 남긴 화면 반응: 선물 반환 `setDone`, 옵션 삭제 `setDeleted`(캐시 반영보다 먼저 세워야 해서), 탈퇴 세션 정리·이동
+- 관심 호스트 해제: 캐시 반영을 옵션 onSuccess로 옮겨 연달아 해제해도 모두 빠진다(이전엔 마지막 호출만 — 작은 동작 개선)
+- eslint는 실제로 `ui → api`를 허용하지만 경계는 일반 술어 prop으로 유지

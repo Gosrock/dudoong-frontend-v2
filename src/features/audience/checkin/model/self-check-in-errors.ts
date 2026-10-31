@@ -1,5 +1,5 @@
 /**
- * 셀프 체크인(PQ-5) 에러 → 안내(patterns §24 P8c 행). 화면이 전부 맡는다(전역 토스트 없음).
+ * 셀프 체크인(PQ-5) 에러 → 안내(patterns §24 P8c 행). 화면이 전부 맡는다(공용 토스트 없음).
  * 그 밖의 실패(5xx·네트워크·모르는 400)는 `FAILED` — 다시 시도.
  */
 export type SelfCheckInErrorKind = 'INVALID_QR' | 'EVENT_NOT_OPEN' | 'NOT_MY_TICKET' | 'FAILED';

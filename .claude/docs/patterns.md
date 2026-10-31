@@ -163,12 +163,37 @@ export const addHostMembersMutation = (hostId: string) =>
 
 ### 4-3. 경계
 
+경계 컴포넌트는 `src/ui`의 `<ErrorBoundary>`·`<AsyncBoundary>`(= ErrorBoundary + Suspense) — **`@suspensive/react`를 감싸고 TanStack `QueryErrorResetBoundary`를 붙였다**(2026-10-31, tech-decisions §4·§15). [다시 시도]는 그 경계 안에서 실패한 쿼리의 에러 상태를 풀고 다시 그려 재조회한다. 화면은 `@suspensive/react`를 직접 import하지 않는다.
+
+| prop | 뜻 |
+|---|---|
+| `rejected`(AsyncBoundary) · `fallback`(ErrorBoundary) | 에러 화면 `({ error, reset }) => …`. 기본은 "불러오지 못했어요" + [다시 시도] |
+| `pending`(AsyncBoundary) | Suspense 대기 화면. 기본 `<ScreenLoader />` |
+| `shouldCatch` | 이 경계가 잡을 에러 술어. **false면 부모 경계로 올라간다**(suspensive). 기본은 모두 잡는다 |
+| `holdOn` | 잡되 에러 화면 없이 대기 화면을 계속 보일 에러. `isSessionLost`를 넘긴다(곧 로그인으로 이동, §5-1). `shouldCatch`보다 먼저 본다 |
+| `resetKeys` | 바뀌면 에러를 풀고 다시 그린다(경로 id 등) |
+| `ErrorBoundaryGroup` · `useErrorBoundaryGroup().reset` | 안의 경계를 한 번에 다시 시도(대시보드처럼 섹션이 여럿일 때 상단 [모두 다시 시도]) |
+| `useErrorBoundary().setError(e)` | 렌더 밖(이펙트 등)의 에러를 가장 가까운 경계로 보낸다 |
+
+`src/ui`는 도메인 에러를 모르므로 판별 술어는 features가 `src/api/errors.ts`에서 가져와 넘긴다: `isSessionLost`(holdOn), `isLocalBoundaryError`(shouldCatch — 세션 상실·403·404가 **아닌** 것).
+
+**라우트 그룹별 규칙**
+
 | 화면 | 규칙 |
 |---|---|
-| `(protected)` · `hosting` | 데이터 경계는 `src/ui`의 `<AsyncBoundary>`(`QueryErrorResetBoundary` + Suspense + ErrorBoundary + 재시도) 하나로 감싼다. `@suspensive/react-query`는 쓰지 않는다. `SessionLostError`는 경계가 잡지 않는다(fallback 유지, §5-1) |
+| `(protected)` · `hosting` | `useSuspenseQuery` 화면을 `<AsyncBoundary holdOn={isSessionLost}>`로 감싼다. `@suspensive/react-query`는 쓰지 않는다 |
 | 게이트 없는 `(app)` 화면(`/events`, `/login`, `/kakao/callback`) | `useQuery`만 쓴다. 서버 렌더에서 조회가 돌지 않게 한다 |
-| `(public)` | 프리페치한 쿼리만 `useSuspenseQuery`. 프리페치하지 않은 쿼리(GP-5 등)는 `useQuery`. 이 그룹에는 Suspense가 없다 |
+| `(public)` | 프리페치한 쿼리만 `useSuspenseQuery`. 프리페치하지 않은 쿼리(GP-5 등)는 `useQuery`. **이 그룹에는 Suspense·`AsyncBoundary`를 두지 않는다**(페이지·레이아웃 위에 두면 `notFound()` 상태 코드가 200으로 굳는다, CLAUDE.md·§6). 브라우저 조회 실패는 `model/` 훅의 `{status, retry}`로 그 자리에서 그린다. Suspense 없는 `<ErrorBoundary>`만은 화면 컴포넌트 안(서버 조회가 끝난 아래)에 둘 수 있다 |
 | 오버레이 안 | 루트에서 렌더돼 라우트 경계 밖이다. 데이터를 읽는 오버레이는 안에 `<AsyncBoundary>`를 둔다 |
+
+**바운더리 영역 설정 가이드**(V에서 화면을 그릴 때)
+
+1. **라우트 경계 하나 — 화면 전체.** 화면 뷰의 맨 위(`*View.tsx`)에 `<AsyncBoundary holdOn={isSessionLost} rejected={…}>`. 여기서 화면 전체를 바꾸는 실패를 맡는다: 403·404는 공용 화면(호스팅은 `HostingAccessRejected`, 관객 주문은 각 `Rejected`), 그 밖은 화면 전체 [다시 시도]. 주소의 id가 바뀌면 `resetKeys={[id]}`.
+2. **화면 섹션 — 지역 fallback.** 한 화면에 독립된 데이터 덩어리가 여럿이고(대시보드 카드, 상세의 부가 정보) **하나가 실패해도 나머지를 보여 줄 가치가 있으면** 섹션마다 `<AsyncBoundary shouldCatch={isLocalBoundaryError} pending={<섹션 스켈레톤 />}>`. 5xx·네트워크는 그 섹션 자리에서 [다시 시도], 403·404·세션 상실은 라우트 경계로 올라가 화면 전체 흐름(공용 화면·이동)을 그대로 탄다. 섹션이 여럿이면 `ErrorBoundaryGroup`으로 묶어 [모두 다시 시도]를 둘 수 있다.
+3. **독립 위젯 — 화면을 막지 않는 것.** 벨·배너·추천처럼 실패해도 화면에 영향이 없는 것은 경계 대신 `useQuery` + `meta.silent`(토스트 없음)로 조용히 숨기거나, 경계를 쓰면 `rejected={() => null}`.
+4. **지역 vs 전체 판단**: 실패한 데이터 없이 화면의 주 목적(주문 상세의 주문, 폼의 원래 값)을 할 수 없으면 화면 전체(1). 부가 정보·다른 탭·옆 패널이면 지역(2). 같은 쿼리를 여러 섹션이 읽으면 그 쿼리는 위쪽 경계 하나에서 읽는다(섹션마다 다른 fallback이 같은 에러를 두 번 그리지 않게).
+5. **Suspense 대기 단위 = 경계 단위.** 경계를 나누면 대기 화면도 나뉜다(섹션별 스켈레톤). 한 번에 보여야 하는 것은 같은 경계 안에.
+6. **변경(mutation) 실패는 경계로 보내지 않는다** — 호출 쪽 `settle` + `handleError`(§4-5). `throwOnError`는 조회의 첫 로딩 실패가 화면을 대체해야 할 때만.
 
 ### 4-4. 기본 옵션 요약
 
@@ -183,36 +208,46 @@ export const addHostMembersMutation = (hostId: string) =>
 | 무한 목록 | 서버에서 프리페치하지 않는다. `<Prefetch>`는 `queries`만 받는다 |
 | 폼 | RHF `defaultValues`로 한 번만 초기화. 다시 온 쿼리가 편집 중인 값을 덮지 않는다 |
 
-### 4-5. 에러 토스트
+### 4-5. 에러 토스트와 변경 에러 처리
 
 | 대상 | 규칙 |
 |---|---|
-| `QueryCache.onError` | `query.state.data !== undefined`일 때(배경 재조회 실패)만 토스트. 무한 목록의 다음 페이지 실패는 제외(하단 재시도가 맡는다, §12). 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다 |
-| `MutationCache.onError` | `meta.handled`이거나 `meta.handledCodes`에 코드가 있으면 토스트하지 않는다. 그 밖은 `reason` 토스트 — 검증 실패(400 `BAD_REQUEST`, `isValidationError`)는 `reason`(필드 JSON·"Bad Request") 대신 고정 문구 `VALIDATION_ERROR_MESSAGE` |
+| `QueryCache.onError` | `query.state.data !== undefined`일 때(배경 재조회 실패)만 토스트. 무한 목록의 다음 페이지 실패는 제외(하단 재시도가 맡는다, §12). 첫 로딩 실패는 화면 상태(`model/` 훅의 `{status, retry}`)·`<AsyncBoundary>`·공용 403·404 화면이 맡는다 |
+| `MutationCache.onError` | **로그만**(2026-10-31). 토스트는 호출 쪽 `handleError`가 띄운다 |
+| 변경 호출 | `const r = await settle(m.mutateAsync(v)); if (!r.ok) return handleError(r.error, { 코드: 처리 })`(`src/api/settle.ts`). 표에 없는 코드는 공용 토스트 — `reason`, 검증 실패(400 `BAD_REQUEST`, `isValidationError`)는 고정 문구 `VALIDATION_ERROR_MESSAGE`, `reason`이 비면 `FALLBACK_ERROR_MESSAGE`. 표에 없는 실패도 화면이 다 맡으면 `{ otherwise }` |
 | `meta.silent` 조회 | 배경 재조회가 실패해도 토스트하지 않는다(벨 GN-2처럼 사용자가 할 일이 없는 배경 조회, `src/api/query-client.ts` `shouldToastQueryError` 세 번째 인자 `meta`, §21) |
-| `SessionLostError` | 어디서도 토스트하지 않는다. 경계·게이트도 무시한다(§5-1) |
-| 중복 | 토스트에 고정 id를 준다(쿼리는 queryKey 해시, mutation은 코드). 배경 재조회가 한꺼번에 실패해도 하나만 뜬다 |
+| `SessionLostError` | 어디서도 토스트하지 않는다(`handleError`도 아무것도 안 한다). 경계는 `holdOn`으로 대기 화면 유지, 게이트도 무시한다(§5-1) |
+| 중복 | 토스트에 고정 id를 준다(쿼리는 queryKey 해시, 변경은 `mutation:<코드>`). 배경 재조회가 한꺼번에 실패해도 하나만 뜬다 |
 
-화면이 직접 처리하는 코드는 **`handleCodes` 헬퍼로 한 곳에 적는다.** 코드 목록과 처리 함수를 따로 쓰면 둘이 어긋날 때 에러가 아무 피드백 없이 삼켜진다.
+**변경 에러는 호출 쪽이 명시적으로 처리한다**(TanStack 문서·TkDodo "Mastering Mutations" 권장과 같다). 화면이 맡는 코드와 그 처리를 `handleError`의 표 한 곳에 적는다 — 예전 `handleCodes`처럼 코드 목록(`meta.handledCodes`)을 전역에 미리 알릴 필요가 없다.
 
 ```ts
-// src/api/handle-codes.ts — 개념(tech-decisions §4, directory-structure)
-export const handleCodes = (map: Record<string, (e: ApiError) => void>) => ({
-  meta: { handledCodes: Object.keys(map) },
-  onError: (e: unknown) => { const c = getErrorCode(e); if (c && map[c]) map[c](e as ApiError); },
+const queryClient = useQueryClient();
+const mutation = useMutation({
+  ...createOrderMutation(),
+  // 화면이 사라져도 꼭 해야 하는 캐시 반영·무효화만(옵션 콜백은 언마운트 뒤에도 돈다)
+  onSuccess: (order) => queryClient.setQueryData(myOrderQuery(order.orderUuid).queryKey, order),
 });
 
-useMutation({
-  ...createOrderMutation(),
-  ...handleCodes({
-    Order_400_22: () => setFormError('입금자명을 확인해 주세요'),
-    Order_400_23: () => setFormError('옵션 답변을 확인해 주세요'),
-  }),
-});
+const submit = async (body: CreateOrderRequest) => {
+  const r = await settle(mutation.mutateAsync(body));      // 절대 throw하지 않는다
+  if (!r.ok) {
+    return handleError(r.error, {
+      Order_400_22: () => setFormError('입금자명을 확인해 주세요'),
+      Order_400_23: () => setFormError('옵션 답변을 확인해 주세요'),
+    });                                                      // 표에 없으면 공용 토스트, 세션 상실이면 아무것도 안 함
+  }
+  router.replace(orderCreatedHref(r.data.orderUuid));        // 성공 뒤 화면 반응(이동·안내)은 호출 쪽
+};
 ```
 
-전역 `MutationCache.onError`는 화면의 `onError`보다 **먼저** 실행된다(TanStack `mutation.ts`). 그래서 처리할 코드를 `meta`에 미리 적어야 하고, 헬퍼가 그 목록을 처리 함수의 키에서 만든다.
----
+| 어디에 | 무엇을 |
+|---|---|
+| `useMutation` 옵션 `onSuccess`(·`onMutate`) | 꼭 실행할 캐시 반영(`setQueryData`)·무효화·세션 정리. **화면 반응(setState·이동·토스트)은 두지 않는다** — `mutateAsync`는 옵션 `onSuccess`가 끝난 뒤 풀리므로 순서는 같다 |
+| 호출 쪽(`settle` 뒤) | 성공 뒤 이동·안내, 실패 처리(`handleError`) |
+| 금지(eslint `no-restricted-syntax`) | 옵션 `onError`/`onSettled`, `settle` 밖 `mutateAsync`, `mutate`. 예외: **낙관 갱신 되돌리기**는 옵션 `onError`에 두고 `eslint-disable-next-line`에 이유(알림 읽음 §21) |
+
+테스트는 `vitest.setup.ts`가 테스트마다 등록하는 공용 토스트 스파이 `errorToast`(`src/test/error-toast.ts`)로 "화면이 맡음(`not.toHaveBeenCalled`)"·"공용 토스트(`toHaveBeenCalledWith(문구, 'mutation:<코드>')`)"를 본다.
 
 ## 5. API 클라이언트
 
@@ -292,7 +327,7 @@ try {
 ## 6. 오버레이 — `overlay-kit`
 
 - 확인·시트·모달은 `overlay-kit` 하나로 연다. `window.confirm()`을 쓰지 않는다.
-- **"확인 누르면 서버 호출 후 닫힘"은 `src/ui`의 `EasyOverlay`로 쓴다.** `onConfirm`(Promise)이 도는 동안 버튼을 잠그고, 성공하면 닫고, 실패하면 오버레이를 유지한다. 실패 토스트는 기본적으로 전역 토스트(§4-5)에 맡긴다. 문구를 화면이 따로 정해야 하는 코드만 `meta.handledCodes`에 넣고 화면이 처리한다. 1차 소비처는 P13a(승인·거절·취소·환불 완료)와 P8b(선물 보내기·회수·반환·거절).
+- **"확인 누르면 서버 호출 후 닫힘"은 `src/ui`의 `EasyOverlay`로 쓴다.** `onConfirm`(Promise)이 도는 동안 버튼을 잠그고, 성공하면 닫고, 실패하면 오버레이를 유지한다. 실패 토스트는 기본적으로 공용 토스트(`handleError` 기본, §4-5)에 맡긴다. 문구를 화면이 따로 정해야 하는 코드만 `handleError`의 표에 넣고 화면이 처리한다. 1차 소비처는 P13a(승인·거절·취소·환불 완료)와 P8b(선물 보내기·회수·반환·거절).
 - **뒤로가기는 열린 오버레이를 닫는다**(P2 사용자 결정). 시트·모달·팝업(`BottomSheet`·`Modal`·`Popup`·`ResponsiveOverlay`·`EasyOverlay`)은 `useCloseOnBack`으로 열 때 `window.history.pushState({ ...history.state, ddOverlay: id }, '', location.href)`로 항목을 하나 넣는다(주소는 그대로, Next의 `__NA` 등 기존 state 보존). 뒤로가기(popstate)로 표시가 빠지면 닫히고, UI로 닫으면(버튼·Esc·바깥·스와이프) 내 항목이 맨 위일 때 `history.back()`으로 소비한다. 겹친 오버레이는 맨 위 것만 닫힌다. 토스트·팝오버·툴팁·메뉴는 해당 없다. 실제 Next 16 dev 서버에서 RSC 재요청 0건을 확인했다.
   - `EasyOverlay`의 `onConfirm`이 도는 동안 뒤로가기는 무시한다(항목을 다시 넣는다). 요청은 이미 갔으니 결과를 보여 준다. 성공하면 항목을 소비한 뒤 resolve하므로 호출한 쪽이 `await` 뒤에 `router.push`해도 엇갈리지 않는다.
   - **오버레이 안에서 다른 경로로 갈 때는 `router.replace`·`<Link replace>`를 쓴다.** push하면 기록이 [A, A+오버레이, B]가 되어 B에서 뒤로가기를 두 번 눌러야 A로 간다.
@@ -345,7 +380,7 @@ src/app → src/features → src/ui → src/api → src/utils
 | 날짜 파싱 · 표시 | 화면마다 포맷 | `src/api/shared/date.ts`(서버 형식 `yyyy.MM.dd HH:mm` ↔ 값, 표시 포맷) |
 | 에러 코드 추출 | `try { e.response… }` | `getErrorCode()`(§5) |
 | 엑셀 저장 | 직접 구현 | `api.download()` → `saveBlob()`(`src/utils`). 버튼과 파일명은 `features/hosting` |
-| 데이터 경계 | `<Suspense>` + ErrorBoundary를 매번 조합 | `<AsyncBoundary>`(§4-3) |
+| 데이터 경계 | `<Suspense>` + ErrorBoundary를 매번 조합, `@suspensive/react`를 화면에서 직접 import | `<AsyncBoundary>`·`<ErrorBoundary>`(`src/ui`, §4-3) |
 
 ---
 
@@ -602,7 +637,9 @@ useEffect(() => {
 
 ## 24. 화면별 에러 처리
 
-백엔드 통합 기획서 각 장의 "에러와 예외 처리" 표에서 화면이 따로 처리해야 하는 코드만 모았다. 코드 전체는 [`error-codes.md`](./error-codes.md), 공통 규칙(403·404·"이미 처리됨")은 §11. 여기 없는 400은 `reason`을 토스트로 보여 준다(검증 실패 400 `BAD_REQUEST`만 고정 문구 — `src/api/query-client.ts` `messageOf`).
+백엔드 통합 기획서 각 장의 "에러와 예외 처리" 표에서 화면이 따로 처리해야 하는 코드만 모았다. 코드 전체는 [`error-codes.md`](./error-codes.md), 공통 규칙(403·404·"이미 처리됨")은 §11. 여기 없는 400은 `reason`을 토스트로 보여 준다(검증 실패 400 `BAD_REQUEST`만 고정 문구 — `src/api/error-toast.ts` `errorMessageOf`).
+
+**어떻게 옮기나**(2026-10-31): 변경(mutation)의 "처리" 열은 호출 쪽 `handleError(r.error, { 코드: 처리 })`의 표가 된다(§4-5). "전역 토스트"라고 적힌 것은 `handleError`의 기본 공용 토스트(표에 없는 코드), "전역 토스트 없음"은 표에 넣거나 `otherwise`로 화면이 맡는 것이다. 조회의 "처리" 열은 화면 상태(`model/` 훅의 `{status, retry}`) 또는 에러 경계(§4-3) — 403·404는 라우트 경계의 공용 화면, 그 밖은 지역 fallback의 [다시 시도].
 
 | Phase | 화면 | 코드 | 처리 |
 |---|---|---|---|
@@ -698,12 +735,12 @@ useEffect(() => {
 | P13a | 주문·티켓 상세 처리 | 404 `Order_404_1` | 조회뿐 아니라 처리(승인·거절·취소·환불 완료)의 404도 같은 길 — 닫고 목록 다시 읽기 |
 | P4b · P7 · P12 | 가입 · 주문 · 두둥티켓 생성(+ 무료 → 두둥 수정, #873) | `Agreement_400_1` | 백엔드가 동의 강제를 켰는데 동의 필드가 빠짐(#840). 화면에서 체크 전 버튼을 막으므로 정상 흐름에선 안 온다. 오면 "필수 동의를 확인해 주세요"로 동의 영역으로 보낸다. **단 2026-10-25 현재 FE는 화면 칸이 없는 필드(가입 만 14세, 주문 호스트 제공 동의·두둥티켓 고지)를 보내지 않으므로(Q42) 강제가 켜지면 정상 흐름에서도 온다** — 지금 L 구현은 가입 = 일반 실패(`failed`), 주문 = 표에 없는 400이라 전역 토스트이고 완료로 가지 않는다(`useKakaoCallback.test`·`useCheckout.test`), 티켓 폼 = 폼 오류 "필수 동의를 확인해 주세요"(`useTicketForm.test`, P12-L) |
 | P13b | 호스트 스캔 | `Event_400_27` | OPEN·정산중이 아닌 공연. GE-3 `status`로 미리 막는다(`hostScanBlockOf` — 준비중·지난 공연은 요청하지 않음). 스캔 사이에 상태가 바뀌어 오면 "준비중이거나 지난 공연은 입장 처리를 할 수 없어요" + GE-3 다시 읽기(`useHostScan`, P13b-L) |
-| P13b | 호스트 스캔 | 네트워크 · 타임아웃 · 5xx | 실패 상태 + [다시 시도](같은 값, 쿨다운 무시). 전역 토스트 없음(`meta.handled`). 통계(GQ-1) 다시 읽기 실패는 지난 값 유지 + `refreshFailed`(`meta.silent`) (P13b-L) |
+| P13b | 호스트 스캔 | 네트워크 · 타임아웃 · 5xx | 실패 상태 + [다시 시도](같은 값, 쿨다운 무시). 토스트 없음(`handleError`의 `otherwise`). 통계(GQ-1) 다시 읽기 실패는 지난 값 유지 + `refreshFailed`(`meta.silent`) (P13b-L) |
 | P13b | 호스트 스캔 | 400 `BAD_REQUEST` | 64자 넘는 값 — 화면이 요청 전에 "티켓 QR이 아니에요"로 막는다(`normalizeScanValue`). 오면 같은 안내 (P13b-L) |
 | P13b | 호스트 스캔 | 403 · 404 `Event_404_1` | 권한을 잃었거나 공연이 지워짐. 실패 상태(다시 시도 없음). 정상 흐름에선 공연 스코프가 먼저 공용 403·404로 보낸다 (P13b-L) |
 | P9c | 공지 상세 | 404 `Notice_404_1` | 숨김·없는 공지. 관객 `/notices/[id]`는 서버 조회라 `notFound()`(상태 코드 404), 호스팅 `/hosting/notices/[id]`는 공용 404 "공지를 찾을 수 없어요" + [공지 목록](클라이언트 판정, 200). 숫자가 아닌 id는 부르지 않고 같은 404 (P9c-L) |
 | P9c | 공지 목록 · 배너 | 5xx · 네트워크 | 목록 첫 페이지는 경계의 [다시 시도], 다음 페이지는 기존 행을 지우지 않고 하단 재시도(§12). 배너(GA-3)는 배너 없이 두고 전역 토스트 없음(`meta.silent`) (P9c-L) |
 | P9c | 공지 목록 · 배너 | 400 `BAD_REQUEST` | 모르는 `audience`·`size` 51 이상. FE는 `USER`·`HOST`와 기본 크기만 보내 정상 흐름에서 오지 않는다 — 전역 처리 (P9c-L) |
 
-표의 코드는 모두 `error-codes.md`에 있는 것을 확인했다(2026-10-14, 2회차 추가분 2026-10-15). 처리 문구는 백엔드 통합 기획서 각 장의 "프론트 처리" 열을 따른다. 화면에서 직접 처리하는 코드는 `handleCodes({...})`로 적는다(§4-5). 3회차(2026-10-15)에 백엔드 코드로 승인의 시작 후 코드(`OrderValidator.validCanApproveOrder` → `validTicketingTime` = `Event_400_6`)와 로그인·콜백의 401(JWT 필터)을 확인했다. 셀프 체크인의 `Event_400_5`는 백엔드 `V2CheckInDomainService.selfCheckIn` → `Event.validateNotOpenStatus()` → `EventNotOpenException`(`EVENT_NOT_OPEN`)에서 확인했다.
+표의 코드는 모두 `error-codes.md`에 있는 것을 확인했다(2026-10-14, 2회차 추가분 2026-10-15). 처리 문구는 백엔드 통합 기획서 각 장의 "프론트 처리" 열을 따른다. 화면에서 직접 처리하는 코드는 호출 쪽 `handleError(r.error, {...})`의 표로 적는다(§4-5, 2026-10-31 전에는 `handleCodes`). 3회차(2026-10-15)에 백엔드 코드로 승인의 시작 후 코드(`OrderValidator.validCanApproveOrder` → `validTicketingTime` = `Event_400_6`)와 로그인·콜백의 401(JWT 필터)을 확인했다. 셀프 체크인의 `Event_400_5`는 백엔드 `V2CheckInDomainService.selfCheckIn` → `Event.validateNotOpenStatus()` → `EventNotOpenException`(`EVENT_NOT_OPEN`)에서 확인했다.
 

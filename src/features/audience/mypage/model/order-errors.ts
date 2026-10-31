@@ -3,7 +3,7 @@ import type { MyOrderDetail } from '@/api/order/schema';
 import { GIFT_BLOCKS_CANCEL_MESSAGE, giftBlocksCancel } from './order-detail';
 
 /**
- * 주문 취소(P11/O-4)·환불 계좌(P11/O-5)에서 화면이 처리하는 코드(patterns §24 P9 행). 표에 없는 코드는 전역 토스트(`reason`).
+ * 주문 취소(P11/O-4)·환불 계좌(P11/O-5)에서 화면이 처리하는 코드(patterns §24 P9 행). `handleError` 표로 쓰고, 표에 없는 코드는 공용 토스트(`reason`).
  * `refetch` — 처리 뒤 G11/O-3을 다시 읽는다(409가 없어 "이미 처리됨"은 400 — patterns §11).
  */
 export type OrderActionOutcome = {

@@ -8,7 +8,7 @@ import { isNotFound } from '@/api/errors';
 import { acceptGiftMutation, rejectGiftMutation } from '@/api/gift/mutations';
 import { giftLandingQuery, giftLandingViewerQuery } from '@/api/gift/queries';
 import type { GiftLanding } from '@/api/gift/schema';
-import { handleCodes } from '@/api/handle-codes';
+import { handleError, settle } from '@/api/settle';
 import { useSession } from '@/features/shared/auth/useSession';
 
 import { refreshAfterGiftChange } from './gift-cache';
@@ -95,32 +95,23 @@ export function useGiftLanding(giftToken: string) {
   );
   const codes = useMemo(
     () =>
-      handleCodes(
-        Object.fromEntries(
-          Object.entries(GIFT_ERROR_TABLE.accept).map(([code, outcome]) => [
-            code,
-            () => void onOutcome(outcome),
-          ]),
-        ),
+      Object.fromEntries(
+        Object.entries(GIFT_ERROR_TABLE.accept).map(([code, outcome]) => [
+          code,
+          () => void onOutcome(outcome),
+        ]),
       ),
     [onOutcome],
   );
 
+  // 캐시 무효화는 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const accept = useMutation({
     ...acceptGiftMutation(giftToken),
-    ...codes,
-    onSuccess: async () => {
-      setAccepted(true);
-      await refreshAfterGiftChange(queryClient);
-      router.push(TICKETS_HREF);
-    },
+    onSuccess: () => refreshAfterGiftChange(queryClient),
   });
   const reject = useMutation({
     ...rejectGiftMutation(giftToken),
-    ...codes,
-    onSuccess: async () => {
-      await refreshAfterGiftChange(queryClient);
-    },
+    onSuccess: () => refreshAfterGiftChange(queryClient),
   });
   const cancel = useCancelGift(state.status === 'ready' ? state.giftId : null, { giftToken });
 
@@ -136,12 +127,14 @@ export function useGiftLanding(giftToken: string) {
         : 'disabled';
 
   const run = useCallback(
-    async (m: typeof accept | typeof reject) => {
+    async (m: typeof accept | typeof reject, onSuccess?: () => void) => {
       if (receiveMode !== 'enabled') return;
       setActionError(null);
-      await m.mutateAsync().catch(() => undefined);
+      const r = await settle(m.mutateAsync());
+      if (!r.ok) return handleError(r.error, codes);
+      onSuccess?.();
     },
-    [receiveMode],
+    [receiveMode, codes],
   );
 
   return {
@@ -153,7 +146,11 @@ export function useGiftLanding(giftToken: string) {
     >,
     /** [선물받기]·[거절하기]의 상태 */
     receiveMode,
-    accept: () => run(accept),
+    accept: () =>
+      run(accept, () => {
+        setAccepted(true);
+        router.push(TICKETS_HREF);
+      }),
     /** 거절 확인 팝업(`128:1831`)은 V가 열고 확인에서 부른다 */
     reject: () => run(reject),
     /** [선물 취소/회수] — 보낸 사람(`giftId`)의 OWN_LINK·EXPIRED */

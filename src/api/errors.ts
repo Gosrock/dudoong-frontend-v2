@@ -76,3 +76,11 @@ export function isValidationError(e: unknown): e is ApiError {
   const code = getErrorCode(e);
   return code !== null && VALIDATION_ERROR_CODES.includes(code);
 }
+
+/**
+ * 지역 에러 경계(화면 섹션·위젯)가 잡을 에러 — `<ErrorBoundary shouldCatch={isLocalBoundaryError}>`(patterns §4-3).
+ * 세션 상실(곧 로그인으로 이동 — 라우트 경계가 `holdOn`으로 대기 화면 유지)과 403·404(라우트 경계의 공용 403·404 화면)는
+ * 잡지 않고 부모 경계로 올린다. 그 밖(5xx·네트워크·코드 오류)은 그 자리에서 [다시 시도].
+ */
+export const isLocalBoundaryError = (e: unknown): boolean =>
+  !isSessionLost(e) && !isForbidden(e) && !isNotFound(e);

@@ -10,10 +10,11 @@ import { meHandlers } from '@/api/__mocks__/me.handlers';
 import { errors, ok } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { setAuthHandlers } from '@/api/auth-handlers';
+import { setErrorNotifier } from '@/api/error-toast';
 import { SessionLostError } from '@/api/errors';
 import { api } from '@/api/http';
 import { meQuery } from '@/api/me/queries';
-import { getQueryClient, setErrorNotifier } from '@/api/query-client';
+import { getQueryClient } from '@/api/query-client';
 import {
   knownSessionFlag,
   readSessionFlag,
@@ -21,6 +22,7 @@ import {
   SESSION_KEY,
   startSession,
 } from '@/api/session-flag';
+import { handleError } from '@/api/settle';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 
 import { browserLocation } from './browser-location';
@@ -111,7 +113,11 @@ describe('세션 상실(onSessionLost)', () => {
       .getMutationCache()
       .build(qc, { mutationFn: () => api.post('probe', Probe) })
       .execute(undefined)
-      .catch((e: unknown) => expect(e).toBeInstanceOf(SessionLostError));
+      .catch((e: unknown) => {
+        expect(e).toBeInstanceOf(SessionLostError);
+        // 호출 쪽 기본 처리(handleError)도 세션 상실에는 토스트하지 않는다
+        handleError(e);
+      });
     expect(notify).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalledTimes(1);
     cleanup();

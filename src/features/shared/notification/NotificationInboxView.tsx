@@ -15,7 +15,7 @@ export function NotificationInboxView() {
   return (
     <main>
       <h1>알림</h1>
-      <AsyncBoundary ignoreError={isSessionLost}>
+      <AsyncBoundary holdOn={isSessionLost}>
         <NotificationInboxContent />
       </AsyncBoundary>
     </main>
