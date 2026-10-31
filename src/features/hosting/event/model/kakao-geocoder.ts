@@ -12,8 +12,16 @@ import type { Coordinates, Geocoder } from './place';
 const SDK_ORIGIN = 'https://dapi.kakao.com/v2/maps/sdk.js';
 
 type AddressResult = { x: string; y: string };
-type KakaoMaps = {
+type KakaoLatLng = object;
+export type KakaoMaps = {
   load: (callback: () => void) => void;
+  /** 지도 미리보기(P11-V `KakaoMapPreview`) — 가짜 SDK(e2e)에는 없을 수 있다 */
+  LatLng?: new (latitude: number, longitude: number) => KakaoLatLng;
+  Map?: new (
+    container: HTMLElement,
+    options: { center: KakaoLatLng; level: number; draggable?: boolean },
+  ) => { relayout: () => void; setCenter: (latlng: KakaoLatLng) => void };
+  Marker?: new (options: { position: KakaoLatLng; map: unknown }) => unknown;
   services: {
     Status: { OK: string };
     Geocoder: new () => {
@@ -33,7 +41,8 @@ declare global {
 
 let loading: Promise<KakaoMaps> | null = null;
 
-function loadKakaoMaps(): Promise<KakaoMaps> {
+/** 카카오맵 SDK(`services` 포함)를 한 번 넣고 `kakao.maps`를 돌려준다. 키가 없거나 실패하면 reject — 다음 호출에서 다시 시도 */
+export function loadKakaoMaps(): Promise<KakaoMaps> {
   if (window.kakao?.maps?.services) return Promise.resolve(window.kakao.maps);
   loading ??= new Promise<KakaoMaps>((resolve, reject) => {
     // 빌드 때 인라인된다(tech-decisions §12). 모듈 최상위에서 읽지 않는다
