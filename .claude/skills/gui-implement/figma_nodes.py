@@ -15,7 +15,7 @@
         fills·strokes·cornerRadius·fontSize 등) "DS + override"로 따로 적는다 — 아이콘(ic) 색만 바꾼 것은 뺀다(currentColor).
       wire 파일은 DS를 거의 안 써서 분류가 쓸모없다 — 와이어는 shot만 쓴다.
 
-  figma_nodes.py shot <node_id> <out.png> [gui|wire|fileKey] [--scale 2]
+  figma_nodes.py shot <node_id> <out.png> [gui|wire|ds|fileKey] [--scale 2]
       노드를 PNG로 내려받는다(REST 이미지 내보내기). 시각 목표·QA 캡처 비교용 — 구현 자산으로 쓰지 않는다.
       out은 scratchpad에 둔다(저장소에 커밋하지 않는다).
 

@@ -7,7 +7,7 @@ description: 화면(V)을 Figma 디자인대로 구현하거나 디자인 변경
 
 규칙의 정본은 `.claude/docs/design-workflow.md`다. 이 스킬은 그 규칙을 **어떤 순서로, 어떤 도구로** 하는지다. 규칙과 이 스킬이 다르면 규칙 문서가 맞다.
 
-- **Figma는 읽기만 한다.** 이 스킬에서 Figma에 쓰는 것은 코멘트 둘뿐이다 — ⑤ "DS로 구현" 코멘트(사용자 확인 뒤)와 아래 "단계마다" 6의 "디자인 없음" 코멘트(진행하면서 바로, 사용자 지시 2026-10-31). 프레임·컴포넌트를 고치지 않는다(디자이너 작업 중 파일).
+- **Figma는 읽기만 한다.** 이 스킬에서 Figma에 쓰는 것은 코멘트 둘뿐이다 — ⑤ "DS로 구현" 코멘트(사용자 확인 뒤)와 아래 "단계마다" 6의 "디자인 없음" 코멘트(진행하면서 바로, 사용자 결정 2026-10-31). 규칙은 `design-workflow.md` §7. 프레임·컴포넌트를 고치지 않는다(디자이너 작업 중 파일).
 - 도구: 공식 Figma MCP(`get_design_context`)가 아니라 **REST(`figma_nodes.py`·`ds_diff.py`) + figma-console MCP(Desktop Bridge)** 를 쓴다. 토큰은 `~/.claude.json` figma-console env의 `FIGMA_ACCESS_TOKEN` — 출력·커밋하지 않는다(스크립트가 알아서 읽는다).
 - 시작 전에 `CLAUDE.md`, `.claude/docs/README.md`, `design-workflow.md`, 그 Phase의 `plan.md` 절(V 범위·완료 기준 V·**선행**)을 읽는다.
 
@@ -16,19 +16,21 @@ F() { python3 -I .claude/skills/gui-implement/figma_nodes.py "$@"; }   # zsh는 
 F ready                          # GUI 파일의 Ready for dev 노드 목록(파일 전체, 1분 안팎)
 F ready --contains <node-id>     # 그 노드가 어느 Ready 프레임 안인지(밖이면 근거 아님)
 F map <node-id>                  # 인스턴스 분류(DS/외부/로컬) + DS override + 직접 그린 상자(색)·도형·스타일 없는 글자
-F shot <node-id> <out.png> [gui|wire] [--scale 2]   # 노드 PNG(시각 목표·비교용)
+F shot <node-id> <out.png> [gui|wire|ds] [--scale 2]   # 노드 PNG(시각 목표·비교용). ds = 디자인 시스템 컴포넌트
 D() { python3 -I .claude/skills/gui-implement/ds_diff.py "$@"; }
 D versions                       # 디자인 시스템 파일 버전 목록
-D diff <기준 버전> --out <dir>    # 기준 판 → 지금 판 컴포넌트·스타일 비교
+D diff <기준 버전> --out <dir>    # 기준 판 → 지금 판 컴포넌트·스타일 비교(폴더는 스크립트가 만든다)
 ```
 
 출력 파일(스크린샷, JSON)은 scratchpad에 둔다. 저장소에 넣지 않는다.
 
-## 단계마다 — 실제 화면 ↔ Figma 확인과 추론 점검(사용자 지시 2026-10-31)
+## 단계마다 — 실제 화면 ↔ Figma 확인과 추론 점검(사용자 결정 2026-10-31)
 
 ④ 구현 안의 덩어리(공용 컴포넌트, 셸, 화면 하나)를 끝낼 때마다, 그리고 ⑥·⑦ 전에 **실제로 띄운 화면을 `ego-browser` 스킬로 열어** Figma와 맞춰 본다. 게이트·QA 리포트로 대신하지 않는다 — 다음 덩어리로 넘어가기 전에 한다.
 
-1. 앱을 띄운다 — 백엔드 없이 `pnpm dev:mock`(로그인 상태는 `/api/__mock/login`·`/api/__mock/logout`). 폭은 `page.cdp("Emulation.setDeviceMetricsOverride", …)`로 Figma 프레임 폭(390 · 1133/1024 · 1280 · 1440)에 맞춘다.
+**검사는 빠른 것만**(`design-workflow.md` §9 검사 시점, 2026-11-01): `NEXT_PUBLIC_KAKAO_JS_KEY=dummy pnpm typecheck`, 바꾼 파일만 `pnpm exec eslint <파일>`, `pnpm exec vitest related <바꾼 파일> --run`. 이 단계에서는 새 테스트(스토리·QA 시나리오·unit)를 쓰지 않는다 — Phase 끝(⑥)에 한꺼번에.
+
+1. 앱을 띄운다 — 백엔드 없이 `pnpm dev:mock`(로그인 상태는 `/api/__mock/login`·`/api/__mock/logout`). **`http://localhost:<포트>`로 연다** — `127.0.0.1`로 열면 Next dev 리소스가 막혀 하이드레이션이 안 된다(P4s-V). 폭은 `page.cdp("Emulation.setDeviceMetricsOverride", …)`로 Figma 프레임 폭(390 · 1133/1024 · 1280 · 1440)에 맞춘다.
 2. 같은 폭의 브라우저 스크린샷과 ③의 Figma PNG(`F shot`, 와이어 근거면 와이어 PNG)를 나란히 Read로 본다. 누를 수 있는 것(메뉴 열기·드로어·드롭다운)은 실제로 눌러 열린 상태도 본다.
 3. **다르게 구현한 것**을 줄마다 적는다 — 배치·간격·크기·글자·색·모서리·아이콘·문구·변형. 범위 안이면 고치고 다시 1, 범위 밖이면 PR "범위 밖", 일부러 다르게 한 것이면 그 이유.
 4. **근거 없이 추론해서 정한 것**을 따로 적는다 — Figma·와이어·문서에 없는데 Claude가 정한 값·문구·동작·링크 목적지·아이콘 대체·토큰 반올림 등. 각 줄에 "근거 없음 / 무엇을 보고 그렇게 정했나 / 되돌리려면"을 쓴다. 이 목록은 `implementation-log.md` 그 Phase 절 "결정"과 ⑦ PR 본문에 옮기고, 사용자 결정이 필요한 것은 다음 덩어리 전에 묻는다(디스코드 기록에는 `🤖 Claude 판단` + 태그).
@@ -42,7 +44,7 @@ D diff <기준 버전> --out <dir>    # 기준 판 → 지금 판 컴포넌트·
    → 디자인을 정해 주시거나, 지금 방식이 괜찮으면 답글로 알려 주세요.
    EOF
    ```
-   머리말 `[개발 · 디자인 없음]`은 ⑤ `[개발 · DS 컴포넌트로 구현]`·`figma-dev-sync` `[개발 싱크 · …]`와 구별한다. 기록부 키는 `-impl` 날짜(figma-dev-sync `clear`가 지우지 않게). 단 코멘트(노드 · 머리 줄)는 implementation-log 그 Phase 절과 PR 본문에 적고, 디스코드에도 남긴다. 페이지(CANVAS)·화면 프레임 전체에는 달지 않는다. 같은 내용의 열린 코멘트가 이미 있으면(`figma_get_comments`) 새로 달지 않고 답글로 잇는다.
+   머리말 `[개발 · 디자인 없음]`은 ⑤ `[개발 · DS 컴포넌트로 구현]`·`figma-dev-sync` `[개발 싱크 · …]`와 구별한다. 기록부 키는 `-impl` 날짜(figma-dev-sync `clear`가 지우지 않게). 단 코멘트(노드 · 머리 줄)는 implementation-log 그 Phase 절과 PR 본문에 적고, 디스코드에도 남긴다. 페이지(CANVAS)·화면 프레임 전체에는 달지 않는다. 같은 내용의 열린 코멘트가 이미 있으면(`comment.py list <파일> <node-id>`) 새로 달지 않고 `comment.py reply <파일> <comment_id> --date … --key …`로 잇는다.
 
 ## ⓪ 선행 확인
 
@@ -132,6 +134,8 @@ Plugin API는 라이브러리 파일 key를 주지 않는다 — 받은 `key`를
 
 (형식 예시다. 실제 판단은 그때 노드를 보고 한다.)
 
+Ready 프레임에 펼친 상태가 없어 **DS 컴포넌트만 근거인 것**(예: 아바타 ▾ 메뉴 — DS `My`)도 같은 표에 "DS(Ready 프레임 밖)" 분류로 적는다 — 노드 id는 디자인 시스템 파일의 것, 시각 목표는 `F shot <node> … ds`.
+
 ## ④ 구현
 
 `CLAUDE.md` 규칙 그대로:
@@ -165,11 +169,11 @@ Plugin API는 라이브러리 파일 key를 주지 않는다 — 받은 `key`를
    같은 노드에 여러 줄이면 코멘트 하나로 묶는다. 사용자가 막으면 본문을 PR에 적어 둔다.
 3. 커스텀으로 만든 것이 두 화면 이상에서 반복되면 `design-system.md` §3 "없는 컴포넌트"에 후보로 올린다.
 
-근거 없이 정한 것(Ready에 없는 상태·폭, 일부러 다르게 한 것)은 `implementation-log.md`에 적고 Phase를 마칠 때 `figma-dev-sync`로 남긴다(`design-workflow.md` §8).
+근거 없이 정한 것은 "단계마다" 4로 `implementation-log.md`에 적는다. 그중 **Figma에 그려지지 않아 정한 것**은 "단계마다" 6 코멘트로 이미 남았다. Phase를 마칠 때 `figma-dev-sync` 리포트에는 **나머지**(Figma에 있는데 일부러 다르게 한 것, 와이어 화면에서 정한 배치)만 올리고, 이미 코멘트한 것은 "코멘트로 물음" 한 줄로만 적는다(`design-workflow.md` §8).
 
 ## ⑥ QA 캡처와 Figma 비교
 
-1. 스킬 `qa-scenario`로 시나리오를 쓰고 `pnpm qa <feature>`. PC 프레임이 1440이면 그 시나리오를 `viewports: ['desktop']`로 두고 단계에서 `await page.setViewportSize({ width: 1440, height: 1024 })` 뒤 캡처(기본 desktop은 1280×800, mobile 프로젝트에서 크기를 바꾸면 안 된다).
+1. **Phase 끝에 한 번** — 스토리(새 `src/ui` 컴포넌트)와 QA 시나리오(스킬 `qa-scenario`)를 이때 한꺼번에 쓰고 `pnpm qa <feature>`. PC 프레임이 1440이면 그 시나리오를 `viewports: ['desktop']`로 두고 단계에서 `await page.setViewportSize({ width: 1440, height: 1024 })` 뒤 캡처(기본 desktop은 1280×800, mobile 프로젝트에서 크기를 바꾸면 안 된다).
 2. `qa/reports/<feature>/latest/images/`의 캡처와 ③에서 받은 Figma PNG를 **같은 폭으로 나란히** Read로 본다. 볼 것: 배치·간격·글자 크기·색·모서리, 컴포넌트 변형, 에셋 자리·크기, 문구.
 3. 차이마다 처리:
    - 범위 안 → 고치고 다시 ⑥.
@@ -182,7 +186,7 @@ Plugin API는 라이브러리 파일 key를 주지 않는다 — 받은 `key`를
 ## ⑦ 상태 갱신과 PR
 
 1. `gui-screens.md` §0 그 화면 줄: 상태(`GUI 구현됨` / `와이어로 구현됨`), 근거 노드, 반영한 이슈.
-2. 게이트 `pnpm typecheck && pnpm lint && pnpm test`, `src/ui`를 고쳤으면 `pnpm test:stories`도. 워크트리에 `.env.local`이 없으면 typecheck가 환경변수 검사로 실패한다 — `NEXT_PUBLIC_KAKAO_JS_KEY=dummy pnpm typecheck`.
+2. 로컬에서는 `NEXT_PUBLIC_KAKAO_JS_KEY=dummy pnpm typecheck`와 `pnpm lint`까지만. **전체 게이트(`pnpm test` 전체·`pnpm test:stories` 전체·build)는 PR CI(`pr-gate`)에 맡긴다** — push 뒤 `gh pr checks <n>`을 기다려 실패만 고친다(`design-workflow.md` §9, 2026-11-01). e2e 전체는 관제탑이 그룹 끝에 돌린다.
 3. **PR 올리기 직전에 다시 본다** — 디자이너는 Ready 표시를 그대로 둔 채 프레임 안을 고치기도 한다(2026-10-31 티켓관리 모바일 `767:50048`의 카드가 이슈 없이 로컬 컴포넌트 `티켓 행_모바일`로 바뀜).
    - ①을 다시 — 새 이슈·댓글.
    - 근거 노드를 `F shot`으로 다시 받아 ③의 PNG와 비교하고, 다르면 `F map`도 다시. 바뀐 것은 반영하거나 PR 본문에 적고 사용자에게 알린다.
@@ -195,4 +199,5 @@ Plugin API는 라이브러리 파일 key를 주지 않는다 — 받은 `key`를
 - Figma 스크린샷을 코드에 이미지로 넣지 않는다. 에셋을 비슷한 것으로 바꾸거나 다시 그리지 않는다.
 - DS로 되는 것을 커스텀으로 만들지 않는다. 화면 안에서 `src/ui`에 있어야 할 컴포넌트를 짓지 않는다.
 - 범위 밖 불일치를 이 작업에서 고치지 않는다.
-- 확인 없이 Figma 코멘트를 달지 않는다. 디자인 이슈를 손으로 닫지 않는다. 토큰을 출력하지 않는다.
+- ⑤ "DS로 구현" 코멘트를 확인 없이 달지 않는다("디자인 없음" 코멘트는 바로 — 단계마다 6). 디자인 이슈를 손으로 닫지 않는다. 토큰을 출력하지 않는다.
+- 구현 덩어리마다 전체 테스트를 돌리거나 새 테스트를 쓰지 않는다(검사 시점 §9).
