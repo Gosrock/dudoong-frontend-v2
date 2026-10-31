@@ -11,7 +11,7 @@ export type AccordionProps = {
   label: ReactNode;
   /** 오른쪽 보조 글자 — Figma "(2/3)" */
   meta?: ReactNode;
-  /** chevron 앞 노드 — Figma text+money의 금액 칩(`<Chip variant="money" />`) */
+  /** chevron 앞 노드 — Figma text+money의 금액 칩(`<Chip color="violet" theme="fill">`) */
   trailing?: ReactNode;
   /** 제어형 */
   open?: boolean;

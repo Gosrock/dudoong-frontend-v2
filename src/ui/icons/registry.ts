@@ -26,11 +26,14 @@ export type IconName =
   | 'favorite'
   | 'forward'
   | 'gift'
+  | 'gift-cancel'
+  | 'gift-return'
   | 'home'
   | 'image-add'
   | 'info'
   | 'information'
   | 'instagram'
+  | 'lightbulb'
   | 'location'
   | 'log-out'
   | 'mail'
@@ -66,14 +69,19 @@ export type IconSpec =
   | { name: 'archiving'; variant?: 'outline'; size?: 24 }
   | { name: 'backward'; variant?: 'outline'; size?: 24 }
   | { name: 'blank'; variant?: 'outline'; size?: 24 }
+  | { name: 'calendar'; variant?: 'outline'; size: 16 }
   | { name: 'calendar'; variant?: 'outline'; size?: 24 }
   | { name: 'chat'; variant?: 'outline'; size?: 24 }
   | { name: 'check'; variant?: 'outline'; size: 12 }
   | { name: 'check'; variant?: 'outline'; size?: 24 }
   | { name: 'chevron-down'; variant?: 'outline'; size: 12 }
   | { name: 'chevron-down'; variant?: 'outline'; size?: 24 }
+  | { name: 'chevron-left'; variant?: 'outline'; size: 12 }
+  | { name: 'chevron-left'; variant?: 'outline'; size: 16 }
   | { name: 'chevron-left'; variant?: 'outline'; size: 20 }
   | { name: 'chevron-left'; variant?: 'outline'; size?: 24 }
+  | { name: 'chevron-right'; variant?: 'outline'; size: 12 }
+  | { name: 'chevron-right'; variant?: 'outline'; size: 16 }
   | { name: 'chevron-right'; variant?: 'outline'; size: 20 }
   | { name: 'chevron-right'; variant?: 'outline'; size?: 24 }
   | { name: 'chevron-up'; variant?: 'outline'; size: 12 }
@@ -85,6 +93,7 @@ export type IconSpec =
   | { name: 'circle-request'; variant: 'filled'; size?: 24 }
   | { name: 'circle-request'; variant?: 'outline'; size?: 24 }
   | { name: 'clock'; variant: 'filled'; size?: 24 }
+  | { name: 'clock'; variant?: 'outline'; size: 16 }
   | { name: 'clock'; variant?: 'outline'; size?: 24 }
   | { name: 'close'; variant?: 'outline'; size: 12 }
   | { name: 'close'; variant?: 'outline'; size?: 24 }
@@ -96,19 +105,24 @@ export type IconSpec =
   | { name: 'etc'; variant: 'filled'; size?: 24 }
   | { name: 'favorite'; variant?: 'outline'; size?: 24 }
   | { name: 'forward'; variant?: 'outline'; size?: 24 }
-  | { name: 'gift'; variant?: 'outline'; size: 12 }
+  | { name: 'gift-cancel'; variant?: 'outline'; size?: 24 }
+  | { name: 'gift'; variant?: 'outline'; size?: 24 }
+  | { name: 'gift-return'; variant?: 'outline'; size?: 24 }
   | { name: 'home'; variant: 'filled'; size?: 24 }
   | { name: 'home'; variant?: 'outline'; size?: 24 }
   | { name: 'image-add'; variant?: 'outline'; size?: 24 }
   | { name: 'info'; variant?: 'outline'; size?: 24 }
   | { name: 'information'; variant?: 'outline'; size: 16 }
   | { name: 'instagram'; variant?: 'outline'; size?: 24 }
+  | { name: 'lightbulb'; variant?: 'outline'; size?: 24 }
   | { name: 'location'; variant?: 'outline'; size?: 24 }
   | { name: 'log-out'; variant?: 'outline'; size?: 24 }
   | { name: 'mail'; variant: 'filled'; size?: 24 }
   | { name: 'menu'; variant?: 'outline'; size?: 24 }
   | { name: 'minus'; variant?: 'outline'; size: 12 }
   | { name: 'more'; variant?: 'outline'; size: 12 }
+  | { name: 'more'; variant?: 'outline'; size: 16 }
+  | { name: 'more'; variant?: 'outline'; size: 20 }
   | { name: 'more'; variant?: 'outline'; size?: 24 }
   | { name: 'music'; variant?: 'outline'; size?: 24 }
   | { name: 'notification-on'; variant?: 'outline'; size?: 24 }
@@ -161,6 +175,10 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M9.34484 3.2501C9.34484 2.75304 9.74778 2.3501 10.2448 2.3501H13.7422C14.2393 2.3501 14.6422 2.75304 14.6422 3.2501C14.6422 3.74715 14.2393 4.1501 13.7422 4.1501H10.2448C9.74778 4.1501 9.34484 3.74715 9.34484 3.2501Z" fill="currentColor"/><path d="M7.64703 3.23579C7.66208 3.73262 7.27153 4.14758 6.7747 4.16264C5.9179 4.1886 5.56098 4.25649 5.30673 4.38724L5.29764 4.39192C4.91176 4.58486 4.59075 4.90691 4.37296 5.32224C4.24303 5.57633 4.17551 5.93372 4.14963 6.78772C4.13458 7.28455 3.71961 7.6751 3.22279 7.66005C2.72596 7.64499 2.33541 7.23003 2.35046 6.7332C2.37631 5.88016 2.43796 5.149 2.77352 4.49652L2.77626 4.49119C3.15355 3.76941 3.73717 3.16088 4.48817 2.78414C5.13947 2.45067 5.86917 2.38925 6.72018 2.36346C7.21701 2.34841 7.63197 2.73896 7.64703 3.23579Z" fill="currentColor"/><path d="M16.34 3.23579C16.3551 2.73896 16.7701 2.34841 17.2669 2.36346C18.1179 2.38925 18.8476 2.45067 19.4989 2.78413C20.2499 3.16088 20.8335 3.76942 21.2108 4.4912L21.2136 4.49651C21.5491 5.14899 21.6108 5.88016 21.6366 6.7332C21.6517 7.23003 21.2611 7.64499 20.7643 7.66005C20.2675 7.6751 19.8525 7.28455 19.8374 6.78772C19.8116 5.93372 19.744 5.57634 19.6141 5.32225C19.3963 4.90691 19.0753 4.58481 18.6895 4.39187L18.6803 4.3873C18.4261 4.25654 18.0692 4.1886 17.2124 4.16264C16.7155 4.14758 16.325 3.73262 16.34 3.23579Z" fill="currentColor"/><path d="M3.25005 9.34492C3.7471 9.34492 4.15004 9.74786 4.15004 10.2449V13.7423C4.15004 14.2394 3.7471 14.6423 3.25005 14.6423C2.75299 14.6423 2.35005 14.2394 2.35005 13.7423V10.2449C2.35005 9.74786 2.75299 9.34492 3.25005 9.34492Z" fill="currentColor"/><path d="M20.737 9.34492C21.2341 9.34492 21.637 9.74786 21.637 10.2449V13.7423C21.637 14.2394 21.2341 14.6423 20.737 14.6423C20.24 14.6423 19.837 14.2394 19.837 13.7423V10.2449C19.837 9.74786 20.24 9.34492 20.737 9.34492Z" fill="currentColor"/><path d="M20.7772 16.3401C21.2741 16.3552 21.6646 16.7702 21.6496 17.267C21.6237 18.12 21.5621 18.8512 21.2265 19.5037L21.2237 19.509C20.8464 20.2308 20.2628 20.8394 19.5117 21.2161C18.8604 21.5495 18.1308 21.6109 17.2798 21.6367C16.783 21.6518 16.3681 21.2612 16.353 20.7644C16.3379 20.2676 16.7285 19.8526 17.2253 19.8376C18.0821 19.8116 18.439 19.7437 18.6933 19.6129L18.7024 19.6083C19.0883 19.4153 19.4093 19.0933 19.6271 18.6779C19.757 18.4239 19.8245 18.0665 19.8504 17.2125C19.8654 16.7156 20.2804 16.3251 20.7772 16.3401Z" fill="currentColor"/><path d="M3.22279 16.3531C3.71961 16.338 4.13458 16.7286 4.14963 17.2254C4.17559 18.0822 4.24348 18.4392 4.37424 18.6934L4.37891 18.7025C4.57185 19.0884 4.8939 19.4094 5.30923 19.6272C5.56333 19.7571 5.92071 19.8246 6.7747 19.8505C7.27153 19.8656 7.66208 20.2805 7.64703 20.7774C7.63197 21.2742 7.21701 21.6647 6.72018 21.6497C5.86714 21.6238 5.13599 21.5622 4.48351 21.2266L4.47819 21.2239C3.75642 20.8466 3.14788 20.263 2.77113 19.512C2.43767 18.8607 2.37625 18.131 2.35046 17.2799C2.33541 16.7831 2.72596 16.3682 3.22279 16.3531Z" fill="currentColor"/><path d="M9.34484 20.7371C9.34484 20.2401 9.74778 19.8371 10.2448 19.8371H13.7422C14.2393 19.8371 14.6422 20.2401 14.6422 20.7371C14.6422 21.2342 14.2393 21.6371 13.7422 21.6371H10.2448C9.74778 21.6371 9.34484 21.2342 9.34484 20.7371Z" fill="currentColor"/>',
   },
+  'calendar/outline/16': {
+    viewBox: '0 0 16 16',
+    body: '<path d="M5.33333 1.33334V4M10.6667 1.33334V4M2 6.66667H14M3.33333 2.66667H12.6667C13.403 2.66667 14 3.26362 14 4V13.3333C14 14.0697 13.403 14.6667 12.6667 14.6667H3.33333C2.59695 14.6667 2 14.0697 2 13.3333V4C2 3.26362 2.59695 2.66667 3.33333 2.66667Z" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
   'calendar/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -186,6 +204,14 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M18 9L12 15L6 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   },
+  'chevron-left/outline/12': {
+    viewBox: '0 0 12 12',
+    body: '<path d="M7.5 9L4.5 6L7.5 3" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'chevron-left/outline/16': {
+    viewBox: '0 0 16 16',
+    body: '<path d="M10 12L6 8L10 4" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
   'chevron-left/outline/20': {
     viewBox: '0 0 20 20',
     body: '<path d="M12.5 15L7.5 10L12.5 5" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
@@ -193,6 +219,14 @@ export const icons: Record<string, IconEntry> = {
   'chevron-left/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  'chevron-right/outline/12': {
+    viewBox: '0 0 12 12',
+    body: '<path d="M4.5 3L7.5 6L4.5 9" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'chevron-right/outline/16': {
+    viewBox: '0 0 16 16',
+    body: '<path d="M6 4L10 8L6 12" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
   'chevron-right/outline/20': {
     viewBox: '0 0 20 20',
@@ -238,6 +272,10 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M12 1C18.0751 1 23 5.92487 23 12C23 18.0751 18.0751 23 12 23C5.92487 23 1 18.0751 1 12C1 5.92487 5.92487 1 12 1ZM12 5C11.4477 5 11 5.44772 11 6V12C11 12.3788 11.214 12.7251 11.5527 12.8945L15.5527 14.8945C16.0467 15.1415 16.6475 14.9412 16.8945 14.4473C17.1415 13.9533 16.9412 13.3525 16.4473 13.1055L13 11.3818V6C13 5.44772 12.5523 5 12 5Z" fill="currentColor"/>',
   },
+  'clock/outline/16': {
+    viewBox: '0 0 16 16',
+    body: '<g clip-path="url(#clock-outline-16-clip0_721_1983)"><path d="M8.00001 4V8L10.6667 9.33333M14.6667 8C14.6667 11.6819 11.6819 14.6667 8.00001 14.6667C4.31811 14.6667 1.33334 11.6819 1.33334 8C1.33334 4.3181 4.31811 1.33333 8.00001 1.33333C11.6819 1.33333 14.6667 4.3181 14.6667 8Z" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/></g><defs><clipPath id="clock-outline-16-clip0_721_1983"><rect width="16" height="16" fill="currentColor"/></clipPath></defs>',
+  },
   'clock/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M12 6V12L16 14M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -282,9 +320,18 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M12 5L19 12L12 19M19 12H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
   },
-  'gift/outline/12': {
-    viewBox: '0 0 12 12',
-    body: '<path d="M10 5V9C10 10.1046 9.10457 11 8 11H4C2.89543 11 2 10.1046 2 9V5" fill="currentColor"/><path d="M9.75 3.5H2.25C1.55964 3.5 1 4.05964 1 4.75C1 5.44036 1.55964 6 2.25 6H9.75C10.4404 6 11 5.44036 11 4.75C11 4.05964 10.4404 3.5 9.75 3.5Z" fill="currentColor"/><path d="M6 11V4" stroke="#F7F7F6" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 6L10 6" stroke="#F7F7F6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 3.5H3.75C3.41848 3.5 3.10054 3.3683 2.86612 3.13388C2.6317 2.89946 2.5 2.58152 2.5 2.25C2.5 1.91848 2.6317 1.60054 2.86612 1.36612C3.10054 1.1317 3.41848 1 3.75 1C5.5 1 6 3.5 6 3.5Z" stroke="currentColor" stroke-width="1.2027" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 3.5H8.25C8.58152 3.5 8.89946 3.3683 9.13388 3.13388C9.3683 2.89946 9.5 2.58152 9.5 2.25C9.5 1.91848 9.3683 1.60054 9.13388 1.36612C8.89946 1.1317 8.58152 1 8.25 1C6.5 1 6 3.5 6 3.5Z" stroke="currentColor" stroke-width="1.2027" stroke-linecap="round" stroke-linejoin="round"/>',
+  'gift-cancel/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M20.134 11.5V19.5C20.134 20.6046 19.2385 21.5 18.134 21.5H6.13397C5.02941 21.5 4.13397 20.6046 4.13397 19.5V11.5M20.134 11.5H4.13397M20.134 11.5C21.2385 11.5 22.134 10.6046 22.134 9.5V8.5C22.134 7.39543 21.2385 6.5 20.134 6.5H4.13397C3.02941 6.5 2.13397 7.39543 2.13397 8.5V9.5C2.13397 10.6046 3.02941 11.5 4.13397 11.5M12.134 21.5V6.5M12.134 6.5H16.634C17.297 6.5 17.9329 6.28929 18.4017 5.91421C18.8706 5.53914 19.134 5.03043 19.134 4.5C19.134 3.96957 18.8706 3.46086 18.4017 3.08579C17.9329 2.71071 17.297 2.5 16.634 2.5C13.134 2.5 12.134 6.5 12.134 6.5ZM12.134 6.5H7.63397C6.97093 6.5 6.33505 6.28929 5.86621 5.91421C5.39737 5.53914 5.13397 5.03043 5.13397 4.5C5.13397 3.96957 5.39737 3.46086 5.86621 3.08579C6.33505 2.71071 6.97093 2.5 7.63397 2.5C11.134 2.5 12.134 6.5 12.134 6.5Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M22 3.41421L3.41421 22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#E84230"/>',
+    multicolor: true,
+  },
+  'gift/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M20.134 11.5V19.5C20.134 20.6046 19.2385 21.5 18.134 21.5H6.13397C5.02941 21.5 4.13397 20.6046 4.13397 19.5V11.5M20.134 11.5H4.13397M20.134 11.5C21.2385 11.5 22.134 10.6046 22.134 9.5V8.5C22.134 7.39543 21.2385 6.5 20.134 6.5H4.13397C3.02941 6.5 2.13397 7.39543 2.13397 8.5V9.5C2.13397 10.6046 3.02941 11.5 4.13397 11.5M12.134 21.5V6.5M12.134 6.5H16.634C17.297 6.5 17.9329 6.28929 18.4017 5.91421C18.8706 5.53914 19.134 5.03043 19.134 4.5C19.134 3.96957 18.8706 3.46086 18.4017 3.08579C17.9329 2.71071 17.297 2.5 16.634 2.5C13.134 2.5 12.134 6.5 12.134 6.5ZM12.134 6.5H7.63397C6.97093 6.5 6.33505 6.28929 5.86621 5.91421C5.39737 5.53914 5.13397 5.03043 5.13397 4.5C5.13397 3.96957 5.39737 3.46086 5.86621 3.08579C6.33505 2.71071 6.97093 2.5 7.63397 2.5C11.134 2.5 12.134 6.5 12.134 6.5Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'gift-return/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M4.13398 11.5V19.5C4.13398 20.6046 5.02941 21.5 6.13398 21.5H12.134V6.5M4.13398 11.5H20.134C21.2386 11.5 22.134 10.6046 22.134 9.5V8.5C22.134 7.39543 21.2385 6.5 20.134 6.5H4.13398C3.02941 6.5 2.13398 7.39543 2.13398 8.5V9.5C2.13398 10.6046 3.02941 11.5 4.13398 11.5ZM12.134 6.5H16.634C17.297 6.5 17.9329 6.28929 18.4017 5.91421C18.8706 5.53914 19.134 5.03043 19.134 4.5C19.134 3.96957 18.8706 3.46086 18.4017 3.08579C17.9329 2.71071 17.297 2.5 16.634 2.5C13.134 2.5 12.134 6.5 12.134 6.5ZM12.134 6.5H7.63398C6.97094 6.5 6.33505 6.28929 5.86621 5.91421C5.39737 5.53914 5.13398 5.03043 5.13398 4.5C5.13398 3.96957 5.39737 3.46086 5.86621 3.08579C6.33505 2.71071 6.97094 2.5 7.63398 2.5C11.134 2.5 12.134 6.5 12.134 6.5Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M16.5 21.5H19.5C21.1569 21.5 22.5 20.1569 22.5 18.5C22.5 16.8431 21.1569 15.5 19.5 15.5H16.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="#E84230"/><path d="M15.2036 15.0573C14.9321 15.29 14.9321 15.71 15.2036 15.9426L17.8059 18.1732C18.1841 18.4973 18.7683 18.2286 18.7683 17.7305V13.2695C18.7683 12.7714 18.1841 12.5027 17.8059 12.8268L15.2036 15.0573Z" fill="#E84230"/>',
     multicolor: true,
   },
   'home/filled/24': {
@@ -312,6 +359,11 @@ export const icons: Record<string, IconEntry> = {
     body: '<rect x="3" y="3" width="18" height="18" rx="5" stroke="url(#instagram-outline-24-paint0_linear_473_1613)" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="url(#instagram-outline-24-paint1_linear_473_1613)" stroke-width="2"/><circle cx="17" cy="7" r="1" fill="#EE07AE"/><defs><linearGradient id="instagram-outline-24-paint0_linear_473_1613" x1="-4.99965" y1="5.39791" x2="-1.50035" y2="25.1021" gradientUnits="userSpaceOnUse"><stop offset="0.00296149" stop-color="#9309E1"/><stop offset="0.216523" stop-color="#EA02C9"/><stop offset="0.558577" stop-color="#F6114F"/><stop offset="1" stop-color="#FDB203"/></linearGradient><linearGradient id="instagram-outline-24-paint1_linear_473_1613" x1="12" y1="7" x2="12" y2="15.5" gradientUnits="userSpaceOnUse"><stop stop-color="#CD0BAB"/><stop offset="0.524038" stop-color="#F40D59"/><stop offset="1" stop-color="#FB6A1B"/></linearGradient></defs>',
     multicolor: true,
   },
+  'lightbulb/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M11.1338 15.5876C10.9399 15.6511 10.0685 15.5876 9.8091 15.5915C9.57625 15.5951 9.24911 15.6373 9.02379 15.6035C8.65225 15.5478 8.59078 15.0848 8.40913 14.768C8.21283 14.4257 8.06146 14.1803 7.77667 13.8913C7.48002 13.5902 7.1145 13.3224 6.79766 13.0492C6.46838 12.7597 6.17656 12.4306 5.92889 12.0696C5.54869 11.5223 5.26228 10.6577 5.18486 9.99563C5.07487 9.05504 5.12694 8.01354 5.47041 7.12367C5.63315 6.70203 5.7451 6.36697 5.96742 5.97123C7.83693 2.64355 12.741 2.07942 15.7947 4.02656C16.7113 4.60939 17.4968 5.37408 18.1021 6.27272C18.8842 7.41233 19.1772 8.8146 18.9162 10.1694C18.6569 11.5383 18.0308 12.5326 16.9278 13.3962C16.5805 13.6681 16.1725 13.9325 15.8764 14.2588C15.7142 14.4375 15.5298 14.6567 15.4022 14.8637C15.3036 15.0237 15.2177 15.3216 15.0629 15.4394C15.0092 15.4803 14.8262 15.5428 14.7579 15.5473C14.3312 15.5751 12.9594 15.6692 12.608 15.5925C12.4817 15.6253 11.4338 15.6196 11.2331 15.6217C11.2076 15.622 11.1586 15.6002 11.1338 15.5876Z" fill="#FBE27E"/><path d="M12.0858 11.4181C12.3258 11.0552 12.4831 10.6467 12.8159 10.3555C13.1834 10.0339 13.5803 9.8639 14.0753 9.89822C14.4588 9.92481 14.8343 10.0872 15.0964 10.3718C16.0973 11.6046 15.0875 13.1671 13.6679 13.3935C13.367 13.4415 13.087 13.4146 12.786 13.4254C12.7456 13.4269 12.7111 13.4334 12.6812 13.4591C12.6263 13.6148 12.6209 14.1526 12.6195 14.3419C12.6176 14.5998 12.5191 15.3821 12.608 15.5925C12.4817 15.6253 11.4338 15.6196 11.2331 15.6217C11.2076 15.622 11.1586 15.6002 11.1337 15.5876C11.1405 15.5761 11.147 15.5645 11.1533 15.5528C11.2577 15.3562 11.1953 14.4443 11.2088 14.1852C11.2189 13.992 11.2135 13.75 11.222 13.5522C11.2237 13.5115 11.209 13.3802 11.155 13.3732C10.7169 13.3027 10.2926 13.2992 9.88611 13.0918C9.40181 12.8446 8.94364 12.4517 8.77469 11.9168C8.6202 11.4277 8.58411 11.0115 8.80614 10.5419C9.22418 9.65758 10.1927 9.3833 11.0466 9.83682C11.6975 10.181 11.8788 10.7606 12.0858 11.4181Z" fill="#FABA0A"/><path d="M10.326 10.6068C10.5253 10.6366 10.7105 10.7679 10.8348 10.9221C10.9203 11.0302 10.9897 11.1499 11.0408 11.2776C11.1477 11.5452 11.2214 12.0168 11.2313 12.3087C11.2381 12.5107 10.7919 12.378 10.6584 12.3533C10.3868 12.2938 10.0814 12.1292 9.88227 11.9297C9.5937 11.6406 9.52227 11.0449 9.83816 10.7463C9.97686 10.6152 10.1457 10.6008 10.326 10.6068Z" fill="#FBE27E"/><path d="M14.07 10.8781C14.6244 10.9802 14.6824 11.6284 14.3718 12.0072C14.1158 12.3194 13.7662 12.4489 13.3758 12.5001C13.2597 12.506 12.9578 12.5172 12.8635 12.4734C12.742 12.329 13.0419 11.684 13.1221 11.535C13.3295 11.1491 13.5903 10.8477 14.07 10.8781Z" fill="#FBE27E"/><path d="M10.9895 4.29279C11.1699 4.30655 11.3146 4.33502 11.4455 4.4716C11.6126 4.6459 11.7446 4.84914 11.7426 5.09662C11.7377 5.47365 11.473 5.798 11.1028 5.8805C10.9063 5.92577 10.674 5.91123 10.4769 5.96226C10.0396 6.07553 9.55726 6.32581 9.25799 6.66456C8.92951 7.03638 8.81922 7.30399 8.26497 7.29722C7.7808 7.22786 7.47836 6.96212 7.4869 6.46221C7.49402 6.04539 7.92783 5.6085 8.22143 5.34178C8.80919 4.80784 9.59884 4.44309 10.3889 4.34599C10.6262 4.31776 10.7363 4.28399 10.9895 4.29279Z" fill="#FEF6E2"/><path d="M7.26553 7.5726C7.71485 7.56992 8.08244 7.92754 8.08927 8.37401C8.0961 8.82049 7.73963 9.18904 7.29043 9.19993C6.83535 9.21097 6.45854 8.85108 6.45161 8.39876C6.4447 7.94644 6.81032 7.57532 7.26553 7.5726Z" fill="#FEF6E2"/><path d="M15.0938 15.8353C15.1116 15.837 15.1294 15.8394 15.1471 15.8425C15.7103 15.9422 16.0081 16.4227 15.9087 16.9734C15.8618 17.2472 15.7067 17.4911 15.4779 17.6507C15.3091 17.7671 15.1499 17.8293 14.9455 17.8508C14.2481 17.9312 13.5311 17.8793 12.8315 17.9149C12.0852 17.9529 11.337 17.9776 10.5896 17.9827C10.08 17.9862 9.33003 18.0935 8.84492 18.0051C8.31918 17.8381 8.07388 17.4953 8.04672 16.9457C8.03818 16.7068 8.19502 16.4265 8.35897 16.2579C8.72025 15.8863 9.43226 15.9672 9.90461 15.9825L10.8793 16.0058C11.32 16.0157 11.7419 15.9977 12.1763 15.9971C12.9651 15.9961 13.7284 16.0571 14.5105 15.9125C14.6949 15.8784 14.907 15.8379 15.0938 15.8353Z" fill="#5B8FF5"/><path d="M14.3502 18.2658C14.5845 18.2822 14.7457 18.4464 14.8013 18.6695C14.8854 19.0069 14.8193 19.2571 14.6433 19.5496C14.512 19.7939 14.2032 20.093 13.9062 20.1386C13.0495 20.2704 12.1031 20.2609 11.2386 20.2691C10.681 20.2745 10.1102 20.3892 9.61919 20.0958C9.21136 19.7762 8.97728 19.4106 9.10711 18.8607C9.14326 18.7076 9.27237 18.5311 9.42174 18.466C9.59983 18.3885 9.87179 18.4345 10.0665 18.4136C10.6064 18.3781 11.1471 18.3809 11.6877 18.3724C11.9991 18.3677 12.3034 18.348 12.6137 18.3275C13.2082 18.3197 13.7563 18.3031 14.3502 18.2658Z" fill="#5B8FF5"/>',
+    multicolor: true,
+  },
   'location/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M20 10C20 16.4183 12 21.5 12 21.5C12 21.5 4 16.4183 4 10C4 5.58172 7.58172 2 12 2C16.4183 2 20 5.58172 20 10Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/><path d="M15.25 9.75C15.25 11.5449 13.7949 13 12 13C10.2051 13 8.75 11.5449 8.75 9.75C8.75 7.95507 10.2051 6.5 12 6.5C13.7949 6.5 15.25 7.95507 15.25 9.75Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
@@ -335,6 +387,14 @@ export const icons: Record<string, IconEntry> = {
   'more/outline/12': {
     viewBox: '0 0 12 12',
     body: '<path d="M6 6.5C6.27614 6.5 6.5 6.27614 6.5 6C6.5 5.72386 6.27614 5.5 6 5.5C5.72386 5.5 5.5 5.72386 5.5 6C5.5 6.27614 5.72386 6.5 6 6.5Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 3C6.27614 3 6.5 2.77614 6.5 2.5C6.5 2.22386 6.27614 2 6 2C5.72386 2 5.5 2.22386 5.5 2.5C5.5 2.77614 5.72386 3 6 3Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10C6.27614 10 6.5 9.77614 6.5 9.5C6.5 9.22386 6.27614 9 6 9C5.72386 9 5.5 9.22386 5.5 9.5C5.5 9.77614 5.72386 10 6 10Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  'more/outline/16': {
+    viewBox: '0 0 16 16',
+    body: '<path d="M8.66668 8C8.66668 8.36819 8.3682 8.66667 8.00001 8.66667C7.63182 8.66667 7.33334 8.36819 7.33334 8C7.33334 7.63181 7.63182 7.33333 8.00001 7.33333C8.3682 7.33333 8.66668 7.63181 8.66668 8ZM8.66668 3.33333C8.66668 3.70152 8.3682 4 8.00001 4C7.63182 4 7.33334 3.70152 7.33334 3.33333C7.33334 2.96514 7.63182 2.66667 8.00001 2.66667C8.3682 2.66667 8.66668 2.96514 8.66668 3.33333ZM8.66668 12.6667C8.66668 13.0349 8.3682 13.3333 8.00001 13.3333C7.63182 13.3333 7.33334 13.0349 7.33334 12.6667C7.33334 12.2985 7.63182 12 8.00001 12C8.3682 12 8.66668 12.2985 8.66668 12.6667Z" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'more/outline/20': {
+    viewBox: '0 0 20 20',
+    body: '<path d="M10.8333 10C10.8333 10.4602 10.4602 10.8333 10 10.8333C9.53977 10.8333 9.16667 10.4602 9.16667 10C9.16667 9.53976 9.53977 9.16667 10 9.16667C10.4602 9.16667 10.8333 9.53976 10.8333 10ZM10.8333 4.16667C10.8333 4.6269 10.4602 5 10 5C9.53977 5 9.16667 4.6269 9.16667 4.16667C9.16667 3.70643 9.53977 3.33333 10 3.33333C10.4602 3.33333 10.8333 3.70643 10.8333 4.16667ZM10.8333 15.8333C10.8333 16.2936 10.4602 16.6667 10 16.6667C9.53977 16.6667 9.16667 16.2936 9.16667 15.8333C9.16667 15.3731 9.53977 15 10 15C10.4602 15 10.8333 15.3731 10.8333 15.8333Z" stroke-width="1.66667" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
   'more/outline/24': {
     viewBox: '0 0 24 24',
@@ -432,14 +492,19 @@ export const iconList = [
   { name: 'archiving', variant: 'outline', size: 24 },
   { name: 'backward', variant: 'outline', size: 24 },
   { name: 'blank', variant: 'outline', size: 24 },
+  { name: 'calendar', variant: 'outline', size: 16 },
   { name: 'calendar', variant: 'outline', size: 24 },
   { name: 'chat', variant: 'outline', size: 24 },
   { name: 'check', variant: 'outline', size: 12 },
   { name: 'check', variant: 'outline', size: 24 },
   { name: 'chevron-down', variant: 'outline', size: 12 },
   { name: 'chevron-down', variant: 'outline', size: 24 },
+  { name: 'chevron-left', variant: 'outline', size: 12 },
+  { name: 'chevron-left', variant: 'outline', size: 16 },
   { name: 'chevron-left', variant: 'outline', size: 20 },
   { name: 'chevron-left', variant: 'outline', size: 24 },
+  { name: 'chevron-right', variant: 'outline', size: 12 },
+  { name: 'chevron-right', variant: 'outline', size: 16 },
   { name: 'chevron-right', variant: 'outline', size: 20 },
   { name: 'chevron-right', variant: 'outline', size: 24 },
   { name: 'chevron-up', variant: 'outline', size: 12 },
@@ -451,6 +516,7 @@ export const iconList = [
   { name: 'circle-request', variant: 'filled', size: 24 },
   { name: 'circle-request', variant: 'outline', size: 24 },
   { name: 'clock', variant: 'filled', size: 24 },
+  { name: 'clock', variant: 'outline', size: 16 },
   { name: 'clock', variant: 'outline', size: 24 },
   { name: 'close', variant: 'outline', size: 12 },
   { name: 'close', variant: 'outline', size: 24 },
@@ -462,19 +528,24 @@ export const iconList = [
   { name: 'etc', variant: 'filled', size: 24 },
   { name: 'favorite', variant: 'outline', size: 24 },
   { name: 'forward', variant: 'outline', size: 24 },
-  { name: 'gift', variant: 'outline', size: 12 },
+  { name: 'gift-cancel', variant: 'outline', size: 24 },
+  { name: 'gift', variant: 'outline', size: 24 },
+  { name: 'gift-return', variant: 'outline', size: 24 },
   { name: 'home', variant: 'filled', size: 24 },
   { name: 'home', variant: 'outline', size: 24 },
   { name: 'image-add', variant: 'outline', size: 24 },
   { name: 'info', variant: 'outline', size: 24 },
   { name: 'information', variant: 'outline', size: 16 },
   { name: 'instagram', variant: 'outline', size: 24 },
+  { name: 'lightbulb', variant: 'outline', size: 24 },
   { name: 'location', variant: 'outline', size: 24 },
   { name: 'log-out', variant: 'outline', size: 24 },
   { name: 'mail', variant: 'filled', size: 24 },
   { name: 'menu', variant: 'outline', size: 24 },
   { name: 'minus', variant: 'outline', size: 12 },
   { name: 'more', variant: 'outline', size: 12 },
+  { name: 'more', variant: 'outline', size: 16 },
+  { name: 'more', variant: 'outline', size: 20 },
   { name: 'more', variant: 'outline', size: 24 },
   { name: 'music', variant: 'outline', size: 24 },
   { name: 'notification-on', variant: 'outline', size: 24 },

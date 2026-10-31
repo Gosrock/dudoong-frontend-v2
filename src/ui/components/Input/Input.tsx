@@ -18,7 +18,7 @@ export type InputProps = Omit<ComponentPropsWithRef<'input'>, 'size' | 'children
   helper?: ReactNode;
   /** 있으면 테두리 `status/error` + 칸 아래 문구 */
   error?: string;
-  /** 앞쪽 아이콘(Figma icon input). `<Icon name="calendar" />`처럼 넘기면 20으로 줄여 그린다 */
+  /** 앞쪽 아이콘(Figma icon input). `<Icon name="calendar" />`처럼 넘기면 20 자리에 16으로 그린다(Figma 2026-10-31) */
   leading?: ReactNode;
   /** 뒤쪽 단위 글자(Figma text input "원") */
   trailing?: ReactNode;

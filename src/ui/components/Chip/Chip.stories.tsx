@@ -5,13 +5,19 @@ import { expect } from 'storybook/test';
 import { Flex } from '../../primitives/Flex';
 import { Txt } from '../../primitives/Txt';
 import { colors } from '../../theme/colors';
-import { sprinkles } from '../../theme/sprinkles.css';
-import { Chip, type ChipProps, formatDday } from './Chip';
+import {
+  Chip,
+  type ChipColor,
+  type ChipProps,
+  type ChipTheme,
+  formatDday,
+  formatOptionAmount,
+} from './Chip';
 
 const meta = {
   title: 'Components/Chip',
   component: Chip,
-  args: { variant: 'status', tone: 'brand', children: '승인완료' },
+  args: { children: '준비중' },
 } satisfies Meta<typeof Chip>;
 export default meta;
 
@@ -19,38 +25,8 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-/**
- * Concert state chip small(Figma `300:1067`, 2026-10-25): 준비중 `300:1068`, D-day 배경 `brand/accent-subtle`·글자
- * `brand/accent`(`300:1070`), 공연중 배경 `brand/accent`·글자 `brand/accent-subtle`(`585:798`),
- * 지난 공연 배경 `interaction/disabled-bg`(`300:1072`). large(P10a-V)는 아직 없다.
- */
-export const ConcertStates: Story = {
-  render: () => (
-    <Flex gap={2}>
-      <Chip variant="concert" tone="ready">
-        준비중
-      </Chip>
-      <Chip variant="concert" tone="dday">
-        D-7
-      </Chip>
-      <Chip variant="concert" tone="ing">
-        공연중
-      </Chip>
-      <Chip variant="concert" tone="past">
-        지난 공연
-      </Chip>
-    </Flex>
-  ),
-  play: async ({ canvas }) => {
-    const style = (text: string) => getComputedStyle(canvas.getByText(text));
-    // brand/accent #E84230, brand/accent-subtle #FEEDEC, interaction/disabled-bg #EEEEED
-    await expect(style('D-7').backgroundColor).toBe('rgb(254, 237, 236)');
-    await expect(style('D-7').color).toBe('rgb(232, 66, 48)');
-    await expect(style('공연중').backgroundColor).toBe('rgb(232, 66, 48)');
-    await expect(style('공연중').color).toBe('rgb(254, 237, 236)');
-    await expect(style('지난 공연').backgroundColor).toBe('rgb(238, 238, 237)');
-  },
-};
+const COLORS: ChipColor[] = ['violet', 'red', 'green', 'grey', 'cyan', 'purple'];
+const THEMES: ChipTheme[] = ['weak', 'fill', 'border'];
 
 const Row = ({ title, children }: { title: string; children: ReactNode }) => (
   <Flex direction="column" gap={2}>
@@ -63,102 +39,117 @@ const Row = ({ title, children }: { title: string; children: ReactNode }) => (
   </Flex>
 );
 
-/** Figma Tag 페이지 5종 전부 */
+/** Figma `tag_v2`(`693:668`) 72변형 전부 — size × shape × color × theme */
 export const FigmaVariants: Story = {
   render: () => (
     <Flex direction="column" gap={5}>
-      <Row title="Ticket state chip">
-        <Chip variant="status" tone="brand">
-          승인완료
-        </Chip>
-        <Chip variant="status" tone="muted">
-          승인대기
-        </Chip>
-        <Chip variant="status" tone="accent">
-          선물대기
-        </Chip>
-        <Chip variant="status" tone="success">
-          선물완료
-        </Chip>
-      </Row>
-      <Row title="tag (공연 태그 / 티켓 수)">
-        <Chip variant="tag">밴드</Chip>
-        <div className={sprinkles({ background: 'grey', padding: 2 })}>
-          <Chip variant="tag" tone="plain">
-            2매
-          </Chip>
-        </div>
-      </Row>
-      <Row title="role chip (GUEST는 칩 없음)">
-        <Chip variant="role" tone="master">
-          마스터
-        </Chip>
-        <Chip variant="role" tone="manager">
-          매니저
-        </Chip>
-      </Row>
-      <Row title="Concert state chip small (+ D-day)">
-        <Chip variant="concert" tone="ready">
-          준비중
-        </Chip>
-        <Chip variant="concert" tone="dday">
-          {formatDday(7)}
-        </Chip>
-        <Chip variant="concert" tone="dday">
-          {formatDday(0)}
-        </Chip>
-        <Chip variant="concert" tone="ing">
-          공연중
-        </Chip>
-        <Chip variant="concert" tone="past">
-          지난 공연
-        </Chip>
-      </Row>
-      <Row title="money option chip">
-        <Chip variant="money" amount={1000} />
-        <Chip variant="money" amount={15000} />
-      </Row>
+      {(['sm', 'lg'] as const).flatMap((size) =>
+        (['square', 'round'] as const).map((shape) => (
+          <Row key={`${size}-${shape}`} title={`size=${size}, shape=${shape}`}>
+            {THEMES.flatMap((theme) =>
+              COLORS.map((color) => (
+                <Chip
+                  key={`${theme}-${color}`}
+                  size={size}
+                  shape={shape}
+                  color={color}
+                  theme={theme}
+                >
+                  {color}
+                </Chip>
+              )),
+            )}
+          </Row>
+        )),
+      )}
+    </Flex>
+  ),
+};
+
+export const Colors: Story = {
+  render: () => (
+    <Flex gap={2}>
+      <Chip color="violet">weak</Chip>
+      <Chip color="violet" theme="fill">
+        fill
+      </Chip>
+      <Chip color="violet" theme="border" shape="round" size="lg">
+        border
+      </Chip>
+    </Flex>
+  ),
+  play: async ({ canvas }) => {
+    const style = (text: string) => getComputedStyle(canvas.getByText(text));
+    // brand/primary #633EE7, brand/primary-subtle #F2EEFF
+    await expect(style('weak').backgroundColor).toBe('rgb(242, 238, 255)');
+    await expect(style('weak').color).toBe('rgb(99, 62, 231)');
+    await expect(style('weak').height).toBe('22px');
+    await expect(style('fill').backgroundColor).toBe('rgb(99, 62, 231)');
+    await expect(style('fill').color).toBe('rgb(242, 238, 255)');
+    await expect(style('border').backgroundColor).toBe('rgba(0, 0, 0, 0)');
+    await expect(style('border').borderTopColor).toBe('rgb(99, 62, 231)');
+    await expect(style('border').height).toBe('25px');
+  },
+};
+
+type Preset = Pick<ChipProps, 'size' | 'shape' | 'color' | 'theme'>;
+
+/**
+ * 옛 Tag 5종 → `tag_v2` 대응(2026-10-31 사용자 결정으로 옛 칩을 없앴다, design-system §3).
+ * 색이 같은 것은 그대로, 다른 것은 가장 가까운 것 — 차이는 design-system §3 표.
+ */
+const OLD_TAGS: Array<[string, string, Preset]> = [
+  ['Ticket state chip 승인완료', '승인완료', { color: 'violet' }],
+  ['Ticket state chip 승인대기', '승인대기', { color: 'grey' }],
+  ['Ticket state chip 선물대기', '선물대기', { color: 'red' }],
+  ['Ticket state chip 선물완료', '선물완료', { color: 'green' }],
+  ['tag 공연 태그', '밴드', { shape: 'round' }],
+  ['tag 티켓 수', '2매', { shape: 'round', theme: 'border' }],
+  ['role chip 마스터', '마스터', { size: 'lg', shape: 'round', color: 'purple' }],
+  ['role chip 매니저', '매니저', { size: 'lg', shape: 'round', color: 'cyan' }],
+  ['Concert state chip 준비중', '준비중', { color: 'green' }],
+  ['Concert state chip D-day', formatDday(7), { color: 'red' }],
+  ['Concert state chip 공연중', '공연중', { color: 'red', theme: 'fill' }],
+  ['Concert state chip 지난 공연', '지난 공연', { color: 'grey' }],
+  ['money option chip', formatOptionAmount(1000), { color: 'violet', theme: 'fill' }],
+];
+
+export const OldTagMapping: Story = {
+  render: () => (
+    <Flex direction="column" gap={2}>
+      {OLD_TAGS.map(([name, label, preset]) => (
+        <Flex key={name} gap={3} align="center">
+          <Txt
+            typography="labelSm"
+            color={colors.textSecondary}
+            style={{ display: 'inline-block', width: 200 }}
+          >
+            {name}
+          </Txt>
+          <Chip {...preset}>{label}</Chip>
+        </Flex>
+      ))}
     </Flex>
   ),
 };
 
 /**
- * 서버 티켓 상태 11가지 → 모양 매핑 **예시**(design-system §3 "없는 상태"). 매핑 코드는 쓰는 Phase가 features에 둔다.
- * neutral·danger는 디자이너에게 색을 요청한 임시 모양이다.
+ * GUI 티켓 관리(Ready for dev `767:50048`)가 쓰는 칩 — 판매 상태 round·border, 공개 범위 square·weak.
+ * 서버 상태 → 색 매핑 코드는 P12-V가 features에 둔다.
  */
-const TICKET_STATE_EXAMPLE: Array<
-  [string, Extract<ChipProps, { variant: 'status' }>['tone'], string]
-> = [
-  ['PENDING_APPROVE', 'muted', '승인대기'],
-  ['APPROVED', 'brand', '승인완료'],
-  ['RECEIVED', 'brand', '받은 선물'],
-  ['GIFT_PENDING', 'accent', '선물대기'],
-  ['GIFT_EXPIRED', 'accent', '선물 만료'],
-  ['GIFT_SENT', 'success', '선물완료'],
-  ['REFUSED', 'danger', '승인거절'],
-  ['CANCELED', 'danger', '취소'],
-  ['REFUND_REQUESTED', 'neutral', '환불 요청'],
-  ['REFUNDED', 'neutral', '환불 완료'],
-  ['ENTERED', 'neutral', '입장 완료'],
-];
-
-export const TicketStateMappingExample: Story = {
+export const TicketManagementExample: Story = {
   render: () => (
-    <Flex direction="column" gap={2}>
-      {TICKET_STATE_EXAMPLE.map(([state, tone, label]) => (
-        <Flex key={state} gap={3} align="center">
-          <Txt
-            typography="labelSm"
-            color={colors.textSecondary}
-            style={{ display: 'inline-block', width: 160 }}
-          >
-            {state}
-          </Txt>
-          <Chip variant="status" tone={tone}>
-            {label}
-          </Chip>
-        </Flex>
-      ))}
+    <Flex gap={2}>
+      <Chip shape="round" color="green" theme="border">
+        판매 중
+      </Chip>
+      <Chip shape="round" theme="border">
+        판매 종료
+      </Chip>
+      <Chip shape="round" color="cyan" theme="border">
+        판매 예정
+      </Chip>
+      <Chip>무제한 (공개)</Chip>
     </Flex>
   ),
 };

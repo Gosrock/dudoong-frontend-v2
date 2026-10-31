@@ -982,3 +982,15 @@ v1 Front #384(백엔드 담당 작성, 2026-10-31): v1에서 동의를 안 보�
 - **"전체 동의"는 칸이 없는 만 14세를 켜지 않는다** — 왜: 칸 없이 `ageOver14Confirmed: true`가 실리면 동의 위조다. 되돌리기: `withAllConsents`가 `visibleConsents` 대신 모든 키를 켜게.
 - **주문 동의 값은 RHF 폼 값으로 둔다**(별도 상태 아님) — 왜: 환불 규정 동의(`agreeRefundPolicy`)와 같은 자리이고, 플래그를 켜면 같은 resolver가 칸 오류를 낸다. 두둥 확인은 "입금하셨나요?" 확인에서 `form.setValue`로 켠다(V).
 - **무료 주문은 두둥 확인을 체크값과 상관없이 빼고 보낸다** — 왜: 서버가 두둥만 검사·기록하고, 무료 화면에는 그 칸이 없다. 되돌리기: `toOrderBody`의 `payType === 'DUDOONG'` 조건.
+
+## 디자인 시스템 10-31 판 코드 반영(2026-10-31, `feat/ds-sync-2026-10-31`)
+
+design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
+
+- 토큰: `interaction.disabled` Neutral 300 → 200, `overlay.dim` 70% → 85%(Figma `Background/dimmed`), 전용 토큰 `role.*`·`chip.giftPendingBg` → `chip.cyan`·`cyanSubtle`·`purple`·`purpleSubtle`(`colors.ts`도).
+- **Chip 교체(사용자 결정)**: 옛 Tag 5종(`variant` status·tag·role·concert·money + `tone`)을 없애고 Figma `tag_v2` 하나 — `<Chip size shape color theme>`. 옛 칩 대응과 차이는 design-system §3 "옛 Tag → tag_v2". `formatDday`·`formatOptionAmount`는 그대로 둔다. 쓰는 곳은 스토리뿐이었다(V 시작 전).
+- Button: `tonal` 아이콘만 배경 `brand.secondary` 계열. Dropdown item 36h. Input `leading` 아이콘 16(20 자리). Header: 바깥 끝 아이콘 버튼을 16 더 내보내 아이콘이 화면 끝에서 16(Figma 패딩 8 + 슬롯 40).
+- 아이콘: 11변형 + `lightbulb`(다색, 세트 밖 낱개) 추가, `gift` 12 삭제 → 56종 80개.
+- 확인: typecheck · lint · test(2346) · test:stories(194) 통과. 화면이 아직 없어 Figma와 캡처 비교는 하지 않았다(스토리 `Components/Chip` `FigmaVariants`·`OldTagMapping`).
+- **결정(Claude)**: `tag_v2` small 좌우 10(Figma 직접 값)은 토큰 `space[2]` 8로 — 디자이너에게 토큰 값 요청(design-system §5). Header는 패딩을 바꾸지 않고 끝 버튼 여백으로 맞췄다(로고·아바타 슬롯 위치를 지키려고). primary 2 아이콘만 색은 Figma에 Large만 있어 모든 크기에 같은 규칙.
+

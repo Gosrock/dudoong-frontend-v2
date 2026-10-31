@@ -103,7 +103,8 @@ export const adornment = style([
     whiteSpace: 'nowrap',
   },
 ]);
-globalStyle(`${adornment} > svg`, { width: 20, height: 20 });
+// Figma icon input(2026-10-31): 앞 아이콘 16을 20×20 자리(패딩 2) 가운데에
+globalStyle(`${adornment} > svg`, { width: 16, height: 16, margin: 2 });
 
 /** 칸 아래 — 에러 문구(왼쪽) · 글자 수(오른쪽). GUI 카운터는 칸 아래 4 */
 export const footer = style({

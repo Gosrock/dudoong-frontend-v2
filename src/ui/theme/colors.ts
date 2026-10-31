@@ -64,11 +64,10 @@ export const colors = {
   avatarTeal: vars.color.avatar.teal,
   avatarOrange: vars.color.avatar.orange,
   avatarIndigo: vars.color.avatar.indigo,
-  roleMasterBg: vars.color.role.masterBg,
-  roleMasterText: vars.color.role.masterText,
-  roleManagerBg: vars.color.role.managerBg,
-  roleManagerText: vars.color.role.managerText,
-  chipGiftPendingBg: vars.color.chip.giftPendingBg,
+  chipCyan: vars.color.chip.cyan,
+  chipCyanSubtle: vars.color.chip.cyanSubtle,
+  chipPurple: vars.color.chip.purple,
+  chipPurpleSubtle: vars.color.chip.purpleSubtle,
 
   // 원시 색 (palette)
   neutral50: palette.neutral[50],

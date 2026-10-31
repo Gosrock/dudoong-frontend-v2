@@ -38,11 +38,7 @@ export const ThirdText: Story = { args: { hierarchy: 'third', value: 'value' } }
 export const ThirdBadge: Story = {
   args: {
     hierarchy: 'third',
-    value: (
-      <Chip variant="status" tone="brand">
-        승인완료
-      </Chip>
-    ),
+    value: <Chip color="violet">승인완료</Chip>,
   },
 };
 
@@ -84,15 +80,7 @@ export const AllInOneList: Story = {
       <InfoRow hierarchy="first" label="결제 금액" value="12,000원" />
       <InfoRow hierarchy="second" label="환불 동의" value={<Checkbox aria-label="환불 동의" />} />
       <InfoRow hierarchy="third" label="예매자" value="김두둥" />
-      <InfoRow
-        hierarchy="third"
-        label="상태"
-        value={
-          <Chip variant="status" tone="muted">
-            승인대기
-          </Chip>
-        }
-      />
+      <InfoRow hierarchy="third" label="상태" value={<Chip>승인대기</Chip>} />
       <InfoRow hierarchy="third" label="입금 계좌" account={{ number: '3333-20-4299811' }} />
     </div>
   ),

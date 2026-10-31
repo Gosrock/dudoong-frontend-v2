@@ -104,13 +104,13 @@ export function Header({
   return (
     <header className={[s.root, s.align[grid], className].filter(Boolean).join(' ')}>
       {grid === 'startNoLeading' ? null : (
-        <div className={s.slot}>
+        <div className={`${s.slot} ${s.leadingSlot}`}>
           {back}
           {leading}
         </div>
       )}
       <div className={`${s.center} ${s.centerAlign[effectiveAlign]}`}>{center}</div>
-      <div className={s.slotEnd}>{trailing}</div>
+      <div className={`${s.slotEnd} ${s.trailingSlot}`}>{trailing}</div>
     </header>
   );
 }
