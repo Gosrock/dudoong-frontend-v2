@@ -1063,3 +1063,25 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 - 확인: typecheck · lint · test(2346) · test:stories(194) 통과. 화면이 아직 없어 Figma와 캡처 비교는 하지 않았다(스토리 `Components/Chip` `FigmaVariants`·`OldTagMapping`).
 - **결정(Claude)**: `tag_v2` small 좌우 10(Figma 직접 값)은 토큰 `space[2]` 8로 — 디자이너에게 토큰 값 요청(design-system §5). Header는 패딩을 바꾸지 않고 끝 버튼 여백으로 맞췄다(로고·아바타 슬롯 위치를 지키려고). primary 2 아이콘만 색은 Figma에 Large만 있어 모든 크기에 같은 규칙.
 
+
+## 디자인 시스템 11-01 판 코드 반영(2026-11-01, `9yujin/ds-sync-1101`)
+
+`Design: 디자인 시스템` 이슈 #23 · #25 · #26 · #27 · #28과 이슈 없는 변경(10-31 14:00~16:15Z)을 한 PR로. 비교·값은 design-system §8 "2026-11-01". 변수·텍스트 스타일은 바뀌지 않아 토큰은 그대로다.
+
+- Checkbox: `shape?: 'round' | 'square'`(Figma `type`, #23). square 모서리 `radius[1]`. 기본 round라 기존 사용처는 그대로.
+- Radio(#25·#26): 미선택 테두리 `surface.strongBorder`, disabled 배경 삭제(테두리·점만 `interaction.disabled`). 지름은 원래 20(가운데 정렬과 같음).
+- Toggle(#27): 꺼짐 disabled 트랙 `interaction.disabled`(N200, 옛 N100). 켜짐 disabled는 이미 Violet 100.
+- 다이얼로그(#28): 새 컴포넌트 없이 `Popup`(`Modal compact`)을 DS 모양으로 — 310폭, 안쪽 24, 흰 배경, 본문 `labelSm` `textSecondaryLabel`, 글자 묶음↔버튼 24, 버튼 `md`. `openConfirm` popup 변형이 같이 바뀐다.
+- Button: primary 2 글자만 변형은 기존 `tonal` 규칙과 같아 주석만. 아이콘 슬롯 `ic_blank` 스왑은 코드 영향 없음.
+- Header: 공연 전환형(`switcher`)만 끝 아이콘 버튼이 화면 끝에서 16(Figma `510:1947` 오른쪽 패딩 16, 다른 변형 8).
+- 아이콘: ic_v2(이번에 공개)에서 `gift`·`gift-return`·`gift-cancel` filled 24, `link` 24, 낱개 `important` 24(다색) → 58종 85개.
+- 사용처: `features/*`·`app`에서 Checkbox·Radio·Toggle·Popup·`openConfirm`을 쓰는 곳은 아직 없다(grep). props 이름은 바꾸지 않았다(더하기만).
+- 확인: typecheck · eslint(바꾼 파일) · `vitest related`(42파일 234) · 스토리 테스트(50파일 208) 통과. Storybook 390폭 캡처를 Figma `F shot`(120:1249 · 295:1858 · 77:8 · 758:1714)과 나란히 봄 — 다른 점 없음(팝업은 첫 포커스 [취소] 테두리만 더 있음).
+- **결정(🤖 Claude 판단)**:
+  - Figma `type`(round/square)을 코드 `shape`로 — `type`은 Radix Checkbox(`<button>`)의 HTML 속성과 겹친다. Chip(`variant` → `shape`)과 같은 이름. 되돌리려면 prop 이름만.
+  - 다이얼로그를 새 `Dialog` 컴포넌트로 만들지 않고 `Popup`을 바꿨다 — 같은 역할(되돌리기 어려운 확인, alertdialog), 커스텀 지양. 옛 GUI `567:9468`(342 · Large 버튼 · 회색 배경)과 달라진다. DS가 정본이라 판단.
+  - 다이얼로그에 없는 상태(버튼 하나 · 진행 중 · 추가 내용)는 기존 동작 유지 — Figma 코멘트로 물음.
+  - Radio 미선택 채움: Figma는 채움 없음, 코드는 흰색(`background.normal`)을 유지 — 흰 배경 위에서 같고, 회색 카드 위에서 테두리 안이 비쳐 보이지 않게.
+  - Button primary 2 medium 글자만 45h(Figma) → 46(코드 medium 하나).
+  - 아이콘 이름은 `ic` 체계를 유지하고 ic_v2 그림을 같은 이름으로 넣었다. `icon/link`(`760:2841`)는 REST 내보내기가 비어 있고 `ic_link`와 같은 그림으로 보여 뽑지 않음.
+- **Figma 코멘트**: 디자인 시스템 `758:1714` 다이얼로그 — "[개발 · 디자인 없음] 다이얼로그 — 버튼 하나 · 진행 중 · 추가 내용"(id 1989698280).

@@ -13,11 +13,11 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Figma State=Off */
+/** Figma State=Off, disabled?=false */
 export const Off: Story = {};
-/** Figma State=On */
+/** Figma State=On, disabled?=false */
 export const On: Story = { args: { defaultChecked: true } };
-/** 없는 상태 — disabled(GUI 관리자 승인 여부의 옅은 보라) */
+/** Figma `disabled?=true`(2026-11-01) — 꺼짐 Neutral 200 · 켜짐 Violet 100 */
 export const Disabled: Story = {
   render: (args) => (
     <Flex gap={3}>

@@ -21,10 +21,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = { args: { defaultValue: 'paid' } };
 export const Vertical: Story = { args: { defaultValue: 'paid', orientation: 'vertical' } };
-/** 없는 상태 — disabled */
+/** Figma `disabled?=true`(2026-11-01) */
 export const Disabled: Story = { args: { defaultValue: 'paid', disabled: true } };
 
-/** Figma Radio — selected true/false (+ disabled) */
+/** Figma Radio — selected × disabled?(2026-11-01) */
 export const Matrix: Story = {
   render: () => (
     <Flex direction="column" gap={3}>

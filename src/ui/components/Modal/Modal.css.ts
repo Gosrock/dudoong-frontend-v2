@@ -50,8 +50,15 @@ export const content = style({
   '@media': { [reduced]: { animation: 'none !important' } },
 });
 
-/** 확인 팝업은 GUI 폭(342) 그대로 */
-export const contentCompact = style({ maxWidth: 342 });
+/**
+ * 확인 팝업 = 디자인 시스템 `다이얼로그`(`758:1714`, 2026-11-01): 310폭, 모서리 16(`Radius/5`), 안쪽 24(`Space/5`),
+ * 배경 `Background/normal`(흰색). 글자 묶음(제목·본문 간격 8 `Space/2`)과 버튼 줄 사이 24(`Space/5`) — 간격 8 + footer 위 16.
+ */
+export const contentCompact = style({
+  maxWidth: 310,
+  padding: vars.space[5],
+  background: vars.color.background.normal,
+});
 
 export const header = style({
   display: 'flex',
@@ -81,6 +88,8 @@ export const footer = style({
 
 /** 버튼은 같은 폭으로 나뉜다 */
 globalStyle(`${footer} > *`, { flex: 1 });
+
+globalStyle(`${contentCompact} > ${footer}`, { marginTop: vars.space[4] });
 
 export const closeButton = style({
   display: 'inline-flex',
