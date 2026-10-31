@@ -30,12 +30,18 @@ export type SitemapEvent = { eventId: number; hostId: number | null };
 
 export async function upcomingEventIds(): Promise<number[]> {
   const ids: number[] = [];
+  let truncated = true;
   for (let page = 0; page < MAX_PAGES; page++) {
     const searchParams = new URLSearchParams({ page: String(page), size: String(PAGE_SIZE) });
     const res = await api.get('events', EventListPageSchema, { public: true, searchParams });
     ids.push(...res.content.map((e) => e.eventId));
-    if (!res.hasNext) break;
+    if (!res.hasNext) {
+      truncated = false;
+      break;
+    }
   }
+  // 상한에 닿으면 그 뒤 공연이 빠진다 — 조용히 넘기지 않고 남긴다(그때 generateSitemaps로 나눈다)
+  if (truncated) log('warn', 'sitemap.events_truncated', { resource: 'events', count: ids.length });
   // 페이지 사이에 공연이 끼면 같은 공연이 다음 페이지에 다시 나온다
   return [...new Set(ids)];
 }
@@ -46,25 +52,28 @@ export async function upcomingEventIds(): Promise<number[]> {
  */
 export async function withHosts(eventIds: number[]): Promise<SitemapEvent[]> {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  const out: SitemapEvent[] = [];
+  const results: (SitemapEvent | null)[] = new Array(eventIds.length).fill(null);
   let failedTotal = 0;
-  for (let i = 0; i < eventIds.length; i += CONCURRENCY) {
-    const chunk = eventIds.slice(i, i + CONCURRENCY);
-    const settled = await Promise.allSettled(
-      chunk.map((id) => client.fetchQuery(eventDetailQuery(id))),
-    );
-    settled.forEach((r, j) => {
-      const eventId = chunk[j]!;
-      if (r.status === 'fulfilled') out.push({ eventId, hostId: r.value.host.hostId });
-      else if (!(r.reason instanceof ApiError && r.reason.status === 404)) {
+  let next = 0;
+  // 작업 풀 — CONCURRENCY개가 동시에 돌고, 하나가 끝나면 바로 다음을 꺼낸다(느린 요청 하나가 묶음 전체를 붙잡지 않게)
+  const worker = async () => {
+    while (next < eventIds.length) {
+      const index = next++;
+      const eventId = eventIds[index]!;
+      try {
+        const detail = await client.fetchQuery(eventDetailQuery(eventId));
+        results[index] = { eventId, hostId: detail.host.hostId };
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 404) continue;
         failedTotal++;
-        out.push({ eventId, hostId: null });
+        results[index] = { eventId, hostId: null };
       }
-    });
-  }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, eventIds.length) }, worker));
   // id는 남기지 않는다(tech-decisions §13)
   if (failedTotal) {
     log('warn', 'sitemap.host_lookup_failed', { resource: 'events', count: failedTotal });
   }
-  return out;
+  return results.filter((r) => r !== null);
 }

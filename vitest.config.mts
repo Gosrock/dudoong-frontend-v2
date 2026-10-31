@@ -13,7 +13,11 @@ import { defineConfig } from 'vitest/config';
  */
 export default defineConfig({
   plugins: [react(), vanillaExtractPlugin()],
-  resolve: { tsconfigPaths: true },
+  resolve: {
+    tsconfigPaths: true,
+    // `server-only`는 Next가 빌드 때 제공하는 표식이라 패키지로 설치돼 있지 않다 — 테스트에서는 빈 모듈로 바꿔 src/api/server를 유닛 테스트한다
+    alias: { 'server-only': path.join(import.meta.dirname, 'src/test/server-only-stub.ts') },
+  },
   test: {
     projects: [
       {
