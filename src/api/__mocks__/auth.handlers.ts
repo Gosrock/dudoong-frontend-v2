@@ -139,6 +139,24 @@ function loggedOut() {
   return res;
 }
 
+/**
+ * 5b 가입 전화번호 검사(백엔드 #896 `PhoneNumberVo.validate`, 2.5.2)를 흉내 낸다. 빈 값·공백은 통과(null 저장).
+ * 한국 번호는 유효 번호만 — mock은 휴대폰 `01[016789]` + 7~8자리, 지역번호 `02`·`0[3-6][1-5]` + 7~8자리만 유효로 본다
+ * (`000-0000-0000`·`010-0000-0000` 거절 — libphonenumber의 근사). 해외(`+` 뒤 82가 아님)는 국가번호 포함 10자리 이상이면 통과
+ */
+function isAcceptablePhone(raw: unknown): boolean {
+  if (raw === null || raw === undefined) return true;
+  if (typeof raw !== 'string') return false;
+  if (raw.trim() === '') return true;
+  if (/[^\d\s+()-]/.test(raw)) return false;
+  let digits = raw.replace(/\D/g, '');
+  if (raw.trim().startsWith('+')) {
+    if (!digits.startsWith('82')) return digits.length >= 10;
+    digits = `0${digits.slice(2)}`;
+  }
+  return /^01[016789][1-9]\d{6,7}$/.test(digits) || /^0(2|[3-6][1-5])[1-9]\d{6,7}$/.test(digits);
+}
+
 export const authHandlers = {
   /** 기본: 리프레시 쿠키가 `MOCK_REFRESH_TOKEN`이면 성공, 아니면 403 `AUTH_403_1`. 로그아웃은 언제나 200 */
   byCookie: [
@@ -190,6 +208,7 @@ export const authHandlers = {
         });
       }
       if (isRegistered(who)) return errors.alreadyRegistered(request);
+      if (!isAcceptablePhone(body.phoneNumber)) return errors.userPhoneInvalid(request);
       return loggedIn();
     }),
   ],
