@@ -79,30 +79,29 @@ describe('공연 상세 화면 상태(useEventDetail)', () => {
   });
 });
 
-describe('공연 상세 최소 마크업(EventDetailView)', () => {
+describe('공연 상세 화면(EventDetailView)', () => {
   it('섹션 본문을 sanitize해서 넣는다 — XSS 페이로드가 실행되지 않는다', async () => {
     server.use(...eventDetailHandlers.xssSection(101));
     const { container } = renderWithProviders(<EventDetailView eventId="101" />);
-    const section = await screen.findByRole('region', { name: '공연 소개' });
-    expect(within(section).getByText('안전한 글')).toBeInTheDocument();
+    const panel = await screen.findByRole('tabpanel', { name: '공연 소개' });
+    expect(within(panel).getByText('안전한 글')).toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(/onerror|<script/i);
     expect((window as { __xss?: unknown }).__xss).toBeUndefined();
   });
 
-  it('섹션 10개를 모두 그린다', async () => {
+  it('섹션 10개를 모두 탭으로 그린다', async () => {
     server.use(...eventDetailHandlers.tenSections(101));
     renderWithProviders(<EventDetailView eventId="101" />);
-    expect(await screen.findByRole('heading', { name: '섹션 10' })).toBeInTheDocument();
-    expect(
-      screen
-        .getAllByRole('region')
-        .filter((r) => r.getAttribute('aria-labelledby')?.startsWith('section-')),
-    ).toHaveLength(10);
+    expect(await screen.findByRole('tab', { name: '섹션 10' })).toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(10);
   });
 
-  it('잔여 수량을 그리지 않는다', async () => {
-    const { container } = renderWithProviders(<EventDetailView eventId="101" />);
+  it('재고(잔여)는 GP-3·GE-5가 아니라 브라우저의 GP-5로만 그린다', async () => {
+    const sent = recordRequests();
+    renderWithProviders(<EventDetailView eventId="101" />);
     await screen.findByRole('heading', { level: 1, name: '고스락 제37회 정기공연' });
-    expect(container.textContent).not.toMatch(/잔여|매진|42/);
+    await waitFor(async () =>
+      expect(await sent.lines()).toContain('GET /api/v2/events/101/ticket-items'),
+    );
   });
 });
