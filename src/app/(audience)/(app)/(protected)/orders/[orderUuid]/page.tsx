@@ -1,6 +1,7 @@
 import { isCreatedParam } from '@/features/audience/checkout/model/order-result';
 import { OrderCompleteView } from '@/features/audience/checkout/OrderCompleteView';
 import { OrderDetailView } from '@/features/audience/mypage/OrderDetailView';
+import { AudienceSubHeader } from '@/features/audience/shell/AudienceSubHeader';
 
 /**
  * 주문상세(P9) · 주문 완료(P7, `?created=1`). G11/O-3은 브라우저에서 읽는다(생성 직후에는 체크아웃이 넣어 둔 캐시).
@@ -15,6 +16,9 @@ export default async function OrderPage({
   return isCreatedParam(created) ? (
     <OrderCompleteView orderUuid={orderUuid} created />
   ) : (
-    <OrderDetailView orderUuid={orderUuid} />
+    <>
+      <AudienceSubHeader title="주문상세" fallbackHref="/orders" />
+      <OrderDetailView orderUuid={orderUuid} />
+    </>
   );
 }
