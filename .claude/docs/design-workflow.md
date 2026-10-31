@@ -155,6 +155,14 @@ EOF
 
 ## 9. 완료 기준
 
+**검사 시점(사용자 결정 2026-11-01)** — 덩어리마다 테스트를 쓰고 돌리면 너무 오래 걸려 세 층으로 나눈다. 아래 "게이트 통과"는 **PR CI(`pr-gate`: typecheck · lint · test · test:stories · build) 통과**를 뜻한다.
+
+| 언제 | 돌리는 것 | 하지 않는 것 |
+|---|---|---|
+| 구현 덩어리마다 | `pnpm typecheck`, 바꾼 파일만 eslint, `pnpm exec vitest related <바꾼 파일> --run`, 브라우저로 Figma 눈 비교 | 새 테스트 쓰기, 전체 unit · 스토리 |
+| Phase 끝(PR 직전) 한 번 | 스토리(새 `src/ui` 컴포넌트) · QA 시나리오를 한꺼번에 쓰고 `pnpm qa <feature>`. push해서 PR CI에 맡기고 실패만 고친다 | 로컬 `pnpm test` 전체 · `pnpm test:stories` 전체 |
+| 그룹 끝(`progress.md` "다음 순서"의 그룹 마지막 줄 머지 뒤) | 관제탑이 main에서 `pnpm test:e2e` 전체 · `pnpm qa` 전체 회귀 | — |
+
 **GUI로 구현한 화면**
 
 - [ ] `pnpm qa <feature>` 리포트의 캡처(`qa/reports/<feature>/latest/`)를 그 화면의 Ready 프레임 스크린샷(스킬 `figma_nodes.py shot`)과 **같은 폭으로 나란히** 비교했다 — 모바일 390, PC는 프레임 폭(1440 프레임이면 시나리오 단계에서 `page.setViewportSize`로 1440).
@@ -162,14 +170,14 @@ EOF
 - [ ] 범위 안 차이는 고쳤다. 범위 밖(다른 화면·공용 컴포넌트에 원래 있던 차이)은 고치지 않고 PR 본문에 적었다. 일부러 다르게 한 것은 §8로 남겼다.
 - [ ] §5 판단 표의 모든 "커스텀인데 DS로 가능"에 주석(§6)과 코멘트(§7)가 있다.
 - [ ] 정적 에셋이 모두 정확한 원본이고 자리·크기가 맞다.
-- [ ] 게이트(`pnpm typecheck && pnpm lint && pnpm test`) 통과. 새 `src/ui` 컴포넌트는 스토리가 있다.
+- [ ] 게이트(PR CI) 통과. 새 `src/ui` 컴포넌트는 스토리가 있다.
 - [ ] PR 본문에 비교 결과 표(프레임 · 캡처 · 차이 · 처리)와 반영한 이슈 `Closes #n`.
 
 **와이어로 구현한 화면**
 
 - [ ] QA 캡처를 와이어 프레임과 비교해 구조·문구·동작이 맞다.
 - [ ] DS 토큰·컴포넌트만 썼다(§3) — 리터럴 색·간격·모서리가 없다.
-- [ ] 게이트 통과.
+- [ ] 게이트(PR CI) 통과.
 
 **둘 다**: `gui-screens.md` §0 상태를 갱신했다(§10).
 
