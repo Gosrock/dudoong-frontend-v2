@@ -1,0 +1,14 @@
+{
+  "name": "DuDoong 디자인 트래커",
+  "id": "dudoong-design-tracker",
+  "api": "1.0.0",
+  "main": "plugin/code.js",
+  "ui": "plugin/ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "permissions": ["currentuser"],
+  "enablePrivatePluginApi": true,
+  "networkAccess": {
+    "allowedDomains": ["https://api.github.com"]
+  }
+}

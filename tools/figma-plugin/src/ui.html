@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      /* themeColors: true — Figma가 --figma-color-* 변수를 넣어 준다 */
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        font:
+          12px/1.5 Inter,
+          'Pretendard',
+          system-ui,
+          sans-serif;
+        color: var(--figma-color-text, #222);
+        background: var(--figma-color-bg, #fff);
+      }
+      p {
+        margin: 0 0 8px;
+      }
+      a {
+        color: var(--figma-color-text-brand, #0d99ff);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .muted {
+        color: var(--figma-color-text-secondary, #888);
+      }
+      .error {
+        color: var(--figma-color-text-danger, #e03e1a);
+      }
+      .warn {
+        color: var(--figma-color-text-warning, #b86200);
+      }
+      input[type='text'],
+      input[type='password'],
+      textarea {
+        width: 100%;
+        padding: 8px 10px;
+        border: 1px solid var(--figma-color-border, #ddd);
+        border-radius: 6px;
+        font: inherit;
+        color: inherit;
+        background: var(--figma-color-bg, #fff);
+      }
+      textarea:focus,
+      input:focus {
+        outline: none;
+        border-color: var(--figma-color-border-brand-strong, #0d99ff);
+      }
+      textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+      .primary {
+        width: 100%;
+        margin-top: 12px;
+        padding: 10px;
+        border: 0;
+        border-radius: 6px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--figma-color-text-onbrand, #fff);
+        background: var(--figma-color-bg-brand, #0d99ff);
+        cursor: pointer;
+      }
+      .primary:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+
+      /* 고른 프레임 카드 */
+      .card {
+        padding: 10px 12px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        background: var(--figma-color-bg-secondary, #f5f5f5);
+      }
+      .card .frame {
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .card .frame + .frame {
+        margin-top: 2px;
+      }
+      .card.empty {
+        padding: 24px 12px;
+        text-align: center;
+      }
+      .badge {
+        margin-left: 4px;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: 500;
+        vertical-align: 1px;
+        background: var(--figma-color-bg-success-tertiary, #dff5e3);
+      }
+      .badge.closed {
+        background: var(--figma-color-bg-tertiary, #e6e6e6);
+      }
+      .meta {
+        margin-top: 4px;
+      }
+
+      /* 유형 칩 */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin: 10px 0 0;
+      }
+      .chip {
+        padding: 4px 8px;
+        border: 1px solid var(--figma-color-border, #ddd);
+        border-radius: 14px;
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        cursor: pointer;
+      }
+      .chip.on {
+        border-color: var(--figma-color-border-brand-strong, #0d99ff);
+        color: var(--figma-color-text-brand, #0d99ff);
+        background: var(--figma-color-bg-brand-tertiary, #e5f4ff);
+      }
+
+      .target {
+        margin-top: 10px;
+      }
+      details {
+        margin-top: 16px;
+      }
+      summary {
+        cursor: pointer;
+        color: var(--figma-color-text-secondary, #888);
+      }
+      .history {
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+      }
+      .history li {
+        padding: 4px 0;
+        border-bottom: 1px solid var(--figma-color-border, #eee);
+      }
+      .done {
+        margin-top: 10px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: var(--figma-color-bg-success-tertiary, #dff5e3);
+      }
+      footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+        font-size: 11px;
+      }
+      .steps {
+        margin: 0 0 12px;
+        padding-left: 18px;
+      }
+      .steps li {
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <section id="view-connect" hidden>
+      <p><b>처음 한 번만 GitHub를 연결해요.</b></p>
+      <ol class="steps">
+        <li>
+          <a href="#" id="open-token-page">토큰 만들기 페이지 열기</a> (내용은 미리 채워져 있어요)
+        </li>
+        <li>
+          Repository access → <b>Only select repositories</b> → <b>dudoong-frontend-v2</b> 선택
+        </li>
+        <li>[Generate token] → 나온 토큰을 아래에 붙여 넣기</li>
+      </ol>
+      <input type="password" id="token" placeholder="github_pat_…" autocomplete="off" />
+      <button class="primary" id="connect-button">연결</button>
+      <p id="connect-error" class="error"></p>
+      <p class="muted">조직 관리자 승인이 필요하면 승인 뒤에 보낼 수 있어요.</p>
+    </section>
+
+    <section id="view-file" hidden>
+      <p>이 파일 링크를 한 번만 붙여 넣어 주세요(공유 → 링크 복사).</p>
+      <input type="text" id="file-link" placeholder="https://www.figma.com/design/…" />
+      <button class="primary" id="file-save">저장</button>
+      <p id="file-error" class="error"></p>
+    </section>
+
+    <section id="view-main" hidden>
+      <div id="card"></div>
+
+      <div id="form">
+        <textarea
+          id="description"
+          placeholder="무엇이 바뀌었나요?&#10;첫 줄이 이슈 제목이 돼요.&#10;&#10;예) 판매 수량 기본값을 '수량 지정'으로 바꿨어요"
+        ></textarea>
+        <div class="chips" id="types"></div>
+        <div class="target muted" id="target"></div>
+        <button class="primary" id="submit">이슈 만들기</button>
+        <p id="error" class="error"></p>
+      </div>
+      <div id="done"></div>
+
+      <details id="history-box">
+        <summary id="history-summary"></summary>
+        <ul class="history" id="history"></ul>
+      </details>
+
+      <footer>
+        <span class="muted" id="who"></span>
+        <a href="#" id="disconnect">연결 해제</a>
+      </footer>
+    </section>
+
+    <script>
+      /* build:script */
+    </script>
+  </body>
+</html>

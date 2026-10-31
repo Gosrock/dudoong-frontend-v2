@@ -28,6 +28,8 @@
 | [`figma-structure.md`](./figma-structure.md) | Figma 관측 캐시 |
 | [`implementation-log.md`](./implementation-log.md) | Phase별 구현 기록 |
 
+**디자인 변경 트래킹**: [`../../tools/figma-plugin/README.md`](../../tools/figma-plugin/README.md) — 디자이너가 Figma 플러그인으로 프레임별 변경을 GitHub 이슈(`Design Sync` 라벨, 본문에 `node-id` 링크·노드 번호)로 남긴다. Figma를 전수조사하기 전에 열린 `Design Sync` 이슈부터 본다(2026-10-31).
+
 **스킬**: [`../skills/qa-scenario/SKILL.md`](../skills/qa-scenario/SKILL.md) — 피처의 QA 시나리오를 이 문서들(plan 완료 기준, storyboard, gui-screens, api-contract, patterns §24)로 쓰고 `pnpm qa <feature>`로 실행해 단계별 캡처 HTML 리포트를 만든다(tech-decisions §10).
 
 ## 충돌할 때 우선순위

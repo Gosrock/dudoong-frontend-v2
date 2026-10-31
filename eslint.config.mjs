@@ -170,5 +170,7 @@ export default defineConfig([
     'playwright-report/**',
     'test-results/**',
     'qa/reports/**',
+    // Figma 플러그인 빌드 결과물(tools/figma-plugin/build.mjs)
+    'tools/figma-plugin/plugin/**',
   ]),
 ]);
