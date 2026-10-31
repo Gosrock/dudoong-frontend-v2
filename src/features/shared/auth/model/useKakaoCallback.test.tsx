@@ -178,7 +178,7 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
           marketingAgree: false,
           // 이용약관 체크 값(#850). 만 14세(ageOver14Confirmed)는 칸이 없어 키가 없다(Q42)
           termsAgreed: true,
-          agreementVersion: '2026-10',
+          agreementVersion: '2026-11',
         },
         credentials: 'include',
       },
@@ -204,7 +204,7 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     const sent = recordRequests();
     await act(() => form().submit());
     const [post] = await sent.list();
-    expect(post?.body).toMatchObject({ termsAgreed: true, agreementVersion: '2026-10' });
+    expect(post?.body).toMatchObject({ termsAgreed: true, agreementVersion: '2026-11' });
     expect(post?.body).not.toHaveProperty('ageOver14Confirmed');
     expect(form().error).toBe('failed');
     expect(form().submitting).toBe(false);

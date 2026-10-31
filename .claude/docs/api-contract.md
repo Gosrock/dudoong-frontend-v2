@@ -167,7 +167,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | 옵션 | 이름 20자, 설명 50자(**필수**). 네/아니오 추가금 0~1,000만 원. 응답 형식은 만든 뒤 못 바꾼다 |
 | 주문 | 수량 1~100(`perTicketOptions`도 100개 이하), 입금자명 1~20자, 거절 `reasonText` 20자, 호스트 취소 사유 100자 |
 | 환불 계좌 | 은행명 20자, 예금주 20자, 계좌번호 30자. 계좌번호는 숫자·하이픈·공백만(`^[0-9][0-9 -]*[0-9]$`), 저장 때 공백을 지운다. 티켓 계좌와 제한이 다르다. `bankCode` 규칙은 티켓 계좌와 같다(#804, `V2RefundAccountRequest` @432cce4) |
-| 동의 필드 | `agreementVersion` 50자(#840). 값은 `'2026-10'`(백엔드 Develop 기획서 — v1 티켓 앱 `AGREEMENT_VERSION`과 같은 값, 문구가 바뀌면 올린다). **FE 규칙(2026-10-25 구현)**: 동의 필드는 사용자가 화면에서 체크한 것만 `true`로 싣는다(칸 없이 `true`를 만들지 않는다 — 칸이 없는 필드는 design-requests Q42 대기). `agreementVersion`은 동의 필드가 하나라도 있을 때만 싣는다. 한 곳 `src/api/shared/agreement.ts`(`AGREEMENT_VERSION`·`agreementFields`) |
+| 동의 필드 | `agreementVersion` 50자(#840). 값은 `'2026-11'`(처음 `'2026-10'` — 백엔드 Develop 기획서·v1 티켓 앱 `AGREEMENT_VERSION`과 같은 값. 2026-10-31 약관 일부 개정(v1 Front #385, 2026-11-07 시행)으로 올렸다 — 사용자 결정, v1은 `'2026-10'` 그대로. 문구가 바뀌면 올린다). **FE 규칙(2026-10-25 구현)**: 동의 필드는 사용자가 화면에서 체크한 것만 `true`로 싣는다(칸 없이 `true`를 만들지 않는다 — 칸이 없는 필드는 design-requests Q42 대기). `agreementVersion`은 동의 필드가 하나라도 있을 때만 싣는다. 한 곳 `src/api/shared/agreement.ts`(`AGREEMENT_VERSION`·`agreementFields`) |
 | 선물 메모 | 50자 |
 | 닉네임 | 2~7자 |
 | 검색어 | 50자. GP-2 `tagIds` 50개 이하 |
