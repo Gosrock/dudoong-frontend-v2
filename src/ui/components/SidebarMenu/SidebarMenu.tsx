@@ -19,6 +19,8 @@ export type SidebarMenuItemProps = {
   /** 링크 컴포넌트(기본 `<a>`). 앱에서는 next/link를 넘긴다 — src/ui는 next에 묶이지 않는다 */
   linkAs?: ElementType;
   onClick?: () => void;
+  /** 오버레이(드로어) 안 이동 — `replace`로 연다(patterns §6). `linkAs`가 next/link일 때만 뜻이 있다 */
+  replace?: boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export function SidebarMenuItem({
   badgeLabel,
   linkAs: LinkTag = 'a',
   onClick,
+  replace,
 }: SidebarMenuItemProps) {
   return (
     <LinkTag
@@ -41,6 +44,7 @@ export function SidebarMenuItem({
       className={s.item}
       aria-current={selected ? 'page' : undefined}
       onClick={onClick}
+      {...(replace ? { replace: true } : {})}
     >
       <span className={s.icon}>{icon}</span>
       <span className={s.label}>{children}</span>

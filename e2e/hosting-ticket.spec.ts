@@ -8,6 +8,13 @@ import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { MOCK_S3_ORIGIN } from '@/api/__mocks__/upload-handlers';
 
 import { setMockSession } from './support/auth';
+import {
+  eventMenu,
+  goEventMenu,
+  pickFakeAddress,
+  pickOption,
+  routeEventSdks,
+} from './support/event-scope';
 import { expect, test } from './support/fixtures';
 
 /**
@@ -24,8 +31,7 @@ test.afterEach(resetStores);
 
 const cards = (page: Page) => page.getByTestId('ticket-card');
 const card = (page: Page, name: string) => cards(page).filter({ hasText: name });
-const menu = (page: Page) =>
-  page.getByRole('navigation', { name: '공연 메뉴' }).getByRole('listitem');
+const menu = eventMenu;
 
 /** 관객 GP-5(공개) — 판매 기간 안의 티켓 id */
 async function publicTicketIds(page: Page, eventId: number) {
@@ -256,13 +262,7 @@ test.describe('티켓 있는 공연의 등록 완주(P11이 남긴 것)', () => 
     await page.route(`${MOCK_S3_ORIGIN}/**`, (route) =>
       route.fulfill({ status: 200, headers: S3_CORS, body: '' }),
     );
-    await page.route('https://dapi.kakao.com/**', (route) =>
-      route.fulfill({
-        contentType: 'application/javascript',
-        body: `window.kakao = { maps: { load: (cb) => cb(), services: { Status: { OK: 'OK' },
-          Geocoder: class { addressSearch(a, cb) { cb([{ x: '126.9219', y: '37.5509' }], 'OK'); } } } } };`,
-      }),
-    );
+    await routeEventSdks(page);
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/new/events?hostId=11');
     await page.getByRole('button', { name: '다음' }).click();
@@ -270,46 +270,50 @@ test.describe('티켓 있는 공연의 등록 완주(P11이 남긴 것)', () => 
     await page.getByLabel('날짜').fill('2030-12-01');
     await page.getByLabel('시작 시각').fill('19:00');
     await page.getByLabel('종료 시각').fill('21:00');
-    await page.getByLabel('티켓 있음').check();
-    await page.getByRole('button', { name: '공연 만들기' }).click();
+    await page.getByRole('radio', { name: '티켓 있음' }).click();
+    await page.getByRole('button', { name: '완료' }).click();
     await expect(page).toHaveURL(/\/hosting\/events\/7001\/dashboard/);
 
     // 기본 정보
-    await menu(page).getByRole('link', { name: '기본 정보' }).click();
+    await goEventMenu(page, '기본 정보');
     await page.getByLabel('포스터 올리기').setInputFiles(PNG);
     await expect(page.getByTestId('poster').getByRole('img')).toBeVisible();
-    await page.getByLabel('주소 검색').fill('서울 마포구 어울마당로 35');
-    await page.getByRole('button', { name: '주소 선택' }).click();
-    await expect(page.getByTestId('place-coords')).toHaveText('37.5509, 126.9219');
+    await pickFakeAddress(page);
+    await expect(page.getByTestId('place-map')).toHaveAttribute('data-lat', '37.5509');
     await page.getByLabel('공연장 이름').fill('롤링홀');
-    await page.getByLabel('문의처 유형 1').selectOption('INSTAGRAM');
-    await page.getByLabel('문의처 1').fill('@gosrock');
+    await pickOption(page, '문의처 유형 1', '인스타그램');
+    await page.getByLabel('문의처 1', { exact: true }).fill('@gosrock');
     await page.getByRole('button', { name: '저장하기' }).click();
-    await expect(page.getByRole('status')).toHaveText('저장했어요');
+    await expect(page.getByText('저장했어요')).toBeVisible();
 
     // 상세 정보
-    await menu(page).getByRole('link', { name: '상세 정보' }).click();
-    await page.getByLabel('본문 1', { exact: true }).fill('<p>겨울 정기공연에 초대합니다</p>');
+    await goEventMenu(page, '상세 정보');
+    await page.getByRole('textbox', { name: '공연소개 본문' }).fill('겨울 정기공연에 초대합니다');
     await page.getByRole('button', { name: '저장하기' }).click();
-    await expect(page.getByRole('status')).toHaveText('저장했어요');
+    await expect(page.getByText('저장했어요')).toBeVisible();
 
     // ③ 티켓이 없어 2/3 — 등록할 수 없다
-    await menu(page).getByRole('link', { name: '대시보드' }).click();
+    await goEventMenu(page, '대시보드');
     await expect(page.getByTestId('checklist-progress')).toHaveText('2/3');
     await expect(page.getByRole('button', { name: '공연 등록하기' })).toBeDisabled();
 
     // 티켓 관리 → 두둥 티켓
-    await menu(page).getByRole('link', { name: '티켓 관리' }).click();
+    await goEventMenu(page, '티켓 관리');
     await page.getByRole('link', { name: '새 티켓 만들기' }).click();
     await fillDudoongForm(page, '일반 예매');
     await page.getByRole('button', { name: '티켓 만들기' }).click();
     await expect(card(page, '일반 예매')).toBeVisible();
 
     // ③이 찼다 → 등록
-    await menu(page).getByRole('link', { name: '대시보드' }).click();
+    await goEventMenu(page, '대시보드');
+    // 다 채운 순간 → "등록 준비 완료" 팝업을 닫고 등록
+    const ready = page.getByRole('alertdialog', { name: '공연 등록 준비가 완료되었어요!' });
+    await expect(ready).toBeVisible();
+    await ready.getByRole('button', { name: '확인' }).click();
     await expect(page.getByTestId('checklist-progress')).toHaveText('3/3');
     await page.getByRole('button', { name: '공연 등록하기' }).click();
-    await expect(page.getByTestId('registered-notice')).toHaveText('공연이 등록되었습니다.');
+    await page.getByRole('alertdialog').getByRole('button', { name: '등록' }).click();
+    await expect(page.getByText('공연이 등록되었습니다.')).toBeVisible();
     await expect(menu(page)).toHaveCount(6);
     expect(await publicTicketIds(page, 7001)).toEqual([8101]);
   });

@@ -61,17 +61,21 @@ function useGuestsBadge(scope: Scope) {
 function EventSidebarBody({
   scope,
   active,
-  onNavigate,
+  inOverlay,
 }: {
   scope: Scope;
   active: EventMenuKey | null;
-  onNavigate?: () => void;
+  /**
+   * 드로어 안 — 이동은 `replace`(patterns §6, 오버레이 history 항목 위에 쌓지 않는다). 경로가 바뀌면 `OverlayRouteReset`이 닫는다.
+   * 지금 화면 메뉴를 누르면 경로가 안 바뀌므로 그때만 직접 닫는다
+   */
+  inOverlay?: { close: () => void };
 }) {
   const { event } = scope;
   const badge = useGuestsBadge(scope);
   return (
     <>
-      <Link href="/hosting" className={s.back} onClick={onNavigate}>
+      <Link href="/hosting" className={s.back} replace={Boolean(inOverlay)}>
         <Icon name="chevron-left" />
         <Txt typography="labelLg">내 공연</Txt>
       </Link>
@@ -104,7 +108,8 @@ function EventSidebarBody({
                   linkAs={Link}
                   href={m.href}
                   selected={selected}
-                  onClick={onNavigate}
+                  replace={Boolean(inOverlay)}
+                  onClick={selected ? inOverlay?.close : undefined}
                   icon={
                     selected && m.key === 'dashboard' ? (
                       <Icon name="dashboard" variant="filled" />
@@ -142,7 +147,11 @@ function ActiveSidebar({ scope }: { scope: Scope }) {
  */
 export function EventSidebar({ scope }: { scope: Scope }) {
   return (
-    <nav aria-label="공연 메뉴" className={`${s.sidebar} ${s.desktopSidebar}`}>
+    <nav
+      aria-label="공연 메뉴"
+      className={`${s.sidebar} ${s.desktopSidebar}`}
+      data-testid="event-sidebar"
+    >
       <Suspense fallback={<EventSidebarBody scope={scope} active={null} />}>
         <ActiveSidebar scope={scope} />
       </Suspense>
@@ -207,13 +216,13 @@ function openEventMenuDrawer(scope: Scope, active: EventMenuKey | null) {
       headerTrailing={<HeaderBell />}
     >
       <nav aria-label="공연 메뉴" className={`${s.sidebar} ${s.drawerSidebar}`}>
-        <EventSidebarBody scope={scope} active={active} onNavigate={close} />
+        <EventSidebarBody scope={scope} active={active} inOverlay={{ close }} />
       </nav>
     </Drawer>
   ));
 }
 
-/** 제목 ▾ → 공연 전환 시트(디자인 없음, Q37 기본안). 내 공연(GE-1) 목록 — 고르면 그 공연의 대시보드로 */
+/** 제목 ▾ → 공연 전환 시트(디자인 없음, Q37 기본안). 내 공연(GE-1) 목록 — 고르면 그 공연의 대시보드로(시트 안 이동이라 `replace`) */
 function openEventSwitchSheet(currentEventId: number) {
   overlay.open(({ isOpen, close, unmount }) => (
     <BottomSheet
@@ -265,9 +274,10 @@ function EventSwitchList({
             <li key={e.eventId}>
               <Link
                 href={`/hosting/events/${e.eventId}/dashboard`}
+                replace
                 className={s.switchRow}
                 aria-current={current ? 'page' : undefined}
-                onClick={onPick}
+                onClick={current ? onPick : undefined}
               >
                 <Flex direction="column" gap={1} style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <Txt typography={current ? 'labelLgEmphasized' : 'labelLg'} lines={1}>

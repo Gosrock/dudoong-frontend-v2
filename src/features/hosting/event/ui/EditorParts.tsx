@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useEffect, useId } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import { Button } from '@/ui/components/Button/Button';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
@@ -14,7 +14,7 @@ import * as s from './EditorParts.css';
 
 /**
  * 폼 칸 묶음 — GUI 기본 정보(`748:33471` 등): 제목 `Heading/md2 - emphasized` + 필수 `*`(`text/danger-label`) + 안내 `Body/md`,
- * 위아래 16 · 칸 사이 10(→ 8). `legend`가 아니라 제목 + `role="group"`(칸마다 aria-label을 따로 단다)
+ * 위아래 16 · 칸 사이 10(→ 8). `legend`가 아니라 제목(h2) + 칸마다 aria-label
  */
 export function FormSection({
   title,
@@ -29,12 +29,12 @@ export function FormSection({
   children: ReactNode;
   testId?: string;
 }) {
-  const id = useId();
+  // 묶음 자체에는 이름을 달지 않는다 — 칸마다 같은 이름의 aria-label이 있어 겹친다
   return (
-    <section className={s.section} aria-labelledby={id} data-testid={testId}>
+    <div className={s.section} data-testid={testId}>
       <Flex direction="column" gap={1}>
         <Txt as="h2" typography="headingMd2Emphasized">
-          <span id={id}>{title}</span>
+          {title}
           {required && (
             <Txt color={colors.textDangerLabel} typography="headingMd2Emphasized">
               <span aria-hidden>*</span>
@@ -49,7 +49,7 @@ export function FormSection({
         )}
       </Flex>
       {children}
-    </section>
+    </div>
   );
 }
 
@@ -134,12 +134,17 @@ export function useLeaveGuard(dirty: boolean) {
       if (url.pathname === location.pathname && url.search === location.search) return;
       e.preventDefault();
       e.stopPropagation();
+      // 드로어 안 링크는 오버레이 안 이동이라 replace(patterns §6)
+      const inOverlay = Boolean(a.closest('[role="dialog"]'));
       void openConfirm({
         title: '저장하지 않고 나갈까요?',
         description: '바꾼 내용이 저장되지 않아요.',
         confirmLabel: '나가기',
       }).then((ok) => {
-        if (ok) router.push(url.pathname + url.search + url.hash);
+        if (!ok) return;
+        const to = url.pathname + url.search + url.hash;
+        if (inOverlay) router.replace(to);
+        else router.push(to);
       });
     };
     window.addEventListener('beforeunload', onBeforeUnload);

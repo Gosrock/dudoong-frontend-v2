@@ -1178,3 +1178,55 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **Figma 코멘트(디자인 없음, 2026-11-01-impl)**: 와이어 `424:11681` "[개발 · 디자인 없음] 공연준비 홈 공연 카드 ⋮ 메뉴"(1989702352) · `424:11669` "… 목록의 불러오는 중 · 실패 · 더 불러오기"(PC 호스트 탭·빈 상태 포함, 1989702355) · `495:14825` "… 새 호스트 만들기 하단 버튼 · 연락처 줄"(1989702357). 403 화면은 Figma에 감쌀 노드가 없어 코멘트 대신 여기와 PR에만 적는다.
 **범위 밖**: dev 서버 로그의 "Could not validate that a segment in your UI has instant navigation"(`/hosting/new/hosts`·`/hosting/hosts/[hostId]/members` — Cache Components 개발 검증 경고, 이 PR 전부터 있음). Ready 목록 23 → 35(관객 결제·공연홈·티켓탭 12개 — gui-screens §0 머리 갱신은 관제탑 몫)
 **검사**: typecheck · 바꾼 파일 eslint · `vitest related`(2373) · e2e `hosting`·`hosting-event`·`hosting-host`(114) · QA `pnpm qa hosting-home` 18/18(HH-1~9 × mobile · desktop). 전체 게이트는 PR CI
+
+## P11-V — 공연 사이드바 · 대시보드(등록 전) · 기본/상세 정보 · 간편 만들기 (뷰)
+
+**상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것: 실제 카카오맵·우편번호 SDK(키·도메인) 실환경 확인(QA HE-11 수동)
+**근거(gui-screens §0)**: GUI 2026-10-31T17:04Z 판(버전 `2416543601942970448`) Ready for dev 35개 그대로. **GUI** — 대시보드 등록 전 `727:23088`(0/3)·`745:32167`(3/3)·`727:23210`(PC 1440), 기본 정보 `748:33351`·`748:33451`·`748:34006`(PC 1440), 상세 정보 `767:39585`·`767:39645`(PC 1440), 공연 사이드바(위 PC 프레임 안 `727:23214`·`748:34010`). **와이어** — 간편 만들기 `108:2136`·`108:2158`·`108:2168`·`108:2200`, 등록 준비 완료 `424:11318`·등록 확인 `424:9837`·토스트 `424:11427`(문구만). 열린 Design Sync 이슈 #19·#29·#30은 티켓탭 — 이 화면과 무관. 디자인 시스템 기준 버전 `2416531042358919300` 그대로(반영 대기 없음)
+**변경**
+- `src/ui` 새 컴포넌트(스토리 포함): `SidebarMenu`(`SidebarMenuItem` — DS `사이드바 메뉴` `91:913` true/false/alert, `linkAs`, 배지)
+- `features/hosting/event/ui/`: `EventScopeNav`(PC 공연 사이드바 · 모바일 공연 헤더 · ☰ 공연 메뉴 드로어 · 제목 ▾ 공연 바꾸기 시트 · 읽기 전용 안내 — 활성 메뉴는 `useSelectedLayoutSegment` 말단 + 자체 Suspense), `EditorParts`(`FormSection`·`FieldError`·하단 고정 바 `EditorBottomBar`·이탈 경고 `useLeaveGuard`), `PlaceParts`(우편번호 창 `openAddressSearch` · 지도 `KakaoMapPreview`), `SectionEditor`(Tiptap — StarterKit + Image, 드래그 앤 드롭·붙여 넣기 업로드)
+- 화면: `EventDashboardView`(등록 전 — 머리 · 체크리스트 · 유의사항 · 등록 확인 · 준비 완료 팝업 · 만든/등록 토스트. 등록 후 부분은 P13a 최소 마크업 그대로), `EventInfoView`, `EventDetailView`, `NewEventView`, `EventScopeView`(사이드바·헤더 연결)
+- model(L 소폭): `daum-postcode.ts`(새 — 우편번호 스크립트 로더), `kakao-geocoder.ts`(`loadKakaoMaps` export + 지도 타입), `checklist.ts` ③ 라벨 "티켓 만들기" → GUI 문구 "하나 이상의 티켓 생성"
+- 셸: `HostingShell.css` 공연 안에서는 로고 헤더 숨김(`:has([data-event-scope])`)
+- `api/shared/date.ts` `formatKstDotDateWeekday`(더하기만). 의존성 `@tiptap/react`·`pm`·`starter-kit`·`extension-image` 3.32.0
+- e2e: `hosting-event`·`hosting-ticket`·`hosting-checkin` spec을 V 마크업으로(공용 도우미 `e2e/support/event-scope.ts` — 메뉴 이동 PC/모바일, Radix 드롭다운, 카카오맵·우편번호 가짜). QA `qa/scenarios/hosting-event.qa.ts` HE-1~10(+ HE-11 수동)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 포스터 미리보기 | QA HE-4(올리면 그 자리 미리보기 + [이미지 수정]), e2e 완주 |
+| 다 채우면 "등록 준비 완료" 모달, 등록하면 사이드메뉴 바뀜 + 토스트 | e2e `hosting-event` 완주(준비 완료 팝업 → 등록 확인 → 토스트 → 메뉴 6개), QA HE-2(3/3 · 확인 팝업) |
+| 등록된 공연 저장 → 안내 팝업 | QA HE-5, e2e 「등록된 공연 수정」 2건 |
+| 섹션 저장 전체 교체 UI · 일반 멤버 읽기 전용 | QA HE-6(탭 빼기 확인 문구 "저장하면 공연 상세에서도 이 탭이 사라져요" + PUT 본문), HE-7 |
+| PC 사이드바 등록 전 4 · 후 6 · 내 공연 · 카드 · 공연 페이지 보기 / 모바일 "대시보드 ▾ / 공연명" | QA HE-1 · HE-3(PC 1440 · 모바일 드로어 · 공연 바꾸기 시트) |
+| 저장할 수 없으면 [미리보기] 안 열림 · 지도 미리보기 좌표 마커 | QA HE-4(빈 폼 비활성 → 바꾸면 열림, 지도 칸 data-lat/lng) — 실제 SDK는 HE-11 수동 |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`)** — 대시보드 1440·390(Figma `727:23210`·`727:23088`와 배치·문구 같음), 드로어·공연 바꾸기 시트, 기본 정보 1440·390(가짜 SDK 주입으로 주소 → 지도), 미리보기, 이탈 경고, 상세 정보 1440·390, 탭 추가·입력·미리보기·저장 → 체크리스트 ②, 간편 만들기 390 Step1 → Step2 → 대시보드 + 토스트. 고친 것: 상세 정보 숨은 탭 패널이 자리를 차지(`display:flex`가 `[hidden]`을 덮음 → `&[hidden]` 규칙), 우편번호 창 콜백 ref를 렌더 중에 쓰던 것(effect로)
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. Q37 기본안 — ☰ = PC 사이드바와 같은 내용의 전체 화면 드로어(검정 면을 드로어 안에 둠), 제목 ▾ = "공연 바꾸기" 바텀시트(GE-1 내 공연, 고르면 그 공연 대시보드) / design-requests Q37 기본안 / `EventScopeNav` `openEventMenuDrawer`·`openEventSwitchSheet`
+2. 사이드바 hover = 선택 배경과 같은 #F7F7F6 10%, 카드 둘째 줄 = "호스트 · D-n"(준비중은 dDay가 없어 호스트만), 예매자 관리 배지 = 승인 대기 수(`newBadgeCountOf`, 등록 후만 GD-1) / DS `사이드바 메뉴` · Q39 8번 기본안 / `SidebarMenu.css`·`useGuestsBadge`
+3. "공연 페이지 보기"는 새 탭(`target=_blank`) — Figma 아이콘이 `pop out` / `EventSidebarBody`
+4. 대시보드 머리: 값이 없는 줄(일자·시간·장소·태그)은 뺀다, 시간 줄 `(N분)`은 `runTime`, 상태 칩은 공연준비 홈과 같은 매핑(`eventChipOf` — GUI 옛 Concert state chip → `tag_v2`). 연필 = DS Button dark sm 아이콘만(Figma 34 원 → 32 정사각, FIGMA-CUSTOM + 코멘트) / `EventHead`
+5. 체크리스트: 행 전체가 그 화면 링크, 체크 원은 DS `Box` 모양만(입력 아님), 면제 ③은 체크 + "(티켓 없는 공연이라 필요 없어요)", 진행 n/3은 화면에 없어 숨긴 글자 / `ChecklistSection`
+6. 등록 확인 = `openConfirm`(DS Popup) 제목 "공연을 등록할까요?" + 와이어 `424:9837` 문구, [등록]. 준비 완료 = Popup "공연 등록 준비가 완료되었어요!"(와이어 `424:11318` — 와이어의 [등록하러 가기]는 대시보드라 [확인]). 토스트 "새로운 공연이 추가되었습니다!"(GUI `298:2617`) · "공연이 등록되었습니다."(와이어) · "저장했어요" / `EventDashboardView`·`useSavedNotice`
+7. 등록된 공연 저장 안내 = Popup "저장했어요" + "이미 예매한 관객에게는 바뀐 내용이 따로 알려지지 않아요. 꼭 알려야 하는 변경이면 직접 안내해 주세요." / `REGISTERED_SAVED_*`
+8. 기본 정보 PC 두 열은 1280부터, 1024~1279는 한 열(칸 최대 600) — Q39 7번(2열 접힘 폭 없음) / `EventInfoView.css` `columns`
+9. 토큰 반올림: 머리 위아래 28 → 24, 두 열 간격 50 → 48, 체크리스트 패딩 24·20 → 24, 칸 묶음 사이 10 → 8, 포스터 모서리 9.8 → 10 / 각 `.css.ts`
+10. 주소 칸 = DS Search Field 모양을 `Input` + 돋보기 버튼으로(읽기 전용, 누르면 우편번호 창 — 직접 입력 없음 P11-L 결정 8). 우편번호는 `embed`로 PC 모달 · 모바일 바텀시트 안에(새 창 `open()`은 웹뷰에서 막힐 수 있어). 지도 칸 빈 상태 "주소를 검색하면 지도가 보여요" · 실패 "지도를 불러오지 못했어요"(키 없음 포함 — 로컬 폴백) / `PlaceParts`
+11. 태그는 분류 없이 한 목록(GUI 그대로), 모바일 4열 · PC 7열, 최대 10개(`EVENT_TAGS_MAX`) / `EventInfoView` 태그
+12. 포스터 지우기 버튼은 그리지 않는다(Figma에 없음 — L `poster.remove`는 남김). 포스터 PC 270 가운데 · 모바일 180 / `PosterSection`
+13. [미리보기] 기본 정보 = 모달(모바일 시트)에 포스터 · 공연명 · 일자 · 시간 · 장소 · 태그(지금 칸 값), 상세 정보 = 관객 섹션 뷰어(P5b `SectionViewer` + sanitize)로 탭별 본문 / `openInfoPreview`·`openSectionsPreview`
+14. 이탈 경고 — 같은 출처 링크 클릭을 가로채 Popup "저장하지 않고 나갈까요?" [취소][나가기] + 새로고침·닫기는 `beforeunload`. 브라우저 뒤로가기는 막지 않는다(App Router에 이동 차단 API 없음) / `useLeaveGuard`
+15. 상세 정보: 탭 아래 "탭 이름" 칸(20자) + [탭 빼기](확인 Popup), 툴바 [굵게][소제목][목록][이미지](DS Button secondary sm), 10개면 + 숨김, 새 탭 이름 비어 있으면 탭에 "새 탭" / `EventDetailView`·`SectionEditor`
+16. 간편 만들기(와이어): 페이지 머리 "간편 공연만들기"(뒤로 — Step1은 공연준비 홈, Step2는 history back, 호스트 만들기 중이면 취소), 진행 막대 = `inactiveBg` 바탕 + 검정 채움, 호스트 줄 = 회색 상자 + 고르면 검정 테두리 + 역할 칩(공연준비 홈과 같은 매핑), 고를 수 없는 호스트는 흐린 글자 + "일반 멤버라 고를 수 없어요", 와이어에 없는 [다음]을 아래 고정(L `goToStep2`), Step1 안 호스트 만들기의 버튼은 와이어대로 "다음", Step2 "완료", PC는 가운데 600 / `NewEventView`
+17. 숫자 날짜 칸은 브라우저 기본 날짜·시각 입력(DS DatePicker/TimePicker) — GUI "2026-12-27 (일요일)" 표기와 다르다(로케일 표시) / DS 그대로
+18. 체크리스트 ③ 라벨을 GUI 문구 "하나 이상의 티켓 생성"으로(L 잠정 "티켓 만들기") / `checklist.ts` `ROWS`
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`)
+- `[개발 · DS 컴포넌트로 구현]` GUI `727:23261` 대시보드 머리 연필 버튼(1989708671) — 코드 `FIGMA-CUSTOM:` 주석 `EventDashboardView`
+- `[개발 · 디자인 없음]` GUI `727:23097` 모바일 헤더 ☰ · 제목 ▾(1989708674) · `727:23214` 사이드바 hover · 준비중 D-n · 배지 뜻(1989708677) · `727:26249` 체크리스트 1/3·2/3 · 면제 · 로딩/실패 · 등록 팝업·토스트(1989708680) · `748:34508` 주소 검색 창 · 지도 빈/실패(1989708683) · `748:34686` 미리보기 · 저장 안내 · 이탈 · 좁은 PC(1989708685) · `767:40044` 에디터 툴바 · 탭 이름/빼기 · 최대 개수 · 미리보기(1989708687) · 와이어 `108:2140` 간편 만들기 고른 상태 · 고를 수 없는 호스트 · [다음] · PC(1989708688)
+
+**범위 밖(고치지 않음)**: 등록 후 대시보드 통계·일정 패널(P13a-V — 머리만 공용), 티켓 관리 화면(P12-V), 공연준비 홈 ⋮ 삭제 확인(P10a-V가 이미 DS Popup `openConfirm` "공연을 삭제할까요?" — 그대로 둠), mock 호스트 이미지 주소가 안 열림(목 데이터), dev 서버 "Could not validate … instant navigation"(이 PR 전부터), Button 안 24 아이콘이 Figma 18보다 큼(`Button` 공용)

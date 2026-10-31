@@ -24,7 +24,7 @@ export const desktopSidebar = style({
   display: 'none',
   '@media': {
     [media.desktop]: {
-      display: 'block',
+      display: 'flex',
       position: 'sticky',
       top: 0,
       height: 'calc(100dvh - 58px)',
