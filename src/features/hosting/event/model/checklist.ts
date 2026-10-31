@@ -20,7 +20,7 @@ export type ChecklistItem = {
 const ROWS: { key: ChecklistItem['key']; label: string; menu: EventMenuKey }[] = [
   { key: 'basic', label: '기본 정보 입력', menu: 'info' },
   { key: 'detail', label: '상세 정보 입력', menu: 'detail' },
-  { key: 'ticket', label: '티켓 만들기', menu: 'tickets' },
+  { key: 'ticket', label: '하나 이상의 티켓 생성', menu: 'tickets' },
 ];
 
 export function checklistItemsOf(eventId: string | number, c: EventChecklist): ChecklistItem[] {

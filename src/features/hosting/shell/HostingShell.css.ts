@@ -18,7 +18,9 @@ export const mobileHeader = style({
   '@media': { [media.desktop]: { display: 'none' } },
 });
 
-/** 공연 안 모바일 헤더("대시보드 ▾ / 공연명" + 벨)는 P11-V가 같은 방식(`:has`)으로 바꿔 끼운다 */
+/** 공연 안에서는 로고 헤더 대신 공연 헤더("대시보드 ▾ / 공연명" + 벨 — P11-V `EventMobileHeader`)가 나온다. 같은 DOM, CSS `:has`로 */
+globalStyle(`${root}:has([${EVENT_SCOPE_ATTR}]) ${mobileHeader}`, { display: 'none' });
+
 export const desktopOnly = style({
   display: 'none',
   '@media': { [media.desktop]: { display: 'flex' } },
