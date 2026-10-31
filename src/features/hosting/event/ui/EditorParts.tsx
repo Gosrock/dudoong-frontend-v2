@@ -68,34 +68,41 @@ export function FieldError({ children }: { children: ReactNode }) {
 /**
  * 하단 고정 바 [미리보기][저장하기] — 모바일 `748:33553`(primary 2 Large 121 + Primary Large, 좌우 24 · 위아래 36),
  * PC `748:34686`(오른쪽 정렬 primary 2 medium + Primary medium 229, 위 테두리 `surface/default-border`).
- * 미리보기는 저장할 수 있을 때만 연다(plan P11 V — 코멘트 Nemin 09-20)
+ * 미리보기는 저장할 수 있을 때만 연다(plan P11 V — 코멘트 Nemin 09-20).
+ * `onPreview`를 주지 않으면 [저장]만 그린다(호스트 설정 P10b — 와이어 `503:32374`).
  */
 export function EditorBottomBar({
-  canPreview,
+  canPreview = false,
   onPreview,
   canSave,
   saving,
   formId,
+  saveLabel = '저장하기',
 }: {
-  canPreview: boolean;
-  onPreview: () => void;
+  canPreview?: boolean;
+  /** 없으면 [미리보기]를 그리지 않는다 */
+  onPreview?: () => void;
   canSave: boolean;
   saving: boolean;
   /** 저장 버튼이 제출할 폼 */
   formId: string;
+  /** 저장 버튼 글자. 기본 "저장하기" */
+  saveLabel?: string;
 }) {
   return (
     <div className={s.bottomBar}>
       <div className={s.bottomInner}>
-        <Button
-          variant="tonal"
-          className={s.previewButton}
-          icon={<Icon name="preview" />}
-          disabled={!canPreview}
-          onClick={onPreview}
-        >
-          미리보기
-        </Button>
+        {onPreview && (
+          <Button
+            variant="tonal"
+            className={s.previewButton}
+            icon={<Icon name="preview" />}
+            disabled={!canPreview}
+            onClick={onPreview}
+          >
+            미리보기
+          </Button>
+        )}
         <Button
           type="submit"
           form={formId}
@@ -103,7 +110,7 @@ export function EditorBottomBar({
           disabled={!canSave}
           loading={saving}
         >
-          저장하기
+          {saveLabel}
         </Button>
       </div>
     </div>

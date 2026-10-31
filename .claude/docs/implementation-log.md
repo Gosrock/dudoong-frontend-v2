@@ -1641,6 +1641,79 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 **범위 밖(고치지 않음)**: Kartrider 글꼴 미탑재(공연명이 Pretendard), DS `EmptyState` 문구가 Figma(옅은 회색 · 큰 글자)보다 진함(공용 컴포넌트), DS `BottomSheet` 제목 왼쪽 정렬 · 손잡이 화살표(공용 — 코멘트), mock 포스터 주소가 안 열려 캡처의 카드가 빈 상자(목 데이터), 층이 열려도 티켓탭의 겹친 카드 모서리가 딤 아래로 비침(Figma 입장 QR 프레임에는 겹친 카드가 없음 — 층 아래 원래 화면)
 
+## P10b-V — 호스트 설정 · 멤버 관리 · 초대 · 역할 변경 · 양도 · 권한 가이드 (뷰)
+
+**상태**: done (2026-11-01, PR #69) — 스킬 `gui-implement`. 남은 것 없음(그려지지 않은 상태는 Figma 코멘트로 물음). 이 PR로 그룹 D(관객 조회) 끝
+**근거(gui-screens §0)**: **와이어** — 설정 GUI `741:31172`는 Ready 밖(`ready --contains`, GUI 2026-10-31T19:18Z 판), 멤버 GUI 없음. 와이어 `503:32374`([매니저뷰] 호스트 홈_설정) · 멤버 흐름 `503:30866`(호스트_마스터v1.0 — 목록 `503:30922` · ⋮ `503:31732` · 권한 변경 `503:31833` · 완료 `503:31972` · 양도 `503:32075` · 완료 `503:32266` · 초대 `503:31067`/`503:32779` · 권한 가이드 `503:30950`). 열린 Design Sync 이슈 #19·#29·#30·#61은 무관. 디자인 시스템 기준 버전 `2416576694112599706` 그대로
+**변경**
+- `features/hosting/host/HostSettingsView` — L 최소 마크업을 화면으로: `Header`("호스트 설정", ← 호스트 홈) · 호스트 이름* · 소개글 · 호스트 대표 연락처*(유형 `Dropdown` + 값 `Input` + ✕, [문의처 추가] — P10a 호스트 만들기와 같은 줄) · 호스트 이미지(프로필 · 커버 DS `DropZone`, [기본 이미지로] · 실패 시 [다시 올리기]) · 하단 고정 [저장](P11 `EditorBottomBar` — 미리보기 없이) · 이탈 확인(`useLeaveGuard`) · 저장 토스트. 일반 멤버는 읽기 전용(칸 잠금, 버튼 없음)
+- `features/hosting/host/HostMembersView` — `Header`("멤버") · [ⓘ 멤버 권한이란?] → 권한 가이드 `Modal` + `DataTable` · 멤버 줄(`Avatar` 45 · 이름 · 역할 — 일반은 와이어대로 글자 없음(읽기 프로그램용만)) · ⋮ `DropdownMenu`(권한 변경 · 마스터 양도 · 멤버 삭제 — `memberActionsOf`) · 각 확인은 `openConfirm`(DS Popup) · 완료 토스트 · 오른쪽 아래 고정 [+ 멤버 초대하기] → 초대 `Modal`(이메일 1칸 + 역할 `Dropdown` + [초대하기], 실패 사유는 칸 아래)
+- `HostManage.css.ts` 새로(와이어 수준 배치만). `features/hosting/event/ui/EditorParts` `EditorBottomBar`에 `onPreview?`(없으면 [미리보기] 없음) · `saveLabel?`을 **더했다**(P11 호출 그대로)
+- L(훅·규칙) 변경 없음. 새 `src/ui` 컴포넌트 없음(스토리 없음). QA `qa/scenarios/host-settings.qa.ts`(HS-1~14). e2e `hosting-host.spec.ts`는 V 마크업에 맞춰 선택자·흐름만(⋮ 메뉴 · 확인 팝업 · 초대 모달 한 줄 · 저장 토스트) — 여러 줄 초대 매핑은 L 단위 테스트가 그대로 본다. `HostManageViews.test`에 `next/navigation` mock(설정 화면 이탈 확인이 라우터를 씀)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 3시점 화면 — 마스터 | QA HS-1·HS-5(⋮ 권한 변경 · 마스터 양도 · 멤버 삭제, 권한 가이드 "호스트 삭제" 없음) · HS-7·8·9 |
+| 3시점 화면 — 매니저 | QA HS-10(일반 행 ⋮ "멤버 삭제"만, 초대 역할 "일반" 잠김) |
+| 3시점 화면 — 일반 | QA HS-4(설정 읽기 전용) · HS-11(목록만) |
+| (더) SUPER_ADMIN | QA HS-12(설정 편집, 멤버는 권한 변경 + 일반 삭제, 양도 없음, 초대 "일반") |
+| 초대 실패 줄 표시 | QA HS-6(`HOST_400_13` → 칸 아래 "가입되지 않은 이메일이에요", 고쳐서 다시 → 닫힘 · 5명) |
+| 호스트 이미지가 업로드 뒤 표시됨 | QA HS-2(올리면 미리보기, [저장] 뒤 새로 열어도 같은 주소) |
+| (더) 에러 | QA HS-3(`HOST_400_16` 연락처 영역) · HS-13(비멤버 403 · 없는 호스트 404) · HS-14(`HOST_404_2` 목록 위 안내 + GH-6 다시 읽기) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`)**: 설정 390 · 1280, 멤버 390 · 1200(⋮ 연 상태 · 권한 변경 팝업 · 권한 가이드 · 초대 실패) — 와이어와 구조·순서·문구 같음. 다른 점: 아래 결정. dev mock 이미지(김매니저 사진 · 커버)는 깨져 보인다(공용 fixture, P5c와 같음).
+
+**결정** (🤖 Claude 판단 — 근거 / 되돌리려면)
+1. 🤖 이미지 칸은 폼 맨 아래 "호스트 이미지" 묶음, DS `DropZone`(프로필 정사각 180 · 커버는 호스트 홈 모바일 배너 비율 390:230) — 와이어·GUI에 칸이 없다(plan "위치는 디자인 대기"), 지우기 쉬운 자리 / `HostSettingsView`의 그 `fieldset` 하나와 `HostManage.css.ts` `images`·`profileZone`·`coverZone`
+2. 🤖 일반 멤버 설정 화면은 "일반 멤버는 볼 수만 있어요" + 칸 잠금 + [저장]·[문의처 추가]·✕·[기본 이미지로] 없음 — Q53 기본안(읽기 전용), 문구 잠정 / `read-only` 줄
+3. 🤖 [저장]은 바뀐 것이 있으면 누를 수 있고 칸 오류는 누른 뒤 보인다(L `canSave`는 오류가 있으면 false라 그대로 쓰면 오류를 볼 길이 없다) — P10a [만들기]와 같은 규칙 / `canSave={f.canSave}`
+4. 🤖 권한 변경 팝업의 오른쪽 칸(와이어 드롭다운)은 글자 "현재 → 바뀔 역할" — 바꿀 수 있는 역할이 늘 하나(일반 ↔ 매니저, 마스터는 양도로만) / `role-change` 줄을 `Dropdown`으로
+5. 🤖 양도 팝업에 "받는 멤버: ○○" 한 줄을 더했다 — 와이어는 누구에게 넘기는지 안 보인다(되돌릴 수 없는 동작) / `content` 한 줄 삭제
+6. 🤖 멤버 삭제 확인 팝업("○○님을 멤버에서 삭제할까요?" · "삭제하면 이 호스트의 공연을 관리할 수 없어요." · [삭제하기]) + 토스트 "멤버를 삭제했어요" — 와이어는 메뉴 항목만 / `removeMember`
+7. 🤖 와이어 팝업의 ✕ + 버튼 하나 대신 DS 확인 팝업([취소][확인], `openConfirm`) — 커스텀 지양. 완료 토스트 문구는 와이어 그대로("멤버의 권한을 변경하였습니다." · "마스터 권한을 양도하였습니다.") / 문구 상수
+8. 🤖 초대 문구 "초대하면 바로 멤버로 추가됩니다."(plan — 즉시 멤버), 성공하면 모달을 닫고 토스트 "멤버를 초대했어요"(와이어의 "대기중" 줄은 서버에 없음), 실패 사유는 이메일 칸 오류. [초대하기]는 이메일이 비면 비활성(와이어) / `InviteModal`
+9. 🤖 [+ 멤버 초대하기]는 와이어의 떠 있는 알약 버튼을 DS `Button variant="dark"` + 고정 위치(티켓 FAB와 같은 자리)로 — DS `Fab`은 아이콘만이라 글자가 들어가지 않는다 / `inviteButton`
+10. 🤖 HOST_404_2 등 실패 때도 확인 팝업은 닫는다(안내는 목록 위·공용 토스트) — 없는 멤버에 대한 팝업을 남겨 둘 이유가 없다 / `onConfirm`에서 `false`면 throw
+11. 🤖 권한 가이드 표의 행은 L `PERMISSION_GUIDE`(api-contract §2, 9행 — 와이어 8행과 이름·나눔이 다르다) 그대로, ✓는 `circle-check`(brand), 비고("읽기 전용" 등)는 글자 / 표 데이터는 L
+12. 🤖 PC(1024~)는 모바일과 같은 세로 배치를 최대 600 폭으로(P10a 호스트 만들기와 같다), 하단 [저장] 바는 P11 편집 화면과 같은 모양 — 와이어는 모바일뿐
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`, 와이어 `FUQb8ldGBp3uYUuXPV5FDC`): `[개발 · 디자인 없음]` `503:32383` 호스트 설정 — 이미지 칸 · 일반 멤버 화면(`1989728229`) · `503:31816` 멤버 ⋮ — 멤버 삭제 확인 · 역할별 메뉴(`1989728230`) · `503:31858` 권한 변경 · 양도 팝업(`1989728232`) · `503:31092` 초대 팝업 — 실패 · 완료(`1989728235`). `FIGMA-CUSTOM:` 없음(와이어 근거)
+**검사**: typecheck · eslint(바꾼 파일) · vitest related 8/8 · e2e `hosting-host`·`host-home`·`hosting` 104/104 · `pnpm qa host-settings` 28/28(14 × mobile·desktop). 전체 게이트는 PR CI
+**범위 밖(고치지 않음)**: dev mock 이미지 주소가 dev·QA에서 깨져 보이는 것(공용 fixture). 호스팅 셸의 PC 하단 바 위 테두리가 본문 폭(600)보다 넓게 그어지는 것(P11 `EditorBottomBar`와 같은 모양)
+
+## P8c-V — 셀프 체크인: 후보 고르기 · `result`별 화면 (뷰)
+
+**상태**: done (2026-11-01, PR #71) — 스킬 `gui-implement`. 남은 것: 실제 폰으로 호스트 [관객이 스캔] QR을 찍어 입장(QA CHK-8 수동, D2 뒤 — P13b QR-9와 같은 칸)
+**근거(gui-screens §0)**: **디자인 없음** — GUI Ready 89개(`figma_nodes.py ready`, lastModified 2026-10-31T19:18Z) 중 셀프 체크인 프레임 없음. 티켓탭 섹션 `908:3276` 안 `908:16734` "티켓 - 입장완료"는 티켓탭 QR 층(P8)이라 근거 아님. 와이어 파일에도 관객 쪽 화면이 없고(이름 "체크인·check·입장" 전수 검색) 입구만 `424:11976` 등록 후_공연 상세_qr체크인_관객("QR 코드를 스캔하면 입장이 완료됩니다"). 상태 표기는 `와이어로 구현됨`(DS로만)
+**디자인 이슈**: 없음(열린 #19는 P8b-V, #61 DS Filter Chip은 이 화면이 쓰지 않음)
+**디자인 시스템**: 기준 `2416576694112599706`(10-31T19:15Z) 그대로 — 바뀐 것 없음
+
+**변경**
+- `features/audience/checkin/SelfCheckInView.tsx`(P8c-L 최소 마크업 → DS 화면): 첫 요청 중 `ScreenLoader`("체크인하는 중", 전체 높이) · 여러 장이면 `region "티켓 고르기"` — 제목 · 장수 안내 · 실패 안내(`IssuedTicket_400_1`·`FAILED`, `role=alert`, 빨간 글자) · DS `RadioGroup`(세로, 티켓 이름 + 티켓 번호) · Primary lg [이 티켓으로 입장](고르기 전 비활성, 보내는 중 `loading`) · 결과 `region "체크인 결과"`(`data-result`) — `EmptyState` 배치(톤 아이콘 56 · 제목 · 설명) + 티켓 정보 `InfoRow` third(이름 · 티켓 · 티켓 번호) + Primary lg 링크 [티켓탭으로] · 실패 `region "체크인 실패"`(`data-error`, `aria-live=assertive`) — 같은 배치 + `FAILED`면 [다시 시도] + Secondary [티켓탭으로]
+- `features/audience/checkin/ui/SelfCheckIn.css.ts`: 가운데 390 한 열(주문 완료와 같은 틀) · 톤 아이콘 크기 · `InfoRow` 행을 화면 여백만큼 내어 글자를 버튼 끝에 맞춤
+- 훅·도메인(`useSelfCheckIn`·`checkin-result`·`self-check-in-errors`)은 그대로. 새 `src/ui` 컴포넌트 없음(스토리 없음)
+- 테스트: e2e `check-in.spec` 선택자만(후보 `button` → `radio` + [이 티켓으로 입장]). QA 새 `self-checkin.qa.ts` CHK-1~7 — **14/14**(수동 1)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| `result` 분기 전부 렌더 | CHK-1(1장 ENTERED) · CHK-2(SELECT_TICKET → 고르기 → ENTERED) · CHK-3(ALREADY_ENTERED · OTHER_EVENT · CANCELED · GIFT_PENDING · 모르는 값 → UNKNOWN, 티켓 정보 노출 여부까지) · CHK-4(INVALID_QR 두 경로 · EVENT_NOT_OPEN) · CHK-5(FAILED → [다시 시도]) · CHK-6(고른 티켓이 남의 것 — 고르기 화면 유지) · CHK-7(비로그인 → 로그인 → 같은 URL) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`, 390 · 1200)** — 비교할 Figma 프레임이 없어 와이어 입구(`424:11976`)·호스트 결과 카드(P13b `ScanResult`)와 톤·아이콘 짝만 맞춤. 고친 것: `InfoRow` 행이 화면 여백 안에서 24 더 들어가 버튼과 어긋나던 것(행을 여백만큼 바깥으로), 실패 영역의 `role=alert`가 region 역할을 덮던 것(`aria-live`로)
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 여러 장이면 라디오로 고른 뒤 [이 티켓으로 입장]을 한 번 더 누른다(L은 `select(uuid)` 한 번에 보냄) — 입장은 되돌릴 수 없어 잘못 누름을 막음 / 체크아웃·옵션 시트의 고르고 확정하는 흐름 / `SelectTicket`에서 라디오 `onValueChange`가 바로 `onSelect`
+2. 결과·실패 화면은 `EmptyState` 배치(아이콘 + 제목 + 설명) + [티켓탭으로] — 결과 후 갈 곳은 티켓탭(선물 대기 취소·입장 QR이 거기 있음) / 공용 에러 화면(`AudienceErrorView`)·주문 완료 / `SelfCheckInView` `Result`·`Failure`
+3. 톤 아이콘은 호스트 스캔 결과와 같은 짝(`circle-check`·`circle-request`·`circle-reject` filled, 상태 색), 크기 56 — DS 아이콘이 24뿐이라 CSS로 키움. DS 토큰상 `status/warning` = `status/error`(coralRed 400)라 "이미 입장 · 선물 대기"도 빨강 계열 / P13b `ScanResult` TONE / `SelfCheckIn.css.ts` `toneIcon`
+4. 티켓 정보는 이름(현재 소유자) · 티켓 · 티켓 번호(호스트 결과 카드와 같은 셋) — 입장 시각은 ALREADY_ENTERED 설명에만(L 문구) / P13b `ScanResult` / `Result`
+5. PC도 모바일 한 열을 가운데 390폭으로 — 폰으로 QR을 찍어 여는 화면이라 PC 배치를 따로 두지 않음 / 주문 완료 PC / `SelfCheckIn.css.ts` `content`
+6. 화면 문구(고르기 제목·안내, 버튼 이름)는 잠정 — 결과·실패 문구는 P8c-L 잠정 그대로(design-requests Q30) / — / `SelfCheckInView`
+
+**Figma 코멘트**(디자인 없음): 와이어 `424:12000` — "[개발 · 디자인 없음] 관객이 QR을 찍은 뒤 관객 폰에 뜨는 화면"(comment `1989730796`, 상태 목록 · 지금 배치)
+
 ## P8b-V — 선물하기(보내기 시트 · 링크 · 공유) · 선물 랜딩 · 수락/거절 (뷰)
 
 **상태**: done (2026-11-01, PR #72) — 스킬 `gui-implement`. 남은 것: 실기기 카카오 공유 · `sms:`(QA GIFT-10 수동), 실제 카카오 가입 왕복(GIFT-11 수동) — D2 뒤

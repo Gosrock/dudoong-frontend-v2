@@ -33,8 +33,9 @@ test.describe('셀프 체크인', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto(`/check-in?token=${CHECK_IN_TOKEN.multi}`);
     const picker = page.getByRole('region', { name: '티켓 고르기' });
-    await expect(picker.getByRole('button')).toHaveCount(2);
-    await picker.getByRole('button').first().click();
+    await expect(picker.getByRole('radio')).toHaveCount(2);
+    await picker.getByRole('radio').first().click();
+    await picker.getByRole('button', { name: '이 티켓으로 입장' }).click();
     await expect(page.getByRole('region', { name: '체크인 결과' })).toHaveAttribute(
       'data-result',
       'ENTERED',

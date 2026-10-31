@@ -15,6 +15,11 @@ import { HostSettingsView } from './HostSettingsView';
  * 라우트 자체(로그인 게이트·상태 코드)는 e2e `hosting-host.spec`.
  */
 
+// 설정 화면의 이탈 확인(useLeaveGuard)이 라우터를 쓴다
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
+}));
+
 let restore: () => void;
 beforeEach(() => {
   restore = installLoggedInFetch();
