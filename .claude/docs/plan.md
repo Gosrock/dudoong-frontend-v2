@@ -26,7 +26,26 @@
 | 실기기(P4s-V로 옮김) | P2 바텀시트·모달 iOS Safari 스크롤 락·키보드 회피 |
 
 - **V(화면)**: 전부 시작 전 — 디자인을 기다린다(디자인 후속 보류, 사용자 결정 2026-10-25). P14·P15는 전 Phase의 L·V 뒤.
-- 브랜치 `feat/p0-scaffold`는 원격에 올라가 있다(2026-10-31, PR 없음).
+- 지금까지의 작업(P0~P4a + 모든 L)은 브랜치 `feat/v2-foundation-logic`(옛 `feat/p0-scaffold`, 2026-10-31 이름 변경)에 있다 — 아래 "브랜치 계획".
+
+### 브랜치 계획 (2026-10-31)
+
+- **`main`이 기준**이다. 모든 작업 브랜치는 `main`에서 따고 PR로 `main`에 합친다(PR 게이트 `pr-gate.yml`). `main`에 머지되면 이미지 워크플로가 돈다(deploy-plan §5 — 스테이징은 `:dev`).
+- **지금 브랜치** `feat/v2-foundation-logic` — P0~P4a와 모든 L을 담는다. `main`으로 PR 하나를 열어 "L 완료" 기준점으로 머지한다. **머지 전 조건**: `image.yml`이 아직 GHCR로 올린다(공개 패키지) — ECR 전환(B15) 전에 머지하면 GHCR에 이미지가 올라가므로, 머지 전에 이미지 워크플로를 끄거나(`workflow_dispatch`만) B15 뒤 ECR로 바꾼 다음 머지한다.
+- **이름 규칙** — `<종류>/<Phase>-<요지>`, 하나의 브랜치 = 하나의 Phase 단위(또는 하나의 주제):
+
+| 종류 | 쓰는 곳 | 예 |
+|---|---|---|
+| `feat/` | V(화면) Phase — 디자인이 나오는 순서대로 하나씩. 남은 L 칸(스테이징·Q42 대기)을 채우는 일도 그 Phase 이름으로 | `feat/p4s-v-shell`, `feat/p5a-v-home`, `feat/p11-v-event-info`, `feat/p7-l-agreement`(Q42 답 뒤) |
+| `fix/` | 버그 수정 | `fix/refresh-429` |
+| `refactor/` | 동작을 바꾸지 않는 정리 | `refactor/order-query-keys` |
+| `ci/` | 워크플로·배포 | `ci/ecr-image`(B15 뒤 `image.yml`·`release.yml` ECR 전환), `ci/staging-deploy`(`pnpm deploy:staging`) |
+| `docs/` | 문서만 | `docs/backend-questions-1031` |
+| `chore/` | 의존성·도구, P14 하드닝 단위 | `chore/p14-a11y`, `chore/p14-perf` |
+| `release/` | P15 컷오버 | `release/v2-cutover` |
+
+- **순서**: ① `feat/v2-foundation-logic` PR → (이미지 워크플로 조건 처리 뒤) 머지 ② `ci/ecr-image`(B15 답이 오면) → `ci/staging-deploy` → D2 스테이징 첫 배포 → 스테이징 대기 칸(P4b·P5b·P7·P8b·P13a)을 각 Phase 이름 브랜치로 ③ V는 `feat/p4s-v-shell`부터 디자인 순서대로 ④ P14 `chore/p14-*` ⑤ P15 `release/v2-cutover`.
+- 브랜치는 머지 뒤 지운다. 도구 작업(Figma 플러그인 `9yujin/figma-design-tracker`, 디스코드 기록 `9yujin/discord-worklog-share`)은 Orca 세션이 따로 관리한다.
 
 ## 0. 진행 방식: 로직 먼저
 

@@ -1281,7 +1281,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 
 ## 31. P0 스캐폴딩과 스파이크 결과 (2026-10-16)
 
-브랜치 `feat/p0-scaffold`. Next 16.4.1 · React 19.3.1 · TanStack Query 5.104.3 · ky 2.2.0 · zod 4.6.7 · vanilla-extract(css 1.21.3, next-plugin 2.5.2) · ESLint 9.39 · TypeScript 5.9 · Vitest 5.0 · MSW 3.0 · Storybook 10.6 · pnpm 10.34.7.
+브랜치 `feat/p0-scaffold`(2026-10-31 `feat/v2-foundation-logic`으로 이름 변경). Next 16.4.1 · React 19.3.1 · TanStack Query 5.104.3 · ky 2.2.0 · zod 4.6.7 · vanilla-extract(css 1.21.3, next-plugin 2.5.2) · ESLint 9.39 · TypeScript 5.9 · Vitest 5.0 · MSW 3.0 · Storybook 10.6 · pnpm 10.34.7.
 
 ### 수직 슬라이스
 
