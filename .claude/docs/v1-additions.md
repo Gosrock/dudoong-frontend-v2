@@ -66,13 +66,15 @@
 
 공통 규칙(완료, `src/api/shared/agreement.ts`): 동의 필드는 **사용자가 화면에서 체크한 것만** `true`로 싣고, 하나라도 있을 때만 `agreementVersion`을 붙인다. 칸 없이 `true`를 만들지 않는다. 서버는 지금 기록만 한다(`agreement.enforce` false). 켜지면 빠진 필드는 400 `Agreement_400_1`(patterns §24).
 
+**강제 임박(2026-10-31, v1 Front #384 — 백엔드 담당 작성)**: v1 운영에서 동의를 안 보내는 곳은 호스트 어드민 카카오 가입(`/admin/kakao/callback`, 쿼리스트링 `id_token`)뿐이고, 그 수정이 배포되면 백엔드가 `AGREEMENT_ENFORCE=true`로 켠다(주문·두둥티켓 생성은 v1이 이미 100% 보낸다). v2에는 이 어드민 경로 문제가 없다 — 카카오 콜백은 `/kakao/callback` 하나(`src/app/(audience)/(app)/kakao/callback/page.tsx`)이고 호스팅 트랙에 따로 가입하는 경로가 없으며(`/admin/kakao/callback`은 리다이렉트 표에도 넣지 않았다 — `next.config.ts`), 가입 `idToken`은 본문으로 보낸다(`register-form.ts` `toRegisterBody`). 대신 v2는 **칸(Q42)이 없어 만 14세·호스트 제공 동의·두둥 입금 전 확인·환불 의무 동의를 아직 보내지 못한다** — 강제가 켜지면 v2 가입·주문·두둥티켓 생성이 전부 400이다. 백엔드 검사 위치(`dev` `cb53bfaa`): 가입 `RegisterUseCase`(전화번호·id 토큰 검사 전) `ageOver14Confirmed`·`termsAgreed`, 주문 `V2CreateOrderUseCase`(주문 생성 전) `hostProvisionAgreed`·두둥만 `dudoongTicketNoticeConfirmed`, 티켓 `V2CreateTicketItemUseCase`(두둥만)·`V2UpdateTicketItemUseCase`(무료 → 두둥만) `refundObligationAgreed` — 모두 `AgreementService.requireAgreed`, `true`가 아니면 400 `Agreement_400_1`. L은 2026-10-31 끝났다 — 필드별 칸 플래그(`AGE_OVER_14_FIELD`·`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`·`REFUND_OBLIGATION_FIELD`, 기본 false — 사용자 결정): 체크값은 본문에 싣고, 필수 판정은 칸이 붙어 플래그를 켤 때부터.
+
 | ID | 요건 | 서버 필드 | v2 위치 | v2 상태 |
 |---|---|---|---|---|
-| B-1 | 가입 때 **[필수] 만 14세 이상** 확인. 체크 전 가입 불가 | 가입 `ageOver14Confirmed` | P4b 가입 | **대기(Q42)** — v2 가입 계획(Q25)에 칸이 없어 보내지 않는다. 강제가 켜지면 가입이 400 |
-| B-2 | 예매 때 **[필수] 호스트에게 개인정보 제공 동의**. 펼치면 제공받는 자(이 공연의 호스트)·목적·항목(두둥이면 입금자명·환불 계좌 포함)·보유기간(공연 종료 후 6개월, 두둥 입금·환불 내역 3년)·"동의하지 않으면 예매할 수 없다". 체크 전 제출 불가 | 주문 `hostProvisionAgreed` | P7 체크아웃 | **대기(Q42)** — 스키마만 있고 칸이 없어 보내지 않는다. 약관 제36조②·처리방침 3장 의무라 **자리 없음** |
+| B-1 | 가입 때 **[필수] 만 14세 이상** 확인. 체크 전 가입 불가 | 가입 `ageOver14Confirmed` | P4b 가입 | **L 끝 · 칸 대기(Q42)** — 2026-10-31 `RegisterConsents.ageOver14` → 체크하면 `ageOver14Confirmed`, 필수는 `AGE_OVER_14_FIELD`(기본 false)가 켜질 때만. 칸이 없어 지금 화면은 보내지 못한다 — 강제가 켜지면(#384, v1 어드민 배포 직후) 가입이 400 |
+| B-2 | 예매 때 **[필수] 호스트에게 개인정보 제공 동의**. 펼치면 제공받는 자(이 공연의 호스트)·목적·항목(두둥이면 입금자명·환불 계좌 포함)·보유기간(공연 종료 후 6개월, 두둥 입금·환불 내역 3년)·"동의하지 않으면 예매할 수 없다". 체크 전 제출 불가 | 주문 `hostProvisionAgreed` | P7 체크아웃 | **L 끝 · 칸 대기(Q42)** — 2026-10-31 폼 값 `hostProvisionAgreed` → 체크하면 실림, 필수는 `HOST_PROVISION_FIELD`(기본 false)가 켜질 때만. 약관 제36조②·처리방침 3장 의무라 **자리 없음**. 강제가 켜지면(#384) 모든 주문이 400 |
 | B-3 | 가입 때 **[선택] 마케팅(이벤트·혜택) 수신 동의**. 체크하지 않아도 가입된다 | 가입 `marketingAgree` | P4b 가입 | 완료 — 계획(Q25)에 있고 `marketingAgree`로 보낸다 |
-| B-4 | 두둥티켓 **입금 전 확인**: 대금은 호스트에게 직접(두둥은 받지 않음) / 취소해도 자동 환불 안 됨, 환불은 호스트가 / 호스트 환불 기준 우선(C-4) — 확인 행동이 곧 동의 | 두둥 주문 `dudoongTicketNoticeConfirmed` | P7 "입금하셨나요?" 확인(tech-decisions §19 흐름 3) | **대기(Q42)** — 확인 단계는 있으나 고지 문장과 칸이 없어 보내지 않는다. 약관 제29조② 의무 |
-| B-5 | 두둥티켓 **개설 때 환불 의무 안내 + [필수] 동의**: 대금은 호스트 계좌로, 두둥은 대금·수수료를 받지 않음 / 구매자 취소·호스트 거절·취소·공연 취소 때 지체 없이 환불 / 어기면 판매 제한. 체크 전 저장 불가. 무료 → 두둥으로 바꾸는 수정에서도 받는다 | T-2 생성·T-3 수정 `refundObligationAgreed` | P12 티켓 폼 | **L만** — `REFUND_OBLIGATION_FIELD = false`(Q42). 칸이 생기면 상수를 켜면 저장이 막힌다. 백엔드 Develop 기획서는 "공연 상세에 적은 환불 기준은 구매자 취소 환불에 우선(예매 전에 적은 것만, 호스트 거절·공연 취소는 전액)" 한 줄을 더하라고 했다(v1 미반영). 제21조③ 계좌 표시 동의는 v1에도 따로 없다 |
+| B-4 | 두둥티켓 **입금 전 확인**: 대금은 호스트에게 직접(두둥은 받지 않음) / 취소해도 자동 환불 안 됨, 환불은 호스트가 / 호스트 환불 기준 우선(C-4) — 확인 행동이 곧 동의 | 두둥 주문 `dudoongTicketNoticeConfirmed` | P7 "입금하셨나요?" 확인(tech-decisions §19 흐름 3) | **L 끝 · 칸 대기(Q42)** — 2026-10-31 폼 값 `dudoongTicketNoticeConfirmed` → 두둥 주문에서 체크하면 실림(무료는 싣지 않음), 필수는 `DUDOONG_NOTICE_FIELD`(기본 false)가 켜질 때만. 고지 문장과 칸이 없다. 약관 제29조② 의무. 강제가 켜지면(#384) 두둥 주문이 400 |
+| B-5 | 두둥티켓 **개설 때 환불 의무 안내 + [필수] 동의**: 대금은 호스트 계좌로, 두둥은 대금·수수료를 받지 않음 / 구매자 취소·호스트 거절·취소·공연 취소 때 지체 없이 환불 / 어기면 판매 제한. 체크 전 저장 불가. 무료 → 두둥으로 바꾸는 수정에서도 받는다 | T-2 생성·T-3 수정 `refundObligationAgreed` | P12 티켓 폼 | **L만** — `REFUND_OBLIGATION_FIELD = false`(Q42). 칸이 생기면 상수를 켜면 저장이 막힌다. 강제가 켜지면(#384) 두둥 생성·무료 → 두둥 수정이 400. 백엔드 Develop 기획서는 "공연 상세에 적은 환불 기준은 구매자 취소 환불에 우선(예매 전에 적은 것만, 호스트 거절·공연 취소는 전액)" 한 줄을 더하라고 했다(v1 미반영). 제21조③ 계좌 표시 동의는 v1에도 따로 없다 |
 | B-6 | 가입 처리방침: v1은 체크 항목이 아니라 안내 문장, v2는 필수 체크 | (서버 기록 없음) | P4b 가입 | 완료 — v2 계획대로 필수 체크(화면에서만) |
 | B-7 | 가입 때 **[필수] 서비스 이용약관 동의** 기록 | 가입 `termsAgreed`(백엔드 #849 `TERMS_OF_SERVICE`) | P4b 가입 | 완료 — 이용약관 체크 → `termsAgreed` + `agreementVersion`, 미체크면 키를 싣지 않는다(api-contract §9 5b, `register-form.test`) |
 
@@ -129,7 +131,7 @@ v1 PR에 함께 들어 있었지만 요건이 아니라 v1 구현이다. v2로 �
 
 | 항목 | 막히는 요건 | 누가 |
 |---|---|---|
-| design-requests **Q42** — 동의 칸 4개 위치 | B-1·B-2·B-4·B-5 | 디자인. 백엔드가 `agreement.enforce`를 켜기 전에 필요(켜는 날짜 B16) |
+| design-requests **Q42** — 동의 칸 4개 위치(**우선순위 높음**) | B-1·B-2·B-4·B-5 | 디자인. 백엔드는 v1 호스트 어드민 가입 수정이 배포되면 바로 `AGREEMENT_ENFORCE=true`로 켠다(v1 Front #384, 2026-10-31) — v2 출시보다 먼저 켜질 가능성이 크고, 켜지면 v2 가입·주문·두둥티켓 생성이 전부 400. L은 끝났다(필드별 플래그 기본 끔 — 칸이 생기면 켠다). 날짜 B16 |
 | 표시 의무 자리 — 첫 화면(푸터)·공연 상세 중개자 고지·호스트 기준 우선·청약철회 제한, 체크아웃 중개자 문장 | C-1~C-5 | 디자인 + v2 계획 |
 | backend-questions **B18** — 두둥 승인 대기 셀프 취소. 약관은 #385로 해결(2026-10-31, 머지 전 PR — 머지되면 다시 대조) | D-2 | 운영·디자인(v2 안내 문구 확정 — legal-copy "B18 잠정안") |
 | 마이페이지 마케팅 수신 설정을 화면에 넣을지(B17 API는 2026-10-31 생김) | E-1 | 사용자 |

@@ -7,6 +7,7 @@ import {
   type PaymentChannel,
   SUBJECTIVE_ANSWER_MAX,
 } from '@/api/order/schema';
+import { agreementFields } from '@/api/shared/agreement';
 import type { PublicTicketItem, PublicTicketOption } from '@/api/ticket-item/schema';
 
 /**
@@ -29,6 +30,10 @@ export type CheckoutFormValues = {
   options: { mode: OptionMode; same: AnswerValue[]; tickets: AnswerValue[][] };
   paymentChannel: PaymentChannel;
   agreeRefundPolicy: boolean;
+  /** [필수] 호스트에게 개인정보 제공 동의(모든 주문 — 약관 제36조②, v1-additions B-2). 칸은 `HOST_PROVISION_FIELD` */
+  hostProvisionAgreed: boolean;
+  /** 두둥티켓 입금 전 확인(두둥만 — 약관 제29조②, B-4). 칸은 `DUDOONG_NOTICE_FIELD` */
+  dudoongTicketNoticeConfirmed: boolean;
 };
 
 export const OPTION_ERROR = {
@@ -36,7 +41,36 @@ export const OPTION_ERROR = {
   required: '답변을 입력해 주세요',
   tooLong: `${SUBJECTIVE_ANSWER_MAX}자 이하로 입력해 주세요`,
   agree: '환불 규정에 동의해 주세요',
+  // 잠정 문구(디자인 전)
+  hostProvision: '개인정보 제공에 동의해 주세요',
+  dudoongNotice: '입금 전 안내를 확인해 주세요',
 } as const;
+
+/**
+ * 주문 동의 칸이 화면에 있는지(design-requests Q42 ②·③). 칸이 생기면 `true`로 바꾼다 — 그때부터 체크 전 주문을 막는다
+ * (사용자 결정 2026-10-31 — 필드별 플래그, 기본 끔). 체크값은 플래그와 상관없이 사용자가 체크했을 때만 본문에 싣는다.
+ * 백엔드 동의 강제(`AGREEMENT_ENFORCE=true`, v1 Front #384 — v1 어드민 가입 수정 배포 직후 켠다)가 켜지면 `V2CreateOrderUseCase`가
+ * 주문을 만들기 전에 `hostProvisionAgreed`(항상)·`dudoongTicketNoticeConfirmed`(두둥만)를 보고 400 `Agreement_400_1`(@cb53bfaa).
+ * 칸보다 강제가 먼저 켜지면 v2 주문은 모두 400이다(plan P7 위험)
+ */
+export const HOST_PROVISION_FIELD = false;
+export const DUDOONG_NOTICE_FIELD = false;
+
+/** 주문 동의 칸 플래그(테스트에서 바꿔 본다) */
+export type CheckoutAgreementFields = { hostProvision: boolean; dudoongNotice: boolean };
+const AGREEMENT_FIELDS: CheckoutAgreementFields = {
+  hostProvision: HOST_PROVISION_FIELD,
+  dudoongNotice: DUDOONG_NOTICE_FIELD,
+};
+
+/** 이 티켓 주문에서 그릴 동의 칸 — 두둥 입금 전 확인은 두둥티켓에만 */
+export const checkoutAgreementFields = (
+  ticket: Pick<PublicTicketItem, 'payType'>,
+  fields: CheckoutAgreementFields = AGREEMENT_FIELDS,
+): CheckoutAgreementFields => ({
+  hostProvision: fields.hostProvision,
+  dudoongNotice: fields.dudoongNotice && ticket.payType === 'DUDOONG',
+});
 
 /** v2 주문에서 답할 수 있는 옵션인지 */
 const answerable = (o: PublicTicketOption) => o.type === 'YES_NO' || o.type === 'SUBJECTIVE';
@@ -60,6 +94,8 @@ export function initialCheckoutValues(ticket: PublicTicketItem): CheckoutFormVal
     options: { mode: 'same', same: blankAnswers(ticket), tickets: [] },
     paymentChannel: defaultPaymentChannel(ticket),
     agreeRefundPolicy: false,
+    hostProvisionAgreed: false,
+    dudoongTicketNoticeConfirmed: false,
   };
 }
 
@@ -123,9 +159,17 @@ function answerSetSchema(ticket: PublicTicketItem) {
  * 폼 스키마. 티켓 옵션과 수량에 따라 만든다(수량이 바뀌면 resolver도 바뀐다).
  * 옵션이 없는 티켓은 옵션 칸을 보지 않는다.
  */
-export function checkoutFormSchema(ticket: PublicTicketItem, quantity: number) {
+export function checkoutFormSchema(
+  ticket: PublicTicketItem,
+  quantity: number,
+  fields: CheckoutAgreementFields = AGREEMENT_FIELDS,
+) {
   const set = answerSetSchema(ticket);
   const transfer = ticket.payType !== 'FREE';
+  const shown = checkoutAgreementFields(ticket, fields);
+  /** 칸이 있으면 체크해야 한다. 칸이 없으면 값만 받는다(보내는지는 `toOrderBody`) */
+  const agreement = (on: boolean, message: string) =>
+    on ? z.literal(true, { error: message }) : z.boolean();
   return z.object({
     options: z
       .object({
@@ -160,6 +204,8 @@ export function checkoutFormSchema(ticket: PublicTicketItem, quantity: number) {
       }),
     paymentChannel: transfer ? z.enum(['BANK_TRANSFER', 'TOSS_TRANSFER']) : z.literal('FREE'),
     agreeRefundPolicy: z.literal(true, { error: OPTION_ERROR.agree }),
+    hostProvisionAgreed: agreement(shown.hostProvision, OPTION_ERROR.hostProvision),
+    dudoongTicketNoticeConfirmed: agreement(shown.dudoongNotice, OPTION_ERROR.dudoongNotice),
   });
 }
 
@@ -185,10 +231,10 @@ const toAnswers = (answers: readonly AnswerValue[]) =>
  * - individual: `options{applyToAll: false, answers: []}` + `perTicketOptions`(길이 = 수량).
  *   `options`를 빼면 서버가 일괄로 본다(`V2CreateOrderRequest.applyToAll()`) — 반드시 함께 보낸다
  * - 입금자명은 계좌이체일 때만(무료는 서버가 무시하므로 보내지 않는다)
- * - 동의 기록(#840) `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed`·`agreementVersion`은 보내지 않는다.
- *   TODO(Q42): 값을 만들 칸(호스트 제공 동의 체크, 두둥티켓 고지 확인)이 v2 체크아웃 계획에 없다 — 칸 없이 `true`를 만들지 않는다.
- *   칸이 생기면 폼 값으로 `agreementFields({...})`(`src/api/shared/agreement.ts`)를 펼친다. 백엔드가 동의 강제를 켜면 이 본문은
- *   400 `Agreement_400_1`이다(mock `orderHandlers.agreementEnforced`)
+ * - 동의 기록(#840): 사용자가 체크한 것만 — `hostProvisionAgreed`, 두둥티켓이면 `dudoongTicketNoticeConfirmed`, 하나라도 있으면
+ *   `agreementVersion`(`agreementFields`). 무료 주문에는 두둥 확인을 싣지 않는다(서버도 두둥만 검사·기록).
+ *   TODO(Q42): 칸이 아직 없어(`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD = false`) 지금 화면은 보내지 못한다 — 백엔드가 동의
+ *   강제를 켜면 이 본문은 400 `Agreement_400_1`이다(mock `orderHandlers.agreementEnforced`)
  */
 export function toOrderBody(
   values: CheckoutFormValues,
@@ -222,6 +268,11 @@ export function toOrderBody(
     paymentChannel: values.paymentChannel,
     ...(transfer ? { depositorName: ctx.depositorName ?? '' } : {}),
     agreeRefundPolicy: true,
+    ...agreementFields({
+      hostProvisionAgreed: values.hostProvisionAgreed,
+      dudoongTicketNoticeConfirmed:
+        ticket.payType === 'DUDOONG' && values.dudoongTicketNoticeConfirmed,
+    }),
   };
 }
 

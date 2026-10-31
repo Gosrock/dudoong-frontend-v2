@@ -18,6 +18,12 @@ import { agreementFields } from '@/api/shared/agreement';
  * 동의: 서비스 이용약관(`/meta/term`)·개인정보 처리방침(`/meta/privacy`)은 필수, 마케팅 수신은 선택(`marketingAgree`).
  * v1은 "약관 동의하고 시작하기" 한 버튼이었다 — 항목을 몇 개로 보일지는 V(디자인)에서 정하고, 필수 판정은 여기 하나다.
  * 서버 동의 기록(#840·#850)에는 이용약관 체크를 `termsAgreed`로 싣는다. 처리방침 동의는 서버가 기록하지 않는다(화면에서만 받는다).
+ *
+ * 만 14세 이상 확인(`ageOver14` → `ageOver14Confirmed`, 약관 제7조① — v1-additions B-1)은 체크 칸이 Q42 대기라 `AGE_OVER_14_FIELD`가
+ * false다. 그동안은 필수 판정·"전체 동의"에 넣지 않고, 칸(V)이 생겨 상수를 켜면 필수가 된다(사용자 결정 2026-10-31 — 필드별 플래그,
+ * 기본 끔). 체크값은 플래그와 상관없이 사용자가 체크했을 때만 본문에 싣는다(`true`를 만들어 넣지 않는다).
+ * 백엔드 동의 강제(`AGREEMENT_ENFORCE=true`, v1 Front #384 — v1 어드민 가입 수정 배포 직후 켠다)가 켜지면 `RegisterUseCase`가
+ * 전화번호·id 토큰 검사보다 **먼저** `ageOver14Confirmed`·`termsAgreed`를 보고 400 `Agreement_400_1`(@cb53bfaa).
  */
 
 export type RegisterValues = {
@@ -28,16 +34,45 @@ export type RegisterValues = {
 export type RegisterField = keyof RegisterValues;
 
 export type RegisterConsents = {
+  /** [필수] 만 14세 이상 확인 — 칸은 `AGE_OVER_14_FIELD`가 켜질 때만(Q42) */
+  ageOver14: boolean;
   terms: boolean;
   privacy: boolean;
   marketing: boolean;
 };
 export type RegisterConsent = keyof RegisterConsents;
 
-/** 필수 동의 항목 */
-export const REQUIRED_CONSENTS: readonly RegisterConsent[] = ['terms', 'privacy'];
+/**
+ * 가입 만 14세 확인 칸이 화면에 있는지(design-requests Q42 ①). 칸이 생기면 `true`로 바꾼다 — 그때부터 체크 전 가입을 막는다.
+ * 강제가 v2 칸보다 먼저 켜지면 v2 가입은 400이다(plan P4b 위험)
+ */
+export const AGE_OVER_14_FIELD = false;
 
-export const NO_CONSENTS: RegisterConsents = { terms: false, privacy: false, marketing: false };
+/** 화면 칸 플래그(테스트에서 바꿔 본다) */
+export type RegisterConsentFields = { ageOver14: boolean };
+const CONSENT_FIELDS: RegisterConsentFields = { ageOver14: AGE_OVER_14_FIELD };
+
+/** 화면에 있는 동의 항목 — 필수·선택 모두. "전체 동의"는 이것만 켜고 끈다 */
+export const visibleConsents = (fields: RegisterConsentFields = CONSENT_FIELDS) =>
+  (['ageOver14', 'terms', 'privacy', 'marketing'] as const).filter(
+    (k) => k !== 'ageOver14' || fields.ageOver14,
+  );
+
+/** 필수 동의 항목 */
+export const requiredConsents = (
+  fields: RegisterConsentFields = CONSENT_FIELDS,
+): readonly RegisterConsent[] =>
+  fields.ageOver14 ? ['ageOver14', 'terms', 'privacy'] : ['terms', 'privacy'];
+
+/** 지금 화면의 필수 동의 항목 */
+export const REQUIRED_CONSENTS: readonly RegisterConsent[] = requiredConsents();
+
+export const NO_CONSENTS: RegisterConsents = {
+  ageOver14: false,
+  terms: false,
+  privacy: false,
+  marketing: false,
+};
 
 /** `phoneInvalid` — 모양은 맞지만 서버가 무효 번호로 거절(`USER_400_2`). 그 번호를 고칠 때까지 유지된다 */
 export type RegisterFieldError = 'required' | 'phoneFormat' | 'phoneInvalid';
@@ -85,22 +120,41 @@ export function validateRegister(values: RegisterValues): RegisterErrors {
   return errors;
 }
 
-export const hasRequiredConsents = (consents: RegisterConsents) =>
-  REQUIRED_CONSENTS.every((k) => consents[k]);
+export const hasRequiredConsents = (
+  consents: RegisterConsents,
+  fields: RegisterConsentFields = CONSENT_FIELDS,
+) => requiredConsents(fields).every((k) => consents[k]);
 
-/** 모든 항목(선택 포함)에 동의했는지 — "전체 동의" 표시 */
-export const hasAllConsents = (consents: RegisterConsents) =>
-  Object.values(consents).every(Boolean);
+/** 화면에 있는 모든 항목(선택 포함)에 동의했는지 — "전체 동의" 표시 */
+export const hasAllConsents = (
+  consents: RegisterConsents,
+  fields: RegisterConsentFields = CONSENT_FIELDS,
+) => visibleConsents(fields).every((k) => consents[k]);
+
+/** "전체 동의"를 켜고 끈 값 — 화면에 없는 항목(칸 없는 만 14세)은 건드리지 않는다 */
+export const withAllConsents = (
+  consents: RegisterConsents,
+  value: boolean,
+  fields: RegisterConsentFields = CONSENT_FIELDS,
+): RegisterConsents => {
+  const next = { ...consents };
+  for (const k of visibleConsents(fields)) next[k] = value;
+  return next;
+};
 
 /** 제출할 수 있는지 — 칸 오류가 없고 필수 동의를 마쳤다 */
-export const canSubmitRegister = (values: RegisterValues, consents: RegisterConsents) =>
-  Object.keys(validateRegister(values)).length === 0 && hasRequiredConsents(consents);
+export const canSubmitRegister = (
+  values: RegisterValues,
+  consents: RegisterConsents,
+  fields: RegisterConsentFields = CONSENT_FIELDS,
+) => Object.keys(validateRegister(values)).length === 0 && hasRequiredConsents(consents, fields);
 
 /**
  * 제출 본문. 앞뒤 공백을 지우고, 빈 전화번호는 `null`(칸 검증을 통과한 값만 오므로 전화번호는 `010-1234-1234` 모양이다).
- * 동의 기록: 이용약관 체크가 켜져 있으면 `termsAgreed: true` + `agreementVersion`(체크하지 않았으면 두 키 모두 없다).
- * TODO(Q42): 만 14세 확인(`ageOver14Confirmed`)은 v2 가입 계획에 칸이 없어 보내지 않는다 — 칸 없이 `true`를 만들지 않는다.
- * 백엔드가 동의 강제를 켜면 이 본문은 400 `Agreement_400_1`이 된다(mock `authHandlers.registerAgreementEnforced`).
+ * 동의 기록: 체크한 것만 — 만 14세 확인 → `ageOver14Confirmed: true`, 이용약관 → `termsAgreed: true`, 하나라도 있으면
+ * `agreementVersion`(아무것도 체크하지 않았으면 동의 키가 하나도 없다).
+ * TODO(Q42): 만 14세 칸이 아직 없어(`AGE_OVER_14_FIELD = false`) 지금 화면은 `ageOver14Confirmed`를 보내지 못한다 — 백엔드가 동의
+ * 강제를 켜면 이 본문은 400 `Agreement_400_1`이 된다(mock `authHandlers.registerAgreementEnforced`).
  */
 export function toRegisterBody(input: {
   idToken: string;
@@ -116,6 +170,9 @@ export function toRegisterBody(input: {
     profileImage: input.profileImage,
     name: input.values.name.trim(),
     marketingAgree: input.consents.marketing,
-    ...agreementFields({ termsAgreed: input.consents.terms }),
+    ...agreementFields({
+      ageOver14Confirmed: input.consents.ageOver14,
+      termsAgreed: input.consents.terms,
+    }),
   };
 }
