@@ -1,0 +1,66 @@
+name: Image
+# main 자동 실행은 꺼 둔다 — 아직 GHCR(공개 패키지)로 올린다. B15 뒤 ECR로 바꾸면서 다시 켠다(plan "브랜치 계획", deploy-plan §5).
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    # 커밋마다 sha 태그 이미지를 만든다. 동시 실행 제한을 두지 않는다 — 연속 머지에서 중간 커밋 이미지가
+    # 빠지면 그 커밋에 버전 태그를 달 수 없다(release.yml).
+    # 서버가 ARM(t4g)이라 arm64만, ARM 러너에서 네이티브로 빌드한다(deploy-plan §5).
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/gosrock/dudoong-front
+          tags: type=sha,prefix=sha-,format=short
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            NEXT_PUBLIC_KAKAO_JS_KEY=${{ vars.NEXT_PUBLIC_KAKAO_JS_KEY }}
+            GIT_SHA=${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  promote-main:
+    # :main은 main 브랜치에서, 그 커밋이 아직 main의 최신일 때만 옮긴다(늦게 끝난 빌드가 되돌리지 않게).
+    # 다음 커밋의 빌드가 실패하면 그 앞 커밋도 :main이 되지 않는다 — 실패를 고친 커밋이 :main이 된다(의도).
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: promote-main
+      cancel-in-progress: false
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: move :main if still latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "main이 이미 ${head::7}로 앞서 있다 — :main을 옮기지 않는다"; exit 0
+          fi
+          docker buildx imagetools create -t ghcr.io/gosrock/dudoong-front:main "ghcr.io/gosrock/dudoong-front:sha-${GITHUB_SHA::7}"

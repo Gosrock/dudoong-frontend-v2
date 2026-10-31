@@ -15,13 +15,14 @@ build/
 out/
 
 # Environment
-.env
-.env.local
-.env.*.local
+.env*
+!.env.example
 
 # IDE
 .idea/
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 *.swp
 *.swo
 *~
@@ -43,3 +44,16 @@ coverage/
 .turbo/
 .vercel/
 .omc/
+
+# Next.js
+next-env.d.ts
+
+# Storybook
+storybook-static/
+
+# Playwright (e2e · QA 시나리오) — 리포트·캡처는 커밋하지 않는다
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/qa/reports/

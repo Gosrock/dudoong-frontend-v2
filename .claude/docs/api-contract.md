@@ -1,0 +1,528 @@
+# 백엔드 v2 API 계약 요약
+
+> 출처: 백엔드 「두둥 v2 통합 기획서」(2026-10-10, Backend dev `a67e7f25`, #755 컨벤션 통일 이후)와 「두둥 v2 API 안내서」(2026-10-09, #755 **이전**).
+> 두 문서가 다르면 통합 기획서를 따른다. **필드 이름·타입의 최종 기준은 Swagger**(`/swagger-ui/index.html` → `v2-전체` · `v2-호스팅센터` · `v2-사용자앱`)다.
+> 이 문서는 FE가 매번 원문을 열지 않도록 규약과 색인만 옮긴 것이다. 필드 단위 명세는 옮기지 않았다 — 화면 구현 시 Swagger 또는 통합 기획서의 API 레퍼런스에서 해당 ID를 찾는다.
+> **코드 대조 기준: 백엔드 `dev` `432cce4`(2026-10-25).** 처음엔 `24aa595`(2026-10-10)로 대조했고, 그 뒤 머지된 PR로 바뀐 곳에 "(#PR)"을 달았다. 백엔드 Develop 기획서(2026-10-25, 백엔드 팀 프론트 전달용 — 저장소 밖, 요약만 옮김)도 근거로 쓴다. 둘이 다르면 소스를 따른다.
+> 운영 어드민(`/internal-api`) 전용 변경(#803·#824·#826 태그·#828·#842·#847 등)은 v2 화면과 무관해 옮기지 않는다 — 단 v2 응답 값이 바뀌는 것(#826 선물 `cancelReason=ADMIN`, #828 운영자 대리 처리)은 적는다.
+
+## 0. 전제
+
+- `/api/v2` 82개(호스팅센터 55 · 사용자앱 27)가 **이미 구현·테스트되어 dev에 머지**돼 있다. FE가 계약을 먼저 동결하고 백엔드가 수용하는 구조가 아니다. 그 뒤 은행 목록 1개(#804)와 공지 3개(#832)가 늘어 **86개**다(§5).
+- v1(`/api/v1`)과 같은 서버·같은 테이블을 쓰고 API 계층만 분리돼 있다. v2 스키마 변경 V001~V011은 Deploy 릴리스 PR #52(2026-10-10 머지)의 머지 전 체크리스트로, V012~V019(V018 제외)도 이후 릴리스 PR 체크리스트로 실행하게 돼 있다. V018은 열린 PR #839 몫이다(backend-questions B5).
+- **v2에 없는 것**: 인증(로그인·재발급·로그아웃·탈퇴는 v1 그대로), PG 결제, 쿠폰, 공연 Q&A(Talk), 슬랙 웹훅, 제휴, 호스트 삭제, 푸시·알림톡(알림톡은 서버 자동 발송만 있고 FE API는 없다 — #841·#854). 공연 D-1·1시간 전 알림은 **앱 내 알림으로 생겼다**(#810, §3).
+- 결제는 **계좌송금만**이다. 두둥 티켓(직접 계좌이체 또는 토스 송금, 호스트 승인)과 무료 티켓. 기존 PG 티켓(`PRICE`)은 조회만 된다.
+
+## 1. 공통 규약
+
+### 인증
+
+- 로그인: v1 카카오 OAuth(`/api/v1/auth/oauth/kakao/link` → `/oauth/kakao` → `/oauth/kakao/login`·`/register`).
+- 재발급 `POST /api/v1/auth/token/refresh`(본문 `{refreshToken}` 또는 쿠키), 로그아웃 `POST /api/v1/auth/logout`, 탈퇴 `DELETE /api/v1/auth/me`.
+- 토큰은 `Authorization: Bearer` 헤더를 먼저 보고, 없으면 액세스 토큰 쿠키를 읽는다.
+- 사용자 id는 토큰에서 채운다. 요청에 `userId`를 보내지 않는다.
+- 공개(비로그인) GET은 14개다: GP-1 GP-2 GP-3 GP-5 GE-5 GE-11 GH-3 GH-14 GG-3 SYS-1 + 은행 목록 `GET /banks`(#813) + 공지 GA-1·GA-2·GA-3(#832). 화면에서 쓰는 것은 SYS-1을 뺀 13개다. 나머지 72개는 비로그인이면 401 `AUTH_401_2`(아래 표, #808). 공개 여부는 백엔드 `SecurityConfig.V2_PUBLIC_GET_PATHS` 한 곳에서 정한다(@432cce4).
+- **공개 GET은 사람마다 값이 다를 수 있다.** GP-3·GH-3은 비로그인이면 연락처의 전화·이메일 값을, GH-3은 `members[].name`도 가려서 준다(#846, §6 공연). 로그인 사용자에게는 원문이다.
+- 공개 GET·재발급·OAuth·로그아웃(`permitAll`)은 **만료·위조 액세스 토큰이 붙어도 익명으로 통과한다**(#792). `JwtTokenFilter`가 파싱 실패를 요청 속성에 남기고 익명으로 넘기며, 인증이 필요한 경로에서만 `TokenAuthenticationEntryPoint`가 401을 낸다 — 만료 `AUTH_401_1`, 위조·형식 오류 `GLOBAL_401_1`(위조 토큰이 **쿠키**로 왔으면 `accessToken` 삭제 `Set-Cookie`도 붙인다. 만료 토큰에는 붙이지 않는다). 이전(24aa595)에는 필터가 경로와 상관없이 401을 냈다.
+- FE는 여전히 공개 GET을 쿠키 없이(`credentials: 'omit'`) 부른다. 이유가 바뀌었다: 401 회피가 아니라 **서버 조회와 같은 익명 값을 한 키로 쓰기 위해서**다. 그 대신 사용자별 값(가린 연락처의 원문 등)은 쿠키를 실은 별도 조회로 읽는다(tech-decisions §4 viewer 표).
+- 정지·탈퇴 계정의 토큰은 익명으로 처리된다(보호 경로 401 `AUTH_401_2`, 공개 경로는 그대로).
+- 로그인·재발급 응답이 `Set-Cookie`로 `accessToken`·`refreshToken`을 내려 준다(만료 = 토큰 수명, 액세스 기본 3600초). **로그인(기기)마다 세션이 따로 있다**(#807): 로그인·가입 = 새 세션(다른 기기 세션 유지), 재발급 = 같은 세션 회전, 로그아웃 = 이 기기 세션만 삭제(`RefreshUseCase`·`LogoutUseCase` @432cce4). 세션 상한은 사용자당 10개(`MAX_SESSIONS`) — 새 로그인으로 넘으면 마지막 발급(로그인·재발급)이 가장 오래된 세션부터 지운다. 같은 세션의 직전 리프레시 토큰은 30초(`GRACE_MILLIS`) 동안 다시 내도 이미 발급된 현재 토큰을 돌려주고, 유예가 지난 옛 토큰을 내면 그 세션을 지운다(`RefreshTokenAdaptor` @432cce4).
+- 쿠키: 운영은 `.dudoong.com`·`SameSite=Strict`, 스테이징은 host-only·`Lax`, 로컬·dev는 `SameSite=None`. 현재 `auth.cookie.http-only=false`이고 프론트 전환(Front #338 B단계) 뒤 HttpOnly로 바뀐다.
+
+### 응답과 에러
+
+- 성공은 **항상 HTTP 200**(생성도 201 아님, 삭제도 204 아님). 본문 `{success: true, status: 200, data, timeStamp}`.
+- 예외: 엑셀 GR-6·GI-3은 래퍼 없는 xlsx 파일.
+- 변경 응답은 화면을 다시 그릴 값이다. 수정은 수정된 리소스, 목록에서 지우면 남은 목록, 상태 전이는 전이 결과.
+- 필드는 항상 키가 있고 값이 없으면 `null`. 그 역할에게 안 보이는 값도 `null`.
+- 에러 `{success: false, status, code, reason, timeStamp, path}`. `code` = `{도메인}_{HTTP}_{번호}`(예: `Order_400_24`). 도메인 접두는 대소문자가 섞여 있다(`HOST_`, `USER_`, `Order_`, `Event_`, `Ticket_Item_`, `Option_Group_`, `IssuedTicket_`, `Gift_`).
+- `reason`은 보여도 되는 한국어 문장이지만 화면 문구는 `code`로 분기한다.
+- **409는 없다.** 중복·이미 처리됨도 400. 형식·길이 검증 실패(Bean Validation·파라미터·경로 타입)는 400 **`code: "BAD_REQUEST"`**다 — `GLOBAL_400_1`은 정의만 있고 나오지 않는다(소스 확인 @432cce4, 2026-10-26, error-codes). 이때 `reason`은 사용자용 문장이 아니다(필드→메시지 JSON 또는 "Bad Request").
+
+### 401 · 403 · 404
+
+| 상태 | 뜻 | FE 처리 |
+|---|---|---|
+| 401 `AUTH_401_1` | 토큰이 만료됐다 | 재발급 후 재시도 |
+| 401 `GLOBAL_401_1` | 토큰 형식·서명이 잘못됐다 | 재발급 후 재시도, 실패하면 세션 없음 |
+| 401 `AUTH_401_2` | **토큰이 없다**(쿠키가 만료돼 사라진 경우 포함), 또는 정지·탈퇴 계정(유효한 토큰이 있어도 익명으로 처리된다). 본문 `status`도 401이다(#808 — 그 전엔 `AUTH_403_2`에 본문 403이었다) | 재발급 후 재시도, 실패하면 세션 없음 |
+| 403 | 호스트 권한 실패만. 대상 코드는 6개: 멤버 아님(`FORBIDDEN_HOST`), 매니저 아님, 마스터 아님, 초대 수락 전, 파트너 아님, 매니저가 매니저를 다루려 함. `code` 문자열은 `HOST_400_*` 그대로다 | **HTTP 상태로 분기**, `code`로 사유 구분. 전체 코드는 [`error-codes.md`](./error-codes.md) |
+| 403 `AUTH_403_2` | 로그인했지만 시스템 역할이 부족하다(`/internal-api` 등). 문구 "접근 권한이 없습니다."(`ACCESS_DENIED`, #808). v2 화면에서는 생기지 않는다 | — |
+| 403 `AUTH_403_3` | 허용되지 않은 출처(`CookieOriginFilter`, #763). 쿠키 인증(`Authorization: Bearer` 헤더가 없고 accessToken 쿠키가 있음 — 쿠키 유효성은 보지 않는다) + POST·PUT·PATCH·DELETE + **Origin(없으면 Referer의 출처)이 허용 목록 밖**일 때. Bearer 헤더가 있으면 검사하지 않는다. 경로 끝이 `/v1/auth/token/refresh`·`/v1/auth/logout`이면 예외. 허용 목록은 CORS와 같다(§9 환경별 설정 — 로컬·dev 목록의 로컬 주소는 `localhost:3000`·`5173`뿐이라 로컬 FE는 3000번이어야 한다). 지금은 `auth.origin-check.enforce=false`(기록만)라 나지 않는다 | 같은 출처 fetch는 Origin을 보내므로 정상 흐름에서는 생기지 않는다. 오면 일반 403 |
+| 403 `USER_403_1` | **정지 계정**이 로그인·재발급하려 함(`User.login()`은 `NORMAL`이 아니면 예외). 탈퇴한 사람은 탈퇴 때 oid에 접두어가 붙어(`OauthInfo.withDrawOauthInfo()`) 기존 사용자를 찾지 못하므로 가입 흐름(`canRegister=true`)으로 가고, 재발급은 탈퇴 때 리프레시 토큰이 지워져 보통 `AUTH_403_1`이다 | 로그인이면 "이용이 제한된 계정이에요", 재발급이면 세션 상실 |
+| 404 | 없는 리소스 + 남의 리소스 + 다른 공연 소속 + 비공개(준비중·삭제) 공연 | 존재를 숨기는 응답이므로 "찾을 수 없어요" |
+
+**코드가 아니라 HTTP 401이면 재발급을 시도한다.** 액세스 토큰 쿠키는 만료 = 토큰 수명이라, 만료되면 쿠키가 사라져 `AUTH_401_1`이 아니라 `AUTH_401_2`(토큰 없음)가 온다. 분기는 HTTP 상태로 한다(백엔드 `TokenAuthenticationEntryPoint` @432cce4 — 401은 모두 여기서 나온다). #808 뒤로 본문 `status`와 HTTP 상태가 다른 401은 없어졌지만, 403 호스트 권한 실패는 여전히 `code`가 `HOST_400_*`이라 HTTP 상태 분기 원칙은 그대로다.
+
+예외: 체크인 PQ-2는 항상 200 + `result`. PQ-5의 같은 공연 남의 티켓(400 `IssuedTicket_400_1`)과 10/O-5 본문의 다른 공연 `optionId`(400)는 #758 L-3에서 404로 바뀔 수 있다 — #758은 아직 열린 이슈이고 이 항목은 남았다(백엔드 Develop 기획서 2026-10-25, backend-questions "지켜보는 것").
+
+### 페이지네이션
+
+- 쿼리 `page`(0부터) · `size`. 응답 `V2PageResponse{content, page, size, totalElements, totalPages, hasNext}`. **커서 방식이 아니다.**
+- 기본 크기: 카드형 목록(GE-1 GH-1 GH-14 GP-2) 10, 그 밖 20. 상한: 일반 50, 운영 표·알림(GR-1 GF-1 GI-1 GN-1) 100.
+- GN-1은 Slice라 `totalElements`·`totalPages`가 `null` — `hasNext`로 무한 스크롤.
+- 건수가 같이 오는 목록: `{counts, orders|tickets: V2PageResponse}`(GR-1, GI-1), 연도 탭 `{years, events: V2PageResponse}`(GM-5).
+- 멤버·티켓 관리·옵션·섹션·태그·판매 중 티켓·내 티켓은 페이지 없이 배열.
+- `keyword`는 50자까지(51자는 400). 필터 enum은 `ALL`이 기본값.
+
+### 날짜 · 금액 · 이름
+
+- 날짜는 요청·응답 모두 **`yyyy.MM.dd HH:mm`**(Asia/Seoul, 초 없음).
+- 금액은 원 단위 정수. 티켓 가격 `price`, 주문 시점 가격 `unitPrice`, 합계 `*Amount`, 옵션 추가금 `additionalPrice`.
+- Boolean: 상태 `is*`, 소유·존재 `has*`, 가능 여부 `can*`, 설정값 `*Required`.
+- 계좌는 어디서나 `bankName / accountHolder / accountNumber`(본인 환불 계좌만 `maskedAccountNumber`) + **`bankCode`**(#804). 응답의 `bankCode`는 서버가 `bankName`에서 추정한 금융결제원 3자리 코드이고 추정이 안 되면 `null`이다(10/T-1 `account`, 11/O-0 `account`, 11/O-3 `payment.account`·`refundAccount`, GR-2·GF-1 `refundAccount`). 요청 쪽은 §4. 결제 방식은 `paymentChannel`.
+- 저장 상태는 `status`, 화면 판정 상태는 `*State`. 공연 `displayStatus`만 예외.
+- **같은 이름 다른 뜻**: `remaining` — 사용자 화면(GP-5, G11/O-0) = 재고 − 승인 대기, 호스트 G10/T-1 = 재고(승인 대기는 `pendingApproveCount`).
+- 식별자: 호스트가 만드는 리소스는 숫자 id(`eventId`, `hostId`, `ticketItemId`, `optionId`, `giftId`), 주문·발급 티켓은 uuid(`orderUuid`, `ticketUuid` — QR 값), 공유 링크는 토큰(`giftToken`). 사람이 읽는 번호 `orderNo`(R…) · `issuedTicketNo`(T…).
+
+### 메서드 의미
+
+- **PATCH** 부분 수정: `null`(키 없음) = 변경 안 함. 객체·배열 필드는 통째 교체(PE-4 `place`·`contacts`·`tagIds`, PH-4 `contacts`). P10/T-3에서 "값 없음"은 `clear[]`.
+- **PUT** 전체 교체·upsert: PE-6 섹션, P10/O-5 옵션 지정, P11/O-5 환불 계좌, PH-13 팔로우. 빠진 항목은 지워진다. 본문은 객체로 감싼다(`{sections}`, `{optionIds}`).
+- 같은 전이를 다시 보내면: 부작용 없는 전이는 200(판매 중단·재개, 환불 완료, 알림 읽음, 팔로우), 발급·환불 요청·알림이 따르는 전이는 400(승인·거절·취소·공연 등록·삭제·선물 회수·수락·거절). 400이면 최신 상태를 다시 읽는다.
+- 주문 생성 P11/O-1은 10초 안의 같은 요청에 앞 주문을 돌려준다. `Idempotency-Key`는 없다.
+
+### 이미지 업로드
+
+1. 업로드 URL 발급 — 호스트 PH-15 `{purpose: PROFILE|COVER, extension}`, 공연 PE-10 `{purpose: POSTER|SECTION, extension}`, 프로필 PM-3 `{extension}` → `{presignedUrl, key, url}`.
+2. `presignedUrl`로 S3에 PUT.
+3. 저장 API에 받은 `key`를 그대로 보낸다(PH-4, PE-4, PM-2). `""` = 기본 이미지. 섹션 본문 이미지는 받은 `url`을 HTML에 넣는다.
+
+`presignedUrl`은 **3분** 유효하다. 발급 직후 올리고, 실패하면 발급부터 다시 한다. 발급은 **사용자당 분당 30회** 제한이다. 화면에서 반복 호출하지 않는다. 확장자는 `JPEG` · `JPG` · `PNG`만 받고, `JPG`로 보내도 key는 `.jpeg`로 발급된다.
+
+### API ID 표기
+
+ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이다. `T-`·`O-`는 호스팅(10 문서)과 사용자(11 문서)에서 번호가 겹쳐 `10/T-1`(티켓 관리) · `11/T-1`(내 티켓)처럼 문서 번호를 붙인다.
+
+## 2. 역할과 권한
+
+권한은 호스트 단위다. 같은 사람이 호스트 A에서 마스터, B에서 일반 멤버일 수 있다. 버튼을 숨길 때는 응답의 `myRole`(GH-1 GH-3 GE-1 GE-3)을 쓴다.
+
+| 표기 | 뜻 |
+|---|---|
+| P | 공개(비로그인 허용) |
+| U | 로그인, 본인 리소스만 |
+| G+ | 그 호스트의 일반 멤버(`GUEST`) 이상 |
+| M+ | 매니저(`MANAGER`) 이상 |
+| MS | 마스터(`MASTER`)만 |
+
+| 할 수 있는 일 | 일반 멤버 | 매니저 | 마스터 |
+|---|---|---|---|
+| 관리 화면 조회(준비중 포함), 멤버·티켓·옵션 목록, 체크리스트 | 읽기 전용 | ✓ | ✓ |
+| 대시보드, 주문·발급 티켓·환불 목록과 상세 | ✓ — 구매자 연락처·이메일·**입금자명은 가린 값**(`010-****-5678`, `ab***@gmail.com`, `김*수`). 이름·입장 상태는 원문(체크인용). 연락처·입금자명 검색은 **완전 일치만**(#846) | ✓ | ✓ |
+| 환불 계좌 전체 보기 | — (`null`) | ✓ | ✓ |
+| 엑셀 다운로드(GR-6·GI-3) | — (403, `code` `HOST_400_1` 매니저 아님 — #846) | ✓ | ✓ |
+| QR 체크인, 셀프 체크인 QR 띄우기, 체크인 통계 | ✓ | ✓ | ✓ |
+| 공연·티켓·옵션 쓰기, 호스트 설정·이미지 | — | ✓ | ✓ |
+| 멤버 추가·삭제 | — | 일반 멤버만 | ✓ |
+| 주문 승인·거절·승인 후 취소·환불 완료 | — | ✓ | ✓ |
+| 역할 변경(일반 ↔ 매니저), 마스터 양도 | — | — | ✓ |
+| 호스트 삭제 | 없음 | 없음 | 없음(`DELETE`는 405) |
+
+마스터는 호스트마다 정확히 1명이고 양도하면 기존 마스터는 매니저가 된다. 멤버 추가는 가입된 이메일만, 한 번에 20명까지, **수락 없이 즉시 활성**이다.
+
+일반 멤버 가림 규칙의 근거: 백엔드 `HostPrivacyPolicy`·`V2OperationMapper`(@432cce4, "매니저 이상·SUPER_ADMIN은 원본, 일반 멤버는 가린 값, 연락처·입금자명 검색은 완전 일치만"), 엑셀 Swagger summary "(매니저 이상, #822)"(`V2OrderManageController`·`V2IssuedTicketController`). 이 일부가 #758 M-1이다(#758 자체는 아직 열린 이슈).
+
+**운영자도 v2 주문 상태를 바꾼다**(#828): 운영 어드민이 대리 승인·거절·취소, 환불 완료(알림 없이 가능 — 그러면 관객은 `ORDER_REFUND_COMPLETED` 알림을 받지 않고 11/O-3 `refundStatus`로만 안다), 0원 주문의 환불 요청 해제(`REFUND_REQUESTED` → `NONE`)를 할 수 있다. FE 규칙("400이면 최신 상태를 다시 읽는다", §1 메서드 의미)으로 흡수된다.
+
+## 3. 상태와 enum
+
+| 대상 | 값 |
+|---|---|
+| 공연 저장 상태 | `PREPARING` → `OPEN` → `CALCULATING` · `CLOSED`, `DELETED`. OPEN → PREPARING은 호스트가 못 한다 |
+| 공연 `displayStatus` | `PREPARING` · `UPCOMING`(`dDay` 값 있음, 당일 0) · `ONGOING` · `PAST` |
+| 티켓 `payType` | `DUDOONG`(계좌송금, 승인 항상 ON, 계좌 필수) · `FREE`(승인 ON/OFF) · `PRICE`(기존 PG, 조회만) |
+| 티켓 `saleState` | `BEFORE_SALE` · `SOLD` · `SUSPENDED`(이 3개가 전부). **잠금 판정은 `isSold \|\| hasPendingOrders`** |
+| 옵션 `type` | `SUBJECTIVE`(주관식) · `YES_NO`(네·아니오 + 네 추가금 `yesAdditionalPrice`). 응답에는 v1 옵션의 `MULTIPLE_CHOICE`도 올 수 있다 — v2에서 만들 수는 없고 표시만 한다 |
+| `paymentChannel` | `BANK_TRANSFER` · `TOSS_TRANSFER` · `FREE` |
+| 주문 상태(호스트) | `PENDING_APPROVE` · `APPROVED` · `REFUSED` · `CANCELED` · `FAILED` |
+| 주문 상태(사용자) | `PENDING_APPROVE` · `APPROVED` · `REFUSED` · `CANCELED` · `REFUNDED` |
+| `refundStatus` | `NONE` · `REQUESTED` · `COMPLETED` |
+| 거절 `reasonType` | `DEPOSIT_UNCONFIRMED` · `AMOUNT_MISMATCH` · `SOLD_OUT` · `ETC`(`reasonText` 필수, 20자) |
+| 선물 `status` | `PENDING` · `ACCEPTED` · `REJECTED` · `RETURNED` · `CANCELED` |
+| 선물 랜딩 `viewState` | `AVAILABLE` · `ALREADY_ACCEPTED` · `REJECTED` · `RETURNED` · `CANCELED` · `OWN_LINK` · `EXPIRED` |
+| 내 티켓 `state` | `PENDING_APPROVE` · `REFUSED` · `APPROVED` · `GIFT_PENDING` · `GIFT_EXPIRED` · `GIFT_SENT` · `RECEIVED` · `ENTERED` · `CANCELED` · `REFUND_REQUESTED` · `REFUNDED` |
+| 티켓 `giftState` | 내 티켓: `NONE` · `PENDING` · `SENT` · `RECEIVED` / 호스트 발급 티켓: `NONE` · `PENDING` · `ACCEPTED` |
+| 입장 `entrance` | `BEFORE` · `DONE`(되돌리는 API 없음) · `CANCELED`(취소된 티켓) |
+| 체크인 `result` | `ENTERED` · `ALREADY_ENTERED` · `OTHER_EVENT` · `CANCELED` · `GIFT_PENDING` · `SELECT_TICKET`(셀프 전용) |
+| 연락처 `type` | `PHONE` · `EMAIL` · `INSTAGRAM` · `OPEN_CHAT` · `YOUTUBE` · `ETC` |
+| 태그 분류 | `EVENT_TYPE` · `GENRE` · `AREA` · `TEAM` (22종, 시드로만 관리) |
+| 섹션 `contentFormat` | `HTML`(v2 에디터) · `MARKDOWN`(v1 이관분) |
+| 선물 취소 사유 `cancelReason` | `SENDER`(보낸 사람 회수) · `ORDER_CANCELED` · `SENDER_WITHDRAWN` · `EVENT_REMOVED` · `ADMIN`(운영자 강제 회수, 대기 중일 때만, 알림 없음 — #826) |
+| 알림 `target.type` | `HOST` · `ORDER` · `GIFT` · `EVENT`(#810, `targetId` = eventId) |
+| 공지 `target` | `ALL` · `HOST`(#832) |
+
+알림 17종: `HOST_MEMBER_ADDED` / `ORDER_PENDING_APPROVE` · `ORDER_APPROVED` · `ORDER_REFUSED` · `ORDER_REFUND_REQUESTED` · `ORDER_CANCELED_BY_USER` · `ORDER_CANCELED_BY_HOST` · `ORDER_REFUND_COMPLETED` · `REFUND_ACCOUNT_CHANGED` / `GIFT_SENT` · `GIFT_ACCEPTED` · `GIFT_RECEIVED` · `GIFT_REJECTED` · `GIFT_RETURNED` · `GIFT_TICKET_CANCELED` / `EVENT_REMINDER_D1` · `EVENT_STARTING_SOON`(#810 — 공연 리마인더, 앱 내 알림만. `NotificationType.kt` @432cce4).
+
+## 4. 입력 제한
+
+| 대상 | 제한 |
+|---|---|
+| 호스트 | 이름 1~15자, 소개글 255자(Figma의 100자는 수정 요청 중), 연락처 1~10개(값 200자, `PHONE`은 15자) |
+| 공연 | 이름 1~25자. 간편 생성의 시작 일시는 현재 이후(`@Future`), 종료 > 시작. 장소 `{name, address, latitude, longitude}` 필수(이름·주소 255자) + `detailAddress`(선택, 255자). 태그 10개 이하. 공연 문의처 0~10개(값 200자) |
+| 섹션 | 1~10개, 제목 1~20자, 본문 20,000자(어기면 `Event_400_21`) |
+| 티켓 | 이름 12자, 설명 30자. 가격은 두둥 티켓 1원~1,000만 원, 무료 티켓 0원(어기면 `Ticket_Item_400_3`). 수량 1~999,999 또는 무제한. 티켓당 옵션 10개 이하. 계좌의 은행명·예금주 30자, 계좌번호 50자(형식 검사 없음). 은행은 `bankCode`(선택, `GET /banks`의 `code`)를 보내면 우선하고 `bankName`은 무시된다(서버가 표시 이름으로 채움). `bankCode`가 없으면 `bankName` 필수(자유 입력). 모르는 코드·둘 다 없음은 400(#804, `V2TicketAccountRequest` @432cce4) |
+| 옵션 | 이름 20자, 설명 50자(**필수**). 네/아니오 추가금 0~1,000만 원. 응답 형식은 만든 뒤 못 바꾼다 |
+| 주문 | 수량 1~100(`perTicketOptions`도 100개 이하), 입금자명 1~20자, 거절 `reasonText` 20자, 호스트 취소 사유 100자 |
+| 환불 계좌 | 은행명 20자, 예금주 20자, 계좌번호 30자. 계좌번호는 숫자·하이픈·공백만(`^[0-9][0-9 -]*[0-9]$`), 저장 때 공백을 지운다. 티켓 계좌와 제한이 다르다. `bankCode` 규칙은 티켓 계좌와 같다(#804, `V2RefundAccountRequest` @432cce4) |
+| 동의 필드 | `agreementVersion` 50자(#840). 값은 `'2026-10'`(백엔드 Develop 기획서 — v1 티켓 앱 `AGREEMENT_VERSION`과 같은 값, 문구가 바뀌면 올린다). **FE 규칙(2026-10-25 구현)**: 동의 필드는 사용자가 화면에서 체크한 것만 `true`로 싣는다(칸 없이 `true`를 만들지 않는다 — 칸이 없는 필드는 design-requests Q42 대기). `agreementVersion`은 동의 필드가 하나라도 있을 때만 싣는다. 한 곳 `src/api/shared/agreement.ts`(`AGREEMENT_VERSION`·`agreementFields`) |
+| 선물 메모 | 50자 |
+| 닉네임 | 2~7자 |
+| 검색어 | 50자. GP-2 `tagIds` 50개 이하 |
+| 그 밖 | PN-3 `notificationIds` 100개 이하, GM-5 `year` 2000~9998 |
+
+## 5. API 색인 (86개, #755 이후 경로)
+
+경로는 모두 `/api/v2` 아래다. 처음 82개에 은행 목록(#804)과 공지 3개(#832)가 더해졌다(@432cce4).
+
+### 호스트·멤버
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| GH-1 | GET `/me/hosts` | U |
+| PH-2 | POST `/hosts` | U |
+| GH-3 | GET `/hosts/{hostId}` | P |
+| PH-4 | PATCH `/hosts/{hostId}` | M+ |
+| GH-6 | GET `/hosts/{hostId}/members` | G+ |
+| PH-7 | POST `/hosts/{hostId}/members` | M+ |
+| PH-10 | PATCH `/hosts/{hostId}/members/{userId}/role` | MS |
+| DH-11 | DELETE `/hosts/{hostId}/members/{userId}` | M+ |
+| PH-12 | POST `/hosts/{hostId}/transfer-master` | MS |
+| PH-13 | PUT · DELETE `/hosts/{hostId}/follow` | U |
+| GH-14 | GET `/hosts/{hostId}/events` | P |
+| PH-15 | POST `/hosts/{hostId}/images` | M+ |
+
+### 공연 준비
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| GE-1 | GET `/me/events` | U |
+| PE-2 | POST `/events` | M+ |
+| GE-3 | GET `/events/{eventId}/manage` | G+ |
+| PE-4 | PATCH `/events/{eventId}/basic` | M+ |
+| GE-5 | GET `/events/{eventId}/sections` | P (준비중은 멤버만) |
+| PE-6 | PUT `/events/{eventId}/sections` | M+ |
+| GE-7 | GET `/events/{eventId}/checklist` | G+ |
+| PE-8 | POST `/events/{eventId}/open` | M+ |
+| DE-9 | DELETE `/events/{eventId}` | M+ |
+| PE-10 | POST `/events/{eventId}/images` | M+ |
+| GE-11 | GET `/tags` | P |
+
+### 티켓 · 옵션 (호스팅, 10 문서)
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| G10/T-1 | GET `/events/{eventId}/ticket-items/manage` | G+ |
+| P10/T-2 | POST `/events/{eventId}/ticket-items` | M+ |
+| P10/T-3 | PATCH `/events/{eventId}/ticket-items/{ticketItemId}` | M+ |
+| D10/T-4 | DELETE `/events/{eventId}/ticket-items/{ticketItemId}` | M+ |
+| P10/T-5 · T-6 | POST `…/{ticketItemId}/suspend` · `/resume` | M+ |
+| G10/O-1 | GET `/events/{eventId}/options` | G+ |
+| P10/O-2 | POST `/events/{eventId}/options` | M+ |
+| P10/O-3 | PATCH `/events/{eventId}/options/{optionId}` | M+ |
+| D10/O-4 | DELETE `/events/{eventId}/options/{optionId}` | M+ |
+| P10/O-5 | PUT `/events/{eventId}/ticket-items/{ticketItemId}/options` | M+ |
+
+### 공연 운영 (대시보드 · 주문 · 환불 · 발급 티켓 · 체크인)
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| GD-1 | GET `/events/{eventId}/dashboard` | G+ |
+| GR-1 | GET `/events/{eventId}/orders` | G+ |
+| GR-2 | GET `/events/{eventId}/orders/{orderUuid}` | G+ |
+| PR-3 · PR-4 · PR-5 | POST `…/orders/{orderUuid}/approve` · `/refuse` · `/cancel` | M+ |
+| GR-6 | GET `/events/{eventId}/orders/export` | M+ (#846 전 G+) |
+| GF-1 | GET `/events/{eventId}/refunds` | G+ |
+| PF-2 | POST `/events/{eventId}/refunds/{orderUuid}/complete` | M+ |
+| GI-1 | GET `/events/{eventId}/issued-tickets` | G+ |
+| GI-2 | GET `/events/{eventId}/issued-tickets/{ticketUuid}` | G+ |
+| GI-3 | GET `/events/{eventId}/issued-tickets/export` | M+ (#846 전 G+) |
+| GQ-1 | GET `/events/{eventId}/check-ins/stats` | G+ |
+| PQ-2 | POST `/events/{eventId}/check-ins` | G+ |
+| GQ-4 | GET `/events/{eventId}/check-in-qr` | G+ |
+| PQ-5 | POST `/check-ins/self` | U |
+
+### 공연 탐색 (사용자)
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| GP-1 | GET `/home` | P |
+| GP-2 | GET `/events` (`keyword`, `tagIds`, `includePast`, `sort=UPCOMING`) | P |
+| GP-3 | GET `/events/{eventId}` | P |
+| GP-5 | GET `/events/{eventId}/ticket-items` | P |
+
+### 주문 · 취소 · 환불 계좌 (사용자, 11 문서)
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| G11/O-0 | GET `/events/{eventId}/ticket-items/{ticketItemId}/checkout` | U |
+| P11/O-1 | POST `/me/orders` | U |
+| G11/O-2 | GET `/me/orders` | U |
+| G11/O-3 | GET `/me/orders/{orderUuid}` | U |
+| P11/O-4 | POST `/me/orders/{orderUuid}/cancel` | U |
+| P11/O-5 | PUT `/me/orders/{orderUuid}/refund-account` | U |
+
+### 티켓탭 · 선물 (사용자)
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| G11/T-1 | GET `/me/tickets` | U |
+| G11/T-2 | GET `/me/tickets/{ticketUuid}` | U |
+| G11/T-3 | GET `/me/tickets/new-approved` | U |
+| PG-1 | POST `/me/tickets/{ticketUuid}/gift` | U |
+| DG-2 | DELETE `/me/gifts/{giftId}` | U |
+| PG-8 | PATCH `/me/gifts/{giftId}` | U |
+| GG-3 | GET `/gifts/{giftToken}` | P |
+| PG-4 · PG-5 | POST `/gifts/{giftToken}/accept` · `/reject` | U |
+| PG-6 | POST `/me/tickets/{ticketUuid}/return` | U |
+| GG-7 | GET `/me/gifts` (`direction=SENT\|RECEIVED`) | U |
+| GG-7a | GET `/me/gifts/{giftId}/ticket` | U |
+
+### 마이페이지 · 알림 · 기타
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| GM-1 | GET `/me` | U |
+| PM-2 | PATCH `/me` | U |
+| PM-3 | POST `/me/images` | U |
+| GM-4 | GET `/me/following-hosts` (`status=ALL\|ACTIVE\|ENDED`) | U |
+| GM-5 | GET `/me/archive` (`year`) | U |
+| GN-1 | GET `/me/notifications` | U |
+| GN-2 | GET `/me/notifications/unread-count` | U |
+| PN-3 | POST `/me/notifications/read` (`{notificationIds}` 또는 `{readAll: true}`) | U |
+| SYS-1 | GET `/health` | P |
+| G10/T-7 | GET `/banks` — 은행 목록 `[{code, name}]` 25개(금융결제원 3자리, 코드 순). 티켓 입금 계좌·환불 계좌 공통(#804). Swagger summary는 아직 "(로그인)"이지만 실제는 공개(#813, `SecurityConfig`) | P |
+
+### 서비스 공지 (#832)
+
+| ID | 메서드 · 경로 | 권한 |
+|---|---|---|
+| GA-1 | GET `/notices?audience=USER\|HOST&page&size` — `V2PageResponse<{noticeId, title, target, pinned, createdAt}>`. 고정 먼저 → 최신순. `USER`(기본)는 `ALL` 공지만, `HOST`는 `ALL`+`HOST`. size 기본 20·최대 50, 잘못된 `audience`는 400 | P |
+| GA-2 | GET `/notices/{noticeId}` — `{noticeId, title, content, target, pinned, createdAt, updatedAt}`. `content`는 HTML(저장 때 서버가 sanitize). 숨김·없음은 404 `Notice_404_1`. 상세는 `audience`와 상관없이 열린다 | P |
+| GA-3 | GET `/notices/banners?audience=` — 지금 띄울 상단 배너 `[{noticeId, title, bannerEndAt}]`(페이지 없음). 누르면 GA-2 | P |
+
+근거: `V2NoticeController`·`V2NoticeDtos`·`NoticeErrorCode` @432cce4. 백엔드 권고(PR #832 본문, Develop 기획서): 제목은 텍스트로만 그리고, 본문 HTML은 FE에서 한 번 더 sanitize한다. 화면 Phase는 ~~아직 없다~~ → **P9c**(2026-10-31 사용자 결정, plan P9c).
+
+**P9c-L 소스 확인(2026-10-31, dev `d89d4f9` — `432cce4` 이후 공지 코드 변경 없음, `git log 432cce4..d89d4f9 -- v2/notice domains/notice` 빈 결과)**. 경로는 `DuDoong-Api/src/main/kotlin/band/gosrock/api/v2/notice/`(`controller/V2NoticeController.kt`·`dto/V2NoticeDtos.kt`·`usecase/V2ReadNoticesUseCase.kt`)와 `DuDoong-Domain/…/domains/notice/`(`domain/Notice.kt`·`NoticeTarget.kt`·`adaptor/NoticeAdaptor.kt`·`repository/NoticeRepository.kt`·`exception/NoticeErrorCode.kt`), 테스트 `DuDoong-Api/src/test/…/v2/notice/V2NoticeTest.kt`.
+- **공개**: `SecurityConfig.V2_PUBLIC_GET_PATHS`에 `/api/v2/notices`·`/api/v2/notices/banners`·`/api/v2/notices/{noticeId:[0-9]+}` — 숫자가 아닌 id는 공개 경로가 아니라 인증부터 본다(다른 공개 id 경로와 같다, B7). 쿠키 없이 부른다
+- **`audience`**: `V2NoticeAudience{USER, HOST}`, 기본 `USER`(`@RequestParam(defaultValue = "USER")`). 대상 목록은 `NoticeTarget.visibleTo(host)` — `USER` → `[ALL]`, `HOST` → `[ALL, HOST]`. 모르는 값은 400(`V2NoticeTest` `audience=NOPE`)
+- **GA-1**: `page` 기본 0·`@Min(0)`, `size` 기본 `V2Paging.DEFAULT_SIZE`(20)·`@Min(1) @Max(V2Paging.MAX_SIZE)`(50). `Page`라 `totalElements`·`totalPages`가 온다. 정렬은 `findAllByVisibleTrueAndTargetInOrderByPinnedDescIdDesc` — `visible`만, 고정 먼저 → id 내림차순(=최신순). 목록에는 본문이 없다
+- **GA-2**: `findByIdAndVisibleTrue` — 숨김(`visible=false`)·없음은 404 `Notice_404_1`. 대상(`target`)을 보지 않는다("공지 링크를 공유할 수 있게" — `V2ReadNoticesUseCase.detail` 주석). `content`는 저장 때 `HtmlSanitizer.sanitizeV2RichText`(v2 리치 에디터와 같은 기준, `AdminNoticeUseCase`) — `<p onclick>`·`<script>`·`http:` 이미지 주소가 지워진다(`V2NoticeTest`). `createdAt`·`updatedAt`은 `yyyy.MM.dd HH:mm`, 타입은 nullable
+- **GA-3**: 페이지 없는 배열, id 내림차순(최신순). 조건은 `visible && banner && target ∈ 대상 && (bannerStartAt == null || bannerStartAt ≤ now) && (bannerEndAt == null || bannerEndAt > now)` — 시작 포함·종료 미포함, null은 제한 없음(`NoticeRepository.findActiveBanners`·`Notice.isBannerActive`). 응답 `bannerEndAt`은 null이면 "운영자가 끌 때까지". 시작 시각은 응답에 없다. 배너 기간은 게시판 노출과 무관(지난 배너도 목록에 남는다)
+- **제약**: 제목 100자(`TITLE_MAX_LENGTH`), 본문 입력 20,000자(`CONTENT_MAX_LENGTH`). 작성·수정·삭제는 운영 어드민(`/internal-api/v1/notices`) — v2 FE에는 변경 API가 없다. `Notice_400_1`(배너 기간 역전)·`Notice_400_2`(sanitize 뒤 빈 본문)는 어드민 전용(error-codes 제외 규칙)
+- **확인 못 한 것**: 배너 "닫기"를 서버가 기억하는 API는 없다 — FE가 브라우저에 남긴다(implementation-log P9c-L Claude 판단). 운영(`dudoong.com`)에 공지 API가 배포돼 있다 — 2026-10-31 `pnpm check:contract` GA-1·GA-3 통과(공지 0건이라 GA-2는 건너뜀)
+
+## 6. 플로우별 핵심 규칙
+
+### 공연 (F2 · F4)
+
+- 간편 생성 필드: 호스트, 이름, 시작·종료 일시, 티켓 여부(`hasTicket`). 생성 직후 `PREPARING`.
+- 체크리스트(GE-7): ① 기본 정보(포스터·이름·일정·장소·문의처 1개 이상) ② 본문 있는 섹션 1개 이상 ③ 티켓 1개 이상("티켓 없음" 공연은 면제). 셋 다 차면 `canOpen=true`.
+- **등록 후에는 `hasTicket`만 잠긴다.** 등록된 공연의 시작 시각은 현재 이후로만 바꿀 수 있고, 정산중·지난 공연은 수정 불가. 삭제는 준비중 공연만.
+- 새 공연은 서버에 섹션이 없다. 기본 4탭(공연 소개 · 예매안내 · 세트리스트 · 유의사항)은 **프론트가 그린다**. 첫 섹션 = 공연 소개(v1 본문과 동기화).
+- 준비중·삭제 공연은 사용자 API(GP-3, GP-5, G11/O-0)에서 호스트 멤버여도 404다. 멤버는 호스팅 센터 GE-3으로 본다.
+- 리스트 검색 = 공연명 OR 호스트명 부분일치. 태그는 같은 분류 OR / 분류끼리 AND.
+- 상세의 문의처는 공연 문의처, 없으면 호스트 연락처.
+- **비로그인이면 문의처의 `PHONE`·`EMAIL` 값이 가려져 온다**(GP-3·GH-3 `contacts`, #846). 전화 `010-****-5678`(숫자 8자리 이하는 끝 4자리만), 이메일 `ab***@gmail.com`(아이디 2자 이하 `***@…`). 인스타그램·오픈채팅·유튜브·기타는 공개 채널이라 원문(`V2ContactResponse.masked`, `PrivacyMasker` @432cce4). 로그인 사용자에게는 원문이다. FE 대응(A안, 2026-10-25 사용자 결정)은 tech-decisions §4 viewer 표.
+- GH-3(+ 같은 DTO를 쓰는 PH-4 응답)에 **멤버 요약 `members[{name, profileImageUrl, role}]`**(#811): 활성 멤버 중 정상 계정만, 마스터 → 매니저 → 일반·같은 역할은 먼저 들어온 순, 최대 10명, userId·연락처 없음. 비로그인이면 `name`을 `김*수`로 가린다. `memberCount`(활성 멤버 수)는 정지·탈퇴 계정을 빼지 않아 `members.length`와 다를 수 있다(`V2ReadHostHomeUseCase` @432cce4).
+- 공연 관리 상세 GE-3(+ PE-4 응답)·대시보드 GD-1에 **`openedAt`**(공연 등록 = 최초 OPEN 시각, #802). 준비중이면 `null`, **2026-10 이전에 오픈한 공연도 `null`**(기록 없음). 공개 상세 GP-3에는 없다.
+- **P11-L 소스 확인(2026-10-26, `432cce4` — dev `cb8d24e`까지 공연 API 변경 없음, `Event.kt`는 `@Where` → `@SQLRestriction`만)**: GE-3(+ PE-4 응답) `V2EventManageResponse`에 `posterImageKey`(다시 보낼 수 있는 key)와 **`checklist`(GE-7과 같은 값)**가 함께 온다. GE-7 필드는 `isBasicFilled`·`isDetailFilled`·`hasValidTicket`·`ticketRequired`·`canOpen`. 공연 문의처는 0~10개·값 200자(빈 값·null 원소 `Event_400_20`)이고 **호스트 연락처와 달리 전화 15자 제한이 없다**. 태그는 중복을 뺀 뒤 10개(넘거나 없는 id `Event_400_23`). PE-6은 섹션이 없거나 빈 배열·null 원소면 Bean Validation이 아니라 `Event_400_21`, `sortOrder` 오름차순(같으면 요청 순)으로 0부터 다시 매긴다. PE-8은 체크리스트(입력 항목)가 찼는데 시작이 지났으면 `Event_400_15`(`Event.validateStartAt`). DE-9는 발급 티켓이 있으면 `Event_400_13`(v1 규칙). 준비중 공연 GE-5는 활성 멤버(일반 포함)만, 그 밖은 404. 근거 `V2EventController`·`V2*EventUseCase`·`V2EventDomainService`·`EventChecklist`·`EventErrorCode`·`EventPlace.isUpdated`.
+- 열린 PR #839(머지 전, **예정**): GP-3 `host.businessInfo`·GH-3 `businessInfo`(`{businessName, representativeName, registrationNumber, address}`, 개인 호스트는 `null`), 쓰기는 v1 `PATCH /api/v1/hosts/{hostId}/profile`. 머지되면 반영한다.
+
+### 티켓 · 옵션 (F3)
+
+- **무제한 + 재고 공개는 불가**(`Ticket_Item_400_15`). Figma 폼 기본값이 이 조합이라 그대로 저장하면 실패한다 — 무제한을 고르면 재고 공개를 끄고 비활성.
+- 잠긴 티켓은 설명·판매기간·재고 공개·매수 제한·수량 증가만 수정, 삭제 불가(판매 중단만).
+- P10/T-3: 보낸 필드만 바뀐다. 값을 비울 때는 `clear: ["SUPPLY_COUNT" | "PURCHASE_LIMIT" | "SALE_START_AT" | "SALE_END_AT" | "DESCRIPTION"]`. 이 5개 필드에 명시적 `null`을 보내면 400. `payType`을 바꾸면 `price`도 함께 보낸다.
+- 옵션은 공연 단위 풀에 있고 티켓에 붙인다. 티켓 폼 칩의 ⊗ = 이 티켓에서 떼기(P10/O-5), 옵션 상세 [삭제] = 옵션 자체 삭제(D10/O-4). 새 옵션은 P10/O-2 생성 + P10/O-5 지정 두 번 호출.
+- 무료 티켓에는 유료(추가금) 옵션을 붙일 수 없다.
+- **P12-L 소스 확인(2026-10-30, `432cce4` → dev `cb8d24e` — 티켓·옵션 변경은 #873 동의 필드뿐)**: 근거 `V2TicketItemController`·`V2TicketOptionController`·`V2*TicketItemUseCase`·`V2*TicketOptionUseCase`·`V2TicketItemRequest.kt`·`V2TicketOptionRequest.kt`·`V2TicketItemManageResponse.kt`·`V2TicketItemDomainService`·`V2TicketOptionDomainService`·`TicketItem`·`TicketItemErrorCode`·`V2BankController`·`BankCode`.
+  - T-1 응답: `saleState`(`BEFORE_SALE`·`SOLD`·`SUSPENDED` — 중단이 먼저), `isSold`, `hasPendingOrders`, `pendingApproveCount`, `isPurchasable`(결제 방식 무관), `remaining`(재고, 무제한 null), `soldCount`, `account`(두둥만, `bankCode`는 이름으로 추정 — 별칭 정규화, 모르면 null), `options[{optionId, name, type, yesAdditionalPrice}]`. 판매 중단 여부 필드(`isSellable`)는 따로 없다 — `saleState`로 본다. T-2·T-3·T-5·T-6·O-5 응답은 그 티켓 하나, T-4는 남은 목록. O-1·O-2·O-3 응답은 `{optionId, name, description, type, yesAdditionalPrice, appliedTicketItemIds, isLocked}`, O-4는 남은 풀.
+  - 검사 순서: 본문 Bean Validation(400 `BAD_REQUEST` — 컨트롤러 단계라 권한보다 먼저, 모르는 `bankCode`·은행 없음 포함) → 권한(`@HostRolesAllowed`) → 유스케이스. T-2: 동의 → `Event_400_17` → `Ticket_Item_400_12` → 결제 방식별 가격(`400_3`)·계좌(`400_8`)·PG(`400_11`) → 이름·설명 길이(`400_15`) → 수량·매수 제한 범위(`400_2`) → 무제한 + 재고 공개(`400_15`) → 판매 기간(`400_13`). T-3: 명시적 null(`400_15`) → 티켓 404 → `Event_400_17` → (무료 → 두둥) 동의 → clear 충돌(`400_15`) → PG 티켓(`400_11`) → 폼 검사 → 잠금(`400_14`) → 무료 + 유료 옵션(`Item_Option_Group_400_4`). T-4: `Event_400_17` → 404 → 승인 대기·재고 감소(`400_7`). T-5·T-6: 잠긴 티켓도 되고 멱등. O-5: 티켓 404 → 옵션 404 → 다른 공연 옵션(`Option_Group_400_1`) → 같은 목록이면 그대로 200 → 잠금(`Item_Option_Group_400_2`) → 무료 티켓 + 유료 옵션(`400_4`). O-3: 404 → 추가금(잠김 `Option_Group_400_5`, 무료 티켓에 붙음 `Item_Option_Group_400_4`, 주관식 `400_3`) → 바뀐 설명 50자(`400_6`). O-4: 404 → 잠김(`Option_Group_400_2`) → 붙은 판매 전 티켓에서 떼고 삭제. O-3·O-4의 다른 공연 옵션은 404(`queryOptionGroup(eventId, id)`), O-5만 400.
+  - 수정은 잠긴 필드를 저장값과 비교해 같으면 통과한다(전체 값을 다시 보내도 된다). 잠긴 티켓의 무제한 → 수량 지정은 수량 감소다(무제한 저장값 1,000,000 > 999,999). 이름·설명·옵션 설명 길이는 값이 바뀔 때만 검사한다(v1의 긴 값 호환). 옵션 풀 수 상한은 없다(티켓당 10개만).
+- **두둥티켓 생성 동의(#840)**: P10/T-2 본문에 `refundObligationAgreed`(호스트 환불 의무 동의)·`agreementVersion`. `payType=DUDOONG`일 때만 기록·강제(동의 강제가 켜지면 아니면 400 `Agreement_400_1`). 수정 P10/T-3에는 @432cce4에 없었고, **dev `cb8d24e`(#873 — 커밋 `f22fca0c`, 2026-10-25)에서 생겼다** — `V2UpdateTicketItemRequest`에 선택 필드 `refundObligationAgreed`·`agreementVersion`. 무료(또는 두둥이 아닌 것) → 두둥으로 바꾸는 수정에서만 검사·기록하고(이미 두둥이면 쓰지 않는다), 강제가 켜지면 `Agreement_400_1`. 검사 위치는 락 안, `validateEditable` 뒤·`applyUpdate` 앞(`V2TicketItemDomainService.updateTicketItem`의 `beforeConvertToDudoong`, `V2UpdateTicketItemUseCase` @cb8d24e). P12-L 반영: 사용자가 체크한 값만 싣는다(`ticket-form.ts` `needsRefundObligation` — 칸은 Q42 대기).
+
+### 구매 (F5)
+
+- 1주문 1종류. 두둥이 입금을 확인할 수 없으므로 **사용자가 "입금했어요"를 누른 순간이 주문 시점**이고 호스트 승인이 입금 확인이다.
+- 계좌·예금주는 주문 전에 G11/O-0(로그인)에서 받는다. 두둥 티켓이고 지금 살 수 있을 때만 값이 있다. **토스 송금 링크는 이 계좌와 총액으로 프론트가 만든다.** 계좌에 `bankCode`가 생겼지만(#804) 토스 링크의 은행 값으로 바꾸는 매핑은 서버에 없다 — 프론트 몫이다(PR #804 본문).
+- **동의 필드(#840)**: P11/O-1 본문에 `hostProvisionAgreed`(호스트에게 개인정보 제공 동의), `dudoongTicketNoticeConfirmed`(두둥티켓 고지 확인 — 두둥티켓 주문에서만 기록·강제), `agreementVersion`. 모두 선택 필드이고 `true`일 때만 기록한다. 지금은 기록만 하고(`agreement.enforce` 기본 false), 백엔드가 켜면 필요한 필드가 `true`가 아닐 때 400 `Agreement_400_1`이다 — **v2 FE는 사용자가 체크한 필드만 보낸다**(§4 동의 필드 — 두 칸 모두 v2 체크아웃 계획에 없어 Q42 대기, 지금 주문 본문에는 동의 필드가 없다). 기존 `agreeRefundPolicy`(`@NotNull @AssertTrue`)는 그대로(`V2OrderRequests.kt`·`AgreementService` @432cce4). 화면 문구·동작은 plan P7.
+- 입금자명은 현재 닉네임을 보내고 사용자가 고칠 수 없다(기본안).
+- **티켓에 붙은 옵션은 전부 필수 응답이다.** 주관식은 1~255자.
+- 옵션 본문: `options{applyToAll: true, answers[{optionId, answer}]}` 또는 `applyToAll=false` + `perTicketOptions[[…],[…]]`(티켓 수만큼). 네/아니오 답은 `YES`/`NO`.
+- 수량 스테퍼 상한 = `purchaseLimit` · `remaining` · 100 중 가장 작은 값(`null`은 빼고 고른다). 이미 산 수량은 화면이 모른다 — 넘으면 주문 때 에러.
+- 1인 구매 제한은 원래 산 사람 기준이고 **승인 대기 수량을 포함**한다.
+
+| 티켓 | 주문 생성 직후 | 그다음 |
+|---|---|---|
+| 두둥(입금형) | `PENDING_APPROVE` | 승인 → 발급 / 거절 → `REFUSED` + 환불 요청 |
+| 무료 승인형 | `PENDING_APPROVE` | 승인 → 발급 / 거절 → `REFUSED`, 환불 요청 없음 |
+| 무료 선착순 | 즉시 발급 → `APPROVED` | 확정 실패 시 주문은 `FAILED`가 되고 **응답은 원래 에러**다(주문 상세가 오지 않는다). `FAILED` 주문은 내 주문 목록에 나오지 않는다. 재시도는 새 주문 |
+
+- 호스트 승인(PR-3)이 재고·1인 제한·탈퇴 등으로 실패해도 **주문은 승인 대기로 남는다**. 에러를 안내하고 거절로 이어지게 한다.
+- 공연이 시작되면 승인·거절이 모두 막힌다.
+- 승인 전에는 티켓번호가 없다.
+
+### 취소 · 환불 (F6)
+
+- 사용자 취소(P11/O-4): 공연 OPEN + 시작 전만. 입장한 티켓, 선물 대기·완료 티켓이 있으면 불가(`Order_400_24`). 유료는 환불 계좌 필수, 무료는 바로 취소.
+- 송금은 호스트가 직접 하고 [환불 완료](PF-2)를 누른다.
+- 환불 계좌 입력·수정(P11/O-5)은 `refundStatus=REQUESTED` 동안만. 입구는 G11/O-3의 `canEditRefundAccount`로만 띄우고, `refundAccountRequired=true`면 입력을 유도한다.
+- 0원 주문의 거절·호스트 취소는 환불 요청을 만들지 않는다.
+- 관객이 유료 두둥티켓 주문을 취소하면(O-4) 호스트의 활성 마스터·매니저에게 "환불해 주세요" 메일이 간다(#836, `WithDrawOrderEvent` AFTER_COMMIT, 조건 `isDudoongTicketOrder && isRefund`). API 계약 변화는 없다.
+- **입금 미확인 거절(`DEPOSIT_UNCONFIRMED`)은 `refundAccountRequired=false`**다(입력은 할 수 있다). 계좌 입력 유도는 그 밖의 거절·호스트 취소에서만 뜬다.
+
+### 선물 (F7)
+
+- 받는 사람을 고르지 않는 링크 방식. `linkPath = /gifts/{giftToken}`(origin은 프론트가 붙인다).
+- 선물 대기 중인 티켓은 어느 경로로도 입장할 수 없고 `qrValue`도 `null`이다.
+- **시간 만료 없음.** 공연이 시작돼도 자동으로 돌아오지 않는다. 보낸 사람이 입장하려면 직접 회수(DG-2)해야 한다.
+- 수락·반환 때마다 **티켓 uuid가 새 값**이 된다. 옛 uuid로 연 화면은 404, 옛 QR은 `OTHER_EVENT`.
+- 거절(PG-5, 수락 전)과 반환(PG-6, 수락 후·공연 시작 전)은 **별개 상태**다.
+- 받은 티켓은 다시 선물할 수 없다. 돌아온 티켓은 보낸 사람이 다시 선물할 수 있다.
+- 보낸 사람 화면에는 수락 뒤에도 "선물 완료"(`giftState=SENT`, uuid 없음)로 남고 상세는 GG-7a.
+- "선물 만료"는 저장 상태가 아니다. `PENDING`인데 받을 수 있는 공연이 아니면 랜딩 `viewState=EXPIRED`, 목록 `isGiftExpired=true`.
+
+### 체크인 (F8)
+
+- 호스트 스캔(PQ-2) `{ticketUuid}` — **QR 값 = 티켓 uuid**(G11/T-2 `qrValue`). 항상 200 + `result`. 체크인 취소는 없다.
+- 호스트 스캔은 OPEN·CALCULATING 공연만(그 밖 400 `Event_400_27`). 셀프 체크인은 OPEN만.
+- 셀프 체크인 QR(GQ-4): 공연별 고정 토큰. 응답 `qrPath = /check-in?token=…`(origin은 프론트가 붙인다).
+- 관객 셀프 체크인(PQ-5) `{token, ticketUuid?}`: 입장 전 티켓이 여러 장이면 `SELECT_TICKET` + `candidates` → 하나를 골라 다시 요청.
+- 결과의 `buyerName` = 주문자, `ownerName` = 현재 소유자. **현장 확인은 `ownerName`으로.**
+- **P13b-L 소스 확인(2026-10-30, `432cce4` → dev `cb8d24e` — 체크인 변경 없음)**. 근거: `V2IssuedTicketController`(Q-1·Q-2·Q-4·Q-5), `V2CheckInUseCase`, `V2CheckInDomainService`, `V2OperationRequests.kt`, `V2CheckInResponses.kt`, `V2IssuedTicketResponses.kt`·`V2IssuedTicketQuery.stats`, `EventErrorCode`, `EventService.closeExpiredEventsEndAtBefore`·`DuDoong-Batch` `EventExpiration`.
+  - GQ-1 `{issuedCount, enteredCount, notEnteredCount, entranceRate}` — 발급 = 입장 전 + 입장 완료(취소 제외, 탈퇴 회원 티켓 포함), 미입장 = 발급 − 입장, 입장률(%) 소수 첫째 자리 반올림, 발급 0이면 `0.0`. 일반 멤버 이상, 없는 공연 404.
+  - PQ-2 검사 순서: 본문 `@NotBlank @Size(max = 64)`(400 `BAD_REQUEST`) → `@HostRolesAllowed(GUEST)`(없는·지운 공연 404 `Event_404_1`, 비멤버 403 `HOST_400_2`) → 공연 상태(`Event_400_27` "입장 처리를 할 수 없는 공연 상태입니다.") → 판정. 판정은 티켓 행 잠금 후 `classify`: 없음·다른 공연 → `OTHER_EVENT`(티켓 null) → 취소 `CANCELED` → 입장 후 `ALREADY_ENTERED` → 선물 대기 `GIFT_PENDING` → `ENTERED`(입장 처리). 선물 수락으로 uuid가 바뀐 옛 QR은 `OTHER_EVENT`.
+  - GQ-4 `{token, qrPath}` — 토큰은 32바이트 base64url 43자, 처음 읽을 때 만든다. **공연 상태를 보지 않는다**(없는·지운 공연만 404) — 셀프 체크인이 되는지는 화면이 GE-3 `status`로 판정한다(P13b). `qrPath` = `/check-in?token=` + URL 인코딩 토큰.
+  - 셀프 체크인 판정은 `status == OPEN`만 본다(표시 상태가 아니다) — 종료 시각이 지났어도 OPEN이면 된다.
+  - **정산중(CALCULATING)이 되는 길**: v2에는 없다. v1 `PATCH` 공연 상태(`UpdateEventStatusUseCase`)로만 된다. 자동 만료 배치(`EventExpiration` → `closeExpiredEventsEndAtBefore`)는 종료된 OPEN 공연을 CALCULATING → CLOSED로 한 번에 바꿔 **CLOSED로 저장**한다 — 배치가 돈 뒤에는 호스트 스캔도 `Event_400_27`. 배치 주기는 Deploy `infra/batch.yml` `EventExpirationSchedule` — 매일 19:00~22:30 KST 30분마다, 실행 시각 기준(2026-10-31 확인). 22:30 뒤에 끝나는 공연은 다음 날 19:00까지 OPEN이다. 운영에서 켜져 있는지는 backend-questions B7.
+
+### 운영 (F9)
+
+- 멤버 목록(GH-6)에는 이메일이 없다. 이름·프로필·역할만 그린다. 공개 GH-3에도 멤버 요약(최대 10명)이 있다(#811, 위 공연 절).
+- **호스트 설정·멤버 변경(소스 확인 @432cce4, P10b-L)**: PH-4 응답은 GH-3과 같은 `V2HostHomeResponse`(요청자 기준 `myRole`·`isFollowing`·원문 연락처). PH-4 `introduce`는 `""`이면 비운다(`null`·키 없음은 변경 안 함), 이미지 key는 `""`이면 기본 이미지, 이 호스트에 PH-15가 발급한 모양(`host/{hostId}/{UUID}.{jpeg|jpg|png}`)이 아니면 `HOST_400_17`. 멤버 변경 4종(PH-7·PH-10·DH-11·PH-12) 응답은 GH-6과 같은 순서의 활성 멤버 전체 목록. PH-7은 하나라도 실패하면 아무도 추가하지 않고, 검사 순서는 역할(MASTER 지정 `HOST_400_10`, 매니저가 MANAGER 지정 403 `HOST_400_11`) → 중복(소문자 비교, `HOST_400_14`) → 같은 이메일 계정 여럿(`HOST_400_18`) → 미가입(`HOST_400_13`) → 이미 멤버(`HOST_400_15`)이며 **문제 이메일을 `reason` 끝 괄호에 `, `로 붙인다**(`"가입되지 않은 이메일입니다. (a@x.com, b@y.com)"`, `HostErrorCode.toDetailException`). 동시 추가로 유일 제약에 걸리면 `HOST_400_15`에 보낸 이메일 전부가 붙는다. 삭제는 마스터 불가(`HOST_400_12`)·매니저는 일반 멤버만(403 `HOST_400_11`) — 본인 삭제(나가기)는 이 규칙으로 늘 막힌다. 역할 변경 대상이 마스터면 `HOST_400_5`, 활성 멤버가 아니면 404 `HOST_404_2`(양도도 같다).
+
+- 주문 목록 `counts`는 검색어는 반영하고 상태 필터는 무시한 탭 건수. `searchType` = `NAME`(기본) · `PHONE` · `DEPOSITOR_NAME`.
+- 주문 상세: 승인 전에는 `issuedTickets`가 빈 배열 → 라인을 "티켓 1, 2…"로 표시.
+- 발급 티켓 목록은 취소 티켓 제외, 검색은 현재 소유자 기준.
+- 엑셀은 최대 1만 행(넘으면 `Order_400_19` · `IssuedTicket_400_7`). **매니저 이상만**(일반 멤버 403 — #846, §2).
+- 일반 멤버에게는 주문 목록·상세, 발급 티켓 상세의 구매자 연락처·이메일·입금자명이 가린 값이고, `PHONE`·`DEPOSITOR_NAME` 검색은 완전 일치만 된다(이름 검색은 부분 일치 그대로). 검색 안내 문구에 반영한다(#846, 백엔드 Develop 기획서).
+- 호스트·운영자의 구매자 정보 조회·엑셀은 서버가 접근 기록을 남긴다(#845). 응답 변화는 없다.
+- **예매자 관리·대시보드 소스 확인(2026-10-31 P13a-L, dev `cb8d24e` — `432cce4` 이후 이 API 변경 없음)**. 근거: `V2OrderManageController`·`V2IssuedTicketController`·`V2Excel`, `V2OperationRequests.kt`·`V2OperationTypes.kt`·`V2OrderResponses.kt`·`V2IssuedTicketResponses.kt`·`V2DashboardResponse.kt`, `V2ReadOrdersUseCase`·`V2ChangeOrderUseCase`·`V2ReadIssuedTicketsUseCase`·`V2ReadDashboardUseCase`·`V2OperationMapper`, 도메인 `V2OrderDomainService`·`V2OrderQuery`(`V2OrderSearchType`)·`V2OrderStatus`·`V2MyOrderStatus`·`V2IssuedTicketQuery`·`AdminTableSearchType`(`ContactSearch.phoneExact`)·`OrderValidator`·`Order`·`RefundInfoVo`·`PrivacyMasker`·`OrderCustomRepositoryImpl.findRefunds`.
+  - 파라미터: GR-1·GR-6 `status`(ALL 기본, FAILED 포함 6값)·`searchType`(NAME 기본)·`keyword`(50자), GI-1·GI-3 `entrance`(ALL·BEFORE·DONE)·`searchType`(NAME·PHONE — `AdminTableSearchType`), GF-1 `status`(ALL·REQUESTED·COMPLETED)만 — **GF-1은 검색이 없다**. 표 크기 기본 20·상한 100(`V2Paging`). 엑셀에는 페이지가 없다.
+  - 일반 멤버 검색: 연락처는 숫자만 비교하는 전체 번호 완전 일치(`010-1234-5678`·`01012345678`·`+82 10-…` 모두 같다), 입금자명은 문자열 완전 일치, 이름은 부분 일치. 가림은 연락처 `010-****-5678`, 이메일 `ab***@…`, 입금자명 `김*수`(`maskName` — 2자 `김*`, 1자 `*`).
+  - 상태 분류: 사용자 취소·환불(v1 `REFUND`)은 호스트 화면에서 `CANCELED`다(사용자 화면은 환불 여부로 `CANCELED`·`REFUNDED`). 거절 사유 문구는 종류 라벨(`입금 미확인`·`결제 금액 오류`·`티켓 매진`, 기타는 입력값)이 `refuseReason`으로 온다.
+  - PR-3 검사 순서: 공연 소속(404) → PG 주문 `Order_400_7` → 승인 대기 아님 `Order_400_3` → 공연 OPEN `Event_400_5` → 시작 전 `Event_400_6` → 재고 `Ticket_Item_400_1` → 1인 제한(발급 + 이번 수량) `Ticket_Item_400_6` → 옵션 변경 `Order_400_13` → 탈퇴 `Order_400_14`. PR-4: 본문 `@Valid` → 권한 → **사유(`Order_400_18`)가 주문 조회보다 먼저** → 404 → 시작 후 `Order_400_9`(`RefundInfoVo` — 지금이 시작 전인지) → 승인 대기 아님 `Order_400_5` → OPEN `Event_400_5`. PR-5: 권한 → 404 → `Order_400_9` → 승인 완료 아님 `Order_400_5` → `Event_400_5`, 본문은 선택(`reason` 100자, 공백만이면 null). PF-2: 404 → 완료면 그대로 200 → NONE이면 `Order_400_17`. 처리 응답은 언제나 원본 연락처·환불 계좌(변경 API는 매니저 이상).
+  - GD-1: `orders`는 GR-1과 같은 분류의 건수(`refundRequested`는 환불 요청 상태 주문 수), `tickets.items[].soldCount` = 공급량 − 재고(무제한이면 `supplyCount: null`, 하나라도 무제한이면 `totalSupplyCount: null`), `salesAmount` = 승인·결제 완료 주문 결제금액 합, `entranceStats`는 유효 티켓 기준(발급 0이면 입장률 0), `dDay`는 UPCOMING일 때만.
+
+### 마이페이지 · 알림 (F10 · F11)
+
+- 내 티켓(G11/T-1): 주문 단위 묶음, 공연 임박순, 페이지 없음. `groupKey`는 내 주문 = 주문 uuid, 받은 티켓 = `ticket:{첫 티켓 번호}`(이때 `orderUuid`가 `null` → [주문상세] 없음).
+- 공지 바(G11/T-3) 해제는 그 승인 알림을 읽거나 그 주문 티켓을 G11/T-2로 열 때다. 티켓탭 진입만으로는 해제되지 않는다.
+- 주문상세에 호스트 연락처가 없어 문의 시트는 GP-3을 다시 부른다. **원문을 받으려면 쿠키를 실어 부른다**(공개 키 `credentials: 'omit'`로 부르면 비로그인 값 = 가린 값, #846).
+- 삭제된 공연의 내 주문·티켓 상세(11/O-3·11/T-2·보낸 선물 티켓 상세)는 404가 아니라 200 + `event: null`이고 `canCancel`·`canGift`·`canReturn`은 false, `qrValue`는 `null`이다(#789 — 24aa595에 이미 포함, 문서만 빠져 있었다. 코드 `src/api/my-ticket/schema.ts`는 이미 `event` nullable).
+- 탈퇴하면 내가 보낸 대기 중 선물이 취소된다. 탈퇴 확인 문구에 넣는다.
+- 탈퇴는 마스터인 호스트에 다른 활성 멤버나 OPEN·정산중 공연이 있으면 400 `USER_400_6` — "마스터를 양도한 뒤 탈퇴해 주세요".
+- 알림은 커밋 후 비동기로 저장돼 API 응답 직후 목록에 바로 없을 수 있다. 호스팅 센터와 사용자 앱이 같은 알림함을 쓴다.
+- 벨 빨간 점은 GN-2 `{count}`. PN-3 응답은 `{updatedCount, unreadCount}`.
+
+## 7. 예정된 변경
+
+| 이슈 | 내용 | FE 영향 |
+|---|---|---|
+| #758(열린 이슈) | M-1(엑셀 M+, 일반 멤버 구매자 연락처·이메일·입금자명 가림)은 **#846으로 반영됨**(§2). 남은 것: L-1 인가 스위치 제거, L-3 400 → 404 통일(PQ-5 `IssuedTicket_400_1`, 10/O-5 다른 공연 `optionId`) — 백엔드 Develop 기획서 | 엑셀 버튼을 `myRole`로 숨김, 가려진 값 표시. L-3이 오면 그 두 에러 처리를 404로 |
+| #763 | **반영됨(dev).** Origin 검사(`CookieOriginFilter`, report-only — `AUTH_403_3`는 enforce를 켜야 난다), OAuth `state` 발급·검증(`OauthStateHelper`, 불일치 `AUTH_400_1`, 빈 값은 전환 기간이라 허용) | 콜백에서 `AUTH_400_1`이면 로그인을 다시 시작 |
+| #776(열린 이슈) | Origin 검사 enforce 켜기, OAuth `state` 필수, 토큰 쿠키 HttpOnly. @432cce4 기본값은 셋 다 false(`CookieOriginFilter`·`OauthStateHelper`·`CookieHelper`). 단 `/internal-api/`는 #847부터 출처 검사를 항상 한다. 백엔드는 v1 프론트(Front #338)가 A·B단계를 배포한 뒤 켠다(백엔드 Develop 기획서) | JS로 토큰 쿠키를 읽지 않는 구조가 전제. **v2 FE는 이미 대응돼 있다**(2026-10-25 코드 확인): `state`를 콜백 값 그대로 3번에 넘긴다(`exchangeKakaoCode`), 카카오 토큰은 본문으로 보낸다, 재발급은 본문 없이 리프레시 쿠키로 한다(`refreshTokens`), 프로덕션 코드에 `document.cookie` 읽기가 없다(로그인 판단은 `localStorage` `dd:session` + API 응답) — `src/api/auth/calls.ts`·`src/api/session-flag.ts` |
+| #839(열린 PR, 예정) | 호스트 사업자 정보 `businessInfo`(GP-3·GH-3), V018 DDL. #846이 고친 `V2ReadEventDetailUseCase`를 같이 고쳐 머지 때 rebase가 필요해 보인다(PR diff 맥락) | 머지 뒤 P5b·P5c 표시, P10b 쓰기 경로 확인 |
+| 동의 강제(`agreement.enforce`) | 지금 false(기록만, `AgreementService` @432cce4). 동의 기록이 쌓이는 것을 확인한 뒤 후속 백엔드 PR로 true(백엔드 Develop 기획서). 켜지면 가입·주문·두둥티켓 생성에서 400 `Agreement_400_1` | v2는 사용자가 체크한 필드만 보낸다(UI 없는 것은 design-requests Q42 대기 — 2026-10-25 지금은 가입 `termsAgreed`만). 강제가 켜지면 지금 본문은 가입·주문 모두 400(mock `authHandlers.registerAgreementEnforced`·`orderHandlers.agreementEnforced`, plan P4b·P7·P12) |
+
+## 8. API 안내서(10-09)에만 있는 정보
+
+- 테스트: Kotlin 통합 1,773개 통과, 실 MySQL E2E 337개 통과. v2 operation 82개 모두 통합 테스트가 호출한다.
+- Figma 전수검사 3차: 서버 미구현 0. 디자인 요청으로 분류된 요소가 다수(디자이너 확인 25건의 근거).
+- 테스트 공백: GG-7a E2E 없음, `Event_400_20` · `Order_400_26`은 테스트에서 확인된 적 없음.
+
+## 9. v1 인증 API
+
+v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24aa595`)의 `AuthController`에서 옮겼고 `432cce4`(2026-10-25)로 다시 대조했다(#792·#793·#807·#808·#840·#850). 경로는 `/api/v1/auth` 아래다. 필수 여부와 정확한 타입은 Swagger로 확인한다.
+
+### 카카오 로그인 흐름
+
+| # | 호출 | 결과 |
+|---|---|---|
+| 1 | `GET /oauth/kakao/link` | `{link}` + `state` 쿠키(HttpOnly). 카카오 인증 화면 주소 |
+| 2 | 사용자가 카카오에서 동의 | 카카오가 `{기준 주소}/kakao/callback?code=…&state=…`로 돌려보낸다 |
+| 3 | `GET /oauth/kakao?code=…&state=…` | `{accessToken, refreshToken, idToken}` — **카카오의** 토큰이다 |
+| 4 | `POST /oauth/kakao/register/valid` `{idToken}` | `{canRegister}` — 신규 사용자인지 |
+| 5a | 기존 사용자: `POST /oauth/kakao/login` `{idToken}` | `TokenAndUserResponse` + `Set-Cookie`(두둥 토큰 2개). 정지 계정은 403 `USER_403_1`(탈퇴한 사람은 4번에서 `canRegister=true`라 5b로 간다) |
+| 5b | 신규 사용자: `POST /oauth/kakao/info` `{accessToken}`으로 카카오 프로필을 받아 가입 폼을 채우고, `POST /oauth/kakao/register` `{idToken, email, phoneNumber, profileImage, name, marketingAgree, ageOver14Confirmed, termsAgreed, agreementVersion}` | `TokenAndUserResponse` + `Set-Cookie`. 동의 필드 3개는 선택이고 `true`일 때만 기록한다(#840 만 14세·#850 이용약관, `RegisterRequest` @432cce4). 동의 강제가 켜지면 `ageOver14Confirmed`·`termsAgreed`가 `true`가 아닐 때 400 `Agreement_400_1`. v2는 이용약관 체크 값만 `termsAgreed`로 싣는다(만 14세 칸은 Q42라 `ageOver14Confirmed` 미전송, 2026-10-25). 서버는 개인정보 처리방침 동의를 기록하지 않는다(`AgreementType`에 없음) — v2 가입 계획의 처리방침 체크는 화면에서만 받는다(design-requests Q25) |
+
+- `TokenAndUserResponse` = `{accessToken, accessTokenAge, refreshToken, refreshTokenAge, userProfile{id, profileImage, name}}`. 본문의 토큰은 FE가 쓰지 않는다 — 쿠키로 온다.
+- 토큰을 쿼리스트링으로 보내는 옛 방식(`?id_token=`)은 전환 기간에만 받는다. v2 FE는 처음부터 본문으로 보낸다.
+- **`redirect_uri`는 백엔드가 요청의 Referer로 고른다.** 허용 목록 중 Referer의 출처와 같은 것을 쓰고, 경로가 `/admin`으로 시작하면 `{출처}/admin/kakao/callback`, 아니면 `{출처}/kakao/callback`이다. v2는 로그인 화면이 `/login` 하나라 항상 `/kakao/callback`으로 온다. 호스팅 센터(`/hosting`)에서 로그인으로 넘어가도 경로가 `/admin`이 아니므로 같다.
+- 1번과 3번은 `state` 쿠키를 주고받으므로 `credentials: 'include'`로 부른다. 파라미터와 쿠키가 **둘 다 있는데 다르면** 400 `AUTH_400_1` — 로그인을 처음부터 다시 시작한다(#763). 값이 없거나 쿠키가 만료돼(Max-Age 600초) 사라진 경우는 지금 경고 로그만 남기고 통과한다(`OauthStateHelper.verify`, `stateRequired=false`). #776(state 필수)부터 이 경우도 `AUTH_400_1`이다.
+- 1·3·5번은 모두 `/oauth/**`(`permitAll`)라 **만료·잘못된 액세스 쿠키가 남아 있어도 401이 나지 않는다**(#792). 이전(24aa595)에는 JWT 필터가 401을 내 FE가 "잠시 후 다시 시도해 주세요"로 안내했는데, 그 원인이 없어져 FE 분기를 지웠다(2026-10-25). 혹시 401이 오면 일반 실패(`failed`)다.
+
+### 그 밖
+
+| 호출 | 내용 |
+|---|---|
+| `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·서명·형식 오류·서버에 없음 — 세션 상한 10개를 넘어 밀려난 세션, 30초 유예가 지난 옛 토큰 재사용(그 세션은 폐기)도 여기, #807)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`), 사용자 행이 없으면 404 `USER_404_1`, 잘못된 본문이면 400. 재발급은 `permitAll`이라 **만료·잘못된 액세스 쿠키가 같이 실려도 401이 나지 않는다**(#792 — 이전 24aa595에서는 JWT 필터가 401 `AUTH_401_1`·`GLOBAL_401_1`을 내 FE가 한 번 더 시도했다. 그 재시도는 2026-10-25 지웠다). FE 판정: 2xx 성공 / 4xx(401 포함) 세션 상실 / 5xx·네트워크·타임아웃 일시 오류(patterns §5-1). 같은 세션의 직전 토큰은 30초 동안 다시 재발급할 수 있어 탭 여러 개의 동시 재발급이 안전하다(`RefreshTokenAdaptor.GRACE_MILLIS` @432cce4) |
+| `POST /logout` | **언제나 200 + 쿠키 2개 삭제**(#793, `AuthController.logoutUser` Operation "토큰이 잘못돼도 항상 200"). 이 기기의 세션만 서버에서 지운다 — 유효한 액세스 토큰이 있으면 그 세션 id로 지우고, 리프레시 토큰(본문 `refreshToken` → 쿠키 순)이 있으면 그 세션의 현재(또는 유예 안 직전) 토큰일 때 그 세션도 지운다. 그래서 액세스가 없거나 만료여도 리프레시로 정리된다(`LogoutUseCase`·`AuthController.logoutUser` @432cce4). 리프레시 쿠키는 path `/`라 같은 출처 요청에 자동으로 실리므로 FE는 본문 없이 불러도 서버 세션이 정리된다. FE는 응답과 상관없이(5xx·네트워크 포함) 로컬 정리(`queryClient.clear()`, `dd:session` 제거) 후 이동한다 |
+| `PATCH /api/v1/users/me/marketing` | 마케팅 수신 동의를 **반전(토글)**한다. 본문 없음, 응답 `UserInfoVo`(`UserController` @432cce4). `PATCH /api/v1/users/me/mail`(`receiveMail`)은 거래 메일까지 끄는 다른 스위치라 섞지 않는다(백엔드 Develop 기획서). v2 GM-1에는 현재 값(`marketingAgree`)이 없다 — backend-questions B17. v2 계획에 화면이 없다(plan P9 "범위 미정") |
+| `DELETE /me` | 회원 탈퇴 + 쿠키 삭제. 마스터인 호스트에 다른 활성 멤버나 OPEN·정산중 공연이 있으면 400 `USER_400_6`(위 마이페이지 절과 같다) |
+
+### 환경별 설정
+
+| | 운영 | 스테이징 | 로컬·dev |
+|---|---|---|---|
+| 쿠키 | `.dudoong.com`, `SameSite=Strict`, `Secure` | host-only, `Lax`, `Secure` | domain 없음, `SameSite=None`, `Secure` |
+| CORS 허용 출처 | `https://dudoong.com`, `https://internal-admin.dudoong.com` | `https://staging.dudoong.com`, `http://localhost:3000`, `http://localhost:5173` | 운영 + 스테이징 목록 전부 |
+| 카카오 콜백 기준 주소 | 운영 목록 | 스테이징 + 로컬 | 로컬 + 스테이징 |
+
+- 로컬 개발은 **포트 3000**을 쓴다. 5173은 백엔드가 v1 호스트 어드민으로 보고 콜백을 `/admin/kakao/callback`으로 잡는다. Origin 검사(`AUTH_403_3`)의 허용 목록도 이 표를 따르므로 다른 포트는 enforce가 켜지면 변경 요청이 막힌다.
+- 로컬에서 rewrite 대상을 dev ↔ staging으로 바꾸면 서명 키가 다른 액세스 쿠키(local 수명 86400초)가 남는다. #792 뒤로는 로그인·로그아웃·재발급은 통과하고, 보호 API가 401 `GLOBAL_401_1`과 함께 `accessToken` 쿠키를 지우므로 다음 요청부터 "토큰 없음"으로 수렴한다(운영 서명 키 교체도 같다 — [`backend-questions.md`](./backend-questions.md) B6 해결).
+- 운영·스테이징에서 API는 프론트와 **같은 출처**다(nginx가 `/api`를 백엔드로 보낸다). 브라우저는 상대 경로 `/api/v2/…`로 부른다.
+- 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 같은 모양으로 쓴다. dev API를 직접 부르면 쿠키가 서드파티 쿠키(`SameSite=None`)가 되어 브라우저 설정에 따라 막힌다.
+- FE 처리 규칙(`dd:session`이 있을 때만 401 → 재발급 한 번, 탭 간 직렬화, 세션 쿼리 결과 셋, 공개 GET은 쿠키 없이)은 [`tech-decisions.md`](./tech-decisions.md) §4 인증과 [`patterns.md`](./patterns.md) §5에 있다. 인증 API는 `/api/v1/auth` 아래라 v2 `api` 객체가 아니라 별도 `authApi` 인스턴스로 부른다. `authApi`에는 401 가로채기가 없다(재발급 호출이 다시 재발급을 부르지 않게).
+- 액세스 토큰 수명 기본 3600초, 리프레시 토큰도 기본 3600초(env로 바뀜). 리프레시 토큰은 로그인(기기)마다 따로 있다(사용자당 최대 10세션, #807 — §1).
+
+## 10. 알림 문구 (주문·호스트·공연)
+
+서버가 `title`·`body`를 완성해서 준다. FE는 그대로 표시하고, 아이콘·카테고리·이동 화면만 `type`으로 정한다.
+
+| `type` | `title` | `extra` |
+|---|---|---|
+| `HOST_MEMBER_ADDED` | 호스트 멤버로 추가되었어요 | `hostName`, `role` |
+| `ORDER_PENDING_APPROVE` | 새 주문이 승인을 기다리고 있어요 | `eventName`, `orderNo` |
+| `ORDER_APPROVED` | 티켓 주문이 승인되었습니다! | 같음 |
+| `ORDER_REFUSED` | 티켓 주문이 거절되었습니다 | 같음. 본문 끝에 사유, 필요하면 "주문상세에서 환불 계좌를 입력해 주세요." |
+| `ORDER_REFUND_REQUESTED` | 주문자가 환불을 요청했어요 | 같음 |
+| `ORDER_CANCELED_BY_USER` | 주문자가 주문을 취소했어요 | 같음 |
+| `ORDER_CANCELED_BY_HOST` | 티켓 주문이 취소되었습니다 | 같음 |
+| `ORDER_REFUND_COMPLETED` | 환불이 완료되었습니다 | 같음 |
+| `REFUND_ACCOUNT_CHANGED` | 환불 계좌가 변경되었어요 | 같음 |
+| `EVENT_REMINDER_D1` | 공연까지 D-1 남았습니다 | `eventName`, `hostName`, `startAt`. 본문 "'{공연명}' 공연까지 D-1 남았습니다. {yyyy.MM.dd HH:mm} 시작". 시작 24시간 전 ~ 1시간 전 창에서 한 번(#810) |
+| `EVENT_STARTING_SOON` | 1시간 뒤에 시작됩니다! | 같음. 본문 "'{공연명}' 공연이 1시간 뒤에 시작됩니다!". 시작 60분 전 ~ 시작 창에서 한 번 |
+
+선물 알림 6종의 본문은 §6 선물 절과 백엔드 통합 기획서 F7에 있다. 공연 리마인더 2종은 OPEN 공연의 유효 티켓 현재 소유자에게 사용자당 1건씩, `target.type=EVENT`(`targetId` = eventId)로 온다(`V2EventReminderDomainService` @432cce4).
+
+## 11. 필드 명세가 있는 곳
+
+필드 단위 명세는 이 문서에 옮기지 않았다. 아래에서 찾는다.
+
+1. Swagger: 서버의 `/swagger-ui/index.html`(로그인 필요)
+2. 백엔드 저장소 `Gosrock/DuDoong-Backend`의 `DuDoong-Api/src/main/kotlin/band/gosrock/api/v2/{영역}/dto/` — 요청·응답 DTO. 필드마다 `@Schema(description)`이 붙어 있다
+3. 같은 저장소의 `…/api/v2/README.md` — v2 규약 원문
+
+| 영역 폴더 | 담긴 것 |
+|---|---|
+| `host` | 호스트 홈·설정·멤버·팔로우·이미지 |
+| `event` | 공연 생성·기본 정보·섹션·체크리스트·탐색(홈·리스트·상세) |
+| `tag` | 태그 |
+| `ticket` | 티켓 관리·옵션 |
+| `operation` | 대시보드·주문·환불·발급 티켓·체크인 |
+| `order` | 체크아웃·내 주문·취소·환불 계좌 |
+| `gift` | 내 티켓·선물 |
+| `mypage` | 프로필·관심 호스트·아카이빙 |
+| `notification` | 알림 |

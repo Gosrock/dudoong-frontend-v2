@@ -1,0 +1,123 @@
+import { describe, expect, it } from 'vitest';
+
+import {
+  canSubmitRegister,
+  hasAllConsents,
+  hasRequiredConsents,
+  initialRegisterValues,
+  NO_CONSENTS,
+  type RegisterConsents,
+  type RegisterValues,
+  toRegisterBody,
+  validateRegister,
+} from './register-form';
+
+const filled: RegisterValues = { name: '새내기', email: 'newbie@example.com', phoneNumber: '' };
+const required: RegisterConsents = { terms: true, privacy: true, marketing: false };
+
+describe('가입 폼 초기값', () => {
+  it('카카오 프로필로 채우고 없는 값은 빈 문자열, 앞뒤 공백은 지운다', () => {
+    expect(
+      initialRegisterValues({
+        name: ' 새내기 ',
+        email: null,
+        phoneNumber: '+82 10-9876-5432',
+        profileImage: null,
+      }),
+    ).toEqual({ name: '새내기', email: '', phoneNumber: '+82 10-9876-5432' });
+  });
+});
+
+describe('가입 폼 칸 검증', () => {
+  it.each<[string, Partial<RegisterValues>, ReturnType<typeof validateRegister>]>([
+    ['이름·이메일이 있으면 오류 없음(전화번호는 선택)', {}, {}],
+    ['이름이 비면 required', { name: '' }, { name: 'required' }],
+    ['이름이 공백뿐이어도 required', { name: '   ' }, { name: 'required' }],
+    ['이메일이 비면 required(카카오 이메일 미동의)', { email: '' }, { email: 'required' }],
+    ['둘 다 비면 둘 다', { name: '', email: ' ' }, { name: 'required', email: 'required' }],
+  ])('%s', (_, patch, expected) => {
+    expect(validateRegister({ ...filled, ...patch })).toEqual(expected);
+  });
+});
+
+describe('동의 상태', () => {
+  it.each<[string, RegisterConsents, boolean, boolean]>([
+    ['아무것도 안 함', NO_CONSENTS, false, false],
+    ['이용약관만', { terms: true, privacy: false, marketing: false }, false, false],
+    ['개인정보만', { terms: false, privacy: true, marketing: false }, false, false],
+    ['필수 둘(마케팅 선택 안 함)', required, true, false],
+    ['마케팅만', { terms: false, privacy: false, marketing: true }, false, false],
+    ['전부', { terms: true, privacy: true, marketing: true }, true, true],
+  ])('%s → 필수 %s · 전체 %s', (_, consents, req, all) => {
+    expect(hasRequiredConsents(consents)).toBe(req);
+    expect(hasAllConsents(consents)).toBe(all);
+  });
+});
+
+describe('제출 가능', () => {
+  it.each<[string, RegisterValues, RegisterConsents, boolean]>([
+    ['칸 정상 + 필수 동의', filled, required, true],
+    ['칸 정상 + 필수 하나 빠짐', filled, { ...required, privacy: false }, false],
+    ['필수 동의 + 이메일 빔', { ...filled, email: '' }, required, false],
+    ['필수 동의 + 이름 공백', { ...filled, name: ' ' }, required, false],
+  ])('%s → %s', (_, values, consents, expected) => {
+    expect(canSubmitRegister(values, consents)).toBe(expected);
+  });
+});
+
+describe('제출 본문(POST /oauth/kakao/register)', () => {
+  it('공백을 지우고 빈 전화번호는 null, 마케팅 동의는 marketingAgree로', () => {
+    expect(
+      toRegisterBody({
+        idToken: 'kakao-id-new',
+        values: { name: ' 새내기 ', email: ' newbie@example.com ', phoneNumber: '  ' },
+        consents: { terms: true, privacy: true, marketing: true },
+        profileImage: 'http://k.kakaocdn.net/dn/mock/new.jpg',
+      }),
+    ).toEqual({
+      idToken: 'kakao-id-new',
+      email: 'newbie@example.com',
+      phoneNumber: null,
+      profileImage: 'http://k.kakaocdn.net/dn/mock/new.jpg',
+      name: '새내기',
+      marketingAgree: true,
+      termsAgreed: true,
+      agreementVersion: '2026-10',
+    });
+  });
+
+  // 동의 기록(#840·#850): 사용자가 체크한 값만. 만 14세는 칸이 없어 보내지 않는다(Q42)
+  it.each([
+    [
+      '이용약관 체크 → termsAgreed·agreementVersion',
+      true,
+      { termsAgreed: true, agreementVersion: '2026-10' },
+    ],
+    ['이용약관 미체크 → 동의 키가 하나도 없다', false, {}],
+  ])('%s', (_, terms, expected) => {
+    const body = toRegisterBody({
+      idToken: 't',
+      values: filled,
+      consents: { terms, privacy: true, marketing: false },
+      profileImage: null,
+    });
+    const agreementKeys = ['termsAgreed', 'ageOver14Confirmed', 'agreementVersion'] as const;
+    const picked = Object.fromEntries(
+      agreementKeys.filter((k) => k in body).map((k) => [k, body[k]]),
+    );
+    expect(picked).toEqual(expected);
+    expect('ageOver14Confirmed' in body).toBe(false);
+  });
+
+  it('전화번호가 있으면 그대로, 마케팅 미동의는 false', () => {
+    const body = toRegisterBody({
+      idToken: 't',
+      values: { ...filled, phoneNumber: '+82 10-9876-5432' },
+      consents: required,
+      profileImage: null,
+    });
+    expect(body.phoneNumber).toBe('+82 10-9876-5432');
+    expect(body.marketingAgree).toBe(false);
+    expect(body.profileImage).toBeNull();
+  });
+});
