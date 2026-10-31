@@ -573,7 +573,7 @@ Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 - 라우트별 `error.tsx` + 루트 `global-error.tsx`. 금전 경로(체크아웃)에는 맥락 있는 문구의 경계를 따로 둔다.
 - `QueryCache`/`MutationCache`의 `onError`에서 구조화 로그. 조회는 배경 재조회 실패일 때만 명령형 `toast()`(훅이 아니다 — 다음 페이지 실패 제외, 고정 id로 중복 합침). 변경 토스트는 호출 쪽 `handleError`가 표에 없는 코드일 때 띄운다(2026-10-31 — 전역 변경 토스트를 뺐다). `SessionLostError`는 둘 다 띄우지 않는다. 화면을 대체해야 하는 실패만 `throwOnError`(에러 경계로).
 - `serverQuery`는 구조화 JSON을 stdout에 남긴다. 계좌번호·입금자명·토큰은 넣지 않는다. **경로는 라우트 패턴으로 남긴다** — `routePattern()`이 소문자 단어 세그먼트만 남기고 나머지와 `gifts` 바로 뒤 세그먼트를 `:param`으로 가리며 쿼리스트링은 버린다(예: `GET gifts/:param`). `serverQuery` 로그는 리소스 이름(queryKey 첫 원소)·status·code·route만, `ApiError`가 아닌 에러는 이름만 남긴다(메시지에 queryKey·env 값이 들어 있을 수 있다).
-- nginx 접근 로그는 쿼리스트링을 지우고 경로까지 남긴다(Deploy `nginx.conf`). 경로에 있는 `giftToken`은 남는다 — 로그 보존 기간과 접근 권한은 P14 보안 항목에서 본다.
+- nginx 접근 로그는 쿼리스트링을 지우고 경로까지 남긴다(Deploy `nginx.conf`). 경로에 있는 `giftToken`은 남는다 — 로그 보존 기간과 접근 권한은 Deploy 저장소 · 운영 계정 몫이라 P14 보안에서 사용자 대기로 남겼다(implementation-log "P14 — 보안", progress "사용자 대기"). 앱 쪽 로그는 토큰을 남기지 않는다(`routePattern`, CSP 보고는 화면 패턴만).
 
 **포기한 것**: 프로덕션 장애의 실시간 알림. 필요해지면 `onError`에 연결만 추가하면 된다.
 
@@ -1108,12 +1108,12 @@ nginx 경로 분기(`nginx/site.conf`):
 | 사실 | 영향 |
 |---|---|
 | **API가 프론트와 같은 출처다**(`https://dudoong.com/api/…`) | 브라우저는 같은 출처(`${location.origin}/api/v2/…`)로 부른다. CORS가 필요 없고 쿠키는 퍼스트파티다. 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 운영과 같은 모양을 만든다 |
-| **nginx가 `/api`로 시작하는 요청을 전부 백엔드로 보낸다** | Next Route Handler를 `/api/…` 아래에 두면 브라우저에서 닿지 않는다. 지금 Route Handler는 `/healthz` 하나이고, 더 만들게 되면 `/api` 밖에 둔다 |
+| **nginx가 `/api`로 시작하는 요청을 전부 백엔드로 보낸다** | Next Route Handler를 `/api/…` 아래에 두면 브라우저에서 닿지 않는다. 지금 Route Handler는 `/healthz`와 `/csp-report`(CSP 위반 보고 — P14 보안)이고, 더 만들게 되면 `/api` 밖에 둔다 |
 | 서버가 1대, front 컨테이너도 1개 | 서버 캐시를 쓰지 않아 인스턴스 수와 무관하다. 나중에 캐시를 붙이고 인스턴스를 늘리면 호스트의 Redis를 공유 저장소로 쓸 수 있다 |
 | 백엔드가 같은 호스트의 8080이다 | 서버에서 도는 조회는 nginx를 거치지 않고 `http://localhost:8080/api/v2`로 부른다 |
 | front 컨테이너에 `.env`가 주입되지 않는다 | 환경마다 다른 값을 두지 않아 이미지 하나를 두 환경이 쓴다. 필요해지면 compose의 `environment:`로 준다([`deploy-plan.md`](./deploy-plan.md) §4) |
 | 호스트 네트워크 | standalone 서버를 `HOSTNAME=127.0.0.1`, `PORT=3000`으로 띄워 3000 포트가 밖에 열리지 않게 한다. nginx의 `proxy_pass`도 `127.0.0.1:3000`으로 맞춘다 |
-| nginx가 `X-Frame-Options: DENY`, HSTS 등을 붙이고 `X-Forwarded-Host`를 지운다 | 앱에서 보안 헤더를 중복으로 넣지 않는다. 절대 URL이 필요하면 `Host` 헤더나 환경변수를 쓴다 |
+| nginx가 `X-Frame-Options: DENY`, HSTS 등을 붙이고 `X-Forwarded-Host`를 지운다 | 앱에서 보안 헤더를 중복으로 넣지 않는다. 예외는 CSP — 허용 목록이 앱 코드(SDK 출처)와 같이 바뀌어서 앱이 붙인다(`next.config.ts` `headers()` · `src/utils/csp.ts`, 2026-11-01 P14 보안 — Report-Only). 절대 URL이 필요하면 `Host` 헤더나 환경변수를 쓴다 |
 | 배포하면 컨테이너가 교체된다 | 수 초간 끊긴다(v1도 같음). 티켓 오픈 시간대 배포는 피한다 |
 | front의 stdout이 CloudWatch로 간다 | §13의 구조화 로그가 그대로 수집된다 |
 

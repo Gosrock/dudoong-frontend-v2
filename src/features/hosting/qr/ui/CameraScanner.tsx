@@ -9,6 +9,10 @@ import { Icon } from '@/ui/icons/Icon';
 
 import { type CameraProblem, cameraProblemOf } from './camera-errors';
 import * as s from './QrCheckIn.css';
+import { applySelfHostedZxing } from './zxing-wasm';
+
+// 판독 엔진 wasm을 jsdelivr가 아니라 우리 출처에서 받는다(P14 보안 — CSP)
+applySelfHostedZxing();
 
 type Props = {
   /** 인식한 값 — 그대로 `submitScan`에 넘긴다(같은 값이 계속 보이면 라이브러리가 다시 부르지 않는다) */

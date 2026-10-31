@@ -63,7 +63,8 @@ export async function shareKakaoFeed(template: KakaoFeedTemplate): Promise<Kakao
     kakao.Share.sendDefault(template);
     return 'shared';
   } catch (e) {
-    log('warn', 'kakao_share.failed', { error: e instanceof Error ? e.message : 'unknown' });
+    // 이름만 — SDK 오류 메시지에 공유 주소(선물 토큰)가 들어갈 수 있다(P14 보안)
+    log('warn', 'kakao_share.failed', { error: e instanceof Error ? e.name : 'unknown' });
     return 'failed';
   }
 }

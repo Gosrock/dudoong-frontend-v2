@@ -1,5 +1,8 @@
 'use client';
 
+// CSP — zod가 eval을 떠보지 않게(첫 파싱보다 먼저)
+import '@/api/shared/zod-config';
+
 import { QueryClientProvider } from '@tanstack/react-query';
 import { OverlayProvider } from 'overlay-kit';
 import { type ReactNode, Suspense, useEffect } from 'react';

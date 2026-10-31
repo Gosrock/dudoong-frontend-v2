@@ -24,11 +24,11 @@ export async function serverQuery<T, K extends QueryKey>(
     unstable_rethrow(e);
     if (e instanceof ApiError && e.status === 404) notFound();
     // 쿼리 키 첫 원소(리소스 이름)만 남긴다. id·토큰은 남기지 않는다(tech-decisions §13).
+    // ApiError가 아니면 이름만 — 메시지에 쿼리 키(선물 토큰 등)·env 값이 들어 있을 수 있다(P14 보안)
     log('error', 'server_query.failed', {
       resource: String(options.queryKey[0]),
       status: e instanceof ApiError ? e.status : undefined,
-      code:
-        e instanceof ApiError ? e.code : e instanceof Error ? `${e.name}: ${e.message}` : 'unknown',
+      code: e instanceof ApiError ? e.code : e instanceof Error ? e.name : 'unknown',
     });
     throw e;
   }

@@ -110,6 +110,11 @@
     ],
     "ignoredBuiltDependencies": [
       "@swc/core"
-    ]
+    ],
+    "overrides": {
+      "handlebars@4.7.9": "4.7.10",
+      "undici@8.12.1": "8.12.3",
+      "fast-uri@3.1.8": "3.1.9"
+    }
   }
 }

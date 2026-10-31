@@ -1896,3 +1896,54 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 - `128:2583` "[개발 · 디자인 없음] 승인거절 — \"기타\" 사유 화면"(`1989733906`)
 
 **범위 밖(고치지 않음)**: `Avatar`가 깨진 이미지 주소에서 깨진 그림을 보임(공용 컴포넌트 — mock "밴드 파도"), 하위 헤더 · 시트 모양(P4s · P2). `dev:mock`에서는 가짜 S3 PUT을 브라우저가 못 받아 사진 변경이 실패함(QA는 `page.route`로 받음)
+
+## P14 — 보안
+
+**상태**: PR 대기(2026-11-01, 브랜치 `9yujin/p14-security`) — 하드닝. 동작을 바꾼 수정은 로그 2곳 · zod JIT 끔 · zxing wasm 출처뿐이고, CSP는 **Report-Only**(막지 않음)다.
+
+**찾은 것**(위치 · 위험 · 처리 — 고침 / 남김(이유) / 사용자 대기)
+
+| # | 위치 | 위험 | 처리 |
+|---|---|---|---|
+| 1 | 오픈 리다이렉트 — `safeRedirect`(`src/utils/redirect.ts`) 사용처: `/login?redirect=`(`login-href.ts`), 카카오 왕복 보관(`login-redirect.ts` — 넣을 때 · 꺼낼 때 둘 다), 콜백 끝 `finishLogin`·취소 `replace` | `//evil`·`/\evil`·탭 끼우기·절대 URL · `javascript:` | **남김(이미 안전)** — 테스트 표가 위 모양을 모두 거부(`redirect.test.ts`). 다른 이동(`LoginGate`·세션 상실·`LoginRequiredLink`)은 `location`에서 읽은 지금 주소, 떠남 확인(`EditorParts` `useLeaveGuard`)은 `url.origin !== location.origin`이면 손대지 않고 `pathname+search+hash`로만 이동, 알림 `href`는 경로를 직접 만듦(`notificationHref` — `encodeURIComponent`), 셀프 체크인 QR은 `selfCheckInUrl`이 같은 출처 경로만. 서버 `redirect()` 호출 없음 |
+| 2 | 카카오 로그인 시작 `useKakaoLogin` — 백엔드가 준 `link`가 `^https?://`이면 이동 | 백엔드 응답이 바뀌면 다른 곳으로 감 | **남김** — 같은 출처 API가 만든 값이고 호스트를 `kauth.kakao.com`으로 묶으면 e2e·QA 가짜 카카오(`http://kauth.example`)부터 바꿔야 한다. 하드닝 범위에서 동작을 바꾸지 않음 |
+| 3 | 토큰 취급 — JS가 토큰을 읽는 곳 | 토큰 탈취 | **남김(문제 없음)** — `document.cookie` 사용 없음, 두둥 토큰 응답은 `TokenAndUserSchema = z.unknown()`(본문을 쓰지 않음, 쿠키는 HttpOnly — backend #776), 카카오 토큰은 콜백 흐름 동안 메모리만(`runKakaoCallback`) |
+| 4 | 서버 조회에 토큰이 붙는지(tech-decisions §4) | 개인 응답이 서버 HTML·캐시에 섞임 | **남김(문제 없음)** — 서버 쪽 `cookies()`·쿠키 전달 없음(`headers()`는 `requestOrigin`의 `Host`만), 서버 조회는 공개 GET(`{ public: true }` → `credentials: 'omit'`), `withSessionRecovery`는 서버에서 가로채지 않음 |
+| 5 | `serverQuery` 실패 로그 — `ApiError`가 아니면 `${name}: ${message}` | 메시지에 쿼리 키(선물 토큰 `['gifts', token]`)·env 값 — §13은 "이름만"이라 적혀 있었다 | **고침** — 이름만. `serverQuery.test.ts` |
+| 6 | `kakao_share.failed` 로그 — SDK 오류 `message` | 카카오 SDK 오류 메시지에 공유 주소(선물 링크 토큰)가 들어갈 수 있다 | **고침** — 이름만. `kakao-sdk.test.ts` |
+| 7 | 지도 · 우편번호 · 지오코더 실패 로그(`e.message`) | 메시지에 주소 검색어 | **남김** — 공연장 주소(공개 값)뿐, 개인 정보 아님 |
+| 8 | 로그 PII grep — `log()` 20곳 · `console.*` | 계좌번호 · 입금자명 · 토큰 · 전화번호 | **남김(문제 없음)** — 필드는 status · code · route(`routePattern` — id·`gifts/` 다음은 `:param`, 쿼리 버림) · 이름 · zod issue 경로뿐. `console.*` 직접 호출은 `log.ts`와 아이콘 생성 스크립트만 |
+| 9 | 로그 PII 런타임 | 위 grep이 못 보는 경로(처리 안 된 에러 등) | **고침(검사 추가)** — e2e·QA 자동 fixture `consolePii`가 모든 테스트의 브라우저 콘솔 · 페이지 에러에서 가짜 백엔드의 선물·체크인 토큰, 계좌번호 4종, 입금자명, 전화번호, `accessToken=`을 찾으면 실패(`e2e/support/fixtures.ts`, 양성 대조 `security.spec.ts`) |
+| 10 | 선물 토큰 유출 경로 — 주소 | 링크 자체가 토큰 | **남김(설계)** — 받는 쪽 링크 `/gifts/<토큰>`만 토큰을 가진다. 보내는 쪽 "링크 생성 완료"는 라우트가 아니라 티켓탭 위 화면(P8b-V 결정 1 — 주소·기록에 토큰 없음) |
+| 11 | 선물 토큰 — Referer | 랜딩에서 나가는 요청(포스터 이미지 · 카카오 SDK)에 주소가 실림 | **남김** — 교차 출처 요청은 nginx `Referrer-Policy: strict-origin-when-cross-origin`이 origin까지로 줄인다(§20). 앱은 보안 헤더를 중복으로 넣지 않는다(§25). 운영 nginx에 실제로 붙는지는 사용자 대기(D2) |
+| 12 | 선물 토큰 — OG · 검색 | 미리보기·검색 결과에 토큰 | **남김(문제 없음)** — `giftMetadata`가 `og:url`·canonical을 넣지 않고 `noindex`(e2e `gift-landing.spec`) |
+| 13 | 선물 · 체크인 토큰 — 로그 | 서버 로그에 경로 | 앱 **남김(문제 없음)**(`routePattern`, CSP 보고도 화면 패턴만). **nginx 접근 로그**에는 경로의 `giftToken`이 남는다 → **사용자 대기**(보존 기간 · 접근 권한 — Deploy·운영 계정) |
+| 14 | 입장 QR · 셀프 체크인 QR | QR 값이 주소·로그로 | **남김(문제 없음)** — 그림은 브라우저에서만 그림(`QrCode` — 네트워크 없음), `/check-in?token=`은 공연장 QR이 원래 가진 주소. 게이트 왕복의 `redirect`는 `sessionStorage`(탭 단위) |
+| 15 | 섹션 뷰어 · 공지 본문 XSS | 저장형 XSS | **남김(문제 없음)** — 넣는 곳 3곳(관객 상세 `toSectionTabs` · 호스팅 미리보기 `sanitizeSectionHtml` · 공지 `renderNoticeHtml`) 모두 같은 `sanitize-html` 허용 목록을 거침. `render-section.test.ts`가 script · onerror · `javascript:`(대소문자 · 엔티티 · 탭) 등을 본다. 링크는 `rel="noopener noreferrer"`, `target`은 `_blank`만 |
+| 16 | 외부 링크 `rel` | `window.opener` · Referer | **남김(문제 없음)** — 외부 `_blank`(연락처 `ContactList`, 약관, 본문 링크) 모두 `noopener noreferrer`. `EventScopeNav` [공연 페이지 보기]는 같은 출처라 `noopener`만 |
+| 17 | CSP 없음 | 외부 스크립트 주입 · `<base>`·`object` · 폼 가로채기 | **고침(Report-Only)** — 아래 "CSP" |
+| 18 | zxing wasm을 jsdelivr에서 받음(P13b-V 결정 11) | 외부 CDN이 판독 엔진을 바꿀 수 있음 · CSP에 CDN | **고침** — `public/vendor/zxing-wasm/3.1.6/zxing_reader.wasm` 자체 호스팅 + `setZXingModuleOverrides({ locateFile })`(`zxing-wasm.ts`) |
+| 19 | zod 4 JIT가 `new Function('')`으로 eval을 떠봄 | CSP `script-src eval` 위반이 **모든 화면**에서(첫 e2e 실행에서 141건) — 강제 모드면 zod가 잡고 느린 길로 가지만 보고가 매번 | **고침** — `z.config({ jitless: true })`(`src/api/shared/zod-config.ts`, 루트 `providers.tsx`·`client.ts` 맨 위) |
+| 20 | 의존성 감사(`pnpm audit`) — 18건(critical 2 · high 4 · moderate 10 · low 2) | 전부 개발 도구(eslint-plugin-boundaries → handlebars, jsdom → undici, vanilla-extract webpack 플러그인 → fast-uri, eslint·storybook → minimatch·glob). 운영 런타임 의존성에는 없음 | **고침** 15건 — `pnpm.overrides`로 패치 버전만(handlebars 4.7.9 → 4.7.10 · undici 8.12.1 → 8.12.3 · fast-uri 3.1.8 → 3.1.9, 다른 패키지는 안 바뀜). **남김** 3건(moderate) — minimatch 3.x/10.x → 11 · glob 13 → 14는 메이저(부모 eslint · storybook이 올려야 함). 부모가 고친 버전을 내면 overrides를 지운다 |
+
+**CSP**(`src/utils/csp.ts`, `next.config.ts` `headers()` — 모든 경로)
+
+```
+default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://t1.kakaocdn.net https://dapi.kakao.com https://*.daumcdn.net;
+style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:;
+connect-src 'self' https://*.amazonaws.com https://*.dudoong.com https://*.kakao.com; frame-src https://*.kakao.com https://*.daum.net;
+worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-uri /csp-report
+```
+
+- 헤더는 `Content-Security-Policy-Report-Only`. `CSP_ENFORCE=1`로 빌드하면 `Content-Security-Policy`. 개발(`next dev`)만 `'unsafe-eval'`·`ws:`.
+- 보고는 `POST /csp-report`(`src/app/csp-report/route.ts`) → 구조화 로그 `csp.violation` `{directive, blocked(출처·키워드), page(화면 패턴 — id·토큰 자리 `:param`), disposition}`. 16KB 넘는 본문 · JSON 아님은 읽지 않고 언제나 204. 주소·토큰은 남기지 않는다(`summarize.test.ts`).
+- 위반 0 검사: e2e·QA 자동 fixture `cspViolations`가 모든 테스트에서 `securitypolicyviolation`을 모아 하나라도 있으면 실패(가짜 출처 `*.mock.dudoong.test`만 뺀다). 장치가 실제로 잡는지 양성 대조 — `security.spec.ts`(허용 밖 스크립트 → 위반 1).
+- GA · 카카오 애드핏은 넣지 않았다(사용자 몫) — 넣을 때 `csp.ts`에 출처를 더한다(backend-questions #871 행).
+
+**결정 — 🤖 Claude 판단**(근거 / 되돌리려면)
+1. nonce 대신 `script-src 'unsafe-inline'` — nonce는 요청마다 렌더해야 하는데 호스팅 센터 등이 정적 프리렌더(§2·§3)라 쓸 수 없다. 이 정책이 막는 것은 외부 출처 스크립트 · `object` · `<base>` · 다른 곳으로의 폼 전송 · iframe 삽입이고, 인라인 XSS의 1차 방어는 sanitize(§17) / 되돌리려면 `csp.ts`
+2. **Report-Only 유지(강제로 바꾸지 않음)** — e2e·QA에서 위반 0이지만 e2e·QA는 카카오 공유 · 지도 · 우편번호 SDK를 가짜로 바꾸고 S3도 가짜다. 실제 SDK가 더 불러오는 출처(지도 타일·우편번호 iframe 안 요청 등)와 운영 S3 presigned 호스트는 실환경에서만 보인다 → 스테이징에서 `csp.violation` 로그 0을 본 뒤 `CSP_ENFORCE=1`(사용자 대기) / 강제로 바꾸려면 Dockerfile 빌드 인자 또는 `cspHeaderName` 기본값
+3. 이미지 `img-src https:` 전체 — 섹션 · 공지 본문이 v1 이관분을 포함해 임의 https 이미지를 가질 수 있다(sanitize가 http·https 허용, 자산 도메인 밖도 있음). 좁히면 옛 본문 이미지가 깨진다 / `csp.ts`
+4. `connect-src https://*.amazonaws.com https://*.dudoong.com` — 운영 S3 presigned 호스트를 코드에서 알 수 없다(발급 응답 값). 스테이징 업로드에서 실제 호스트를 보고 좁힌다(사용자 대기) / `csp.ts`
+5. wasm은 저장소에 그대로 넣음(0.9MB) — Docker 빌드가 `--ignore-scripts`라 설치 때 복사하는 스크립트가 돌지 않는다. 대신 `zxing-wasm.test.ts`가 설치된 zxing-wasm과 버전 · 바이트(sha256)를 비교해 라이브러리를 올리면 실패한다. 라이선스 `THIRD_PARTY_NOTICES.md`(zxing-wasm MIT · zxing-cpp Apache-2.0) / 되돌리려면 `CameraScanner.tsx`의 `applySelfHostedZxing()` 한 줄을 지우고 CSP에 `https://fastly.jsdelivr.net` 추가
+6. 감사는 overrides로 패치만 — `pnpm update --depth Infinity`는 webpack·schema-utils 등 다른 패키지까지 올리고 peer 경고를 내서 버렸다 / `package.json` `pnpm.overrides`

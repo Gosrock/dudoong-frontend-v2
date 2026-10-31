@@ -1,3 +1,6 @@
+// CSP — zod가 eval을 떠보지 않게(첫 파싱보다 먼저)
+import './shared/zod-config';
+
 import ky, { isNetworkError, isTimeoutError, type KyInstance, type Options } from 'ky';
 import { z } from 'zod';
 
