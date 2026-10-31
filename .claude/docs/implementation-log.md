@@ -1556,6 +1556,46 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 **범위 밖(고치지 않음)**: Kartrider 글꼴 미탑재(제목이 Pretendard로 보임 — design-system §1 라이선스), DS `SearchField` 돋보기가 Figma 20 회색보다 작게 보임(공용 컴포넌트), dev 서버 "Next.js encountered the unstable value `Date.now()` while prerendering"(`<Prefetch>` 서버 조회 — 이 PR 전부터, P11-V 기록과 같음), mock 포스터 주소가 안 열려 QA 캡처의 포스터가 모두 빈 상자(목 데이터), 공연준비 홈 등 `LoadMoreSentinel`의 다른 사용처 모양(그대로)
 
+## P5c-V — 호스트 홈(공개) · 관심(♡) · 관리 버튼 · 멤버 아바타 줄 (뷰)
+
+**상태**: done (2026-11-01, PR #67) — 스킬 `gui-implement`. 남은 것 없음(그려지지 않은 상태는 Figma 코멘트로 물음)
+**근거(gui-screens §0)**: **와이어** — GUI Ready for dev 88개(2026-10-31T19:18Z 판)에 호스트 홈 프레임이 없다(`741:30896` `ready --contains` → Ready 밖). 와이어 `503:30867` 마스터·매니저 · `529:34027` 멤버 · `503:30477` 관객(섹션 `호스트홈_v1.0` `503:30368`). PC 와이어 없음 → 관객 PC 규칙(1024~, `Container` 최대 폭). 열린 Design Sync 이슈 #19·#29·#30·#61은 이 화면과 무관. 디자인 시스템은 기준 버전 `2416576694112599706` 그대로
+**변경**
+- `features/shared/host-home/HostHomeView`(+`.css.ts`) — L 최소 마크업을 화면으로: 배너(`coverImageUrl`, 없으면 회색) + 오른쪽 위 ⚙ 링크 · 원형 로고 `Avatar` 80(배너에 반쯤 걸침) · 이름 h1 + ♡(익명 `LoginRequiredLink`, 확정 전·viewer 실패 비활성, 관심 중 `aria-pressed` → 채운 하트) · 멤버 수·개설일(아이콘 + 읽기 프로그램용 뜻) · 소개 · 연락처 아이콘 원 → 연락처 시트 · viewer 실패 안내 + [다시 시도](`retryViewer`) · `ListHeader` [멤버 >](GH-6, `myRole` 있을 때만) + 아바타 가로 줄 · `ListHeader` 공연 리스트 + 가로 카드 줄(스켈레톤 3장 → 카드, 끝 sentinel이 보이면 다음 페이지, 실패면 재시도 버튼) · 빈 상태 `EmptyState` · 오른쪽 아래 고정 [+ 새 공연 만들기](`button({variant:'dark'})` 링크). ⚙·[새 공연 만들기]는 `nav[aria-label="호스트 관리"]` 하나에(L 마크업·e2e 그대로)
+- `ui/HostEventCard`(+`.css.ts`) — DS `ConcertCard`(#66에서 `src/ui`로 올라옴) + 상태 칩(`Chip` — 공연준비 홈과 같은 색 대응, `features/hosting`은 가져오지 않아 여기 둠). 카드 전체가 링크(`hostEventHref`). 칸 폭만 정한다
+- `src/ui/components/ConcertCard`에 `badge?: ReactNode`(포스터 왼쪽 위 얹는 표시)를 **더했다**(기존 props 그대로) + 스토리 `WithBadge`
+- `ui/HostContactsOverlay` — `ResponsiveOverlay`(모바일 시트 · PC 모달) + 호스트 사진·이름 + `ContactList`(P5b-V). 본문이 `useHostHome`을 다시 읽는다(캐시 공유 — 요청 없음, 시트가 열린 동안 viewer가 확정되면 원문으로)
+- L(훅·규칙) 변경 없음. QA `qa/scenarios/host-home.qa.ts`(HH-1~7). 새 `src/ui` 컴포넌트 없음(ConcertCard `badge` 스토리만)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 비로그인 시점 렌더 | QA HH-1(♡ 로그인 링크 · 관리 없음 · 멤버 줄 없음 · 공개 공연만 · 연락처 가린 값 + 로그인 안내) |
+| 관객(로그인 비멤버) | QA HH-2(♡ 눌러 채움 · 관리·멤버 없음 · 연락처 원문) |
+| 일반 멤버 | QA HH-3([멤버 >] · 아바타 줄 · ⚙/FAB 없음 · 준비중 → `/hosting/events/140`) |
+| 매니저 | QA HH-4(⚙ · [새 공연 만들기] · 멤버 줄) |
+| 마스터 | QA HH-5(같은 화면 · PC 1440) |
+| (더) 빈 상태 · viewer 실패 | QA HH-6 · HH-7 |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`)**: 마스터 390 · 1200 · 1440, 비로그인 1200, 관심 중(호스트 12) 390, 연락처 모달 1200 — 와이어 3시점과 구조·순서 같음. 다른 점: "공연 리스트 >"의 ›를 뺐다(목적지 없음), 섹션 제목은 DS `ListHeader`(Heading/sm)라 와이어보다 작다, mock 이미지(배너·로고·포스터 일부)는 dev 이미지 서버가 없어 깨져 보인다(다른 화면과 같음).
+
+**결정** (🤖 Claude 판단 — 근거 / 되돌리려면)
+1. 🤖 PC(1024~)는 모바일과 같은 세로 배치를 `Container` 안에, 배너 높이 280 · 모서리 `radius[5]` — 와이어·Ready GUI에 PC가 없음, 관객 PC 규칙(patterns §1) / `HostHomeView.css.ts` `banner`
+2. 🤖 ♡ 관심 중은 선 아이콘 안을 `brand.primary`로 채운다 — DS `favorite`은 outline만 / `globalStyle(... svg path)` 한 줄, filled 아이콘이 생기면 `variant`로
+3. 🤖 연락처 아이콘은 어느 것을 눌러도 연락처 시트(아이콘 + 값 행)를 연다 — 와이어에 누른 뒤가 없고, 가린 값(Q41 안내)·긴 값을 보여 줄 곳이 필요. 공연 상세 [문의하기]와 같은 모양 / 아이콘마다 `c.href`로 바로 열기
+4. 🤖 "공연 리스트 >"의 ›를 뺐다 — 호스트 공연 전체 목록 화면이 계획에 없다. 가로 줄 끝에 닿으면 다음 페이지를 읽는다(GH-14 무한) / 목적지가 생기면 `ListHeader` 제목을 링크로
+5. 🤖 [멤버 >]는 `/hosting/hosts/[id]/members`(L `hostManageActions` members) — 멤버 화면은 P10b, 여기선 링크만
+6. 🤖 관리 버튼(⚙·FAB)은 viewer 확정 전에 **그리지 않는다**(비활성 자리 대신) — 비멤버에게 잠깐 보였다 사라지는 것보다 낫고, 자리가 배너 위·화면 고정이라 밀림이 없다(L 최소 마크업도 같았다). ♡는 계획대로 비활성 / `manage.status === 'pending'`일 때 비활성 버튼을 그린다
+7. 🤖 viewer 실패 문구 "내 관심·권한 정보를 불러오지 못했어요." + [다시 시도] · 공연 목록 실패 "공연을 불러오지 못했어요." · 빈 상태는 L 문구 "두둥! 등록한 공연이 없습니다."(GUI `741:30970`은 Ready 아님 — 문구 미확인) / 상수 `HOST_EVENTS_EMPTY`·본문 글자
+8. 🤖 공연 카드 폭 모바일 148(와이어) · PC 200, 카드 모양은 DS `ConcertCard`(날짜 → 제목 순서, 와이어는 제목 → 날짜), 멤버 아바타 52 · 로고 테두리 흰 2px / `HostEventCard.css.ts`·`HostHomeView.css.ts`
+9. 🤖 GH-3 공개 `members`(백엔드 #811)는 쓰지 않는다 — 계획 GH-6(멤버만) 그대로, 관객 와이어도 멤버 줄이 없다 / 스키마에 `members`를 더하고 `!h.members` 분기에 공개 요약
+10. 🤖 가로 줄 끝 다음 페이지는 `src/ui` `LoadMoreSentinel`(#66) 대신 화면 안 `EventsTail` — 공용 것은 세로 목록용(위아래 여백 · 안내 문구 줄)이라 가로 줄 끝 48px 칸에 맞지 않음 / 공용 것에 가로 변형을 더하면 바꾼다
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · 디자인 없음]` 와이어 `503:30867` 호스트 홈 — 그려지지 않은 상태·동작(♡ 누른 뒤 · "공연 리스트 >" 목적지 · 연락처 아이콘 동작 · PC · 로딩/빈/실패, `1989725245`). `FIGMA-CUSTOM:` 없음(공연 카드는 처음 커스텀이었다가 main #66의 DS `ConcertCard`로 바꿈)
+**검사**: typecheck · eslint(바꾼 파일) · `pnpm qa host-home` 14/14 · e2e `host-home`·`seo`·`hosting`·`notifications` 92/92(마크업을 바꿔도 선택자 그대로 통과). 전체 게이트는 PR CI
+**범위 밖(고치지 않음)**: dev mock 이미지 주소(`MOCK_IMAGE_ORIGIN`)가 dev·QA에서 깨져 보이는 것(공용 fixture). 공연준비 홈 `eventChipOf`와 칩 대응이 두 벌(`features/hosting` ↔ `features/shared` import 금지) — 셋째가 생기면 `src/ui`·`api` 쪽으로
+
 ## P8-V — 티켓탭 · 입장 QR 층 · 선물 취소/반환 확인 (뷰)
 
 **상태**: done (2026-11-01, PR #68) — 스킬 `gui-implement`. 남은 것: 실기기 스와이프·QR 판독(QA TIX-10 수동, D2 뒤)

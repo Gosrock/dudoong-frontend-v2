@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, waitFor, within } from 'storybook/test';
 
+import { Chip } from '../Chip/Chip';
 import { ConcertCard } from './ConcertCard';
 
 /** 스토리용 포스터(세로 163:231 단색 SVG) — 서버 이미지 자리 */
@@ -69,5 +70,24 @@ export const LongTitle: Story = {
     const title = within(canvasElement).getByText(/직장인 밴드/);
     const lineHeight = parseFloat(getComputedStyle(title).lineHeight);
     await expect(title.getBoundingClientRect().height).toBeLessThanOrEqual(lineHeight * 2 + 1);
+  },
+};
+
+/** 포스터 왼쪽 위 상태 표시(`badge`) — 호스트 홈 공연 카드 "준비중"·"D-15"(와이어 `503:30867`, P5c-V) */
+export const WithBadge: Story = {
+  args: {
+    badge: (
+      <Chip color="green" theme="weak">
+        준비중
+      </Chip>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const badge = within(canvasElement).getByText('준비중');
+    const poster = canvasElement.querySelector('img')!.parentElement!.getBoundingClientRect();
+    const box = badge.getBoundingClientRect();
+    await expect(box.left).toBeGreaterThan(poster.left);
+    await expect(box.top).toBeGreaterThan(poster.top);
+    await expect(box.bottom).toBeLessThan(poster.bottom);
   },
 };

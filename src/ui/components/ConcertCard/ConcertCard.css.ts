@@ -33,6 +33,16 @@ export const poster = style({
   background: vars.color.surface.imageBg,
 });
 
+/** 포스터 + 얹는 표시(`badge`)의 기준 상자 */
+export const posterWrap = style({ position: 'relative', display: 'block' });
+
+export const badge = style({
+  position: 'absolute',
+  top: vars.space[2],
+  left: vars.space[2],
+  display: 'flex',
+});
+
 export const posterImage = style({
   display: 'block',
   width: '100%',
