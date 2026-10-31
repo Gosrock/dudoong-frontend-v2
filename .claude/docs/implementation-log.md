@@ -583,3 +583,111 @@
 **남음**: V 전부(카드·상태 칩·⋮ 메뉴 팝오버·빈 상태, 티켓 폼 카운터·토글·DatePicker·은행 Combobox, 옵션 추가·상세 모달·옵션 칩·"티켓 옵션이란?"·관리자 승인 가이드 팝오버, 티켓 없음 공연 안내, 이탈 확인 — `dirty`는 L에 있다), 동의 칸(Q42), 판매 중단 딤드(Q33), 공연 상세에 판매 중단 반영 확인(P6-V 뒤). QA 시나리오 캡처(V)
 **검사**: typecheck · lint · prettier · test(1946 — 새 166) · test:stories(193) · build · e2e(308 — 새 22 = `hosting-ticket.spec` 11건 ×2) 통과(`NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`)
 **문서 반영**: plan P12 완료 기준 L, patterns §23(티켓·옵션 변경 뒤 반영)·§24(P12 `Ticket_Item_400_2`·`400_11`·수정 `Item_Option_Group_400_4`·`Event_400_17`·`Option_Group_400_3` 행, `Agreement_400_1` 행에 #873), api-contract §6(P12-L 소스 확인 — 응답 모양·검사 순서, #873 위치), directory-structure(api bank·ticket-item·option, features ticket, 라우트, mock)
+
+## P13b-L — QR 체크인 (로직)
+
+**상태**: done (2026-10-31, 커밋 전) — V 전부 남음
+**변경**: `src/api/check-in/`: `schema.ts`에 `CheckInStatsSchema`(GQ-1)·`CheckInQrSchema`(GQ-4)·`HostCheckInRequestSchema`(PQ-2, `.strict()`, uuid 64자)·`CHECK_IN_TICKET_UUID_MAX`, 새 `queries.ts` `checkInStatsQuery`(`['events', id, 'manage', 'check-ins', 'stats']`)·`checkInQrQuery`(`…, 'manage', 'check-in-qr']`, `staleTime: Infinity`), `mutations.ts` `hostCheckInMutation`(PQ-2). `features/hosting/qr/`(새 — directory-structure의 이름): `model/` qr-check-in-rules·qr-cache + 훅 3개(`useCheckInStats`·`useHostScan`·`useSelfCheckInQr`), 화면 자리 `QrCheckInView`. 라우트 `hosting/events/[eventId]/qr/page.tsx`(브라우저 조회만). 공용 `features/shared/checkin-result`는 그대로 썼다(호스트 모드 `'host'`가 P8c-L에 이미 있었다 — 고치지 않음). mock: `check-in.handlers.ts`(GQ-1·PQ-2·GQ-4 + `hostCheckInSets`, 기본 목록 `checkInHandlers.default`에 들어가 `handlers.ts`는 안 고침), `fixtures/my-ticket.ts`(셀프 체크인 토큰을 저장소 `checkInTokens`로 — GQ-4가 새 토큰을 넣으면 PQ-5가 받는다, `hostCheckIn`·`checkInStatsOf`·`checkInTokenOf`·`markTicketCanceled`)
+
+**백엔드 소스**: `432cce4`(로컬 클론) → dev `cb8d24e` — `git log 432cce4..origin/dev`에 체크인 변경 없음(`Event.kt`는 `@Where` → `@SQLRestriction`만). 근거 파일: `V2IssuedTicketController`(Q-1·Q-2·Q-4·Q-5), `V2CheckInUseCase`, `V2CheckInDomainService`, `V2OperationRequests.kt`, `V2CheckInResponses.kt`, `V2IssuedTicketResponses.kt`·`V2IssuedTicketQuery.stats`·`V2EntranceStats`, `EventErrorCode`(`Event_400_27`), `EventService.updateEventStatus`·`closeExpiredEventsEndAtBefore`, `DuDoong-Batch` `EventExpiration`, v1 `UpdateEventStatusUseCase`
+
+**훅이 돌려주는 것**
+- `useCheckInStats(eventId)` → `{status, stats{issuedCount, enteredCount, notEnteredCount, entranceRate} | null, refreshFailed, refreshing, retry}`
+- `useHostScan(eventId, {cooldownMs?, now?})` → `{state: idle | checking{value} | result{value, view} | invalidQr | eventNotCheckable{message} | failed{value, failure{kind: network|server|forbidden|notFound, message, canRetry}}, submitScan(value): 'sent'|'queued'|'ignored'|'invalid'|'blocked', retry, reset, checking, block: notRegistered|ended|unknown|null, blockMessage}` — V 카메라는 인식할 때마다 `submitScan(value)`만 부르면 된다
+- `useSelfCheckInQr(eventId, {origin?})` → `{status: blocked|pending|error|ready, block, guidance, hint, qrUrl, retry}`
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `check-in-host-api.test` 22건, `qr-check-in-rules.test` 38건, `useQrCheckIn.test` 24건, e2e `hosting-checkin.spec` 7건(×2 프로젝트) |
+| 통계가 스캔 뒤 갱신 | 훅 「스캔 → 입장 완료(ownerName) → 체크인 통계(GQ-1)가 다시 읽혀 바뀐다 …」·「스캔 뒤 다시 읽기가 네트워크로 실패하면 지난 값을 두고 refreshFailed …」, api 「입장하면 GQ-1이 바뀐다」, e2e 「공연 메뉴 → QR 체크인, 스캔하면 입장 완료 + 체크인 통계가 갱신된다 …」 |
+| `result` 5종 | 훅 it.each `ALREADY_ENTERED`·`OTHER_EVENT`·`CANCELED`·`GIFT_PENDING` + 첫 테스트 `ENTERED`, api 「result 5종 …」, 공용 `checkin-result.test`(호스트 문구), e2e 「선물 대기 · 다른 공연 티켓 결과 …」 |
+| 끝난 공연 [관객이 스캔] 안내 | 규칙 it.each `selfCheckInBlockOf`·「공연이 끝나면 plan 문구로 안내한다」, 훅 it.each 「%s → 안내만, GQ-4를 부르지 않는다」, e2e 「정산중 공연 → 셀프 체크인 안내만 …」 |
+| `Event_400_27` | 규칙 it.each `hostScanBlockOf`, 훅 「Event_400_27(스캔 사이에 공연이 끝남) → 안내 + GE-3 다시 읽어 막힌 상태로」·it.each 「공연 %s → block %s」, api it.each 「공연 %s → %j」·「검사 순서 …」, e2e 「스캔 사이에 공연이 끝나면 …」·「지난 공연은 스캔할 수 없고 요청도 없다」 |
+| 네트워크 차단 실패 상태 | 훅 「네트워크 차단 → failed(network) + 토스트 없음, retry() …」·「5xx → failed(server) …」, 규칙 「PQ-2 실패 분류」, e2e 「네트워크 차단 → 실패 상태, 연결되면 다시 시도로 입장」(`page.route` abort) |
+
+그 밖: 연속 스캔 「같은 값은 끝난 뒤 쿨다운 동안 무시 …」·「요청 중 같은 값은 무시, 다른 값은 하나만(가장 최근) 대기 …」, 스캔 값 「빈 값은 무시, 64자 넘는 값은 요청 없이 invalidQr」, QR 주소 it.each 9행(남의 출처·`//`·공백 거부), GQ-4 → PQ-5 이어짐(api 「토큰이 없던 공연은 만들고 …」, e2e 「QR 주소 = 이 사이트 origin + qrPath, 그 주소로 들어가면 셀프 체크인」), 일반 멤버도 GQ-1·PQ-2.
+
+**결정**
+- 폴더 이름은 directory-structure의 `features/hosting/qr/`(라우트 `qr/`, 공연 메뉴 키 `qr`과 같게)
+- 키는 GE-3 아래 — P11·P12 공연 관리 키 규칙과 같게
+- 공용 `checkin-result`를 그대로 쓴다 — 호스트 문구·`SELECT_TICKET` → UNKNOWN이 P8c-L에 있었다
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. 연속 스캔: 같은 값은 요청이 **끝난 때부터** 3초(`SCAN_COOLDOWN_MS`) 무시, 요청 중 들어온 다른 값은 가장 최근 것 하나만 대기시켰다가 이어서 보낸다(patterns §19 "대기시킨다"를 큐 1칸으로 읽음). 되돌리기: `qr-check-in-rules.ts` 상수·`useHostScan.submitScan`·`settle`
+2. 64자 넘는 값(셀프 체크인 URL을 찍은 경우 등)은 요청 없이 `invalidQr` "티켓 QR이 아니에요". 64자 이하면 모양을 따지지 않고 보낸다(서버가 `OTHER_EVENT`). 되돌리기: `normalizeScanValue`
+3. 공연 상태로 미리 막는다 — 호스트 스캔은 OPEN·CALCULATING만, 셀프 체크인 QR은 OPEN만(정산중·지난·준비중은 GQ-4를 부르지 않고 안내만). 모르는 상태(`UNKNOWN`)도 막는다(공연 스코프 읽기 전용과 같은 규칙). 판정은 표시 상태가 아니라 `status`. 되돌리기: `hostScanBlockOf`·`selfCheckInBlockOf`, `useSelfCheckInQr`의 `enabled`
+4. PQ-2 에러는 모두 화면이 맡는다(`meta.handled`): 네트워크·타임아웃 → `failed(network)`, 5xx·파싱·모르는 코드 → `failed(server)`(둘 다 다시 시도), 403 → `forbidden`, 404 → `notFound`(다시 시도 없음), `BAD_REQUEST` → `invalidQr`. 되돌리기: `hostScanErrorOutcome`
+5. `retry()`는 쿨다운을 보지 않고 같은 값을 다시 보낸다. 되돌리기: `useHostScan.retry`
+6. 스캔 뒤에는 GQ-1만 정확한 키로 무효화한다(결과 종류와 상관없이 — 다른 기기의 입장도 반영). 대시보드 GD-1·발급 티켓 GI-1은 QR 화면에 없고 기본 `staleTime` 0이라 열 때 다시 읽는다. 되돌리기: `qr-cache.ts`
+7. GQ-1은 `meta.silent` — 스캔 뒤 다시 읽기 실패가 스캔마다 토스트로 쌓이지 않게, 대신 `refreshFailed`. 되돌리기: `useCheckInStats`
+8. GQ-4는 `staleTime: Infinity`(공연별 고정 토큰). 훅은 토큰을 돌려주지 않고 QR 주소만(DEC-011). QR 주소는 같은 출처 상대 경로 + http(s) origin일 때만 만든다(아니면 `error`). 되돌리기: `checkInQrQuery`·`selfCheckInUrl`
+9. 모드 전환([호스트가 스캔]/[관객이 스캔])은 화면 상태(`useState`)로 두고 URL에 남기지 않았다 — GQ-4는 [관객이 스캔]을 열 때만 부른다. 되돌리기: `QrCheckInView`
+10. 화면 문구(막힘 안내 · `Event_400_27` · 실패 · "티켓 QR이 아니에요" · 끝난 공연 다음 행동 안내)는 모두 잠정. 끝난 공연 안내 첫 줄은 plan 완료 기준 문구 그대로
+11. mock: 셀프 체크인 토큰을 저장소로 옮겨 GQ-4가 만든 토큰을 PQ-5가 받게 했다(`mock-checkin-{eventId}` 규칙 — 기존 4개 토큰과 같은 모양). 취소된 티켓 시나리오는 seed를 늘리지 않고 도우미 `markTicketCanceled`로. 되돌리기: `fixtures/my-ticket.ts`
+
+**남음**: V 전부 — 카메라 스캐너(`@yudiel/react-qr-scanner` 설치 포함)·카메라 권한 거부·기기 없음 화면, `result`별 화면, [관객이 스캔] QR 그림·전체화면, 통계 표시, 실기기 3종 판독, 실제 폰으로 GQ-4 QR → `/check-in` 입장(D2 스테이징), 네트워크 차단 실패 UI. Q39(1133 "Tablet-QR만"이 QR 전용 태블릿인지) 대기
+**검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 같은 작업 트리에서 P13a-L 진행 중): typecheck 통과 · test:stories 통과 · build 통과. lint·prettier는 P13a 진행 파일(`src/api/order/queries.ts` import 정렬, `guest-store.ts`·`issued-ticket/queries.ts` 서식)만 실패 — P13b 파일은 깨끗. test 1905 중 14 실패 · e2e 322 중 15 실패는 모두 P13b와 무관한 테스트가 기기 정지로 멈춘 것(vitest 워커 시작 시간 초과, 테스트당 3~17분) — P13b 새 테스트 84건(unit)·`hosting-checkin.spec` 14건(e2e)은 전체 실행에서 모두 통과. 기기가 한가할 때 전체 게이트를 다시 돌려야 한다
+**문서 반영**: plan P13b 완료 기준 L, patterns §24(P13b 행 보강 + 네트워크·5xx · `BAD_REQUEST` · 403·404 행), api-contract 체크인(F8)(P13b-L 소스 확인 — GQ-1 뜻, PQ-2 검사 순서·판정 순서, GQ-4는 상태를 안 봄, 셀프는 `status == OPEN`, 정산중이 되는 길과 만료 배치), directory-structure(api check-in, features qr, 라우트, mock)
+
+## P13a-L — 예매자 관리 · 등록 후 대시보드 (로직)
+
+**상태**: done (2026-10-31, 커밋 전) — V 전부 남음. 크리티컬 패스의 스테이징 agent-browser 왕복은 스테이징이 없어 남음(plan 상자 열어 둠)
+**변경**: `src/api/order/`(`schema.ts`에 호스트 주문 스키마 — `HostOrderStatusSchema`(5값)·`HOST_ORDER_STATUS_FILTERS`·`ORDER_SEARCH_TYPES`·`REFUND_STATUS_FILTERS`·`OPERATION_PAGE_SIZE`(20)·`OPERATION_PAGE_SIZE_MAX`(100)·`OPERATION_KEYWORD_MAX`(50)·`HostOrderElementSchema`·`HostOrderCountsSchema`·`HostOrderListSchema`·`HostRefundAccountSchema`·`HostOrderDetailSchema`·`RefundElementSchema`·`RefuseOrderRequestSchema`(기타만 문구, `.strict()`)·`HostCancelOrderRequestSchema`, `queries.ts` `hostOrdersQuery`·`hostOrderQuery`·`refundsQuery`·`normalizeHostOrdersParams`·키 접두 `hostOrdersKey`·`hostRefundsKey`, `mutations.ts` approve·refuse·cancelHost·completeRefund·exportOrders). 새 `src/api/issued-ticket/`(schema·queries GI-1·GI-2·mutations GI-3, `EntranceStatsSchema`), 새 `src/api/dashboard/`(GD-1 schema·`eventDashboardQuery`), 새 `src/utils/download.ts`(`saveBlob` — `http.ts` 주석이 가리키던 파일). `features/hosting/guest/`(새): `model/` guest-rules·guest-cache + 훅 6개(`useGuestsUrlState`·`useOrderList`·`useOrderDetail`·`useIssuedTicketList`·`useRefundList`·`useGuestExport`), 화면 자리 `GuestsView`·`GuestTabs`. `features/hosting/event/`: `model/dashboard-stats.ts`(새) + `useEventDashboard`가 등록 후 모드에서 GD-1을 읽어 `stats`를 돌려준다, `EventDashboardView` 최소 마크업. 라우트 `hosting/events/[eventId]/guests/page.tsx`(+ 옆에 `critical-path.test.tsx`). mock: `guest-store.ts`(새), `hosting-guest.handlers.ts`(새), `order.handlers.ts`(O-1 주문을 예매자 저장소에 넣고, O-4·O-5를 넘기고, 호스트 처리를 O-3에 반영), `fixtures/my-ticket.ts`(끝에 `recordHostApprovedOrder`·`recordHostCanceledOrder`·`myTicketEntranceOf`), `privacy-mask.ts`(`maskName`), `hosting.handlers.ts`(`resetHostingStore`가 예매자 저장소도), `handlers.ts`
+
+**백엔드 소스**: `432cce4`(로컬 클론) → dev `cb8d24e` `git log`/`git diff`에서 v2 주문 관리·환불·발급 티켓·대시보드 변경 없음(`a722a7c` #875 메일 발송 기록, `a88d537` #874 메일·알림톡 이름 빈 값, `f22fca0` #873 티켓 동의, `5444ef0` #872 JWT·Slack, `1b6ec4b` #864 카카오 챗봇, `cb8d24e` Spring Boot 3.5 — 응답·검사 순서에 영향 없음. `EventOrdersToExcel`은 배치 잡). 근거 파일: `V2OrderManageController`·`V2IssuedTicketController`·`V2Excel`, `V2OperationRequests.kt`·`V2OperationTypes.kt`·`V2OrderResponses.kt`·`V2IssuedTicketResponses.kt`·`V2DashboardResponse.kt`, `V2ReadOrdersUseCase`·`V2ChangeOrderUseCase`·`V2ReadIssuedTicketsUseCase`·`V2ReadDashboardUseCase`·`V2OperationMapper`, `V2OrderDomainService`·`V2OrderQuery`·`V2OrderStatus`·`V2MyOrderStatus`·`V2IssuedTicketQuery`·`AdminTableSearchType`·`OrderValidator`·`Order`·`RefundInfoVo`·`PrivacyMasker`·`OrderErrorCode`·`IssuedTicketErrorCode`·`OrderCustomRepositoryImpl.findRefunds`·`V2UserOrderDomainService`(O-3 플래그). 클론 작업 트리에 빠진 파일이 있어 확인은 `git show HEAD:`·`git grep HEAD`로 다시 했다(결론 같음)
+
+**훅이 돌려주는 것**
+- `useGuestsUrlState()` → `{tab: orders|tickets|refunds, setTab, orderUuid, openOrder(uuid), closeOrder()}`
+- `useOrderList(eventId)` → `{event, status, retry, fetching, statusTabs[{key,label,count,selected}], statusFilter, setStatus, searchTypes, searchType, setSearchType, keywordInput, setKeywordInput, keywordMax, submitSearch, clearSearch, appliedKeyword, exactMatchHint, rows, empty, page, totalPages, totalElements, hasNext, setPage, canExport, exporting, exportError, dismissExportError, exportExcel()}`
+- `useOrderDetail(eventId, orderUuid | null, {onMissing})` → `{open, status: idle|pending|error|success|missing, retry, detail, actions[{key: approve|refuse|cancel|completeRefund, label, enabled, blockedBy: started|notOpen|null}], blockedMessage, canSeeRefundAccount, pending, actionError, dismissActionError, missingNotice, dismissMissingNotice, approve(), refuseForm{reasonType, reasonText, setReasonType, setReasonText, errors}, refuseConfirm{title, body, dudoongNotice}, refuse(), cancelReason, setCancelReason, cancelReasonMax, cancelReasonError, cancelConfirm{body, dudoongNotice}, cancel(), completeRefund()}`(동작은 모두 `Promise<boolean>`)
+- `useIssuedTicketList(eventId)` → `{status, retry, fetching, counts, entranceFilters[{key,label,count,selected}], entrance, setEntrance, searchTypes, searchType, setSearchType, keywordInput, setKeywordInput, keywordMax, submitSearch, appliedKeyword, exactMatchHint, rows, empty, page, totalPages, hasNext, setPage, selectedTicketUuid, openTicket, closeTicket, detailStatus, detail, missingNotice, dismissMissingNotice, canExport, exporting, exportError, dismissExportError, exportExcel()}`
+- `useRefundList(eventId)` → `{status, retry, fetching, filters, statusFilter, setStatus, rows[{refund, canComplete}], empty, page, totalPages, hasNext, setPage, canSeeRefundAccount, complete(uuid), pendingUuid, actionError, dismissActionError}`
+- `useEventDashboard(eventId)`에 더한 것 → `{statsStatus, retryStats, stats: {dashboard, cards[{key,label,count,href}], newBadgeCount, sales{state: beforeSale|selling, totalSoldCount, totalSupplyCount, salesAmount, items[+share]}, entrance{entered, issued, label, ratio, rate}, timeline[{key, label, from, to, state}], qrHref} | null}`
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `guest-manage-api.test` 30건, `guest-rules.test` 43건, `dashboard-stats.test` 10건, `useOrderDetail.test` 16건, `useGuestLists.test` 12건, `useGuestsUrlState.test` 6건, `useEventDashboard.test` +4(1건 고침), `critical-path.test` 2건, e2e `hosting-guests.spec` 10건(×2 프로젝트) |
+| NEW 배지 = 승인 대기, 발급 0이면 0/0 | 대시보드 훅 「NEW 배지 수 = 승인 대기 수, 카드 4개 …」·「발급 0인 공연(103)은 입장 현황 0/0, 판매 전」, 규칙 「입장 현황 분모 = 발급 수」 it.each, api 「발급 0인 공연은 입장 현황 0/0」, e2e 「등록 후 대시보드 …」 |
+| 승인 실패 → 안내 + 승인 대기 | 훅 it.each 「승인 실패(재고 부족 · 탈퇴한 주문자) → 안내 후 주문은 승인 대기로 남고 거절할 수 있다」, api it.each 「… → 코드, 주문은 그대로」·「1인 제한(4매) …」 |
+| 시작 후 비활성 + 다시 읽기 | 훅 「공연 시작 후에는 승인·거절 비활성 …」·「화면을 연 뒤 공연이 시작됨 — 승인 Event_400_6 → GR-2·GE-3 다시 읽기」·「시작 후 거절·취소에 Order_400_9 …」, 규칙 「공연 시작 후 …」 it.each, api 「시작 후 거절·취소는 Order_400_9(상태 검사보다 먼저) …」 |
+| 승인 후 취소 → 환불 탭 REQUESTED | 훅 「승인 후 취소(사유 선택) → 발급 티켓 취소, 유료면 환불 탭에 REQUESTED로 나타난다」, api 「승인 후 취소: … 환불 탭에 REQUESTED」·「무료 주문 취소는 환불 요청이 없다」 |
+| 환불 계좌는 매니저 이상에게만 | 훅 「일반 멤버: … 환불 계좌 없음」·「매니저는 환불 계좌(updatedAt 포함)를 본다」, 목록 「환불 계좌는 매니저 이상에게만 …」, api GR-2·GF-1 |
+| `?tab=` 유지, `?order=` 진입 | URL 훅 「탭은 주소에 남는다 …」·「새로고침(주소로 들어옴)해도 탭 유지, ?order=로 들어오면 상세가 열린 상태」, e2e 「탭은 주소에 남아 새로고침해도 유지된다」·「?order=로 들어오면(호스트 알림 진입) …」(P9b 알림 링크 모양 `/hosting/events/{id}/guests?order={uuid}` — 이 검증으로 P9b가 넘긴 진입 확인을 닫는다) |
+| 뒤로가기는 상세만, 닫은 뒤 헛돌지 않음 | URL 훅 「열기 = pushState(ddOverlay) → 뒤로가기는 상세만 닫는다」·「닫기로 닫으면 내 항목을 소비 …」, e2e 「목록에서 열면 뒤로가기는 상세만 닫는다 — 닫기로 닫은 뒤 뒤로가기가 헛돌지 않는다」 |
+| 승인·거절 뒤 `counts` 갱신 | 훅 「승인 → … 상태 탭 counts가 갱신된다(승인 대기 2 → 1)」, e2e 「승인하면 … 상태 탭 건수가 갱신된다」 |
+| 환불 요청 → 환불 완료 → 관객 주문상세 | `critical-path.test` 「환불 요청 → 호스트 환불 완료 → 관객 주문상세의 환불 완료까지」, 훅 「환불 완료 — REQUESTED일 때만 버튼」, 목록 「[환불 완료]는 REQUESTED + 매니저만 …」 |
+| 크리티컬 패스(훅/라우트 부분) | `critical-path.test` 「관객이 두둥 티켓 2매를 주문하면 … 승인하면 관객 티켓탭에 2장이 발급된다」(P6 `useTicketSelection` → P7 `useCheckout` → `useOrderList`·`useOrderDetail` → O-3 · P8 `useTicketTab`), e2e 「크리티컬 패스: 체크아웃 → 주문 → 호스트 승인 → 티켓탭에 발급」. **스테이징 왕복은 남음** |
+| 에러 분기 P13a | 훅 승인 `Ticket_Item_400_1`·`Order_400_14`·`Event_400_6`·`Order_400_3`(#828), 거절·취소 `Order_400_9`·칸 오류, 404 조회·처리, 엑셀 `Order_400_19`·`IssuedTicket_400_7`·403 `HOST_400_1`, 티켓 상세 `IssuedTicket_404_1`, api(코드·검사 순서 — 승인 8단계, 거절 `Order_400_18`이 404보다 먼저, 취소, PF-2 멱등·`Order_400_17`) |
+| 엑셀(래퍼 없는 xlsx), 1만 행 초과 | 목록 훅 「엑셀(매니저): 지금 필터로 xlsx를 받아 저장, 1만 행 초과는 안내」·티켓 「엑셀 1만 행 초과 안내」, api 「매니저: 래퍼 없는 xlsx + 파일 이름 …」, e2e 「매니저 이상은 엑셀(래퍼 없는 xlsx)을 내려받는다」(download 이벤트·파일 이름) |
+| 일반 멤버: 엑셀 없음·가린 값·완전 일치 안내 | 목록 훅 「일반 멤버: 엑셀 없음, 연락처·입금자명 검색에 완전 일치 안내, 가린 값 그대로」·티켓 「일반 멤버: 엑셀 없음, 연락처 검색 안내」, 규칙 it.each 6행, api 「일반 멤버: … 완전 일치만(#846)」, e2e 「일반 멤버: …」 |
+| 등록일 `openedAt`, null이면 Q43 | 대시보드 훅 「openedAt이 null이면 …(Q43 기본안)」·「방금 등록한 공연은 등록일 = 서버 openedAt(GD-1)」, 규칙 「일정 타임라인」 3건 |
+
+**결정**
+- 키: 모두 GE-3 아래(`['events', id, 'manage', 'orders' | 'refunds' | 'issued-tickets' | 'dashboard', …]`) — P10b 마스터 양도 술어 무효화에 걸린다(역할이 바뀌면 가림·계좌·엑셀 권한이 바뀐다)
+- 화면 위치: plan의 `features/hosting/guests/` 대신 directory-structure의 `features/hosting/guest/`. 대시보드 파생값은 P11 대시보드 훅을 늘려 `event/model/dashboard-stats.ts`에 둔다(중복 없이)
+- API 폴더: 호스트 주문은 `src/api/order/`에 더하고(P12가 `ticket-item`에 관리 스키마를 더한 것과 같은 방식), 발급 티켓은 directory-structure에 자리가 있던 `src/api/issued-ticket/`, GD-1은 새 `src/api/dashboard/`(`event` ↔ `issued-ticket` 순환 import를 피하려고)
+- mock: 호스트 쪽 예매자 저장소를 따로 두고 관객 O-1 주문만 연결했다(시드 주문 9건은 연결 없음). 호스트 처리는 리스너로 `order.handlers.ts`의 O-3 저장소를 고치고, 승인은 티켓탭 저장소에 티켓을 넣는다 — 크리티컬 패스가 MSW 위에서 이어진다. P13b가 체크인을 티켓탭 저장소에 기록하므로 관객 주문 티켓의 입장 상태는 그쪽을 읽는다
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. `?order=` 닫기(표시 없음)와 탭 전환은 `router.replace` 대신 얕은 `replaceState(null, …)`(patterns §13 방식 — 같은 주소 결과에 서버 왕복이 없다). 상세에서 다른 주문을 열면 항목을 더 쌓지 않는다. 탭을 바꾸면 `order`를 지운다. 되돌리기: `useGuestsUrlState`의 `replaceSearch`를 `router.replace`로
+2. 상태 탭·검색·페이지·입장/환불 필터·티켓 상세는 주소에 남기지 않는다(tech-decisions §3 표에 `?tab=`·`?order=`만). 그래서 대시보드 카드 ↗는 주문 탭(환불 요청만 `?tab=refunds`)으로만 간다. 되돌리기: `guest-rules.ts` `guestsSearch`에 파라미터를 더하고 `statCardsOf`의 `href`
+3. 검색은 [검색]으로 적용(입력 중 자동 검색 없음), 적용하면 첫 페이지. 탭·필터를 바꿔도 첫 페이지. 되돌리기: 각 목록 훅의 `submitSearch`
+4. 공연 시작 판정은 GE-3 `displayStatus`(진행중·지난 공연 = 시작 후, 모르는 값도 시작 후). 서버는 실제 시각 — 경계에서 어긋나면 서버 코드(`Event_400_6`·`Order_400_9`)가 와서 다시 읽는다. 환불 완료는 시작 후에도 연다(서버 검사 없음). 되돌리기: `isEventStarted`·`orderActionsOf`
+5. 승인 후 취소 사유는 선택 자유 입력(plan "사유 선택"을 "사유는 선택"으로 읽었다 — 서버도 선택). 비면 본문 없이. 되돌리기: `toCancelBody`·`useOrderDetail.cancel`
+6. 두둥 판정: `paymentChannel`이 계좌이체이고 금액 > 0, 또는 `null`(v1)이고 금액 > 0(B19 "답이 없으면"). 거절·취소 확인의 직접 환불 줄은 legal-copy C-3·C-4 문구 그대로, 확인 본문은 C-2 v1 운영 문구(참고 문구 — V에서 디자인 문구로). 되돌리기: `isDudoongOrder`·`REFUSE_CONFIRM`·`CANCEL_CONFIRM`
+7. 일정 타임라인: 지금 단계는 표시 상태(예정 = 홍보·판매, 진행중 = 공연 시작, 지난 공연 = 공연 완료). 공연 완료 단계의 날짜는 두지 않고 주간 줄은 만들지 않았다(Q39 대기). `openedAt` null이면 등록 줄을 뺀다(Q43 기본안). 되돌리기: `scheduleTimelineOf`
+8. 티켓 판매 "판매 전"은 총 판매 매수 0일 때. 도넛 몫은 판매 매수 / 총 판매 매수. 되돌리기: `ticketSalesOf`
+9. 일반 멤버 검색 안내 문구 "연락처·입금자명은 전체를 정확히 입력해야 찾을 수 있어요"와 모든 에러·안내 문구는 잠정(V에서 디자인 문구로). 되돌리기: `guest-rules.ts` 상수
+10. 엑셀 403 `HOST_400_1`은 전역 토스트(일반 403)에 두고 GE-3만 다시 읽는다(버튼이 사라진다). 되돌리기: `useGuestExport`의 `onError`
+11. 처리 404(`Order_404_1`)도 조회 404와 같이 닫고 목록 다시 읽기(patterns §24 행은 상세 조회만 적었다). 되돌리기: `useOrderDetail`의 `approveCodes`·`withdrawCodes`·`refundCodes`에서 `Order_404_1` 제거
+12. mock 판정: 시작 후 = 공연 표시 상태(fixture 기준, 실제 시각 아님 — 다른 mock과 같다). 1인 제한은 같은 주문자의 같은 티켓 유효 발급 수 + 이번 수량. 시드 주문과 티켓 저장소 판매 매수(101 일반 예매 58장)는 맞추지 않았다 — GD-1 판매 매수는 티켓 저장소, 건수·판매금액은 예매자 저장소. 관객 주문 티켓이 아닌 시드 티켓의 입장 상태는 P13b 체크인(GQ-1·PQ-2 — 티켓탭 저장소)과 이어지지 않는다(GD-1 입장 현황 ≠ GQ-1 가능). 되돌리기: `guest-store.ts`
+13. 크리티컬 패스 통합 테스트를 `src/app/hosting/events/[eventId]/guests/critical-path.test.tsx`에 뒀다(관객·호스팅 훅을 함께 부를 수 있는 계층이 app뿐 — eslint boundaries). 되돌리기: 파일 이동 + 관객 쪽은 api 쿼리로 대신
+14. `src/utils/download.ts`를 새로 만들었다(`http.ts` 주석이 가리키지만 없던 파일)
+
+**남음**: V 전부(대시보드 카드·도넛·입장 막대·데스크탑 일정 패널(주간 줄 Q39)·NEW 배지 위치(사이드바 예매자 관리 배지 포함 — `newBadgeCount`), 예매자 관리 탭·DataTable·페이지 번호·검색 칸, 거절 사유 시트·확인 팝업(`EasyOverlay`)·주문/티켓 상세 모달(`?order=`는 L에 있다), 엑셀 버튼, 환불 계좌 `updatedAt` 표시, 발급 티켓 `ownerName`·`giftState` 표시), 크리티컬 패스 QA 시나리오 캡처, 스테이징 agent-browser 왕복(스테이징 생긴 뒤), Q32(탭 구성·"전체"에 주문 실패가 섞임)
+**검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, P13b-L이 끝난 뒤 작업 트리 전체): typecheck · lint · prettier · test(2153) · test:stories(193) · build · e2e(342 — 새 20 = `hosting-guests.spec` 10건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
+**문서 반영**: plan P13a 완료 기준 L(크리티컬 패스 상자는 스테이징 왕복 때문에 열어 둠), patterns §6(`?order=` 구현)·§23(주문 처리 뒤 반영·엑셀 저장)·§24(P13a 승인·거절·취소 검사 순서, 처리 404, 환불 완료 멱등 행), api-contract 운영(F9)(P13a-L 소스 확인 — 파라미터·GF-1 검색 없음·일반 멤버 검색·가림 형식·상태 분류·검사 순서·GD-1 계산), storyboard(`?order=` 열기·닫기 — patterns §6과 맞춤), directory-structure(api order·issued-ticket·dashboard, utils download, features guest·dashboard-stats, 라우트, mock)

@@ -6,6 +6,7 @@ import { giftHandlers } from './gift.handlers';
 import { hostHandlers } from './host.handlers';
 import { hostingHandlers } from './hosting.handlers';
 import { hostingEventHandlers } from './hosting-event.handlers';
+import { hostingGuestHandlers } from './hosting-guest.handlers';
 import { hostingTicketHandlers } from './hosting-ticket.handlers';
 import { meHandlers } from './me.handlers';
 import { myTicketHandlers } from './my-ticket.handlers';
@@ -27,6 +28,7 @@ export const handlers = [
   ...hostingHandlers,
   ...hostingEventHandlers,
   ...hostingTicketHandlers,
+  ...hostingGuestHandlers.default,
   ...giftHandlers.default,
   ...meHandlers.byCookie,
   ...authHandlers.byCookie,

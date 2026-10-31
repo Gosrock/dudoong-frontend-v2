@@ -381,6 +381,12 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 - 셀프 체크인 QR(GQ-4): 공연별 고정 토큰. 응답 `qrPath = /check-in?token=…`(origin은 프론트가 붙인다).
 - 관객 셀프 체크인(PQ-5) `{token, ticketUuid?}`: 입장 전 티켓이 여러 장이면 `SELECT_TICKET` + `candidates` → 하나를 골라 다시 요청.
 - 결과의 `buyerName` = 주문자, `ownerName` = 현재 소유자. **현장 확인은 `ownerName`으로.**
+- **P13b-L 소스 확인(2026-10-30, `432cce4` → dev `cb8d24e` — 체크인 변경 없음)**. 근거: `V2IssuedTicketController`(Q-1·Q-2·Q-4·Q-5), `V2CheckInUseCase`, `V2CheckInDomainService`, `V2OperationRequests.kt`, `V2CheckInResponses.kt`, `V2IssuedTicketResponses.kt`·`V2IssuedTicketQuery.stats`, `EventErrorCode`, `EventService.closeExpiredEventsEndAtBefore`·`DuDoong-Batch` `EventExpiration`.
+  - GQ-1 `{issuedCount, enteredCount, notEnteredCount, entranceRate}` — 발급 = 입장 전 + 입장 완료(취소 제외, 탈퇴 회원 티켓 포함), 미입장 = 발급 − 입장, 입장률(%) 소수 첫째 자리 반올림, 발급 0이면 `0.0`. 일반 멤버 이상, 없는 공연 404.
+  - PQ-2 검사 순서: 본문 `@NotBlank @Size(max = 64)`(400 `BAD_REQUEST`) → `@HostRolesAllowed(GUEST)`(없는·지운 공연 404 `Event_404_1`, 비멤버 403 `HOST_400_2`) → 공연 상태(`Event_400_27` "입장 처리를 할 수 없는 공연 상태입니다.") → 판정. 판정은 티켓 행 잠금 후 `classify`: 없음·다른 공연 → `OTHER_EVENT`(티켓 null) → 취소 `CANCELED` → 입장 후 `ALREADY_ENTERED` → 선물 대기 `GIFT_PENDING` → `ENTERED`(입장 처리). 선물 수락으로 uuid가 바뀐 옛 QR은 `OTHER_EVENT`.
+  - GQ-4 `{token, qrPath}` — 토큰은 32바이트 base64url 43자, 처음 읽을 때 만든다. **공연 상태를 보지 않는다**(없는·지운 공연만 404) — 셀프 체크인이 되는지는 화면이 GE-3 `status`로 판정한다(P13b). `qrPath` = `/check-in?token=` + URL 인코딩 토큰.
+  - 셀프 체크인 판정은 `status == OPEN`만 본다(표시 상태가 아니다) — 종료 시각이 지났어도 OPEN이면 된다.
+  - **정산중(CALCULATING)이 되는 길**: v2에는 없다. v1 `PATCH` 공연 상태(`UpdateEventStatusUseCase`)로만 된다. 자동 만료 배치(`EventExpiration` → `closeExpiredEventsEndAtBefore`)는 종료된 OPEN 공연을 CALCULATING → CLOSED로 한 번에 바꿔 **CLOSED로 저장**한다 — 배치가 돈 뒤에는 호스트 스캔도 `Event_400_27`. 배치 주기는 저장소에 없다(backend-questions 후보 — P13b-L 보고).
 
 ### 운영 (F9)
 
@@ -393,6 +399,12 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 - 엑셀은 최대 1만 행(넘으면 `Order_400_19` · `IssuedTicket_400_7`). **매니저 이상만**(일반 멤버 403 — #846, §2).
 - 일반 멤버에게는 주문 목록·상세, 발급 티켓 상세의 구매자 연락처·이메일·입금자명이 가린 값이고, `PHONE`·`DEPOSITOR_NAME` 검색은 완전 일치만 된다(이름 검색은 부분 일치 그대로). 검색 안내 문구에 반영한다(#846, 백엔드 Develop 기획서).
 - 호스트·운영자의 구매자 정보 조회·엑셀은 서버가 접근 기록을 남긴다(#845). 응답 변화는 없다.
+- **예매자 관리·대시보드 소스 확인(2026-10-31 P13a-L, dev `cb8d24e` — `432cce4` 이후 이 API 변경 없음)**. 근거: `V2OrderManageController`·`V2IssuedTicketController`·`V2Excel`, `V2OperationRequests.kt`·`V2OperationTypes.kt`·`V2OrderResponses.kt`·`V2IssuedTicketResponses.kt`·`V2DashboardResponse.kt`, `V2ReadOrdersUseCase`·`V2ChangeOrderUseCase`·`V2ReadIssuedTicketsUseCase`·`V2ReadDashboardUseCase`·`V2OperationMapper`, 도메인 `V2OrderDomainService`·`V2OrderQuery`(`V2OrderSearchType`)·`V2OrderStatus`·`V2MyOrderStatus`·`V2IssuedTicketQuery`·`AdminTableSearchType`(`ContactSearch.phoneExact`)·`OrderValidator`·`Order`·`RefundInfoVo`·`PrivacyMasker`·`OrderCustomRepositoryImpl.findRefunds`.
+  - 파라미터: GR-1·GR-6 `status`(ALL 기본, FAILED 포함 6값)·`searchType`(NAME 기본)·`keyword`(50자), GI-1·GI-3 `entrance`(ALL·BEFORE·DONE)·`searchType`(NAME·PHONE — `AdminTableSearchType`), GF-1 `status`(ALL·REQUESTED·COMPLETED)만 — **GF-1은 검색이 없다**. 표 크기 기본 20·상한 100(`V2Paging`). 엑셀에는 페이지가 없다.
+  - 일반 멤버 검색: 연락처는 숫자만 비교하는 전체 번호 완전 일치(`010-1234-5678`·`01012345678`·`+82 10-…` 모두 같다), 입금자명은 문자열 완전 일치, 이름은 부분 일치. 가림은 연락처 `010-****-5678`, 이메일 `ab***@…`, 입금자명 `김*수`(`maskName` — 2자 `김*`, 1자 `*`).
+  - 상태 분류: 사용자 취소·환불(v1 `REFUND`)은 호스트 화면에서 `CANCELED`다(사용자 화면은 환불 여부로 `CANCELED`·`REFUNDED`). 거절 사유 문구는 종류 라벨(`입금 미확인`·`결제 금액 오류`·`티켓 매진`, 기타는 입력값)이 `refuseReason`으로 온다.
+  - PR-3 검사 순서: 공연 소속(404) → PG 주문 `Order_400_7` → 승인 대기 아님 `Order_400_3` → 공연 OPEN `Event_400_5` → 시작 전 `Event_400_6` → 재고 `Ticket_Item_400_1` → 1인 제한(발급 + 이번 수량) `Ticket_Item_400_6` → 옵션 변경 `Order_400_13` → 탈퇴 `Order_400_14`. PR-4: 본문 `@Valid` → 권한 → **사유(`Order_400_18`)가 주문 조회보다 먼저** → 404 → 시작 후 `Order_400_9`(`RefundInfoVo` — 지금이 시작 전인지) → 승인 대기 아님 `Order_400_5` → OPEN `Event_400_5`. PR-5: 권한 → 404 → `Order_400_9` → 승인 완료 아님 `Order_400_5` → `Event_400_5`, 본문은 선택(`reason` 100자, 공백만이면 null). PF-2: 404 → 완료면 그대로 200 → NONE이면 `Order_400_17`. 처리 응답은 언제나 원본 연락처·환불 계좌(변경 API는 매니저 이상).
+  - GD-1: `orders`는 GR-1과 같은 분류의 건수(`refundRequested`는 환불 요청 상태 주문 수), `tickets.items[].soldCount` = 공급량 − 재고(무제한이면 `supplyCount: null`, 하나라도 무제한이면 `totalSupplyCount: null`), `salesAmount` = 승인·결제 완료 주문 결제금액 합, `entranceStats`는 유효 티켓 기준(발급 0이면 입장률 0), `dDay`는 UPCOMING일 때만.
 
 ### 마이페이지 · 알림 (F10 · F11)
 

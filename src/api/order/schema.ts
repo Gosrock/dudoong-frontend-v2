@@ -316,3 +316,168 @@ export const CancelMyOrderRequestSchema = z.strictObject({
   refundAccount: RefundAccountRequestSchema,
 });
 export type CancelMyOrderRequest = z.infer<typeof CancelMyOrderRequestSchema>;
+
+// ─── 호스트 주문 관리(P13a) — GR-1·GR-2·PR-3~PR-5·GR-6·GF-1·PF-2 ───
+// 기준: 백엔드 `v2/operation/dto/response/V2OrderResponses.kt`·`dto/V2OperationTypes.kt`·`dto/request/V2OperationRequests.kt`,
+// `V2OrderManageController`·`V2ReadOrdersUseCase`·`V2ChangeOrderUseCase`(dev cb8d24e — 432cce4 이후 이 API 변경 없음)
+
+/** 호스트 주문 상태(`V2OrderStatus`). 사용자 분류와 달리 사용자 취소·환불도 `CANCELED`, 주문 실패 `FAILED`가 있다 */
+export const HOST_ORDER_STATUSES = [
+  'PENDING_APPROVE',
+  'APPROVED',
+  'REFUSED',
+  'CANCELED',
+  'FAILED',
+] as const;
+export const HostOrderStatusSchema = openEnum('HostOrderStatus', HOST_ORDER_STATUSES);
+export type HostOrderStatus = z.infer<typeof HostOrderStatusSchema>;
+
+/** GR-1·GR-6 `status`(`V2OrderStatusFilter`, 기본 ALL — ALL에는 FAILED도 들어간다) */
+export const HOST_ORDER_STATUS_FILTERS = ['ALL', ...HOST_ORDER_STATUSES] as const;
+export type HostOrderStatusFilter = (typeof HOST_ORDER_STATUS_FILTERS)[number];
+
+/** GR-1·GR-6 `searchType`(`V2OrderSearchType`, 기본 NAME). 일반 멤버의 PHONE·DEPOSITOR_NAME은 완전 일치만(#822) */
+export const ORDER_SEARCH_TYPES = ['NAME', 'PHONE', 'DEPOSITOR_NAME'] as const;
+export type OrderSearchType = (typeof ORDER_SEARCH_TYPES)[number];
+
+/** GF-1 `status`(`V2RefundStatusFilter`, 기본 ALL) */
+export const REFUND_STATUS_FILTERS = ['ALL', 'REQUESTED', 'COMPLETED'] as const;
+export type RefundStatusFilter = (typeof REFUND_STATUS_FILTERS)[number];
+
+/** 운영 표(GR-1·GF-1·GI-1) 페이지 기본 20 · 상한 100, 검색어 50자(`V2Paging`) */
+export const OPERATION_PAGE_SIZE = 20;
+export const OPERATION_PAGE_SIZE_MAX = 100;
+export const OPERATION_KEYWORD_MAX = 50;
+
+/** GR-1 행·GR-2 `order`(`V2OrderElement`). 일반 멤버에게 `buyerPhone`·`depositorName`은 가린 값 */
+export const HostOrderElementSchema = z.object({
+  orderUuid: z.string(),
+  orderNo: z.string().nullable(),
+  buyerName: z.string().nullable(),
+  buyerPhone: z.string().nullable(),
+  ticketName: z.string().nullable(),
+  quantity: z.number().int(),
+  totalAmount: z.number().int(),
+  orderedAt: z.string().nullable(),
+  status: HostOrderStatusSchema.nullable(),
+  refundStatus: RefundStatusSchema,
+  /** v1에서 거절한 주문은 null */
+  refuseReasonType: RefuseReasonTypeSchema.nullable(),
+  /** REFUSED일 때만(서버가 종류 문구 또는 기타 입력값을 넣는다) */
+  refuseReason: z.string().nullable(),
+  /** CANCELED일 때만 */
+  cancelReason: z.string().nullable(),
+  /** v1 주문은 null */
+  paymentChannel: PaymentChannelSchema.nullable(),
+  depositorName: z.string().nullable(),
+});
+export type HostOrderElement = z.infer<typeof HostOrderElementSchema>;
+
+/** 상태별 건수(검색어 반영, 상태 필터 무시) */
+export const HostOrderCountsSchema = z.object({
+  all: z.number().int(),
+  pendingApprove: z.number().int(),
+  approved: z.number().int(),
+  refused: z.number().int(),
+  canceled: z.number().int(),
+  failed: z.number().int(),
+});
+export type HostOrderCounts = z.infer<typeof HostOrderCountsSchema>;
+
+/** GR-1 `{counts, orders: V2PageResponse}` */
+export const HostOrderListSchema = z.object({
+  counts: HostOrderCountsSchema,
+  orders: pageSchema(HostOrderElementSchema),
+});
+export type HostOrderList = z.infer<typeof HostOrderListSchema>;
+
+/** 사용자 환불 계좌(`V2RefundAccountResponse`) — 매니저 이상에게만 값이 있고 가리지 않는다(송금용) */
+export const HostRefundAccountSchema = z.object({
+  bankName: z.string(),
+  bankCode: BankCodeSchema.nullable(),
+  accountHolder: z.string(),
+  accountNumber: z.string(),
+  /** 마지막 입력·수정 시각(송금 직전 확인용) */
+  updatedAt: z.string().nullable(),
+});
+export type HostRefundAccount = z.infer<typeof HostRefundAccountSchema>;
+
+export const HostOrderLineSchema = z.object({
+  ticketItemId: z.number().int().nullable(),
+  ticketName: z.string().nullable(),
+  unitPrice: z.number().int(),
+  quantity: z.number().int(),
+  linePrice: z.number().int(),
+  optionAnswers: z.array(OrderOptionAnswerSchema),
+});
+
+export const HostOrderIssuedTicketSchema = z.object({
+  ticketUuid: z.string().nullable(),
+  issuedTicketNo: z.string().nullable(),
+  ticketName: z.string().nullable(),
+  entrance: EntranceStateSchema,
+  enteredAt: z.string().nullable(),
+  optionAnswers: z.array(OrderOptionAnswerSchema),
+});
+
+/** GR-2 주문 상세. PR-3·PR-4·PR-5·PF-2 응답도 같다(처리 뒤 다시 읽은 값, 변경 응답은 언제나 원본 연락처·계좌) */
+export const HostOrderDetailSchema = z.object({
+  order: HostOrderElementSchema,
+  /** 일반 멤버에게는 가린 값 */
+  buyerEmail: z.string().nullable(),
+  approvedAt: z.string().nullable(),
+  /** 거절·취소 시각 */
+  withdrawnAt: z.string().nullable(),
+  refundStatusChangedAt: z.string().nullable(),
+  /** 승인 전에도 옵션 응답 확인용 */
+  lines: z.array(HostOrderLineSchema),
+  /** 승인 후. 승인 대기·거절은 빈 배열 */
+  issuedTickets: z.array(HostOrderIssuedTicketSchema),
+  /** 매니저 이상만 값, 일반 멤버·계좌 없는 주문은 null */
+  refundAccount: HostRefundAccountSchema.nullable(),
+});
+export type HostOrderDetail = z.infer<typeof HostOrderDetailSchema>;
+
+/** GF-1 행(`V2RefundElement`). 환불 상태가 NONE이 아닌 주문만, 최신 순. 검색은 없다 */
+export const RefundElementSchema = z.object({
+  orderUuid: z.string().nullable(),
+  orderNo: z.string().nullable(),
+  buyerName: z.string().nullable(),
+  ticketName: z.string().nullable(),
+  totalAmount: z.number().int(),
+  status: HostOrderStatusSchema.nullable(),
+  refundStatus: RefundStatusSchema,
+  /** 거절·취소 사유 문구 */
+  reason: z.string().nullable(),
+  withdrawnAt: z.string().nullable(),
+  refundStatusChangedAt: z.string().nullable(),
+  refundAccount: HostRefundAccountSchema.nullable(),
+});
+export type RefundElement = z.infer<typeof RefundElementSchema>;
+export const RefundPageSchema = pageSchema(RefundElementSchema);
+
+/** 거절 기타 사유(trim 후 1~20자, `V2OrderDomainService.REFUSE_REASON_MAX_LENGTH`) · 승인 후 취소 사유(100자) */
+export const REFUSE_REASON_TEXT_MAX = 20;
+export const HOST_CANCEL_REASON_MAX = 100;
+
+/**
+ * PR-4 본문(엄격). `ETC`면 `reasonText` 필수(아니면 `Order_400_18`), 그 밖 종류는 서버가 무시하므로 보내지 않는다.
+ * 서버 검사 순서: 본문 `@Valid`(종류 없음 → 400 `BAD_REQUEST`) → 권한 → 사유(`Order_400_18`) → 주문(404) → 시작 후 `Order_400_9` → 상태 `Order_400_5`
+ */
+export const RefuseOrderRequestSchema = z
+  .strictObject({
+    reasonType: z.enum(REFUSE_REASON_TYPES),
+    reasonText: z.string().trim().min(1).max(REFUSE_REASON_TEXT_MAX).optional(),
+  })
+  .superRefine((body, ctx) => {
+    if ((body.reasonType === 'ETC') !== (body.reasonText !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['reasonText'], message: '기타일 때만 보낸다' });
+    }
+  });
+export type RefuseOrderRequest = z.infer<typeof RefuseOrderRequestSchema>;
+
+/** PR-5 본문(엄격, 선택). 사유는 trim 후 1~100자 — 비면 본문 없이 보낸다(`@RequestBody(required = false)`) */
+export const HostCancelOrderRequestSchema = z.strictObject({
+  reason: z.string().trim().min(1).max(HOST_CANCEL_REASON_MAX),
+});
+export type HostCancelOrderRequest = z.infer<typeof HostCancelOrderRequestSchema>;

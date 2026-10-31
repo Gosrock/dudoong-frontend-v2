@@ -60,3 +60,12 @@ export const maskContacts = (contacts: readonly Contact[]): Contact[] =>
     value:
       c.type === 'PHONE' ? maskPhone(c.value) : c.type === 'EMAIL' ? maskEmail(c.value) : c.value,
   }));
+
+/** 이름: 첫 글자 + 가운데 `*` + 끝 글자(2자면 첫 글자 + `*`, 1자면 `*`) — `김*수`(`PrivacyMasker.maskName`, 일반 멤버의 입금자명 #822) */
+export function maskName(name: string): string {
+  if (name.trim() === '') return name;
+  const cps = [...name];
+  if (cps.length <= 1) return MASK;
+  if (cps.length === 2) return cps[0] + MASK;
+  return cps[0] + MASK.repeat(cps.length - 2) + cps[cps.length - 1];
+}

@@ -4,11 +4,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
+import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { openEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
 import { handleCodes } from '@/api/handle-codes';
 
 import { checklistItemsOf, checklistProgress, REGISTER_ERROR_MESSAGE } from './checklist';
+import {
+  entranceProgressOf,
+  newBadgeCountOf,
+  scheduleTimelineOf,
+  statCardsOf,
+  ticketSalesOf,
+} from './dashboard-stats';
 import { invalidateAfterRegister } from './event-cache';
 import { eventHref } from './event-scope';
 import { useEventScope } from './useEventScope';
@@ -17,7 +25,10 @@ type RegisterErrorCode = keyof typeof REGISTER_ERROR_MESSAGE;
 
 /**
  * 공연 대시보드(`/hosting/events/[eventId]/dashboard`, plan P11). 준비중이면 **체크리스트 모드**(GE-7 + 등록 PE-8),
- * 등록 뒤에는 **등록 후 모드**(통계 GD-1은 P13a — 지금은 빈 자리). 값·상태·동작만 돌려준다 — 모달·팝업·토스트는 V.
+ * 등록 뒤에는 **등록 후 모드**(통계 GD-1, P13a — `stats`). 값·상태·동작만 돌려준다 — 모달·팝업·토스트·도넛·막대는 V.
+ *
+ * - 등록 후 통계(P13a): GD-1은 등록 후 모드에서만 부른다. 카드 4개(↗ 예매자 관리)·NEW 배지 수(= 승인 대기)·티켓 판매 정보·
+ *   입장 현황(분모 = 발급 수, 발급 0이면 0/0)·일정 타임라인(`openedAt`, null이면 Q43 기본안)
  *
  * - 체크리스트: GE-7은 체크리스트 모드에서만 부른다. 화면에 들어올 때마다 다시 읽는다(전역 `staleTime` 0) — 기본 정보·상세 정보를
  *   저장하고 돌아오면 새 값이 온다
@@ -110,6 +121,27 @@ export function useEventDashboard(eventId: string) {
     }
   }, [canRegister, registerMutation]);
 
+  // ─── 등록 후 통계(GD-1, P13a) ───
+  const statsQuery = useQuery({ ...eventDashboardQuery(eventId), enabled: mode === 'registered' });
+  const stats = useMemo(() => {
+    const d = mode === 'registered' ? statsQuery.data : undefined;
+    if (!d) return null;
+    return {
+      dashboard: d,
+      cards: statCardsOf(d, eventId),
+      newBadgeCount: newBadgeCountOf(d),
+      sales: ticketSalesOf(d),
+      entrance: entranceProgressOf(d),
+      timeline: scheduleTimelineOf({
+        openedAt: d.openedAt,
+        startAt: scope.event.startAt,
+        displayStatus: d.displayStatus,
+      }),
+      /** "QR 체크인 열기 →" */
+      qrHref: eventHref(eventId, 'qr'),
+    };
+  }, [eventId, mode, scope.event.startAt, statsQuery.data]);
+
   // ─── 만든 직후 ───
   const createdNotice = searchParams.get('created') === '1';
   const dismissCreatedNotice = useCallback(() => {
@@ -148,6 +180,18 @@ export function useEventDashboard(eventId: string) {
     /** 방금 등록했다(→ "공연이 등록되었습니다." 토스트, V) */
     justRegistered,
     acknowledgeRegistered: () => setJustRegistered(false),
+    /** 등록 후 모드에서 GD-1 상태 */
+    statsStatus:
+      mode === 'checklist'
+        ? ('idle' as const)
+        : statsQuery.isPending
+          ? ('pending' as const)
+          : statsQuery.isError && !stats
+            ? ('error' as const)
+            : ('success' as const),
+    retryStats: () => void statsQuery.refetch(),
+    /** 등록 후 통계(GD-1 파생값) — 체크리스트 모드·불러오기 전이면 null */
+    stats,
     /** 간편 만들기 직후(`?created=1`) */
     createdNotice,
     dismissCreatedNotice,

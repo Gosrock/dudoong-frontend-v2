@@ -18,6 +18,13 @@ import {
   seededOrders,
   toCheckout,
 } from './fixtures/order';
+import {
+  onAudienceOrderChange,
+  registerAudienceOrder,
+  type StoredGuestOrder,
+  syncAudienceCancel,
+  syncAudienceRefundAccount,
+} from './guest-store';
 import { errors, fail, ok, paginate, readId, readPageParams, requireAuth } from './respond';
 
 /**
@@ -212,6 +219,8 @@ async function createOrder(request: Request) {
   });
   orders.set(order.orderUuid, order);
   recent.push({ key, at: now, orderUuid: order.orderUuid });
+  // 호스트 예매자 관리(P13a)가 같은 주문을 본다
+  registerAudienceOrder(order);
   return ok(order);
 }
 
@@ -364,6 +373,11 @@ async function cancelOrder(request: Request, orderUuid: string) {
     issuedTickets: order.issuedTickets.map((t) => ({ ...t, entrance: 'CANCELED' as const })),
   };
   orders.set(orderUuid, next);
+  syncAudienceCancel(
+    orderUuid,
+    next,
+    paid && !order.refundAccount ? rawAccountOf(body, account) : null,
+  );
   return ok(next);
 }
 
@@ -382,8 +396,81 @@ async function putRefundAccount(request: Request, orderUuid: string) {
   if (!account) return orderError(request, 'Order_400_25');
   const next: MyOrderDetail = { ...order, refundAccount: account, refundAccountRequired: false };
   orders.set(orderUuid, next);
+  const raw = rawAccountOf({ refundAccount: body }, account);
+  if (raw) syncAudienceRefundAccount(orderUuid, raw);
   return ok(next);
 }
+
+/** 호스트 화면(GR-2·GF-1)이 보는 원본 계좌 — 매니저 이상에게는 가리지 않는다. 계좌번호는 서버처럼 공백을 지운다 */
+function rawAccountOf(body: unknown, account: MyOrderDetail['refundAccount'] | null) {
+  const raw = (body as { refundAccount?: { accountNumber?: unknown } } | null)?.refundAccount;
+  if (!account || typeof raw?.accountNumber !== 'string') return null;
+  return {
+    bankName: account.bankName,
+    bankCode: account.bankCode,
+    accountHolder: account.accountHolder,
+    accountNumber: raw.accountNumber.replace(/\s/g, ''),
+  };
+}
+
+// ─── 호스트 처리(P13a) → 관객 O-3 ─────────────────────────────
+
+/**
+ * 호스트 승인·거절·승인 후 취소·환불 완료(`guest-store.ts`)를 관객 주문에 옮긴다(`V2ReadMyOrdersUseCase.detail` 판정).
+ * 사용자 분류: 승인 → APPROVED + 발급 티켓, 거절 → REFUSED, 승인 후 호스트 취소 → CANCELED(사용자 취소는 O-4가 이미 REFUNDED·CANCELED)
+ */
+function applyHostChange(h: StoredGuestOrder) {
+  const o = orders.get(h.orderUuid);
+  if (!o) return;
+  let next: MyOrderDetail = { ...o };
+  if (h.status === 'APPROVED' && o.status === 'PENDING_APPROVE') {
+    next = {
+      ...next,
+      status: 'APPROVED',
+      approvedAt: h.approvedAt,
+      issuedTickets: h.issuedTickets.map((t) => ({
+        ticketUuid: t.ticketUuid,
+        issuedTicketNo: t.issuedTicketNo,
+        ticketName: h.ticketName,
+        entrance: 'BEFORE' as const,
+        enteredAt: null,
+        optionAnswers: t.optionAnswers,
+        giftState: 'NONE' as const,
+        isGiftExpired: false,
+        giftId: null,
+      })),
+    };
+  } else if (h.status === 'REFUSED' && o.status === 'PENDING_APPROVE') {
+    next = {
+      ...next,
+      status: 'REFUSED',
+      refuseReasonType: h.refuseReasonType,
+      refuseReason: h.reasonText,
+      withdrawnAt: h.withdrawnAt,
+      canCancel: false,
+    };
+  } else if (h.status === 'CANCELED' && o.status === 'APPROVED') {
+    next = {
+      ...next,
+      status: 'CANCELED',
+      cancelReason: h.reasonText,
+      withdrawnAt: h.withdrawnAt,
+      canCancel: false,
+      issuedTickets: o.issuedTickets.map((t) => ({ ...t, entrance: 'CANCELED' as const })),
+    };
+  }
+  const canEdit = isPaid(next) && h.refundStatus === 'REQUESTED';
+  next = {
+    ...next,
+    refundStatus: h.refundStatus,
+    refundStatusChangedAt: h.refundStatusChangedAt,
+    canEditRefundAccount: canEdit,
+    refundAccountRequired:
+      canEdit && next.refundAccount === null && next.refuseReasonType !== 'DEPOSIT_UNCONFIRMED',
+  };
+  orders.set(h.orderUuid, next);
+}
+onAudienceOrderChange(applyHostChange);
 
 const list = http.get('*/api/v2/me/orders', ({ request, cookies }) => {
   return requireAuth(request, cookies) ?? listOrders(request);

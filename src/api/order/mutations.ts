@@ -1,11 +1,15 @@
 import { mutationOptions } from '@tanstack/react-query';
 
 import { api } from '../http';
+import { type HostOrdersParams, normalizeHostOrdersParams } from './queries';
 import {
   type CancelMyOrderRequest,
   type CreateOrderRequest,
+  type HostCancelOrderRequest,
+  HostOrderDetailSchema,
   MyOrderDetailSchema,
   type RefundAccountRequest,
+  type RefuseOrderRequest,
 } from './schema';
 
 /**
@@ -41,4 +45,56 @@ export const putRefundAccountMutation = (orderUuid: string) =>
         MyOrderDetailSchema,
         body,
       ),
+  });
+
+// ─── 호스트 주문 처리(P13a) — 매니저 이상. 응답은 모두 처리 뒤 주문 상세(GR-2 모양) ───
+
+const hostOrderPath = (eventId: string | number, orderUuid: string, action: string) =>
+  `events/${encodeURIComponent(eventId)}/orders/${encodeURIComponent(orderUuid)}/${action}`;
+
+/**
+ * PR-3 승인. 검사 순서(`OrderApproveService` → `OrderValidator.validCanApproveOrder`): PG 주문 `Order_400_7` → 승인 대기 아님 `Order_400_3`
+ * → 공연 OPEN 아님 `Event_400_5` → 시작 후 `Event_400_6` → 재고 `Ticket_Item_400_1` → 1인 제한 `Ticket_Item_400_6` → 탈퇴 `Order_400_14`.
+ * 실패해도 주문은 승인 대기로 남는다
+ */
+export const approveOrderMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: (orderUuid: string) =>
+      api.post(hostOrderPath(eventId, orderUuid, 'approve'), HostOrderDetailSchema),
+  });
+
+/** PR-4 거절(승인 대기만). 유료면 환불 요청이 생긴다(0원은 없음) */
+export const refuseOrderMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: ({ orderUuid, body }: { orderUuid: string; body: RefuseOrderRequest }) =>
+      api.post(hostOrderPath(eventId, orderUuid, 'refuse'), HostOrderDetailSchema, body),
+  });
+
+/** PR-5 승인 후 취소. 발급 티켓 취소·재고 복구, 유료면 환불 요청. 사유가 없으면 본문 없이 */
+export const cancelHostOrderMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: ({ orderUuid, body }: { orderUuid: string; body?: HostCancelOrderRequest }) =>
+      api.post(hostOrderPath(eventId, orderUuid, 'cancel'), HostOrderDetailSchema, body),
+  });
+
+/** PF-2 환불 완료(환불 요청 주문만 — 아니면 `Order_400_17`, 이미 완료면 그대로 200) */
+export const completeRefundMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: (orderUuid: string) =>
+      api.post(
+        `events/${encodeURIComponent(eventId)}/refunds/${encodeURIComponent(orderUuid)}/complete`,
+        HostOrderDetailSchema,
+      ),
+  });
+
+/**
+ * GR-6 주문 엑셀(매니저 이상 — 일반 멤버 403 `HOST_400_1`). GR-1과 같은 필터, 전체 행(1만 행 초과 `Order_400_19`).
+ * 래퍼 없는 xlsx → `{ blob, filename }`. 페이지 파라미터는 보내지 않는다
+ */
+export const exportOrdersMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: (params: Omit<HostOrdersParams, 'page' | 'size'> = {}) =>
+      api.download(`events/${encodeURIComponent(eventId)}/orders/export`, {
+        searchParams: normalizeHostOrdersParams(params),
+      }),
   });

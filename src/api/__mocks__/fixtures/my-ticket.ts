@@ -1,4 +1,4 @@
-import type { CheckInResponse, CheckInTicket } from '../../check-in/schema';
+import type { CheckInResponse, CheckInStats, CheckInTicket } from '../../check-in/schema';
 import type { GiftCancelReason, GiftLandingViewer, GiftStatus } from '../../gift/schema';
 import type {
   MyTicketDetail,
@@ -200,7 +200,9 @@ function seed() {
     gift(307, GIFT_TOKEN.canceled, 14, 'other', 'CANCELED', { cancelReason: 'SENDER' }),
     gift(308, GIFT_TOKEN.expired, 15, 'other', 'PENDING', { senderName: '이*' }),
   ];
-  return { orders, tickets, gifts, sequence: 0 };
+  // 셀프 체크인 토큰 → 공연. GQ-4(P13b)가 토큰이 없는 공연에 새로 만들어 넣는다
+  const checkInTokens = new Map<string, number>(Object.entries(CHECK_IN_EVENTS));
+  return { orders, tickets, gifts, checkInTokens, sequence: 0 };
 }
 
 function order(
@@ -689,7 +691,7 @@ export function selfCheckIn(
   token: string,
   ticketUuid: string | undefined,
 ): { ok: CheckInResponse } | { error: 'Event_400_26' | 'Event_400_5' | 'IssuedTicket_400_1' } {
-  const eventId = CHECK_IN_EVENTS[token];
+  const eventId = store.checkInTokens.get(token);
   if (eventId === undefined) return { error: 'Event_400_26' };
   if (!isOpen(eventOf(eventId))) return { error: 'Event_400_5' };
   const inEvent = (t: MockTicket) => orderOf(t).eventId === eventId;
@@ -721,4 +723,112 @@ export function selfCheckIn(
     return { ok: { result: 'CANCELED', ticket: checkInTicket(mine.at(-1)!), candidates: [] } };
   }
   return { ok: otherEvent };
+}
+
+// ─── 호스트 체크인 PQ-2 · GQ-1 · GQ-4(P13b) ──────────────────
+
+/**
+ * PQ-2 판정(`V2CheckInDomainService.checkIn` → `enter`). 공연 상태(`Event_400_27`)·권한은 핸들러가 먼저 본다.
+ * 없는 uuid·다른 공연 티켓은 둘 다 OTHER_EVENT(티켓 정보 없음), 그 밖은 취소 → 이미 입장 → 선물 대기 → 입장 순(`classify`)
+ */
+export function hostCheckIn(eventId: number, ticketUuid: string): CheckInResponse {
+  const t = store.tickets.find((x) => x.uuid === ticketUuid);
+  if (!t || orderOf(t).eventId !== eventId) {
+    return { result: 'OTHER_EVENT', ticket: null, candidates: [] };
+  }
+  return enter(t);
+}
+
+/** GQ-1(`V2IssuedTicketQuery.stats`) — 발급 = 입장 전 + 입장 완료(취소 제외), 입장률은 소수 첫째 자리 반올림, 발급 0이면 0 */
+export function checkInStatsOf(eventId: number): CheckInStats {
+  const valid = store.tickets.filter(
+    (t) => orderOf(t).eventId === eventId && t.status !== 'CANCELED',
+  );
+  const issuedCount = valid.length;
+  const enteredCount = valid.filter((t) => t.status === 'DONE').length;
+  return {
+    issuedCount,
+    enteredCount,
+    notEnteredCount: issuedCount - enteredCount,
+    entranceRate: issuedCount === 0 ? 0 : Math.round((enteredCount * 1000) / issuedCount) / 10,
+  };
+}
+
+/** GQ-4 공연별 고정 토큰(`getOrCreateCheckInToken`) — 있으면 그 값, 없으면 만들어 PQ-5가 받게 한다 */
+export function checkInTokenOf(eventId: number): string {
+  for (const [token, id] of store.checkInTokens) if (id === eventId) return token;
+  const token = `mock-checkin-${eventId}`;
+  store.checkInTokens.set(token, eventId);
+  return token;
+}
+
+/** 시나리오 도우미 — 이 티켓을 취소 상태로(호스트가 승인 후 취소한 티켓, PQ-2 `CANCELED`) */
+export function markTicketCanceled(ticketUuid: string) {
+  const t = store.tickets.find((x) => x.uuid === ticketUuid);
+  if (t) t.status = 'CANCELED';
+}
+
+// ─── 호스트 승인·취소 연결(P13a) ──────────────────────────────
+
+/** 호스트가 승인한 mock 사용자 주문의 티켓 id 시작값(시드 id와 겹치지 않게) */
+const HOST_ISSUED_TICKET_ID_START = 9001;
+
+/**
+ * 호스트 승인(PR-3, `guest-store.ts`)이 mock 사용자(`me`)의 O-1 주문을 발급으로 바꿀 때 티켓탭 저장소에 주문·티켓을 넣는다 —
+ * "체크아웃 → 주문 → 호스트 승인 → 티켓탭에 발급"이 이어진다(plan P13a 크리티컬 패스). 승인 알림은 읽지 않은 것으로(T-3 공지 바).
+ * 돌려주는 값은 티켓 번호(`T…`, T-1·T-2와 같은 값) — 호스트 화면(GR-2·GI-1)도 같은 번호를 쓴다
+ */
+export function recordHostApprovedOrder(input: {
+  orderUuid: string;
+  orderNo: string;
+  eventId: number;
+  ticketName: string;
+  unitPrice: number;
+  optionAmount: number;
+  ticketUuids: string[];
+}): string[] {
+  store.orders = store.orders.filter((o) => o.orderUuid !== input.orderUuid);
+  store.orders.push({
+    ...order(
+      input.orderUuid,
+      input.orderNo,
+      'me',
+      'APPROVED',
+      input.eventId,
+      input.ticketName,
+      input.ticketUuids.length,
+      true,
+    ),
+  });
+  const start = Math.max(HOST_ISSUED_TICKET_ID_START - 1, ...store.tickets.map((t) => t.id)) + 1;
+  return input.ticketUuids.map((uuid, i) => {
+    const t: MockTicket = {
+      id: start + i,
+      uuid,
+      orderUuid: input.orderUuid,
+      owner: 'me',
+      status: 'BEFORE',
+      enteredAt: null,
+      ticketName: input.ticketName,
+      unitPrice: input.unitPrice,
+      optionAmount: input.optionAmount,
+    };
+    store.tickets.push(t);
+    return `T${1_000_000 + t.id}`;
+  });
+}
+
+/** 호스트 승인 후 취소(PR-5) — 그 주문의 티켓을 취소로(티켓탭에서 취소 상태) */
+export function recordHostCanceledOrder(orderUuid: string) {
+  const o = store.orders.find((x) => x.orderUuid === orderUuid);
+  if (o) o.status = 'CANCELED';
+  for (const t of store.tickets) if (t.orderUuid === orderUuid) t.status = 'CANCELED';
+}
+
+/** 티켓탭 저장소의 입장 상태(호스트 스캔 PQ-2·셀프 체크인이 바꾼다) — 호스트 발급 티켓 목록(GI-1)이 읽는다. 없으면 null */
+export function myTicketEntranceOf(
+  ticketUuid: string,
+): { entrance: MockTicket['status']; enteredAt: string | null } | null {
+  const t = store.tickets.find((x) => x.uuid === ticketUuid);
+  return t ? { entrance: t.status, enteredAt: t.enteredAt } : null;
 }

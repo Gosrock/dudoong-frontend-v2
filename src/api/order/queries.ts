@@ -4,9 +4,15 @@ import { api } from '../http';
 import { pageInfinite, type PageParams } from '../shared/page';
 import {
   CheckoutSchema,
+  HostOrderDetailSchema,
+  HostOrderListSchema,
+  type HostOrderStatusFilter,
   MyOrderDetailSchema,
   MyOrderPageSchema,
   type MyOrderStatusFilter,
+  type OrderSearchType,
+  RefundPageSchema,
+  type RefundStatusFilter,
 } from './schema';
 
 /**
@@ -51,5 +57,85 @@ export const myOrdersQuery = (params: MyOrdersParams = {}) => {
     queryKey: ['me', 'orders', 'infinite', p],
     queryFn: ({ pageParam, signal }) =>
       api.get('me/orders', MyOrderPageSchema, { searchParams: { ...p, page: pageParam }, signal }),
+  });
+};
+
+// ─── 호스트 주문 관리(P13a) ───────────────────────────────────
+
+/**
+ * 호스트 주문 키 접두. 모두 GE-3 아래(`['events', id, 'manage', …]`)라 마스터 양도 뒤 술어 무효화(P10b)에 함께 걸린다 —
+ * 역할이 바뀌면 가림(#822)·환불 계좌 노출도 바뀐다. 목록은 `…, 'orders', 'list', params]`, 상세는 `…, 'orders', 'detail', uuid]`.
+ */
+export const hostOrdersKey = (eventId: string | number) =>
+  ['events', String(eventId), 'manage', 'orders'] as const;
+export const hostRefundsKey = (eventId: string | number) =>
+  ['events', String(eventId), 'manage', 'refunds'] as const;
+
+export type HostOrdersParams = {
+  status?: HostOrderStatusFilter;
+  searchType?: OrderSearchType;
+  keyword?: string;
+  page?: number;
+  size?: number;
+};
+
+/**
+ * GR-1·GR-6 쿼리 파라미터 정규형. 서버 기본값(ALL·NAME·0)은 보내지 않고, 검색어는 trim 후 비면 뺀다(검색 기준도 함께 뺀다).
+ * queryKey에도 이 값을 쓴다
+ */
+export function normalizeHostOrdersParams(params: HostOrdersParams = {}) {
+  const keyword = params.keyword?.trim();
+  return {
+    ...(params.status && params.status !== 'ALL' && { status: params.status }),
+    ...(keyword && {
+      keyword,
+      ...(params.searchType && params.searchType !== 'NAME' && { searchType: params.searchType }),
+    }),
+    ...(params.page && { page: params.page }),
+    ...(params.size !== undefined && { size: params.size }),
+  };
+}
+
+/** GR-1 주문 목록 + 상태별 건수(운영 표 — 페이지 번호, patterns §12). 일반 멤버 이상 */
+export const hostOrdersQuery = (eventId: string | number, params: HostOrdersParams = {}) => {
+  const p = normalizeHostOrdersParams(params);
+  return queryOptions({
+    queryKey: [...hostOrdersKey(eventId), 'list', p],
+    queryFn: ({ signal }) =>
+      api.get(`events/${encodeURIComponent(eventId)}/orders`, HostOrderListSchema, {
+        searchParams: p,
+        signal,
+      }),
+  });
+};
+
+/** GR-2 주문 상세. 다른 공연 주문은 404 `Order_404_1` — 공용 404가 아니라 모달을 닫고 목록을 다시 읽는다(patterns §24) */
+export const hostOrderQuery = (eventId: string | number, orderUuid: string) =>
+  queryOptions({
+    queryKey: [...hostOrdersKey(eventId), 'detail', orderUuid],
+    queryFn: ({ signal }) =>
+      api.get(
+        `events/${encodeURIComponent(eventId)}/orders/${encodeURIComponent(orderUuid)}`,
+        HostOrderDetailSchema,
+        { signal },
+      ),
+  });
+
+export type RefundsParams = { status?: RefundStatusFilter; page?: number; size?: number };
+
+/** GF-1 환불 목록(환불 상태가 NONE이 아닌 주문, 최신 순). 계좌는 매니저 이상에게만 값이 있다 */
+export const refundsQuery = (eventId: string | number, params: RefundsParams = {}) => {
+  const p = {
+    ...(params.status && params.status !== 'ALL' && { status: params.status }),
+    ...(params.page && { page: params.page }),
+    ...(params.size !== undefined && { size: params.size }),
+  };
+  return queryOptions({
+    queryKey: [...hostRefundsKey(eventId), p],
+    queryFn: ({ signal }) =>
+      api.get(`events/${encodeURIComponent(eventId)}/refunds`, RefundPageSchema, {
+        searchParams: p,
+        signal,
+      }),
   });
 };

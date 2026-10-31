@@ -297,7 +297,7 @@ try {
   - `EasyOverlay`의 `onConfirm`이 도는 동안 뒤로가기는 무시한다(항목을 다시 넣는다). 요청은 이미 갔으니 결과를 보여 준다. 성공하면 항목을 소비한 뒤 resolve하므로 호출한 쪽이 `await` 뒤에 `router.push`해도 엇갈리지 않는다.
   - **오버레이 안에서 다른 경로로 갈 때는 `router.replace`·`<Link replace>`를 쓴다.** push하면 기록이 [A, A+오버레이, B]가 되어 B에서 뒤로가기를 두 번 눌러야 A로 간다.
   - 남는 경우: 오버레이가 열린 채 새로고침하면 뒤로가기가 한 번 헛돈다. 위에 다른 오버레이가 있는 채 아래 것을 UI로 닫으면 그 항목이 남는다. 둘 다 드물어 두었다.
-- **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다. 위 규칙과 맞춰 **열 때는 `pushState`(파라미터를 더한 주소, state에 `ddOverlay` 표시), 닫을 때는 표시가 있으면 `router.back()`, 없으면(주소로 바로 들어온 경우) `router.replace`로 그 파라미터만 지운다.** 다른 쿼리(`?tab=`)는 남긴다. Next 라우터와 `useSearchParams`가 `pushState`를 따라간다(P13a에서 구현).
+- **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다. 위 규칙과 맞춰 **열 때는 `pushState`(파라미터를 더한 주소, state에 `ddOverlay` 표시), 닫을 때는 표시가 있으면 `router.back()`, 없으면(주소로 바로 들어온 경우) `router.replace`로 그 파라미터만 지운다.** 다른 쿼리(`?tab=`)는 남긴다. Next 라우터와 `useSearchParams`가 `pushState`를 따라간다. **P13a-L 구현(`useGuestsUrlState`)**: 열기 `pushState({ ddOverlay: 'guests-order' }, '', ?order=…)` — 첫 인자에 Next state(`__NA`)를 펼치지 않는다(Next가 내부 값을 덧붙이고 `useSearchParams`를 갱신한다, `app-router.js` `copyNextJsInternalHistoryState`). 닫기는 표시가 맨 위면 `router.back()`, 없으면 `router.replace` 대신 같은 결과의 얕은 `replaceState(null, …)`(§13 — 서버 왕복 없음). 상세에서 다른 주문을 열면 항목을 더 쌓지 않는다(`replaceState`). 탭(`?tab=`)도 얕은 교체이고 탭을 바꾸면 `order`를 지운다.
 - 경로가 바뀌면 `overlay.unmountAll()`을 호출한다. 이 감시는 루트 `Providers`의 children을 감싸지 않는 말단 컴포넌트 `<OverlayRouteReset />`이 하고, 형제 위치의 `<Suspense fallback={null}>` 안에 둔다. 이 파일과 `providers.tsx`는 `src/app`에 두는 루트 셸 클라이언트 파일이다(라우트 파일이 아닌 예외 둘, tech-decisions §8).
 - **`usePathname`·`useSearchParams`를 쓰는 컴포넌트는 children을 감싸지 않는 말단으로 두고 자체 `<Suspense fallback={null}>`로 감싼다.** Cache Components에서 이 훅은 `generateStaticParams`가 없는 동적 경로에서 suspend하고, Suspense가 없으면 빌드가 실패한다. children을 감싸는 위치에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404 상태 코드가 깨진다(tech-decisions §2).
 
@@ -587,13 +587,15 @@ useEffect(() => {
 - **티켓·옵션 변경 뒤(P12-L)**: 티켓 응답(T-2·T-3·T-5·T-6·O-5)은 T-1 목록 키(`['events', id, 'manage', 'ticket-items']`)에, T-4·O-4 응답(남은 목록)은 통째로 넣는다. 관객 GP-5(`['events', id, 'ticket-items']`)는 티켓·옵션이 바뀌면 정확히 무효화한다(판매 중단 → 재개가 공연 상세에 바로). 만들기·삭제 뒤 체크리스트 ③ 때문에 GE-7·GE-3을 무효화한다. 옵션 풀(`…, 'manage', 'options']`)의 붙은 티켓·잠김은 티켓 쪽 변경 뒤, 티켓의 붙은 옵션 이름·추가금은 옵션 변경 뒤 다시 읽는다(`ticket-cache.ts`).
 - **옵션 응답 형식은 만든 뒤 바꿀 수 없다.** 수정 요청(P10/O-3)에 `type` 필드가 없다. Figma 수정 화면(`424:10517`)은 형식 버튼이 편집 가능하게 그려져 있지만 수정 화면에서는 읽기 전용으로 그린다.
 - 옵션 삭제(D10/O-4)의 입구가 Figma 옵션 상세(`424:10455`)에 없다. 디자인이 오기 전까지 상세 모달 하단에 [삭제]를 둔다(잠긴 옵션이면 숨김).
-- **공연 등록(PE-8) 뒤**: 응답이 `{eventId, status, displayStatus}`뿐이라 `setQueryData`로 화면을 채울 수 없다. GE-3(사이드메뉴 항목)·GE-1(공연준비 홈)을 무효화하고(등록 뒤에는 체크리스트를 그리지 않으므로 GE-7은 무효화하지 않는다), 대시보드를 등록 후 모드(GD-1)로 바꾼 뒤 "공연이 등록되었습니다." 토스트(`424:11427`). 등록 후 통계 자리는 P13a 전까지 빈 상태다.
+- **공연 등록(PE-8) 뒤**: 응답이 `{eventId, status, displayStatus}`뿐이라 `setQueryData`로 화면을 채울 수 없다. GE-3(사이드메뉴 항목)·GE-1(공연준비 홈)을 무효화하고(등록 뒤에는 체크리스트를 그리지 않으므로 GE-7은 무효화하지 않는다), 대시보드를 등록 후 모드(GD-1)로 바꾼 뒤 "공연이 등록되었습니다." 토스트(`424:11427`). 등록 후 통계는 GD-1(P13a-L — `useEventDashboard`의 `stats`, `dashboard-stats.ts`).
 - **기본 정보·섹션 저장 뒤(P11-L)**: PE-4 응답(GE-3 모양)은 GE-3 키에, PE-6 응답(섹션 목록)은 편집용 GE-5 키에 넣는다. 체크리스트 ①②가 바뀌므로 GE-7을, 카드 값이 바뀌므로 GE-1(PE-4)·GE-3(PE-6 — `checklist`)을, 관객 공연 상세가 바로 반영되도록 GP-3 공개·viewer·GE-5 공개 키를 정확히(`exact`) 무효화한다(`event-cache.ts`). 등록된 공연이면 `savedNotice: 'registeredChanged'`(안내 팝업은 V).
 - **일정 칸(P11-L)**: 날짜 1칸 + 시작·종료 시각(`YYYY-MM-DD`·`HH:mm`). 종료 ≤ 시작이면 종료를 다음 날로 보낸다. 간편 만들기와 등록된 공연의 시작 변경은 지금 이후만(`@Future`·`Event_400_24`). 바꾸지 않은 일정은 보내지 않는다(하루를 넘는 v1 공연의 일정이 단일 날짜 모델로 바뀌지 않게).
 - 체크리스트를 다 채운 순간(`canOpen`이 `true`가 된 직후) "등록 준비 완료" 모달(`424:11318`)을 한 번 띄운다. [등록하기]는 같은 확인 팝업(`424:9837`) → PE-8로 이어진다.
 - 미저장 이탈: 변경이 있으면 메뉴 이동·뒤로가기에서 확인(`503:22904`).
 - 승인 실패(PR-3): 에러를 보여 주고 주문은 승인 대기로 남는다는 것과 거절로 정리하는 길을 함께 안내한다. 코드별 문구는 §24 P13a 행.
 - 엑셀: 응답이 래퍼 없는 xlsx다. blob으로 받아 저장한다. JSON 파서를 태우지 않는다.
+- **주문 처리 뒤(P13a-L)**: PR-3·PR-4·PR-5·PF-2 응답(처리 뒤 주문 상세)은 GR-2 키(`['events', id, 'manage', 'orders', 'detail', uuid]`)에 넣고, GR-1 목록(`…, 'orders', 'list', …]` — 상태 탭 `counts`)·GF-1(`…, 'refunds']`)·GI-1·GI-2(`…, 'issued-tickets']`)·GD-1(`…, 'dashboard']`)을 무효화한다. 승인·승인 후 취소는 재고가 바뀌므로 T-1·관객 GP-5도 정확히 무효화한다(`guest-cache.ts`). 모두 GE-3 아래 키라 마스터 양도 뒤 술어 무효화에 걸린다(역할이 바뀌면 가림·계좌 노출도 바뀐다). 처리에 실패해 "다시 읽기"가 필요한 코드는 GR-2를 `exact`로 + 목록, 공연 상태가 원인이면 GE-3도.
+- 엑셀 저장은 `src/utils/download.ts` `saveBlob`(파일 이름은 `Content-Disposition`, 없으면 `orders-{id}.xlsx`·`issued-tickets-{id}.xlsx`).
 
 ## 24. 화면별 에러 처리
 
@@ -685,8 +687,16 @@ useEffect(() => {
 | P13a | 환불 완료 | `Order_400_17` | 환불 요청 상태가 아님. [환불 완료]는 `refundStatus=REQUESTED`일 때만 |
 | P13a | 엑셀 | `Order_400_19` · `IssuedTicket_400_7` | 1만 행 초과. 필터를 좁히라고 안내 |
 | P13a | 엑셀 | 403 `HOST_400_1` | 일반 멤버(#846 — 엑셀은 매니저 이상). 버튼을 `myRole`로 숨기므로 정상 흐름에선 안 온다. 오면 일반 403 처리 + `myRole` 쿼리 다시 읽기 |
+| P13a | 승인 | `Order_400_3` · `Event_400_5` · `Event_400_6` | 이미 처리됨(운영자 대리 처리 #828 포함) · OPEN 아님 · 시작 후. 안내 + GR-2 다시 읽기(공연 쪽 코드는 GE-3도). 검사 순서는 PG 주문 `Order_400_7` → 상태 `Order_400_3` → OPEN `Event_400_5` → 시작 `Event_400_6` → 재고 `Ticket_Item_400_1` → 1인 제한 `Ticket_Item_400_6` → 옵션 변경 `Order_400_13` → 탈퇴 `Order_400_14`(`OrderValidator.validCanApproveOrder`, 2026-10-31 P13a-L 소스 확인). `Order_400_7`(PG 주문)·`Order_400_13`(옵션 변경)은 화면이 따로 처리하지 않는다 — 전역 토스트(mock은 내지 않는다) |
+| P13a | 거절 | `Order_400_18` · 404 | 거절 사유 검사가 주문 조회보다 먼저다(`V2OrderDomainService.refuse` — 없는 주문에도 `Order_400_18`). 그다음 404 → 시작 후 `Order_400_9` → 상태 `Order_400_5` → OPEN `Event_400_5`. 본문 `reasonType` 없음은 400 `BAD_REQUEST`(전역, 시트가 먼저 막는다) |
+| P13a | 승인 후 취소 | `Order_400_9` → `Order_400_5` → `Event_400_5` | 시작 후 검사가 상태보다 먼저(`OrderValidator.validCanCancel`). 사유는 선택(본문 없이 보낼 수 있다), 100자 초과는 400 `BAD_REQUEST` — 칸에서 막는다 |
+| P13a | 환불 완료 | 200(이미 완료) | 이미 완료된 주문은 그대로 200(멱등). 화면은 응답으로 갱신한다 |
+| P13a | 주문·티켓 상세 처리 | 404 `Order_404_1` | 조회뿐 아니라 처리(승인·거절·취소·환불 완료)의 404도 같은 길 — 닫고 목록 다시 읽기 |
 | P4b · P7 · P12 | 가입 · 주문 · 두둥티켓 생성(+ 무료 → 두둥 수정, #873) | `Agreement_400_1` | 백엔드가 동의 강제를 켰는데 동의 필드가 빠짐(#840). 화면에서 체크 전 버튼을 막으므로 정상 흐름에선 안 온다. 오면 "필수 동의를 확인해 주세요"로 동의 영역으로 보낸다. **단 2026-10-25 현재 FE는 화면 칸이 없는 필드(가입 만 14세, 주문 호스트 제공 동의·두둥티켓 고지)를 보내지 않으므로(Q42) 강제가 켜지면 정상 흐름에서도 온다** — 지금 L 구현은 가입 = 일반 실패(`failed`), 주문 = 표에 없는 400이라 전역 토스트이고 완료로 가지 않는다(`useKakaoCallback.test`·`useCheckout.test`), 티켓 폼 = 폼 오류 "필수 동의를 확인해 주세요"(`useTicketForm.test`, P12-L) |
-| P13b | 호스트 스캔 | `Event_400_27` | OPEN·정산중이 아닌 공연 |
+| P13b | 호스트 스캔 | `Event_400_27` | OPEN·정산중이 아닌 공연. GE-3 `status`로 미리 막는다(`hostScanBlockOf` — 준비중·지난 공연은 요청하지 않음). 스캔 사이에 상태가 바뀌어 오면 "준비중이거나 지난 공연은 입장 처리를 할 수 없어요" + GE-3 다시 읽기(`useHostScan`, P13b-L) |
+| P13b | 호스트 스캔 | 네트워크 · 타임아웃 · 5xx | 실패 상태 + [다시 시도](같은 값, 쿨다운 무시). 전역 토스트 없음(`meta.handled`). 통계(GQ-1) 다시 읽기 실패는 지난 값 유지 + `refreshFailed`(`meta.silent`) (P13b-L) |
+| P13b | 호스트 스캔 | 400 `BAD_REQUEST` | 64자 넘는 값 — 화면이 요청 전에 "티켓 QR이 아니에요"로 막는다(`normalizeScanValue`). 오면 같은 안내 (P13b-L) |
+| P13b | 호스트 스캔 | 403 · 404 `Event_404_1` | 권한을 잃었거나 공연이 지워짐. 실패 상태(다시 시도 없음). 정상 흐름에선 공연 스코프가 먼저 공용 403·404로 보낸다 (P13b-L) |
 
 표의 코드는 모두 `error-codes.md`에 있는 것을 확인했다(2026-10-14, 2회차 추가분 2026-10-15). 처리 문구는 백엔드 통합 기획서 각 장의 "프론트 처리" 열을 따른다. 화면에서 직접 처리하는 코드는 `handleCodes({...})`로 적는다(§4-5). 3회차(2026-10-15)에 백엔드 코드로 승인의 시작 후 코드(`OrderValidator.validCanApproveOrder` → `validTicketingTime` = `Event_400_6`)와 로그인·콜백의 401(JWT 필터)을 확인했다. 셀프 체크인의 `Event_400_5`는 백엔드 `V2CheckInDomainService.selfCheckIn` → `Event.validateNotOpenStatus()` → `EventNotOpenException`(`EVENT_NOT_OPEN`)에서 확인했다.
 

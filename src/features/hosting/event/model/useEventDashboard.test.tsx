@@ -203,13 +203,16 @@ describe('대시보드 — 체크리스트 모드(준비중)', () => {
 });
 
 describe('대시보드 — 등록 후 · 만든 직후', () => {
-  it('등록된 공연은 등록 후 모드 — GE-7을 부르지 않는다(통계는 P13a)', async () => {
+  it('등록된 공연은 등록 후 모드 — GE-7을 부르지 않고 GD-1(통계, P13a)을 부른다', async () => {
     const sent = recordRequests();
     const { result } = setup('101');
-    await waitFor(() => expect(result.current).not.toBeNull());
+    await waitFor(() => expect(result.current?.statsStatus).toBe('success'));
     expect(result.current.mode).toBe('registered');
     expect(result.current.checklistStatus).toBe('idle');
-    expect(await sent.lines()).toEqual(['GET /api/v2/events/101/manage']);
+    expect(await sent.lines()).toEqual([
+      'GET /api/v2/events/101/manage',
+      'GET /api/v2/events/101/dashboard',
+    ]);
   });
 
   it('?created=1이면 createdNotice — 닫으면 주소에서 지운다', async () => {
@@ -222,5 +225,55 @@ describe('대시보드 — 등록 후 · 만든 직후', () => {
     expect(nav.router.replace).toHaveBeenCalledWith(`/hosting/events/${id}/dashboard`, {
       scroll: false,
     });
+  });
+});
+
+describe('대시보드 — 등록 후 통계(GD-1, P13a)', () => {
+  it('NEW 배지 수 = 승인 대기 수, 카드 4개, 판매 정보, 입장 현황 분모 = 발급 수', async () => {
+    const { result } = setup('101');
+    await waitFor(() => expect(result.current?.stats).toBeTruthy());
+    const st = result.current.stats!;
+    expect(st.newBadgeCount).toBe(st.dashboard.orders.pendingApprove);
+    expect(st.newBadgeCount).toBe(2);
+    expect(st.cards.map((c) => [c.label, c.count])).toEqual([
+      ['승인 대기', 2],
+      ['승인 완료', 2],
+      ['승인 거절', 2],
+      ['환불 요청', 3],
+    ]);
+    expect([st.sales.state, st.sales.salesAmount]).toEqual(['selling', 30000]);
+    expect(st.entrance.label).toBe('1/3');
+    expect(st.qrHref).toBe('/hosting/events/101/qr');
+  });
+
+  it('발급 0인 공연(103)은 입장 현황 0/0, 판매 전', async () => {
+    const { result } = setup('103');
+    await waitFor(() => expect(result.current?.stats).toBeTruthy());
+    expect(result.current.stats!.entrance.label).toBe('0/0');
+    expect(result.current.stats!.sales.state).toBe('beforeSale');
+    expect(result.current.stats!.newBadgeCount).toBe(0);
+  });
+
+  it('openedAt이 null이면(2026-10 이전 오픈) 등록 줄 없이 홍보·판매는 "~ 공연 시작"만(Q43 기본안)', async () => {
+    const { result } = setup('101');
+    await waitFor(() => expect(result.current?.stats).toBeTruthy());
+    expect(result.current.stats!.timeline.map((s) => [s.key, s.from, s.to])).toEqual([
+      ['promotion', null, '2026.11.21 19:00'],
+      ['start', '2026.11.21 19:00', null],
+      ['done', null, null],
+    ]);
+  });
+
+  it('방금 등록한 공연은 등록일 = 서버 openedAt(GD-1)', async () => {
+    const id = arrangeEvent({ filled: true });
+    const { result } = setup(id);
+    await checklistLoaded(result);
+    await act(async () => {
+      await result.current.register();
+    });
+    await waitFor(() => expect(result.current.stats).not.toBeNull());
+    const openedAt = storedEvent(Number(id))!.openedAt;
+    expect(openedAt).not.toBeNull();
+    expect(result.current.stats!.timeline[0]).toMatchObject({ key: 'registered', from: openedAt });
   });
 });
