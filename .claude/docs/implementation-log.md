@@ -1899,7 +1899,7 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 ## P14 — 보안
 
-**상태**: PR 대기(2026-11-01, 브랜치 `9yujin/p14-security`) — 하드닝. 동작을 바꾼 수정은 로그 2곳 · zod JIT 끔 · zxing wasm 출처뿐이고, CSP는 **Report-Only**(막지 않음)다.
+**상태**: PR #79(2026-11-01, 브랜치 `9yujin/p14-security`) — 하드닝. 동작을 바꾼 수정은 로그 2곳 · zod JIT 끔 · zxing wasm 출처뿐이고, CSP는 **Report-Only**(막지 않음)다.
 
 **찾은 것**(위치 · 위험 · 처리 — 고침 / 남김(이유) / 사용자 대기)
 

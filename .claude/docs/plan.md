@@ -844,7 +844,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 **포함**: 성능(LCP/TTFB/번들, 티켓 오픈 시 공연 상세의 백엔드 부하 — 캐시가 필요한지 여기서 판단), 보안(오픈 리다이렉트, 토큰 취급, 로그 PII, 선물 토큰·QR 유출 경로), 접근성, 회귀(공유 지점(S1~S8) 통합 시나리오 — `pnpm qa` 전체, Playwright를 PR 게이트에 넣을지 재검토), 부하(티켓 오픈 순간), 레거시 URL.
 
-- [x] **보안**(2026-11-01, `p14-security`) — 오픈 리다이렉트 · 토큰 · 로그 PII(grep + e2e·QA 런타임 검사) · 선물 토큰/QR 유출 · sanitize · 외부 링크 `rel` · CSP Report-Only(+ `/csp-report`, e2e·QA 위반 0 검사) · zxing wasm 자체 호스팅 · 의존성 감사. 찾은 것 표는 implementation-log "P14 — 보안". CSP 강제 · nginx 로그 보존은 사용자 대기
+- [x] **보안**(2026-11-01, `p14-security`, #79) — 오픈 리다이렉트 · 토큰 · 로그 PII(grep + e2e·QA 런타임 검사) · 선물 토큰/QR 유출 · sanitize · 외부 링크 `rel` · CSP Report-Only(+ `/csp-report`, e2e·QA 위반 0 검사) · zxing wasm 자체 호스팅 · 의존성 감사. 찾은 것 표는 implementation-log "P14 — 보안". CSP 강제 · nginx 로그 보존은 사용자 대기
 
 **선행**: 전 기능 Phase
 
