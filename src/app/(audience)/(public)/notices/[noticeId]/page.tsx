@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { noticeQuery } from '@/api/notice/queries';
 import { Prefetch } from '@/api/server/Prefetch';
 import { serverQuery } from '@/api/server/serverQuery';
+import { AudienceSubHeader } from '@/features/audience/shell/AudienceSubHeader';
 import { parseNoticeIdParam } from '@/features/shared/notice/model/notice-rules';
 import { NoticeDetailView } from '@/features/shared/notice/NoticeDetailView';
 
@@ -32,6 +33,7 @@ export default async function NoticeDetailPage({ params }: Props) {
   const noticeId = await readNoticeId(params);
   return (
     <Prefetch queries={[noticeQuery(noticeId)]}>
+      <AudienceSubHeader title="공지사항" fallbackHref="/notices" />
       <NoticeDetailView noticeId={noticeId} audience="USER" />
     </Prefetch>
   );

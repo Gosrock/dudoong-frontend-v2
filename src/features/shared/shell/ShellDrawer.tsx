@@ -17,14 +17,14 @@ import { colors } from '@/ui/theme/colors';
 import type { ShellLink } from './model/shell-menu';
 import { type ShellMenuState, useShellMenu } from './model/useShellMenu';
 import * as s from './ShellDrawer.css';
-import { SHELL_LINK_ICON, ShellBell } from './ShellParts';
+import { SHELL_LINK_ICON, SHELL_NOTICES_LABEL, ShellBell } from './ShellParts';
 
 /**
  * 햄버거 드로어를 연다(관객·호스팅 같은 메뉴). `ShellMenuButton`이 누를 때 이 모듈을 불러와 부른다 —
  * 드로어(vaul)·말풍선·본문을 셸 첫 화면 번들에 넣지 않는다(P4s-V: 셸에 정적으로 넣으면 빌드에서 보호 화면 본문이 그려지지 않았다).
  * overlay-kit으로 연다(patterns §6) — 경로가 바뀌면 `OverlayRouteReset`이 내린다.
  */
-export function openShellDrawer() {
+export function openShellDrawer({ noticesHref }: { noticesHref?: string } = {}) {
   overlay.open(({ isOpen, close, unmount }) => (
     <Drawer
       open={isOpen}
@@ -33,7 +33,7 @@ export function openShellDrawer() {
       title="메뉴"
       headerTrailing={<DrawerBell />}
     >
-      <ShellDrawerContent onNavigateSame={close} />
+      <ShellDrawerContent onNavigateSame={close} noticesHref={noticesHref} />
     </Drawer>
   ));
 }
@@ -46,9 +46,16 @@ function DrawerBell() {
 /**
  * 드로어 본문 — 와이어 `128:2875`(로그인) · `128:2931`(미로그인) 구조를 DS 토큰·컴포넌트로(와이어 수준, design-workflow §3).
  * 프로필(또는 [로그인 ›]) / 항목 / 공연 둘러보기 ↗ / 공연 준비 ↗ + 말풍선 + 호스트 줄 / 새 호스트·새 공연 만들기 / 로그아웃.
- * AD 칸·서비스 업데이트 노트는 목적지가 없어 그리지 않는다(design-requests Q4).
+ * AD 칸은 목적지가 없어 그리지 않는다(design-requests Q4). "서비스 업데이트 노트"는 `noticesHref`(공지 목록)가 있으면 로그아웃 위에
+ * (P9c-V — Q4 기본안 "Q44가 정해지면 공지 목록으로", DS `My`의 마지막 구획과 같은 자리·아이콘 `update`).
  */
-export function ShellDrawerContent({ onNavigateSame }: { onNavigateSame: () => void }) {
+export function ShellDrawerContent({
+  onNavigateSame,
+  noticesHref,
+}: {
+  onNavigateSame: () => void;
+  noticesHref?: string;
+}) {
   const state = useShellMenu();
   const go = (l: ShellLink, children: ReactNode, className = s.row) => (
     <DrawerLink key={l.key} link={l} className={className} onSame={onNavigateSame}>
@@ -150,9 +157,19 @@ export function ShellDrawerContent({ onNavigateSame }: { onNavigateSame: () => v
         </Flex>
       </Flex>
 
-      {state.logout && (
+      {noticesHref && (
         <>
           <Divider />
+          <DrawerLink link={{ href: noticesHref }} className={s.row} onSame={onNavigateSame}>
+            <Icon name="update" />
+            <Txt typography="headingMd2">{SHELL_NOTICES_LABEL}</Txt>
+          </DrawerLink>
+        </>
+      )}
+
+      {state.logout && (
+        <>
+          {!noticesHref && <Divider />}
           <button
             type="button"
             className={s.row}
@@ -265,7 +282,7 @@ function DrawerLink({
   onClick: outerOnClick,
   ...rest
 }: Omit<ComponentPropsWithRef<'a'>, 'href'> & {
-  link: ShellLink;
+  link: Pick<ShellLink, 'href'> & Partial<ShellLink>;
   className: string;
   onSame: () => void;
   children: ReactNode;

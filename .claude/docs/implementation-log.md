@@ -1756,6 +1756,49 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 **범위 밖(고치지 않음)**: Kartrider 글꼴 미탑재(공연명이 Pretendard), DS `BottomSheet` 제목 왼쪽 정렬 · 손잡이 화살표(공용 — 코멘트), DS 토스트 위치 · 모양(공용), mock 포스터 주소가 안 열려 캡처의 포스터가 빈 상자(목 데이터), `/tickets` dev "instant navigation" 안내(P8-V 라우트)
 
+## P9c-V — 서비스 공지 · 상단 배너 (뷰)
+
+**상태**: done (2026-11-01, PR #PRNUM) — 스킬 `gui-implement`
+**근거(gui-screens §0)**: **디자인 없음** — GUI·와이어 모두 없음(design-requests Q44). `figma_nodes.py ready` 2026-11-01 재확인(Ready 93줄 중 공지 0). Q44 기본안(목록 / 상세 / 상단 배너 한 줄 + 닫기)을 DS 토큰·컴포넌트로만 → 상태 `와이어로 구현됨`(DS로만)
+**디자인 이슈**: 없음(열린 #61 DS Filter Chip은 예매자 관리 — 이 화면이 쓰지 않음)
+**디자인 시스템**: 기준 `2416576694112599706`(10-31T19:15Z) 그대로 — 바뀐 것 없음
+
+**변경**
+- `features/shared/notice/NoticeListView`(+ `.css.ts`): `Container` 안 h1 "공지사항"(관객 모바일은 하위 헤더가 제목이라 글자만 숨김) / 행 = [고정](DS `Chip` violet weak)·[공연준비](`Chip` grey — HOST 공지) + 제목 한 줄 말줄임(`Txt lines={1}`, 고정은 `labelLgEmphasized`) + 날짜 `yyyy.MM.dd` + › / 행 사이 선 / 빈 상태 DS `EmptyState` / 다음 페이지 DS `LoadMoreSentinel`(P9c-L의 [더 보기] 대신)
+- `NoticeDetailView`(+ `.css.ts`): 칩 · 제목 h1 `headingLgEmphasized`(전체, 줄바꿈) · 작성 일시(고친 공지는 "· 수정 일시") / `Divider` / 본문 = **`SectionViewer` 그대로**(P5b-V — 같은 글자 모양, sanitize는 L `renderNoticeHtml`) / `Divider` / [목록으로](DS `button` secondary md 링크). 최대 폭 800 가운데. 다시 시도는 DS `Button`
+- `NoticeBannerView`(+ `.css.ts`): 회색 띠(`surface/container` + 아래 선) 안 `Container` — `update` 아이콘 + 제목 한 줄 말줄임(링크 → 상세) + [×] `HeaderIconButton`. **마운트 뒤에만** 그린다(새 `src/ui/hooks/useIsClient` — patterns §9 표에 이름만 있던 유틸) — 셸에 붙이자 훅의 `new Date()`가 프리렌더에서 불려 Cache Components가 막았다
+- 셸: `AudienceShell`·`HostingShell` 맨 위(헤더보다 위)에 `<NoticeBannerView audience=USER|HOST>`. 햄버거 `ShellMenuButton`·`openShellDrawer`·`ShellDrawerContent`에 `noticesHref`(더하기만) → 드로어 로그아웃 위 "서비스 업데이트 노트"(`update`). PC `ShellAccountMenu`에 `noticesHref` → `AccountMenu` 새 prop `footerItems`(더하기만, DS `My` 마지막 구획 자리)
+- 라우트: 관객 `/notices`·`/notices/[noticeId]`에 `AudienceSubHeader` "공지사항"(상세 fallback `/notices`)
+- `src/api/shared/date.ts` `formatKstDotDate`(날짜만). `notice-format.ts` — 스키마가 날짜 형식을 검사하지 않아(`z.string()`) 읽을 수 없는 값은 그대로
+- 훅·도메인(`notice-rules`·`useNotice*`·`banner-dismissal`)은 그대로
+- 테스트: e2e `notices.spec` — [더 보기] → 아래로 스크롤, [목록] → [목록으로], 목록·상세 호출 셈에서 GA-3 제외(셸이 모든 화면에서 부름) + 새 "상단 배너(셸)" 3건. 스토리 `AccountMenu` `WithUpdateNote`. QA 새 `notices.qa.ts` NTC-1~8 — **16/16**. e2e 전체 **388/388**(첫 실행 382 — `shell.spec` "비로그인 /hosting/** GM-1 말고는 /api 없음" 6건이 로그인 화면(관객 셸)의 배너 GA-3 `audience=USER`를 셈 → GA-3은 USER·브라우저만인지 따로 보고 셈에서 뺌, 고친 뒤 `shell`·`notices` 38/38)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 목록·상세·배너 렌더(고정 표시) | NTC-1(고정 2건 먼저 · 칩 · 날짜 · 24건), NTC-3(상세), NTC-4 · NTC-5(배너) |
+| 긴 제목 한 줄 말줄임 | NTC-2(목록 행 · 배너 높이 한 줄, 상세는 전체) |
+| 관객·호스팅 셸에 배너 | NTC-4(관객 — 누르면 상세, 닫기 기억), NTC-5(호스팅 — 닫으면 다음 HOST 배너), e2e "상단 배너(셸)" |
+| 본문 HTML 타이포 | NTC-3(`SectionViewer` — h2 · 목록 · 링크 rel · sanitize). 디자인 확인은 Figma 코멘트 |
+| 그 밖 | NTC-6(메뉴 "서비스 업데이트 노트" 모바일·PC), NTC-7(빈 상태), NTC-8(404 · 공용 404 · GA-1/GA-3 5xx) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`, 390 · 1280 · 1440)** — 근거가 없어 Q44 기본안 문장과만 맞춤. 고친 것: ① 관객 모바일 목록에 제목이 없었다 → `AudienceSubHeader`, ② 배너를 헤더 아래에 두니 하위 헤더 화면(페이지 안 헤더)에서 배너가 헤더 위로 올라가 화면마다 자리가 달랐다 → 셸 맨 위로, ③ 셸에 붙인 배너 훅의 `new Date()`가 프리렌더 에러("Route /notices … new Date() in a Client Component") → `useIsClient` 뒤로. 공연 안 3단(1440)에서 배너 위치 확인
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 배너 자리 = 셸 맨 위(헤더보다 위), 회색 띠 · `update` 아이콘 · × / Q44 "상단 배너 한 줄" + 하위 헤더가 페이지 안에 있어 헤더 아래면 자리가 갈림 / `AudienceShell`·`HostingShell`의 `<NoticeBannerView>` 위치, `NoticeBannerView.css.ts`
+2. 배너는 서버 HTML에 없고 마운트 뒤 끼어든다(조회 뒤와 같음 — 레이아웃이 한 번 밀림) / 프리렌더 규칙 / `useIsClient` 제거하려면 훅의 `now`를 마운트 뒤 값으로
+3. 목록 행: [고정] violet weak · [공연준비] grey 칩, 고정 제목 굵게, 날짜만 `yyyy.MM.dd`, › / 알림함(P9b-V) 행 배치 / `NoticeListView`
+4. 상세: 일시 `yyyy.MM.dd HH:mm` 그대로 + "· 수정 …", 최대 폭 800, [목록으로] secondary md 가운데 / — / `NoticeDetailView`
+5. 호스팅 목록의 HOST 공지 칩 문구 "공연준비"(화면 문구에 "호스팅 센터"를 쓰지 않는 규칙) / P4s-L 문구 규칙 / `NoticeListView`·`NoticeDetailView`
+6. 메뉴 문구는 "서비스 업데이트 노트"(DS `My` · 와이어), 도착 화면 제목은 "공지사항"(P9c-L) — 이름이 다르다 / Q4 기본안 / `SHELL_NOTICES_LABEL`
+7. 관객 PC는 메뉴 입구가 아바타 ▾ 안뿐(익명 PC는 입구 없음 — 배너로만) / DS `My` / 상단 바 글자 메뉴에 더하려면 `AudienceShell` `NAV`
+8. 상세 [목록으로] 문구(P9c-L "목록") / — / `NoticeDetailView`
+
+**Figma 코멘트**(와이어 `FUQb8ldGBp3uYUuXPV5FDC`, 기록부 `2026-11-01-impl`): `[개발 · 디자인 없음]` `128:771`(공연홈 모바일 헤더) "서비스 공지 — 목록 · 상세 · 상단 배너" `1989735442` · `128:2875`(햄버거) "\"서비스 업데이트 노트\"의 목적지" `1989735446`
+
+**범위 밖(고치지 않음)**: dev에서만 보이는 `(public)` 서버 조회 라우트의 "Date.now() while prerendering"(`/hosts/[hostId]`에도 있음 — TanStack 에러 시각, dev 검증 중단 신호), 호스팅 "Could not validate … instant navigation"(대시보드에도 있음), 공연 사이드바 높이 `calc(100dvh - 58px)`가 배너 높이를 모름(첫 화면에서 배너만큼 아래로 넘침 — 스크롤하면 sticky라 영향 작음, P11 소유)
+
 ## P9b-V — 알림함 · 벨 빨간 점 (뷰)
 
 **상태**: done (2026-11-01, PR #73) — 스킬 `gui-implement`

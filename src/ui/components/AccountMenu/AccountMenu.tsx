@@ -48,6 +48,8 @@ export type AccountMenuProps = {
     /** 새 호스트 만들기 */
     create?: AccountMenuLink;
   };
+  /** 마지막 구획에서 로그아웃 위에 둘 항목 — DS `My`의 "서비스 업데이트 노트"(`update`) 자리 */
+  footerItems?: AccountMenuLink[];
   onLogout?: () => void;
   logoutDisabled?: boolean;
   /** 열릴 때(벨 다시 읽기 등) */
@@ -59,13 +61,14 @@ export type AccountMenuProps = {
 /**
  * PC 아바타 ▾ 메뉴 — 디자인 시스템 `My`(`585:752`, 와이어 `640:17991`). 동작은 Radix DropdownMenu
  * (방향키 이동, Enter 선택, Esc로 닫고 트리거로 포커스 복귀). 구획: 프로필 / 항목 / 내 호스트 / 로그아웃.
- * "서비스 업데이트 노트"는 목적지가 없어 두지 않는다(design-requests Q4).
+ * "서비스 업데이트 노트"는 쓰는 쪽이 `footerItems`로 넣는다(P9c-V — 공지 목록, design-requests Q4).
  */
 export function AccountMenu({
   trigger,
   profile,
   items,
   hosts,
+  footerItems,
   onLogout,
   logoutDisabled,
   onOpenChange,
@@ -146,14 +149,17 @@ export function AccountMenu({
             {hosts.create && linkItem(hosts.create)}
           </RadixMenu.Group>
 
-          {onLogout && (
+          {(onLogout || (footerItems && footerItems.length > 0)) && (
             <RadixMenu.Group className={s.lastSection}>
-              <RadixMenu.Item className={s.item} disabled={logoutDisabled} onSelect={onLogout}>
-                <span className={s.icon}>
-                  <Icon name="log-out" />
-                </span>
-                로그아웃
-              </RadixMenu.Item>
+              {footerItems?.map(linkItem)}
+              {onLogout && (
+                <RadixMenu.Item className={s.item} disabled={logoutDisabled} onSelect={onLogout}>
+                  <span className={s.icon}>
+                    <Icon name="log-out" />
+                  </span>
+                  로그아웃
+                </RadixMenu.Item>
+              )}
             </RadixMenu.Group>
           )}
         </RadixMenu.Content>
