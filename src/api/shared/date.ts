@@ -92,3 +92,46 @@ export function formatKstDotDateWeekday(value: string): string {
   const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
   return `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)} ${weekday}요일`;
 }
+
+/**
+ * `'2026.01.02 18:00'`(KST) → `'1월 2일'`, `weekday`면 `'1월 2일 (금)'` — 대시보드 일정 패널 단계 날짜(DS `일정` `605:1848`, P13a-V)
+ */
+export function formatKstMonthDay(value: string, { weekday = false } = {}): string {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  const base = `${p.month}월 ${p.day}일`;
+  if (!weekday) return base;
+  return `${base} (${KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()]})`;
+}
+
+const WEEKDAY_CODES = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
+
+/**
+ * `now`가 든 주(일~토, KST) — 대시보드 일정 패널 주간 줄(DS `날짜` `605:1875`, P13a-V). 머리는 오늘의 `'yy년 M월'`.
+ * 어느 주·어느 날을 강조할지는 Figma에 규칙이 없어 오늘이 든 주 + 오늘 강조로 정했다(design-requests Q39 — Claude 판단)
+ */
+export function kstWeekOf(now: Date) {
+  const k = new Date(now.getTime() + KST_OFFSET_MS);
+  const today = Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate());
+  const sunday = today - k.getUTCDay() * 24 * 60 * 60 * 1000;
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sunday + i * 24 * 60 * 60 * 1000);
+    const at = d.getTime();
+    return {
+      weekday: WEEKDAY_CODES[i]!,
+      day: d.getUTCDate(),
+      state:
+        at < today ? ('past' as const) : at === today ? ('today' as const) : ('future' as const),
+      label: `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 ${KOREAN_WEEKDAYS[i]}요일`,
+    };
+  });
+  return { month: `${pad(k.getUTCFullYear() % 100)}년 ${k.getUTCMonth() + 1}월`, days };
+}
+
+/** `'2026.03.22 10:05'`(KST) → `'2026.03.22 (일) 10:05'` — 예매자 관리 표 주문·발급·체크인 일시(와이어 `424:11710`, P13a-V) */
+export function formatKstDotDateTimeWeekday(value: string): string {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
+  return `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)} (${weekday}) ${pad(p.hour)}:${pad(p.minute)}`;
+}

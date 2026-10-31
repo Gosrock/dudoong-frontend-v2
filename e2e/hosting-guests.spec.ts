@@ -15,7 +15,7 @@ import { expect, test } from './support/fixtures';
 /**
  * P13a-L 라우트 로직 — 예매자 관리(`/hosting/events/[eventId]/guests`)의 `?tab=`·`?order=` 주소 상태(patterns §6)와 뒤로가기,
  * 일반 멤버 화면, 엑셀, 등록 후 대시보드, 그리고 크리티컬 패스(체크아웃 → 주문 → 호스트 승인 → 티켓탭). 호스팅 센터라 조회는
- * 브라우저에서만 한다. 최소 마크업이라 주소·상태 글자·요청만 본다(모양은 V). mock 저장소는 테스트마다 되돌린다.
+ * 브라우저에서만 한다. P13a-V 마크업(표 행 = 버튼, 상세 = 오버레이)으로 주소·상태 글자·요청을 본다. mock 저장소는 테스트마다 되돌린다.
  */
 const resetStores = () => {
   resetHostMockState();
@@ -27,7 +27,8 @@ test.beforeEach(resetStores);
 test.afterEach(resetStores);
 
 const GUESTS = '/hosting/events/101/guests';
-const detail = (page: Page) => page.getByTestId('order-detail');
+const detail = (page: Page) =>
+  page.getByRole('dialog').filter({ has: page.getByTestId('order-detail') });
 const row = (page: Page, orderNoOrName: string) =>
   page.getByTestId('order-row').filter({ hasText: orderNoOrName });
 
@@ -54,7 +55,7 @@ test.describe('?tab= · ?order= 주소 상태', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/dashboard');
     await page.goto(`${GUESTS}?tab=orders&order=${GUEST_ORDER.pendingTransfer}`);
-    await expect(detail(page).getByTestId('detail-status')).toHaveText('PENDING_APPROVE');
+    await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 대기');
     await detail(page).getByRole('button', { name: '닫기' }).click();
     await expect(page).toHaveURL(`${GUESTS}?tab=orders`);
     await expect(detail(page)).toHaveCount(0);
@@ -68,7 +69,7 @@ test.describe('?tab= · ?order= 주소 상태', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/dashboard');
     await page.goto(GUESTS);
-    await row(page, '김민수').first().getByRole('button', { name: '상세' }).click();
+    await row(page, '김민수').first().click();
     await expect(page).toHaveURL(new RegExp(`${GUESTS}\\?order=guest-order-101-`));
     await expect(detail(page)).toBeVisible();
     await page.goBack();
@@ -76,7 +77,7 @@ test.describe('?tab= · ?order= 주소 상태', () => {
     await expect(detail(page)).toHaveCount(0);
     await expect(page.getByTestId('order-row')).toHaveCount(9);
 
-    await row(page, '김민수').first().getByRole('button', { name: '상세' }).click();
+    await row(page, '김민수').first().click();
     await expect(detail(page)).toBeVisible();
     await detail(page).getByRole('button', { name: '닫기' }).click();
     await expect(page).toHaveURL(GUESTS);
@@ -99,7 +100,7 @@ test.describe('주문 처리', () => {
     await page.goto(`${GUESTS}?order=${GUEST_ORDER.pendingTransfer}`);
     await expect(page.getByTestId('status-PENDING_APPROVE')).toHaveText('승인 대기 2');
     await detail(page).getByRole('button', { name: '승인' }).click();
-    await expect(detail(page).getByTestId('detail-status')).toHaveText('APPROVED');
+    await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 완료');
     await expect(page.getByTestId('status-PENDING_APPROVE')).toHaveText('승인 대기 1');
     await expect(page.getByTestId('status-APPROVED')).toHaveText('승인 완료 3');
     expect(
@@ -115,15 +116,16 @@ test.describe('주문 처리', () => {
   }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto(`${GUESTS}?order=${GUEST_ORDER.pendingToss}`);
+    await detail(page).getByRole('button', { name: '거절', exact: true }).click();
     await expect(detail(page).getByTestId('refuse-dudoong-notice')).toHaveText(
       '이미 입금을 받았다면 구매자에게 직접 환불해야 해요',
     );
-    await detail(page).getByLabel('기타').check();
+    await detail(page).getByRole('radio', { name: '기타 - 직접 입력' }).click();
     await detail(page).getByLabel('기타 사유').fill('중복 주문');
     const post = page.waitForRequest((r) => r.method() === 'POST' && r.url().endsWith('/refuse'));
-    await detail(page).getByRole('button', { name: '주문 거절' }).click();
+    await detail(page).getByRole('button', { name: '거절하기' }).click();
     expect((await post).postDataJSON()).toEqual({ reasonType: 'ETC', reasonText: '중복 주문' });
-    await expect(detail(page).getByTestId('detail-status')).toHaveText('REFUSED');
+    await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 거절');
   });
 });
 
@@ -135,16 +137,17 @@ test.describe('권한 · 엑셀', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto(GUESTS);
     await expect(page.getByTestId('order-row')).toHaveCount(9);
-    await expect(page.getByRole('button', { name: '주문 엑셀 받기' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '주문 엑셀로 다운로드' })).toHaveCount(0);
     const toss = page.getByTestId('order-row').filter({ hasText: '이서연' }).first();
     await expect(toss.getByTestId('order-phone')).toHaveText('010-****-7890');
     await expect(page.getByTestId('exact-hint')).toHaveCount(0);
-    await page.getByLabel('검색 기준').selectOption('PHONE');
+    await page.getByRole('combobox', { name: '검색 기준' }).click();
+    await page.getByRole('option', { name: '연락처' }).click();
     await expect(page.getByTestId('exact-hint')).toHaveText(
       '연락처·입금자명은 전체를 정확히 입력해야 찾을 수 있어요',
     );
     await page.goto(`${GUESTS}?order=${GUEST_ORDER.pendingTransfer}`);
-    await expect(detail(page).getByTestId('detail-status')).toHaveText('PENDING_APPROVE');
+    await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 대기');
     await expect(detail(page).getByRole('button', { name: '승인' })).toHaveCount(0);
   });
 
@@ -153,20 +156,25 @@ test.describe('권한 · 엑셀', () => {
     await page.goto(GUESTS);
     await expect(page.getByTestId('order-row')).toHaveCount(9);
     const download = page.waitForEvent('download');
-    await page.getByRole('button', { name: '주문 엑셀 받기' }).click();
+    await page.getByRole('button', { name: '주문 엑셀로 다운로드' }).click();
     expect((await download).suggestedFilename()).toBe('orders-101.xlsx');
   });
 });
 
-test('등록 후 대시보드: NEW 배지 = 승인 대기 수, 카드 4개, 입장 현황 분모 = 발급 수', async ({
+test('등록 후 대시보드: 승인 대기 수(= 사이드바 배지 수), 카드 4개, 입장 현황 분모 = 발급 수', async ({
   page,
 }) => {
   await setMockSession(page, 'loggedIn');
   await page.goto('/hosting/events/101/dashboard');
-  await expect(page.getByTestId('new-badge')).toHaveText('NEW 2');
-  await expect(page.getByTestId('stat-refundRequested')).toHaveText('환불 요청 3');
-  await expect(page.getByTestId('entrance')).toHaveText('입장 현황 1/3');
-  await page.getByTestId('stat-refundRequested').getByRole('link').click();
+  await expect(page.getByTestId('stat-pendingApprove')).toContainText('승인 대기');
+  await expect(page.getByTestId('stat-pendingApprove')).toContainText('2건');
+  await expect(page.getByTestId('stat-refundRequested')).toContainText('환불 요청');
+  await expect(page.getByTestId('stat-refundRequested')).toContainText('3건');
+  await expect(page.getByTestId('entrance')).toContainText('1/3');
+  await expect(
+    page.getByRole('progressbar', { name: '입장 현황 — 발급 3장 중 1장 입장' }),
+  ).toBeVisible();
+  await page.getByTestId('stat-refundRequested').click();
   await expect(page).toHaveURL(`${GUESTS}?tab=refunds`);
 });
 
@@ -183,9 +191,9 @@ test('크리티컬 패스: 체크아웃 → 주문 → 호스트 승인 → 티�
   const orderUuid = new URL(page.url()).pathname.split('/').at(-1)!;
 
   await page.goto(`${GUESTS}?order=${orderUuid}`);
-  await expect(detail(page).getByTestId('detail-status')).toHaveText('PENDING_APPROVE');
+  await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 대기');
   await detail(page).getByRole('button', { name: '승인' }).click();
-  await expect(detail(page).getByTestId('detail-status')).toHaveText('APPROVED');
+  await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 완료');
 
   await page.goto('/tickets');
   await expect(page.locator(`#group-${orderUuid}`)).toBeVisible();

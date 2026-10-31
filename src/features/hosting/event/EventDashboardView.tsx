@@ -2,17 +2,26 @@
 
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { EventManage } from '@/api/event/schema';
-import { formatKstDotDateWeekday, formatKstTime } from '@/api/shared/date';
+import {
+  formatKstDotDateWeekday,
+  formatKstMonthDay,
+  formatKstTime,
+  kstWeekOf,
+} from '@/api/shared/date';
 import { eventChipOf, UNNAMED_EVENT } from '@/features/hosting/home/model/home-cards';
 import { EventPanelLayout } from '@/features/hosting/shell/EventScopeFrame';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { EntranceCard } from '@/ui/components/EntranceCard/EntranceCard';
 import { Popup } from '@/ui/components/Popup/Popup';
+import { SalesCard } from '@/ui/components/SalesCard/SalesCard';
+import { ScheduleStep, WeekStrip } from '@/ui/components/Schedule/Schedule';
+import { StatCard } from '@/ui/components/StatCard/StatCard';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
@@ -29,7 +38,9 @@ type Dashboard = ReturnType<typeof useEventDashboard>;
 /**
  * `/hosting/events/[eventId]/dashboard`. 등록 전(체크리스트 모드)은 P11-V — GUI Ready 모바일 `727:23088`(0/3)·`745:32167`(3/3) ·
  * PC `727:23210`. "등록 준비 완료" 팝업(와이어 `424:11318` 문구)·등록 확인 팝업(와이어 `424:9837`)·토스트(`424:11427`, `298:2617`)는
- * 디자인 없음 — DS `Popup`·`toast`. 등록 후 통계(GD-1, P13a-L) 카드·도넛·막대·일정 패널은 P13a-V(아래 최소 마크업 그대로).
+ * 디자인 없음 — DS `Popup`·`toast`. 등록 후(P13a-V) — GUI Ready 모바일 `669:2787` · PC `680:672`(1133) · `669:2972`(1280) ·
+ * `712:1646`(1440) · `669:2350`(1920) · `745:32726`(1440 판매 0): 통계 카드 4개(DS `승인 메뉴_*`) · `티켓 판매 정보` · `입장 현황` ·
+ * 유의사항 + PC 우측 `일정 패널`(주간 줄 · 단계 타임라인).
  */
 export function EventDashboardView({ eventId }: { eventId: string }) {
   const d = useEventDashboard(eventId);
@@ -40,57 +51,14 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
       </VisuallyHidden>
       <DashboardNotices d={d} />
       <EventHead event={d.event} eventId={eventId} />
-      {d.mode === 'registered' ? (
-        <div data-testid="dashboard-registered">
-          {d.statsStatus === 'pending' && <p>불러오는 중</p>}
-          {d.statsStatus === 'error' && (
-            <p role="alert">
-              불러오지 못했어요{' '}
-              <button type="button" onClick={d.retryStats}>
-                다시 시도
-              </button>
-            </p>
-          )}
-          {d.stats && (
-            <>
-              {d.stats.newBadgeCount > 0 && (
-                <p data-testid="new-badge">NEW {d.stats.newBadgeCount}</p>
-              )}
-              <ul aria-label="주문 현황">
-                {d.stats.cards.map((c) => (
-                  <li key={c.key} data-testid={`stat-${c.key}`}>
-                    <Link href={c.href}>
-                      {c.label} {c.count}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-              <p data-testid="sales">
-                {d.stats.sales.state === 'beforeSale'
-                  ? '판매 전'
-                  : `${d.stats.sales.totalSoldCount}매 · ${d.stats.sales.salesAmount.toLocaleString('ko-KR')}원`}
-              </p>
-              <p data-testid="entrance">입장 현황 {d.stats.entrance.label}</p>
-              <Link href={d.stats.qrHref}>QR 체크인 열기 →</Link>
-              <ol aria-label="공연 일정">
-                {d.stats.timeline.map((s) => (
-                  <li key={s.key} data-testid={`timeline-${s.key}`} data-state={s.state}>
-                    {s.label} {s.from ?? ''}
-                    {s.to ? ` ~ ${s.to}` : ''}
-                  </li>
-                ))}
-              </ol>
-            </>
-          )}
-        </div>
-      ) : (
-        <ChecklistSection d={d} />
-      )}
+      {d.mode === 'registered' ? <RegisteredSection d={d} /> : <ChecklistSection d={d} />}
     </section>
   );
-  // 등록 후만 우측 일정 패널 자리(P4s-V 슬롯). 패널 본문(`일정 패널`)은 P13a-V
+  // 등록 후만 우측 일정 패널(P4s-V 슬롯 · 본문 P13a-V — DS `일정 패널`)
   return d.mode === 'registered' ? (
-    <EventPanelLayout panel={null}>{content}</EventPanelLayout>
+    <EventPanelLayout panel={d.stats ? <SchedulePanel timeline={d.stats.timeline} /> : null}>
+      {content}
+    </EventPanelLayout>
   ) : (
     content
   );
@@ -278,5 +246,147 @@ function ChecklistSection({ d }: { d: Dashboard }) {
         onConfirm={d.acknowledgeCompleted}
       />
     </>
+  );
+}
+
+const STAT_ICON = {
+  pendingApprove: 'dashboard-pending',
+  approved: 'dashboard-approved',
+  refused: 'dashboard-rejected',
+  refundRequested: 'dashboard-refund',
+} as const;
+
+/** 등록 후 본문 — 통계 카드 4개 → 판매 · 입장 두 칸 → 유의사항(GUI `712:1699`·`712:1705`·`748:33135`) */
+function RegisteredSection({ d }: { d: Dashboard }) {
+  return (
+    <div data-testid="dashboard-registered" className={s.registered}>
+      {d.statsStatus === 'pending' && (
+        <div className={s.statsState}>
+          <Txt typography="bodyMd" color={colors.textSecondary}>
+            불러오는 중
+          </Txt>
+        </div>
+      )}
+      {d.statsStatus === 'error' && (
+        <div role="alert" className={s.statsState}>
+          <Flex align="center" gap={2} wrap>
+            <Txt typography="bodyMd">대시보드를 불러오지 못했어요.</Txt>
+            <Button variant="secondary" size="sm" onClick={d.retryStats}>
+              다시 시도
+            </Button>
+          </Flex>
+        </div>
+      )}
+      {d.stats && (
+        <>
+          <section aria-label="티켓 승인 정보">
+            {/* FIGMA-CUSTOM: 모바일 통계 카드(gui 669:2805 "Frame 34451") 커스텀 → DS StatCard(승인 메뉴_mobile). Figma 코멘트 2026-11-01 */}
+            <ul className={s.stats}>
+              {d.stats.cards.map((c) => (
+                <li key={c.key}>
+                  <StatCard
+                    href={c.href}
+                    linkAs={Link}
+                    icon={<Illustration name={STAT_ICON[c.key]} width={36} />}
+                    label={c.label}
+                    count={c.count}
+                    data-testid={`stat-${c.key}`}
+                  />
+                </li>
+              ))}
+            </ul>
+          </section>
+          <div className={s.salesRow}>
+            <SalesCard
+              data-testid="sales"
+              items={d.stats.sales.items.map((i) => ({
+                id: i.ticketItemId,
+                name: i.name ?? '이름 없는 티켓',
+                count: i.soldCount,
+              }))}
+              soldCount={d.stats.sales.totalSoldCount}
+              amount={d.stats.sales.salesAmount}
+            />
+            <EntranceCard
+              data-testid="entrance"
+              entered={d.stats.entrance.entered}
+              total={d.stats.entrance.issued}
+              action={{ href: d.stats.qrHref, label: 'QR 체크인 열기' }}
+              linkAs={Link}
+            />
+          </div>
+        </>
+      )}
+      <RegisteredNotice />
+    </div>
+  );
+}
+
+/** 유의사항(등록 후) — GUI `748:33140`·`741:31934` 문구 그대로. 가운데 줄(*…)은 빨간 글자 */
+function RegisteredNotice() {
+  return (
+    <div className={s.notice}>
+      <span className={s.noticeIcon}>
+        <Icon name="circle-request" />
+      </span>
+      <Flex direction="column" gap={1}>
+        <Txt as="h2" typography="labelMdEmphasized">
+          유의사항
+        </Txt>
+        <Txt as="p" typography="bodySm">
+          예매 마감, 환불 마감 시간은 공연 시작 시간 이전입니다.
+          <br />
+          공연이 등록된 이후에 이미 판매가 된 티켓은 티켓 수정, 삭제가 불가합니다.
+          <br />
+          <Txt typography="bodySm" color={colors.textDangerLabel}>
+            *이미 판매가 된 티켓 이란 사용자들에게 판매가 되어 재고의 감소가 일어난 티켓을
+            의미합니다.
+          </Txt>
+          <br />
+          공연이 등록된 이후에도 티켓 추가가 가능합니다.
+        </Txt>
+      </Flex>
+    </div>
+  );
+}
+
+type Timeline = NonNullable<Dashboard['stats']>['timeline'];
+
+const STEP_STATE = { done: 'past', current: 'current', upcoming: 'upcoming' } as const;
+
+/** 단계의 날짜 줄 — 현재 단계의 기간은 요일까지 두 줄("1월 2일 (일) ~" / "1월 8일 (토)"), 나머지는 "1월 2일"(DS `일정`) */
+function stepDates(step: Timeline[number]): string[] {
+  const md = (v: string | null, weekday: boolean) => (v ? formatKstMonthDay(v, { weekday }) : null);
+  if (step.key === 'promotion') {
+    const current = step.state === 'current';
+    const from = md(step.from, current);
+    const to = md(step.to, current);
+    if (!from) return to ? [`~ ${to}`] : []; // openedAt 없음 — Q43 기본안
+    if (!to) return [`${from} ~`];
+    return current ? [`${from} ~`, to] : [`${from} ~ ${to}`];
+  }
+  const at = md(step.from, false);
+  return at ? [at] : [];
+}
+
+/** 우측 일정 패널 — DS `일정 패널`(`605:1951`): 주간 줄(`날짜`) + 단계 타임라인(`일정` 4개). PC에만 보인다(셸 슬롯) */
+function SchedulePanel({ timeline }: { timeline: Timeline }) {
+  // 오늘은 마운트 때 한 번 정한다(렌더 중 시각을 읽지 않는다). 패널은 GD-1이 온 뒤(브라우저)에만 그려진다
+  const [week] = useState(() => kstWeekOf(new Date()));
+  return (
+    <div className={s.panel}>
+      <WeekStrip month={week.month} days={week.days} />
+      <ol className={s.timeline} aria-label="공연 일정">
+        {timeline.map((step) => (
+          <ScheduleStep
+            key={step.key}
+            data-testid={`timeline-${step.key}`}
+            state={STEP_STATE[step.state]}
+            title={step.label}
+            dates={stepDates(step)}
+          />
+        ))}
+      </ol>
+    </div>
   );
 }
