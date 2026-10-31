@@ -11,9 +11,9 @@ import { log } from '@/utils/log';
 import { browserLocation } from './browser-location';
 
 /**
- * 로그아웃. 응답과 상관없이(401·5xx·네트워크 포함) 로컬을 정리하고 하드 이동한다(tech-decisions §4 인증 표).
- * 만료·잘못된 액세스 쿠키가 실려 있으면 백엔드가 401을 내고 쿠키를 지우지 않는다 — 그래도 `dd:session`을 지워
- * 이 브라우저는 익명으로 시작한다. 다른 탭은 `storage` 이벤트로 따라온다.
+ * 로그아웃. 응답과 상관없이(5xx·네트워크 포함) 로컬을 정리하고 하드 이동한다(tech-decisions §4 인증 표).
+ * 백엔드 로그아웃은 `permitAll`이라 만료·잘못된 액세스 쿠키가 실려 있어도 항상 200 + 쿠키 삭제다(#793, fe423ed4 `AuthController.logoutUser`).
+ * 요청이 실패해도(5xx·네트워크) `dd:session`을 지워 이 브라우저는 익명으로 시작한다. 다른 탭은 `storage` 이벤트로 따라온다.
  */
 export async function logoutAndLeave(queryClient: QueryClient, to = '/') {
   try {

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { meHandlers, resetMeStore, userError } from '@/api/__mocks__/me.handlers';
-import { MOCK_IMAGE_ORIGIN } from '@/api/__mocks__/respond';
+import { errors, MOCK_IMAGE_ORIGIN } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { userHandlers } from '@/api/__mocks__/user.handlers';
 import { hostViewerQuery } from '@/api/host/queries';
@@ -74,6 +74,9 @@ describe('프로필 — useProfileEdit(GM-1 · PM-2 · PM-3)', () => {
 
   it.each([
     ['', '닉네임을 입력해 주세요'],
+    // 서버 @Pattern(\p{javaWhitespace})과 같은 판정 — JS trim()이 지우지 않는 Java 공백(U+001C)도 막는다
+    ['\u3000\u3000', '닉네임을 입력해 주세요'],
+    ['\u001C\u001C', '닉네임을 입력해 주세요'],
     ['가', '닉네임은 2~7자로 입력해 주세요'],
     ['가나다라마바사아', '닉네임은 2~7자로 입력해 주세요'],
   ])('닉네임 %j는 요청 없이 칸 오류 "%s"', async (name, message) => {
@@ -82,6 +85,17 @@ describe('프로필 — useProfileEdit(GM-1 · PM-2 · PM-3)', () => {
     await act(() => result.current.name.save(name));
     expect(await writes(sent)).toEqual([]);
     expect(result.current.name.error).toBe(message);
+  });
+
+  it('400 BAD_REQUEST(본문 검증 — #884 이후 공백만은 이 코드) → 같은 칸 오류, 토스트 없음', async () => {
+    server.use(http.patch('*/api/v2/me', ({ request }) => errors.badRequest(request)));
+    const { result, queryClient } = await renderProfile();
+    await act(() => result.current.name.save('두둥두둥'));
+    await waitFor(() =>
+      expect(result.current.name.error).toBe('닉네임은 공백만으로 지을 수 없어요'),
+    );
+    const m = lastMutation(queryClient);
+    expect(shouldToastMutationError(m.state.error, m.meta)).toBe(false);
   });
 
   it('에러 분기 USER_400_4(공백만) → 칸 오류, 토스트 없음', async () => {

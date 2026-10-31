@@ -17,6 +17,7 @@ import { hostingGuestHandlers } from '@/api/__mocks__/hosting-guest.handlers';
 import { server } from '@/api/__mocks__/server';
 import { setTicketSold } from '@/api/__mocks__/ticket-store';
 import { shouldToastMutationError } from '@/api/query-client';
+import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
@@ -187,9 +188,10 @@ describe('주문 상세(GR-2) · 승인(PR-3)', () => {
 
 describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () => {
   it('거절: 사유를 고르지 않으면 요청하지 않고 칸 오류, 기타는 문구 필수 → 보낸 본문', async () => {
-    const { result } = setup(GUEST_ORDER.pendingTransfer);
+    const { result, queryClient } = setup(GUEST_ORDER.pendingTransfer);
     await loaded(result);
     const sent = recordRequests();
+    const spy = vi.spyOn(queryClient, 'invalidateQueries');
     await act(async () => {
       await result.current.detail.refuse();
     });
@@ -213,6 +215,15 @@ describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () =>
     expect(result.current.detail.detail?.order).toMatchObject({
       status: 'REFUSED',
       refundStatus: 'REQUESTED',
+    });
+    // 거절도 승인 대기 수량이 빠져 잔여가 바뀐다 — T-1·GP-5 무효화(계약 대조 2026-10-31)
+    expect(spy).toHaveBeenCalledWith({
+      queryKey: ticketItemsManageQuery(EVENT).queryKey,
+      exact: true,
+    });
+    expect(spy).toHaveBeenCalledWith({
+      queryKey: eventTicketItemsQuery(EVENT).queryKey,
+      exact: true,
     });
   });
 

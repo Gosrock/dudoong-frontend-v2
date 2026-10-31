@@ -15,7 +15,7 @@ import {
 } from '../host/schema';
 import { CONTACT_TYPES, type HostRole } from '../shared/common-schema';
 import type { MockEvent } from './fixtures/event';
-import { events, preparingEvents, upcomingOrder } from './fixtures/event';
+import { events, preparingEvents } from './fixtures/event';
 import { hosts, mockUsers, viewerOf } from './fixtures/host';
 import { me } from './fixtures/me';
 import {
@@ -286,11 +286,11 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       if (id === null) return publicIdMismatch(request, cookies);
       if (!paging) return errors.badRequest(request);
       if (!host) return hostNotFound(request);
-      // 멤버는 준비중 공연까지 본다(백엔드 [H-14])
+      // 멤버는 준비중 공연까지 본다(백엔드 [H-14]). 순서는 최근 생성 순 = id 내림차순(`Sort.by(DESC, "id")`, fe423ed4)
       const isMember = hasAccessToken(cookies) && viewer(host).myRole !== null;
       const list = [...events, ...(isMember ? preparingEvents : [])]
         .filter((e) => e.host.hostId === id && e.status !== 'DELETED')
-        .sort(upcomingOrder)
+        .sort((a, b) => b.eventId - a.eventId)
         .map(toHostEvent);
       return ok(paginate(list, paging.page, paging.size));
     }),

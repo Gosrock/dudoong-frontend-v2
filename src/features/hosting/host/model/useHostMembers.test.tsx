@@ -1,11 +1,14 @@
 import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { http } from 'msw';
 import { type ReactNode, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resetHostMockState } from '@/api/__mocks__/host.handlers';
-import { actAsRole, removeStoredMember } from '@/api/__mocks__/host-store';
+import { hostSets, resetHostMockState } from '@/api/__mocks__/host.handlers';
+import { actAsRole, membersOf, removeStoredMember } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
+import { ok } from '@/api/__mocks__/respond';
+import { server } from '@/api/__mocks__/server';
 import { isEventManageQueryKey, MY_EVENTS_KEY } from '@/api/event/queries';
 import { hostMembersQuery, hostViewerQuery, MY_HOSTS_KEY } from '@/api/host/queries';
 import { AddHostMembersRequestSchema, HostMembersSchema } from '@/api/host/schema';
@@ -62,6 +65,25 @@ const view = (result: Members) =>
   );
 
 describe('멤버 목록 — 3시점 버튼(api-contract §2)', () => {
+  it('SUPER_ADMIN 시점(GH-6 성공 + viewer myRole null): 매니저 범위 + 역할 변경, 매니저 삭제·양도는 없다', async () => {
+    // 서버: 권한 검사는 건너뛰지만(SuperAdminBypass) 매니저 추가·삭제는 요청자 = 마스터, 양도는 요청자 활성 마스터를 다시 본다
+    server.use(
+      http.get('*/api/v2/hosts/11/members', () => ok(membersOf(11))),
+      ...hostSets.viewAs(11, { myRole: null }),
+    );
+    const { result } = setup();
+    await loaded(result);
+    expect(result.current.access).toBe('ok');
+    expect(result.current.myRole).toBe('SUPER_ADMIN');
+    expect(result.current.canInvite).toBe(true);
+    expect(view(result)).toEqual({
+      두둥이: ['MASTER', null, false, false],
+      김매니저: ['MANAGER', 'GUEST', false, false],
+      이드럼: ['GUEST', 'MANAGER', true, false],
+      '#4': ['GUEST', 'MANAGER', true, false],
+    });
+  });
+
   it('마스터 시점: 마스터(나) 행은 메뉴 없음, 매니저·일반은 역할 변경·삭제·양도 — 초대 가능, 이메일 없음', async () => {
     const sent = recordRequests();
     const { result } = setup();

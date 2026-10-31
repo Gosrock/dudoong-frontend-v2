@@ -135,10 +135,8 @@ export function useOrderDetail(
     () =>
       handleCodes({
         Order_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_5, false),
-        Order_400_3: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_3, false),
         Order_400_9: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_9, true),
         Event_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Event_400_5, true),
-        Event_400_6: () => reread(WITHDRAW_ERROR_MESSAGE.Event_400_6, true),
         Order_400_18: () => setRefuseServerError(WITHDRAW_ERROR_MESSAGE.Order_400_18),
         Order_404_1: missing,
       }),
@@ -153,8 +151,8 @@ export function useOrderDetail(
     [missing, reread],
   );
 
-  const onChanged = (stockChanged: boolean) => (d: HostOrderDetail) =>
-    applyChangedOrder(queryClient, eventId, d, { stockChanged });
+  const onChanged = (ticketAvailabilityChanged: boolean) => (d: HostOrderDetail) =>
+    applyChangedOrder(queryClient, eventId, d, { ticketAvailabilityChanged });
   const approveM = useMutation({
     ...approveOrderMutation(eventId),
     ...approveCodes,
@@ -163,7 +161,8 @@ export function useOrderDetail(
   const refuseM = useMutation({
     ...refuseOrderMutation(eventId),
     ...withdrawCodes,
-    onSuccess: onChanged(false),
+    // 거절도 승인 대기 수량이 빠져 잔여·구매 가능·T-1 잠금이 바뀐다(계약 대조 2026-10-31)
+    onSuccess: onChanged(true),
   });
   const cancelM = useMutation({
     ...cancelHostOrderMutation(eventId),
@@ -177,8 +176,8 @@ export function useOrderDetail(
   });
 
   const actions = useMemo(
-    () => (detail ? orderActionsOf(detail.order, scope.event) : []),
-    [detail, scope.event],
+    () => (detail ? orderActionsOf(detail.order, { ...scope.event, myRole: scope.role }) : []),
+    [detail, scope.event, scope.role],
   );
 
   const run = useCallback(
@@ -217,7 +216,7 @@ export function useOrderDetail(
     /** 버튼이 막힌 이유 문구(공연 시작 후 등) */
     blockedMessage: blocked ? ORDER_ACTION_BLOCK_MESSAGE[blocked] : null,
     /** 환불 계좌 전체 보기(매니저 이상 — 일반 멤버에게는 서버가 null을 준다) */
-    canSeeRefundAccount: can(scope.event.myRole, 'viewRefundAccount'),
+    canSeeRefundAccount: can(scope.role, 'viewRefundAccount'),
     pending,
     actionError,
     dismissActionError: () => setActionError(null),

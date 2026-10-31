@@ -253,7 +253,8 @@ export function useCancelGift(giftId: number | null, ctx: GiftRefetchContext = {
 /**
  * [선물 반환] → PG-6(받은 사람, `canReturn`일 때만 보인다). 성공하면 이 티켓은 보낸 사람에게 가고 uuid가 바뀐다 —
  * 옛 uuid의 T-2를 지우고 티켓 쿼리 전체를 무효화한다. V는 `done`이면 상세를 닫는다.
- * `Gift_400_7` → T-2 다시 읽기 + 안내, `IssuedTicket_404_1` → 목록 다시 읽기 + `gone`.
+ * `Gift_400_8`(받은 티켓 아님, 서버가 먼저 본다) → 목록 다시 읽기 + `gone`, `Gift_400_7` → T-2 다시 읽기 + 안내,
+ * `IssuedTicket_404_1` → 목록 다시 읽기 + `gone`.
  */
 export function useReturnGift(ticketUuid: string) {
   const queryClient = useQueryClient();

@@ -15,7 +15,10 @@ import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { server } from '@/api/__mocks__/server';
+import { checkInStatsQuery } from '@/api/check-in/queries';
+import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { eventManageQuery } from '@/api/event/queries';
+import { hostIssuedTicketsKey } from '@/api/issued-ticket/queries';
 import { shouldToastMutationError } from '@/api/query-client';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
@@ -107,6 +110,30 @@ describe('[호스트가 스캔](PQ-2)', () => {
     expect((await scanPosts(sent)).map((r) => [r.path, r.body])).toEqual([
       ['/api/v2/events/101/check-ins', { ticketUuid: TICKET_UUID.approved }],
     ]);
+  });
+
+  it('ENTERED면 발급 티켓(GI-1)·대시보드(GD-1)도 무효화, 다시 스캔(ALREADY_ENTERED)은 GQ-1만', async () => {
+    const { result, queryClient, clock: c } = await setupScan('101');
+    await statsLoaded(result);
+    const spy = vi.spyOn(queryClient, 'invalidateQueries');
+    act(() => void result.current.scan.submitScan(TICKET_UUID.approved));
+    await scanDone(result);
+    expect(spy).toHaveBeenCalledWith({ queryKey: hostIssuedTicketsKey('101') });
+    expect(spy).toHaveBeenCalledWith({
+      queryKey: eventDashboardQuery('101').queryKey,
+      exact: true,
+    });
+
+    spy.mockClear();
+    c.advance(60_000);
+    act(() => void result.current.scan.submitScan(TICKET_UUID.approved));
+    await scanDone(result);
+    expect(result.current.scan.state).toMatchObject({ view: { result: 'ALREADY_ENTERED' } });
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy).toHaveBeenCalledWith({
+      queryKey: checkInStatsQuery('101').queryKey,
+      exact: true,
+    });
   });
 
   it.each([

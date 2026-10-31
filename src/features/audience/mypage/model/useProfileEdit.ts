@@ -16,7 +16,7 @@ import { nicknameError, PROFILE_ERROR_MESSAGE } from './profile';
  * 프로필 편집(`/mypage` 안, GM-1 · PM-2 · PM-3). 보호 화면이라 세션(`Me`)은 이미 있다.
  * 성공 응답(`Me`, GM-1과 같은 모양)을 세션 키(`['me']`)에 바로 넣는다 — 헤더·햄버거가 같은 키를 읽는다(tech-decisions §4).
  *
- * - `name.save(값)` — 2~7자(앞뒤 공백 제거) 검증 뒤 PM-2 `{name}`. `USER_400_4` → 칸 오류
+ * - `name.save(값)` — 2~7자(앞뒤 공백 제거) 검증 뒤 PM-2 `{name}`. `USER_400_4`·400 `BAD_REQUEST` → 칸 오류
  * - `image.change(file)` — PM-3 발급 → S3 PUT → PM-2 `{profileImageKey}` 한 흐름(`src/api/upload.ts`). `USER_400_5`(본인 이미지가
  *   아님)·업로드 실패는 `image.error`, `image.retry()`가 같은 파일로 **발급부터 다시** 한다. 확장자가 틀리면 요청 없이 오류
  * - `image.reset()` — PM-2 `{profileImageKey: ''}`(기본 이미지)
@@ -33,7 +33,12 @@ export function useProfileEdit() {
   // ─── 닉네임 ───
   const [nameError, setNameError] = useState<string | null>(null);
   const nameCodes = useMemo(
-    () => handleCodes({ USER_400_4: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4) }),
+    () =>
+      handleCodes({
+        USER_400_4: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
+        // 닉네임만 보내므로 본문 검증 실패(공백만·길이 — #884 이후 공백만은 이 코드)는 닉네임 칸 오류다
+        BAD_REQUEST: () => setNameError(PROFILE_ERROR_MESSAGE.USER_400_4),
+      }),
     [],
   );
   const nameMutation = useMutation({

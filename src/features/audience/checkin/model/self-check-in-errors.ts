@@ -19,9 +19,11 @@ export const SELF_CHECK_IN_ERRORS: Record<SelfCheckInErrorKind, SelfCheckInError
     description: '공연장에 있는 체크인 QR을 다시 찍어 주세요',
     canRetry: false,
   },
+  // 서버는 OPEN이 아닌 모든 공연(준비중 포함)에 `Event_400_5`를 준다(`V2CheckInDomainService` → `validateNotOpenStatus`, fe423ed4).
+  // PQ-5 실패에는 공연 상태가 없어 "끝났다"고 단정하지 않는다(계약 대조 2026-10-31, 문구 잠정)
   EVENT_NOT_OPEN: {
     kind: 'EVENT_NOT_OPEN',
-    title: '공연이 끝나 셀프 체크인을 할 수 없어요',
+    title: '지금은 셀프 체크인을 할 수 없는 공연이에요',
     description: '호스트에게 티켓 QR을 보여 주세요',
     canRetry: false,
   },

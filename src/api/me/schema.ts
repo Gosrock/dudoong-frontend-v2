@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { EventDisplayStatusSchema } from '../event/schema';
 import { HostRoleSchema } from '../shared/common-schema';
+import { kstDateTime } from '../shared/date';
 import { pageSchema } from '../shared/page';
 
 /** 내 프로필. 기준: 백엔드 `v2/mypage/dto/response/V2MyPageResponses.kt`(`V2MeResponse`, dev 24aa595 — 432cce4 대조). PM-2 응답도 같다 */
@@ -32,8 +33,13 @@ export type MeHost = z.infer<typeof MeHostSchema>;
 /** 닉네임 길이(`V2UpdateMeRequest.name` `@Size(min = 2, max = 7)` — v1 `ChangeNameRequest`와 같다) */
 export const NICKNAME_MIN = 2;
 export const NICKNAME_MAX = 7;
-/** `@NotBlank`와 같은 판정(`NOT_BLANK_REGEX`): U+0020보다 큰 문자가 하나 이상 */
-const NOT_BLANK = /[^\u0000- ]/;
+/**
+ * 서버 `NOT_BLANK_REGEX`(`(?s).*[^\p{javaWhitespace}].*` — `@NotBlank`와 같은 판정, #884)와 같다: Java `Character.isWhitespace`가
+ * 아닌 문자가 하나 이상. Java 공백 = 유니코드 공백 문자(Zs·Zl·Zp) 중 줄바꿈 금지 공백(U+00A0·U+2007·U+202F)을 뺀 것 +
+ * U+0009~U+000D + U+001C~U+001F(fe423ed4 `V2MyPageRequests.kt`)
+ */
+export const NOT_BLANK =
+  /[^\t\n\u000B\f\r\u001C-\u001F \u1680\u2000-\u2006\u2008-\u200A\u2028\u2029\u205F\u3000]/;
 
 /**
  * PM-2 프로필 부분 수정 본문(엄격). 보낸 필드만 바뀐다(`null`/생략 = 변경 안 함).
@@ -58,8 +64,8 @@ export const RepresentativeEventSchema = z.object({
   eventId: z.number().int(),
   name: z.string().nullable(),
   posterImageUrl: z.string().nullable(),
-  startAt: z.string().nullable(),
-  endAt: z.string().nullable(),
+  startAt: kstDateTime.nullable(),
+  endAt: kstDateTime.nullable(),
   /** UPCOMING · ONGOING · PAST(공개 공연만이라 PREPARING은 오지 않는다 — 값은 enum 전체를 받는다) */
   displayStatus: EventDisplayStatusSchema,
   /** D-n의 n(당일 0). UPCOMING일 때만 */
@@ -87,7 +93,7 @@ export const ArchiveEventSchema = z.object({
   eventId: z.number().int(),
   name: z.string().nullable(),
   posterImageUrl: z.string().nullable(),
-  startAt: z.string().nullable(),
+  startAt: kstDateTime.nullable(),
   host: z.object({ hostId: z.number().int(), name: z.string().nullable() }),
   /** 주문상세(G11/O-3) 이동용 — 이 공연에서 내가 주문하고 입장한 티켓의 주문. 선물받은 티켓으로만 입장했으면 null */
   orderUuid: z.string().nullable(),

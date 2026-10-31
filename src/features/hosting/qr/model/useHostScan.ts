@@ -104,7 +104,7 @@ export function useHostScan(
           {
             onSuccess: (res) => {
               const view = checkInResultView(res, 'host');
-              void invalidateAfterScan(queryClient, eventId);
+              void invalidateAfterScan(queryClient, eventId, res.result);
               // 호스트 스캔에 SELECT_TICKET이 오면 checkInResultView가 UNKNOWN으로 바꾼다 — `select`는 오지 않는다
               then(
                 settle(

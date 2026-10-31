@@ -7,7 +7,7 @@ import { type ApiError } from '@/api/errors';
 import { handleCodes } from '@/api/handle-codes';
 import { addHostMembersMutation } from '@/api/host/mutations';
 import type { AssignableHostRole } from '@/api/host/schema';
-import type { HostRole } from '@/api/shared/common-schema';
+import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import { applyMembers, invalidateHostSummary } from './host-cache';
 import {
@@ -33,7 +33,7 @@ import {
  * - 실패(patterns §24 P10b): `HOST_400_13`·`14`·`15`·`18` → `reason`의 이메일과 같은 줄에 사유(`rowErrors`). 맞는 줄이 없으면 `formError`.
  *   그 줄을 고치면 그 줄의 서버 오류를 지운다. 그 밖(400 `BAD_REQUEST`·403 등)은 전역 토스트
  */
-export function useInviteMembers(hostId: string, myRole: HostRole | null | undefined) {
+export function useInviteMembers(hostId: string, myRole: ActorRole | null | undefined) {
   const queryClient = useQueryClient();
   const roleOptions = useMemo(() => inviteRoleOptions(myRole), [myRole]);
   const [rows, setRows] = useState<InviteRow[]>(() => [emptyInviteRow()]);

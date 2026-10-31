@@ -13,7 +13,7 @@ import { hostMembersQuery, hostViewerQuery } from '@/api/host/queries';
 import type { AssignableHostRole } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
 import { hostingAccessOfRole } from '@/features/hosting/access/model/hosting-access';
-import { can } from '@/features/shared/permission/model/can';
+import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 
 import { applyMembers, invalidateHostSummary, invalidateMyRoleQueries } from './host-cache';
 import {
@@ -28,7 +28,8 @@ import {
  * UI 동작(메뉴·확인 팝업)은 없다(plan §0). 초대는 `useInviteMembers`.
  * `<AsyncBoundary rejected={HostingAccessRejected}>` 안에서 쓴다 — GH-3 viewer(`myRole`)·GH-6·GM-1을 함께 Suspense로 읽는다.
  *
- * - 접근: 비멤버는 GH-6이 403(`HOST_400_2`) → 경계가 공용 403. viewer `myRole`이 null이어도 `access: 'forbidden'`
+ * - 접근: 비멤버는 GH-6이 403(`HOST_400_2`) → 경계가 공용 403. GH-6(G+)이 성공했는데 viewer `myRole`이 null이면 멤버가 아닌
+ *   SUPER_ADMIN이다 — `myRole: 'SUPER_ADMIN'`으로 판정한다(`superAdminOrRole`, 사용자 결정 2026-10-31. 매니저 범위 + 역할 변경)
  * - 버튼: `myRole`(GH-3 viewer)로 `memberActionsOf` — 마스터·매니저·일반 3시점(patterns §22, api-contract §2). 일반 멤버는 목록만
  * - 변경 응답(변경 뒤 멤버 전체 목록)을 GH-6 키에 그대로 넣는다. 삭제는 멤버 수가 바뀌어 GH-3 두 키도 무효화한다
  * - 양도(PH-12) 뒤에는 `myRole`을 주는 쿼리(GH-1 · GH-3 viewer · GE-1 · GE-3 · GM-1)를 무효화한다 — viewer가 다시 오면 버튼이 매니저
@@ -41,7 +42,8 @@ export function useHostMembers(hostId: string) {
   const [{ data: viewer }, { data: members }, { data: me }] = useSuspenseQueries({
     queries: [hostViewerQuery(hostId), hostMembersQuery(hostId), meQuery()],
   });
-  const myRole = viewer.myRole;
+  // GH-6(G+)이 함께 성공했다 — null이면 SUPER_ADMIN
+  const myRole = superAdminOrRole(viewer.myRole);
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingUserId, setPendingUserId] = useState<number | null>(null);
   const inflight = useRef(false);
