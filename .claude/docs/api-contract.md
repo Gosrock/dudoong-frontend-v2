@@ -3,7 +3,7 @@
 > 출처: 백엔드 「두둥 v2 통합 기획서」(2026-10-10, Backend dev `a67e7f25`, #755 컨벤션 통일 이후)와 「두둥 v2 API 안내서」(2026-10-09, #755 **이전**).
 > 두 문서가 다르면 통합 기획서를 따른다. **필드 이름·타입의 최종 기준은 Swagger**(`/swagger-ui/index.html` → `v2-전체` · `v2-호스팅센터` · `v2-사용자앱`)다.
 > 이 문서는 FE가 매번 원문을 열지 않도록 규약과 색인만 옮긴 것이다. 필드 단위 명세는 옮기지 않았다 — 화면 구현 시 Swagger 또는 통합 기획서의 API 레퍼런스에서 해당 ID를 찾는다.
-> **코드 대조 기준: 백엔드 `dev` `432cce4`(2026-10-25).** 처음엔 `24aa595`(2026-10-10)로 대조했고, 그 뒤 머지된 PR로 바뀐 곳에 "(#PR)"을 달았다. 백엔드 Develop 기획서(2026-10-25, 백엔드 팀 프론트 전달용 — 저장소 밖, 요약만 옮김)도 근거로 쓴다. 둘이 다르면 소스를 따른다.
+> **코드 대조 기준: 백엔드 `dev` `432cce4`(2026-10-25).** 처음엔 `24aa595`(2026-10-10)로 대조했고, 그 뒤 머지된 PR로 바뀐 곳에 "(#PR)"을 달았다. 백엔드 Develop 기획서(2026-10-25, 백엔드 팀 프론트 전달용 — 저장소 밖, 요약만 옮김)도 근거로 쓴다. 둘이 다르면 소스를 따른다. **2026-10-31 백엔드 2.5.1(`dev-latest` `78b1b6e7`, #887·#888 — 운영·스테이징 배포) 답변 반영**: 토큰 수명(§9), `marketingAgree`·T-3 읽음 동기화(마이페이지 절), `orderMethod`(예매자 관리 절), 승인 전 취소 호스트 메일(취소 절).
 > 운영 어드민(`/internal-api`) 전용 변경(#803·#824·#826 태그·#828·#842·#847 등)은 v2 화면과 무관해 옮기지 않는다 — 단 v2 응답 값이 바뀌는 것(#826 선물 `cancelReason=ADMIN`, #828 운영자 대리 처리)은 적는다.
 
 ## 0. 전제
@@ -88,7 +88,7 @@
 2. `presignedUrl`로 S3에 PUT.
 3. 저장 API에 받은 `key`를 그대로 보낸다(PH-4, PE-4, PM-2). `""` = 기본 이미지. 섹션 본문 이미지는 받은 `url`을 HTML에 넣는다.
 
-`presignedUrl`은 **3분** 유효하다. 발급 직후 올리고, 실패하면 발급부터 다시 한다. 발급은 **사용자당 분당 30회** 제한이다. 화면에서 반복 호출하지 않는다. 확장자는 `JPEG` · `JPG` · `PNG`만 받고, `JPG`로 보내도 key는 `.jpeg`로 발급된다.
+`presignedUrl`은 **3분** 유효하다. 발급 직후 올리고, 실패하면 발급부터 다시 한다. 발급은 **사용자당 분당 30회** 제한이다(운영 값도 기본 30 — 백엔드 답변 2026-10-31, B7). 화면에서 반복 호출하지 않는다. 확장자는 `JPEG` · `JPG` · `PNG`만 받고, `JPG`로 보내도 key는 `.jpeg`로 발급된다.
 
 ### API ID 표기
 
@@ -373,7 +373,7 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 - 송금은 호스트가 직접 하고 [환불 완료](PF-2)를 누른다.
 - 환불 계좌 입력·수정(P11/O-5)은 `refundStatus=REQUESTED` 동안만. 입구는 G11/O-3의 `canEditRefundAccount`로만 띄우고, `refundAccountRequired=true`면 입력을 유도한다. 서버 조건(`refundAccountBlocker` @fe423ed4 — 계약 대조 2026-10-31): v2 주문이거나 계좌 행이 있는 v1 주문 + 승인형(`orderMethod=APPROVAL`) + 결제 금액 > 0 + 주문 상태 취소·환불(`CANCELED`·`REFUND`) + 환불 상태 요청·완료. 이 중 환불 완료면 `Order_400_28`, 그 밖에 하나라도 어긋나면 `Order_400_27`.
 - 0원 주문의 거절·호스트 취소는 환불 요청을 만들지 않는다.
-- 관객이 유료 두둥티켓 주문을 취소하면(O-4) 호스트의 활성 마스터·매니저에게 "환불해 주세요" 메일이 간다(#836, `WithDrawOrderEvent` AFTER_COMMIT, 조건 `isDudoongTicketOrder && isRefund`). API 계약 변화는 없다.
+- 관객이 유료 두둥티켓 주문을 취소하면(O-4) 호스트의 활성 마스터·매니저에게 "환불해 주세요" 메일이 간다(#836, `WithDrawOrderEvent` AFTER_COMMIT, 조건 `isDudoongTicketOrder && isRefund`). API 계약 변화는 없다. **승인 전(승인 대기) 취소면 제목·본문이 "두둥티켓 구매자가 승인 전 주문을 취소했습니다. 입금됐다면 환불해 주세요."로 바뀐다**(#887 @c80a3b73 — `HostRefundMailDto.approved = order.approvedAt != null`, B13). 화면 문구에 메일 이야기는 넣지 않는다(사용자 결정 그대로).
 - **입금 미확인 거절(`DEPOSIT_UNCONFIRMED`)은 `refundAccountRequired=false`**다(입력은 할 수 있다). 계좌 입력 유도는 그 밖의 거절·호스트 취소에서만 뜬다.
 
 ### 선물 (F7)
@@ -399,7 +399,7 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
   - PQ-2 검사 순서: 본문 `@NotBlank @Size(max = 64)`(400 `BAD_REQUEST`) → `@HostRolesAllowed(GUEST)`(없는·지운 공연 404 `Event_404_1`, 비멤버 403 `HOST_400_2`) → 공연 상태(`Event_400_27` "입장 처리를 할 수 없는 공연 상태입니다.") → 판정. 판정은 티켓 행 잠금 후 `classify`: 없음·다른 공연 → `OTHER_EVENT`(티켓 null) → 취소 `CANCELED` → 입장 후 `ALREADY_ENTERED` → 선물 대기 `GIFT_PENDING` → `ENTERED`(입장 처리). 선물 수락으로 uuid가 바뀐 옛 QR은 `OTHER_EVENT`.
   - GQ-4 `{token, qrPath}` — 토큰은 32바이트 base64url 43자, 처음 읽을 때 만든다. **공연 상태를 보지 않는다**(없는·지운 공연만 404) — 셀프 체크인이 되는지는 화면이 GE-3 `status`로 판정한다(P13b). `qrPath` = `/check-in?token=` + URL 인코딩 토큰.
   - 셀프 체크인 판정은 `status == OPEN`만 본다(표시 상태가 아니다) — 종료 시각이 지났어도 OPEN이면 된다.
-  - **정산중(CALCULATING)이 되는 길**: v2에는 없다. v1 `PATCH` 공연 상태(`UpdateEventStatusUseCase`)로만 된다. 자동 만료 배치(`EventExpiration` → `closeExpiredEventsEndAtBefore`)는 종료된 OPEN 공연을 CALCULATING → CLOSED로 한 번에 바꿔 **CLOSED로 저장**한다 — 배치가 돈 뒤에는 호스트 스캔도 `Event_400_27`. 배치 주기는 Deploy `infra/batch.yml` `EventExpirationSchedule` — 매일 19:00~22:30 KST 30분마다, 실행 시각 기준(2026-10-31 확인). 22:30 뒤에 끝나는 공연은 다음 날 19:00까지 OPEN이다. 운영에서 켜져 있는지는 backend-questions B7.
+  - **정산중(CALCULATING)이 되는 길**: v2에는 없다. v1 `PATCH` 공연 상태(`UpdateEventStatusUseCase`)로만 된다. 자동 만료 배치(`EventExpiration` → `closeExpiredEventsEndAtBefore`)는 종료된 OPEN 공연을 CALCULATING → CLOSED로 한 번에 바꿔 **CLOSED로 저장**한다 — 배치가 돈 뒤에는 호스트 스캔도 `Event_400_27`. 배치 주기는 Deploy `infra/batch.yml` `EventExpirationSchedule` — 매일 19:00~22:30 KST 30분마다, 실행 시각 기준(2026-10-31 확인). 22:30 뒤에 끝나는 공연은 다음 날 19:00까지 OPEN이다. **운영에서 켜져 있다**(백엔드 답변 2026-10-31, 운영·스테이징 — B7).
 
 ### 운영 (F9)
 
@@ -416,13 +416,15 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
   - 파라미터: GR-1·GR-6 `status`(ALL 기본, FAILED 포함 6값)·`searchType`(NAME 기본)·`keyword`(50자), GI-1·GI-3 `entrance`(ALL·BEFORE·DONE)·`searchType`(NAME·PHONE — `AdminTableSearchType`), GF-1 `status`(ALL·REQUESTED·COMPLETED)만 — **GF-1은 검색이 없다**. 표 크기 기본 20·상한 100(`V2Paging`). 엑셀에는 페이지가 없다.
   - 일반 멤버 검색: 연락처는 숫자만 비교하는 전체 번호 완전 일치(`010-1234-5678`·`01012345678`·`+82 10-…` 모두 같다), 입금자명은 문자열 완전 일치, 이름은 부분 일치. 가림은 연락처 `010-****-5678`, 이메일 `ab***@…`, 입금자명 `김*수`(`maskName` — 2자 `김*`, 1자 `*`).
   - 상태 분류: 사용자 취소·환불(v1 `REFUND`)은 호스트 화면에서 `CANCELED`다(사용자 화면은 환불 여부로 `CANCELED`·`REFUNDED`). 거절 사유 문구는 종류 라벨(`입금 미확인`·`결제 금액 오류`·`티켓 매진`, 기타는 입력값)이 `refuseReason`으로 온다.
+  - **주문 방식 `orderMethod`(GR-1 행·GR-2 `order`, #888 @78b1b6e7 — `V2OrderElement`, `V2OrderMethod`)**: `APPROVAL` = 승인형(유료면 두둥티켓 — 호스트가 직접 환불, 무료면 승인형 무료) / `PAYMENT` = 결제형(v1 PG 결제·선착순 무료). **v1 주문도 값이 있다**(`paymentChannel`은 v1 주문 null). 서버 타입은 nullable(도메인 값이 없을 때만 null). 거절·승인 후 취소 확인의 직접 환불 안내(legal-copy C-3·C-4)는 `orderMethod == APPROVAL && totalAmount > 0`(B19 — FE `isDudoongOrder`. `orderMethod`가 null·모르는 값일 때만 예전 판정 `paymentChannel` 계좌이체·null + 금액 > 0).
   - PR-3 검사 순서: 공연 소속(404) → PG 주문 `Order_400_7` → 승인 대기 아님 `Order_400_3` → 공연 OPEN `Event_400_5` → 시작 전 `Event_400_6` → 재고 `Ticket_Item_400_1` → 1인 제한(발급 + 이번 수량) `Ticket_Item_400_6` → 옵션 변경 `Order_400_13` → 탈퇴 `Order_400_14`. PR-4: 본문 `@Valid` → 권한 → **사유(`Order_400_18`)가 주문 조회보다 먼저** → 404 → 시작 후 `Order_400_9`(`RefundInfoVo` — 지금이 시작 전인지) → 승인 대기 아님 `Order_400_5` → OPEN `Event_400_5`. PR-5: 권한 → 404 → `Order_400_9` → 승인 완료 아님 `Order_400_5` → `Event_400_5`, 본문은 선택(`reason` 100자, 공백만이면 null). PF-2: 404 → 완료면 그대로 200 → NONE이면 `Order_400_17`. 처리 응답은 언제나 원본 연락처·환불 계좌(변경 API는 매니저 이상).
   - GD-1: `orders`는 GR-1과 같은 분류의 건수(`refundRequested`는 환불 요청 상태 주문 수), `tickets.items[].soldCount` = 공급량 − 재고(무제한이면 `supplyCount: null`, 하나라도 무제한이면 `totalSupplyCount: null`), `salesAmount` = 승인·결제 완료 주문 결제금액 합, `entranceStats`는 유효 티켓 기준(발급 0이면 입장률 0), `dDay`는 UPCOMING일 때만.
 
 ### 마이페이지 · 알림 (F10 · F11)
 
 - 내 티켓(G11/T-1): 주문 단위 묶음, 공연 임박순, 페이지 없음. `groupKey`는 내 주문 = 주문 uuid, 받은 티켓 = `ticket:{첫 티켓 번호}`(이때 `orderUuid`가 `null` → [주문상세] 없음).
-- 공지 바(G11/T-3) 해제는 그 승인 알림을 읽거나 그 주문 티켓을 G11/T-2로 열 때다. 티켓탭 진입만으로는 해제되지 않는다.
+- 공지 바(G11/T-3) 해제는 그 승인 알림을 읽거나 그 주문 티켓을 G11/T-2(보낸 선물이면 GG-7a)로 열 때다. 티켓탭 진입만으로는 해제되지 않는다. **#888(@78b1b6e7)부터 T-2·GG-7a는 읽기 전용 조회가 끝난 뒤 응답 전에 읽음 처리를 끝낸다**(별도 트랜잭션, 3초 제한 — `V2MyTicketUseCase.markApprovedReadOnView`). 그래서 응답 직후 T-3은 `hasNew: false`다 — FE는 T-3을 한 번 무효화할 뿐 기다리거나 다시 읽지 않는다. 읽음 처리가 드물게 실패해도(잠금 대기 초과 등) T-2는 200이고 warn만 남는다 — 바는 다음에 열 때까지 남을 수 있다(B9 — 예전 커밋 뒤 비동기 핸들러 `handleOrderTicketViewed`는 지워졌다).
+- 내 프로필 GM-1·PM-2 응답에 **`marketingAgree`**(boolean, 필수)가 있다(#888 — `V2MeResponse`). 바꾸기는 PM-2 본문 `{"marketingAgree": true|false}` — **값 지정(멱등)**, 생략·`null`은 변경 안 함(`V2UpdateMeRequest`·`V2UserDomainService.updateProfile` → `User.changeMarketingAgree`). v1 반전 API(`PATCH /api/v1/users/me/marketing`)·v1 `GET /api/v1/users/me`로 현재 값을 읽는 우회는 쓰지 않는다(B17). 거래 메일 수신(v1 `receiveMail`)과는 다른 설정.
 - 주문상세에 호스트 연락처가 없어 문의 시트는 GP-3을 다시 부른다. **원문을 받으려면 쿠키를 실어 부른다**(공개 키 `credentials: 'omit'`로 부르면 비로그인 값 = 가린 값, #846).
 - 삭제된 공연의 내 주문·티켓 상세(11/O-3·11/T-2·보낸 선물 티켓 상세)는 404가 아니라 200 + `event: null`이고 `canCancel`·`canGift`·`canReturn`은 false, `qrValue`는 `null`이다(#789 — 24aa595에 이미 포함, 문서만 빠져 있었다. 코드 `src/api/my-ticket/schema.ts`는 이미 `event` nullable).
 - 탈퇴하면 내가 보낸 대기 중 선물이 취소된다. 탈퇴 확인 문구에 넣는다.
@@ -473,7 +475,7 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 |---|---|
 | `POST /token/refresh` | 리프레시 토큰을 본문 `{refreshToken}` → 쿠키 순으로 읽는다. FE는 본문 없이 쿠키만으로 부른다. 응답은 `TokenAndUserResponse` + `Set-Cookie`. 실패(토큰 없음·만료·서명·형식 오류·서버에 없음 — 세션 상한 10개를 넘어 밀려난 세션, 30초 유예가 지난 옛 토큰 재사용(그 세션은 폐기)도 여기, #807)는 HTTP 403 `AUTH_403_1`이고 **쿠키를 지우지 않는다**. 정지 계정이면 403 `USER_403_1`(`RefreshUseCase` → `loginUser`), 사용자 행이 없으면 404 `USER_404_1`, 잘못된 본문이면 400. 재발급은 `permitAll`이라 **만료·잘못된 액세스 쿠키가 같이 실려도 401이 나지 않는다**(#792 — 이전 24aa595에서는 JWT 필터가 401 `AUTH_401_1`·`GLOBAL_401_1`을 내 FE가 한 번 더 시도했다. 그 재시도는 2026-10-25 지웠다). 재발급도 IP 요청 제한(`ThrottlingInterceptor` — 유효한 액세스 토큰이 없으면 IP 버킷, 기본 분당 60)에 걸려 429 `GLOBAL_429_1`이 날 수 있다. FE 판정: 2xx 성공 / 429·408을 뺀 4xx(401 포함) 세션 상실 / 429(요청 제한)·408·5xx·네트워크·타임아웃 일시 오류(patterns §5-1). 같은 세션의 직전 토큰은 30초 동안 다시 재발급할 수 있어 탭 여러 개의 동시 재발급이 안전하다(`RefreshTokenAdaptor.GRACE_MILLIS` @432cce4) |
 | `POST /logout` | **언제나 200 + 쿠키 2개 삭제**(#793, `AuthController.logoutUser` Operation "토큰이 잘못돼도 항상 200"). 이 기기의 세션만 서버에서 지운다 — 유효한 액세스 토큰이 있으면 그 세션 id로 지우고, 리프레시 토큰(본문 `refreshToken` → 쿠키 순)이 있으면 그 세션의 현재(또는 유예 안 직전) 토큰일 때 그 세션도 지운다. 그래서 액세스가 없거나 만료여도 리프레시로 정리된다(`LogoutUseCase`·`AuthController.logoutUser` @432cce4). 리프레시 쿠키는 path `/`라 같은 출처 요청에 자동으로 실리므로 FE는 본문 없이 불러도 서버 세션이 정리된다. FE는 응답과 상관없이(5xx·네트워크 포함) 로컬 정리(`queryClient.clear()`, `dd:session` 제거) 후 이동한다 |
-| `PATCH /api/v1/users/me/marketing` | 마케팅 수신 동의를 **반전(토글)**한다. 본문 없음, 응답 `UserInfoVo`(`UserController` @432cce4). `PATCH /api/v1/users/me/mail`(`receiveMail`)은 거래 메일까지 끄는 다른 스위치라 섞지 않는다(백엔드 Develop 기획서). v2 GM-1에는 현재 값(`marketingAgree`)이 없다 — backend-questions B17. v2 계획에 화면이 없다(plan P9 "범위 미정") |
+| `PATCH /api/v1/users/me/marketing` | 마케팅 수신 동의를 **반전(토글)**한다. 본문 없음, 응답 `UserInfoVo`(`UserController` @432cce4). `PATCH /api/v1/users/me/mail`(`receiveMail`)은 거래 메일까지 끄는 다른 스위치라 섞지 않는다(백엔드 Develop 기획서). **v2는 이 API를 쓰지 않는다** — 2026-10-31 #888로 GM-1에 `marketingAgree`, PM-2에 값 지정 `{marketingAgree}`가 생겼다(위 마이페이지 절, B17) |
 | `DELETE /me` | 회원 탈퇴 + 쿠키 삭제. 마스터인 호스트에 다른 활성 멤버나 OPEN·정산중 공연이 있으면 400 `USER_400_6`(위 마이페이지 절과 같다) |
 
 ### 환경별 설정
@@ -489,7 +491,7 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 - 운영·스테이징에서 API는 프론트와 **같은 출처**다(nginx가 `/api`를 백엔드로 보낸다). 브라우저는 상대 경로 `/api/v2/…`로 부른다.
 - 로컬에서는 Next `rewrites`로 `/api`를 dev API에 연결해 같은 모양으로 쓴다. dev API를 직접 부르면 쿠키가 서드파티 쿠키(`SameSite=None`)가 되어 브라우저 설정에 따라 막힌다.
 - FE 처리 규칙(`dd:session`이 있을 때만 401 → 재발급 한 번, 탭 간 직렬화, 세션 쿼리 결과 셋, 공개 GET은 쿠키 없이)은 [`tech-decisions.md`](./tech-decisions.md) §4 인증과 [`patterns.md`](./patterns.md) §5에 있다. 인증 API는 `/api/v1/auth` 아래라 v2 `api` 객체가 아니라 별도 `authApi` 인스턴스로 부른다. `authApi`에는 401 가로채기가 없다(재발급 호출이 다시 재발급을 부르지 않게).
-- 액세스 토큰 수명 기본 3600초, 리프레시 토큰도 기본 3600초(env로 바뀜). 리프레시 토큰은 로그인(기기)마다 따로 있다(사용자당 최대 10세션, #807 — §1).
+- 액세스 토큰 수명 기본 3600초, 리프레시 토큰도 기본 3600초(env로 바뀜). **운영·스테이징 값은 둘 다 518400초(6일)**(백엔드 답변 2026-10-31, B2 — env라 저장소로는 알 수 없다). 리프레시(6일)가 Safari의 7일 `localStorage` 삭제보다 먼저 끝나므로 `dd:session`이 지워질 때 살아 있는 리프레시 쿠키는 없다(tech-decisions §4). 리프레시 토큰은 로그인(기기)마다 따로 있다(사용자당 최대 10세션, #807 — §1).
 
 ## 10. 알림 문구 (주문·호스트·공연)
 

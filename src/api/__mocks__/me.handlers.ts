@@ -53,11 +53,19 @@ const NOT_BLANK = /[^\u0000- ]/;
 /** 업로드 mock(`upload-handlers.ts`)이 mock 사용자(1)에게 발급하는 key 접두 */
 const OWN_IMAGE_KEY_PREFIX = 'user/1/';
 
-/** PM-2 — Bean Validation(400 `BAD_REQUEST`) → 이미지 key 소유(`USER_400_5`) → 저장 */
+/** PM-2 — Bean Validation(400 `BAD_REQUEST`) → 이미지 key 소유(`USER_400_5`) → 저장. `marketingAgree`는 값 지정(멱등, #888) */
 async function updateProfile(request: Request) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body || typeof body !== 'object') return errors.badRequest(request);
-  const { name, profileImageKey } = body;
+  const { name, profileImageKey, marketingAgree } = body;
+  // boolean이 아니면 본문 읽기 실패(400 `BAD_REQUEST`)로 본다 — mock 단순화(Jackson의 문자열 변환은 흉내 내지 않는다)
+  if (
+    marketingAgree !== undefined &&
+    marketingAgree !== null &&
+    typeof marketingAgree !== 'boolean'
+  ) {
+    return errors.badRequest(request);
+  }
   if (name !== undefined && name !== null) {
     if (typeof name !== 'string' || !NOT_BLANK.test(name) || name.length < 2 || name.length > 7) {
       return errors.badRequest(request, { name: '크기가 2에서 7 사이여야 합니다' });
@@ -74,6 +82,7 @@ async function updateProfile(request: Request) {
   profile = {
     ...profile,
     ...(typeof name === 'string' && { name }),
+    ...(typeof marketingAgree === 'boolean' && { marketingAgree }),
     ...(typeof profileImageKey === 'string' && {
       profileImageUrl: profileImageKey === '' ? null : `${MOCK_IMAGE_ORIGIN}/${profileImageKey}`,
     }),

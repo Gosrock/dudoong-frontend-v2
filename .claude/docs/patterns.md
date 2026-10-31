@@ -281,7 +281,7 @@ try {
 - `window`의 `storage` 이벤트로 `dd:session`이 **사라지거나 값이 바뀌면** `queryClient.clear()` 후, 보호 영역이면 `location.assign('/login?redirect=…')`, 그 밖이면 `location.reload()`. 한 탭의 로그아웃·계정 전환이 다른 탭에 남은 이전 사용자 화면을 지운다.
 - 루트에 `pageshow` 핸들러를 두고, `event.persisted`이면서 `dd:session` 값이 페이지 로드 때와 다르면 `location.reload()`. 값 비교라 "A 로그아웃 → B 로그인 → 뒤로가기로 A 화면 복원"도 잡는다.
 - 이동은 `src/api`가 하지 않는다. `src/api`는 `setAuthHandlers({ refresh, onSessionLost })`로 주입받고, 등록은 `features/shared/auth`가 한다. 그래서 `src/api`가 `features`나 라우터를 import하지 않는다.
-- `localStorage`는 Safari ITP에서 7일 미방문 시 지워질 수 있다. 그러면 리프레시 쿠키가 살아 있어도 조용한 재발급 대신 익명으로 시작한다. 지금 토큰 수명(기본 3600초)에서는 영향이 없다. [`backend-questions.md`](./backend-questions.md) B2의 답으로 수명이 길어지면 다시 본다.
+- `localStorage`는 Safari ITP에서 7일 미방문 시 지워질 수 있다. 그러면 리프레시 쿠키가 살아 있어도 조용한 재발급 대신 익명으로 시작한다. 운영·스테이징 토큰 수명은 6일(518400초, B2 답 2026-10-31)이라 리프레시가 7일보다 먼저 끝나 영향이 없다(tech-decisions §4 인증). 수명이 7일 이상으로 늘면 다시 본다.
 
 ### 5-2. 로그
 

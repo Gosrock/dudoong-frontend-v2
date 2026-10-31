@@ -5,7 +5,7 @@ import { HostRoleSchema } from '../shared/common-schema';
 import { kstDateTime } from '../shared/date';
 import { pageSchema } from '../shared/page';
 
-/** 내 프로필. 기준: 백엔드 `v2/mypage/dto/response/V2MyPageResponses.kt`(`V2MeResponse`, dev 24aa595 — 432cce4 대조). PM-2 응답도 같다 */
+/** 내 프로필. 기준: 백엔드 `v2/mypage/dto/response/V2MyPageResponses.kt`(`V2MeResponse`, dev 24aa595 — 432cce4 대조, `marketingAgree`는 78b1b6e7 #888). PM-2 응답도 같다 */
 
 export const MeHostSchema = z.object({
   hostId: z.number().int(),
@@ -20,6 +20,8 @@ export const MeSchema = z.object({
   email: z.string().nullable(),
   /** 기본 이미지면 null */
   profileImageUrl: z.string().nullable(),
+  /** 마케팅 수신 동의(마이페이지 토글 초기값, #888). 바꾸기는 PM-2 `{marketingAgree}`. 거래 메일 수신(v1 `receiveMail`)과는 다른 설정 */
+  marketingAgree: z.boolean(),
   /** 소속(활성) 호스트, 합류 최신순 최대 10개 */
   hosts: z.array(MeHostSchema),
   /** 소속 호스트 전체 수. hosts보다 많으면 GH-1로 전체 목록 */
@@ -43,16 +45,22 @@ export const NOT_BLANK =
 
 /**
  * PM-2 프로필 부분 수정 본문(엄격). 보낸 필드만 바뀐다(`null`/생략 = 변경 안 함).
- * `profileImageKey`는 PM-3이 준 `key`, 빈 문자열이면 기본 이미지(255자). 응답은 GM-1과 같은 `Me`.
+ * `profileImageKey`는 PM-3이 준 `key`, 빈 문자열이면 기본 이미지(255자). `marketingAgree`는 값 지정이라 재시도해도 같은 값이다
+ * (#888 — v1 `PATCH /api/v1/users/me/marketing`의 반전은 쓰지 않는다). 응답은 GM-1과 같은 `Me`.
  */
 export const UpdateMeRequestSchema = z
   .strictObject({
     name: z.string().min(NICKNAME_MIN).max(NICKNAME_MAX).regex(NOT_BLANK).optional(),
     profileImageKey: z.string().max(255).optional(),
+    marketingAgree: z.boolean().optional(),
   })
-  .refine((b) => b.name !== undefined || b.profileImageKey !== undefined, {
-    message: '바꿀 필드가 하나는 있어야 한다',
-  });
+  .refine(
+    (b) =>
+      b.name !== undefined || b.profileImageKey !== undefined || b.marketingAgree !== undefined,
+    {
+      message: '바꿀 필드가 하나는 있어야 한다',
+    },
+  );
 export type UpdateMeRequest = z.infer<typeof UpdateMeRequestSchema>;
 
 /** GM-4 `status` 필터(`V2FollowingHostFilter`). ACTIVE = 진행 중·예정 공개 공연이 있음, ENDED = 끝난 공개 공연만 */

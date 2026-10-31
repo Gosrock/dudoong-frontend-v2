@@ -21,6 +21,14 @@ export const PAYMENT_CHANNELS = ['BANK_TRANSFER', 'TOSS_TRANSFER', 'FREE'] as co
 export const PaymentChannelSchema = openEnum('PaymentChannel', PAYMENT_CHANNELS);
 export type PaymentChannel = (typeof PAYMENT_CHANNELS)[number];
 
+/**
+ * 호스트 주문의 주문 방식(GR-1·GR-2 `orderMethod`, 백엔드 `V2OrderMethod` #888 @78b1b6e7). APPROVAL = 승인형(유료면 두둥티켓 —
+ * 호스트가 직접 환불, 무료면 승인형 무료), PAYMENT = 결제형(v1 PG 결제·선착순 무료). v1 주문도 값이 있다(`paymentChannel`은 v1 주문 null)
+ */
+export const ORDER_METHODS = ['APPROVAL', 'PAYMENT'] as const;
+export const OrderMethodSchema = openEnum('OrderMethod', ORDER_METHODS);
+export type OrderMethod = (typeof ORDER_METHODS)[number];
+
 /** 사용자 주문 상태. 결제 진행 중·실패(FAILED)는 사용자에게 보이지 않아 null로 온다(`V2MyOrderStatus.of`) */
 export const MY_ORDER_STATUSES = [
   'PENDING_APPROVE',
@@ -369,6 +377,8 @@ export const HostOrderElementSchema = z.object({
   cancelReason: z.string().nullable(),
   /** v1 주문은 null */
   paymentChannel: PaymentChannelSchema.nullable(),
+  /** 주문 방식(#888). v1 주문도 값이 있다. 서버 타입은 nullable(도메인 값이 없을 때) */
+  orderMethod: OrderMethodSchema.nullable(),
   depositorName: z.string().nullable(),
 });
 export type HostOrderElement = z.infer<typeof HostOrderElementSchema>;

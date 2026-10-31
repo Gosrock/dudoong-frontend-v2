@@ -7,6 +7,7 @@ export const me: Me = {
   name: '두둥이',
   email: 'dudoong@example.com',
   profileImageUrl: null,
+  marketingAgree: false,
   hosts: [
     {
       hostId: 11,
