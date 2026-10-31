@@ -73,6 +73,7 @@ Ready for dev가 없는 화면은 와이어프레임을 근거로 **단순 와�
    | 라벨 | 대상 화면 상태 | 처리 |
    |---|---|---|
    | `Design: 신규 화면` | 무엇이든 | **작업을 띄우지 않는다.** 그 화면의 근거를 와이어 → GUI(이슈 노드)로 `gui-screens.md` §0·`progress.md`에서 고치기만 한다. 디자이너가 완성 GUI로 등록한 프레임이므로 Ready for dev 표시가 없어도 근거로 본다(Ready-only 규칙 2026-10-25의 예외, 사용자 지시 2026-11-01). 구현은 그 Phase 차례에, 이슈는 그 구현 PR `Closes #n` |
+   | `Design: Ready for dev` | 무엇이든 | `Design: 신규 화면`과 같다 — 그 화면 근거가 GUI(이슈 노드)가 된다. 대상 Phase가 진행 중이면 그 세션에 전달해 같은 PR에서 `Closes`(🤖 관제탑 판단 2026-11-01 — 플러그인이 Ready 표시를 이슈로 올린 라벨, 첫 사례 #47~#57) |
    | `Design: 수정` | `GUI 구현됨` | 바로 반영 — `design-<n>` 워크트리(관제탑 스킬 `main-phase` ②) |
    | `Design: 수정` | `미구현`·`와이어로 구현됨` | **계획만 고친다** — `gui-screens.md` §0 그 화면 줄 "열린 이슈" 칸 + `plan.md` 그 Phase 절에 한 줄. 구현은 그 Phase 차례에(GUI 근거로), 이슈는 그 PR `Closes #n` |
    | `Design: 디자인 시스템` | 바뀐 컴포넌트를 `GUI 구현됨` 화면이 씀 | 바로 반영(아래 2 · 스킬 `gui-implement` "디자인 시스템 변경") |

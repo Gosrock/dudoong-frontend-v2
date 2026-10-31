@@ -49,6 +49,7 @@ gh issue list --label "Design Sync" --state open --search '-label:"Test: figma-p
   - `Design: 신규 화면` → **띄우지 않는다.** 그 화면 근거를 와이어 → GUI(이슈 노드)로 `gui-screens.md` §0·`progress.md`에서 고치는 docs PR만. 이슈는 그 Phase 구현 PR이 `Closes`.
   - `Design: 수정` → 대상이 **`GUI 구현됨`이면** 이슈 반영 워크트리가 다음 순서보다 먼저(이름 `design-<이슈번호>`, 틀 `prompt-issue.md`). `미구현`·`와이어로 구현됨`이면 **계획만** — gui-screens §0 "열린 이슈" 칸 + plan 그 Phase 절 한 줄(docs PR), 그 Phase V 프롬프트 "열린 이슈" 칸에 넣어 구현 때 `Closes`.
   - `Design: 디자인 시스템` → 바뀐 컴포넌트를 **`GUI 구현됨` 화면이 쓰면** 바로(`design-<n>` 또는 DS 묶음 워크트리). 아니면 `design-system.md` §8 "반영 대기"로 적고(docs PR) 그 컴포넌트를 쓰는 Phase 프롬프트에 넣는다.
+  - `Design: Ready for dev` → `Design: 신규 화면`과 같게. 대상 Phase 세션이 돌고 있으면 그 세션에 `orca terminal send`로 넘겨 같은 PR에서 `Closes`.
 - `Test` 라벨 없이 시험으로 만든 이슈(본문 "테스트")는 건너뛰고 "사용자 대기"에 "닫을지"로 올린다. 관제탑이 닫지 않는다.
 
 ## ③ 다음 작업 고르기
