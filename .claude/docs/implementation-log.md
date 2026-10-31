@@ -1947,3 +1947,14 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 4. `connect-src https://*.amazonaws.com https://*.dudoong.com` — 운영 S3 presigned 호스트를 코드에서 알 수 없다(발급 응답 값). 스테이징 업로드에서 실제 호스트를 보고 좁힌다(사용자 대기) / `csp.ts`
 5. wasm은 저장소에 그대로 넣음(0.9MB) — Docker 빌드가 `--ignore-scripts`라 설치 때 복사하는 스크립트가 돌지 않는다. 대신 `zxing-wasm.test.ts`가 설치된 zxing-wasm과 버전 · 바이트(sha256)를 비교해 라이브러리를 올리면 실패한다. 라이선스 `THIRD_PARTY_NOTICES.md`(zxing-wasm MIT · zxing-cpp Apache-2.0) / 되돌리려면 `CameraScanner.tsx`의 `applySelfHostedZxing()` 한 줄을 지우고 CSP에 `https://fastly.jsdelivr.net` 추가
 6. 감사는 overrides로 패치만 — `pnpm update --depth Infinity`는 webpack·schema-utils 등 다른 패키지까지 올리고 peer 경고를 내서 버렸다 / `package.json` `pnpm.overrides`
+
+**사용자 대기**
+- CSP 강제 전환 — D2 스테이징에서 카카오 공유 · 지도 · 우편번호 · 이미지 업로드를 한 바퀴 돌고 `csp.violation` 로그가 0인지 본 뒤 `CSP_ENFORCE=1` 빌드(S3 presigned 실제 호스트를 보면 `connect-src`를 좁힌다)
+- nginx 접근 로그의 선물 토큰(경로) — 보존 기간 · 접근 권한(Deploy · 운영 계정)
+- 운영 nginx가 `Referrer-Policy` · `X-Frame-Options`를 실제로 붙이는지 D2에서 응답 헤더로 확인
+- (nginx) `/csp-report`에 요청 수 제한을 둘지 — 앱은 본문 16KB 제한 · 한 번에 10건만 로그
+
+**검사**(2026-11-01, `NEXT_PUBLIC_KAKAO_JS_KEY=dummy`)
+- typecheck · 바꾼 파일 eslint 통과, `vitest related`(바꾼 파일) 63파일 1050건 통과 — 새 테스트 `csp.test.ts` · `summarize.test.ts` · `zxing-wasm.test.ts` · `serverQuery.test.ts` · `kakao-sdk.test.ts`(+1)
+- **e2e 전체 398/398 통과** — 모든 테스트에 `cspViolations` · `consolePii` fixture. 첫 실행에서 zod eval 위반(19번)을 잡아 고친 뒤 위반 0. 서버 로그 `csp.violation` 10건은 가짜 S3(`s3.mock.dudoong.test` 6 — fixture가 뺌)와 `security.spec`의 의도한 양성 대조 · 보고 받기 입력(4)뿐
+- **QA 전체(`pnpm qa`) 통과 381 · 수동 16** — 첫 실행의 SHELL-2 실패 1건은 #77 뒤 낡은 시나리오로, main #78이 고쳐 둔 것(main 병합 뒤 `pnpm qa shell` 10/10). QA `hosting-qr` QR-1(mobile · desktop)이 wasm을 우리 출처 `/vendor/zxing-wasm/3.1.6/zxing_reader.wasm`에서 200으로 받고 jsdelivr 요청 0인 것을 본다
