@@ -7,8 +7,9 @@ import { requestOrigin } from '@/api/server/request-origin';
 import { serverQuery } from '@/api/server/serverQuery';
 import { EventDetailView } from '@/features/audience/event/EventDetail/EventDetailView';
 import { parseEventIdParam } from '@/features/audience/event/model/event-id';
+import { eventJsonLd, serializeJsonLd } from '@/features/audience/event/model/event-json-ld';
 import { eventMetadata } from '@/features/audience/event/model/event-metadata';
-import { eventPageUrl } from '@/features/audience/event/model/event-summary';
+import { eventPageUrl, hostPageUrl } from '@/features/audience/event/model/event-summary';
 
 /** 서버 조회 페이지는 페이지마다 instant=false를 둔다(tech-decisions §2). 이 위에 Suspense·loading.tsx를 두지 않는다(404 상태 코드). */
 export const instant = false;
@@ -35,12 +36,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return eventMetadata(event, eventPageUrl(origin, eventId));
 }
 
-/** 공연 상세(GP-3 + GE-5). 재고(GP-5)는 서버에서 부르지 않는다 — 티켓 선택(P6)이 브라우저에서 읽는다. */
+/**
+ * 공연 상세(GP-3 + GE-5). 재고(GP-5)는 서버에서 부르지 않는다 — 티켓 선택(P6)이 브라우저에서 읽는다.
+ * 구조화 데이터(`schema.org/Event` JSON-LD)를 응답 HTML에 넣는다(이슈 #8 — 검색·AI 크롤러는 JS를 실행하지 않는다).
+ * GP-3·GE-5는 같은 요청 QueryClient라 `<Prefetch>`가 다시 부르지 않는다.
+ */
 export default async function EventDetailPage({ params }: Props) {
   const eventId = await readEventId(params);
+  const queries = [eventDetailQuery(eventId), eventSectionsQuery(eventId)] as const;
+  // GE-5도 같이 시작한다 — `<Prefetch>`는 요청 QueryClient에 이미 있는 값을 쓴다
+  const [event, origin] = await Promise.all([
+    serverQuery(queries[0]),
+    requestOrigin(),
+    serverQuery(queries[1]),
+  ]);
+  const jsonLd = eventJsonLd(event, {
+    pageUrl: eventPageUrl(origin, eventId),
+    hostUrl: hostPageUrl(origin, event.host.hostId),
+  });
   return (
-    <Prefetch queries={[eventDetailQuery(eventId), eventSectionsQuery(eventId)]}>
-      <EventDetailView eventId={eventId} />
-    </Prefetch>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <Prefetch queries={[...queries]}>
+        <EventDetailView eventId={eventId} />
+      </Prefetch>
+    </>
   );
 }
