@@ -150,6 +150,7 @@ export function GiftLinkView({
     <GiftResult
       as="section"
       aria-label="선물 링크 생성 완료"
+      tall
       illustration="gift"
       title="선물 링크 생성 완료!"
       description="버튼을 이용해 상대방에게 빠른 선물이 가능합니다."

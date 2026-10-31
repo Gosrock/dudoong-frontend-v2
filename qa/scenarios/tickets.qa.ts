@@ -296,12 +296,12 @@ scenario(
 
 scenario(
   'TIX-5',
-  '선물중 티켓의 [선물 취소] → 확인 시트 → 취소하면 QR이 돌아온다',
+  '선물중 티켓의 [선물 취소] → 확인 시트 → 취소 완료 화면 → 티켓탭에서 QR이 돌아온다',
   {
     kind: '정상',
     summary:
-      'GUI 908:21252 확인 시트(DS BottomSheet로 구현 — Figma 코멘트). DG-2 성공 → T-2 다시 읽어 QR.',
-    basis: ['GUI 908:16571 · 908:21252', 'plan P8b L 범위 회수(DG-2)'],
+      'GUI 908:21252 확인 시트(DS BottomSheet로 구현 — Figma 코멘트) → 908:21359 선물 취소 완료(P8b-V). DG-2 성공 → T-2 다시 읽어 QR.',
+    basis: ['GUI 908:16571 · 908:21252 · 908:21359', 'plan P8b L 범위 회수(DG-2)'],
     viewports: ['mobile'],
   },
   async ({ page, step }) => {
@@ -315,9 +315,16 @@ scenario(
       await layer.getByRole('button', { name: '선물 취소' }).click();
       await expect(page.getByRole('dialog', { name: '선물을 취소하시겠습니까?' })).toBeVisible();
     });
-    await step('[선물 취소하기]를 누르면 시트가 닫히고 그 티켓에 QR이 보인다', async () => {
+    await step('[선물 취소하기]를 누르면 층이 닫히고 "선물 취소 완료" 화면', async () => {
       await page.getByRole('button', { name: '선물 취소하기' }).click();
-      await expect(page.getByRole('dialog', { name: '선물을 취소하시겠습니까?' })).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: '선물 취소 완료' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: '입장 QR' })).toHaveCount(0);
+    });
+    await step('[티켓 페이지로] → 다시 열면 그 티켓에 QR이 보인다', async () => {
+      await page.getByRole('button', { name: '티켓 페이지로' }).click();
+      const again = await openQr(page, NEW_APPROVED_ORDER_UUID);
+      // 층은 마지막으로 본 칸(2/3)으로 다시 열린다
+      await expect(again.getByText('(2/3)')).toBeVisible();
       await expect(page.getByTestId('qr-value')).toHaveAttribute(
         'data-value',
         TICKET_UUID.giftPending,
@@ -328,12 +335,12 @@ scenario(
 
 scenario(
   'TIX-6',
-  '받은 티켓의 [선물 반환] → 확인 시트 → 돌려주면 층이 닫히고 카드가 사라진다',
+  '받은 티켓의 [선물 반환] → 확인 시트 → 반송 완료 화면 → 티켓탭에서 카드가 사라진다',
   {
     kind: '정상',
     summary:
-      'GUI 908:23011 · 908:23087. PG-6 성공 → 층을 닫고 목록 다시 읽기(받은 티켓 묶음이 없어진다).',
-    basis: ['GUI 908:23011 · 908:23087', 'plan P8b L 범위 반환(PG-6)'],
+      'GUI 908:23011 · 908:23087 → 908:23165 선물 반송 완료(P8b-V). PG-6 성공 → 층을 닫고 목록 다시 읽기(받은 티켓 묶음이 없어진다).',
+    basis: ['GUI 908:23011 · 908:23087 · 908:23165', 'plan P8b L 범위 반환(PG-6)'],
     viewports: ['mobile'],
   },
   async ({ page, step }) => {
@@ -348,9 +355,17 @@ scenario(
       await layer.getByRole('button', { name: '선물 반환' }).click();
       await expect(page.getByRole('dialog', { name: '선물을 돌려주시겠습니까?' })).toBeVisible();
     });
-    await step('[선물 돌려주기]를 누르면 층이 닫히고 받은 티켓 카드가 없어진다', async () => {
+    await step('[선물 돌려주기]를 누르면 층이 닫히고 "선물 반송 완료" 화면', async () => {
       await page.getByRole('button', { name: '선물 돌려주기' }).click();
       await expect(page.getByRole('dialog', { name: '입장 QR' })).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: '선물 반송 완료' })).toBeVisible();
+      await expect(page.getByRole('link', { name: '다른 공연 둘러보기' })).toHaveAttribute(
+        'href',
+        '/',
+      );
+    });
+    await step('[티켓 페이지로]를 누르면 받은 티켓 카드가 없다', async () => {
+      await page.getByRole('button', { name: '티켓 페이지로' }).click();
       await expect(page.locator(`[id="group-${received.groupKey}"]`)).toHaveCount(0);
     });
   },

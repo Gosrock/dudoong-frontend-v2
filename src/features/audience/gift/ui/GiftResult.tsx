@@ -22,6 +22,7 @@ export function GiftResult({
   children,
   actions,
   as = 'main',
+  tall = false,
   ...rest
 }: {
   illustration: IllustrationName;
@@ -33,13 +34,15 @@ export function GiftResult({
   /** 버튼 줄. 둘이면 같은 폭 */
   actions?: ReactNode;
   as?: 'main' | 'section' | 'div';
+  /** 내용이 긴 화면(링크 생성 완료) — 위 여백을 줄인다 */
+  tall?: boolean;
   'aria-label'?: string;
   'data-view-state'?: string;
   'data-testid'?: string;
 }) {
   const Root = as;
   return (
-    <Root className={s.page} {...rest}>
+    <Root className={tall ? `${s.page} ${s.pageTall}` : s.page} {...rest}>
       <Flex direction="column" align="center" gap={5} className={s.content}>
         <Illustration name={illustration} width={illustration === 'login' ? 170 : undefined} />
         {(title || description) && (

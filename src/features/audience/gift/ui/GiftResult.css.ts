@@ -5,7 +5,7 @@ import { vars } from '@/ui/theme/tokens.css';
 
 /**
  * 선물 결과·상태 화면 틀 — GUI `908:13105` 링크 생성 완료 · `908:21359` 취소 완료 · `908:23165` 반송 완료 ·
- * `939:26992` 거절 완료 · `939:27058` 취소된 선물 · `939:26412` 비로그인(390). 내용 묶음(342폭)을 셸 헤더 아래 가운데쯤에 둔다.
+ * `939:26992` 거절 완료 · `939:27058` 취소된 선물 · `939:26412` 비로그인(390). 내용 묶음(342폭)을 셸 헤더 아래 GUI와 같은 위 여백에 둔다.
  * PC(1024~)는 같은 묶음을 가운데 390폭으로(디자인 없음 — 주문 완료와 같은 방식).
  */
 export const page = style({
@@ -13,10 +13,15 @@ export const page = style({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  justifyContent: 'center',
   width: '100%',
-  padding: `${vars.space[8]} ${vars.space[5]}`,
-  '@media': { [media.desktop]: { justifyContent: 'flex-start', paddingTop: vars.space[10] } },
+  // GUI 헤더 아래 150(취소 완료 · 반송 완료 · 거절 완료 · 취소된 선물 · 비로그인) → 80 + 64
+  padding: `calc(${vars.space[10]} + ${vars.space[9]}) ${vars.space[5]} ${vars.space[9]}`,
+  '@media': { [media.desktop]: { paddingTop: vars.space[10] } },
+});
+
+/** 내용이 긴 화면(링크 생성 완료 — 메모 · 공유 버튼): 헤더 아래 111 → 80 + 32 */
+export const pageTall = style({
+  paddingTop: `calc(${vars.space[10]} + ${vars.space[6]})`,
 });
 
 export const content = style({

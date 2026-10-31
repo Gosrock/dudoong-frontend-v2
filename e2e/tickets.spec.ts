@@ -67,13 +67,31 @@ test.describe('티켓탭', () => {
     const layer = await openQr(page, NEW_APPROVED_ORDER_UUID);
     await expect(page.getByTestId('qr-value')).toBeVisible();
     await layer.getByRole('button', { name: '선물하기' }).click();
-    const sheet = page.getByRole('dialog', { name: '선물하기' });
-    await sheet.getByRole('textbox', { name: '메모' }).fill('친구');
-    await sheet.getByRole('button', { name: '선물하기' }).click();
-    await expect(page.getByTestId('gift-link')).toHaveText(/\/gifts\/mock-gift-new-\d+$/);
+    const sheet = page.getByRole('dialog', { name: '티켓을 선물할까요?' });
+    const send = sheet.getByRole('button', { name: '티켓 선물하기' });
+    // 유의사항 확인 체크 전에는 보낼 수 없다(#19)
+    await expect(send).toBeDisabled();
+    await sheet
+      .getByRole('checkbox', { name: '티켓 선물하기 관련 유의사항을 확인했습니다.' })
+      .check();
+    await send.click();
+    await expect(page.getByRole('heading', { name: '선물 링크 생성 완료!' })).toBeVisible();
+    await expect(page.getByTestId('gift-link')).toHaveAttribute(
+      'data-value',
+      /\/gifts\/mock-gift-new-\d+$/,
+    );
+    await page.getByRole('textbox', { name: '선물 대상 메모' }).fill('친구');
+    await page.getByRole('textbox', { name: '선물 대상 메모' }).press('Enter');
+    await expect(page.getByText('메모를 저장했어요')).toBeVisible();
+    await page.getByRole('button', { name: '티켓 페이지로' }).click();
+    await openQr(page, NEW_APPROVED_ORDER_UUID);
     await expect(page.getByTestId('qr-notice')).toHaveText('선물중인 티켓');
     await expect(page.getByTestId('qr-value')).toHaveCount(0);
     const posts = mockApi.calls().filter((c) => c.method === 'POST');
     expect(posts.map((c) => c.path)).toEqual([`/api/v2/me/tickets/${TICKET_UUID.approved}/gift`]);
+    // 메모는 링크 생성 뒤 PG-8(PATCH)로
+    expect(
+      mockApi.calls().filter((c) => c.method === 'PATCH' && c.path.startsWith('/api/v2/me/gifts/')),
+    ).toHaveLength(1);
   });
 });
