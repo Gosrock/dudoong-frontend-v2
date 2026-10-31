@@ -44,6 +44,7 @@ export const chip = recipe({
   },
   variants: {
     size: {
+      // TODO(디자이너 답 대기): Figma small 좌우 10은 토큰이 아니라 8로 둠 — design-system §7
       sm: [typography.labelSm, { height: 22, padding: `0 ${vars.space[2]}` }],
       lg: [typography.labelMd, { height: 25, padding: `0 ${vars.space[3]}` }],
     },
