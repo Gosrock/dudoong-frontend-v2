@@ -63,10 +63,17 @@ class RefreshRejected extends Error {
   }
 }
 
+/** 재발급이 이 상태면 4xx여도 세션 상실이 아니라 일시 오류(요청 타임아웃·과도한 요청) */
+const TRANSIENT_4XX: ReadonlySet<number> = new Set([408, 429]);
+
 /**
  * 재발급 한 번과 결과 판정.
  * - 2xx(본문이 이상해도 상태가 2xx면) 성공
  * - 4xx(403 `AUTH_403_1`, `USER_403_1`, 404 `USER_404_1`, 400, 401 포함) → 상실(`RefreshRejected`)
+ * - 단 429·408은 일시 오류 — 토큰을 보기 전에 끊긴 응답이라 세션에 대해 아무것도 말하지 않는다.
+ *   429 `GLOBAL_429_1`: 백엔드 `ThrottlingInterceptor`가 재발급에도 걸리고, 재발급은 늘 유효한 액세스 토큰 없이 나가
+ *   IP 버킷(기본 분당 60)을 쓴다 — 공연장 Wi-Fi 같은 공유 NAT에서 리프레시 토큰이 살아 있는데 로그아웃되지 않게.
+ *   408: 백엔드는 내지 않지만 앞단 프록시(ALB·nginx)가 낼 수 있는 요청 타임아웃
  * - 5xx·네트워크·타임아웃 → 일시 오류. 재발급 응답의 에러를 그대로 던진다(5xx 재시도 규칙이 적용되게)
  *
  * 재발급은 `permitAll`이라 만료·위조 액세스 쿠키가 실려도 401이 나지 않는다(백엔드 #792, backend-questions B6 해결).
@@ -78,6 +85,7 @@ async function refreshOnce(refresh: AuthHandlers['refresh']) {
   } catch (e) {
     if (!(e instanceof ApiError)) throw e;
     if (e.status >= 200 && e.status < 300) return;
+    if (TRANSIENT_4XX.has(e.status)) throw e;
     if (e.status >= 400 && e.status < 500) throw new RefreshRejected(e);
     throw e;
   }
