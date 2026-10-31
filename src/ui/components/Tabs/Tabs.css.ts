@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css';
 import { recipe } from '@vanilla-extract/recipes';
 
+import { media } from '../../theme/breakpoints';
 import { vars } from '../../theme/tokens.css';
 import { typography, typographySpecs } from '../../theme/typography.css';
 
@@ -60,6 +61,28 @@ export const tab = recipe({
           height: 48,
           selectors: {
             '&[data-state="active"]': selectedWeight(typographySpecs.headingMdEmphasized),
+          },
+        },
+      ],
+      /** 모바일 `md`, 1024부터 `lg` — 같은 DOM으로 폭에 따라 크기만 바꿀 때(2026-11-01 P5b-V 공연 상세 섹션 탭) */
+      responsive: [
+        typography.labelLg,
+        {
+          height: 44,
+          selectors: {
+            '&[data-state="active"]': selectedWeight(typographySpecs.labelLgEmphasized),
+          },
+          '@media': {
+            [media.desktop]: {
+              fontSize: typographySpecs.headingMd.size,
+              fontWeight: typographySpecs.headingMd.weight,
+              lineHeight: typographySpecs.headingMd.lineHeight,
+              letterSpacing: typographySpecs.headingMd.letterSpacing,
+              height: 48,
+              selectors: {
+                '&[data-state="active"]': selectedWeight(typographySpecs.headingMdEmphasized),
+              },
+            },
           },
         },
       ],

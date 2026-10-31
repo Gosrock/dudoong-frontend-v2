@@ -1095,6 +1095,46 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 - 결정: 🤖 Claude 판단 — 로고 헤더(GUI 로컬·`host title`)는 Top app bar가 아니지만 같은 `Header`라 같이 바뀌는 것을 그대로 둠(Figma 아이콘 위치 24와 맞음 · 되돌리려면 logo일 때만 바깥 여백 -16).
 - 확인: typecheck · eslint(Header) · `vitest related`(11) 통과. Storybook 390폭에서 요소 위치를 재서 Figma `37:44`(16:22Z 판) 값과 대조 — 아이콘 틀 L16·R16, 프로필 R24, 제목 L72 · 다른 점 없음.
 
+## P5b-V — 공연 상세 · 섹션 뷰어 · 호스트 연락처 시트 · 공유 · PC 두 열 (뷰)
+
+**상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것: 카카오 공유창·공유 디버거 실기기(D2 뒤, QA EVT-10 수동)
+**근거(gui-screens §0)**: 전부 **와이어** — GUI 2026-10-31T16:23Z 판 Ready for dev 35개(23 → 35: 공연결제·공연홈·예매하기·주문완료·티켓페이지 추가) 중 공연상세 `759:12772`·`759:19679`·호스트 연락처 `759:22611`은 Ready 밖. 모바일 `121:1216`, 연락처 `500:929`(공연상세 위 팝업)·`121:2026`(아이콘 + 값 행), PC `640:1957`, PC 연락처 모달 `666:14989`. 열린 Design Sync #36(DS Top app bar — design-36 세션)·#29·#30·#19(티켓탭)는 이 화면과 겹치지 않음. DS 기준 판 뒤 변경도 Top app bar(#36)뿐
+**변경**
+- `features/audience/event/EventDetail/`: `EventDetailView`(모바일 한 열 + 하단 고정 바 / PC 1024~ 두 열 `1fr 382` + 오른쪽 sticky 카드 — 같은 DOM, CSS로), `TicketOptionList`(GP-5 표시만 — 가격·조건·잔여·매진/판매 중단/판매 종료 칩, 판매 중단 딤드), `EventContactsOverlay`(`ResponsiveOverlay` — 모바일 바텀시트 · PC 모달, 열 때 `useEventContacts`), `shareEvent`(카카오 공유 → 실패 시 주소 복사 + 토스트), `week-calendar`(공연 날짜가 든 일~토, 표시용)
+- `features/shared/section-viewer/ui/SectionViewer`(sanitize된 HTML 렌더 + 본문 서식 — DS 글자 스타일 값, 빈 탭 "아직 등록된 내용이 없어요") — P11 미리보기가 재사용
+- `features/shared/contact/ui/ContactList`(아이콘 + 종류 + 값 행, 링크면 누름, 가린 값은 글자 + "로그인하면 볼 수 있어요" `replace` 링크, 로딩·실패·없음) — P5c·P9 재사용 후보
+- `src/ui` 더한 것: `Tabs` `size="responsive"`(모바일 md · 1024부터 lg, 스토리 `Responsive`). 기존 props 바꾸지 않음
+- `src/utils/copy-text.ts`(patterns §9 표의 `copyText` — 없어서 만들었다. clipboard → textarea 폴백)
+- 테스트 기대값: `useEventDetail.test` 화면 3건을 V 마크업으로(섹션 region → tab/tabpanel, "잔여를 그리지 않는다" → "재고는 브라우저 GP-5로만" — 응답 HTML 재고 없음은 e2e 그대로)
+- QA `qa/scenarios/event-detail.qa.ts` EVT-1~9(+ EVT-10 수동) — 18/18 통과(mobile · desktop)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| v1 실데이터 본문 샘플(MARKDOWN·HTML)이 뷰어에서 정상 렌더 | QA EVT-2(섹션 10개 — v1 샘플 HTML·MARKDOWN 번갈아, 탭마다 본문·스크립트 없음), ego-browser 390·1440 캡처 |
+| 라우트 규칙(`instant = false`, Suspense·loading 없음, 404) | 라우트 파일 손대지 않음. e2e `event-detail.spec`(P5b-L) 그대로 |
+| 모바일 하단 고정 바 PC에서 숨김(같은 DOM) | QA EVT-1 desktop(버튼 2개 중 하단 바 것 hidden) |
+| 연락처 A안 | QA EVT-3(익명 — 서버 GP-3만, 가린 값 + 로그인 링크) · EVT-4(로그인 — 열 때 browser viewer, `tel:`) · EVT-5(viewer 실패 → [다시 시도]) |
+
+**ego-browser 확인(단계마다)에서 고친 것**: 서버 HTML 포스터가 하이드레이션 전에 실패하면 `onError`를 놓쳐 깨진 그림 + alt가 보임 → ref에서 `complete && naturalWidth === 0`도 본다 / PC 정보 표 행 간격이 InfoRow 패딩과 겹쳐 넓음 → 표 gap 제거 / 섹션이 많으면(10) 모바일 탭 줄이 폭을 넘음 → 탭 줄만 가로 스크롤 / 탭 크기를 JS(`useMediaQueries`)로 나누던 것을 `Tabs size="responsive"`(CSS)로
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 중개자 고지(legal-copy A-1 원문 그대로)를 정보 아래 "예매 안내 문구" 자리(와이어 `640:1957`)에 모바일·PC 공통으로 — 계획에 위치가 없는 약관 표시 의무를 와이어의 빈 문구 자리에 넣었다. 문구 안 '판매정보'는 v2에 탭이 없다(A-2 위치 없음 — 그대로 둠, 원문 수정 금지). 이용약관 링크는 v2 경로 `/meta/term` 새 창. 되돌리기: `IntermediaryNotice` 빼기
+2. 연락처는 아이콘만 나열(`500:929`)하지 않고 `121:2026`처럼 아이콘 + 종류 + 값 행 — 가린 값(Q41)이 보여야 해서. 제목 "문의하기"(plan Q20), 호스트 사진 Avatar 80 + 이름. 되돌리기: `ContactList`
+3. PC 문의 입구 — 와이어에 없음. 정보 표 '호스트' 옆 [문의하기] secondary sm. 되돌리기: `EventDetailView` 호스트 InfoRow
+4. 공유 아이콘 — DS에 공유가 없어 `link`. 모바일 포스터 오른쪽 위 tonal sm, PC 정사각 tonal lg(Q22). 유튜브 연락처 아이콘도 `link`
+5. [티켓 구매하기] — P6-V 전까지 누를 자리만: 살 수 있는 티켓이 있으면 활성(누르면 아무 일 없음), 없으면 비활성. `hasTicket: false`면 티켓 카드·버튼 없음. 연락처가 없으면 [문의하기] 없음
+6. 티켓 행 문구: 가격 `15,000원`/`무료`, 조건 `인당 N매 제한 / 호스트 승인 후 확정 | 구매 후 자동 확정`, 잔여 `잔여 N매`(살 수 있을 때만), 상태 칩 매진·판매 중단(딤드 — 글자 `textDisabledLabel`)·판매 종료, 빈 "판매 중인 티켓이 없어요"/"지난 공연이에요", 실패 "티켓 정보를 불러오지 못했어요." — 와이어 문구(`₩6,000`·`Free`·`Ticket Options`)는 한국어 표기로
+7. PC 정보 표는 DS `InfoRow`(third) — 와이어의 왼쪽 정렬 표와 달리 값이 오른쪽 정렬(DS 우선). 모바일 장소 행에 주소(회색)도 — 와이어 모바일엔 이름만, PC엔 주소. 장소 › 는 지도(Q35)라 없음
+8. 포스터 비율 282:400(와이어 두 폭 모두), 없음·실패는 `surfaceImageBg` 빈 상자(Q26). `next/image` 대신 `<img>`(v1 #378 `/_next/image` 차단)
+9. 주간 달력 — "2026년 11월" + SUN~SAT + 날짜, 공연일 brand 원(Q21 표시용, `aria-hidden` — 날짜는 표에 있다)
+10. ↑ 맨 위로 버튼(와이어 두 폭) 그리지 않음. 섹션 탭은 비제어(`useState`) — `?tab=` 연동 안 함(근거 없음, 되돌리기: Tabs 제어형 + searchParams 말단)
+11. 레이아웃 값: 컨테이너 `Container`(1440에서 1280 — 와이어는 1200), 오른쪽 카드 382 sticky `space[5]`, 두 열 간격 `space[5]`, 카드 모서리 `radius[4]`
+
+**Figma 코멘트**(`[개발 · 디자인 없음]`, 기록부 `2026-11-01-impl`): 와이어 `640:1957` PC 문의 입구·버튼 상태·폭(`1989701613`) / `640:1957` 지도 코멘트(Tomato `1970662720`)에 답글 — 주소 글자만(`1989701615`) / `500:929` 연락처 값 표시·상태·유튜브 아이콘(`1989701617`) / `121:1216` 공유 아이콘·포스터 없음·티켓 상태·맨 위로(`1989701618`). `FIGMA-CUSTOM:` 줄은 없다(와이어 근거)
+
+**범위 밖(고치지 않음)**: 티켓 고르기·시트(P6-V), 지도(Q35), 판매정보 탭(legal-copy A-2 — 계획에 위치 없음), mock 호스트·포스터 이미지 주소가 열리지 않음(목 데이터), 관객 셸 로고가 `h1`이라 화면에 `h1`이 둘(P4s 셸 — 공연 제목도 h1), 탭 포커스 링이 탭 줄 가로 스크롤 영역에서 위아래로 잘릴 수 있음
 
 ## P10a-V — 공연준비 홈 · 호스트 만들기 · 비멤버 403 (뷰)
 

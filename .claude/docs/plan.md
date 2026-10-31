@@ -429,7 +429,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 연락처: 익명은 요청 없이 가린 값, 로그인은 시트를 열 때 viewer로 원문, 가린 값은 링크 없음(2026-10-25 A안 — implementation-log)
 
 **완료 기준 — V**
-- [ ] v1 실데이터 본문 샘플(MARKDOWN·HTML)이 뷰어에서 정상 렌더
+- [x] v1 실데이터 본문 샘플(MARKDOWN·HTML)이 뷰어에서 정상 렌더(QA `event-detail` EVT-2, 2026-11-01 — implementation-log P5b-V)
 
 ### P5c — 호스트 홈(공개) · 관심 호스트
 

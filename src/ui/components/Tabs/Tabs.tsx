@@ -29,7 +29,8 @@ export function Tabs(props: TabsProps) {
   return <RadixTabs.Root {...props} />;
 }
 
-export type TabSize = 'md' | 'lg';
+/** `responsive` = 모바일 md · 1024부터 lg(같은 DOM, CSS로) */
+export type TabSize = 'md' | 'lg' | 'responsive';
 
 const TabSizeContext = createContext<TabSize>('md');
 
