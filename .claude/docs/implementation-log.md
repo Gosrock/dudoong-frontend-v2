@@ -1755,3 +1755,44 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · DS 컴포넌트로 구현]` `908:12096` 선물하기 시트(`1989731045`) · `939:26914` 거절 확인 시트(`1989731046`) · `908:21601` 복사 토스트(`1989731049`) / `[개발 · 디자인 없음]` `908:12227` 체크 전 상태(`1989731073`) · `908:13334` 메모 저장 시점 · PC(`1989731079`) · `939:26818` 랜딩 나머지 상태 · PC · 로딩(`1989731080`). `FIGMA-CUSTOM:` 4줄(→ DS 2 · 커스텀 2 — 유의사항 상자 · 받는 선물 포스터)
 
 **범위 밖(고치지 않음)**: Kartrider 글꼴 미탑재(공연명이 Pretendard), DS `BottomSheet` 제목 왼쪽 정렬 · 손잡이 화살표(공용 — 코멘트), DS 토스트 위치 · 모양(공용), mock 포스터 주소가 안 열려 캡처의 포스터가 빈 상자(목 데이터), `/tickets` dev "instant navigation" 안내(P8-V 라우트)
+
+## P9b-V — 알림함 · 벨 빨간 점 (뷰)
+
+**상태**: done (2026-11-01, PR #PRNUM) — 스킬 `gui-implement`
+**근거(gui-screens §0)**: **와이어** — 모바일 `128:2827`(마이페이지/알림창/주문상세 섹션) · PC `668:4772`(와이어 파일 `FUQb8ldGBp3uYUuXPV5FDC`). GUI `331:11574`·`336:13684`는 `figma_nodes.py ready --contains`로 Ready 프레임 밖(lastModified 2026-10-31T19:18Z) — 모양을 가져오지 않음. 상태 `와이어로 구현됨`
+**디자인 이슈**: 없음(열린 #61 DS Filter Chip은 예매자 관리 — 이 화면이 쓰지 않음)
+**디자인 시스템**: 기준 `2416576694112599706`(10-31T19:15Z) 그대로 — 바뀐 것 없음
+
+**변경**
+- `features/shared/notification/NotificationInboxView.tsx`(P9b-L 최소 마크업 → 와이어 화면) + `NotificationInboxView.css.ts`: `Container` 안 제목 줄(PC 가운데 "알림함" h1, 모바일은 셸 헤더가 제목이라 h1 글자만 숨김) + 오른쪽 DS `Button` secondary sm [모두 읽음](안 읽은 행이 없으면 꺼짐, 빈 목록이면 숨김). 행 = 카테고리 아이콘 24(안 읽음은 왼쪽 위 빨간 점 6px `status/error`) | 카테고리 이름 … 상대 시간 / 제목(안 읽음 `labelLgEmphasized` 진하게, 읽음 `labelLg` 흐리게) / 본문 `bodyMd`. 행 전체가 링크(갈 곳 없으면 버튼), 사이 선 `surface/defaultBorder`. 빈 상태 DS `EmptyState`, 다음 페이지 DS `LoadMoreSentinel`(P9b-L의 [더 보기] 버튼 대신 — 실패 시 아래 [다시 시도])
+- 아이콘: 선물 `gift` · 티켓 `ticket` · 공연 알림 `clock`(`alarm-clock` 없음 — Q47) · 모르는 타입 `notification`
+- `src/api/shared/date.ts` `formatKstRelative(value, now)` — 상대 시간(patterns §9 날짜 유틸 자리에 더함)
+- 라우트 `/mypage/notifications` 모바일 헤더 제목 "알림" → "알림함"(와이어)
+- 벨 빨간 점: 셸 `ShellBell`(P4s-V — 관객 드로어 · 호스팅 드로어 · 호스팅 PC 상단 바, DS `notification-on`)이 이미 `useNotificationBell`에 붙어 있어 코드 변경 없음 — QA로 확인
+- 훅·도메인(`notification-kind`·`useNotificationInbox`·`useNotificationBell`)은 그대로. 새 `src/ui` 컴포넌트 없음(스토리 없음)
+- 테스트: QA 새 `notifications.qa.ts` NOTI-1~7 — **14/14**. e2e `notifications`·`shell`·`auth`·`hosting` 110/110(선택자 변경 없음)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 17종 타입 렌더(모르는 타입 포함) | NOTI-1(25건 두 페이지 — 카테고리 3종 + 모르는 타입 1건 "알림"·벨 아이콘, 모르는 대상 행도 렌더) |
+| 안 읽음 빨간 점 + 진한 글자, 상대 시간 | NOTI-2(굵기 700, "30분 전"·"4시간 전" — 브라우저 시계 고정) |
+| 벨 빨간 점 | NOTI-4(모바일 관객 드로어 · PC 호스팅 상단 바 — 안 읽음 있으면 "알림(새 알림 있음)", [모두 읽음] 뒤 "알림") |
+| 그 밖 | NOTI-3(누르면 읽음 + 이동), NOTI-5(빈 상태), NOTI-6(GN-1 5xx), NOTI-7(다음 페이지 실패 → 다시 시도) |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`, 390 · 1440)** — 와이어와 구조·문구·동작만. 고친 것: 모바일 헤더 제목 "알림" → "알림함". 다른 점(일부러): 와이어는 본문 한 덩어리에 강조 글자(색·굵기)가 섞여 있지만 서버는 `title`·`body`를 따로 평문으로 보낸다 — 제목 + 본문 두 줄, 강조 색 없음
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 상대 시간 경계: 1분 안 "방금 전" · "N분 전" · "N시간 전" · 7일 안 "N일 전" · 그 뒤 "M월 D일"(올해 아니면 `yyyy.MM.dd`) / 와이어 "7분 전 · 1일 전 · 4월 25일" / `formatKstRelative`
+2. 모바일 오른쪽 위 "ㅍ ⌄"(뜻 불명) 자리에 PC와 같은 [모두 읽음] — L에 필터가 없음 / 와이어 PC "모두읽음처리" / `NotificationInboxView` 제목 줄
+3. [모두 읽음]은 DS Button secondary sm, 안 읽은 행이 없으면 비활성 · 빈 목록이면 숨김 / 와이어는 글자 버튼 / 같은 곳
+4. 읽은 행은 아이콘·글자를 한 단계 흐리게(제목 `secondaryLabel`, 나머지 `tertiaryLabel`) / 와이어 회색 행 / CSS·`Txt color`
+5. 모르는 타입의 카테고리 자리는 "알림" + 벨 아이콘 / 와이어에 없음 / `NotificationRow`
+6. 빈 상태 "아직 받은 알림이 없어요" 한 줄(일러스트 없음) / 디자이너 코멘트 "빈상태 만들기"(미완) / `EmptyState`
+7. 빨간 점은 모바일·PC 모두 아이콘 왼쪽 위(와이어 PC는 오른쪽 위) / 한 벌로 / `unreadDot`
+8. 화면 읽기 도구용 "안 읽음 · " 숨김 글자 / — / `srOnly`
+
+**Figma 코멘트**(기록부 `2026-11-01-impl`): `[개발 · 디자인 없음]` 와이어 `128:2827` — 기존 디자이너 코멘트 "빈상태 만들기"(`1980093387`)에 답글 `1989733640`(빈 상태 · 상대 시간 · 오른쪽 위 버튼 · 모르는 알림 · 제목/본문 두 줄)
+
+**범위 밖(고치지 않음)**: 관객 PC 상단 바 벨 없음(Q54 — 와이어대로), 공연 알림 아이콘 `alarm-clock`(Q47 — DS에 없음), `GIFT_TICKET_CANCELED` 카테고리(Q46 기본안 그대로), `NOTIFICATIONS_KEY` 두 곳 정의(P9b-L 정리할 거리 — gift 파일은 P8b 소유)

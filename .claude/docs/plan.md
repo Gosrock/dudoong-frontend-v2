@@ -636,7 +636,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] `target.type` 4종별 이동(`EVENT` → 공연 상세). 호스트가 받은 주문 알림의 `?order=` 진입은 P9b-L과 P13a-L 중 늦게 끝나는 쪽이 검증한다 — P9b-L은 링크(`/hosting/events/{eventId}/guests?order={uuid}`)까지, 진입 검증은 P13a-L
 
 **완료 기준 — V**
-- [ ] 17종 타입 렌더(모르는 타입 포함), 벨 빨간 점
+- [x] 17종 타입 렌더(모르는 타입 포함), 벨 빨간 점 — P9b-V(2026-11-01, QA `notifications` NOTI-1 · NOTI-2 · NOTI-4)
 
 ### P9c — 서비스 공지
 

@@ -5,7 +5,7 @@ import { NotificationInboxView } from '@/features/shared/notification/Notificati
 export default function NotificationsPage() {
   return (
     <>
-      <AudienceSubHeader title="알림" />
+      <AudienceSubHeader title="알림함" />
       <NotificationInboxView />
     </>
   );
