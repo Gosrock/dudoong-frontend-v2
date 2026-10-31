@@ -67,9 +67,9 @@ describe('티켓 관리 목록(G10/T-1)', () => {
         c.canManageOptions,
       ]),
     ).toEqual([
-      [501, '판매중', true, ['edit', 'suspend'], false],
-      [502, '판매중', true, ['edit', 'suspend'], false],
-      [503, '판매중', false, ['edit', 'delete', 'suspend'], true],
+      [501, '판매 중', true, ['edit', 'suspend'], false],
+      [502, '판매 중', true, ['edit', 'suspend'], false],
+      [503, '판매 중', false, ['edit', 'delete', 'suspend'], true],
     ]);
     expect(result.current.canAdd).toBe(true);
     expect(result.current.newHref).toBe('/hosting/events/101/tickets/new');
@@ -149,7 +149,7 @@ describe('판매 중단 · 재개(T-5 · T-6)', () => {
     ]);
 
     expect(await act(() => result.current.resume(503))).toBe(true);
-    await waitFor(() => expect(result.current.cards[2]!.chipLabel).toBe('판매중'));
+    await waitFor(() => expect(result.current.cards[2]!.chipLabel).toBe('판매 중'));
     expect((await gp5()).map((t) => t.isSuspended)).toEqual([false, false, false]);
   });
 

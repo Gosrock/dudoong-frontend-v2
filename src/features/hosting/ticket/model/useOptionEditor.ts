@@ -168,6 +168,13 @@ export function useOptionEditor(eventId: string, optionId: number) {
     serverErrors,
     attempted,
     dirty: body !== null,
+    /** 고친 값을 버리고 처음 값으로(수정 시트를 닫을 때 — GUI `944:2455` 닫기 확인 뒤) */
+    reset: () => {
+      if (base) setValues(base);
+      setAttempted(false);
+      setServerErrors({});
+      setError(null);
+    },
     canSave,
     save,
     /** 옵션 자체 삭제(상세 하단 [삭제] — Figma 424:10455에 없어 기본안, 잠긴 옵션이면 숨김) */

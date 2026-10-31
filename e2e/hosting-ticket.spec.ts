@@ -164,7 +164,7 @@ test.describe('목록 · ⋮ 메뉴', () => {
     expect(await suspendedIds(page, 101)).toEqual([501]);
 
     await sold.getByRole('button', { name: '판매 재개' }).click();
-    await expect(sold.getByTestId('ticket-chip')).toHaveText('판매중');
+    await expect(sold.getByTestId('ticket-chip')).toHaveText('판매 중');
     expect(await suspendedIds(page, 101)).toEqual([]);
   });
 
