@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useId, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useId, useState } from 'react';
 
 import type { EventDetail } from '@/api/event/schema';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
@@ -22,6 +23,8 @@ import { openEventContacts } from './EventContactsOverlay';
 import * as s from './EventDetailView.css';
 import { shareEvent } from './shareEvent';
 import { TicketOptionList } from './TicketOptionList';
+import { TicketSelector } from './TicketSelector';
+import { TicketSheet } from './TicketSheet';
 import { eventWeek } from './week-calendar';
 
 /**
@@ -30,7 +33,9 @@ import { eventWeek } from './week-calendar';
  * PC `640:1957`: 두 열 — 왼쪽 포스터 + 정보 표 + 예매 안내 문구, 그 아래 탭·본문 / 오른쪽 고정 카드(주간 달력 · 티켓 옵션 · [공유][티켓 구매하기]).
  * 모바일 하단 바와 PC 카드는 같은 DOM에 있고 CSS가 보일 것을 정한다(patterns §1).
  *
- * 재고(GP-5)는 브라우저에서만 읽는다(`useTicketSelection` — 응답 HTML에 재고 값이 없다). 티켓 고르기·[티켓 구매하기] 시트는 P6-V.
+ * 재고(GP-5)는 브라우저에서만 읽는다(`useTicketSelection` — 응답 HTML에 재고 값이 없다).
+ * 티켓 고르기(P6-V): 선택 상태는 이 화면의 `useTicketSelection` 하나 — PC는 오른쪽 카드의 `TicketSelector`, 모바일은
+ * 하단 [티켓 구매하기]가 여는 바텀시트(`TicketSheet`, 열 때 마운트) 안의 같은 `TicketSelector`. 모바일 "티켓 옵션" 카드는 표시만.
  */
 export function EventDetailView({ eventId }: { eventId: string }) {
   const { event, title, schedule, hashtags, tabs } = useEventDetail(eventId);
@@ -42,8 +47,40 @@ export function EventDetailView({ eventId }: { eventId: string }) {
   const hasContacts = event.contacts.length > 0;
   const openContacts = () => openEventContacts(eventId, event.host);
   const share = () => void shareEvent(event);
-  // P6-V가 티켓 선택 시트를 연다. 그 전에는 살 수 있는 티켓이 있을 때만 누를 수 있는 자리만 둔다
+  const router = useRouter();
+  // 살 수 있는 티켓이 있을 때만 모바일 [티켓 구매하기]가 시트를 연다
   const canBuy = tickets.listState === 'AVAILABLE';
+  const [sheet, setSheet] = useState<'closed' | 'open' | 'closing'>('closed');
+  const setSheetOpen = useCallback(
+    (open: boolean) => setSheet((cur) => (open ? 'open' : cur === 'closed' ? 'closed' : 'closing')),
+    [],
+  );
+  const { checkoutHref } = tickets;
+  const buyFromCard = () => checkoutHref && router.push(checkoutHref);
+  // 시트에서 살 때는 시트를 닫아 그 기록 항목을 먼저 소비하고(BottomSheet가 history.back) 그 뒤에 push한다 — 기록이
+  // [상세, 체크아웃]이 된다. 시트를 연 채 replace하면 Next가 화면 상태를 보존해 뒤로가기로 돌아왔을 때 시트가 열린 채
+  // 남고, 그 시트에는 닫을 기록 항목이 없다(patterns §6 "오버레이 안 이동은 replace"와 같은 결과를 이 순서로 낸다)
+  const buyFromSheet = () => {
+    if (!checkoutHref) return;
+    const href = checkoutHref;
+    const overlayOnTop = Boolean(
+      (window.history.state as { ddOverlay?: unknown } | null)?.ddOverlay,
+    );
+    setSheetOpen(false);
+    if (!overlayOnTop) {
+      router.push(href);
+      return;
+    }
+    let done = false;
+    const go = () => {
+      if (done) return;
+      done = true;
+      window.removeEventListener('popstate', go);
+      router.push(href);
+    };
+    window.addEventListener('popstate', go);
+    setTimeout(go, 1000); // popstate가 오지 않아도 멈추지 않게
+  };
 
   return (
     <Container as="main" className={s.page}>
@@ -188,7 +225,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               <Txt as="h2" typography="headingMdEmphasized">
                 <span id={desktopTicketsId}>티켓 옵션</span>
               </Txt>
-              <TicketOptionList selection={tickets} headingId={desktopTicketsId} />
+              <TicketSelector selection={tickets} headingId={desktopTicketsId} />
             </>
           )}
           <Flex gap={2}>
@@ -200,7 +237,13 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               onClick={share}
             />
             {event.hasTicket && (
-              <Button variant="primary" size="lg" fullWidth disabled={!canBuy}>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={!checkoutHref}
+                onClick={buyFromCard}
+              >
                 티켓 구매하기
               </Button>
             )}
@@ -223,12 +266,29 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               />
             )}
             {event.hasTicket && (
-              <Button variant="primary" size="lg" fullWidth disabled={!canBuy}>
+              <Button
+                variant="primary"
+                size="lg"
+                fullWidth
+                disabled={!canBuy}
+                aria-haspopup="dialog"
+                onClick={() => setSheetOpen(true)}
+              >
                 티켓 구매하기
               </Button>
             )}
           </div>
         </>
+      )}
+
+      {sheet !== 'closed' && (
+        <TicketSheet
+          open={sheet === 'open'}
+          onOpenChange={setSheetOpen}
+          onExited={() => setSheet('closed')}
+          selection={tickets}
+          onBuy={buyFromSheet}
+        />
       )}
     </Container>
   );
