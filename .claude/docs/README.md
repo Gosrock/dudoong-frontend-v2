@@ -16,7 +16,8 @@
 | [`plan.md`](./plan.md) | 26개 Phase(2026-10-31 P9c 서비스 공지 추가, 남은 Phase는 로직 L / 뷰 V로 나눔 — §0), 선행 관계, API 배정. **진행 현황**은 개요 끝(2026-10-31: L은 전부 끝남 — P4s-L이 마지막, V는 전부 디자인 대기) |
 | [`v1-additions.md`](./v1-additions.md) | 2026-10 v1 프론트 PR(서버 개발자 — 약관 개정·동의 기록·연락처 가림)에서 **요건만** 뽑아 v2 기준으로 정리 — 요건별 v2 위치·상태, 가져오지 않는 v1 구현, 출시 전에 닫을 것. 약관 전문은 [`legal/terms-2026-10-25.md`](./legal/terms-2026-10-25.md)·[`legal/privacy-2026-10-25.md`](./legal/privacy-2026-10-25.md) |
 | [`legal-copy.md`](./legal-copy.md) | 약관 근거 화면 문구(2026-10-25 시행 약관 + 2026-11-07 시행 일부 개정) — v1 운영 원문, 조항, v2 Phase·위치, "약관 표시 의무 — v2 계획에 위치 없음(위험)" 표시, 승인 전 취소 안내 "B18 잠정안"(확정 아님). 문구가 바뀌면 `agreementVersion`을 올린다 |
-| [`gui-screens.md`](./gui-screens.md) | Figma "GUI 화면" 파일 — 관객·호스팅 화면 목록과 라우트·Phase 대응, 데스크탑 대시보드, GUI와 서버가 다른 것의 요약(원본은 design-requests §3) |
+| [`gui-screens.md`](./gui-screens.md) | Figma "GUI 화면" 파일 — **화면별 구현 상태(§0, 2026-10-31 기준 Ready for dev 23개)**, 관객·호스팅 화면 목록과 라우트·Phase 대응, 데스크탑 대시보드, GUI와 서버가 다른 것의 요약(원본은 design-requests §3) |
+| [`design-workflow.md`](./design-workflow.md) | **디자인 반영 규칙(디자인 → 코드)** — 근거 판정(Ready for dev → GUI / 아니면 와이어), `Design Sync` 이슈 처리 순서·닫는 규칙(`Closes #n`만), 커스텀 지양과 판단 표, `FIGMA-CUSTOM:` 주석·Figma 코멘트 형식, 완료 기준(QA 캡처 ↔ Figma 스크린샷), 상태표(2026-10-31) |
 | [`design-system.md`](./design-system.md) | 디자인 시스템(토큰·그리드·폰트·아이콘)과 컴포넌트 구현 결정(Radix + vanilla-extract, 컴포넌트별 출처·props) |
 | [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문(41건), **프론트가 정한 것(핸드오프 원본, 30건)**, 해결된 것 |
 | [`backend-questions.md`](./backend-questions.md) | 백엔드 질문(남은 것 B16·B18 — 2026-10-31. B18은 약관 해결, v2 안내 문구 확정 대기)과 지켜보는 변경 |
@@ -31,6 +32,8 @@
 **디자인 변경 트래킹**: [`../../tools/figma-plugin/README.md`](../../tools/figma-plugin/README.md) — 디자이너가 Figma 플러그인으로 프레임별 변경을 GitHub 이슈(`Design Sync` 라벨, 본문에 `node-id` 링크·노드 번호)로 남긴다. Figma를 전수조사하기 전에 열린 `Design Sync` 이슈부터 본다(2026-10-31).
 
 **스킬**: [`../skills/qa-scenario/SKILL.md`](../skills/qa-scenario/SKILL.md) — 피처의 QA 시나리오를 이 문서들(plan 완료 기준, storyboard, gui-screens, api-contract, patterns §24)로 쓰고 `pnpm qa <feature>`로 실행해 단계별 캡처 HTML 리포트를 만든다(tech-decisions §10).
+
+**스킬**: [`../skills/gui-implement/SKILL.md`](../skills/gui-implement/SKILL.md) — 화면(V) 구현·디자인 이슈 반영 절차: 열린 `Design Sync` 이슈 → 근거 판정(`figma_nodes.py ready`) → 노드 → DS 매핑 표(`figma_nodes.py map`, DS 파일 컴포넌트 key 대조) · 디자인 시스템 변경(`ds_diff.py` 버전 비교 → `design-system.md` §8) → 구현 → 주석·코멘트 → QA 캡처와 Figma 비교(`figma_nodes.py shot`) → `gui-screens.md` §0 갱신·`Closes #n`([`design-workflow.md`](./design-workflow.md)). 반대 방향(개발이 정한 것 → 디자이너)은 [`../skills/figma-dev-sync/SKILL.md`](../skills/figma-dev-sync/SKILL.md).
 
 ## 충돌할 때 우선순위
 
@@ -62,6 +65,8 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 | 2026-10-31 | 백엔드 답변 반영(백엔드 2.5.1 `78b1b6e7` — #887·#888, 운영·스테이징 배포) — 토큰 수명 6일(B2, Safari 영향 없음), 운영 값(B7), GM-1·PM-2 `marketingAgree` 값 지정(B17 — v1 반전 API 안 씀, L 훅 준비), T-2·GG-7a 읽음 처리 동기화(B9), GR-1·GR-2 `orderMethod`로 두둥 판정(B19), 승인 전 취소 호스트 메일 문구(B13), KOE010 코드(B8), Swagger·README(B16), ECR(B15). 남은 질문 B8 콘솔·B16·B18·B21·B22 |
 | 2026-10-31 | 백엔드 최종 답변 반영(백엔드 2.5.2 `cb53bfaa` — #894·#895·#896, 운영·스테이징 배포) — GP-5 판매 중단 티켓 포함 `isSuspended`(Q33·B11 — 딤드로 결정, L 상태 `SUSPENDED`), 가입 전화번호 서버 검사 `USER_400_2` → 칸 오류 "전화번호를 확인해 주세요"(B22), 재발급·로그아웃 인증 전용 IP 버킷 분당 600(B21 — 코드 변경 없음), 카카오 콘솔 동의 항목·콜백(B8 — 이름은 카카오에서 안 와 서버가 닉네임으로 채움, 가입 폼에서 받는 방식 유지). 남은 백엔드 질문 B16·B18 |
 | 2026-10-31 | 이용약관 일부 개정 반영(v1 Front #385 — **머지 전 PR**, head `706b561`, 백엔드 이슈 #897) — 제27조③ 두둥 승인 전 앱 취소 허용, 제29조③1호·제19조② 괄호에 승인 전 취소, 부칙 제1조② **2026-11-07 시행**. v2 `public/term.html`을 그 파일로(PR 이전 본 `eee59f1`과 v2 파일이 바이트 단위로 같음을 확인), `legal/terms-2026-10-25.md` "시행 뒤 고친 것"에 행, e2e가 부칙 시행일 문장도 본다. `agreementVersion` `'2026-10'` → `'2026-11'`(사용자 결정). B18은 "약관 해결 / v2 안내 문구 확정 대기"로 좁힘(사용자 결정) — v1 PR이 화면 문구를 고치지 않아 legal-copy에 "B18 잠정안"(확정 아님) |
+| 2026-10-31 | 디자인 반영 규칙 — [`design-workflow.md`](./design-workflow.md) 신설(사용자·디자이너 합의 프로세스 + 사용자 승인 보완안 6개 + 구현 원칙): Ready for dev 노드만 GUI 근거, 나머지는 와이어 수준(부채로 상태표에 남김), `Design Sync` 이슈는 시작·PR 직전 확인하고 `Design: 디자인 시스템` 먼저, 반영 PR의 `Closes #n`으로만 닫음, **커스텀 지양**(Figma가 커스텀이지만 DS로 되면 DS + `FIGMA-CUSTOM:` 주석 + Figma 코멘트), GUI 화면 완료는 QA 캡처 ↔ Figma 스크린샷 비교. 스킬 `gui-implement`(+ 읽기 전용 `figma_nodes.py`). `gui-screens.md` §0 baseline — Ready for dev 23개(GUI 2026-10-31T13:11Z 판), 열린 Design Sync 이슈 0, 모든 화면 미구현 |
+| 2026-10-31 | 디자인 시스템 최신화 — DS 파일 지금 판(`2416497620013456256`)을 10-25T09:12Z 판과 비교해 [`design-system.md`](./design-system.md) 갱신(새 §8 변경 반영 기록 + 코드 반영 거리): `interaction/disabled` Neutral 200, 새 변수 `Background/normal 3`·`dimmed`(85%), 새 범용 칩 `tag_v2`, 칩 모서리 8, dropdown item 36h, Tabs 데스크탑 48 통일, Top app bar 슬롯 40·패딩 8, 아이콘 11변형 + `lightbulb`. 머리에 **동기화 기준 버전**을 두고, 디자인 시스템 변경은 `Design: 디자인 시스템` 이슈 + 버전 비교(`ds_diff.py`)로 계속 반영한다. 스킬 `gui-implement` 검토 반영(선행 확인, DS 변경 절차, DS override 분류, `ready --contains`, PR 직전 재비교, 코멘트는 사용자 확인 뒤, `test:stories`) |
 
 ## 원본 위치
 

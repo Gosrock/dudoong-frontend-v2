@@ -4,6 +4,10 @@
 > **디자이너가 작업 중인 파일이다.** 값과 이름은 바뀔 수 있다. P1·P2를 시작할 때 다시 읽고 이 문서를 갱신한다. "Sample GUI" 페이지(프레임 96개)는 사용 컴포넌트 목록만 봤다(§6).
 > 2026-10-25 갱신: 같은 파일의 2026-10-25T09:12Z 판을 2026-10-14T17:51Z 판(버전 `2410274134017083703`, 이 문서를 쓰기 직전)과 비교해 반영했다 — 새 페이지 "┗ Menu"(`538:1497`), 호스팅 PC 컴포넌트(§3 "호스팅 PC·대시보드 컴포넌트"), Button 상태 변형, Tabs·Concert state chip 변경, 아이콘 추가, 호스팅 그리드(§2). 텍스트 스타일·Typography 페이지는 바뀌지 않았다. 코드에 미치는 것은 [`implementation-log.md`](./implementation-log.md) "2026-10-25 디자인 시스템 변경으로 생긴 코드 수정 거리"(§7 검증 기록).
 >
+> **2026-10-31 갱신**: 같은 파일의 지금 판(버전 `2416497620013456256`, 2026-10-31T13:25Z)을 2026-10-25T09:12Z 판(`2414196346463123931`)과 비교했다(`ds_diff.py`) — 변수는 Desktop Bridge로 이름·값을 모두 읽었다. 무엇이 바뀌었나와 코드 반영 거리는 §8. 페이지 "┗ Tag"가 "┗ Chip"이 됐고 새 칩 `tag_v2`가 생겼다.
+>
+> **동기화 기준 버전: `2416497620013456256`(2026-10-31T13:25Z).** 다음 갱신은 이 버전과 비교한다. 디자인 시스템이 바뀌면 디자이너가 `Design: 디자인 시스템` 이슈(Figma 플러그인)를 남기고, 개발은 그 이슈를 화면 이슈보다 먼저 반영한다 — 이 문서 + 토큰·`src/ui` 컴포넌트·스토리를 고치고 PR `Closes #n`, 기준 버전을 올린다([`design-workflow.md`](./design-workflow.md) §4). 이슈 없이 바뀐 것도 잡도록 화면 작업을 시작할 때 버전 목록을 본다(스킬 `gui-implement` "디자인 시스템 변경").
+>
 > 관련 문서: 스타일링 방식 [`tech-decisions.md`](./tech-decisions.md) §6, 반응형·텍스트·레이아웃 패턴 [`patterns.md`](./patterns.md) §1~§3, Phase [`plan.md`](./plan.md) P1·P2, 와이어프레임 관측 [`figma-structure.md`](./figma-structure.md).
 
 ## 결정 요약
@@ -60,7 +64,7 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 | 컬렉션 | 내용 | 옮기는 방식 |
 |---|---|---|
 | `Atomic` | 10개 색 계열 × 50~900 + `Common/0`(검정)·`Common/100`(흰색), 모드 1개, 102개 | `vars.palette.violet[400]` 같은 원시 값 |
-| `Sementic` | 38개(2026-10-25 52개 — 코드 토큰과 1:1 대조 완료, 아래), Light/Dark 모드(코드는 Light만 옮긴다 — 다크 모드 미지원(사용자 결정 2026-10-25)). `Color/brand`(10) · `text`(11) · `status`(5) · `interaction`(5) · `surface`(4) · `Background`(3). 하나를 빼고 모두 Atomic을 가리킨다(예외: `surface/default-label` Dark가 `#FFFFFF` 직접 값) | `vars.color.*` |
+| `Sementic` | 38개(2026-10-25 52개 — 코드 토큰과 1:1 대조 완료, 아래. **2026-10-31 54개** — `Background/normal 3`·`Background/dimmed`가 생겼고 `interaction/disabled` 값이 바뀌었다, §8), Light/Dark 모드(코드는 Light만 옮긴다 — 다크 모드 미지원(사용자 결정 2026-10-25)). `Color/brand`(10) · `text`(11) · `status`(5) · `interaction`(5) · `surface`(4) · `Background`(3). 하나를 빼고 모두 Atomic을 가리킨다(예외: `surface/default-label` Dark가 `#FFFFFF` 직접 값) | `vars.color.*` |
 
 주요 의미 색(Light):
 
@@ -74,6 +78,8 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 | `surface/default-border` · `strong-border` · `container` | Neutral 200 · 400 · 50 |
 | `Background/normal` · `grey` · `dark` | 흰색 · Neutral 100 · Neutral 900 |
 | `interaction/inactive` · `disabled-bg` | Neutral 300 · Neutral 100 |
+| `interaction/disabled` | **Neutral 200**(2026-10-31, 옛 Neutral 300) — Checkbox·Input disabled 테두리·채움, `일정`·`필수 체크리스트`의 빈 체크 |
+| `Background/normal 3`(2026-10-31 새로) · `Background/dimmed`(새로) | 흰색 — Button Secondary 배경(옛 `Background/normal`) · Neutral 900 **85%**(별칭 + 불투명도 — 딤 전용) |
 
 브랜드 색은 Violet `#633EE7`, 강조는 Coral-red `#E84230`이다.
 
@@ -107,6 +113,8 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 | `649:1162` · `649:1163` | #232220 (Neutral 700) · #0A0A09 (Neutral 900) | round Primary Hover · Pressed 배경 |
 | `161:3481` | 20 | 모서리 20(`My`·`승인 메뉴_desktop`·`티켓 판매 정보`) — 값이 `Radius/6`과 같다 |
 | `35:176` | 2.09(인스턴스 축소 값) | `example poster` 준비중 mobile 모서리 |
+
+**2026-10-31 이름 확인**(Desktop Bridge로 `Sementic`·`Component` 컬렉션을 읽음): `606:1920` `text/on-brand fixed` · `605:1952` `Background/dark-fixed` · `606:1921` `Background/normal 2` · `622:2202` `surface/image bg` · `640:1888` `brand/Primary container fixed` · `649:1159`·`649:1161` `brand/Primary container-hover`·`brand/on Primary container-hover` · `649:1160` `brand/Primary container-pressed` · `649:1162`·`649:1163` `surface/inverse-hover`·`surface/inverse-pressed` · `161:3481` `Radius/6` · `35:176` `Radius/1`. 코드 토큰에는 모두 같은 이름으로 들어가 있다(2026-10-25 대조).
 
 Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/accent-subtle`, Neutral/50 = `surface/container`, Neutral/100 = `Background/grey`, Common/100 = `Background/normal`, Neutral/900 = `Background/dark`). 하지만 Dark 값은 다르므로 기계적으로 바꾸지 않는다. 코드에서는 이 색들을 컴포넌트 전용 의미 토큰으로 묶는다(`vars.color.avatar.teal`, `vars.color.role.master` 등). 전용 토큰은 `avatar`·`role`·`chip`(2026-10-25부터 선물대기 배경 `giftPendingBg` 하나)이다. 디자이너가 의미 색을 추가하면 그 이름으로 바꾼다(§5). 2026-10-25에 잠시 두었던 `button` 전용 토큰은 Figma 의미 변수 이름(플러그인으로 `Sementic` 컬렉션을 읽음)을 알게 되어 지웠다 — 아래 "버튼 상태 색 의미 변수".
 
@@ -163,6 +171,7 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 | Label | `lg-emphasized` 16 Bold 140%. 나머지 5개는 120% — `lg` 16 Regular · `md` 14 Medium · `md-emphasized` 14 Bold · `sm` 12 Medium · `xs` 11 Regular |
 
 - 자간은 -1%, Heading/sm 두 개만 -4%다.
+- 2026-10-31 확인(Desktop Bridge): 21개 이름·글꼴·크기·행간·자간이 그대로이고 `typography.css.ts`와 같다. 이펙트 스타일 2개(`drop shadow`·`drop shadow2`)도 그대로다.
 - 텍스트 스타일은 변수에 묶여 있지 않다.
 - 코드 이름 예: `Heading/md - emphasized` → `headingMdEmphasized`.
 
@@ -232,29 +241,31 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
 | Figma | 동작 | 참고할 shadcn | 코드 props(제안)·메모 | Phase |
 |---|---|---|---|---|
-| **Button** — `Color` Primary/Secondary/primary 2 × `type` small 32 · medium 46(2026-10-25, 옛 45) · Large 56 · round × `Icon` × `Text` × `Interaction` Normal/Hover/Pressed/Disabled/Selected, 텍스트 속성 `Label` | `<button>` | Button | `variant: 'primary' \| 'secondary' \| 'tonal'`(primary 2 = 배경 `brand/Primary container`, 글자 `text/brand-label`. 토큰 `brand/primary-subtle`과 다른 색이라 `subtle`로 부르지 않는다), `size: 'sm' \| 'md' \| 'lg'`, `icon?`, 아이콘만 있는 버튼은 `iconOnly`. 모서리 8/10/12. **변형이 듬성듬성했다**(2026-10-15 240개 조합 중 27개 → **2026-10-25 68개**, 아래 "Button 상태 색"). Selected는 여전히 Secondary medium에만 있다. 코드는 빈 조합을 같은 규칙으로 채운다. Secondary 글자색이 크기마다 다르다(small `text/primary`, medium·Large `text/secondary-label`, Large 아이콘형 `text/secondary`) — 코드는 하나로 통일. medium은 2026-10-25에 **모두 46h**다(옛 판은 아이콘형만 46h, 아이콘 없는 것은 45h). Selected는 배경 #EEEEED(변수 `197:4875`) + 글자 `text/primary-label` + 테두리 `strong-border`. Hover·Pressed·Disabled는 CSS 상태, Selected만 prop | P2 |
+| **Button** — `Color` Primary/Secondary/primary 2 × `type` small 32 · medium 46(2026-10-25, 옛 45) · Large 56 · round × `Icon` × `Text` × `Interaction` Normal/Hover/Pressed/Disabled/Selected, 텍스트 속성 `Label` | `<button>` | Button | `variant: 'primary' \| 'secondary' \| 'tonal'`(primary 2 = 배경 `brand/Primary container`, 글자 `text/brand-label`. 토큰 `brand/primary-subtle`과 다른 색이라 `subtle`로 부르지 않는다), `size: 'sm' \| 'md' \| 'lg'`, `icon?`, 아이콘만 있는 버튼은 `iconOnly`. 모서리 8/10/12. **변형이 듬성듬성했다**(2026-10-15 240개 조합 중 27개 → **2026-10-25 68개**, 아래 "Button 상태 색"). Selected는 여전히 Secondary medium에만 있다. 코드는 빈 조합을 같은 규칙으로 채운다. Secondary 글자색이 크기마다 다르다(small `text/primary`, medium·Large `text/secondary-label`, Large 아이콘형 `text/secondary`) — 코드는 하나로 통일. medium은 2026-10-25에 **모두 46h**다(옛 판은 아이콘형만 46h, 아이콘 없는 것은 45h). Selected는 배경 #EEEEED(변수 `197:4875`) + 글자 `text/primary-label` + 테두리 `strong-border`. Hover·Pressed·Disabled는 CSS 상태, Selected만 prop **2026-10-31**: Secondary 아이콘만(`Text=false`) small 32×32(아이콘 16, `text/primary`)·medium 46×46(아이콘 18, `text/secondary-label`) × Normal/Hover/Pressed/Disabled 8개가 생겨 76변형. Secondary Normal 배경 변수가 `Background/normal 3`(값 흰색 그대로). primary 2 **Large 아이콘만**은 배경이 `brand/secondary` 계열(Normal Violet 50 · Hover Violet 100 · Pressed Violet 200)로 바뀌어 글자 있는 primary 2(Violet 100·200·300)와 달라졌다(§8) | P2 |
 | Button `round` | `<button>` | — | 56 원형 아이콘 버튼(FAB). Primary 배경이 `text/primary`(검정). `variant`가 아니라 별도 `Fab` 컴포넌트로 둔다. 2026-10-25: Primary에 Hover·Pressed·Disabled가, 흰 판 `Color=Secondary`(Normal·Hover·Pressed)가 생겼다(아래 표) | P2 |
 | **numbering** — minus/plus × default/pressed, 20×20 | `<button>` | — | 수량 스테퍼(P6)의 부품 | P2 |
-| **Input** 3종 — input field · text input(단위 접미사 "원") · icon input, `State` Default/Focus/Filled/disabled | `<input>` | Input | `leading?`(아이콘), `trailing?`(단위). 44h, 모서리 8, 포커스는 보라 테두리. Focus·Filled는 CSS 상태 | P2 |
+| **Input** 3종 — input field · text input(단위 접미사 "원") · icon input, `State` Default/Focus/Filled/disabled | `<input>` | Input | `leading?`(아이콘), `trailing?`(단위). 44h, 모서리 8, 포커스는 보라 테두리. Focus·Filled는 CSS 상태 **2026-10-31**: icon input의 앞 아이콘이 20×20 틀(패딩 2) 안 16px로 바뀌었다(옛 24). disabled 테두리는 `interaction/disabled` 값이 바뀌어 Neutral 200 | P2 |
 | **Search Field** — Default/Focus/Filled(disabled 없음) | `<input type="search">` | Input | 검색 아이콘이 외부 `icon/search`다. 코드는 `ic/search`를 쓴다 | P2 |
-| **Dropdown** — 트리거(상태 1개) + dropdown item(selected) | Radix `Select` | Select / Combobox | 트리거 아이콘이 위아래 화살표(`ic/up down`)라 shadcn Combobox 모양에 가깝다. 열린 목록은 컴포넌트가 아닌 예시 프레임(`284:1755`)이다. placeholder·disabled·에러 상태 없음. placeholder 스타일은 Radix의 `[data-placeholder]`로 받는다 | P2 |
+| **Dropdown** — 트리거(상태 1개) + dropdown item(selected) | Radix `Select` | Select / Combobox | 트리거 아이콘이 위아래 화살표(`ic/up down`)라 shadcn Combobox 모양에 가깝다. 열린 목록은 컴포넌트가 아닌 예시 프레임(`284:1755`)이다. placeholder·disabled·에러 상태 없음. placeholder 스타일은 Radix의 `[data-placeholder]`로 받는다 **2026-10-31**: dropdown item 높이 28 → **36** | P2 |
 | **SortButton**(페이지 이름 Sort Dropdown) — 라벨이 변형(공연임박순/최신등록순) | — | — | 정렬값이 서버에 하나뿐이라 **고정 라벨**(patterns §13). Figma에 chevron-down 12가 붙어 있지만 코드는 chevron 없이 누를 수 없게 | P5a, P8 |
-| **Checkbox**(`Box`) — `checked` × `Status` default/disabled | Radix `Checkbox` | Checkbox | 원형 20px. 채움 색이 `text/primary-label`(검정)이다 — 브랜드색이 아니다 | P2 |
+| **Checkbox**(`Box`) — `checked` × `Status` default/disabled | Radix `Checkbox` | Checkbox | 원형 20px. 채움 색이 `text/primary-label`(검정)이다 — 브랜드색이 아니다 **2026-10-31**: disabled 채움·테두리가 Neutral 200(`interaction/disabled` 값 변경) | P2 |
 | **Radio** — selected | Radix `RadioGroup` | Radio Group | 20px, 점 색 검정. disabled 없음 | P2 |
 | **Toggle** — Off/On | Radix `Switch` | Switch | 45×24. disabled 없음 | P2 |
-| **Tabs** — `tab`(공연/호스트 2개 고정) + tab item(`selected` × `type` 모바일/데스크탑) | Radix `Tabs` | Tabs | 밑줄형. **2026-10-25 변경**: 선택 = 글자 `Label/lg-emphasized` + 아래 2px 모두 `text/primary-label`(검정, 옛 `brand/primary` 보라), 미선택 = `Label/lg`(16 Regular) `interaction/inactive`(회색, 옛 16 Bold `text/primary`). 모바일은 선택·미선택 모두 44h(옛 42h 차이 해소). `type=데스크탑`이 새로 생겼다 — 20px(`Heading/md` / `Heading/md - emphasized`), 선택 48h·미선택 44h. **코드(2026-10-25)**: `TabList`의 `size` — `md`(기본, `type=모바일` 16, 44h) · `lg`(`type=데스크탑` 20, **48h 하나로 통일** — Figma 선택 48·미선택 44와 다르다. 한 줄에서 밑줄 높이가 달라지지 않게). disabled 글자는 `interaction/disabled-text`(Neutral 300)라 미선택과 같은 색이다(§5 확인 요청). 탭 개수는 코드에서 자유롭게. 값은 URL과 묶을 수 있게 제어형(`?tab=`, tech-decisions §3) | P2 |
+| **Tabs** — `tab`(공연/호스트 2개 고정) + tab item(`selected` × `type` 모바일/데스크탑) | Radix `Tabs` | Tabs | 밑줄형. **2026-10-25 변경**: 선택 = 글자 `Label/lg-emphasized` + 아래 2px 모두 `text/primary-label`(검정, 옛 `brand/primary` 보라), 미선택 = `Label/lg`(16 Regular) `interaction/inactive`(회색, 옛 16 Bold `text/primary`). 모바일은 선택·미선택 모두 44h(옛 42h 차이 해소). `type=데스크탑`이 새로 생겼다 — 20px(`Heading/md` / `Heading/md - emphasized`), 선택 48h·미선택 44h. **코드(2026-10-25)**: `TabList`의 `size` — `md`(기본, `type=모바일` 16, 44h) · `lg`(`type=데스크탑` 20, **48h 하나로 통일** — Figma 선택 48·미선택 44와 다르다. 한 줄에서 밑줄 높이가 달라지지 않게). disabled 글자는 `interaction/disabled-text`(Neutral 300)라 미선택과 같은 색이다(§5 확인 요청). 탭 개수는 코드에서 자유롭게. 값은 URL과 묶을 수 있게 제어형(`?tab=`, tech-decisions §3) **2026-10-31**: 데스크탑 미선택 44 → **48** — 선택·미선택 모두 48이 됐다(개발 싱크 요청 `tabs-lg-48`이 반영됨, 코드는 이미 48) | P2 |
 | **Toast popup** — 1종 | `sonner` unstyled | Sonner | 358×54, 모서리 12, Body/lg 16 가운데 정렬, 아이콘·액션 없음. 성공·에러 구분 없음. 명령형 `toast()`(tech-decisions §13) | P2 |
 | **Badge** — large(숫자 20×20)/small(점 8) | — | — | 알림 배지. large는 고정 20×20이라 두 자리 숫자를 못 담는다. 코드는 최소 폭 20 + 좌우 패딩으로 늘린다 | P2 |
 | **Avatar** — 9개 변형: 24(grey만) · 32 · 40 × teal/orange/indigo/grey | — | Avatar | 캐릭터 일러스트. `size=40` 변형의 실제 크기는 **45px**, 호스트 행에서는 60px로 늘려 쓴다. 사진 변형이 없다 — 프로필 이미지(PM-3)를 어디에 보여 줄지는 디자인 확인 | P2 |
 | **Filter Chip** — selected/open 4상태 | Radix `Popover`(펼칠 때) | — | 선택 여부는 숫자 Badge가 붙는 것뿐이다. 공연 리스트(P5a)가 쓰고, 예매자 관리(P13a) 필터에도 쓸 것으로 본다(추정 — P13a 필터 디자인은 아직 없다). "태그" 문구가 고정이라 텍스트 속성이 필요하다 | P2 |
-| **Tag** 5종 — Ticket state chip(승인완료·선물대기·선물완료·승인대기), tag(공연 태그·티켓 수, 텍스트 속성), role chip(마스터·매니저), Concert state chip(D-day·준비중·지난 공연), money option chip(`amount`) | — | Badge | 상태 값은 서버 enum과 매핑하고, 모르는 값은 기본 모양(tech-decisions §4). **Ticket state chip은 서버 티켓 상태 11가지 중 4가지만 있다**(아래 "없는 상태"). **Concert state chip**(2026-10-25 변경): `Property 1` ready/d-day/past에 **`ing`(공연중 — 배경 `brand/accent`, 글자 `brand/accent-subtle`)** 이 더해졌고, `size` 축이 생겼다 — small 22h·좌우 10·모서리 6(직접 값)·`Label/sm`, large 25h·좌우 12·모서리 8(변수 `35:177`)·`Label/md`. 색은 §1 "원시 색에서 벗어난 것". 공연준비 홈 PC 목록(`공연 리스트_Desktop`)이 large를 쓴다. 코드(2026-10-25): Chip `tone` `ing` 추가(small 모양), large는 쓰는 화면(P10a-V)에서. role chip에 GUEST가 없다(호스트 행의 `Role tag=false`가 그 경우로 보인다). 다른 enum(사용자 주문 상태 × `refundStatus`, 호스트 주문 상태, `entrance`, `giftState`)의 칩 매핑은 쓰는 Phase에서 정한다. Concert state chip "D-7"은 텍스트 속성이 없다 | P2(공용 칩), 매핑은 사용 Phase |
+| **Tag** 5종 — Ticket state chip(승인완료·선물대기·선물완료·승인대기), tag(공연 태그·티켓 수, 텍스트 속성), role chip(마스터·매니저), Concert state chip(D-day·준비중·지난 공연), money option chip(`amount`) | — | Badge | 상태 값은 서버 enum과 매핑하고, 모르는 값은 기본 모양(tech-decisions §4). **Ticket state chip은 서버 티켓 상태 11가지 중 4가지만 있다**(아래 "없는 상태"). **Concert state chip**(2026-10-25 변경): `Property 1` ready/d-day/past에 **`ing`(공연중 — 배경 `brand/accent`, 글자 `brand/accent-subtle`)** 이 더해졌고, `size` 축이 생겼다 — small 22h·좌우 10·모서리 6(직접 값)·`Label/sm`, large 25h·좌우 12·모서리 8(변수 `35:177`)·`Label/md`. 색은 §1 "원시 색에서 벗어난 것". 공연준비 홈 PC 목록(`공연 리스트_Desktop`)이 large를 쓴다. 코드(2026-10-25): Chip `tone` `ing` 추가(small 모양), large는 쓰는 화면(P10a-V)에서. role chip에 GUEST가 없다(호스트 행의 `Role tag=false`가 그 경우로 보인다). 다른 enum(사용자 주문 상태 × `refundStatus`, 호스트 주문 상태, `entrance`, `giftState`)의 칩 매핑은 쓰는 Phase에서 정한다. Concert state chip "D-7"은 텍스트 속성이 없다 **2026-10-31**: 페이지 이름이 "┗ Chip"이 됐다. Ticket state chip·Concert state chip small·money option chip 모서리 6 → **8**(코드는 이미 8), Ticket state chip은 고정 72 → 내용 폭(좌우 12, 66), tag 좌우 패딩 12(`Space/3`에 묶임, 공연 태그 72 → 내용 폭 45). 새 칩 세트 `tag_v2`·`Ticket state chip_host`는 아래 줄 | P2(공용 칩), 매핑은 사용 Phase |
+| **tag_v2**(2026-10-31 새로, `693:668`, 페이지 ┗ Chip) — `size` small 22h(좌우 10, `Label/sm` 12) · large 25h(좌우 12, `Label/md` 14) × `variant` square(모서리 8) · round(999 — 알약) × `color` violet · red · green · grey · cyan · purple × `theme` weak(옅은 배경 + 진한 글자) · fill(진한 배경 + 옅은 글자) · border(배경 없음 + 진한 테두리·글자), 텍스트 속성 `label` — 72변형 | — | Badge | **새 범용 칩.** 색: violet `brand/primary`·`primary-subtle`, red `brand/accent`·`accent-subtle`, green `status/success`·`success-subtle`, grey `surface/strong-border`·`interaction/disabled-bg`, **cyan Teal 400·50, purple Purple 400·50(원시 색 직접)**. GUI에서 63곳(Ready 프레임 안 12 — 티켓 관리의 판매 상태·옵션 칩: green/round/border, grey/square/weak, grey/round/border). 옛 Tag 5종을 대체하는지는 디자이너 확인(§5). 코드: `Chip`에 `tag_v2` 축(크기·모양·색·테마)을 더한다(§8) | P12(V) |
+| **Ticket state chip_host**(2026-10-31 새로, `678:2237`) — `state` 승인완료("판매중" 보라 옅은 배경) · state2("판매 예정" 흰 배경 + `interaction/inactive-bg` 테두리 + `text/secondary`) · state3("판매 종료" Coral-red 50 배경 + `brand/accent`), 21h, 모서리 4, `Label/xs` 11 | — | — | **GUI에서 쓰는 곳이 없다**(티켓 관리 Ready 프레임은 `tag_v2`를 쓴다). 변형 이름이 정리되지 않았다(§5). 구현하지 않는다 | — |
 | **list** — 10개 변형(`Hierarchy` First/second-closed/second-open/second-radio/third × `value type` text/badge/none/account/text+money 중 일부), 텍스트 속성 `label`·`value text` | 펼침형은 Radix `Collapsible` | Collapsible | 정보 행. `second-radio`는 이름과 달리 체크박스(`Box`)를 쓴다. `account`에 컴포넌트가 아닌 "복사" 버튼이 들어 있다 | P2 |
 | **List**(호스트 행) — Role tag × Default/add | — | — | 도메인. 아바타 60px | P10a |
 | **concert menu** — selected/unselected | — | — | 공연 어드민 사이드메뉴 항목. 도메인 | P11 |
 | **Card list**, **example poster**(1~4, 준비중 × `size` mobile 94×133 / desktop 145×205 — size 축은 2026-10-25) | — | Card | 도메인. **호스팅 센터 공연준비 홈의 카드**다(인스턴스는 예시 `303:2082` 하나). 2026-10-25: 정보 줄이 호스트명 · 날짜 · **시각("19:30~21:30", 새 줄)** · 장소 4줄이 됐고 "호스트: "·"날짜: "·"장소: " 접두어가 빠졌다. Card list 안에 ⋮(`ic/more` 24를 20×20으로 줄여 씀)와 Concert state chip. ⋮는 지난 공연 카드에도 그려져 있지만 계획(P11)대로 **준비중 공연 + 매니저 이상**일 때만 보인다(§5 확인 요청). 호스트·날짜·장소는 각 1줄 말줄임, 제목은 디자이너 메모로 최대 2줄(컴포넌트 설정은 줄 제한 없음) | P10a |
 | **ConcertCard** — 포스터 + 날짜 + 제목, 텍스트 속성 `Title`·`date` | `<Link>` + 인라인 진행 표시(tech-decisions §3) | Card | 도메인. 제목 Kartrider 18(§1), **제목 2줄 말줄임**(컴포넌트 설정), 날짜는 말줄임 없음. 2026-10-25: 포스터 모서리 8이 변수 `35:152`(값 8 — 같은 변수가 간격·패딩에도 묶여 있다, §5 모서리 변수 요청과 같은 문제)에 묶였다 | P5a |
-| **Top app bar** — `Property 1` Default/only title/no title/Title+Backward × `leading icon` × `profile`(Default/true/false), Slot 2개 | — | — | 관객·호스팅 헤더. 모두 390폭(데스크탑 헤더 없음). `Default, leading icon=true, profile=false` 변형은 제목 옆에 ▾(`ic/chevron-down` 12)가 붙고 아랫줄에 공연 이름이 있는 **공연 전환형**이다(전환 메뉴는 없음). 제목은 텍스트 속성이 아니다. 긴 제목: `Title+Backward` 변형은 1줄 말줄임, 사본 `495:457`은 2줄 말줄임(이 사본은 2026-10-25에 지워졌다), 나머지 변형은 말줄임 없음 — 하나로 통일 요청(§5). 컴포넌트 세트 자체는 2026-10-25에 바뀌지 않았다. 모든 변형의 Slot·Slot2(24×24)가 비어 있다(`Title+Backward`에도 뒤로가기 아이콘이 없다). profile 아바타는 Avatar 32 grey. 관객과 호스팅이 같이 쓰므로 `src/ui/components/Header`(directory-structure)로 둔다 | P2 |
-| **ic** — 아이콘 **44종(변형 58개)**. 기본 24 outline, 둥근 선 2px(lucide 방식). filled는 12종(Ticket·dashboard·home·clock·circle-request/check/reject·Settings는 둘 다, mail·phone·open chat·etc는 filled만), 12px는 8종(more·check·chevron-down/up·gift·add·minus·close, gift·minus는 12px만), 16px는 `information` 1종 | — | — | `<Icon name size variant />`. 빌드 때 SVG를 컴포넌트로. 색은 `currentColor`로 바꾼다 — 예외(다색): `instagram`(그라데이션), 알림 점이 있는 `notificatio_onn`·`Ticket-alert`(빨간 점, `brand/accent`), `Settings` filled(회색 원 배경), `chat`(검정 말풍선 + 흰 점 3개), `gift` 12(검정 채움 + 밝은 리본 선). (`chat` 점·`gift` 12 리본의 다크 모드 소실 문제는 다크 모드 미지원(사용자 결정 2026-10-25)으로 닫음.) **SVG 추출이 깨지는 것**: `home` outline(`120:972`)은 `SVG_STRING`으로 뽑으면 외곽선이 빠지고 문만 나온다(둥근 모서리 처리 문제로 보임), `Ticket-alert`(`213:34`)는 배지가 틀 밖으로 나가 28×28로 뽑힌다. 출처는 결정 요약 아래 표. **2026-10-25**: 세트가 **53종·변형 68개**가 됐다 — 새 이름 9개 `edit`(`538:2529`)·`up`(`651:356`)·`diagonal`(`538:2534`, ↗)·`pop out`(`538:2766`)·`archiving`(`538:4837`)·`location`(`662:746`)·`music`(`662:749`)·`log out`(`538:5095`)·`update`(`538:5100`), 새 크기 `chevron-left`·`chevron-right` **20**(`622:2133`·`622:1841`). `Ticket` → `ticket`(소문자). `Ticket` filled는 세트에서 빠져 낱개 컴포넌트 `ic/ticket/filled/24`(`183:1130`)가 됐다. 세트 밖 낱개 프레임 `ic`(`662:722`·`662:726`, 같은 그림 둘)·`icon/music-4`(`662:730`)가 더 생겼다. `favorite` 선 색은 shadcn 원격 `mode/foreground`에서 로컬 `text/primary-label`로 바뀌었다(선 굵기는 여전히 원격 변수). 대시보드 상태 아이콘 세트 `ic_대시보드`는 아래 "호스팅 PC·대시보드 컴포넌트" | P1 |
+| **Top app bar** — `Property 1` Default/only title/no title/Title+Backward × `leading icon` × `profile`(Default/true/false), Slot 2개 | — | — | 관객·호스팅 헤더. 모두 390폭(데스크탑 헤더 없음). `Default, leading icon=true, profile=false` 변형은 제목 옆에 ▾(`ic/chevron-down` 12)가 붙고 아랫줄에 공연 이름이 있는 **공연 전환형**이다(전환 메뉴는 없음). 제목은 텍스트 속성이 아니다. 긴 제목: `Title+Backward` 변형은 1줄 말줄임, 사본 `495:457`은 2줄 말줄임(이 사본은 2026-10-25에 지워졌다), 나머지 변형은 말줄임 없음 — 하나로 통일 요청(§5). 컴포넌트 세트 자체는 2026-10-25에 바뀌지 않았다. 모든 변형의 Slot·Slot2(24×24)가 비어 있다(`Title+Backward`에도 뒤로가기 아이콘이 없다). profile 아바타는 Avatar 32 grey. 관객과 호스팅이 같이 쓰므로 `src/ui/components/Header`(directory-structure)로 둔다 **2026-10-31**: 아이콘 자리(Slot) 24 → **40×40**(누르는 영역). 왼쪽 아이콘이 있는 변형은 왼쪽 패딩 24 → **8**, 오른쪽 패딩은 오른쪽 슬롯이 아이콘이면 8 · 프로필(`profile=true`)이거나 오른쪽 슬롯이 없으면 24(위아래 16 그대로). `Top bar_Host`의 아이콘도 40×40 틀 안으로 | P2 |
+| **ic** — 아이콘 **44종(변형 58개)**. 기본 24 outline, 둥근 선 2px(lucide 방식). filled는 12종(Ticket·dashboard·home·clock·circle-request/check/reject·Settings는 둘 다, mail·phone·open chat·etc는 filled만), 12px는 8종(more·check·chevron-down/up·gift·add·minus·close, gift·minus는 12px만), 16px는 `information` 1종 | — | — | `<Icon name size variant />`. 빌드 때 SVG를 컴포넌트로. 색은 `currentColor`로 바꾼다 — 예외(다색): `instagram`(그라데이션), 알림 점이 있는 `notificatio_onn`·`Ticket-alert`(빨간 점, `brand/accent`), `Settings` filled(회색 원 배경), `chat`(검정 말풍선 + 흰 점 3개), `gift` 12(검정 채움 + 밝은 리본 선). (`chat` 점·`gift` 12 리본의 다크 모드 소실 문제는 다크 모드 미지원(사용자 결정 2026-10-25)으로 닫음.) **SVG 추출이 깨지는 것**: `home` outline(`120:972`)은 `SVG_STRING`으로 뽑으면 외곽선이 빠지고 문만 나온다(둥근 모서리 처리 문제로 보임), `Ticket-alert`(`213:34`)는 배지가 틀 밖으로 나가 28×28로 뽑힌다. 출처는 결정 요약 아래 표. **2026-10-25**: 세트가 **53종·변형 68개**가 됐다 — 새 이름 9개 `edit`(`538:2529`)·`up`(`651:356`)·`diagonal`(`538:2534`, ↗)·`pop out`(`538:2766`)·`archiving`(`538:4837`)·`location`(`662:746`)·`music`(`662:749`)·`log out`(`538:5095`)·`update`(`538:5100`), 새 크기 `chevron-left`·`chevron-right` **20**(`622:2133`·`622:1841`). `Ticket` → `ticket`(소문자). `Ticket` filled는 세트에서 빠져 낱개 컴포넌트 `ic/ticket/filled/24`(`183:1130`)가 됐다. 세트 밖 낱개 프레임 `ic`(`662:722`·`662:726`, 같은 그림 둘)·`icon/music-4`(`662:730`)가 더 생겼다. `favorite` 선 색은 shadcn 원격 `mode/foreground`에서 로컬 `text/primary-label`로 바뀌었다(선 굵기는 여전히 원격 변수). 대시보드 상태 아이콘 세트 `ic_대시보드`는 아래 "호스팅 PC·대시보드 컴포넌트" **2026-10-31**: `ic` 세트 78변형 — 새 크기 calendar·clock 16, chevron-left·right 12·16, more 16·20, 새 그림 gift outline 24·gift cancle 24·gift return 24, **gift 12가 빠졌다**(코드 `gift-outline-12`는 남아 있음). 세트 밖 낱개 컴포넌트 `lightbulb` 24(`714:1841` — GUI 티켓 관리 "티켓 옵션이란?"이 씀)·`icon_v2`(`716:1165`, 쓰는 곳 없음). 섹션 "ic_v2 (인스턴스 스왑용)"(`740:1168`)에 아이콘마다 세트 `ic_<이름>` 56개가 새로 생겼지만 **라이브러리에 공개되지 않았고 GUI에서도 안 쓴다** — 코드는 계속 `ic` 세트 기준(§8) | P1 |
 | 일러스트 6종 — `img_포스터 준비중` 180×254, `img_티켓 없음`·`img_예매완료`·`img_선물`·`img_검색 결과 없음` 170×170, `img_login` 285×273 | — | — | 모두 벡터라 SVG로 뽑는다. 빈 화면용. **2026-10-25 벡터가 가벼워졌다** — REST SVG 내보내기 크기(옛 판 → 지금): 포스터 준비중 932KB → 40KB, 티켓 없음 52 → 8KB, 예매완료 52 → 26KB, 선물 454 → 75KB, 검색 결과 없음 271 → 9KB, login 970 → 60KB. 티켓 없음·예매완료·login은 채움과 같은 색의 외곽선이 빠졌고, 포스터 준비중은 색이 바뀌었다(§1). 노드 수는 같다 | P2 |
 
 ### Button 상태 색(2026-10-25)
@@ -396,6 +407,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
 ## 4. 구현 규칙
 
+- **화면에 반영할 때**: 근거 판정(Ready for dev), 커스텀 지양과 판단 표(Figma가 DS 인스턴스 / 커스텀인데 DS로 가능 / 커스텀이고 DS로 불가), `FIGMA-CUSTOM:` 주석·Figma 코멘트 형식, 완료 기준은 [`design-workflow.md`](./design-workflow.md)가 정본이다(2026-10-31). DS로 불가해 커스텀으로 만든 것이 반복되면 §3 "없는 컴포넌트"에 올린다.
 - **파일**: `src/ui/components/<Name>/{<Name>.tsx, <Name>.css.ts, <Name>.stories.tsx}`. 도메인 컴포넌트는 `features/*`.
 - **변형**: `recipe()`로 정의하고 `RecipeVariants`로 props 타입을 만든다. Figma에 듬성듬성 있는 변형(Button)은 축마다 규칙을 정해 빈 조합을 채운다.
 - **Radix 상태**: `data-state`·`data-disabled`를 `.css.ts`의 `selectors`로 받는다. 예: `'&[data-state="checked"]'`.
@@ -404,7 +416,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
   | Figma 하드코딩 | 코드 |
   |---|---|
-  | 모서리 6 (Ticket·Concert state chip, money option chip) | `radius[1]` 4 또는 `radius[2]` 8 — 디자이너 확인. 2026-10-25: Concert state chip large는 8(변수)이고 small은 여전히 6 |
+  | ~~모서리 6 (Ticket·Concert state chip, money option chip)~~ | 2026-10-31 Figma가 모두 8로 바꿨다 → `radius[2]`(코드는 2026-10-25부터 8) |
   | 모서리 8 (Filter Chip, ConcertCard 이미지 — 2026-10-25에 ConcertCard 이미지는 변수 `35:152`에 묶였다) | `radius[2]` |
   | 모서리 20 (2026-10-25 `승인 메뉴_mobile`·`입장 현황`·`필수 체크리스트` — 같은 값의 형제 카드는 변수 `161:3481`) | `radius[6]` |
   | 사이드바 메뉴 선택 배경 #F7F7F6 10%(변수 없음) | 컴포넌트 전용 토큰(검정 사이드바 위 흰 10%) |
@@ -414,7 +426,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
   | 모서리 3 (tab item) · 4.79 (포스터) | `radius[1]` |
   | 모서리를 `Space` 변수에 묶은 곳(Toast `Space/3`, dropdown item `Space/1`, Card list `Space/4`, Top bar 아이콘 `Space/10`) | 같은 값의 `radius` 토큰 — 번호가 다르다(Space/3 12 → `radius[4]`, Space/1 4 → `radius[1]`, Space/4 16 → `radius[5]`, Space/10 80 → 원형) |
 
-  칩 모서리 6처럼 토큰에 없는 값은 디자이너에게 확인한다(§5).
+  토큰에 없는 값은 디자이너에게 확인한다(§5). 칩 모서리 6은 2026-10-31에 8로 해소됐다.
 - **원시 색 예외**: §1 표의 컴포넌트는 컴포넌트 전용 의미 토큰으로 묶는다. 화면 코드에서 원시 색을 쓰지 않는다.
 - **아이콘(P1 구현, 2026-10-25 갱신)**: `src/ui/icons/` — Figma에서 뽑은 원본 SVG **69개(53종)**(`svg/<key>-<variant>-<size>.svg`, 크기 12·16·**20**·24 — 20은 `chevron-left`·`chevron-right`). 2026-10-25에 새 변형 11개(`edit`·`up`·`diagonal`·`pop-out`·`archiving`·`location`·`music`·`log-out`·`update` 24 outline, chevron 20 두 개)를 더했다. `ticket` filled는 세트 밖 낱개 `ic/ticket/filled/24`(`183:1130`)에서 따로 뽑는다(세트 68개 + 낱개 1 = 69, 절차는 `src/ui/icons/README.md`) → `generate.mjs`가 정리·`registry.ts` 생성 → `<Icon name variant size title? />`(인라인 SVG, 훅 없음). `IconSpec`은 Figma에 있는 조합만 타입으로 허용한다. 단색 52개는 `currentColor`. 다색 6개(`chat`, `gift` 12, `instagram`, `notification-on`, `settings` filled, `ticket-alert`)도 본문 잉크색(#141413)은 `currentColor`로 바꾸고 강조색(빨간 점, 흰 점, 리본, 회색 원, 그라데이션)만 원래 값으로 남겼다. 손으로 고친 것: `home` outline은 filled와 같은 중심선을 선 2px로 그려 만들었고(PNG 비교 일치), `Ticket-alert`는 24 viewBox로 되돌리고 배지는 Figma처럼 틀 밖으로 나가게 두어 `overflow="visible"`로 그린다(계획의 "코드에서 겹침" 대신 — 배지를 따로 빼려면 rect 한 줄 삭제). 이 두 파일은 재추출 때 덮어쓰지 않는다(`src/ui/icons/README.md`). Figma 이름 → 키 대응(`notificatio_onn` → `notification-on` 등)은 `generate.mjs`의 `FIGMA_NAME_MAP`, 그 밖은 소문자·공백 → `-`(`pop out` → `pop-out`). 라이선스 고지는 루트 `THIRD_PARTY_NOTICES.md`(lucide ISC, feather MIT). 남은 것: 한 페이지에 `instagram`을 여러 번 그리면 그라데이션 id가 겹침(내용이 같아 보통 무해).
 - **shadcn 참고**: 같은 동작의 shadcn 소스에서 Radix 조합과 접근성 속성을 참고하고, Tailwind 클래스는 가져오지 않는다.
@@ -505,7 +517,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 |---|---|---|
 | 모서리 변수 | Toast(`Space/3`), dropdown item(`Space/1`), Card list(`Space/4`), Top bar 아이콘(`Space/10`)의 모서리가 Space 변수에 묶임. Component 변수 17개가 모든 용도로 열려 있어서 생긴다 | `Radius` 변수로. 변수 용도를 Space는 간격·패딩, Radius는 모서리로 제한 |
 | 원격 변수 연결 | 아이콘 세트의 선 굵기와 `favorite` 선 색, Toast 테두리 굵기가 shadcn 키트 변수에 묶여 있다(2026-10-25: `favorite` 선 색은 로컬 `text/primary-label`로 바뀜) | 연결 끊고 값 또는 자체 변수로 |
-| 하드코딩 모서리 | 칩 6, Badge 10, numbering 10, tag 12, Toggle 트랙 12, Checkbox 17, tab item 3, 포스터 4.79, Button medium Disabled 10(형제는 변수) | Radius 토큰으로, 알약·원형은 원형 값으로. 칩 6은 토큰에 없는 값 |
+| 하드코딩 모서리 | ~~칩 6~~(2026-10-31 8로 해소), Badge 10, numbering 10, tag 12, Toggle 트랙 12, Checkbox 17, tab item 3, 포스터 4.79, Button medium Disabled 10(형제는 변수) | Radius 토큰으로, 알약·원형은 원형 값으로. 칩 6은 토큰에 없는 값 |
 | 텍스트 스타일 미연결 | ConcertCard 제목(Kartrider 18), Input·Dropdown 글자, Badge 숫자, 복사 버튼 | 스타일 연결. Kartrider 18용 `Title` 작은 크기 추가 |
 | 이름 규칙 | 컬렉션 `Sementic`, `Background`만 대문자, `on Primary container` 공백, emphasized 표기 혼재(` - emphasized` 대 `-emphasized`), 견본 라벨 `md1` ↔ 스타일 `md`, "Katrider" 오타 | 정리 |
 
@@ -516,8 +528,8 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | Input 플레이스홀더 | "stakeholder" | "placeholder" 또는 실제 예시 문구 |
 | Search Field 아이콘 | 외부 라이브러리 `icon/search` | 자체 `ic/search`로 |
 | Avatar | `size=40` 변형이 실제 45px, 호스트 행에서 60px | 크기 체계 확인, 사진 표시 여부 |
-| Tabs | 2개 고정, 선택 44h·미선택 42h(2026-10-25 모바일은 44 통일, 데스크탑 변형은 48·44) | 탭 개수 자유, 데스크탑 높이 통일 |
-| 새로 쓰인 변수 12개(2026-10-25, §1) | 이름을 REST로 읽을 수 없다. 대부분 기존 의미 색과 같은 값이다(#F7F7F6·#FFFFFF·#EEEEED·#0A0A09 등) | 이름 알려 주기. 기존 의미 색과 같은 값이면 하나로 |
+| Tabs | 2개 고정, 선택 44h·미선택 42h(2026-10-25 모바일은 44 통일, 데스크탑 변형은 48·44 → **2026-10-31 데스크탑도 48 통일, 해소**) | 탭 개수 자유 |
+| ~~새로 쓰인 변수 12개(2026-10-25, §1)~~ | 2026-10-31 Desktop Bridge로 이름 확인(§1) — 요청 닫음. 같은 값 의미 색 합치기는 "의미 색 이름 중복"으로. 옛 메모: 이름을 REST로 읽을 수 없다. 대부분 기존 의미 색과 같은 값이다(#F7F7F6·#FFFFFF·#EEEEED·#0A0A09 등) | 이름 알려 주기. 기존 의미 색과 같은 값이면 하나로 |
 | primary 2 상태 색(2026-10-25) | 글자가 Violet 300으로 바뀌어 대비 2.75:1 → 같은 날 Violet 400으로 되돌아가 Normal 4.04:1. Hover 2.76:1은 그대로 | 대비 4.5:1 이상 |
 | Tabs 미선택·상단 바 비활성 메뉴 | 회색 #B8B7B3 on 흰색 2.01:1 | 대비 확인 |
 | Tabs disabled(2026-10-25) | Figma에 disabled 탭이 없다. 코드는 `interaction/disabled-text`(Neutral 300)를 쓰는데 미선택 `interaction/inactive`도 Neutral 300이라 둘이 구분되지 않는다(커서만 다름) | disabled 탭 색 정하기(또는 disabled 탭을 쓰지 않기) |
@@ -526,6 +538,8 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | Top app bar | `profile` 값 Default/true/false 중 Default가 하나뿐, 제목이 텍스트 속성 아님, 긴 제목 말줄임이 1줄(`Title+Backward`)·2줄(사본 — 2026-10-25 지워짐)·없음(나머지)으로 제각각 | 축 정리, 말줄임 1줄·2줄 중 하나로 통일, Slot에 뒤로가기·액션 아이콘 예시 |
 | Button Secondary | 글자색이 크기마다 다름(`text/primary`·`secondary-label`·`secondary`) | 하나로 |
 | Card list ⋮ | 지난 공연 카드에도 ⋮가 그려져 있다 | 준비중 + 매니저 이상일 때만 보이는지 확인 |
+| 칩 체계(2026-10-31) | 새 범용 칩 `tag_v2`(6색 × 3테마 × 2크기 × 2모양)와 옛 Tag 5종(Ticket state chip·tag·role chip·Concert state chip·money option chip)이 같이 있다. cyan·purple은 원시 색(Teal·Purple) 직접. `Ticket state chip_host`는 변형 이름이 `state2`·`state3`이고 GUI에서 안 쓴다 | 옛 Tag 5종을 `tag_v2`로 바꿀지(바꾸면 서버 상태 → 색 매핑을 같이 정한다), cyan·purple 의미 색, `Ticket state chip_host` 정리·삭제 |
+| 아이콘 세트 두 벌(2026-10-31) | `ic` 세트(공개)와 섹션 "ic_v2 (인스턴스 스왑용)"의 `ic_<이름>` 세트 56개(미공개)가 같이 있다 | 어느 쪽이 정본이 되는지, 바꿀 때 알려 주기(코드 아이콘 이름이 달라진다) |
 | 없는 상태 | §3 "없는 상태" 표 | 우선순위: Input 에러, Button 로딩, Ticket 거절·환불 칩 |
 | 없는 컴포넌트 | §3 "없는 컴포넌트" 목록 | 우선순위: 모달·바텀시트·날짜 입력 |
 
@@ -569,7 +583,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | ~~다크 모드 출시 범위~~ | 닫음 — 다크 모드 미지원(사용자 결정 2026-10-25) |
 | 브레이크포인트 확정 | P1(2026-10-25 GUI 스펙으로 다시 — 호스팅 1133, 관객 1024는 Q38. → 2026-10-31 사용자 결정: 관객·호스팅 모두 1024, 토큰 나누기 없음) |
 | 실제 화면 디자인 페이지(디자인 시스템 파일 밖) | 받는 대로 |
-| 새로 쓰인 변수 12개의 이름(§1) — Desktop Bridge 플러그인을 디자인 시스템 파일에 연결하거나 디자이너에게 받는다 | P4s 전 |
+| ~~새로 쓰인 변수 12개의 이름(§1)~~ | 2026-10-31 확인 — 닫음 |
 | 스토리 테스트에 a11y 자동 검사가 없다(결정 요약) — 대비·라벨은 사람 검토로만 본다. `@storybook/addon-a11y`를 넣을지 | 정하지 않음 |
 
 ### 검증 기록
@@ -588,3 +602,36 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | 코드 반영(2026-10-25, 커밋 `456e5f2`) | implementation-log "디자인 시스템 변경으로 생긴 코드 수정 거리" #1~#9 처리를 반영 — §1 전용 토큰 `button`·Concert 칩 의미 색, §3 Tabs `size` md/lg(lg 48 통일), §4 아이콘 53종 69개·크기 20·`ticket` filled 낱개, §4-1 일러스트 SVG 전환(PNG 예외 문장 삭제), §4-2 "Tabs 높이 44 통일"은 모바일만, §5 Tabs disabled 색 요청, 결정 요약·§7 a11y 자동 검사 없음 |
 | 다크 모드 미지원(2026-10-25) | 사용자 결정으로 다크 모드를 지원하지 않는다. 토큰 다크 세트·`data-theme="dark"` 셀렉터·`withDarkTheme` 데코레이터와 다크 스토리 4개를 걷어내고 색 토큰을 `createGlobalTheme(':root')` 한 벌로 바꿈. §1 다크 모드 문단, §5 다크 값 요청, §7 "다크 모드 출시 범위" 정리 |
 | 버튼 상태 색 토큰 이름(2026-10-25) | 플러그인으로 읽은 Figma 의미 변수 이름으로 전용 토큰 `button.*`(`tonalHoverBg`·`tonalPressedBg`·`fabHoverBg`·`fabPressedBg`)를 바꿈 — §1 "버튼 상태 색 의미 변수" 표, §3 Button 상태 색 코드 반영. 값 변화 없음 |
+| 디자인 시스템 반영(2026-10-31) | 지금 판 `2416497620013456256`을 10-25T09:12Z 판 `2414196346463123931`과 비교(`ds_diff.py` — REST 파일 JSON 두 판) + 변수·텍스트·이펙트 스타일은 Desktop Bridge로 지금 값을 읽어 코드 토큰과 대조. §1(`interaction/disabled` Neutral 200, 새 변수 2개, 변수 12개 이름), §3(Button·Input·Dropdown·Checkbox·Tabs·Tag·Top app bar·ic 줄, 새 `tag_v2`·`Ticket state chip_host`), §4 칩 모서리 6 해소, §5 요청 정리, §8 변경 목록·코드 반영 거리. 기준 버전을 머리에 적고, 갱신은 `Design: 디자인 시스템` 이슈 + 버전 비교로 하기로 함 |
+
+---
+
+## 8. 디자인 시스템 변경 반영 기록
+
+디자인 시스템 파일이 바뀔 때마다 절 하나를 위에 더한다. 받는 길은 둘이다 — 디자이너의 `Design: 디자인 시스템` 이슈, 그리고 화면 작업 시작 때 버전 목록 확인(이슈 없이 바뀐 것). 비교는 `python3 -I .claude/skills/gui-implement/ds_diff.py diff <기준 버전> --out <scratchpad>`, 변수 값은 Desktop Bridge(스킬 `gui-implement` "디자인 시스템 변경"). 끝나면 머리의 "동기화 기준 버전"을 올린다.
+
+### 2026-10-31 — `2414196346463123931`(10-25T09:12Z) → `2416497620013456256`(10-31T13:25Z)
+
+받은 이슈는 없다(플러그인은 10-31에 생겼고 `Design: 디자인 시스템` 이슈는 아직 0건 — 버전 비교로 찾았다). 10-25 오후의 공개(Components published) 18번과 10-31 Tomato·9yu. oo 편집이 들어 있다. 일부(on Primary container Violet 400, Tabs 모바일 44, 칩 모서리 8 결정)는 10-25에 이미 이 문서·코드에 반영돼 있었다.
+
+| 영역 | 바뀐 것 | 코드 |
+|---|---|---|
+| 변수 | `interaction/disabled` Neutral 300 → **200** | **반영 필요** — `tokens.css.ts` `interaction.disabled`가 Neutral 300. Checkbox·Input disabled가 옅어진다 |
+| 변수 | 새 `Background/normal 3`(흰색, Button Secondary 배경) | 값이 같다. 1:1 이름 대조를 위해 `background.normal3`을 더할지는 쓰는 곳이 생길 때 |
+| 변수 | 새 `Background/dimmed`(Neutral 900 85%) | **반영 필요** — 코드 `overlay.dim`은 70%(옛 Figma 시트 70%·모달 80%를 하나로 맞춘 값). 85% 하나로 |
+| Button | Secondary 아이콘만 small·medium 8변형, primary 2 Large 아이콘만 색 `brand/secondary` 계열 | Secondary 아이콘만은 이미 규칙으로 채워져 있다(아이콘 크기 small 16·medium 18 확인 필요). **primary 2(`tonal`) 아이콘만 색 반영 필요** — 지금 코드는 글자형과 같은 `primaryContainer` 계열 |
+| Input | icon input 앞 아이콘 16(20 틀) | **반영 필요** — `Input`은 `leading` 아이콘을 20으로 줄여 그린다(`Input.tsx` 주석). 20 자리 안 16으로 |
+| Dropdown | dropdown item 36h | **반영 필요** — `Dropdown.css.ts` item `minHeight: 28` |
+| Checkbox·일정·체크리스트 | disabled 색(변수 값 변경) | 토큰만 바꾸면 따라간다 |
+| Tabs | 데스크탑 미선택 48 | 이미 48(`Tabs` `size="lg"`) |
+| Chip(옛 Tag) | 모서리 8, Ticket state chip 내용 폭, tag 패딩 12 | 이미 반영 — `Chip.css.ts`는 모서리 8, 모든 칩 좌우 12 내용 폭(`tag`에 고정 폭 없음. 주석의 "72×24"만 낡았다) |
+| Chip | 새 `tag_v2` 72변형 | **새로 만들 것** — `Chip`에 범용 축(`size` sm/lg · `shape` square/round · `color` 6 · `theme` weak/fill/border). cyan·purple은 원시 색이라 전용 토큰(`chip.cyan*`·`chip.purple*`). 티켓 관리 Ready 화면(P12-V)이 쓴다 |
+| Chip | 새 `Ticket state chip_host` | 만들지 않는다(GUI에서 안 씀, §5) |
+| Top app bar | 슬롯 40×40, 왼쪽 패딩 8 | **반영 필요** — `Header.css.ts`는 좌우 24 고정(슬롯 버튼은 이미 40). 왼쪽 아이콘이 있으면 8, 오른쪽 아이콘이면 8 |
+| Top bar_Host | 아이콘 40×40 틀 | P4s-V(호스팅 PC 상단 바)에서 |
+| ic | 새 변형 11개(calendar·clock 16, chevron-left·right 12·16, more 16·20, gift·gift cancle·gift return 24), gift 12 삭제, 낱개 `lightbulb` | **반영 필요** — `src/ui/icons/README.md` 절차로 11개 + `lightbulb`를 뽑는다(`gift cancle`의 오타는 `FIGMA_NAME_MAP`으로 `gift-cancel`). `gift-outline-12`는 Figma에서 빠졌으니 쓰는 곳을 확인하고 지울지 정한다 |
+| ic | 섹션 "ic_v2 (인스턴스 스왑용)" 세트 56개 | 미공개라 따라가지 않는다(§5) |
+| 페이지 | "┗ Tag" → "┗ Chip", Typography 페이지에 떠 있는 컴포넌트 `Property 1=ready, size=small`(`693:566`, Concert state chip 복사본으로 보임), image 페이지에서 사각형·원 2개 삭제 | 없음 |
+| 텍스트·이펙트 스타일 | 변화 없음 | 없음 |
+
+"반영 필요"는 `src/ui` 코드 변경이다 — 이 갱신(문서)과 따로 처리한다(implementation-log에 적고 P2 수정 PR로).
