@@ -6,7 +6,7 @@ import { palette } from './palette';
 /**
  * 디자인 토큰(design-system.md §1). 색은 Figma `Sementic` 컬렉션의 Light 값을 옮겼다.
  * 다크 모드는 지원하지 않는다(사용자 결정 2026-10-25) — 토큰은 라이트 한 벌을 `:root`에 둔다.
- * `avatar`·`role`·`chip`은 Figma가 원시 색을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다.
+ * `avatar`·`chip`은 Figma가 원시 색을 직접 쓰는 곳을 묶은 컴포넌트 전용 토큰이다.
  */
 export const vars = createGlobalTheme(':root', {
   color: {
@@ -53,7 +53,8 @@ export const vars = createGlobalTheme(':root', {
     interaction: {
       inactive: palette.neutral[300],
       inactiveBg: palette.neutral[100],
-      disabled: palette.neutral[300],
+      // 2026-10-31 Figma Neutral 300 → 200(design-system §8)
+      disabled: palette.neutral[200],
       disabledBg: palette.neutral[100],
       disabledText: palette.neutral[300],
     },
@@ -79,18 +80,17 @@ export const vars = createGlobalTheme(':root', {
       orange: palette.orange[300],
       indigo: palette.violet[200],
     },
-    role: {
-      masterBg: palette.purple[50],
-      masterText: palette.purple[400],
-      managerBg: palette.teal[50],
-      managerText: palette.teal[400],
-    },
+    /** `tag_v2`의 cyan·purple — Figma가 원시 색(Teal·Purple 400/50)을 직접 쓴다(design-system §3). 옛 role chip 색과 같다 */
     chip: {
-      giftPendingBg: palette.coralRed[50],
+      cyan: palette.teal[400],
+      cyanSubtle: palette.teal[50],
+      purple: palette.purple[400],
+      purpleSubtle: palette.purple[50],
     },
     /** 오버레이 딤·그림자 */
     overlay: {
-      dim: `color-mix(in srgb, ${palette.neutral[900]} 70%, transparent)`,
+      // Figma `Background/dimmed`(Neutral 900 85%, 2026-10-31)
+      dim: `color-mix(in srgb, ${palette.neutral[900]} 85%, transparent)`,
       shadow: `color-mix(in srgb, ${palette.neutral[900]} 15%, transparent)`,
     },
   },

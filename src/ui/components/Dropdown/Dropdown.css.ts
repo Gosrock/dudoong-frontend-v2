@@ -61,7 +61,7 @@ export const content = style({
 });
 
 /**
- * Figma dropdown item(`284:1777`): 28h, 여백 4, 선택은 배경 `surface/container` + 모서리 4 + check 12.
+ * Figma dropdown item(`284:1777`): 36h(2026-10-31, 옛 28), 여백 4, 선택은 배경 `surface/container` + 모서리 4 + check 12.
  * hover(키보드 이동 포함)와 disabled는 Figma에 없는 상태다(design-system §3).
  */
 export const item = style([
@@ -70,7 +70,7 @@ export const item = style([
     display: 'flex',
     alignItems: 'center',
     gap: vars.space[1],
-    minHeight: 28,
+    minHeight: 36,
     padding: vars.space[1],
     borderRadius: vars.radius[1],
     color: vars.color.text.primary,

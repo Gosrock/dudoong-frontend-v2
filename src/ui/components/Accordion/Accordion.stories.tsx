@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 
-import { Chip } from '../Chip/Chip';
+import { Chip, formatOptionAmount } from '../Chip/Chip';
 import { InfoRow } from '../InfoRow/InfoRow';
 import { Accordion } from './Accordion';
 
@@ -53,7 +53,14 @@ export const Open: Story = { args: { defaultOpen: true } };
 
 /** Figma `second-closed·open, value type=text+money` */
 export const WithMoney: Story = {
-  args: { trailing: <Chip variant="money" amount={1000} />, defaultOpen: true },
+  args: {
+    trailing: (
+      <Chip color="violet" theme="fill">
+        {formatOptionAmount(1000)}
+      </Chip>
+    ),
+    defaultOpen: true,
+  },
 };
 
 /** Figma에 없는 상태 */

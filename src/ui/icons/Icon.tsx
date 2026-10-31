@@ -15,7 +15,7 @@ export type IconProps = IconSpec &
 
 /**
  * Figma `ic` 세트 아이콘. 색은 `currentColor`(글자색)를 따른다.
- * 다색 아이콘(chat·gift 12·instagram·notification-on·settings filled·ticket-alert)은 강조색이 고정이다.
+ * 다색 아이콘(chat·instagram·lightbulb·notification-on·settings filled·ticket-alert)은 강조색이 고정이다.
  * 훅이 없어 서버·클라이언트 어디서나 쓸 수 있다.
  */
 export function Icon({ name, variant = 'outline', size = 24, title, ...rest }: IconProps) {

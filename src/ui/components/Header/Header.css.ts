@@ -1,10 +1,10 @@
-import { style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
 
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
 /**
- * Figma Top app bar(`37:44`) — 390×64, 패딩 16·24, 슬롯 24×24, 간격 16. 모든 변형이 모바일 폭이다(데스크탑 헤더 없음).
+ * Figma Top app bar(`37:44`) — 390×64, 패딩 16·24(아이콘이 있는 쪽은 8 — 2026-10-31), 슬롯 40×40, 간격 16. 모든 변형이 모바일 폭이다(데스크탑 헤더 없음).
  * 제목은 1줄 말줄임으로 통일했다(Figma는 변형마다 다름 — 디자이너 확인 대기, design-system §5).
  */
 export const root = style({
@@ -108,7 +108,7 @@ export const subtitle = style([
   },
 ]);
 
-/** 24 아이콘 슬롯 버튼(뒤로가기·메뉴 등). 누르는 영역은 40으로 넓히고 바깥 여백으로 상쇄한다 */
+/** 24 아이콘 슬롯 버튼(뒤로가기·메뉴 등). 누르는 영역은 40으로 넓히고 바깥 여백으로 상쇄한다(아래 끝 자리 규칙 참고) */
 export const iconButton = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -128,3 +128,17 @@ export const iconButton = style({
     '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: -2 },
   },
 });
+
+/** 왼쪽·오른쪽 슬롯 표시(아래 끝 자리 규칙용 — 모양 없음) */
+export const leadingSlot = style({});
+export const trailingSlot = style({});
+
+/*
+ * Figma Top app bar 2026-10-31: 아이콘 자리 40×40, 아이콘 쪽 바깥 패딩 8(제목·프로필 쪽은 24 그대로).
+ * 패딩은 24로 두고 바깥 끝 아이콘 버튼만 16 더 내보낸다 — 로고·아바타 같은 아이콘 아닌 슬롯은 24에 남는다.
+ * 제목 시작 위치(8 + 40 + 16 = 64)는 옛 판과 같다.
+ */
+globalStyle(`${leadingSlot} > ${iconButton}:first-child`, { marginLeft: -16 });
+globalStyle(`${leadingSlot} > ${iconButton}:last-child`, { marginRight: 0 });
+globalStyle(`${trailingSlot} > ${iconButton}:last-child`, { marginRight: -16 });
+globalStyle(`${trailingSlot} > ${iconButton}:first-child`, { marginLeft: 0 });

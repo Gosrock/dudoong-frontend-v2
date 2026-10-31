@@ -42,16 +42,7 @@ const columns: DataTableColumn<Order>[] = [
     id: 'state',
     header: '상태',
     align: 'center',
-    cell: (o) =>
-      o.paid ? (
-        <Chip variant="status" tone="brand">
-          승인완료
-        </Chip>
-      ) : (
-        <Chip variant="status" tone="muted">
-          승인대기
-        </Chip>
-      ),
+    cell: (o) => (o.paid ? <Chip color="violet">승인완료</Chip> : <Chip>승인대기</Chip>),
   },
 ];
 

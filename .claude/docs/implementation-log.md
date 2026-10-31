@@ -928,3 +928,15 @@ GitHub 이슈 #8. 근거: 백엔드 `dev-latest` `78b1b6e7`(`V2EventBrowseRespon
 - **`USER_400_2`는 거절된 번호를 기억해 그 번호 그대로는 다시 못 내게** — 왜: 같은 번호는 같은 400이 나고, 칸 오류가 고치면 풀리는 편이 다른 칸 오류(`phoneFormat`)와 같은 동작이다. 제출 실패(`error`)는 비워 둔다. 되돌리기: `rejectedPhone` 상태를 지우고 `registerError`에 분기.
 - **카카오 프로필 `name`(= 닉네임)을 이름 칸 초깃값으로 유지** — 왜: 서버가 이미 닉네임으로 채워 주고, 사용자가 고칠 수 있으며 v1도 같은 값을 썼다. 비워 두면 모든 신규 가입자가 이름을 직접 쳐야 한다. 되돌리기: `initialRegisterValues`의 `name`을 `''`로.
 - **mock 전화번호 검사는 libphonenumber 근사**(휴대폰 `01[016789]`·지역번호 + 자릿수, 해외 10자리 이상) — 왜: mock에 라이브러리를 들이지 않는다. 실제 판정은 서버이고, FE는 코드(`USER_400_2`)로만 분기하므로 mock 규칙의 세부는 테스트 입력용이다.
+
+## 디자인 시스템 10-31 판 코드 반영(2026-10-31, `feat/ds-sync-2026-10-31`)
+
+design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
+
+- 토큰: `interaction.disabled` Neutral 300 → 200, `overlay.dim` 70% → 85%(Figma `Background/dimmed`), 전용 토큰 `role.*`·`chip.giftPendingBg` → `chip.cyan`·`cyanSubtle`·`purple`·`purpleSubtle`(`colors.ts`도).
+- **Chip 교체(사용자 결정)**: 옛 Tag 5종(`variant` status·tag·role·concert·money + `tone`)을 없애고 Figma `tag_v2` 하나 — `<Chip size shape color theme>`. 옛 칩 대응과 차이는 design-system §3 "옛 Tag → tag_v2". `formatDday`·`formatOptionAmount`는 그대로 둔다. 쓰는 곳은 스토리뿐이었다(V 시작 전).
+- Button: `tonal` 아이콘만 배경 `brand.secondary` 계열. Dropdown item 36h. Input `leading` 아이콘 16(20 자리). Header: 바깥 끝 아이콘 버튼을 16 더 내보내 아이콘이 화면 끝에서 16(Figma 패딩 8 + 슬롯 40).
+- 아이콘: 11변형 + `lightbulb`(다색, 세트 밖 낱개) 추가, `gift` 12 삭제 → 56종 80개.
+- 확인: typecheck · lint · test(2346) · test:stories(194) 통과. 화면이 아직 없어 Figma와 캡처 비교는 하지 않았다(스토리 `Components/Chip` `FigmaVariants`·`OldTagMapping`).
+- **결정(Claude)**: `tag_v2` small 좌우 10(Figma 직접 값)은 토큰 `space[2]` 8로 — 디자이너에게 토큰 값 요청(design-system §5). Header는 패딩을 바꾸지 않고 끝 버튼 여백으로 맞췄다(로고·아바타 슬롯 위치를 지키려고). primary 2 아이콘만 색은 Figma에 Large만 있어 모든 크기에 같은 규칙.
+

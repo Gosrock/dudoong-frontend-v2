@@ -4,7 +4,7 @@ import { vars } from '../../theme/tokens.css';
 
 const reduced = '(prefers-reduced-motion: reduce)';
 
-/** 딤 — Modal과 같은 값(70%). 등장·퇴장 애니메이션은 vaul 기본 css가 준다 */
+/** 딤 — Modal과 같은 값(`Background/dimmed` 85%). 등장·퇴장 애니메이션은 vaul 기본 css가 준다 */
 export const overlay = style({
   position: 'fixed',
   inset: 0,

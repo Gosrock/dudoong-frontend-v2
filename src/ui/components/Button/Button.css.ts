@@ -118,6 +118,21 @@ export const button = recipe({
     { variants: { size: 'sm', iconOnly: true }, style: { width: 32 } },
     { variants: { size: 'md', iconOnly: true }, style: { width: 46 } },
     { variants: { size: 'lg', iconOnly: true }, style: { width: 56 } },
+    /**
+     * primary 2 아이콘만(Figma Large `Text=false`, 2026-10-31)은 배경이 `brand/secondary` 계열 —
+     * Normal Violet 50 · Hover Violet 100 · Pressed Violet 200. 아이콘 색은 글자 있는 판과 같다.
+     * Figma에는 Large만 있다 — 다른 크기도 같은 규칙으로 채운다.
+     */
+    {
+      variants: { variant: 'tonal', iconOnly: true },
+      style: {
+        background: vars.color.brand.secondary,
+        selectors: {
+          '&:hover:not(:disabled)': { background: vars.color.brand.secondaryHover },
+          '&:active:not(:disabled)': { background: vars.color.brand.secondaryPressed },
+        },
+      },
+    },
   ],
   defaultVariants: { variant: 'primary', size: 'md' },
 });

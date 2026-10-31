@@ -10,8 +10,8 @@ const popOut = keyframes({ to: { opacity: 0, transform: 'translate(-50%, -48%) s
 const reduced = '(prefers-reduced-motion: reduce)';
 
 /**
- * 딤. GUI 확인 모달(`567:9468`)은 검정 80%, 티켓 시트(`331:5853`)는 Neutral 900 70%로 서로 다르다 — 70%로 통일.
- * 색 토큰 `overlay.dim`(Neutral 900 70%)을 쓴다.
+ * 딤. 옛 GUI는 확인 모달 80%·티켓 시트 70%로 달랐다 — 2026-10-31 디자인 시스템에 딤 변수가 생겨 85% 하나로.
+ * 색 토큰 `overlay.dim`(Figma `Background/dimmed` — Neutral 900 85%)을 쓴다.
  */
 export const overlay = style({
   position: 'fixed',

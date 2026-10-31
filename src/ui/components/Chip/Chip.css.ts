@@ -4,81 +4,58 @@ import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
 /**
- * Figma Tag 페이지 5종(design-system §3).
- * - 모서리는 8(`radius[2]`) — 디자이너가 2026-10-25 Figma도 8로 통일했다(작은 호스트용 칩은 4, 아직 V 범위).
- * - tag(12)·role chip(`Radius/7`)은 높이의 절반이라 알약.
- * - Ticket state chip은 2026-10-25 Figma에서 고정 폭 72를 풀고 내용 폭(좌우 12)이 됐다. 글자가 정해진 money option chip만 72.
+ * Figma `tag_v2`(`693:668`, 페이지 ┗ Chip, 2026-10-31) — 범용 칩 하나. 옛 Tag 5종(Ticket state chip·tag·role chip·
+ * Concert state chip·money option chip)은 2026-10-31 사용자 결정으로 이걸로 바꿨다(design-system §3 대응표).
+ * - size: sm 22h `Label/sm`(12) · lg 25h `Label/md`(14). Figma 좌우 패딩은 sm 10(토큰 아님 → `space[2]` 8, §5 요청) · lg 12.
+ * - shape(Figma `variant`): square 모서리 8(`Radius/2`) · round 알약.
+ * - theme: weak 옅은 배경 + 진한 글자 · fill 진한 배경 + 옅은 글자 · border 배경 없음 + 진한 테두리·글자.
  */
+const palette = {
+  violet: { strong: vars.color.brand.primary, subtle: vars.color.brand.primarySubtle },
+  red: { strong: vars.color.brand.accent, subtle: vars.color.brand.accentSubtle },
+  green: { strong: vars.color.status.success, subtle: vars.color.status.successSubtle },
+  grey: { strong: vars.color.surface.strongBorder, subtle: vars.color.interaction.disabledBg },
+  cyan: { strong: vars.color.chip.cyan, subtle: vars.color.chip.cyanSubtle },
+  purple: { strong: vars.color.chip.purple, subtle: vars.color.chip.purpleSubtle },
+} as const;
+
+export type ChipColor = keyof typeof palette;
+export type ChipTheme = 'weak' | 'fill' | 'border';
+
+const colorNames = Object.keys(palette) as ChipColor[];
+const themes: ChipTheme[] = ['weak', 'fill', 'border'];
+
+const themeStyle = (c: (typeof palette)[ChipColor], t: ChipTheme) =>
+  t === 'weak'
+    ? { background: c.subtle, color: c.strong }
+    : t === 'fill'
+      ? { background: c.strong, color: c.subtle }
+      : { background: 'transparent', borderColor: c.strong, color: c.strong };
+
 export const chip = recipe({
-  base: [
-    typography.labelSm,
-    {
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-      height: 24,
-      padding: `0 ${vars.space[3]}`,
-      border: '1px solid transparent',
-      whiteSpace: 'nowrap',
-    },
-  ],
-  variants: {
-    variant: {
-      /** Ticket state chip — 높이 24, 내용 폭(좌우 12) */
-      status: { borderRadius: vars.radius[2] },
-      /** tag(공연 태그·티켓 수) 72×24, 알약 */
-      tag: { borderRadius: vars.radius.full },
-      /** role chip 57×24, Label/md, 알약 */
-      role: [typography.labelMd, { padding: `0 ${vars.space[2]}`, borderRadius: vars.radius.full }],
-      /** Concert state chip — 높이 22, 내용 폭 */
-      concert: { height: 22, padding: `0 ${vars.space[2]}`, borderRadius: vars.radius[2] },
-      /** money option chip 72×24 */
-      money: {
-        minWidth: 72,
-        borderRadius: vars.radius[2],
-        background: vars.color.brand.onPrimaryContainer,
-        color: vars.color.text.inverse,
-      },
-    },
-    tone: {
-      // status
-      brand: { background: vars.color.brand.primarySubtle, color: vars.color.brand.primary },
-      muted: {
-        background: vars.color.interaction.disabledBg,
-        color: vars.color.interaction.disabledText,
-      },
-      accent: { background: vars.color.chip.giftPendingBg, color: vars.color.brand.accent },
-      success: { background: vars.color.status.successSubtle, color: vars.color.status.success },
-      /** 임시 `chip/neutral`(토큰 없음): 환불 요청·환불 완료·입장 완료 — 디자이너 색 요청(§5) */
-      neutral: {
-        background: vars.color.surface.container,
-        borderColor: vars.color.surface.defaultBorder,
-        color: vars.color.text.secondary,
-      },
-      /** 임시 `chip/danger`(토큰 없음): 거절·취소 — 글자 Coral + 테두리, 배경 없음 */
-      danger: {
-        background: 'transparent',
-        borderColor: vars.color.text.dangerLabel,
-        color: vars.color.text.dangerLabel,
-      },
-      // tag
-      default: {
-        background: vars.color.surface.defaultLabel,
-        color: vars.color.text.secondaryLabel,
-      },
-      plain: { background: vars.color.background.normal, color: vars.color.text.primaryLabel },
-      // role
-      master: { background: vars.color.role.masterBg, color: vars.color.role.masterText },
-      manager: { background: vars.color.role.managerBg, color: vars.color.role.managerText },
-      // concert(Figma `300:1067` small, 2026-10-25 — 색이 모두 의미 색이 됐다)
-      ready: { background: vars.color.status.successSubtle, color: vars.color.status.success },
-      dday: { background: vars.color.brand.accentSubtle, color: vars.color.brand.accent },
-      ing: { background: vars.color.brand.accent, color: vars.color.brand.accentSubtle },
-      past: {
-        background: vars.color.interaction.disabledBg,
-        color: vars.color.surface.strongBorder,
-      },
-    },
+  base: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    boxSizing: 'border-box',
+    border: '1px solid transparent',
+    whiteSpace: 'nowrap',
   },
+  variants: {
+    size: {
+      sm: [typography.labelSm, { height: 22, padding: `0 ${vars.space[2]}` }],
+      lg: [typography.labelMd, { height: 25, padding: `0 ${vars.space[3]}` }],
+    },
+    shape: {
+      square: { borderRadius: vars.radius[2] },
+      round: { borderRadius: vars.radius.full },
+    },
+    color: Object.fromEntries(colorNames.map((c) => [c, {}])) as Record<ChipColor, object>,
+    theme: { weak: {}, fill: {}, border: {} },
+  },
+  compoundVariants: colorNames.flatMap((c) =>
+    themes.map((t) => ({ variants: { color: c, theme: t }, style: themeStyle(palette[c], t) })),
+  ),
+  defaultVariants: { size: 'sm', shape: 'square', color: 'grey', theme: 'weak' },
 });
