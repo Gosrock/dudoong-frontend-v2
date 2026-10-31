@@ -52,6 +52,7 @@
 
 - 테스트 파일: "디자인 트래커 플러그인 테스트"(`mjqW9YI6SW96MQK6iAnDhW`, 두둥 팀 드래프트) — 프레임 `1:5`(Ready for dev로 표시해서 쓴다), `1:8`, 섹션 안 `1:12`, 컴포넌트 세트 `1:17`. 디자이너 파일 세 개에서는 시험하지 않는다.
 - 2026-10-31: GitHub 흐름(이슈 생성 → 같은 프레임 댓글 + 마커 덧붙임 + 라벨 → 이력 매칭)을 `core.mjs` 그대로 REST로 돌려 확인 — 테스트 이슈 #1. GUI 화면 파일에서 읽기만으로 `resolveTarget`·`devStatus` 읽기(디자인 모드)를 확인. Figma 안에서 UI를 띄우는 것은 아직 확인하지 않았다.
+- 2026-10-31 브라우저(ego-browser): 디자이너 흐름 그대로 — 미리 채운 PAT 페이지(이름·Gosrock·만료 1년·Issues 읽기/쓰기·Metadata 읽기가 채워짐, 저장소만 직접 고름) → 발급 → 빌드한 `plugin/ui.html`을 Figma처럼 origin `null` sandbox iframe + CSP `connect-src https://api.github.com`에, `plugin/code.js`를 가짜 `figma` 위에서 띄워 연결·선택(안쪽 레이어 → 프레임, variant → 세트)·Ready for dev 자동 선택·이력·댓글(#1)·새 이슈(#3, 여러 프레임 #4)를 실제로 눌러 확인. 조직 관리자 본인 토큰은 승인 없이 바로 쓰기가 됐다. 이때 `href="#"` 링크가 iframe을 부모 주소로 이동시키는 버그를 찾아 고쳤다. 이슈의 노드 링크는 Figma가 파일 이름을 붙여 해당 노드를 고른 채 연다.
 
 ## 확인 못 한 것
 

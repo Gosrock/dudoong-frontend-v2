@@ -796,11 +796,12 @@ document.addEventListener('change', (event) => {
   render();
 });
 
+// UI 안의 링크는 모두 href="#"이다. 기본 동작을 두면 iframe이 부모 주소로 이동해 플러그인 화면이 사라진다
 document.addEventListener('click', (event) => {
-  const link = event.target.closest('a[data-url]');
+  const link = event.target.closest('a');
   if (!link) return;
   event.preventDefault();
-  openUrl(link.dataset.url);
+  if (link.dataset.url) openUrl(link.dataset.url);
 });
 
 render();
