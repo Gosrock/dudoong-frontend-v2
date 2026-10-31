@@ -176,12 +176,15 @@ export function useOrderDetail(
     onSuccess: onChanged(false),
   });
 
-  const actions = detail ? orderActionsOf(detail.order, scope.event) : [];
-  const allowed = (key: OrderActionKey) => actions.some((a) => a.key === key && a.enabled);
+  const actions = useMemo(
+    () => (detail ? orderActionsOf(detail.order, scope.event) : []),
+    [detail, scope.event],
+  );
 
   const run = useCallback(
     async (key: OrderActionKey, call: (uuid: string) => Promise<unknown>) => {
-      if (!orderUuid || pending !== null || !allowed(key)) return false;
+      const allowed = actions.some((a) => a.key === key && a.enabled);
+      if (!orderUuid || pending !== null || !allowed) return false;
       setPending(key);
       setActionError(null);
       try {
@@ -194,7 +197,6 @@ export function useOrderDetail(
         setPending(null);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- allowed는 actions에서 매 렌더 다시 만든다
     [orderUuid, pending, actions],
   );
 

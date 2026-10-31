@@ -43,6 +43,9 @@ export const myOrderQuery = (orderUuid: string) =>
 
 export type MyOrdersParams = PageParams & { status?: MyOrderStatusFilter };
 
+/** 내 주문 무한 목록의 접두 키 — 필터와 상관없이 목록 전부를 무효화할 때 쓴다 */
+export const MY_ORDERS_INFINITE_KEY = ['me', 'orders', 'infinite'] as const;
+
 /**
  * G11/O-2 내 주문 목록(로그인, 무한 목록 — patterns §12). 최신 순 하나. `status`는 서버가 받지만 화면 필터는 아직 없다(Q36) —
  * 기본(ALL)이면 보내지 않는다. 키는 `['me', 'orders', 'infinite', params]`라 `['me', 'orders']` 하나로 목록·상세를 같이 무효화한다.
@@ -54,7 +57,7 @@ export const myOrdersQuery = (params: MyOrdersParams = {}) => {
   };
   return infiniteQueryOptions({
     ...pageInfinite,
-    queryKey: ['me', 'orders', 'infinite', p],
+    queryKey: [...MY_ORDERS_INFINITE_KEY, p],
     queryFn: ({ pageParam, signal }) =>
       api.get('me/orders', MyOrderPageSchema, { searchParams: { ...p, page: pageParam }, signal }),
   });

@@ -7,7 +7,7 @@ import { banksQuery } from '@/api/bank/queries';
 import { handleCodes } from '@/api/handle-codes';
 import { MY_TICKETS_KEY } from '@/api/my-ticket/queries';
 import { cancelMyOrderMutation, putRefundAccountMutation } from '@/api/order/mutations';
-import { myOrderQuery } from '@/api/order/queries';
+import { MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order/queries';
 import type { MyOrderDetail } from '@/api/order/schema';
 
 import {
@@ -91,7 +91,7 @@ function useOrderCodes(
 
 /** 취소·계좌 변경 뒤 목록·티켓탭이 바뀐다(주문 상태·티켓 취소) */
 function invalidateAfterOrderChange(queryClient: ReturnType<typeof useQueryClient>) {
-  void queryClient.invalidateQueries({ queryKey: ['me', 'orders', 'infinite'] });
+  void queryClient.invalidateQueries({ queryKey: [...MY_ORDERS_INFINITE_KEY] });
   void queryClient.invalidateQueries({ queryKey: [...MY_TICKETS_KEY] });
 }
 
@@ -189,7 +189,7 @@ export function useRefundAccount(orderUuid: string) {
     ...codes,
     onSuccess: (updated) => {
       queryClient.setQueryData(myOrderQuery(orderUuid).queryKey, updated);
-      void queryClient.invalidateQueries({ queryKey: ['me', 'orders', 'infinite'] });
+      void queryClient.invalidateQueries({ queryKey: [...MY_ORDERS_INFINITE_KEY] });
       setSaved(true);
     },
   });
