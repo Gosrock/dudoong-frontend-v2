@@ -61,4 +61,6 @@
 
 ## 약관 원문 파일
 
-v1 `apps/ticket/public/term.html`·`privacy.html`은 #355(`568fd31`)에서 개정본으로 바뀌었고 `next.config.js`가 `/meta/term`·`/meta/privacy`로 연결한다. **v2 저장소의 `public/term.html`·`privacy.html`은 #355 직전 v1 파일과 같은 개정 전 본이다**(2026-10-25 바이트 비교) — 교체는 implementation-log 코드 수정 거리.
+v1 `apps/ticket/public/term.html`·`privacy.html`은 #355(`568fd31`)에서 개정본으로 바뀌었고 `next.config.js`가 `/meta/term`·`/meta/privacy`로 연결한다. v2 `public/`은 2026-10-25 `939a1e0`에서 #355본으로 바꿨다. 그 뒤 v1에 #379(약관 제19조② — 호스트 환불 기준은 승인 전 취소 요청에 적용하지 않는다)·#382(처리방침 GA 14개월)가 들어와 v2 파일이 뒤처졌고, 2026-10-31 v1 `release/ticket` `9d09938` 파일로 다시 바꿨다([`v1-additions.md`](./v1-additions.md) L-1). 전문은 [`legal/terms-2026-10-25.md`](./legal/terms-2026-10-25.md)·[`legal/privacy-2026-10-25.md`](./legal/privacy-2026-10-25.md).
+
+**#379 이후 이 문서 문구에 빠진 것**: A-2 굵은 문단·A-6 ③·A-7 ⑥·A-8 ⑤-a는 호스트 환불 기준이 "구매자가 취소할 때" 우선한다고만 적는다. 개정 제19조②는 승인 전 취소 요청을 뺀다. v1 운영 문구도 아직 그대로다(2026-10-31).
