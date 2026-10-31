@@ -5,7 +5,7 @@ import { expect, test } from './support/fixtures';
 
 /**
  * P10a-L 라우트 로직 — 공연준비 홈(`/hosting`)·호스트 만들기(`/hosting/new/hosts`)·`/admin/*` 리다이렉트.
- * 호스팅 센터는 보호 화면이고 조회는 브라우저에서만 한다(셸만 렌더). 최소 마크업이라 상태·이동·요청만 본다(모양은 V).
+ * 호스팅 센터는 보호 화면이고 조회는 브라우저에서만 한다(셸만 렌더). 상태·이동·요청을 본다(모양은 QA 시나리오 `qa/scenarios/hosting-home`).
  */
 test.beforeEach(() => resetHostingStore());
 
@@ -52,7 +52,7 @@ test.describe('공연준비 홈', () => {
     const card = page.getByTestId('my-host');
     await expect(card).toHaveCount(1);
     await expect(card.getByRole('link', { name: '고스락' })).toHaveAttribute('href', '/hosts/11');
-    await expect(card.getByTestId('my-role')).toHaveText('MASTER');
+    await expect(card.getByTestId('my-role')).toHaveText('마스터');
     await page.reload();
     await expect(page.getByRole('tab', { name: '호스트' })).toHaveAttribute(
       'aria-selected',
@@ -64,18 +64,19 @@ test.describe('공연준비 홈', () => {
     mockApi.use(...hostingSets.mixedRoles);
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting?tab=hosts');
-    await expect(page.getByTestId('my-role')).toHaveText(['MASTER', 'GUEST']);
+    await expect(page.getByTestId('my-role')).toHaveText(['마스터', '일반']);
   });
 
   test('검색어는 지금 탭 목록을 찾고, 결과가 없으면 검색 결과 없음', async ({ page, mockApi }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting');
     await expect(page.getByTestId('my-event')).toHaveCount(4);
+    await page.getByRole('button', { name: '검색 열기' }).click();
     const search = page.getByRole('searchbox', { name: '검색' });
     await search.fill('정기공연');
     await expect(page.getByTestId('my-event')).toHaveCount(2);
     await search.fill('없는 공연');
-    await expect(page.getByTestId('hosting-empty')).toHaveText('검색 결과가 없어요');
+    await expect(page.getByTestId('hosting-empty')).toHaveText('두둥! 해당하는 공연이 없어요.');
     expect(
       mockApi
         .calls()
@@ -106,11 +107,12 @@ test.describe('호스트 만들기', () => {
     const res = await page.goto('/hosting/new/hosts');
     expect(res?.status()).toBe(200);
     await page.getByLabel('호스트 이름').fill('새 밴드');
-    await page.getByLabel('연락처 유형 1').selectOption('YOUTUBE');
+    await page.getByRole('combobox', { name: '연락처 유형 1' }).click();
+    await page.getByRole('option', { name: '유튜브' }).click();
     const contact = page.getByLabel('연락처 1');
     await expect(contact).toHaveAttribute('placeholder', 'URL');
     await contact.fill('https://youtube.com/@newband');
-    await page.getByRole('button', { name: '만들기' }).click();
+    await page.getByRole('button', { name: '만들기', exact: true }).click();
     await expect(page).toHaveURL('/hosting?tab=hosts');
     await expect(page.getByTestId('my-host').first().getByRole('link')).toHaveText('새 밴드');
     await expect(page.getByTestId('my-host')).toHaveCount(2);
@@ -125,7 +127,7 @@ test.describe('호스트 만들기', () => {
   test('칸이 비면 요청 없이 오류를 보인다', async ({ page, mockApi }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/new/hosts');
-    await page.getByRole('button', { name: '만들기' }).click();
+    await page.getByRole('button', { name: '만들기', exact: true }).click();
     await expect(page.getByText('호스트 이름을 입력해 주세요')).toBeVisible();
     await expect(page.getByText('연락처 유형을 골라 주세요')).toBeVisible();
     expect(mockApi.calls().filter((c) => c.method === 'POST')).toEqual([]);

@@ -287,17 +287,16 @@ test.describe('등록된 공연 수정', () => {
 });
 
 test.describe('공연 삭제 — 준비중 카드 ⋮', () => {
-  test('준비중 공연만 [삭제]가 있고, 지우면 목록에서 사라진다', async ({ page, mockApi }) => {
+  test('준비중 공연만 ⋮ [삭제]가 있고, 확인하면 목록에서 사라진다', async ({ page, mockApi }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting');
     const card = (name: string) => page.getByTestId('my-event').filter({ hasText: name });
-    await expect(
-      card('고스락 신입 환영 공연(준비중)').getByRole('button', { name: '삭제' }),
-    ).toBeVisible();
-    await expect(card('고스락 제37회 정기공연').getByRole('button', { name: '삭제' })).toHaveCount(
-      0,
-    );
-    await card('고스락 신입 환영 공연(준비중)').getByRole('button', { name: '삭제' }).click();
+    const menu = (name: string) => card(name).getByRole('button', { name: '공연 메뉴' });
+    await expect(menu('고스락 신입 환영 공연(준비중)')).toBeVisible();
+    await expect(menu('고스락 제37회 정기공연')).toHaveCount(0);
+    await menu('고스락 신입 환영 공연(준비중)').click();
+    await page.getByRole('menuitem', { name: '삭제' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: '삭제' }).click();
     await expect(card('고스락 신입 환영 공연(준비중)')).toHaveCount(0);
     expect(
       mockApi
@@ -307,11 +306,11 @@ test.describe('공연 삭제 — 준비중 카드 ⋮', () => {
     ).toEqual([['/api/v2/events/140', 200]]);
   });
 
-  test('일반 멤버에게는 [삭제]가 없다', async ({ page }) => {
+  test('일반 멤버에게는 ⋮가 없다', async ({ page }) => {
     actAsRole(11, 'GUEST');
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting');
     await expect(page.getByTestId('my-event').first()).toBeVisible();
-    await expect(page.getByRole('button', { name: '삭제' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '공연 메뉴' })).toHaveCount(0);
   });
 });

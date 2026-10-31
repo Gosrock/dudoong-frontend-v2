@@ -1095,3 +1095,46 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 - 결정: 🤖 Claude 판단 — 로고 헤더(GUI 로컬·`host title`)는 Top app bar가 아니지만 같은 `Header`라 같이 바뀌는 것을 그대로 둠(Figma 아이콘 위치 24와 맞음 · 되돌리려면 logo일 때만 바깥 여백 -16).
 - 확인: typecheck · eslint(Header) · `vitest related`(11) 통과. Storybook 390폭에서 요소 위치를 재서 Figma `37:44`(16:22Z 판) 값과 대조 — 아이콘 틀 L16·R16, 프로필 R24, 제목 L72 · 다른 점 없음.
 
+
+## P10a-V — 공연준비 홈 · 호스트 만들기 · 비멤버 403 (뷰)
+
+**상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것 없음(⋮ 삭제 확인 모양·403 모양은 Figma 코멘트로 물음)
+**근거(gui-screens §0)**: **와이어** — GUI Ready for dev 35개(2026-11-01 16:32Z 판, 관객 12개가 새로 생김)에 공연준비 홈·호스트 만들기 프레임이 없다. 공연 탭 `424:11664`·`529:35358`, 호스트 탭 `424:9715`, 빈 상태 `487:15070`·`487:15360`, 검색 `529:35512`·`531:12121`·`531:12198`·`531:12320`·`531:12470`, 호스트 만들기 `495:14815`, 만든 뒤 `495:14931`. PC 제목·배치는 plan P10a V 문구("{닉네임}님의 공연 준비 홈", 모바일 FAB ↔ 제목 줄 버튼). 열린 Design Sync 이슈 #19·#29·#30은 티켓탭(관객) — 이 화면과 무관. 디자인 시스템은 기준 버전 `2416531042358919300` 그대로
+**변경**
+- `features/hosting/home/`: `HostingHomeView`(+`.css.ts`) — 탭(`Tabs`) · 검색 모드(← + `SearchField`) · 목록 상태(스켈레톤 · 실패 [다시 시도] · 빈 상태 `EmptyState` · 카드 + 하단 sentinel) · [+ 새 공연/호스트 만들기] 링크 하나(모바일 오른쪽 아래 고정 ↔ PC 탭 줄 오른쪽, CSS만) · 준비중 ⋮ → `DropdownMenu` [삭제] → `openConfirm` → `useDeleteEvent`. `ui/HomeCards`(공연·호스트 카드, 제목 링크 `::after`로 카드 전체 누름) · `ui/LoadMoreSentinel`(IntersectionObserver — 호스팅 전용으로 둠, 병렬 트랙 파일 소유). `model/home-cards`(역할 칩·공연 상태 칩·정보 줄·빈 문구)
+- `features/hosting/host/CreateHostView`(+`.css.ts`) — `Header`(뒤로 → 호스트 탭) · `Input`·`TextArea`(글자 수) · 연락처 줄 `Dropdown`(6종) + `Input`(유형별 placeholder · 전화 15자/그 밖 200자) · [+ 연락처 추가] · 줄 ✕ · [만들기] Large
+- `features/hosting/access/HostingAccessRejected`(+`.css.ts`) — 403·404·재시도를 본문 가운데에, 403 문구 `HOSTING_FORBIDDEN_COPY`
+- L 소폭: `host-fields` 이메일 placeholder `null` → "example@dudoong.com"(Q49 닫힘 — 아래 결정 1), `useCreateHost` 만든 뒤 토스트 `CREATE_HOST_DONE_TOAST`(와이어 `495:14931`)
+- `api/shared/date.ts`에 표시 포맷 `formatKstKoreanDate`("2026년 5월 11일 (월)") · `formatKstTime`(더하기만)
+- e2e `hosting.spec`·`hosting-host.spec`·`hosting-event.spec`를 새 마크업에 맞춤(역할 한글 배지, 검색 열기, Radix 드롭다운, ⋮ → 삭제 → 확인). QA `qa/scenarios/hosting-home.qa.ts`(HH-1~9)
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 카드에 호스트별 `myRole` 배지 | QA HH-2(마스터 · 일반), e2e `hosting.spec`·`hosting-host.spec`(매니저) |
+| 연락처 유형 6종 선택 · 유형별 placeholder | QA HH-7(6종 순서 + placeholder 6개 + 만들기 → 호스트 탭 + 토스트), HH-8(칸 오류 · HOST_400_16) |
+| 비멤버 403 안내 화면 | QA HH-9(`/hosting/hosts/12/members` GH-6 403), `HostingAccessRejected.test` |
+| 서버 조회 없음(`/hosting` 정적) | e2e `hosting.spec` 「서버는 /api를 부르지 않는다」 그대로 통과 |
+| 모바일 FAB ↔ PC 버튼 같은 DOM | HH-1 mobile · desktop 캡처, ego-browser 390 · 1200 |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`)**: 공연 탭 · 호스트 탭 390 — 와이어와 구조·문구 같음(카드 문구는 plan대로 접두어 없음 + 시각 줄). PC — 제목 + 탭 줄 오른쪽 버튼, 검색 모드, ⋮ 메뉴, 폼 오류, 드롭다운 열림. 403 390.
+
+**결정** (🤖 Claude 판단 — 근거 / 되돌리려면)
+1. 🤖 이메일 placeholder를 "example@dudoong.com"으로 채웠다 — 오프로드 프롬프트는 "Q49 비움"이었지만 design-requests 머리(2026-10-31)가 Q49를 이 값으로 **닫았고** 와이어 `495:14815`·Ready 기본 정보 `748:33351`도 같다 / `host-fields.ts` EMAIL placeholder를 `null`로, `create-host-rules.test` 한 줄
+2. 🤖 검색 진입을 셸 헤더 돋보기(와이어 `529:35358`) 대신 **탭 줄 오른쪽 돋보기**에 두었다 — 로고 헤더는 셸(모든 호스팅 화면 공용)이라 화면 하나 때문에 바꾸지 않음. 열면 와이어처럼 ← + 검색칸이 탭 위에 / 셸 `HostingShell`에 검색 슬롯을 더하고 `HostingHomeView` 검색 줄을 옮긴다
+3. 🤖 [+ 새 … 만들기] 문구를 탭마다 "새 공연 만들기"·"새 호스트 만들기"로(와이어 공연 탭 FAB는 "공연 추가하기") — 모바일·PC가 같은 DOM이라 PC 문구(plan "새 공연 만들기")·빈 상태 버튼과 맞춤. 색은 와이어·DS FAB의 검정(`Button` `dark`) — GUI PC 보라는 Ready 아님 / `CREATE` 상수 · `button({ variant })`
+4. 🤖 빈 상태(이름·검색 없음)에서는 고정 [+ 만들기]를 감춘다 — 와이어 `487:15070`·`487:15360`에 FAB가 없고 빈 상태 버튼이 같은 일을 한다 / `list.emptyKind !== 'none'` 조건 삭제
+5. 🤖 빈 상태 일러스트는 DS `img_검색 결과 없음`(`no-search-result`) — 와이어의 캐릭터 + 돋보기 그림은 DS·`src/ui/illustrations`에 없다(정확한 것만 쓴다, design-workflow §5) / 원본을 §4-1 절차로 들이면 `Empty`의 이름 하나
+6. 🤖 일반 멤버(GUEST)에게도 회색 "일반" 배지 — DS role chip은 마스터·매니저뿐이지만 완료 기준 "호스트별 배지"를 모든 카드에 / `roleChipOf` GUEST → `null`
+7. 🤖 문구 — 공연 탭 빈 "두둥! 등록한 공연이 없어요"(와이어 487:15070, Q50 잠정 문구를 와이어 문구로), 검색 없음 "두둥! 해당하는 공연/호스트가 없어요."(와이어 531:12320·531:12470), 목록 실패 · 다음 페이지 실패 · 403 설명 · 삭제 확인 문구는 근거 없음(코멘트로 물음) / `home-cards.ts`·`hosting-access.ts` 상수
+8. 🤖 소개글 placeholder "최대 255자까지 쓸 수 있어요."(와이어 100자 → 서버 255자, plan P10a) · 칸을 `TextArea`로(와이어는 한 줄 입력) / `CreateHostView`
+9. 🤖 [+ 연락처 추가]·줄 ✕를 그렸다(Q51 미답 — L은 1~10줄, Ready 기본 정보에 [문의처 추가]가 있음) / `canAddContact`·`canRemoveContact` 블록 삭제
+10. 🤖 [만들기]는 늘 눌리고 누른 뒤 칸 오류(와이어는 회색 비활성만) — L `attempted` 설계 그대로 / `disabled={hasErrors}`
+11. 🤖 폼 최대 폭 600(와이어는 모바일뿐) · 공연 카드 포스터 94×133(DS `example poster` mobile)을 PC에도 / `CreateHostView.css.ts`·`HomeCards.css.ts`
+12. 🤖 ⋮ 삭제를 확인 팝업(`openConfirm`) 뒤에 — 브리프는 "삭제는 P11 몫"이지만 L 자리 마크업에 이미 삭제 버튼이 있어 확인만 더함(P11-V가 모양을 다시 볼 것) / `confirmDelete`
+13. 🤖 호스트 만들기 뒤로가기는 공연준비 홈 호스트 탭으로(브라우저 뒤로 아님 — 드로어에서 바로 들어온 경우) / `Header backHref`
+
+**Figma 코멘트(디자인 없음, 2026-11-01-impl)**: 와이어 `424:11681` "[개발 · 디자인 없음] 공연준비 홈 공연 카드 ⋮ 메뉴"(1989702352) · `424:11669` "… 목록의 불러오는 중 · 실패 · 더 불러오기"(PC 호스트 탭·빈 상태 포함, 1989702355) · `495:14825` "… 새 호스트 만들기 하단 버튼 · 연락처 줄"(1989702357). 403 화면은 Figma에 감쌀 노드가 없어 코멘트 대신 여기와 PR에만 적는다.
+**범위 밖**: dev 서버 로그의 "Could not validate that a segment in your UI has instant navigation"(`/hosting/new/hosts`·`/hosting/hosts/[hostId]/members` — Cache Components 개발 검증 경고, 이 PR 전부터 있음). Ready 목록 23 → 35(관객 결제·공연홈·티켓탭 12개 — gui-screens §0 머리 갱신은 관제탑 몫)
+**검사**: typecheck · 바꾼 파일 eslint · `vitest related`(2373) · e2e `hosting`·`hosting-event`·`hosting-host`(114) · QA `pnpm qa hosting-home` 18/18(HH-1~9 × mobile · desktop). 전체 게이트는 PR CI

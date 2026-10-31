@@ -65,3 +65,6 @@ export const CREATE_HOST_ERROR_MESSAGE = {
   /** 연락처 형식 오류 — 연락처 영역 전체 오류(`host-fields.ts`) */
   HOST_400_16: HOST_CONTACTS_SERVER_ERROR,
 } as const;
+
+/** 만든 뒤 공연준비 홈 호스트 탭에서 보이는 토스트(와이어 `495:14931`) */
+export const CREATE_HOST_DONE_TOAST = '새 호스트를 만들었습니다!';

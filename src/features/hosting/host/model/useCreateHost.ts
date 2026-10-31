@@ -10,9 +10,11 @@ import { MY_HOSTS_KEY } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
 import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/home/model/hosting-home';
+import { toast } from '@/ui/components/Toast/Toast';
 import { tryCatch } from '@/utils/try-catch';
 
 import {
+  CREATE_HOST_DONE_TOAST,
   CREATE_HOST_ERROR_MESSAGE,
   type CreateHostValues,
   hasCreateHostErrors,
@@ -105,7 +107,8 @@ export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => v
       onCreated(created.hostId);
       return;
     }
-    // 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다
+    // 이동하는 동안 inflight를 유지해 다시 낼 수 없게 둔다. 토스트는 와이어 `495:14931`(공연준비홈_새 호스트 만들기_완료)
+    toast(CREATE_HOST_DONE_TOAST);
     router.replace(HOSTING_HOME_HOSTS_HREF);
   }, [errors, mutation, onCreated, router, values]);
 
