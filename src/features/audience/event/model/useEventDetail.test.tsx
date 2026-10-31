@@ -12,6 +12,9 @@ import { recordRequests } from '@/test/requests';
 import { EventDetailView } from '../EventDetail/EventDetailView';
 import { useEventDetail } from './useEventDetail';
 
+// 화면의 [티켓 구매하기]가 체크아웃으로 이동한다(P6-V) — 테스트에는 앱 라우터가 없다
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+
 afterEach(() => {
   vi.restoreAllMocks();
   delete (window as { __xss?: unknown }).__xss;

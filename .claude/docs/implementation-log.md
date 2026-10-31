@@ -1235,3 +1235,41 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 - QA HOME-1(desktop): PC 상단 바 주 메뉴에도 "공연 둘러보기" 링크(#32) → `main` 안으로. HOME-3: Next 기본 에러 화면 → 셸 안 공용 에러 화면(`(audience)/error.tsx`, #32) 문구 "화면을 불러오지 못했어요" + [다시 시도].
 
 **검사**: `pnpm test:e2e` 382 통과 / 0 실패. QA shell 10 · auth-gate 15 · home 6 · login 18 · event-detail 18 · hosting-home 18 통과(실패 0). typecheck · lint · `vitest src/features/hosting/home`(24).
+
+## P6-V — 티켓 선택: 모바일 바텀시트 · PC 오른쪽 카드 (뷰)
+
+**상태**: done (2026-11-01, PR #PR) — 스킬 `gui-implement`
+**근거(gui-screens §0)**: 전부 **와이어** — GUI 2026-10-31T17:46Z 판 Ready for dev 35개에 티켓 선택(`759:21725`·`759:21918`·`759:22015`·`759:22129`)이 없다. 모바일 `528:2484` 공연상세 - 티켓 구매하기 선택 · `121:1406` 티켓 선택 · `121:1517` 다른 티켓 선택, PC `640:15617` [WEB] 공연상세 - 티켓 선택. 열린 Design Sync #19·#29·#30(티켓탭 P8)·#46~#49(호스팅 티켓관리 P12)는 이 화면과 겹치지 않음. DS 기준 판(`2416531042358919300`) 뒤 변경은 Dialogue 페이지에 단독 컴포넌트 4개(다이얼로그-버튼하나 `769:2008` · Spinner `772:1176` · 다이얼로그 - 로딩 `772:1180` · 다이얼로그 - 결제 요약 `772:1195`)가 더해진 것뿐 — 이 화면은 쓰지 않는다(P7 체크아웃 확인 모달 후보, design-system §8은 관제탑/P7 몫). PR 직전 와이어 4노드 다시 받아 같음 확인
+**변경**
+- `features/audience/event/EventDetail/TicketSelector`(+ `.css.ts`): 티켓 목록(살 수 있는 줄은 `aria-pressed` 버튼, 고른 줄 회색 바탕) → 1주문 1종류 경고(`role=alert`, × 닫기) → 고른 티켓 줄(이름 · ×(선택 취소) / DS `Counter` − n + · 금액) → 두둥 티켓이면 legal-copy A-4 원문 3줄. [티켓 구매하기]는 부모가 둔다
+- `TicketSheet`: DS `BottomSheet`(제목 "티켓 종류", footer [티켓 구매하기]). 열린 채 1024 이상이 되면 닫는다(`useMediaQueries` — 마운트 뒤)
+- `EventDetailView`: PC 오른쪽 카드는 `TicketSelector`(고르기 전 [티켓 구매하기] 비활성, 누르면 `router.push(checkoutHref)`), 모바일 하단 [티켓 구매하기]는 시트를 연다(살 수 있는 티켓이 있을 때만). 시트는 열 때 마운트(`'closed' | 'open' | 'closing'`, 닫힘 애니메이션 뒤 언마운트)
+- `TicketOptionList`: 줄 내용(`TicketRowContent`)·조회 전 상태(`TicketListFallback`)·`canListTickets`를 나눠 `TicketSelector`와 같이 쓴다. 모바일 상세의 "티켓 옵션" 카드는 표시만 그대로
+- 테스트: `useEventDetail.test` 화면 3건에 `next/navigation` mock(앱 라우터 없음) — 기대값은 그대로. QA `event-detail` EVT-1 desktop "[티켓 구매하기] 활성" → 고르기 전 비활성
+- QA `qa/scenarios/ticket-select.qa.ts` TKS-1~8 — 13/13 통과(mobile · desktop). QA event-detail 18/18. e2e event-detail · checkout · hosting-event · seo 72 통과
+
+**완료 기준 V ↔ 확인**
+
+| 기준 | 확인 |
+|---|---|
+| 매진·판매 불가·판매 중단(딤드)·PAST 분기 렌더 | QA TKS-5(판매 중단 딤드 · 매진 · 판매 종료 — 비활성, 판매 중단은 잔여 숨김), TKS-6(판매 중단 섞임 — 나머지 고름), TKS-7(지난 공연 — 티켓이 남아도 "지난 공연이에요"), TKS-8(모두 매진 — 구매 잠김) |
+| 1024 경계에서 선택 유지 | QA TKS-4(PC에서 3매 → 390 시트에 3매 → 시트 연 채 1280 → 시트 닫힘, 카드에 3매), ego-browser 390 ↔ 1100 |
+
+**ego-browser 확인(단계마다)에서 고친 것**: 시트에서 [티켓 구매하기]를 `router.replace`로 보내면 체크아웃에서 뒤로가기 했을 때 Next 16이 화면 상태를 보존해 시트가 **연 채로** 돌아오고, 그 시트에는 닫을 기록 항목이 없었다 → 시트를 먼저 닫아 기록 항목을 소비(BottomSheet `history.back`)하고 popstate 뒤 `push`(기록 [상세, 체크아웃], 1초 타임아웃) / 지난 공연인데 GP-5가 티켓을 남겨 주면 칩 없는 비활성 줄이 나옴 → 목록 대신 "지난 공연이에요"
+
+**결정 — 🤖 Claude 판단**(근거 없음 / 무엇을 보고 / 되돌리려면)
+1. 시트를 overlay-kit으로 열지 않고 공연 상세 안에서 선언적으로 그린다 — overlay-kit은 연 순간의 요소를 그려 PC 카드와 같은 선택 상태(훅 하나)를 따라가지 못한다(plan "TicketSelector 하나 · 1024 경계 선택 유지"). 뒤로가기 닫기는 BottomSheet `useCloseOnBack` 그대로. 되돌리기: `TicketSheet`를 `overlay.open` + 선택 상태를 store로
+2. 시트 안 구매 이동 = 시트 닫기 → popstate → `push`(patterns §6 "오버레이 안 이동은 replace"와 같은 기록 결과). 되돌리기: `EventDetailView` `buyFromSheet`
+3. 고른 뒤에도 목록을 남긴다(와이어 `121:1406`은 고른 줄만, `121:1517`은 목록 + 고른 줄 — 둘이 다르다). PC 카드와 같은 모양. 되돌리기: `TicketSelector`에서 `selected`면 목록 숨김
+4. 1주문 1종류 경고는 와이어의 화면 위 떠 있는 분홍 배너 대신 목록 아래 글 상자(경고 연한 바탕 · × 닫기) — DS에 배너가 없다. 되돌리기: `TicketSelector` warning 블록
+5. 판매 중단(딤드)은 글자를 DS 비활성 글자색 + "판매 중단" 칩, **남은 수량·매진은 숨긴다**(plan "딤드에서 숨길지는 V" — 되돌리기 쉬운 쪽: 칩 하나만). 되돌리기: `TicketRowContent`의 `STATE_CHIP` 분기
+6. 지난 공연은 티켓이 남아 있어도 목록 대신 "지난 공연이에요"(모바일 표시 카드도 같이). 되돌리기: `canListTickets`
+7. PC [티켓 구매하기]는 고르기 전 비활성(와이어는 고른 상태만). 모바일 하단 [티켓 구매하기]는 살 수 있는 티켓이 하나라도 있으면 시트를 연다. 되돌리기: `EventDetailView` 두 버튼
+8. 모바일 상세 본문의 "티켓 옵션" 카드는 표시만(눌러도 고르지 않는다) — 고르기는 시트 하나. 와이어 `121:1517`은 본문 카드 위에서 경고가 나는 것처럼 보이지만 계획은 "모바일은 시트 안에". 되돌리기: 본문 카드도 `TicketSelector` + 하단 고른 줄
+9. 시트 제목 "티켓 종류"(와이어 `528:2484`), 높이는 내용에 맞춤(Nemin `759:21725` 코멘트 — DS `BottomSheet` 기본, 열린 질문 기본안). 금액은 `15,000원`·`무료`(P5b-V 결정 6과 같게, 와이어 `₩6,000`)
+10. 두둥 티켓 안내(legal-copy A-4) — 계획에 자리가 없지만 약관 근거 문구라 v1처럼 고른 두둥 티켓 줄 아래 회색 3줄로 넣었다(원문 그대로, 줄 머리 번호 없이 목록). 무료 티켓에는 없다. 되돌리기: `DudoongTicketNotice` 빼기
+11. 고를 수 있는 티켓 줄·경고 상자·× 아이콘 버튼은 DS에 없어 토큰만 쓴 `TicketSelector.css.ts`(`FIGMA-CUSTOM:` → 커스텀 1줄, DS 후보 — 선택 가능한 목록 줄은 체크아웃 결제 방식·P12 옵션에도 나올 수 있다)
+
+**Figma 코멘트**(`[개발 · 디자인 없음]`, 기록부 `2026-11-01-impl`): 와이어 `528:2543` 티켓 선택 시트 — 상태와 선택 뒤 모습(`1989711652`) / 와이어 `640:15670` PC 티켓 옵션 — 고르기 전 버튼 · 상태 · 경고(`1989711656`). `FIGMA-CUSTOM:` 1줄(→ 커스텀, 와이어 근거라 DS 코멘트 없음)
+
+**범위 밖(고치지 않음)**: 체크아웃 화면(P7-V), dev 서버의 "Blocking Route — Date.now() while prerendering"(TanStack Query 리듀서 `errorUpdatedAt`, 서버 프리렌더 중 쿼리 실패 — 이 변경 전부터, 빌드·QA에는 영향 없음), BottomSheet가 열릴 때 손잡이에 포커스 링이 보임(P4s-V `autoFocus` 결정), DS 새 Dialogue 컴포넌트 4개(P7)

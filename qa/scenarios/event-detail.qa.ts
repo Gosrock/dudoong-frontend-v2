@@ -21,7 +21,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '포스터 · 제목 · 해시태그 · 호스트/장소/일시 · 티켓 옵션(GP-5, 표시만) · 섹션 탭. 모바일 하단 [문의][티켓 구매하기]는 PC에서 CSS로 숨고, PC는 주간 달력 + 티켓 옵션 + [공유][티켓 구매하기].',
+      '포스터 · 제목 · 해시태그 · 호스트/장소/일시 · 티켓 옵션(GP-5 — 모바일 카드는 표시만, PC 카드는 고르기) · 섹션 탭. 모바일 하단 [문의][티켓 구매하기]는 PC에서 CSS로 숨고, PC는 주간 달력 + 티켓 옵션 + [공유][티켓 구매하기].',
     basis: ['plan P5b V 범위 · PC', '와이어 121:1216 · 640:1957', 'patterns §1 같은 DOM'],
   },
   async ({ page, step, mockApi, testInfo }) => {
@@ -46,11 +46,12 @@ scenario(
     });
     if (desktop) {
       await step(
-        'PC는 오른쪽 카드에 주간 달력(공연일 강조)과 [티켓 구매하기]가 있고 하단 바는 없다',
+        'PC는 오른쪽 카드에 주간 달력(공연일 강조)과 (고르기 전 잠긴) [티켓 구매하기]가 있고 하단 바는 없다',
         async () => {
           const aside = page.getByRole('complementary', { name: '예매' });
           await expect(aside.getByText('2026년 11월')).toBeVisible();
-          await expect(aside.getByRole('button', { name: '티켓 구매하기' })).toBeEnabled();
+          // 고르기 전에는 잠겨 있다 — 고르기·구매는 QA ticket-select(P6-V)
+          await expect(aside.getByRole('button', { name: '티켓 구매하기' })).toBeDisabled();
           // 하단 바 버튼은 DOM에 있고 CSS로 숨는다(접근성 트리에서도 빠진다)
           const buy = page.locator('button', { hasText: '티켓 구매하기' });
           await expect(buy).toHaveCount(2);
