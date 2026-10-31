@@ -16,6 +16,8 @@ import { colors } from '@/ui/theme/colors';
 import { useTicketTab } from './model/useTicketTab';
 import { EventInfo } from './ui/EventInfo';
 import { PosterCard } from './ui/PosterCard';
+import type { GiftDone } from './ui/TicketGiftButton';
+import { TicketGiftDone } from './ui/TicketGiftDone';
 import { TicketQrLayer } from './ui/TicketQrLayer';
 import * as s from './ui/TicketTab.css';
 import { useSnapCarousel } from './ui/useSnapCarousel';
@@ -50,6 +52,13 @@ function TicketTabContent() {
   } = useSnapCarousel({ count: tab.groups.length });
   const [open, setOpen] = useState<{ key: string; top: number | null } | null>(null);
   const close = useCallback(() => setOpen(null), []);
+  /** 선물 보내기·취소·반환이 끝난 뒤의 결과 화면(P8b-V) — 층을 닫고 티켓탭 자리에 띄운다 */
+  const [giftDone, setGiftDone] = useState<GiftDone | null>(null);
+  const onGiftDone = useCallback((done: GiftDone) => {
+    setOpen(null);
+    setGiftDone(done);
+  }, []);
+  const closeGiftDone = useCallback(() => setGiftDone(null), []);
 
   const active = tab.groups[activeIndex] ?? null;
   const openGroup = open ? (tab.groups.find((g) => g.key === open.key) ?? null) : null;
@@ -59,6 +68,8 @@ function TicketTabContent() {
     const t = tab.selectedTicket(g.key);
     return t !== null && tab.targetOf(t) !== null;
   };
+
+  if (giftDone) return <TicketGiftDone done={giftDone} onClose={closeGiftDone} />;
 
   const showTarget = () => {
     const i = tab.groups.findIndex((g) => g.key === tab.notice.targetGroupKey);
@@ -172,6 +183,7 @@ function TicketTabContent() {
           index={tab.selectedIndex(openGroup.key)}
           onIndexChange={(i) => tab.select(openGroup.key, i)}
           onClose={close}
+          onGiftDone={onGiftDone}
           top={open?.top ?? null}
         />
       )}
