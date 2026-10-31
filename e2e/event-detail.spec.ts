@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { http } from 'msw';
 
 import { eventDetailHandlers } from '@/api/__mocks__/event-detail.handlers';
@@ -14,6 +15,10 @@ import type { MockBackend } from './support/mock-backend';
  */
 
 const PREPARING_EVENT_ID = 140;
+
+/** 공연 상세 섹션 탭(P5b-V — 섹션은 제목이 아니라 탭으로 그린다) */
+const sectionTab = (page: Page, title: string) =>
+  page.getByRole('tablist', { name: '공연 안내' }).getByRole('tab', { name: title, exact: true });
 
 /** 응답 HTML의 `<head>` 부분 */
 const headOf = (html: string) => html.split('</head>')[0] ?? '';
@@ -85,8 +90,10 @@ test.describe('공연 상세 — 브라우저', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: '고스락 제37회 정기공연' }),
     ).toBeVisible();
-    await expect(page.getByText('2026.11.21 (토) 19:00 (120분)')).toBeVisible();
-    await expect(page.getByRole('heading', { name: '세트리스트' })).toBeVisible();
+    // 일시는 모바일 아이콘 행(한 줄)·PC 정보 표(일자) 중 화면 크기에 맞는 하나만 보인다(같은 DOM, CSS — patterns §1)
+    await expect(page.getByText(/^2026\.11\.21 \(토\)/).filter({ visible: true })).toHaveCount(1);
+    // 섹션은 탭으로 그린다(P5b-V)
+    await expect(sectionTab(page, '세트리스트')).toBeVisible();
 
     const calls = mockApi.calls();
     const detail = calls.filter((c) => c.path === '/api/v2/events/101');
@@ -121,8 +128,14 @@ test.describe('공연 상세 — 브라우저', () => {
   test('섹션 10개짜리 공연을 모두 그린다', async ({ page, mockApi }) => {
     mockApi.use(...eventDetailHandlers.tenSections(101));
     await page.goto('/events/101');
+    await expect(page.getByRole('tablist', { name: '공연 안내' }).getByRole('tab')).toHaveCount(10);
+    // 탭마다 눌러 본문(v1 실데이터 — HTML·마크다운 번갈아)이 그려지는지 본다
     for (let i = 1; i <= 10; i++) {
-      await expect(page.getByRole('heading', { name: `섹션 ${i}`, exact: true })).toBeVisible();
+      await sectionTab(page, `섹션 ${i}`).click();
+      const panel = page.getByRole('tabpanel', { name: `섹션 ${i}`, exact: true });
+      await expect(panel).toBeVisible();
+      await expect(panel).not.toHaveText('');
+      await expect(panel.getByText('아직 등록된 내용이 없어요')).toHaveCount(0);
     }
   });
 
@@ -134,7 +147,7 @@ test.describe('공연 상세 — 브라우저', () => {
     const res = await page.goto('/events/101');
     const html = (await res?.text()) ?? '';
     // 서버가 그린 본문(<main>). 원본 응답은 하이드레이션 데이터(JSON 문자열)에 그대로 실려 있지만 실행되지 않는다
-    const main = /<main>[\s\S]*<\/main>/.exec(html)?.[0] ?? '';
+    const main = /<main[\s>][\s\S]*<\/main>/.exec(html)?.[0] ?? '';
     expect(main).toContain('안전한 글');
     expect(main).not.toMatch(/onerror|<script|__xss/);
     await expect(page.getByText('안전한 글')).toBeVisible();
@@ -145,10 +158,17 @@ test.describe('공연 상세 — 브라우저', () => {
   test('서버 섹션이 없는 공연은 기본 4탭 빈 상태', async ({ page, mockApi }) => {
     mockApi.use(...eventDetailHandlers.noSections(103));
     await page.goto('/events/103');
+    const tabs = page.getByRole('tablist', { name: '공연 안내' }).getByRole('tab');
+    await expect(tabs).toHaveText(['공연소개', '예매안내', '세트리스트', '유의사항']);
+    // 탭마다 빈 상태(탭 본문은 고른 탭 하나만 그린다)
     for (const title of ['공연소개', '예매안내', '세트리스트', '유의사항']) {
-      await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+      await sectionTab(page, title).click();
+      await expect(
+        page
+          .getByRole('tabpanel', { name: title, exact: true })
+          .getByText('아직 등록된 내용이 없어요'),
+      ).toBeVisible();
     }
-    await expect(page.getByText('아직 등록된 내용이 없어요')).toHaveCount(4);
   });
 });
 
@@ -182,14 +202,15 @@ test.describe('공연 상세 — 문의처(사용자별 값)', () => {
     expect(res?.status()).toBe(200);
     // 응답 HTML(서버 렌더 + 하이드레이션 데이터)에는 원문이 없다
     expect(await res?.text()).not.toContain('010-1234-5678');
-    const open = page.getByRole('button', { name: '연락처 보기' });
+    // 문의 입구: 모바일 하단 바 아이콘 버튼 · PC 호스트 옆 버튼 — 화면 크기에 맞는 하나만 보인다
+    const open = page.getByRole('button', { name: '문의하기' });
     await expect(open).toBeVisible();
     // 열기 전에는 브라우저가 GP-3을 부르지 않는다
     expect(seen).toEqual([{ from: 'server', cookie: false }]);
 
     await open.click();
     const contacts = page.getByRole('list', { name: '연락처' });
-    await expect(contacts.getByRole('link', { name: '010-1234-5678' })).toHaveAttribute(
+    await expect(contacts.getByRole('link', { name: /010-1234-5678/ })).toHaveAttribute(
       'href',
       'tel:01012345678',
     );
@@ -205,9 +226,11 @@ test.describe('공연 상세 — 문의처(사용자별 값)', () => {
   }) => {
     const seen = spyDetail(mockApi);
     await page.goto('/events/101');
-    await page.getByRole('button', { name: '연락처 보기' }).click();
+    await page.getByRole('button', { name: '문의하기' }).click();
     const contacts = page.getByRole('list', { name: '연락처' });
-    await expect(contacts).toContainText('전화: 010-****-5678');
+    // 행 = 유형 라벨 + 값(와이어 121:2026)
+    const phone = contacts.getByRole('listitem').filter({ hasText: '010-****-5678' });
+    await expect(phone).toContainText('전화');
     await expect(contacts.getByRole('link', { name: /\*/ })).toHaveCount(0);
     expect(seen).toEqual([{ from: 'server', cookie: false }]);
   });

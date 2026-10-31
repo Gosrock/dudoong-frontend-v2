@@ -309,9 +309,10 @@ test.describe('등록된 공연 수정', () => {
     ]);
     await expect(page.getByRole('alertdialog', { name: '저장했어요' })).toBeVisible();
     await page.goto('/events/101');
-    // 관객 상세는 탭(P5b-V) — 뺀 탭이 없다
-    await expect(page.getByRole('tab', { name: '유의사항', exact: true })).toBeVisible();
-    await expect(page.getByRole('tab', { name: '세트리스트', exact: true })).toHaveCount(0);
+    // 공연 상세는 섹션을 탭으로 그린다(P5b-V)
+    const tabs = page.getByRole('tablist', { name: '공연 안내' }).getByRole('tab');
+    await expect(tabs).toHaveText(['공연 소개', '예매안내', '유의사항']);
+    await expect(tabs.filter({ hasText: '세트리스트' })).toHaveCount(0);
   });
 });
 

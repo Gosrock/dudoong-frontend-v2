@@ -111,7 +111,12 @@ scenario(
     await setMockSession(page, 'loggedIn');
     await step('공연준비 홈을 열면 셸 안에 화면이 보인다', async () => {
       await page.goto('/hosting');
-      await expect(page.getByRole('heading', { name: '공연 준비 홈' })).toBeVisible();
+      const main = page.getByRole('main');
+      await expect(main.getByRole('tablist', { name: '공연준비 홈 탭' })).toBeVisible();
+      // 제목 "{닉네임}님의 공연 준비 홈"은 PC에만 있다(와이어 424:11664 — 모바일은 셸 로고 헤더가 제목 자리, P10a-V)
+      if (testInfo.project.name === 'desktop') {
+        await expect(main.getByRole('heading', { name: '공연 준비 홈' })).toBeVisible();
+      }
     });
     if (testInfo.project.name === 'desktop') {
       for (const width of [1440, 1280]) {

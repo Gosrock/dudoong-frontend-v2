@@ -1179,6 +1179,16 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **범위 밖**: dev 서버 로그의 "Could not validate that a segment in your UI has instant navigation"(`/hosting/new/hosts`·`/hosting/hosts/[hostId]/members` — Cache Components 개발 검증 경고, 이 PR 전부터 있음). Ready 목록 23 → 35(관객 결제·공연홈·티켓탭 12개 — gui-screens §0 머리 갱신은 관제탑 몫)
 **검사**: typecheck · 바꾼 파일 eslint · `vitest related`(2373) · e2e `hosting`·`hosting-event`·`hosting-host`(114) · QA `pnpm qa hosting-home` 18/18(HH-1~9 × mobile · desktop). 전체 게이트는 PR CI
 
+## P4b-V — 로그인 · 세션 만료 · 콜백 대기/실패 안내 · 회원가입 오버레이 (뷰)
+
+**상태**: done (2026-11-01, #42) — 스킬 `gui-implement`. 남은 것: 만 14세 동의 칸(Q42 대기 — `AGE_OVER_14_FIELD` false 그대로), 실제 카카오 왕복 화면(D2 뒤, QA LOGIN-10 수동)
+**근거(gui-screens §0)**: 로그인은 **와이어** `218:4792` "로그인" — GUI `331:11720`은 Ready for dev가 아니다(GUI 2026-10-31T16:55Z 판 `2416543601942970448`, Ready 35개 중 없음). 세션 만료·콜백 대기·실패 안내·회원가입 오버레이는 GUI·와이어 모두 **없음** → DS 컴포넌트로만. 열린 Design Sync 이슈 #19·#29·#30은 티켓탭 — 무관. 디자인 시스템은 기준 버전 `2416531042358919300` 그대로. PR 직전 다시 받은 와이어 PNG가 구현 전과 바이트 단위로 같음
+**변경**
+- `features/shared/auth/LoginView`(+`.css.ts`) — 말풍선(DS `Tooltip` 늘 열림, 아래 꼬리) + 캐릭터(DS 일러스트 `login` 285) + [카카오 로그인/회원가입](`Button` dark lg, 폭 268) + 실패 한 줄(`role="alert"`). 제목은 숨김 h1. `?redirect=`를 읽는 것은 말단 `KakaoLoginAction`(자체 `<Suspense fallback={null}>`, patterns §6). 세션 만료는 같은 배치에 말풍선 문구만
+- `features/shared/auth/KakaoCallbackView`(+`.css.ts`) — 말단 `CallbackScreen`(자체 Suspense): 대기·재시작 = `Spinner` + 제목("로그인하는 중" · "로그인 화면으로 돌아가는 중"), 실패 = `EmptyState`(alert 문구 + [다시 로그인] `EmptyStateAction`), 가입 = `ui/RegisterOverlay`
+- `features/shared/auth/ui/RegisterOverlay`(+`.css.ts`) — `ResponsiveOverlay`(모바일 바텀시트 · PC 모달) 선언형(훅 상태가 원본), `Input` 이름·이메일·전화번호(`tel`, 하이픈 자동은 L), `Checkbox` 전체 동의 / `Divider` / 필수 2 · 선택 1(문구는 L 그대로), 푸터 [동의하고 시작하기](`form` 속성으로 폼 제출). 닫기(✕·Esc·뒤로가기) → 로그인 화면으로 `location.replace`(redirect 유지), 제출 중에는 닫히지 않음
+- `vitest.setup.ts` — jsdom에 없는 `ResizeObserver`·`matchMedia`·포인터 캡처 스텁(Radix Tooltip · ResponsiveOverlay · vaul 시트가 컴포넌트 테스트에서 돌게). 새 테스트는 쓰지 않음
+- QA `qa/scenarios/login.qa.ts`(LOGIN-1~9 + 수동 10). `auth-gate.qa.ts` 머리 주석 한 줄
 ## P11-V — 공연 사이드바 · 대시보드(등록 전) · 기본/상세 정보 · 간편 만들기 (뷰)
 
 **상태**: done (2026-11-01, PR 대기) — 스킬 `gui-implement`. 남은 것: 실제 카카오맵·우편번호 SDK(키·도메인) 실환경 확인(QA HE-11 수동)
@@ -1196,6 +1206,47 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 
 | 기준 | 확인 |
 |---|---|
+| 로그인 화면이 근거(와이어 `218:4792`)대로 | QA LOGIN-1 mobile · desktop 캡처, ego-browser 390 · 1440 |
+| 회원가입 오버레이가 훅 상태대로 | QA LOGIN-4(필수 동의 전 막힘 → 가입 → `/events` 복귀) · LOGIN-5(빈 이메일 · 전화 모양 · `USER_400_2`) · LOGIN-6(Esc · 뒤로가기 → 로그인), `useKakaoCallback.test` 마크업 2건 |
+| 실패 안내 — 정지 · 일반 · state 불일치 재시작 | QA LOGIN-7(`USER_403_1`) · LOGIN-8(교환 5xx) · LOGIN-3(링크 발급 5xx) · LOGIN-9(`AUTH_400_1` → 로그인 화면) |
+| `useSearchParams`는 말단 + 자체 Suspense | `KakaoLoginAction` · `CallbackScreen` |
+
+**단계마다 비교(ego-browser, `pnpm dev:mock`)**: 로그인 390 — 와이어와 구조·문구 같음(다른 점: 말풍선 두 줄 · 캐릭터 그림, 아래 결정 2·3). 세션 만료 390. 로그인 1440. 콜백 정지 390, 가입 시트 390, 가입 모달 1440(칸 오류 · 전체 동의 · Esc → `/login?redirect=%2Fevents`).
+
+**결정** (🤖 Claude 판단 — 근거 / 되돌리려면)
+1. 🤖 세션 만료 화면은 로그인과 같은 배치에 말풍선 "로그인이 만료됐어요. 다시 로그인해 주세요."(L 최소 마크업의 제목 + 문구를 합침) — 와이어 없음 / `LoginView` `BUBBLE.expired`
+2. 🤖 말풍선은 DS `Tooltip`(늘 열림) — 와이어는 직접 그린 말풍선. 툴팁 최대 폭 280 때문에 문구가 두 줄(와이어 한 줄) / 툴팁 폭은 DS 값이라 화면에서 바꾸지 않음(Figma 코멘트로 물음)
+3. 🤖 캐릭터는 DS 일러스트 `img_login`(285) — 와이어의 캐릭터는 래스터 자리표시(`image 129` 285×263, 헤드폰 + 음표)라 같은 자리의 정식 에셋을 씀 / `Illustration name`
+4. 🤖 버튼 폭 268 · 세로 가운데 배치 · 간격 40 — 와이어 값·근사 / `LoginView.css.ts`
+5. 🤖 로그인 실패 안내는 버튼 아래 빨간 한 줄(`textDangerLabel`) — 디자인 없음 / `KakaoLoginAction`
+6. 🤖 콜백 대기는 `Spinner` + 회색 제목, 실패는 `EmptyState`(일러스트 없이 문구 + 검정 [다시 로그인]) — 디자인 없음. 정지 계정에도 [다시 로그인](L 그대로) / `CallbackScreen`
+7. 🤖 가입 오버레이 제목 "회원가입"(L 그대로 — legal-copy B-2 "{name}님, 안녕하세요!"는 v1 참고라 쓰지 않음), 설명 없음 / `RegisterOverlay` `title`
+8. 🤖 가입 오버레이는 `overlay.open`이 아니라 선언형 `ResponsiveOverlay` — 열림·폼이 훅 상태라 다시 그려야 한다(patterns §6 URL 오버레이와 같은 이유). 뒤로가기 닫힘은 `useCloseOnBack` 그대로 / `overlay.open`으로 바꾸려면 폼 상태를 오버레이 안으로 옮겨야 함
+9. 🤖 가입을 그만두면(✕·Esc·뒤로가기) 로그인 화면으로 `location.replace`(redirect 유지) — 메모리의 카카오 토큰이 없어져 다시 시작해야 하고, 쓴 인가 코드가 든 주소를 기록에 남기지 않는다(tech-decisions §4 P4b-L) / `KakaoCallbackView` `onCancel`
+10. 🤖 칸 오류는 칸을 떠난 뒤부터, 서버가 거절한 번호는 바로. 빈 칸 문구 "이름을 입력해 주세요"·"이메일을 입력해 주세요"(근거 없음 — 문구 잠정) / `RegisterOverlay` `fieldErrorMessage`·`touched`
+11. 🤖 약관 링크는 새 탭(`target="_blank"`) — 이 탭을 떠나면 카카오 토큰·입력이 사라진다. 동의 문구·항목은 L 그대로라 `AGREEMENT_VERSION`은 그대로 / `RegisterOverlay` 링크
+12. 🤖 "약관 동의" 묶음 제목을 Input 라벨과 같은 모양으로(호스트 만들기 연락처 묶음과 같은 방식) / `RegisterOverlay` legend
+
+**Figma 코멘트(2026-11-01-impl, 와이어 `FUQb8ldGBp3uYUuXPV5FDC`)**: `218:4798` "[개발 · DS 컴포넌트로 구현] 로그인 말풍선"(1989705227) · `218:4797` "[개발 · DS 컴포넌트로 구현] 로그인 캐릭터 그림"(1989705229) · `218:4795` "[개발 · 디자인 없음] 로그인 뒤 화면들"(실패 안내 · 세션 만료 · 콜백 대기 · 정지/일반 실패 · 회원가입 입력, 1989705233)
+**범위 밖**: Ready 목록 23 → 35(gui-screens §0 머리 갱신은 관제탑 몫 — P10a-V와 같음). PC 상단 바의 [로그인] 버튼이 로그인 화면에서도 보임(셸 P4s-V)
+**검사**: typecheck · 바꾼 파일 eslint · `vitest related`(2373) · e2e `auth`·`auth-bfcache`·`shell`(42) · QA `pnpm qa login` 18/18(LOGIN-1~9 × mobile · desktop, 수동 1). 전체 게이트는 PR CI
+
+## 그룹 A 회귀 수정(2026-11-01, `9yujin/fix-group-a-regression`)
+
+관제탑이 그룹 A(#32·#35·#37·#39·#40·#42) 머지 뒤 `main` `4e0ed87`에서 돌린 전체 회귀 — e2e 14 실패 / 368 통과, QA shell 2 · auth-gate 5 · home 3 실패. PR CI(`pr-gate`)는 e2e 전체·QA를 돌리지 않아 여기서 처음 드러났다. 진짜 회귀는 하나, 나머지는 V 마크업·셸을 따라가지 못한 낡은 테스트다. 지키던 계약(서버 조회에 토큰 없음, 재고 HTML 없음, XSS 미실행, 404/500 상태 코드, 공개 화면 인증)은 그대로 검증한다.
+
+**원인별**
+- **회귀(화면 수정)** 공연준비 홈(P10a-V #39)이 본문을 `<main>` 대신 `<div>`로 감싸 `main` 랜드마크가 없어졌다 → `HostingHomeView` 루트를 `<main className={s.page}>`로(QA SHELL-2 desktop이 `getByRole('main')`으로 셸 여백을 재다 멈춤).
+- 공연 상세 섹션이 제목(heading)이 아니라 탭(P5b-V #40) → e2e `event-detail` :79·:121·:145, `hosting-event` :267을 `tablist "공연 안내"`의 탭·탭 패널로. 탭 본문은 고른 탭 하나만 그리므로 10개·기본 4탭은 탭마다 눌러 본문/빈 상태를 본다.
+- 공연 상세 `<main>`에 class가 붙음(#40) → XSS 테스트의 서버 HTML 추출 정규식 `<main>` → `<main[\s>]`(검사 내용은 같다).
+- 일시 문구가 모바일 아이콘 행(한 줄)·PC 정보 표(일자/시간)로 갈림(#40) → 보이는 하나만 센다(`filter({ visible: true })`).
+- 문의 입구가 "연락처 보기" → "문의하기"(모바일 하단 바 아이콘 · PC 호스트 옆), 연락처 행이 "전화: 값" → 라벨 + 값(#40) → 선택자만 바꾸고 원문 링크·가린 값·GP-3 호출 순서(서버 토큰 없음 → 열 때만 브라우저 쿠키) 검증은 그대로.
+- QA SHELL-2 모바일: "공연 준비 홈" 제목은 PC 전용(와이어 `424:11664`, 모바일은 셸 로고 헤더, #39) → `main` 안 탭 줄을 보고 제목은 PC에서만.
+- QA AUTH-3: 셸 벨 GN-2(`/api/v2/me/notifications/unread-count`, P4s-V #32)가 GM-1 필터(`startsWith('/api/v2/me')`)에 섞임 → GM-1 경로만 정확히 + "401은 첫 GM-1 하나뿐"을 더함.
+- QA AUTH-6a/b/c: ① 홈 `heading "장르"`는 P5a-L(ebf0786)에서 이미 없어진 마크업(그룹 A 이전부터 낡음) → `main`의 "다가오는 공연" 영역. ② "GM-1 없음"은 셸 전(P4a) 기준 — P4s-V 셸 헤더가 로그인/아바타를 가르려고 GM-1을 부른다(tech-decisions §4 세션 쿼리 "헤더·게이트·햄버거"). 🤖 Claude 판단: 상태별 GM-1·재발급 순서를 정확히 검증하도록 바꿈(로그인 `GM-1 200` / 비로그인 `GM-1 401`, 재발급 없음 / 만료 `GM-1 401 → 재발급 403 → reload → GM-1 401`) + GM-1 밖의 401 없음 + 주소 유지 + 홈 데이터 브라우저 재조회 없음. 되돌리려면 공개 화면 셸이 GM-1을 부르지 않게 하는 설계 변경이 필요하다.
+- QA HOME-1(desktop): PC 상단 바 주 메뉴에도 "공연 둘러보기" 링크(#32) → `main` 안으로. HOME-3: Next 기본 에러 화면 → 셸 안 공용 에러 화면(`(audience)/error.tsx`, #32) 문구 "화면을 불러오지 못했어요" + [다시 시도].
+
+**검사**: `pnpm test:e2e` 382 통과 / 0 실패. QA shell 10 · auth-gate 15 · home 6 · login 18 · event-detail 18 · hosting-home 18 통과(실패 0). typecheck · lint · `vitest src/features/hosting/home`(24).
 | 포스터 미리보기 | QA HE-4(올리면 그 자리 미리보기 + [이미지 수정]), e2e 완주 |
 | 다 채우면 "등록 준비 완료" 모달, 등록하면 사이드메뉴 바뀜 + 토스트 | e2e `hosting-event` 완주(준비 완료 팝업 → 등록 확인 → 토스트 → 메뉴 6개), QA HE-2(3/3 · 확인 팝업) |
 | 등록된 공연 저장 → 안내 팝업 | QA HE-5, e2e 「등록된 공연 수정」 2건 |

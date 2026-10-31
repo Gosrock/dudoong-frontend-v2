@@ -11,8 +11,8 @@ import { expect, http, HttpResponse, scenario } from '../scenario';
  * - 크롤러: 보호 화면은 (protected)라 서버 조회가 없고, 공개 화면 크롤러 동작은 home.qa.ts가 본다
  * - 익명 사용자별 버튼(♡·선물 수락 → 요청 없이 로그인): 그 버튼을 쓰는 화면이 아직 없어(P5c·P8b) Vitest
  *   (`src/features/shared/auth/session.test.tsx`)로만 확인한다
- * - 로그인·만료·콜백 화면: P4b-L은 최소 마크업이라 주소·제목만 본다. 카카오 흐름(콜백 성공·실패, redirect 복귀,
- *   SameSite=Strict, bfcache)은 e2e/auth.spec.ts·auth-bfcache.spec.ts가 보고, 화면 캡처는 P4b-V에서 더한다
+ * - 로그인·만료·콜백 화면: 여기서는 주소·제목만 본다. 카카오 흐름(콜백 성공·실패, redirect 복귀,
+ *   SameSite=Strict, bfcache)은 e2e/auth.spec.ts·auth-bfcache.spec.ts가 보고, 화면 캡처는 login.qa.ts(P4b-V)
  */
 
 // GM-1만 — 셸 벨 GN-2(`/api/v2/me/notifications/unread-count`, P4s-V)는 세지 않는다
@@ -98,15 +98,19 @@ scenario(
     await step(
       'GM-1 401 → 재발급 1회 → GM-1 200 순서',
       async () => {
-        const calls = mockApi
-          .calls()
-          .filter((c) => c.path.startsWith('/api/v2/me') || c.path.startsWith('/api/v1/auth'));
-        await note(`받은 호출: ${describeCalls(calls)}`);
+        const all = mockApi.calls();
+        // GM-1과 재발급만 — 셸 벨 GN-2(`/api/v2/me/notifications/unread-count`, P4s-V)는 순서에 넣지 않는다
+        const calls = all.filter(
+          (c) => c.path.split('?')[0] === '/api/v2/me' || c.path.startsWith('/api/v1/auth'),
+        );
+        await note(`받은 호출: ${describeCalls(all)}`);
         expect(calls.map((c) => `${c.method} ${c.path.split('?')[0]} ${c.status}`)).toEqual([
           'GET /api/v2/me 401',
           'POST /api/v1/auth/token/refresh 200',
           'GET /api/v2/me 200',
         ]);
+        // 셸이 부르는 다른 인증 요청도 재발급 뒤에 나가 401이 GM-1 첫 번 하나뿐이다
+        expect(all.filter((c) => c.status === 401)).toHaveLength(1);
       },
       { capture: false },
     );
@@ -184,22 +188,36 @@ scenario(
   },
 );
 
-for (const [id, state, label] of [
-  ['AUTH-6a', 'loggedIn', '로그인'],
-  ['AUTH-6b', 'anonymous', '비로그인'],
-  ['AUTH-6c', 'expiredRefreshFails', '만료'],
-] as [string, MockSession, string][]) {
+/**
+ * 공개 화면에서 브라우저가 내는 인증 요청은 셸 헤더의 세션 확인(GM-1)과 그 401 처리뿐이다(P4s-V부터 — 셸이 로그인/아바타를
+ * 가른다, tech-decisions §4 "세션 쿼리"·인증 표). 화면 본문의 공개 GET은 쿠키 없이 나가 401·재발급을 만들지 않고, 게이트가 없어
+ * 어떤 상태든 주소에 머문다. 상태별로 기대하는 GM-1·재발급 순서(이 밖의 GM-1·재발급은 없다):
+ * - 로그인: GM-1 200
+ * - 비로그인(`dd:session` 없음): GM-1 401 한 번 — 재발급하지 않는다
+ * - 만료(재발급 실패): GM-1 401 → 재발급 403 = 세션 상실 → 공개 화면이라 `location.reload()`로 익명 다시 그리기 → GM-1 401
+ */
+for (const [id, state, label, expected] of [
+  ['AUTH-6a', 'loggedIn', '로그인', ['GET /api/v2/me 200']],
+  ['AUTH-6b', 'anonymous', '비로그인', ['GET /api/v2/me 401']],
+  [
+    'AUTH-6c',
+    'expiredRefreshFails',
+    '만료',
+    ['GET /api/v2/me 401', 'POST /api/v1/auth/token/refresh 403', 'GET /api/v2/me 401'],
+  ],
+] as [string, MockSession, string, string[]][]) {
   scenario(
     id,
-    `${label} 상태에서 공개 화면은 그대로 열리고 인증 요청을 만들지 않는다`,
+    `${label} 상태에서 공개 화면은 그대로 열리고 인증 요청은 셸의 세션 확인뿐이다`,
     {
       kind: '권한',
       summary:
-        '공개 화면에는 게이트가 없고 공개 GET은 쿠키 없이 나간다(credentials omit) — 만료된 쿠키가 있어도 401·재발급이 생기지 않는다.',
+        '공개 화면에는 게이트가 없고 공개 GET은 쿠키 없이 나간다(credentials omit). 인증 요청은 셸 헤더의 GM-1(과 그 401 처리)뿐이고, 만료 상태도 로그인으로 보내지 않고 같은 주소를 익명으로 다시 그린다.',
       basis: [
         'plan P4a 완료 기준 1·9',
         'api-contract §1 인증',
-        'tech-decisions §4 인증 표 "공개 GET"',
+        'tech-decisions §4 인증 표 "공개 GET"·"onSessionLost"',
+        'plan P4s 셸(세션 상태로 헤더가 갈림)',
       ],
       viewports: ['mobile'],
     },
@@ -208,17 +226,34 @@ for (const [id, state, label] of [
       await step('공연홈을 열면 200으로 열리고 그대로 머문다', async () => {
         const res = await page.goto('/');
         expect(res?.status()).toBe(200);
-        await expect(page.getByRole('heading', { name: '장르' })).toBeVisible();
+        // 공연홈 본문(P5a-L 최소 마크업 — 서버가 그린 다가오는 공연 목록)
+        await expect(
+          page.getByRole('main').getByRole('region', { name: '다가오는 공연' }),
+        ).toBeVisible();
+        // 셸 헤더가 세션 상태를 확정할 때까지(만료면 reload 뒤 익명 확정까지) 기다린다
+        await expect
+          .poll(() => meCalls(mockApi.calls()).length)
+          .toBe(expected.filter((e) => e.startsWith('GET /api/v2/me ')).length);
         await page.waitForTimeout(300);
         await expect(page).toHaveURL(/\/$/);
       });
       await step(
-        'GM-1·재발급 호출이 없다',
+        '인증 요청은 셸의 GM-1(과 그 401 처리)뿐 — 공개 GET은 401을 받지 않는다',
         async () => {
           const calls = mockApi.calls();
           await note(`받은 호출: ${describeCalls(calls)}`);
-          expect(meCalls(calls)).toHaveLength(0);
-          expect(refreshCalls(calls)).toHaveLength(0);
+          const auth = [...meCalls(calls), ...refreshCalls(calls)].sort(
+            (a, b) => calls.indexOf(a) - calls.indexOf(b),
+          );
+          expect(auth.map((c) => `${c.method} ${c.path.split('?')[0]} ${c.status}`)).toEqual(
+            expected,
+          );
+          // GM-1·재발급 말고는 401이 없다(공개 GET은 쿠키 없이 나간다)
+          expect(calls.filter((c) => c.status === 401 && !meCalls([c]).length)).toHaveLength(0);
+          // 브라우저가 공연홈 데이터를 다시 부르지 않는다(서버 조회만)
+          expect(
+            calls.filter((c) => c.path.startsWith('/api/v2/home')).map((c) => c.from),
+          ).not.toContain('browser');
         },
         { capture: false },
       );
