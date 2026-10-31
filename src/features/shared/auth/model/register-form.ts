@@ -4,12 +4,16 @@ import { agreementFields } from '@/api/shared/agreement';
 /**
  * 회원가입 폼 규칙(plan P4b — 가입 폼 값·동의 상태). 화면 모양(오버레이)은 V에서 정한다.
  *
- * 값은 카카오 프로필(`/oauth/kakao/info`)로 채운다. 카카오 동의 항목에 따라 이메일·이름이 비어 올 수 있어
- * 사용자가 고칠 수 있게 둔다. 백엔드 검증은 `email`·`name`이 비지 않는 것뿐이다(`@NotEmpty`, 비면 400 `BAD_REQUEST`).
+ * 값은 카카오 프로필(`/oauth/kakao/info`)로 채운다. 카카오 콘솔(B8, 2026-10-31): 이메일·닉네임·프로필 사진·전화번호는 필수 동의,
+ * 이름(`name`)은 **사용 안 함**. 서버 `KakaoInformationResponse.getName()`이 `kakao_account.name ?: properties.nickname`이라
+ * 프로필의 `name`은 사실상 **카카오 닉네임**이다 — 그대로 이름 칸 초깃값으로 두고 사용자가 고친다(Claude 판단 2026-10-31).
+ * 이메일은 필수 동의여도 카카오 계정에 없으면 빈다. 백엔드 검증은 `email`·`name`이 비지 않는 것(`@NotEmpty`, 비면 400 `BAD_REQUEST`)과
+ * 전화번호(아래)다.
  *
- * 전화번호(선택)는 **`010-1234-1234` 모양만 보낸다**(사용자 결정 2026-10-31). 백엔드는 받은 문자열을 그대로 저장하고
- * (`PhoneNumberVo`, 검증 없음) 나중에 꺼내 형식을 바꿀 때 해석하지 못하면 `USER_400_2`를 낸다(fe423ed4) — 그래서 화면이 막는다.
- * 입력은 숫자만 남겨 `010-XXXX-XXXX`로 하이픈을 자동으로 넣고(`formatPhoneInput`), 카카오 값(`+82 10-…`)도 같은 모양으로 바꿔 채운다.
+ * 전화번호(선택)는 **`010-1234-1234` 모양만 보낸다**(사용자 결정 2026-10-31). 입력은 숫자만 남겨 `010-XXXX-XXXX`로 하이픈을
+ * 자동으로 넣고(`formatPhoneInput`), 카카오 값(`+82 10-…`)도 같은 모양으로 바꿔 채운다. 서버도 가입 때 검사한다(백엔드 #896 / 2.5.2 —
+ * `PhoneNumberVo.validate`): 빈 값은 null로 저장, 한국 번호는 유효 번호만(`000-0000-0000` 거절), 형식은 고정하지 않는다. 걸리면 400
+ * `USER_400_2` — 서버 문구("두둥 관리자에게 문의주세요")는 가입 화면에 맞지 않아 칸 오류 `phoneInvalid`로 바꿔 보인다(`useRegisterForm`).
  *
  * 동의: 서비스 이용약관(`/meta/term`)·개인정보 처리방침(`/meta/privacy`)은 필수, 마케팅 수신은 선택(`marketingAgree`).
  * v1은 "약관 동의하고 시작하기" 한 버튼이었다 — 항목을 몇 개로 보일지는 V(디자인)에서 정하고, 필수 판정은 여기 하나다.
@@ -35,13 +39,18 @@ export const REQUIRED_CONSENTS: readonly RegisterConsent[] = ['terms', 'privacy'
 
 export const NO_CONSENTS: RegisterConsents = { terms: false, privacy: false, marketing: false };
 
-export type RegisterFieldError = 'required' | 'phoneFormat';
+/** `phoneInvalid` — 모양은 맞지만 서버가 무효 번호로 거절(`USER_400_2`). 그 번호를 고칠 때까지 유지된다 */
+export type RegisterFieldError = 'required' | 'phoneFormat' | 'phoneInvalid';
 
 /** 가입·프로필 전화번호 모양(사용자 결정 2026-10-31) — 한국 휴대폰, 하이픈 포함 */
 export const PHONE_PATTERN = /^010-\d{4}-\d{4}$/;
 
 /** 칸 오류 문구(잠정 — 디자인 전). `required`는 칸마다 화면이 정한다 */
 export const PHONE_FORMAT_MESSAGE = '휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요';
+/** 서버 `USER_400_2` 칸 오류 문구(잠정 — 디자인 전, 백엔드 #896 안내 문구) */
+export const PHONE_INVALID_MESSAGE = '전화번호를 확인해 주세요';
+/** 가입 때 서버가 무효 전화번호로 거절하는 코드(백엔드 #896) */
+export const PHONE_INVALID_CODE = 'USER_400_2';
 
 /**
  * 입력 → `010-XXXX-XXXX` 모양으로 하이픈 자동 입력. 숫자만 남기고, 국가번호로 시작하면(`+82 10-…` — 카카오 프로필) `0`으로 바꾼다.

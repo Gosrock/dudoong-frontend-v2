@@ -4,7 +4,7 @@ import { api } from '../http';
 import { PublicTicketItemsSchema, TicketItemsManageSchema } from './schema';
 
 /**
- * GP-5 판매 중인 티켓(공개). 잔여가 자주 바뀌어 서버에서 프리페치하지 않고 브라우저 `useQuery`로 읽는다(patterns §14).
+ * GP-5 판매 기간 안의 티켓(공개 — 판매 중단은 `isSuspended`로 포함). 잔여가 자주 바뀌어 서버에서 프리페치하지 않고 브라우저 `useQuery`로 읽는다(patterns §14).
  * `staleTime`은 기본값 0.
  */
 export const eventTicketItemsQuery = (eventId: string | number) =>

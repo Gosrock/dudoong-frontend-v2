@@ -6,7 +6,7 @@ import { openEnum } from '../shared/open-enum';
 
 /**
  * 티켓 응답. 기준: 백엔드 `v2/event/dto/response/V2EventBrowseResponses.kt`(`V2PublicTicketItemResponse`),
- * `v2/ticket/dto/V2TicketTypes.kt`(dev 24aa595).
+ * `v2/ticket/dto/V2TicketTypes.kt`(dev 24aa595, `isSuspended`는 2.5.2 `f7d4acd3`).
  */
 
 /** 결제 방식(api-contract §3). PRICE는 기존 PG 티켓 — 조회만 된다 */
@@ -29,7 +29,10 @@ export const PublicTicketOptionSchema = z.object({
   yesAdditionalPrice: z.number().int().nullable(),
 });
 
-/** GP-5 판매 중인 티켓(비로그인). 입금 계좌는 G11/O-0에서만 온다 */
+/**
+ * GP-5 판매 기간 안의 티켓(비로그인). 판매 중단 티켓도 `isSuspended: true`로 온다(백엔드 #894) — 판매 기간 밖·삭제 티켓은 빠진다.
+ * 입금 계좌는 G11/O-0에서만 온다(O-0은 판매 중단 티켓에 404)
+ */
 export const PublicTicketItemSchema = z.object({
   ticketItemId: z.number().int(),
   name: z.string().nullable(),
@@ -44,6 +47,11 @@ export const PublicTicketItemSchema = z.object({
   isSoldOut: z.boolean(),
   /** 지금 살 수 있는지 — 구매 가능 판단은 이 값으로(patterns §14) */
   isPurchasable: z.boolean(),
+  /**
+   * 판매 중단(호스트 T-5). `true`면 `isPurchasable`은 항상 `false` — 관객 화면은 딤드(Q33, 백엔드 #894 / 2.5.2).
+   * `remaining`·`isSoldOut`도 계산돼 온다(숨길지는 화면이 정한다)
+   */
+  isSuspended: z.boolean(),
   /** 1인 구매 매수 제한. null이면 제한 없음 */
   purchaseLimit: z.number().int().nullable(),
   options: z.array(PublicTicketOptionSchema),

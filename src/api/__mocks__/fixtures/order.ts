@@ -36,6 +36,7 @@ export const extraCheckoutTickets: PublicTicketItem[] = [
     remaining: 3,
     isSoldOut: false,
     isPurchasable: true,
+    isSuspended: false,
     purchaseLimit: null,
     options: [],
   },
@@ -49,6 +50,7 @@ export const extraCheckoutTickets: PublicTicketItem[] = [
     remaining: 10,
     isSoldOut: false,
     isPurchasable: true,
+    isSuspended: false,
     purchaseLimit: 2,
     options: [
       {

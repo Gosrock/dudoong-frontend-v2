@@ -366,20 +366,28 @@ describe('T-4 삭제 · T-5/T-6 판매 중단 · 재개', () => {
     ).toBe(false);
   });
 
-  it('판매 중단 → GP-5에서 빠지고, 재개 → 다시 나온다(멱등). 잠긴 티켓도 중단할 수 있다', async () => {
-    const ids = async () =>
-      ((await get(eventTicketItemsQuery(OPEN))) as { ticketItemId: number }[]).map(
-        (t) => t.ticketItemId,
-      );
-    expect(await ids()).toEqual([501, 502, 503]);
+  it('판매 중단 → GP-5에 isSuspended로 남고(딤드, #894), 재개 → 다시 살 수 있다(멱등). 잠긴 티켓도 중단할 수 있다', async () => {
+    const flags = async () =>
+      (
+        (await get(eventTicketItemsQuery(OPEN))) as {
+          ticketItemId: number;
+          isSuspended: boolean;
+          isPurchasable: boolean;
+        }[]
+      ).map((t) => [t.ticketItemId, t.isSuspended, t.isPurchasable]);
+    expect(await flags()).toEqual([
+      [501, false, true],
+      [502, false, false],
+      [503, false, true],
+    ]);
     const suspended = (await call(suspendTicketItemMutation(OPEN), 501)) as TicketItemManage;
     expect(suspended).toMatchObject({ saleState: 'SUSPENDED', isSold: true, isPurchasable: false });
     await call(suspendTicketItemMutation(OPEN), 501);
-    expect(await ids()).toEqual([502, 503]);
+    expect((await flags())[0]).toEqual([501, true, false]);
     expect((await call(resumeTicketItemMutation(OPEN), 501)) as TicketItemManage).toMatchObject({
       saleState: 'SOLD',
     });
-    expect(await ids()).toEqual([501, 502, 503]);
+    expect((await flags())[0]).toEqual([501, false, true]);
   });
 });
 
