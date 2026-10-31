@@ -28,3 +28,10 @@ export const hostingAccessOfRole = (role: ActorRole | null | undefined): 'ok' | 
 
 /** 403·404 안내의 돌아갈 곳 — 공연준비 홈 */
 export const HOSTING_ACCESS_BACK = { href: '/hosting', label: '공연준비 홈으로' } as const;
+
+/** 403 안내 문구(호스팅) — Figma에 403 화면이 없어 정한 잠정 문구(P10a-V, Figma 코멘트로 물음) */
+export const HOSTING_FORBIDDEN_COPY = {
+  title: '권한이 없어요',
+  description:
+    '이 호스트의 멤버만 볼 수 있어요. 호스트 마스터·매니저에게 멤버 초대를 요청해 주세요.',
+} as const;

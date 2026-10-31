@@ -251,6 +251,6 @@ test.describe('멤버 관리 — 변경', () => {
     ).toHaveLength(2);
     // 공연준비 홈 호스트 카드도 매니저
     await page.goto('/hosting?tab=hosts');
-    await expect(page.getByTestId('my-role')).toHaveText('MANAGER');
+    await expect(page.getByTestId('my-role')).toHaveText('매니저');
   });
 });
