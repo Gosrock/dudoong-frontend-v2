@@ -557,6 +557,7 @@ useEffect(() => {
 - 본문은 서버가 만든 문자열이다. HTML로 넣지 않는다.
 - 알림은 커밋 후 비동기 저장이라 mutation 직후 목록에 없을 수 있다. mutation 성공 직후의 알림 재조회에 기대지 않는다.
 - 관객 화면과 호스팅 센터가 같은 알림함을 쓴다. 쿼리는 `src/api/notification`, 벨·알림함·타입 매핑은 `features/shared/notification`.
+- **셸 메뉴의 벨**(P4s-L): 햄버거·드로어·아바타 드롭다운은 벨을 따로 부르지 않고 `useShellMenu`(`features/shared/shell/model`)의 `hasUnread`·`refreshBell`을 쓴다(안에서 `useNotificationBell`). 미로그인 벨은 그리되 GN-2를 부르지 않고 `/login?redirect=%2Fmypage%2Fnotifications`로 간다(Q16). 메뉴 항목 주소는 `shellLink`가 정한다 — 화면이 `loginHref`를 직접 조립하지 않는다. 문구는 "공연준비"/"공연 준비"이고 "호스팅 센터"는 쓰지 않는다(라우트 `/hosting` 그대로)
 
 ## 22. 호스팅 센터 — 권한별 화면
 

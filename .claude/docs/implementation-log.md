@@ -733,3 +733,52 @@
 **남음**: V 전부(목록·상세·배너 화면, 셸에 배너 붙이기 — P4s-V 뒤, 햄버거 "서비스 업데이트 노트" 연결(Q4), 본문 타이포), QA 시나리오(V 때 — 화면이 최소 마크업이라 캡처할 것이 없다), storyboard 144행의 "plan §7 범위 밖·미정" 문구 갱신(다른 작업이 storyboard를 고치는 중이라 손대지 않음)
 **검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2206) · test:stories(193) · build · e2e(364 — 새 22 = `notices.spec` 11건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
 **문서 반영**: plan(개요 Phase 수 26·남은 19, §0, §2 L 레인, §3 S9, §4 P9c 새 절·P4s 배너 문장, §5·§6 표, §7 공지 절 닫음), README(Phase 수, 범위 문단), api-contract §5 서비스 공지(P9c-L 소스 확인), patterns §24(P9c 3행), directory-structure(라우트·features/shared/notice·api/notice·mock), design-requests Q44(P9c 안내 한 줄)
+
+## P4s-L — 레이아웃 셸: 셸 메뉴 (로직)
+
+**상태**: done (2026-10-31, 커밋 전) — 마지막 L. V 전부 남음(셸 레이아웃·헤더·햄버거·상단 바·드로어 — 디자인 대기)
+**변경**: 새 `features/shared/shell/model/` — `shell-menu.ts`(순수: `shellLink(key, loggedIn)`·`shellHostRow(me | null)`·`shellMenu(me | null)`, 상수 `SHELL_HOST_MAX`(10)·`SHELL_HOSTS_EMPTY_TEXT`·`SHELL_HOSTS_MORE_HREF`), `useShellMenu.ts`(훅). `LoginRequiredLink.tsx`의 `useLoginHref`를 내보냄(셸 [로그인]이 재사용). 스토리 문구 "호스팅 센터" → "공연준비"(`Tooltip`·`Header`·`NotFoundView`·`ForbiddenView` 스토리 — 호스팅 쪽 행동 문구는 P10a의 `HOSTING_ACCESS_BACK.label` "공연준비 홈으로"에 맞춤). 새 e2e `e2e/shell.spec.ts`. 레이아웃 파일(`(audience)/layout.tsx`·`hosting/layout.tsx`)은 손대지 않았다 — 메뉴를 그릴 셸이 V라 마운트할 곳이 없다
+
+**백엔드 소스**: dev `d89d4f9`(로컬 클론 `dev-latest`, `git show`·`git grep`). GM-1 `V2MeResponse`(`V2MyPageResponses.kt`) — `hosts: List<V2MeHostResponse>`(hostId·name?·profileImageUrl?·myRole), `hostCount: Long`. `V2MeUseCase.MAX_HOST_SUMMARY = 10`. `V2MyPageHostQuery.findMyHosts` — 활성 소속(`hostUser.active`)만, 합류 최신순(`hostUser.createdAt desc, id desc`) limit 10, `countMyHosts` — 같은 조건의 전체 수. DTO 설명: hosts가 비면 "아직 두둥에서 호스트가 없어요.", hostCount가 더 많으면 GH-1(`/api/v2/me/hosts`)로 전체. FE 스키마(`src/api/me/schema.ts`)와 같다 — 코드 변경 없음
+
+**훅이 돌려주는 것**
+- `useShellMenu()` → `{status:'pending'}` | `{status:'error', retry}` | `{status:'ready', menu, hasUnread, refreshBell, logout}`
+  - `menu`(= `shellMenu`) — 공통 `bell`·`shortcuts`(공연 둘러보기 `/events` · 공연 준비 `/hosting`)·`items`·`hostRow{hosts[{hostId,name,profileImageUrl,myRole,href:/hosts/{id}}], emptyText, more{count,href}}`·`create`(새 호스트 만들기 · 새 공연 만들기). `kind:'session'`이면 `profile{name,email,profileImageUrl,edit(/mypage)}`, `kind:'anonymous'`면 `login`(지금 주소로 돌아오는 `/login?redirect=…`)
+  - 항목 하나 = `{key, label, href, to, viaLogin}` — 익명의 보호 항목은 `href = /login?redirect=<to>`, `viaLogin: true`
+  - `logout` = `useLogout()` 그대로(로그인일 때만), `hasUnread`·`refreshBell` = `useNotificationBell()`(익명이면 GN-2 없음)
+
+**이미 있던 것(다시 만들지 않음)**: 세션 4상태 `useSession`·게이트 `LoginGate`(P4a), `loginHref`·`safeRedirect`·`useKakaoLogin`(redirect 보관)·`useKakaoCallback`(복귀)(P4b-L), 벨 `useNotificationBell`(P9b-L S7), 로그아웃 `useLogout`(P4a), 공지 배너 `useNoticeBanner`(P9c-L — 셸에 붙이는 것은 P9c-V). 비로그인 `/hosting/**` → 로그인은 e2e `hosting.spec`(P10a)·`hosting-event.spec`(P11)·`hosting-host.spec`(P10b), "세션 확정 전 children 쿼리 0"은 `LoginGate.test`(P4a)가 이미 본다 — P4s-L은 라우트에서 "GM-1 말고 /api 없음"만 더했다
+
+**완료 기준 L ↔ 테스트**
+
+| 기준 | 테스트 |
+|---|---|
+| MSW 시나리오 | `shell-menu.test` 22건, `useShellMenu.test` 10건, e2e `shell.spec` 5건(×2 프로젝트) |
+| 햄버거·아바타 드롭다운이 같은 목록 | 훅 「햄버거와 아바타 드롭다운이 같은 메뉴를 받는다 — GM-1은 한 번만 나간다」, 규칙 「로그인: 프로필 · 벨 · …」·「비로그인: [로그인] · 벨 · …」 |
+| 호스트 줄 0 · ≤10 · >10 | 규칙 it.each 5행(0/0 · 1/1 · 10/10 · 10/11 · 10/37)·「서버가 10개보다 많이 줘도 …」·「익명은 빈 줄 + 빈 문구」, 훅 「호스트 줄: GM-1 hosts 10개 + hostCount 37 → …」 |
+| 미로그인 항목 → 로그인 → 복귀 | 규칙 it.each 9행(항목별 로그인/익명 주소), 훅 「미로그인 항목 → 로그인 → 그 항목으로 복귀」 it.each 4행(bell·orders·hosting·newEvent — `useKakaoLogin` 보관 → `useKakaoCallback` replace), e2e 「벨(/login?redirect=/mypage/notifications)로 로그인하면 알림함으로 돌아온다」·「"공연 준비"로 로그인하면 공연준비 홈으로 돌아온다」 |
+| 비로그인 `/hosting/**` · 확정 전 쿼리 없음 | `LoginGate.test`(P4a) 「세션 확인 중에는 스켈레톤 …」·「비로그인 … children은 그리지 않는다」, e2e `shell.spec` 「/hosting · /hosting/new/events · /hosting/events/140/dashboard: 로그인으로 가고, GM-1 말고는 /api를 부르지 않는다」 + 기존 P10a·P11·P10b e2e |
+| 문구 "공연준비" · Q4 | 규칙 「화면 문구에 "호스팅 센터"가 없고 업데이트 노트·AD 항목이 없다(Q4)」 |
+
+**결정**
+- 위치 `features/shared/shell/model/` — plan 기본은 `features/audience/shell/model/`이었지만 호스팅 모바일 드로어(벨 포함, tech-decisions §3)와 호스팅 PC 아바타 드롭다운이 같은 메뉴를 쓰고 audience ↔ hosting import가 eslint로 막혀 있어 처음부터 shared에 뒀다(plan P4s L 범위에 기록)
+- 브레이크포인트는 그대로(`desktop: 1024` — Q38 닫힘). L에 폭 분기가 없다
+
+**문서와 다르게 한 것 / Claude 판단**(근거 문서 없음 — 되돌리는 법 같이)
+1. **미로그인 항목은 GUI `331:11679`대로 주문내역 · 관심 호스트만** — plan 목록의 티켓 · 지난 공연 아카이빙 · 로그아웃은 로그인 메뉴에만 둔다. 되돌리기: `shellMenu`의 `items` 익명 분기
+2. **"더 보기"는 공연준비 홈 호스트 탭 `/hosting?tab=hosts`** — plan "공연준비 홈으로"와 백엔드 DTO 설명(GH-1 전체 목록)을 합쳐 호스트 탭으로 읽었다. P10a `HOSTING_HOME_HOSTS_HREF`와 같은 값이지만 shared가 hosting을 import할 수 없어 상수를 따로 뒀다. 되돌리기: `SHELL_HOSTS_MORE_HREF = '/hosting'`
+3. **호스트 줄 항목은 호스트 홈 `/hosts/{id}`로** — 문서에 목적지가 없다. P10a 호스트 카드(`myHostHref`)와 같게(설정·멤버 입구가 거기 있다). 되돌리기: `shellHostRow`의 `href`
+4. **미로그인도 호스트 줄에 "아직 두둥에서 호스트가 없어요."** — GUI `331:11679`에 그 문구가 있다. 되돌리기: `shellHostRow(null)`이 `emptyText: null`
+5. **항목 문구 잠정**: "알림"(벨 접근 이름), "프로필 편집"(아바타 연필 → `/mypage`), "티켓", "주문내역", "관심 호스트", "지난 공연 아카이빙", "공연 둘러보기", "공연 준비"(와이어 `128:2875` 바로가기 — PC 상단 바 글자 메뉴 "공연 준비하기"는 V가 바꿔 그린다), "새 호스트 만들기", "새 공연 만들기", "로그인". 되돌리기: `shell-menu.ts` `LINKS`
+6. **프로필 편집 = `/mypage`** — P9 마이페이지가 프로필 편집을 겸한다(directory-structure). 되돌리기: `LINKS.profile.to`
+7. **[로그인]은 지금 주소로 돌아온다**(`useLoginHref` 재사용 — 서버·하이드레이션 때는 `/login`, 렌더 때 주소를 읽는다). 햄버거·드롭다운은 열 때 다시 그려지므로 클라이언트 이동 뒤에도 맞다. 되돌리기: `useShellMenu`에서 `login.href` 덮어쓰기를 빼면 `/login`
+8. **세션 실패(`error`)는 메뉴 없이 `retry`만** — 공개 화면의 셸은 화면을 막지 않는다(게이트는 보호 화면만 전체 재시도). 되돌리기: `useShellMenu`가 error를 anonymous처럼
+9. **스토리 문구를 "공연준비"로 바꿨다**(V 스토리지만 "화면 문구에 호스팅 센터가 남지 않음" 기준 — 코드 주석·테스트 이름의 "호스팅 센터"는 화면 문구가 아니라 그대로). 되돌리기: 네 스토리 파일
+
+**남음 / 위험**
+- **약관 표시 의무 — v2 계획에 위치 없음(위험)** 그대로: 약관 제3조③ "서비스 첫 화면" 중개자 지위 표시(legal-copy A-3). 셸 V에 푸터가 없고 자리를 정하지 않았다 — 만들지 않았다
+- V 전부: 관객 셸(모바일 헤더 + 햄버거 / PC 상단 바 + 아바타 드롭다운), 호스팅 셸(상단 바 58 · 드로어 · 3단 슬롯), 404·에러 화면, 말풍선 툴팁, 공지 배너 마운트(P9c-V), 하이드레이션 경고 0, QA `pnpm qa shell` 캡처, 바텀시트 iOS 실기기(P2에서 넘어옴)
+- Q17(호스팅 모바일 헤더 로고형/제목형)은 V — 메뉴 데이터는 어느 쪽이든 같다
+
+**검사**(2026-10-31, `NEXT_PUBLIC_KAKAO_JS_KEY=e2e-placeholder`, 작업 트리 전체): typecheck · lint · prettier · test(2238) · test:stories(193) · build · e2e(374 — 새 10 = `shell.spec` 5건 ×2) 통과. e2e 출력의 `server_query.failed` 500은 의도한 에러 시나리오
+**문서 반영**: plan(개요 진행 현황 — 남은 L 없음, P4s L 범위 위치·끝남 표시, L 완료 기준 5칸, §5 첫 문단), README(문서 지도 plan 행), directory-structure(`features/shared/shell`, hosting/shell은 V), patterns §21(셸 메뉴의 벨·항목 주소)

@@ -10,7 +10,7 @@ const meta = {
   args: {
     content: '두둥에서 공연을 시작해보세요!',
     side: 'right',
-    children: <Button variant="secondary">호스팅 센터</Button>,
+    children: <Button variant="secondary">공연 준비</Button>,
   },
   decorators: [
     (Story) => (
@@ -27,7 +27,7 @@ type Story = StoryObj<typeof meta>;
 /** 키보드 포커스로 열리고 Esc로 닫힌다. 말풍선은 트리거의 설명이 된다 */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
-    const trigger = within(canvasElement).getByRole('button', { name: '호스팅 센터' });
+    const trigger = within(canvasElement).getByRole('button', { name: '공연 준비' });
     await userEvent.tab();
     await expect(trigger).toHaveFocus();
     await expect(await screen.findByRole('tooltip')).toHaveTextContent(

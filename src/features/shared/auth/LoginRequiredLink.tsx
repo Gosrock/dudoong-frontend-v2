@@ -8,8 +8,8 @@ import { loginHref } from './login-href';
 import { useSession } from './useSession';
 
 const noopSubscribe = () => () => {};
-/** 지금 주소로 돌아오는 로그인 주소. 서버·하이드레이션 때는 `/login`(주소를 읽지 않는다) */
-const useLoginHref = () =>
+/** 지금 주소로 돌아오는 로그인 주소. 서버·하이드레이션 때는 `/login`(주소를 읽지 않는다). 셸 메뉴의 [로그인]도 쓴다 */
+export const useLoginHref = () =>
   useSyncExternalStore(
     noopSubscribe,
     () => loginHref(browserLocation.currentPath()),

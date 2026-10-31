@@ -40,10 +40,10 @@ export const DefaultLeadingProfile: Story = {
   },
 };
 
-/** Figma `Default, leading icon=false, profile=true` — 호스팅 센터 제목형(GUI 336:13858) */
+/** Figma `Default, leading icon=false, profile=true` — 공연준비 제목형(GUI 336:13858, 화면 문구 "공연준비") */
 export const DefaultProfile: Story = {
   args: {
-    title: '호스팅 센터',
+    title: '공연준비',
     trailing: (
       <>
         {bell}

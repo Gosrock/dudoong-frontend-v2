@@ -18,5 +18,5 @@ export const Default: Story = {
   },
 };
 
-/** 호스팅 센터 — 호스팅 홈으로 */
-export const Hosting: Story = { args: { href: '/hosting', actionLabel: '호스팅 센터로' } };
+/** 공연준비(`/hosting`) — 공연준비 홈으로 */
+export const Hosting: Story = { args: { href: '/hosting', actionLabel: '공연준비 홈으로' } };
