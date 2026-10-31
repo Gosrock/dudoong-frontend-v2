@@ -48,6 +48,11 @@
 - 디자인 시스템 변수 diff, Ready for dev 전환 자동 감지는 넣지 않았다 — 플러그인 API에 이전 버전을 읽는 방법도, `devStatus` 변경 이벤트도 없다.
 - 디자이너 파일에 pluginData·relaunch 버튼을 남기지 않는다.
 
+## 테스트
+
+- 테스트 파일: "디자인 트래커 플러그인 테스트"(`mjqW9YI6SW96MQK6iAnDhW`, 두둥 팀 드래프트) — 프레임 `1:5`(Ready for dev로 표시해서 쓴다), `1:8`, 섹션 안 `1:12`, 컴포넌트 세트 `1:17`. 디자이너 파일 세 개에서는 시험하지 않는다.
+- 2026-10-31: GitHub 흐름(이슈 생성 → 같은 프레임 댓글 + 마커 덧붙임 + 라벨 → 이력 매칭)을 `core.mjs` 그대로 REST로 돌려 확인 — 테스트 이슈 #1. GUI 화면 파일에서 읽기만으로 `resolveTarget`·`devStatus` 읽기(디자인 모드)를 확인. Figma 안에서 UI를 띄우는 것은 아직 확인하지 않았다.
+
 ## 확인 못 한 것
 
 - manifest `id`(`dudoong-design-tracker`)를 Figma가 개발용 가져오기에서 받아 주는지 — 막히면 Figma에서 새 플러그인을 만들어 받은 id로 바꾼다.
