@@ -452,8 +452,8 @@ export function OptionDetailOverlay({
   const remove = async () => {
     const name = e.option?.name ?? '';
     const ok = await openConfirm({
-      title: `'${name}' 옵션을 삭제할까요?`,
-      description: '이 옵션이 붙은 모든 티켓에서 빠져요.',
+      title: `[${name}] 옵션을 삭제할까요?`,
+      description: '이 옵션이 붙은 모든 티켓에서 빠지고, 삭제한 옵션은 되돌릴 수 없어요.',
       confirmLabel: '삭제',
     });
     if (ok && (await e.remove())) {

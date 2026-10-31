@@ -68,3 +68,10 @@ export const fab = style({
   zIndex: 10,
   '@media': { [media.desktop]: { right: vars.space[5], bottom: vars.space[5] } },
 });
+
+/** 일러스트 — 모바일 170(`793:20842`) · PC 300(`821:26485`) */
+export const emptyIllustration = style({
+  width: 170,
+  height: 'auto',
+  '@media': { [media.desktop]: { width: 300 } },
+});

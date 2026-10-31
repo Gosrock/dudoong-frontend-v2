@@ -87,7 +87,7 @@ describe('잠금 · ⋮ 메뉴(isSold || hasPendingOrders)', () => {
   });
 
   it.each([
-    ['판매 전 두둥', {}, true, ['edit', 'delete', 'suspend']],
+    ['판매 전 두둥 → 판매 중단 없이 삭제(GUI 958:20392)', {}, true, ['edit', 'delete']],
     [
       '판매됨 → 삭제 대신 판매 중단만',
       { isSold: true, saleState: 'SOLD' },
@@ -97,8 +97,8 @@ describe('잠금 · ⋮ 메뉴(isSold || hasPendingOrders)', () => {
     ['승인 대기 주문', { hasPendingOrders: true }, true, ['edit', 'suspend']],
     ['판매 중단 → 재개', { saleState: 'SUSPENDED' }, true, ['edit', 'delete', 'resume']],
     ['판매됨 + 중단', { isSold: true, saleState: 'SUSPENDED' }, true, ['edit', 'resume']],
-    ['기존 PG 티켓은 수정 없음', { payType: 'PRICE' }, true, ['delete', 'suspend']],
-    ['모르는 결제 방식도 수정 없음', { payType: 'UNKNOWN' }, true, ['delete', 'suspend']],
+    ['기존 PG 티켓은 수정 없음', { payType: 'PRICE' }, true, ['delete']],
+    ['모르는 결제 방식도 수정 없음', { payType: 'UNKNOWN' }, true, ['delete']],
     ['읽기 전용(일반 멤버·끝난 공연)', {}, false, []],
   ] as const)('%s', (_, over, canEdit, menu) => {
     expect(ticketMenuOf(ticket(over as Partial<TicketItemManage>), canEdit)).toEqual(menu);

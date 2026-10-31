@@ -7,6 +7,7 @@ import { Button } from '@/ui/components/Button/Button';
 import { Chip, type ChipColor } from '@/ui/components/Chip/Chip';
 import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
 
 import type { TicketSaleChip } from '../model/ticket-rules';
@@ -73,19 +74,41 @@ export function TicketCard({
     t.approvalRequired ? '호스트 승인 후 확정' : null,
   ].filter(Boolean);
 
+  /** 확인 창 · 완료 토스트 — GUI #55 `958:20537`·`958:20680`, #56 `958:20860`·`958:20841`, #57 `958:21375`·`958:21517` */
   const confirmThen = async (action: 'delete' | 'suspend' | 'resume') => {
     const ok = await openConfirm(
       action === 'delete'
-        ? { title: `'${name}' 티켓을 삭제할까요?`, confirmLabel: '삭제' }
+        ? {
+            title: `[${name}] 티켓을 삭제할까요?`,
+            description: '삭제한 티켓은 복구할 수 없어요.',
+            confirmLabel: '삭제',
+          }
         : action === 'suspend'
           ? {
-              title: `'${name}'의 판매를 중단할까요?`,
-              description: '관객이 더 이상 이 티켓을 살 수 없어요. 언제든 다시 판매할 수 있어요.',
-              confirmLabel: '판매 중단',
+              title: `[${name}] 티켓의 판매를 중단할까요?`,
+              description: '추후 다시 판매를 재개할 수 있어요.',
+              confirmLabel: '중단',
             }
-          : { title: `'${name}'의 판매를 다시 시작할까요?`, confirmLabel: '판매 재개' },
+          : { title: `[${name}] 티켓을 다시 판매할까요?`, confirmLabel: '확인' },
     );
-    if (ok) await onAction(action);
+    if (!ok || !(await onAction(action))) return;
+    toast(
+      action === 'delete'
+        ? '티켓을 삭제했어요.'
+        : action === 'suspend'
+          ? '티켓의 판매를 중단했어요.'
+          : '티켓을 다시 판매하기 시작했어요.',
+    );
+  };
+
+  /** 옵션 ✕ — 이 티켓에서 빼기(L detach). 확인 창 · 토스트는 GUI #54 `934:2034`·`934:2127` 문구 그대로 */
+  const detachOption = async (optionId: number) => {
+    const ok = await openConfirm({
+      title: '티켓 옵션을 삭제할까요?',
+      description: '삭제한 옵션은 되돌릴 수 없어요.',
+      confirmLabel: '삭제',
+    });
+    if (ok && (await options.detach(optionId))) toast('옵션을 삭제했어요.');
   };
 
   return (
@@ -131,7 +154,6 @@ export function TicketCard({
           }
           items={card.menu.map((m) => ({
             label: m.label,
-            danger: m.action === 'delete',
             onSelect: () =>
               m.action === 'edit' ? router.push(card.editHref) : void confirmThen(m.action),
           }))}
@@ -146,7 +168,7 @@ export function TicketCard({
                 type={o.type}
                 yesAdditionalPrice={o.yesAdditionalPrice}
                 onOpen={() => setDetail({ id: o.optionId, open: true })}
-                onDetach={changeable ? () => void options.detach(o.optionId) : undefined}
+                onDetach={changeable ? () => void detachOption(o.optionId) : undefined}
                 detachDisabled={options.pending}
               />
             </li>

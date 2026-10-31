@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 import { isSessionLost } from '@/api/errors';
 import { TICKET_DESCRIPTION_MAX, TICKET_NAME_MAX } from '@/api/ticket-item/schema';
@@ -10,6 +10,7 @@ import {
   HostingNotFound,
 } from '@/features/hosting/access/HostingAccessRejected';
 import { FieldError, FormSection, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
+import { EVENT_SCOPE_ATTR } from '@/features/hosting/shell/HostingShell.css';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
@@ -59,8 +60,21 @@ export function TicketFormView({
 
 const FORM_ID = 'ticket-form';
 
+/** 폼이 보이는 동안 공연 스코프 틀에 "공연 헤더 숨김"을 건다(숨겨진 Activity면 effect가 정리돼 풀린다) */
+function useHideEventHeader() {
+  const ref = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const scope = ref.current?.closest(`[${EVENT_SCOPE_ATTR}]`);
+    if (!scope) return;
+    scope.setAttribute(s.HIDE_HEADER_ATTR, '');
+    return () => scope.removeAttribute(s.HIDE_HEADER_ATTR);
+  }, []);
+  return ref;
+}
+
 function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: number | null }) {
   const f = useTicketForm(eventId, ticketItemId);
+  const pageRef = useHideEventHeader();
   // 처음 그린 값과 다르면 손댄 것(만들기는 L `dirty`가 늘 true — 빈 폼에서 나갈 때 묻지 않고, 버튼은 GUI처럼 비활성)
   const [initial] = useState(() => JSON.stringify(f.values));
   const touched = f.dirty && JSON.stringify(f.values) !== initial;
@@ -182,7 +196,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
   );
 
   return (
-    <section aria-labelledby="ticket-form-title" className={s.page} {...{ [s.SUBPAGE_ATTR]: '' }}>
+    <section ref={pageRef} aria-labelledby="ticket-form-title" className={s.page}>
       <Header
         className={s.mobileOnly}
         title={title}

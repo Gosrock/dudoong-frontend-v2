@@ -85,7 +85,7 @@ function TicketList({ eventId }: { eventId: string }) {
       {l.empty ? (
         <EmptyState
           className={s.empty}
-          illustration={<Illustration name="no-ticket" />}
+          illustration={<Illustration name="no-ticket" className={s.emptyIllustration} />}
           description={
             <span data-testid="tickets-empty">
               <Txt typography="bodyLg" color={colors.textTertiaryLabel}>

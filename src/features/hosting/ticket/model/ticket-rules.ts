@@ -30,8 +30,8 @@ export const isTicketLocked = (t: Pick<TicketItemManage, 'isSold' | 'hasPendingO
 export type TicketMenuAction = 'edit' | 'delete' | 'suspend' | 'resume';
 
 export const TICKET_MENU_LABEL: Record<TicketMenuAction, string> = {
-  edit: '수정',
-  delete: '삭제',
+  edit: '수정하기',
+  delete: '삭제하기',
   suspend: '판매 중단',
   resume: '판매 재개',
 };
@@ -40,7 +40,8 @@ export const TICKET_MENU_LABEL: Record<TicketMenuAction, string> = {
  * ⋮ 메뉴(plan P12 "`isSold || hasPendingOrders`로 구성"). 읽기 전용(일반 멤버·끝난 공연)이면 비어 있다.
  * - 수정: v2 결제 방식(두둥·무료)만 — PG 티켓은 서버가 막는다
  * - 삭제: 잠기지 않은 티켓만. 잠긴 티켓은 삭제 대신 판매 중단만 보인다(patterns §24 `Ticket_Item_400_7`)
- * - 판매 중단 / 재개: 지금 상태의 반대 하나
+ * - 판매 중단: 잠긴 티켓만(GUI `958:20392` 판매 전 = [수정하기 · 삭제하기], `958:20819` 판매됨 = [수정하기 · 판매 중단] — #55·#56, P12-V)
+ * - 판매 재개: 판매 중단된 티켓이면 잠김과 상관없이
  */
 export function ticketMenuOf(
   t: Pick<TicketItemManage, 'payType' | 'isSold' | 'hasPendingOrders' | 'saleState'>,
@@ -49,8 +50,10 @@ export function ticketMenuOf(
   if (!canEdit) return [];
   const menu: TicketMenuAction[] = [];
   if (isEditablePayType(t.payType)) menu.push('edit');
-  if (!isTicketLocked(t)) menu.push('delete');
-  menu.push(t.saleState === 'SUSPENDED' ? 'resume' : 'suspend');
+  const locked = isTicketLocked(t);
+  if (!locked) menu.push('delete');
+  if (t.saleState === 'SUSPENDED') menu.push('resume');
+  else if (locked) menu.push('suspend');
   return menu;
 }
 

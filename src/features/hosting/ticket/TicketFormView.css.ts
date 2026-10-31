@@ -5,9 +5,13 @@ import { EVENT_SCOPE_ATTR } from '@/features/hosting/shell/HostingShell.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
-/** 이 화면(모바일)은 공연 헤더("티켓 관리 ▾") 대신 ← 제목 헤더를 쓴다(GUI `767:46671` Top app bar `only title`) */
-export const SUBPAGE_ATTR = 'data-ticket-subpage';
-globalStyle(`[${EVENT_SCOPE_ATTR}]:has([${SUBPAGE_ATTR}]) .${mobileHeader}`, { display: 'none' });
+/**
+ * 이 화면(모바일)은 공연 헤더("티켓 관리 ▾") 대신 ← 제목 헤더를 쓴다(GUI `767:46671` Top app bar `only title`).
+ * 폼이 보이는 동안만 공연 스코프 틀에 이 속성을 건다(`useHideEventHeader`) — `:has()`로 하면 Cache Components가 숨겨 둔
+ * 이전 화면(React Activity)에도 맞아 목록으로 돌아와도 헤더가 숨는다
+ */
+export const HIDE_HEADER_ATTR = 'data-hide-event-header';
+globalStyle(`[${EVENT_SCOPE_ATTR}][${HIDE_HEADER_ATTR}] .${mobileHeader}`, { display: 'none' });
 
 /**
  * 새 티켓 만들기 · 티켓 수정 — 모바일(GUI `767:46560`·`767:46664`·`821:23712`): 좌우 24 · 위 12, 칸 묶음 위아래 16 · 사이 16.
