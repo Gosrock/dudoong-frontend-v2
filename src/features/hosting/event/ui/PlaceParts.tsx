@@ -101,9 +101,12 @@ function PostcodeEmbed({ onPick }: { onPick: (address: string) => void }) {
 export function KakaoMapPreview({
   latitude,
   longitude,
+  unavailable = false,
 }: {
   latitude: number | null;
   longitude: number | null;
+  /** 주소 좌표 찾기에서 이미 SDK를 불러오지 못했다(#92-1) — 좌표가 없어도 "주소를 검색하면" 대신 실패 안내 */
+  unavailable?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
@@ -143,7 +146,7 @@ export function KakaoMapPreview({
       <div ref={ref} className={s.mapCanvas} />
       {(!has || failed) && (
         <Txt typography="bodySm" color={colors.textSecondaryLabel} className={s.overlayText}>
-          {has ? '지도를 불러오지 못했어요' : '주소를 검색하면 지도가 보여요'}
+          {has || unavailable ? '지도를 불러오지 못했어요' : '주소를 검색하면 지도가 보여요'}
         </Txt>
       )}
     </div>

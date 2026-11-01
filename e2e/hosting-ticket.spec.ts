@@ -138,6 +138,25 @@ test.describe('새 티켓 만들기', () => {
     await expect(card(page, '초대권')).toBeVisible();
   });
 
+  test('만든 뒤 다시 [새 티켓 만들기]로 들어오면 빈 폼 — 직전 입력을 들고 있지 않다(#92-7, Activity 보존)', async ({
+    page,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/events/140/tickets');
+    await page.getByRole('link', { name: '새 티켓 만들기' }).click();
+    await page.getByRole('radio', { name: '무료 티켓' }).click();
+    await page.getByLabel('티켓 이름').fill('초대권');
+    await page.getByRole('button', { name: '티켓 만들기' }).click();
+    await expect(page).toHaveURL('/hosting/events/140/tickets');
+    await expect(card(page, '초대권')).toBeVisible();
+
+    // 목록이 비지 않았으니 입구는 FAB
+    await page.getByRole('button', { name: '새 티켓 만들기' }).click();
+    await expect(page).toHaveURL('/hosting/events/140/tickets/new');
+    await expect(page.getByLabel('티켓 이름')).toHaveValue('');
+    await expect(page.getByRole('radio', { name: '두둥 티켓' })).toBeChecked();
+  });
+
   test('티켓 없음 공연에서는 추가할 수 없다 — 목록에 버튼이 없고 새 티켓 주소는 읽기 전용', async ({
     page,
   }) => {

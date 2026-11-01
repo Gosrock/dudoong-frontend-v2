@@ -21,7 +21,7 @@ import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
-import type { Geocoder } from './place';
+import { type Geocoder, GeocoderUnavailableError, PLACE_ERROR } from './place';
 import { useEventBasicInfo } from './useEventBasicInfo';
 
 let restore: () => void;
@@ -49,7 +49,7 @@ const PREPARING = '140';
 /** 등록된 공연(장소·상세주소 있음) */
 const OPEN = '101';
 
-function setup(eventId: string) {
+function setup(eventId: string, geocode: Geocoder = fakeGeocode) {
   const queryClient = createTestQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={queryClient}>
@@ -57,7 +57,7 @@ function setup(eventId: string) {
     </QueryClientProvider>
   );
   return {
-    ...renderHook(() => useEventBasicInfo(eventId, { geocode: fakeGeocode, now: NOW }), {
+    ...renderHook(() => useEventBasicInfo(eventId, { geocode, now: NOW }), {
       wrapper,
     }),
     queryClient,
@@ -133,6 +133,21 @@ describe('기본 정보 — 장소(주소 → 좌표 → 공연장 이름·상�
     expect(result.current.errors.place).toBe(
       '이 주소의 위치를 찾지 못했어요. 다른 주소를 골라 주세요',
     );
+    expect(await writes(sent)).toEqual([]);
+  });
+
+  it('지도 SDK를 불러오지 못하면 주소 탓이 아닌 서비스 오류로 안내하고 저장하지 않는다(#92-1)', async () => {
+    const unavailable: Geocoder = vi.fn(async () => {
+      throw new GeocoderUnavailableError('Kakao Maps SDK load failed');
+    });
+    const { result } = setup(PREPARING, unavailable);
+    await loaded(result);
+    await act(() => result.current.selectAddress('서울 마포구 어울마당로 65'));
+    expect(result.current.placeLookupError).toBe(PLACE_ERROR.mapUnavailable);
+    expect(result.current.placeLookupError).not.toBe(PLACE_ERROR.geocode);
+    act(() => result.current.setPlaceName('어딘가'));
+    const sent = recordRequests();
+    expect(await save(result)).toBe(false);
     expect(await writes(sent)).toEqual([]);
   });
 

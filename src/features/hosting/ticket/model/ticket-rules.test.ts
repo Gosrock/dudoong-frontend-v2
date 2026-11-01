@@ -117,6 +117,21 @@ describe('상태 칩(판매중 · 판매 예정 · 판매 종료 · 판매 중�
     expect(ticketSaleChipOf(ticket(over), EVENT_START, NOW)).toBe(chip);
   });
 
+  it.each([
+    ['공연 등록 전 + 기간 안 + BEFORE_SALE → 판매 예정(#92-3)', {}, 'upcoming'],
+    ['공연 등록 전 + 판매 시작 전 → 판매 예정', { saleStartAt: '2026.11.01 10:00' }, 'upcoming'],
+    ['공연 등록 전 + 판매 종료 지남 → 판매 종료', { saleEndAt: '2026.10.28 23:59' }, 'ended'],
+    ['공연 등록 전 + 판매 중단 → 판매 중단', { saleState: 'SUSPENDED' }, 'suspended'],
+  ] as const)('%s', (_, over, chip) => {
+    expect(ticketSaleChipOf(ticket(over), EVENT_START, NOW, false)).toBe(chip);
+  });
+
+  it('등록된 공연 + 판매됨(SOLD) + 기간 안 → 판매 중', () => {
+    expect(
+      ticketSaleChipOf(ticket({ saleState: 'SOLD', isSold: true }), EVENT_START, NOW, true),
+    ).toBe('onSale');
+  });
+
   it('판매 종료가 없으면 공연 시작이 끝 — 공연이 시작됐으면 판매 종료', () => {
     expect(ticketSaleChipOf(ticket(), '2026.10.29 11:00', NOW)).toBe('ended');
   });

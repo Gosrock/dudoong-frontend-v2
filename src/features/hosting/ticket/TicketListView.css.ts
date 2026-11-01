@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { fabBottom, fabClearance } from '@/ui/components/Fab/Fab.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -13,7 +14,7 @@ export const page = style({
   flexDirection: 'column',
   gap: vars.space[4],
   flex: '1 0 auto',
-  padding: `${vars.space[3]} ${vars.space[5]} ${vars.space[10]}`,
+  padding: `${vars.space[3]} ${vars.space[5]} ${fabClearance.lg}`,
   '@media': {
     [media.desktop]: { gap: vars.space[5], padding: `${vars.space[5]} ${vars.space[5]} 120px` },
   },
@@ -64,7 +65,7 @@ export const emptyAction = style({ height: 48, paddingInline: vars.space[5] });
 export const fab = style({
   position: 'fixed',
   right: vars.space[4],
-  bottom: `calc(${vars.space[5]} + env(safe-area-inset-bottom))`,
+  bottom: fabBottom,
   zIndex: 10,
   '@media': { [media.desktop]: { right: vars.space[5], bottom: vars.space[5] } },
 });

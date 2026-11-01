@@ -1,5 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { fabBottom, fabClearance } from '@/ui/components/Fab/Fab.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -12,8 +13,9 @@ import { vars } from '@/ui/theme/tokens.css';
 
 export const page = style({
   position: 'relative',
-  paddingBottom: vars.space[10],
-  '@media': { [media.desktop]: { paddingTop: vars.space[5], paddingBottom: vars.space[9] } },
+  // [+ 새 공연 만들기]가 모바일·PC 모두 떠 있다 — 마지막 줄(빈 상태 문구 · 카드 배지)을 가리지 않게(#92-8)
+  paddingBottom: fabClearance.md,
+  '@media': { [media.desktop]: { paddingTop: vars.space[5] } },
 });
 
 /**
@@ -214,7 +216,7 @@ export const sentinel = style({
 export const fab = style({
   position: 'fixed',
   right: vars.space[5],
-  bottom: `calc(${vars.space[5]} + env(safe-area-inset-bottom))`,
+  bottom: fabBottom,
   zIndex: vars.zIndex.header,
   textDecoration: 'none',
 });

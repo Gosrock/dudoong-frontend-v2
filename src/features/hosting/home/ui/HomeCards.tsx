@@ -46,6 +46,7 @@ export function MyEventCard({
         // 업로드 포스터(업로드 출처면 `/_next/image` 최적화 — P15). 고정 94×133 → 1x · 2x
         <UploadedImage
           className={s.poster}
+          fallback={<Illustration name="poster-placeholder" width={94} className={s.poster} />}
           src={event.posterImageUrl}
           alt=""
           width={94}
