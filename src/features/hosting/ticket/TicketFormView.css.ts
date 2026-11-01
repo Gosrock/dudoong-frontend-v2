@@ -51,7 +51,30 @@ export const crumb = style({
   selectors: { '&:hover': { color: vars.color.text.primaryLabel } },
 });
 
-export const title = style({ margin: 0 });
+/** 제목 h1 — PC는 머리 안에 보이고, 모바일은 헤더(`p`)가 글자를 맡아 화면 읽기 도구에만 남긴다(P14 접근성) */
+export const title = style({
+  margin: 0,
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  '@media': {
+    [media.desktop]: {
+      position: 'static',
+      width: 'auto',
+      height: 'auto',
+      overflow: 'visible',
+      clip: 'auto',
+      whiteSpace: 'normal',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: vars.space[1],
+      paddingBottom: vars.space[5],
+    },
+  },
+});
 
 export const notices = style({
   display: 'flex',

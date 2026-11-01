@@ -212,7 +212,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
             <Txt typography="labelMd">티켓 관리</Txt>
           </Link>
         </div>
-        <h1 id="ticket-form-title" className={`${s.title} ${s.desktopHead}`}>
+        <h1 id="ticket-form-title" className={s.title}>
           <Txt typography="headingLgEmphasized">{title}</Txt>
         </h1>
 

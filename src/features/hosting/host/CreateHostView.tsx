@@ -35,7 +35,7 @@ export function CreateHostView() {
   const options = f.contactOptions.map((o) => ({ value: o.type, label: o.label }));
 
   return (
-    <>
+    <main className={s.page}>
       <Header title="새 호스트 만들기" backHref={HOSTING_HOME_HOSTS_HREF} linkAs={Link} />
       <form
         noValidate
@@ -130,6 +130,6 @@ export function CreateHostView() {
           만들기
         </Button>
       </form>
-    </>
+    </main>
   );
 }

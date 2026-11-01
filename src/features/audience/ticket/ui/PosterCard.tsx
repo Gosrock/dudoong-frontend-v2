@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useState } from 'react';
 
 import type { TicketGroupView } from '../model/ticket-groups';
@@ -23,12 +24,9 @@ export function PosterCard({
   const poster = group.group.event?.posterImageUrl ?? null;
   // FIGMA-CUSTOM: 티켓 카드(gui 908:11288 "image 182-1") 커스텀 → 커스텀 TicketTab.css.ts. DS 후보(design-system §3)
   return (
-    <button
-      type="button"
-      className={s.cardFrame}
-      aria-label={label}
-      onClick={(e) => onPress(e.currentTarget)}
-    >
+    <button type="button" className={s.cardFrame} onClick={(e) => onPress(e.currentTarget)}>
+      {/* 이름은 label + 보이는 상태 칩(aria-label로 덮으면 칩이 읽히지 않는다 — WCAG 2.5.3, P14 접근성) */}
+      <VisuallyHidden>{`${label} `}</VisuallyHidden>
       {group.total > 1 && (
         <span className={s.stack} aria-hidden>
           <Poster key={poster ?? ''} src={poster} />
