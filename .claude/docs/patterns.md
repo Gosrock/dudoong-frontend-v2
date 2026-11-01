@@ -104,6 +104,14 @@ vanilla-extract 함정(회고 2026-11-01): `display`를 지정한 요소는 `&[h
 
 ---
 
+### 고정 요소(2026-11-01, 이슈 #95 — tech-decisions §33)
+
+- 스크롤은 문서(window)만 한다. 페이지 바깥 틀에 `overflow`·고정 `height`를 걸지 않는다.
+- 상단 바는 `fixedBar`(`src/features/shared/shell/shell.css.ts`) — 자리는 셸 `barSpace`가 잡으니 페이지 안 헤더(하위 화면 · 공연 · 폼)도 자리를 따로 두지 않는다. sticky로 되돌리지 않는다(고무줄 때 같이 밀린다).
+- 화면 높이를 채울 때 `100dvh`·`calc(100dvh - 58px)`를 쓰지 않는다 — 셸 안 본문은 `flex`로 남은 높이, 대기 화면은 `FULL_SCREEN_MIN_HEIGHT`(`src/ui/theme/bars.ts`).
+- 그림·내용과 같이 움직여야 하는 늘 열린 말풍선은 `TooltipBubble`(흐름 안). `Tooltip open`은 포털 fixed라 따로 논다.
+- 화면 위 sticky 카드(공연 상세 PC 오른쪽 카드 · 공연 사이드바)는 `maxHeight: calc(100dvh - 바 …)` + `overflowY: auto` — 낮은 화면에서 아래가 안 닿지 않게.
+
 ## 4. 조회와 변경 — TanStack Query
 
 정의와 기본 옵션의 근거는 [`tech-decisions.md`](./tech-decisions.md) §4. 여기에는 코드를 쓸 때 지킬 규칙만 둔다.

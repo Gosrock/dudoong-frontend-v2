@@ -1,7 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
 import { activeMarker } from '@/features/shared/shell/activity-marker';
-import { stickyBar } from '@/features/shared/shell/shell.css';
+import { fixedBar, shellBarSpaceVars } from '@/features/shared/shell/shell.css';
 import { container } from '@/ui/primitives/layout.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
@@ -16,24 +16,27 @@ export const EVENT_SCOPE_ATTR = 'data-event-scope';
  * 화면 높이를 채우는 세로 flex. 본문(`body`)이 남은 높이를 `flex`로 채운다 — `calc(100dvh - 바 높이)`처럼 빼지 않는다
  * (위 서비스 배너 높이까지 빼야 해서, 빼면 배너가 있을 때 48px 넘친다 — fix-qa-1101)
  */
-export const root = style({
-  display: 'flex',
-  flexDirection: 'column',
-  minHeight: '100dvh',
-  background: vars.color.background.normal,
-});
+export const root = style([
+  shellBarSpaceVars,
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100dvh',
+    background: vars.color.background.normal,
+  },
+]);
 
 export const mobileHeader = style([
-  stickyBar,
+  fixedBar,
   { '@media': { [media.desktop]: { display: 'none' } } },
 ]);
 
 /** 공연 안에서는 로고 헤더 대신 공연 헤더("대시보드 ▾ / 공연명" + 벨 — P11-V `EventMobileHeader`)가 나온다. 같은 DOM, CSS `:has`로 */
 globalStyle(`${root}:has(${activeMarker(EVENT_SCOPE_ATTR)}) ${mobileHeader}`, { display: 'none' });
 
-/** PC 상단 바 — 화면 위에 고정(`stickyBar`) */
+/** PC 상단 바 — 화면 위에 고정(`fixedBar`) */
 export const desktopOnly = style([
-  stickyBar,
+  fixedBar,
   { display: 'none', '@media': { [media.desktop]: { display: 'flex' } } },
 ]);
 

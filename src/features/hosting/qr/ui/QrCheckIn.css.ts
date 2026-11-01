@@ -97,7 +97,8 @@ export const stage = style({
   justifyContent: 'center',
   width: '100%',
   aspectRatio: '4 / 5',
-  maxHeight: '70vh',
+  // dvh — iOS `vh`는 툴바를 뺀 큰 뷰포트라 툴바가 보일 때 넘쳤다(이슈 #95)
+  maxHeight: '70dvh',
   overflow: 'hidden',
   borderRadius: vars.radius[6],
   background: vars.color.background.grey,
@@ -115,6 +116,9 @@ export const stageFullscreen = style({
   alignItems: 'center',
   justifyContent: 'center',
   overflow: 'hidden',
+  // 덮은 채로 끌어도 뒤 문서가 스크롤·고무줄 되지 않게(이슈 #95) — 탭(버튼)은 그대로 된다
+  touchAction: 'none',
+  overscrollBehavior: 'none',
   background: vars.color.background.grey,
 });
 
@@ -206,6 +210,6 @@ export const qrCard = style({
 });
 
 export const qrImage = style({ width: 'min(240px, 60vw)' });
-export const qrImageLarge = style({ width: 'min(70vw, 60vh, 480px)' });
+export const qrImageLarge = style({ width: 'min(70vw, 60dvh, 480px)' });
 
 export const qrCaption = style({ maxWidth: 280 });

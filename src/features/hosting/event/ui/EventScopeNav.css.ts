@@ -1,6 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
-import { stickyBar } from '@/features/shared/shell/shell.css';
+import { fixedBar } from '@/features/shared/shell/shell.css';
 import { sidebarTint } from '@/ui/components/SidebarMenu/SidebarMenu';
 import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
@@ -109,7 +109,7 @@ globalStyle(`${publicLink} > svg`, { width: 16, height: 16, flexShrink: 0 });
 
 /** 모바일 헤더(1024 미만만) — 공연 안에서는 셸의 로고 헤더 대신 이것("대시보드 ▾ / 공연명" + 벨, GUI `727:23088`) */
 export const mobileHeader = style([
-  stickyBar,
+  fixedBar,
   { '@media': { [media.desktop]: { display: 'none' } } },
 ]);
 

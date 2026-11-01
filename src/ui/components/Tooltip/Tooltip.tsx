@@ -61,3 +61,19 @@ export function Tooltip({
     </RadixTooltip.Provider>
   );
 }
+
+/**
+ * 늘 보이는 안내 말풍선을 **흐름 안에** 그린다 — `Tooltip`과 같은 모양(흰 바탕 · 회색 테두리 · 아래 꼬리), 포털·위치 계산 없음.
+ * 그림·버튼과 한 묶음으로 스크롤·오버스크롤되어야 하는 화면 일러스트 위 말풍선(로그인)용. `Tooltip open`은 포털의
+ * `position: fixed`라 고무줄 스크롤 때 그림과 따로 놀았다(이슈 #95). 문구는 화면의 일반 글자다(트리거 설명이 아님).
+ */
+export function TooltipBubble({ children }: { children: ReactNode }) {
+  return (
+    <div className={s.bubble}>
+      {children}
+      <svg className={s.bubbleArrow} width={10} height={5} viewBox="0 0 30 10" aria-hidden>
+        <polygon points="0,0 30,0 15,10" />
+      </svg>
+    </div>
+  );
+}

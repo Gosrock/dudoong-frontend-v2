@@ -26,3 +26,28 @@ export const content = style([
 ]);
 
 export const arrow = style({ fill: vars.color.background.normal });
+
+/** `TooltipBubble` — `content`와 같은 모양, 흐름 안(위치 계산 없음). 꼬리는 아래 가운데(Radix 화살표와 같은 10×5) */
+export const bubble = style([
+  typography.bodySm,
+  {
+    position: 'relative',
+    maxWidth: `min(280px, calc(100vw - ${vars.space[4]} * 2))`,
+    padding: `${vars.space[2]} ${vars.space[3]}`,
+    background: vars.color.background.normal,
+    color: vars.color.text.primary,
+    border: `1px solid ${vars.color.surface.defaultBorder}`,
+    borderRadius: vars.radius[2],
+    boxShadow: vars.shadow.drop,
+    textAlign: 'center',
+  },
+]);
+
+export const bubbleArrow = style({
+  position: 'absolute',
+  top: '100%',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  display: 'block',
+  fill: vars.color.background.normal,
+});
