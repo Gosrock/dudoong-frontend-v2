@@ -2,7 +2,10 @@ import type { Page } from '@playwright/test';
 
 import { setMockSession } from '../../e2e/support/auth';
 import { KAKAO_SCRAP_UA } from '../../e2e/support/env';
+import { goEventMenu } from '../../e2e/support/event-scope';
 import { me } from '../../src/api/__mocks__/fixtures/me';
+import { resetHostMockState } from '../../src/api/__mocks__/host.handlers';
+import { resetHostingStore } from '../../src/api/__mocks__/hosting.handlers';
 import type { MeHost } from '../../src/api/me/schema';
 import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
@@ -15,6 +18,8 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
  * - 권한: 비로그인 /hosting → 로그인은 e2e/shell.spec.ts(P4s-L)
  * - 크롤러: (public) 404 상태 코드만(셸이 Suspense를 children 위에 두지 않는지)
  * - 실기기(iOS Safari 스크롤 잠금·키보드 회피)는 수동
+ * - fix-qa-1101(#86) — 클라이언트 이동 뒤 셸 판정(SHELL-8), 상단 바 고정(SHELL-9), 배너가 있을 때 짧은 화면 넘침 0(SHELL-10).
+ *   같은 내용의 e2e는 `e2e/shell-activity.spec.ts`(SHELL-8 쪽만)
  */
 
 const hostsOf = (n: number): MeHost[] =>
@@ -40,6 +45,15 @@ const openDrawer = async (page: Page) => {
 };
 
 const desktopTopBar = (page: Page) => page.getByRole('navigation', { name: '주 메뉴' });
+
+const resetStores = () => {
+  resetHostMockState();
+  resetHostingStore();
+};
+
+/** 문서 세로 넘침(px) — 화면보다 문서가 얼마나 긴지 */
+const verticalOverflow = (page: Page) =>
+  page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight);
 
 scenario(
   'SHELL-1',
@@ -318,6 +332,173 @@ scenario(
       await page.goto('/events/99999');
       await expect(page.getByText('찾을 수 없어요')).toBeVisible();
       await expect(page.getByRole('img', { name: '두둥' }).first()).toBeVisible();
+    });
+  },
+);
+
+scenario(
+  'SHELL-8',
+  '공연 대시보드에서 "내 공연"으로 클라이언트 이동하면 레이아웃이 새로고침으로 연 것과 같다',
+  {
+    kind: '반응형',
+    summary:
+      'Next 16은 이동할 때 이전 화면을 React Activity로 숨겨 DOM에 남긴다. 셸 판정(`:has([data-event-scope])`)이 숨은 화면에 맞지 않아야 본문 폭 제한·여백과 모바일 로고 헤더가 돌아온다(fix-qa-1101 #86).',
+    basis: [
+      'implementation-log fix-qa-1101 §1',
+      'patterns §6 useActivityMarker',
+      'e2e shell-activity.spec',
+    ],
+  },
+  async ({ page, step, note, testInfo }) => {
+    resetStores();
+    await setMockSession(page, 'loggedIn');
+    const desktop = testInfo.project.name === 'desktop';
+    if (desktop) await page.setViewportSize({ width: 1440, height: 1024 });
+    const main = page.getByRole('main');
+    const logoMenu = page.getByRole('button', { name: '메뉴 열기', exact: true });
+    const pad = () => main.evaluate((el) => getComputedStyle(el.parentElement!).paddingLeft);
+    let fresh = { x: 0, width: 0, pad: '' };
+
+    await step('공연준비 홈을 새로고침으로 열면 본문 폭·여백을 잰다(기준)', async () => {
+      await page.goto('/hosting');
+      await expect(main.getByRole('tablist', { name: '공연준비 홈 탭' })).toBeVisible();
+      const box = (await main.boundingBox())!;
+      fresh = { x: box.x, width: box.width, pad: await pad() };
+      await note(`새로고침: x ${fresh.x} · 폭 ${fresh.width} · 여백 ${fresh.pad}`);
+      if (!desktop) await expect(logoMenu).toBeVisible();
+    });
+    await step('공연 대시보드를 열면 공연 화면(3단 / 공연 헤더)이 보인다', async () => {
+      await page.goto('/hosting/events/140/dashboard');
+      await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible();
+      if (!desktop) await expect(logoMenu).toBeHidden();
+    });
+    await step(
+      `${desktop ? '사이드바' : '☰ 드로어'}의 "내 공연"을 누르면 본문 폭·여백이 새로고침과 같고${desktop ? '' : ' 로고 헤더가 다시 보인다'}`,
+      async () => {
+        await goEventMenu(page, '내 공연');
+        await expect(page).toHaveURL('/hosting');
+        await expect(main.getByRole('tablist', { name: '공연준비 홈 탭' })).toBeVisible();
+        // 숨은 공연 화면이 DOM에 남아 있다(이 단계의 전제 — 없으면 판정 버그를 재현하지 못한다)
+        await expect(page.locator('[data-event-scope]')).toHaveCount(1);
+        const box = (await main.boundingBox())!;
+        const now = { x: box.x, width: box.width, pad: await pad() };
+        await note(`이동 뒤: x ${now.x} · 폭 ${now.width} · 여백 ${now.pad}`);
+        expect(now).toEqual(fresh);
+        if (!desktop) await expect(logoMenu).toBeVisible();
+      },
+    );
+  },
+);
+
+scenario(
+  'SHELL-9',
+  '스크롤해도 상단 바가 화면 위에 붙어 있다',
+  {
+    kind: '반응형',
+    summary:
+      'PC 상단 바(관객·호스팅)와 모바일 로고 헤더 · 공연 헤더가 sticky top 0. PC 공연 사이드바는 상단 바 바로 아래(58)에 붙는다. 서비스 배너는 고정하지 않는다(위로 사라진다 — Claude 판단).',
+    basis: [
+      'implementation-log fix-qa-1101 §3',
+      'src/features/shared/shell/shell.css.ts stickyBar',
+      'src/ui/theme/bars.ts',
+    ],
+  },
+  async ({ page, step, note, testInfo }) => {
+    resetStores();
+    await setMockSession(page, 'loggedIn');
+    const desktop = testInfo.project.name === 'desktop';
+    if (desktop) await page.setViewportSize({ width: 1440, height: 900 });
+    const scrollDown = async () => {
+      await page.evaluate(() => window.scrollTo(0, 600));
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+      await note(`scrollY ${await page.evaluate(() => window.scrollY)}`);
+    };
+    const expectAtTop = async (bar: ReturnType<Page['getByRole']>, label: string) => {
+      const box = (await bar.boundingBox())!;
+      await note(`${label} y ${box.y}`);
+      expect(box.y).toBe(0);
+    };
+
+    await step(
+      `관객 공연홈을 아래로 스크롤해도 ${desktop ? 'PC 상단 바' : '로고 헤더'}가 맨 위에 보인다`,
+      async () => {
+        await page.goto('/');
+        await expect(page.getByRole('main')).toBeVisible();
+        await scrollDown();
+        if (desktop) {
+          await expectAtTop(desktopTopBar(page), '상단 바');
+        } else {
+          const menu = page.getByRole('button', { name: '메뉴 열기', exact: true });
+          await expect(menu).toBeInViewport();
+          const btn = (await menu.boundingBox())!;
+          await note(`메뉴 버튼 y ${btn.y}`);
+          expect(btn.y).toBeLessThan(64);
+        }
+      },
+    );
+    await step(
+      `호스팅 공연 대시보드를 아래로 스크롤해도 ${desktop ? '상단 바가 맨 위, 사이드바가 그 아래(58)에' : '공연 헤더가 맨 위에'} 붙어 있다`,
+      async () => {
+        await page.goto('/hosting/events/101/dashboard');
+        await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible();
+        await scrollDown();
+        if (desktop) {
+          await expectAtTop(desktopTopBar(page), '상단 바');
+          const side = (await page.getByTestId('event-sidebar').boundingBox())!;
+          await note(`사이드바 y ${side.y}`);
+          expect(side.y).toBe(58);
+        } else {
+          await expect(page.getByRole('button', { name: '공연 메뉴 열기' })).toBeInViewport();
+          const btn = (await page.getByRole('button', { name: '공연 메뉴 열기' }).boundingBox())!;
+          await note(`공연 메뉴 버튼 y ${btn.y}`);
+          expect(btn.y).toBeLessThan(64);
+        }
+      },
+    );
+  },
+);
+
+scenario(
+  'SHELL-10',
+  '서비스 배너가 있어도 내용이 짧은 화면은 세로로 넘치지 않는다',
+  {
+    kind: '반응형',
+    summary:
+      '셸은 세로 flex로 남은 높이를 채운다 — `calc(100dvh - 58px)`로 빼면 배너(48)만큼 넘쳤다(fix-qa-1101 #86). PC 준비중 공연 대시보드, 모바일 준비중 공연 티켓 관리(빈 목록).',
+    basis: ['implementation-log fix-qa-1101 §2', 'design-requests Q44 상단 배너 기본안'],
+  },
+  async ({ page, step, note, testInfo }) => {
+    resetStores();
+    await setMockSession(page, 'loggedIn');
+    const desktop = testInfo.project.name === 'desktop';
+    if (desktop) await page.setViewportSize({ width: 1440, height: 900 });
+    const path = desktop ? '/hosting/events/140/dashboard' : '/hosting/events/140/tickets';
+    await step(
+      `배너가 뜬 ${desktop ? '1440 공연 대시보드' : '390 티켓 관리'}는 세로 넘침이 0이다`,
+      async () => {
+        await page.goto(path);
+        if (desktop) await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible();
+        else await expect(page.getByTestId('tickets-empty')).toHaveText('만든 티켓이 없어요');
+        await expect(page.getByTestId('notice-banner')).toBeVisible();
+        const over = await verticalOverflow(page);
+        await note(
+          `배너 높이 ${(await page.getByTestId('notice-banner').boundingBox())?.height} · 넘침 ${over}`,
+        );
+        expect(over).toBeLessThanOrEqual(0);
+      },
+    );
+    await step('배너를 모두 닫아도 넘침이 0이다', async () => {
+      // 배너가 여럿이면 닫을 때마다 다음 것이 뜬다(useNoticeBanner) — 정한 횟수만 닫는다
+      const banner = page.getByTestId('notice-banner');
+      for (let i = 0; i < 5 && (await banner.count()) > 0; i += 1) {
+        const title = await banner.innerText();
+        await page.getByRole('button', { name: '배너 닫기' }).click();
+        await expect(banner.filter({ hasText: title })).toHaveCount(0);
+      }
+      await expect(banner).toHaveCount(0);
+      const over = await verticalOverflow(page);
+      await note(`넘침 ${over}`);
+      expect(over).toBeLessThanOrEqual(0);
     });
   },
 );
