@@ -2109,6 +2109,8 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 | 9 | `generateSitemaps` | **남김(근거)** — sitemap은 종료 전 공연만 넣는다. 운영 공개 GP-2(`includePast=false`) 2026-11-01 **33개**(지난 공연 포함 전체 1,141) — 상한 2,000(`MAX_PAGES` 40 × 50)까지 멀다. 상한에 닿으면 `sitemap.events_truncated` 경고 로그가 남으니 그때 나눈다 |
 | 10 | 기본 OG 이미지 | **사용자 대기** — 디자인 대기(`src/utils/site.ts` 값 하나) |
 
+(11~13은 아래 ego-browser 확인)
+
 **레거시 URL 표**(tech-decisions §22 전수 — e2e `legacy-urls.spec`(관객 · 그대로) · `hosting.spec` "리다이렉트"(`/admin/*`))
 
 | v1 | v2 | 상태 |
@@ -2160,3 +2162,26 @@ S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 
 | hosting-home | 18 | 0 | 0 | | tickets | 13 | 0 | 7 |
 
 **e2e 전체**: 555 통과 · 37 건너뜀 · 실패 0, 2회(7.3분 빌드 포함 · 6.9분).
+
+**CI 시간(이 PR, 2026-11-01)**: `check` 3분 4초 · `e2e` 조각 5분 48초 / 4분 9초 / 4분 18초(나란히 — 게이트 벽시계 약 6분). 첫 실행은 조각 2·3에서 `auth-bfcache.spec`이 실패했다 — 그 spec만 전체 Chrome(`channel: 'chromium'`)을 쓰는데 `--only-shell`로 깔아서. e2e job은 전체 Chromium을 별도 캐시 키(`playwright-full-…`)로 깐다.
+
+**ego-browser 확인**(운영 빌드 — e2e가 만든 standalone + 가짜 백엔드 앞문. 아래 #12 때문에 `pnpm dev:mock`이 아니다)
+
+| 폭 | 본 화면 · 흐름 | 결과 |
+|---|---|---|
+| 390 | v1 `/events/101/book/option`(로그인 흉내) → 상세 → 티켓 시트 2매 → 체크아웃(옵션 예 · 보컬 · 동의) → 입금 확인 → 주문 완료 | 총액 50,000 원 = 입금 확인 금액(티켓 30,000 + 옵션 20,000), 완료 화면 두 버튼 |
+| 390 | v1 `/history/<uuid>` → 주문상세 | `/orders/<uuid>`, 승인대기 |
+| 390 | 예매자 관리 `?order=` 시트 → [승인] | 같은 주문 R1000019 · 50,000원 · 옵션 응답, 승인 완료. 시트 열리는 중에는 [거절][승인]이 아래에 있다가 다 열리면 바닥에 고정(문제 아님) |
+| 390 | v1 `/ticket` → 티켓탭 | `/tickets`, NEW 공지 바 |
+| 1188 | 티켓탭 → 카드 → 입장 QR(1/2) → [선물하기] → 유의사항 → 링크 생성 완료 | 정상 |
+| 390 | 셀프 체크인 `/check-in?token=…` | 후보 3장 — 선물 대기 티켓(T1009001)은 빠지고 우리 주문의 T1009002가 있음 → 입장 완료 |
+| 1440 | 호스트 QR 체크인 — 주입으로 T1009002 · T1009001 | 이미 입장 · 선물 대기 결과 카드, 통계 1/9 |
+| 1440 | v1 `/admin/events/101/guests` → 발급된 티켓 탭 | 같은 두 장(입장 시각 · "선물 대기" 칩) |
+| 1440 | v1 `/admin/new/events/1?hostId=11` → 간편 만들기 → 대시보드 | `/hosting/new/events?hostId=11`(쿼리 유지), 1/3, 등록 전 관객 주소는 "찾을 수 없어요" |
+| 1440 | v1 `/admin/events/101/tickets/new` → 티켓 관리 → 판매 중단 → 관객 상세 → 재개 | 관객 "판매 중단"(잔여 숨김) → 재개 뒤 "잔여 40매"(42 − 승인 2 — 재고도 이어짐) |
+
+| # | ego-browser에서 찾은 것 | 처리 |
+|---|---|---|
+| 11 | 포스터가 깨진 그림 | **남김(mock)** — 가짜 이미지 주소(`image.mock.dudoong.test`)는 풀리지 않는다 |
+| 12 | `pnpm dev:mock`(그리고 main의 `:3000` dev 서버도)에서 ego-browser로 열면 클라이언트 조회가 돌지 않음 — 티켓 옵션 스켈레톤 · 로그인 아바타 없음 · [티켓 구매하기] 비활성. dev 로그에 `Route "/events/[eventId]": … unstable value Date.now() while prerendering`(`serverQuery` → TanStack `fetchQuery`) · `instant-unrendered-segment` 안내 | **남김(조사만)** — 운영 빌드에서는 같은 흐름이 정상이고 e2e·QA도 운영 빌드다. dev 전용이고 이 브랜치가 만든 것이 아니다(main dev 서버도 같음). 다음 dev 화면 확인 전에 원인을 볼 거리 — Cache Components dev 검증과 `fetchQuery`의 `Date.now()` |
+| 13 | 호스트 QR 화면을 열면 브라우저 카메라 권한 창 | **남김(정상 동작)** — 카메라 화면은 캡처를 지우고 남기지 않았다. 판독은 주입으로 확인 |
