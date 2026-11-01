@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { MY_TICKET_STATES, type MyTicketDetail, MyTicketStateSchema } from '@/api/my-ticket/schema';
+import {
+  MY_TICKET_STATES,
+  type MyTicketDetail,
+  type MyTicketGroup,
+  MyTicketStateSchema,
+} from '@/api/my-ticket/schema';
 
 import {
   cardTarget,
@@ -193,26 +198,66 @@ describe('캐러셀 순서(이슈 #93 §3)', () => {
   });
 });
 
-describe('공지 바(T-3)', () => {
+describe('공지 바(T-3 · Q55)', () => {
+  const ev = (displayStatus: 'UPCOMING' | 'ONGOING' | 'PAST') => ({
+    eventId: 1,
+    name: '공연',
+    posterImageUrl: null,
+    startAt: null,
+    displayStatus,
+  });
+  const ticket = {} as MyTicketGroup['tickets'][number];
   const groups = [
-    { groupKey: 'g-a', orderUuid: 'o-a' },
-    { groupKey: 'ticket:T1', orderUuid: null },
+    { groupKey: 'g-a', orderUuid: 'o-a', event: ev('UPCOMING'), tickets: [ticket] },
+    { groupKey: 'ticket:T1', orderUuid: null, event: null, tickets: [ticket] },
   ];
+  const ongoing = [
+    ...groups,
+    { groupKey: 'g-on', orderUuid: 'o-on', event: ev('ONGOING'), tickets: [ticket] },
+  ];
+
   it.each([
-    [undefined, { show: false, targetGroupKey: null }],
+    ['T-3 아직', undefined, groups, { kind: 'DEFAULT' }],
+    ['새 소식 없음', { hasNew: false, orderUuids: [] }, groups, { kind: 'DEFAULT' }],
     [
-      { hasNew: false, orderUuids: [] },
-      { show: false, targetGroupKey: null },
-    ],
-    [
+      '운영 2.5.3(refusedOrderUuids 없음) — 승인',
       { hasNew: true, orderUuids: ['o-a', 'o-b'] },
-      { show: true, targetGroupKey: 'g-a' },
+      groups,
+      { kind: 'APPROVED', targetGroupKey: 'g-a' },
     ],
     [
-      { hasNew: true, orderUuids: ['o-x'] },
-      { show: true, targetGroupKey: null },
+      '승인 주문이 목록에 없으면 버튼 없이',
+      { hasNew: true, orderUuids: ['o-x'], refusedOrderUuids: [] },
+      groups,
+      { kind: 'APPROVED', targetGroupKey: null },
     ],
-  ])('%o → %o', (notice, expected) => {
-    expect(noticeBar(notice, groups)).toEqual(expected);
+    [
+      '거절이 승인보다 먼저 — [티켓보기]는 O-3 주문 상세로',
+      { hasNew: true, orderUuids: ['o-a'], refusedOrderUuids: ['o-r1', 'o-r2'] },
+      ongoing,
+      { kind: 'REFUSED', orderHref: '/orders/o-r1' },
+    ],
+    [
+      '승인이 공연 중보다 먼저',
+      { hasNew: true, orderUuids: ['o-a'], refusedOrderUuids: [] },
+      ongoing,
+      { kind: 'APPROVED', targetGroupKey: 'g-a' },
+    ],
+    ['새 소식 없고 공연 중', { hasNew: false, orderUuids: [] }, ongoing, { kind: 'ONGOING' }],
+    ['T-3 실패해도 공연 중', undefined, ongoing, { kind: 'ONGOING' }],
+    [
+      '티켓 없는 주문 묶음(승인 대기 · 거절)은 공연 중으로 치지 않는다',
+      { hasNew: false, orderUuids: [] },
+      [{ groupKey: 'g-p', orderUuid: 'o-p', event: ev('ONGOING'), tickets: [] }],
+      { kind: 'DEFAULT' },
+    ],
+    [
+      '지난 공연은 공연 중이 아니다',
+      { hasNew: false, orderUuids: [] },
+      [{ groupKey: 'g-p', orderUuid: 'o-p', event: ev('PAST'), tickets: [ticket] }],
+      { kind: 'DEFAULT' },
+    ],
+  ] as const)('%s', (_, notice, list, expected) => {
+    expect(noticeBar(notice, list as unknown as Parameters<typeof noticeBar>[1])).toEqual(expected);
   });
 });

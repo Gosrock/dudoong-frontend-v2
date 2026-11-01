@@ -1,4 +1,5 @@
 import type { MyOrderDetail, RefuseReasonType } from '@/api/order/schema';
+import { isPreApprovalCancelTermsEffective } from '@/api/shared/agreement';
 
 /**
  * 주문상세(G11/O-3) 규칙(plan P9, patterns §20). 버튼 노출은 서버 플래그로만 정한다 — 주문취소 = `canCancel`,
@@ -110,16 +111,20 @@ export function optionMode(order: Pick<MyOrderDetail, 'lines'>): 'none' | 'all' 
 
 /**
  * 취소 영역의 약관 안내 종류(legal-copy A-8 — 문구 원문은 V). 두둥 = `payType === 'DUDOONG'`, 무료 = `FREE`.
- * `pendingApproval`은 두둥 ⑤-b(승인 전 취소 안내)를 붙일 조건(`PENDING_APPROVE`). 서버 `canCancel`은 이 주문에서 true라
- * [주문취소]가 같이 보이고, 동작은 서버 값 그대로 둔다(plan P9). 약관은 2026-11-07 시행 제27조③(v1 Front #385)으로 승인 전 취소를
- * 허용해 동작과 맞는다. v1 문구("승인 전에는 앱에서 취소할 수 없습니다")는 쓰지 않는다 — v2 문구는 확정 대기(B18, legal-copy A-8 잠정안).
+ * `pendingApproval`은 두둥 ⑤-b(승인 전 취소 안내, 백엔드 #897 확정 문구)를 붙일 조건: `PENDING_APPROVE`이고 개정 약관
+ * 제27조③이 시행된 뒤(2026-11-07 00:00 KST — `isPreApprovalCancelTermsEffective`). 시행 전에는 ⑤-b를 뺀다(#897 · #905 §2-1).
+ * 서버 `canCancel`은 이 주문에서 true라 [주문취소]가 같이 보이고, 동작은 서버 값 그대로 둔다(plan P9).
  */
 export function cancelNotice(
   order: Pick<MyOrderDetail, 'ticket' | 'status'>,
+  now: number = Date.now(),
 ): { kind: 'DUDOONG' | 'FREE'; pendingApproval: boolean } | null {
   const payType = order.ticket.payType;
   if (payType === 'DUDOONG') {
-    return { kind: 'DUDOONG', pendingApproval: order.status === 'PENDING_APPROVE' };
+    return {
+      kind: 'DUDOONG',
+      pendingApproval: order.status === 'PENDING_APPROVE' && isPreApprovalCancelTermsEffective(now),
+    };
   }
   if (payType === 'FREE') return { kind: 'FREE', pendingApproval: false };
   return null;

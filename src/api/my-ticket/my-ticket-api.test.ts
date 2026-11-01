@@ -6,14 +6,19 @@ import {
   GIFT_TOKEN,
   resetTicketStore,
   SENT_GIFT_ID,
+  setUnreadRefused,
   TICKET_UUID,
 } from '@/api/__mocks__/fixtures/my-ticket';
+import { P9_ORDER } from '@/api/__mocks__/fixtures/order';
+import { myTicketHandlers } from '@/api/__mocks__/my-ticket.handlers';
+import { server } from '@/api/__mocks__/server';
 import { selfCheckInMutation } from '@/api/check-in/mutations';
 import { installLoggedInFetch } from '@/test/login-fetch';
 
 import { ApiError } from '../errors';
 import { acceptGiftMutation, createGiftMutation } from '../gift/mutations';
 import { giftLandingQuery, giftLandingViewerQuery, sentGiftTicketQuery } from '../gift/queries';
+import { myOrderQuery } from '../order/queries';
 import { myTicketQuery, myTicketsQuery, newApprovedTicketsQuery } from './queries';
 import { MY_TICKET_STATES, MyTicketDetailSchema, MyTicketsSchema } from './schema';
 
@@ -108,11 +113,34 @@ describe('G11/T-1 · T-2 · T-3', () => {
     expect(await client().fetchQuery(newApprovedTicketsQuery())).toEqual({
       hasNew: true,
       orderUuids: ['mock-order-tickets-a'],
+      refusedOrderUuids: [],
     });
     await client().fetchQuery(myTicketQuery(TICKET_UUID.approved));
     expect(await client().fetchQuery(newApprovedTicketsQuery())).toEqual({
       hasNew: false,
       orderUuids: [],
+      refusedOrderUuids: [],
+    });
+  });
+
+  it('T-3 refusedOrderUuids(2.5.4): 거절 주문 상세(O-3)를 열면 빠진다', async () => {
+    setUnreadRefused([P9_ORDER.refusedDeposit, P9_ORDER.refusedEtc]);
+    expect((await client().fetchQuery(newApprovedTicketsQuery())).refusedOrderUuids).toEqual([
+      P9_ORDER.refusedDeposit,
+      P9_ORDER.refusedEtc,
+    ]);
+    await client().fetchQuery(myOrderQuery(P9_ORDER.refusedDeposit));
+    expect((await client().fetchQuery(newApprovedTicketsQuery())).refusedOrderUuids).toEqual([
+      P9_ORDER.refusedEtc,
+    ]);
+  });
+
+  it('T-3: 운영 2.5.3처럼 refusedOrderUuids 키가 없으면 빈 배열로 읽는다', async () => {
+    server.use(...myTicketHandlers.noticeWithoutRefused);
+    expect(await client().fetchQuery(newApprovedTicketsQuery())).toEqual({
+      hasNew: true,
+      orderUuids: ['mock-order-tickets-a'],
+      refusedOrderUuids: [],
     });
   });
 

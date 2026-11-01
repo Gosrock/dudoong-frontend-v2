@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
 import { server } from './__mocks__/server';
+import { requestLogout } from './auth/calls';
 import { ApiError } from './errors';
 import { api } from './http';
+import { withdrawAccount } from './user/calls';
 
 const Echo = z.object({ value: z.number() });
 
@@ -95,6 +97,21 @@ describe('요청 시간 제한', () => {
 });
 
 describe('api 엣지 케이스', () => {
+  it('Void 응답(로그아웃 · 탈퇴)은 래퍼에 data null — 운영에서 받은 바이트 그대로 성공(백엔드 #905 §2-4)', async () => {
+    const VOID_BODY =
+      '{"status":200,"data":null,"success":true,"timeStamp":"2026-11-01T18:38:27.305486563"}';
+    server.use(
+      http.post('*/api/v1/auth/logout', () =>
+        HttpResponse.text(VOID_BODY, { headers: { 'Content-Type': 'application/json' } }),
+      ),
+      http.delete('*/api/v1/auth/me', () =>
+        HttpResponse.text(VOID_BODY, { headers: { 'Content-Type': 'application/json' } }),
+      ),
+    );
+    await expect(requestLogout()).resolves.toBeNull();
+    await expect(withdrawAccount()).resolves.toBeNull();
+  });
+
   it('본문이 null이면 BAD_ENVELOPE(TypeError가 새지 않는다)', async () => {
     server.use(http.get('*/api/v2/echo', () => HttpResponse.json(null)));
     await expect(api.get('echo', Echo)).rejects.toMatchObject({

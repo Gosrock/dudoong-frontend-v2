@@ -12,6 +12,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
+| 백엔드 #905 답 반영 | `9yujin/backend-905-sync` | 2026-11-01 | 진행 중 | 병렬 `agreement-fields`(동의 칸)와 파일 나눔 |
 
 ## 사용자 대기
 
@@ -33,11 +34,9 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 카카오맵 · 우편번호 SDK 실환경(카카오 앱 도메인 · 키) | P11-V #45 | D2 스테이징 뒤 — QA HE-11 수동(기본 정보 주소 검색 → 지도 미리보기 마커) |
 | 기본 OG 이미지 | plan P14 검색 노출 | 디자인 대기 — 이미지가 오면 `src/utils/site.ts` 값 하나 |
 | GA · 카카오 애드핏 넣기 | plan P14(사용자 결정 2026-10-31) | 사용자가 직접 — `next/script`로 루트 레이아웃 한 곳, CSP 허용 목록(P14 보안 PR 뒤), 광고 자리는 디자인. P15 전에 |
-| CSP 강제 전환 · 출처 좁히기 | P14 보안 #79 | D2 스테이징에서 실제 카카오 SDK·지도·우편번호·S3 업로드를 돌려 `csp.violation` 로그 0 확인 → `CSP_ENFORCE=1`로 빌드. S3 presigned 실제 호스트로 `connect-src`를 좁힘 |
-| 선물 토큰이 남는 nginx 접근 로그 · 운영 응답 헤더 | P14 보안 #79 | Deploy·운영: 접근 로그 보존 기간·접근 권한, `Referrer-Policy`·`X-Frame-Options` 응답 헤더, `/csp-report` 요청 수 제한 |
-| P15 컷오버 — 사람 몫 전부 | P15 #88 | [`cutover-runbook.md`](./cutover-runbook.md) 순서대로 — §2 go/no-go(**`AGREEMENT_ENFORCE` 확인 · 동의 칸 Q42**), §3-1 Deploy PR ①(스테이징 v2 · `Nginx-v1.9.6`), §4 리허설(SameSite=Strict · 동의 강제 흐름 · 리다이렉트 · `og:url` · `/healthz` · CSP · 롤백 리허설), §6 `v2.0.0` 태그, §5-3 롤백용 nginx, §1 프리즈 윈도우, §3-2 · §7-1 운영 컷오버, §7-2 서치 콘솔 · 네이버 인증 · sitemap · 리치 결과 · 운영 LCP/TTFB |
-| `v*` 태그 ruleset 없음 | P15 #88 | 저장소 Settings → Rules — 태그 `v*` 생성 · 삭제를 관리자만(푸시 역할이 `refs/tags/v*`를 믿는다, 런북 §6) |
-| `/hosting` 해외 차단 여부 · 308 출시 시점 | P15 #88 | 런북 "결정 대기" — v1은 `/admin`을 해외 차단했다. 308은 롤백 시 브라우저가 기억한다(§5-3) |
+| CSP 강제 전환 · 출처 좁히기 | P14 보안 #79 · Backend #905 | 스테이징 리허설 때(**Staging Power → start**) 실제 카카오 SDK·지도·우편번호·S3 업로드를 돌려 `csp.violation` 로그 0 확인 → `CSP_ENFORCE=1`로 빌드. S3 presigned 호스트는 운영 `https://dudoong.s3.ap-northeast-2.amazonaws.com`(스테이징 버킷은 업로드 한 번으로 확인) — 그 값으로 `connect-src`를 좁힘 |
+| P15 컷오버 — 사람 몫 | P15 #88 · Backend #905 | [`cutover-runbook.md`](./cutover-runbook.md) — 스테이징 v2(§3-1 PR ①)는 **끝남**(Deploy #93 · #94), "정해진 것" 표 참고. 남은 것: §4 리허설(Staging Power → start — SameSite=Strict · 동의 강제(칸 켠 이미지가 준비되면 #905에 알려 스테이징만 강제) · 리다이렉트 · CSP · 롤백 리허설), §1 **컷오버 날짜**(정해지면 백엔드가 PR ② · 롤백 nginx를 같이 준비), §6 `v2.0.0` 태그, §2 go/no-go |
+| 308 출시 시점(또는 307로 시작) | P15 #88 | 런북 "결정 대기" — 308은 롤백 시 브라우저가 기억한다(§5-3). `/hosting` 해외 차단은 **막기로 결정**(#905, PR ②) |
 | iOS Safari 실기기 확인(SHELL-7) | P4s-V #32 | `pnpm storybook --host 0.0.0.0` → iPhone Safari에서 BottomSheet `LongContent`·`WithInput`, Modal, Drawer `LongContent` — 뒤 화면 스크롤 잠김 · 입력칸 키보드 위 · 닫은 뒤 스크롤 위치 |
 | 실기기 고무줄 오버스크롤 · 키보드(SHELL-12) | 이슈 #95 | iPhone Safari · macOS 트랙패드 · Android Chrome — 상단 바 제자리 · Android 당겨서 새로고침 · 주소창 숨김 · 뒤로 가기 스크롤 복원 · 입력칸 키보드(체크아웃 · 호스팅 기본 정보). 하단 버튼 바를 고정할지는 디자인 Q62 |
 | 실제 화면 읽기 도구 청취(VoiceOver iOS · TalkBack) | P14 접근성 #81 | 사람만 — 핵심 흐름(로그인 · 티켓 선택 · 체크아웃 · 티켓탭 · 예매자 관리)을 실기기로 듣기 |
@@ -81,6 +80,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 21 | `release-v2-cutover` | P15 컷오버(이 저장소의 코드·문서 몫 — 운영·사람 몫은 "사용자 대기") | P14 | 끝(코드 몫, #88) — 남은 것은 사람 몫("사용자 대기" · `cutover-runbook.md`) | — |
 | 22 | `layout-fixed-95` | 이슈 #95 레이아웃 고정 요소 — 상단 바 fixed(고무줄 오버스크롤) · 로그인 말풍선 흐름 안 · fixed/sticky/dvh 전수조사(implementation-log 끝 절) | P4s-V | 끝(#97) | — |
 | 23 | `staging-ux-93` | 이슈 #93 스테이징 QA UX 제안 — 분류표 · (가) 말풍선 · 티켓 캐러셀 순서 · 간편 만들기 hostId · QR 카메라 대기 안내 · 포스터 contain, 디자인 Q63~Q78 · 서버 B23~B27(implementation-log 끝 절) | — | 끝(#98) | — |
+| 24 | `backend-905-sync` | 백엔드 #905 답 반영 — 문서(backend-questions · api-contract · cutover-runbook · handoff) · B18 확정 문구(11-07 시행 전에는 ⑤ 숨김) · 티켓탭 공지 바 거절 · 공연 중(Q55) · Void 래퍼 테스트(implementation-log 끝 절) | — | 진행 중 | — |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
 

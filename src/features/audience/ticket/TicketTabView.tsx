@@ -13,6 +13,7 @@ import { Illustration } from '@/ui/illustrations/Illustration';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
+import type { TicketNoticeBar } from './model/ticket-groups';
 import { useTicketTab } from './model/useTicketTab';
 import { EventInfo } from './ui/EventInfo';
 import { PosterCard } from './ui/PosterCard';
@@ -25,7 +26,7 @@ import { useSnapCarousel } from './ui/useSnapCarousel';
 
 /**
  * 티켓탭(`/tickets`) — GUI 섹션 `908:3276` 티켓페이지 GUI 적용(모바일 390).
- * 공지 바 → "탭하여 입장 QR 보기" → 묶음(주문) 카드 가로 캐러셀 → 지금 카드의 공연명·일시·티켓 이름·[주문상세].
+ * 공지 바(승인거절 · 승인 · 공연 중 · 기본 — Q55) → "탭하여 입장 QR 보기" → 묶음(주문) 카드 가로 캐러셀 → 지금 카드의 공연명·일시·티켓 이름·[주문상세].
  * 카드를 누르면 입장 QR 층(`TicketQrLayer`)이 뜬다. 정렬 라벨은 두지 않는다(#29 — "티켓 정렬 순서 삭제").
  */
 export function TicketTabView() {
@@ -38,6 +39,60 @@ export function TicketTabView() {
         <TicketTabContent />
       </AsyncBoundary>
     </main>
+  );
+}
+
+/** 공지 바 한 줄(`noticeBar` — 거절 > 승인 > 공연 중 > 기본). 새 소식(NEW)만 `role="status"` */
+function NoticeBar({ bar, onShowTarget }: { bar: TicketNoticeBar; onShowTarget: () => void }) {
+  if (bar.kind === 'DEFAULT') {
+    return (
+      <div className={s.noticeBar} data-testid="notice-default">
+        <Chip size="lg" color="grey" theme="fill">
+          Notice
+        </Chip>{' '}
+        <span className={s.noticeText}>
+          <Txt typography="labelMd" color={colors.white} lines={1}>
+            두둥에서 다양한 공연을 예매해보세요
+          </Txt>
+        </span>
+      </div>
+    );
+  }
+  const text =
+    bar.kind === 'REFUSED'
+      ? '티켓 주문 승인이 거절되었습니다.'
+      : bar.kind === 'APPROVED'
+        ? '티켓 주문이 승인되었습니다!'
+        : '공연이 시작되었습니다!';
+  return (
+    <div role="status" className={s.noticeBar} data-notice={bar.kind}>
+      <Chip size="lg" color="red" theme="fill">
+        NEW
+      </Chip>{' '}
+      <span className={s.noticeText}>
+        <Txt typography="labelMd" color={colors.white} lines={1}>
+          {text}
+        </Txt>
+      </span>
+      {bar.kind === 'REFUSED' && (
+        // O-3 주문 상세로 — 열어야 서버가 거절 공지를 푼다(백엔드 #905 §2-2)
+        <Link href={bar.orderHref} className={s.noticeLink}>
+          <Txt typography="labelMd">티켓보기 →</Txt>
+        </Link>
+      )}
+      {bar.kind === 'APPROVED' && bar.targetGroupKey && (
+        <a
+          href={`#group-${bar.targetGroupKey}`}
+          className={s.noticeLink}
+          onClick={(e) => {
+            e.preventDefault();
+            onShowTarget();
+          }}
+        >
+          <Txt typography="labelMd">티켓보기 →</Txt>
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -77,7 +132,9 @@ function TicketTabContent() {
   };
 
   const showTarget = () => {
-    const i = tab.groups.findIndex((g) => g.key === tab.notice.targetGroupKey);
+    if (tab.notice.kind !== 'APPROVED') return;
+    const target = tab.notice.targetGroupKey;
+    const i = tab.groups.findIndex((g) => g.key === target);
     if (i >= 0) scrollTo(i);
   };
 
@@ -86,42 +143,8 @@ function TicketTabContent() {
       {giftDone && <TicketGiftDone done={giftDone} onClose={closeGiftDone} />}
       <div className={doneCss.tabBody} hidden={shownDone}>
         <div className={s.noticeWrap}>
-          {/* FIGMA-CUSTOM: 공지 바(gui 939:29784 "Frame 1707480432") 커스텀 → 커스텀 TicketTab.css.ts. DS 후보(design-system §3) */}
-          {tab.notice.show ? (
-            <div role="status" className={s.noticeBar}>
-              <Chip size="lg" color="red" theme="fill">
-                NEW
-              </Chip>{' '}
-              <span className={s.noticeText}>
-                <Txt typography="labelMd" color={colors.white} lines={1}>
-                  티켓 주문이 승인되었습니다!
-                </Txt>
-              </span>
-              {tab.notice.targetGroupKey && (
-                <a
-                  href={`#group-${tab.notice.targetGroupKey}`}
-                  className={s.noticeLink}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    showTarget();
-                  }}
-                >
-                  <Txt typography="labelMd">티켓보기 →</Txt>
-                </a>
-              )}
-            </div>
-          ) : (
-            <div className={s.noticeBar} data-testid="notice-default">
-              <Chip size="lg" color="grey" theme="fill">
-                Notice
-              </Chip>{' '}
-              <span className={s.noticeText}>
-                <Txt typography="labelMd" color={colors.white} lines={1}>
-                  두둥에서 다양한 공연을 예매해보세요
-                </Txt>
-              </span>
-            </div>
-          )}
+          {/* FIGMA-CUSTOM: 공지 바(gui 939:29784 "Frame 1707480432" · 거절 939:29872 · 공연중 939:29856) 커스텀 → 커스텀 TicketTab.css.ts. DS 후보(design-system §3) */}
+          <NoticeBar bar={tab.notice} onShowTarget={showTarget} />
         </div>
 
         {tab.empty ? (
