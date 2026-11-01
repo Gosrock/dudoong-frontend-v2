@@ -6,6 +6,7 @@ import { vars } from '@/ui/theme/tokens.css';
 /**
  * 공연 스코프 3단(GUI Ready `712:1646`·`669:2972`·`680:672`, gui-screens §3). 상단 바 58 아래에
  * 사이드바 268 고정 + 가운데 fill. 1024~1279도 같은 3단이다(우측 패널을 내리지 않는다). 모바일은 위아래로 쌓는다.
+ * 높이는 셸 본문(세로 flex)의 남은 높이를 `flex`로 채운다 — `calc(100dvh - 58px)`는 배너 높이만큼 넘쳤다(fix-qa-1101).
  */
 export const frame = style({
   flex: '1 0 auto',
@@ -15,7 +16,6 @@ export const frame = style({
     [media.desktop]: {
       display: 'grid',
       gridTemplateColumns: '268px minmax(0, 1fr)',
-      minHeight: 'calc(100dvh - 58px)',
     },
   },
 });

@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -145,7 +146,8 @@ export const aside = style([
         gap: vars.space[4],
         padding: vars.space[5],
         position: 'sticky',
-        top: vars.space[5],
+        // 고정 상단 바(58) 아래 + space[5](fix-qa-1101)
+        top: `calc(${TOP_BAR_HEIGHT}px + ${vars.space[5]})`,
       },
     },
   },
