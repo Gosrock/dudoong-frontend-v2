@@ -4,7 +4,7 @@ import { APP_ORIGIN, APP_PORT, MOCK_ORIGIN, VIEWPORTS } from './e2e/support/env'
 
 /**
  * e2e(`pnpm test:e2e`) 설정. QA 시나리오(`pnpm qa`)는 qa/playwright.config.ts가 이 값을 이어받는다.
- * e2e는 PR 게이트(`pr-gate.yml` `e2e` job, 3조각)에서도 돈다(P14 회귀, tech-decisions §10). QA 시나리오는 로컬·qa-scenario 스킬에서만.
+ * e2e는 main push의 CI(`pr-gate.yml` `e2e` job — PR에서는 돌지 않음, 사용자 결정 2026-11-01)에서도 돈다(tech-decisions §10). QA 시나리오는 로컬·qa-scenario 스킬에서만.
  *
  * 빌드한 standalone 서버를 띄운다(운영과 같은 산출물). 백엔드는 워커 안의 가짜 백엔드(e2e/support)다.
  * `E2E_SKIP_BUILD=1`이면 이미 있는 `.next`를 그대로 띄운다.

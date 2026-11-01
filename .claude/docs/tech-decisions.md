@@ -1085,7 +1085,7 @@ v1 코드(`490b5ac`, 2025-04-19)에서 라우트를 전수 추출했다. 실제�
 
 ### CI
 
-PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`(Vitest `unit`) → `build`(§31 3회차에서 추가). ~~`test:e2e`·`qa`는 넣지 않는다(§10, 사용자 결정).~~ **P14 재검토(2026-11-01, 🤖 Claude 판단 — 계획이 P14에 맡긴 재검토)**: `test:e2e`를 같은 워크플로의 별도 job `e2e`(3조각 matrix, job 25분 · 테스트 단계 15분 상한)로 넣었다. 근거 — 그룹 A 회귀에서 V 마크업 변경이 e2e 14건을 깨도 CI가 못 잡았다(#43), 로컬 전체 555건 7.3분(빌드 포함)·실패 0, `check`와 나란히 돌아 게이트 벽시계가 크게 늘지 않는다. `qa`는 캡처 리포트라 계속 게이트 밖. 되돌리려면 `pr-gate.yml`의 `e2e` job을 지운다(implementation-log "P14 — 회귀 · 레거시 URL · 검색 노출"). **`test:stories`는 P2부터 게이트에 넣었다** — Radix 컴포넌트의 키보드·포커스, 오버레이 뒤로가기 `play` 검사가 붙어 회귀를 잡을 가치가 생겼다(P2 시점 스토리 187개, 로컬 약 6초, 캐시를 지운 첫 실행 포함 2회 연속 통과). CI는 `playwright install --with-deps --only-shell chromium` + `~/.cache/ms-playwright` 캐시. CI 첫 실행 시간은 미확인.
+PR 게이트 한 개: `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `test`(Vitest `unit`) → `build`(§31 3회차에서 추가). ~~`test:e2e`·`qa`는 넣지 않는다(§10, 사용자 결정).~~ **P14 재검토(2026-11-01) → 사용자 결정 — main push에서만**: `test:e2e`를 같은 워크플로의 별도 job `e2e`(`if: github.event_name == 'push'` — `main` push에서만, PR에서는 skipped. 한 job · 빌드 1번, job 30분 · 테스트 단계 20분 상한, 실패 trace artifact 7일)로 넣었다. 근거 — 그룹 A 회귀에서 V 마크업 변경이 e2e 14건을 깨도 CI가 못 잡았다(#43)는 것은 main에서 잡고, PR 전에는 세션이 바꾼 라우트의 e2e를, 그룹 경계에서는 관제탑이 전체 회귀를 돌린다 — PR마다 러너 3대·빌드 3번(처음 안의 3조각)은 낭비. 로컬 전체 555건 7.3분(빌드 포함)·실패 0. `qa`는 계속 게이트 밖. 되돌리려면 `pr-gate.yml`의 `e2e` job을 지운다(implementation-log "P14 — 회귀 · 레거시 URL · 검색 노출").
 
 ### 그 밖에 P0에서 만드는 것
 
@@ -1452,7 +1452,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 - eslint: `src/test/`를 계층 요소 `test-support`로 등록하고, `*.test.*` 밖에서 `@/test/*` import를 막았다. `e2e/`·`qa/`는 `src` 밖이라 계층 규칙 대상이 아니다(나머지 규칙·Prettier·tsc는 적용).
 - `.gitignore`: `/test-results/`, `/playwright-report/`, `/qa/reports/`. `.dockerignore`에 `e2e`·`qa`·`playwright.config.ts`.
 
-**남은 것**: 로그인 상태 픽스처(P4a·P4b 이후), 크롤러 계약의 OG `<head>`·404(P5b·P8b), Playwright를 게이트에 넣을지 P14에서 재검토 → 넣음(P14 회귀, §CI).
+**남은 것**: 로그인 상태 픽스처(P4a·P4b 이후), 크롤러 계약의 OG `<head>`·404(P5b·P8b), Playwright를 게이트에 넣을지 P14에서 재검토 → main push에서만(사용자 결정, §CI).
 
 ## 핵심 결정 요약
 
@@ -1467,7 +1467,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 | 6. 스타일 | vanilla-extract(+ recipes, sprinkles) | 제로 런타임, 서버 컴포넌트 동작, 토큰 타입 검사, emotion과 가까운 작성 방식 |
 | 7. 폼 | react-hook-form + zod | |
 | 8. 계층 | `app → features → ui → api → utils`, eslint 강제 | 패키지 경계를 폴더 경계로 대체 |
-| 10. 테스트 | 게이트: Vitest(유닛 + 컴포넌트 통합, MSW), 스토리 테스트(P2부터), Playwright e2e(P14부터 — 별도 job 3조각). 게이트 밖: QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드), agent-browser는 실제 환경 확인용 | 서버 조회까지 가짜로 막으려면 앞문 프록시가 필요하다. Playwright e2e는 P14 재검토로 게이트에 넣었다(§CI) |
+| 10. 테스트 | 게이트: Vitest(유닛 + 컴포넌트 통합, MSW), 스토리 테스트(P2부터). Playwright e2e는 `main` push CI에서만(P14부터 — 사용자 결정, PR에서는 돌지 않음). 게이트 밖: QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드), agent-browser는 실제 환경 확인용 | 서버 조회까지 가짜로 막으려면 앞문 프록시가 필요하다. e2e는 PR 전 세션의 라우트별 실행 + 관제탑 그룹 경계 회귀 + main push(§CI) |
 | 11. 배포 | Dockerfile 하나, standalone. 서버 1대의 docker-compose에 v1 front·admin 대신 들어간다 | API는 같은 출처(`/api`) |
 | 13. 에러 | 외부 수집 없음, 구조화 로그. 토스트는 배경 재조회 실패·처리 안 한 변경 실패만(호출 쪽 `handleError`, 2026-10-31), `SessionLostError`는 무시 | 에러 화면과 토스트가 겹치지 않게 |
 | 14. 반응형 | sprinkles 조건부 값, 같은 DOM 원칙 | |

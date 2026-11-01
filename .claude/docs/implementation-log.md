@@ -2141,7 +2141,7 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 | 4 | mock: 관객이 보낸 선물 상태가 호스트 GI-1(`giftState`)에 안 이어짐(입장 상태는 이어져 있었음) | **고침(mock만)** — `myTicketGiftStateOf` → `guest-store` `toIssuedTicket`(관객 주문만). 실제 백엔드는 같은 테이블이라 해당 없음 |
 | 5 | mock: 호스트가 새로 만든 공연(7001~)은 관객 체크아웃(O-0·O-1)·티켓탭 공연 정보가 fixture(`findPublicEvent`)만 읽어 주문할 수 없음 | **남김** — 통합 시나리오는 등록 → 관객 상세까지 7001로, 주문 이후는 fixture 공연 101로 잇는다. 고치려면 `fixtures/order.ts` `findCheckoutTicket`과 `my-ticket` `eventOf`가 `event-store`·`ticket-store`를 읽게 |
 | 6 | 크롤러 상태 코드 | **남김(설계대로)** — 등록 전(준비중) 공연은 크롤러 UA에 404, 브라우저 UA는 스트리밍 200 + 찾을 수 없음 화면(tech-decisions §2). 통합 시나리오도 크롤러 UA로 본다 |
-| 7 | Playwright e2e를 PR 게이트에 넣을지(plan P14) | **고침 — 넣음**(🤖 Claude 판단, 아래 "e2e 게이트") |
+| 7 | Playwright e2e를 PR 게이트에 넣을지(plan P14) | **고침 — `main` push CI에서만**(사용자 결정 2026-11-01, 아래 "e2e 게이트") |
 | 8 | 리치 결과용 JSON-LD | **고침(검사 추가)** — `event-json-ld.rich-results.test.ts`: Google Event 필수(`name`·`startDate`·`location.address`) 오류 0, 권장 경고는 `offers`(P5b 원칙으로 뺌)·`performer`(공개 응답에 없음)뿐, 날짜 오프셋 · 절대 URL, mock 공개 공연 전부. 장소 이름만 있고 주소가 없으면 `location.address` 오류(리치 결과 자격 없음 — 호스트 입력 문제라 남김). 실제 리치 결과 테스트·서치 콘솔은 운영 도메인 뒤(P15) |
 | 9 | `generateSitemaps` | **남김(근거)** — sitemap은 종료 전 공연만 넣는다. 운영 공개 GP-2(`includePast=false`) 2026-11-01 **33개**(지난 공연 포함 전체 1,141) — 상한 2,000(`MAX_PAGES` 40 × 50)까지 멀다. 상한에 닿으면 `sitemap.events_truncated` 경고 로그가 남으니 그때 나눈다 |
 | 10 | 기본 OG 이미지 | **사용자 대기** — 디자인 대기(`src/utils/site.ts` 값 하나) |
@@ -2175,11 +2175,13 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 
 S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 QA(notifications · host-home · host-settings · notices)가 본다.
 
-**e2e 게이트**(🤖 Claude 판단 — 계획이 P14에 맡긴 재검토)
+**e2e 게이트**(사용자 결정 2026-11-01 — `main` push에서만)
 
-- 근거: 그룹 A 회귀에서 V 마크업 변경이 e2e 14건을 깼는데 CI는 못 잡았다(#43). 로컬 전체 2회 — 555 통과 · 실패 0 · 플레이크 0, 7.3분(빌드 포함) · 6.9분(빌드 제외). 게이트 `check` job은 최근 3.7~5.3분
-- 넣은 모양: `pr-gate.yml` `e2e` job — `check`와 나란히, matrix 3조각(`--shard`), 각 조각이 자기 e2e 빌드(QR 주입 켬), job 25분 · 테스트 단계 15분 상한, Chromium 설치는 `check`와 같은 5분 × 3회 재시도, 실패하면 trace를 artifact로(7일). `retries`는 0 그대로(플레이크를 숨기지 않는다)
-- QA 시나리오는 계속 게이트 밖(캡처 리포트 — 관제탑이 그룹 끝에 돌림)
+- 처음 안(🤖): PR마다 `e2e` job 3조각(조각 4~6분, 게이트 약 6분) — 이 PR의 CI에서 두 번 녹색. 관제탑 검토에서 바꿈
+- 결정: `pr-gate.yml` `e2e` job에 `if: github.event_name == 'push'`(`main` push에서만, PR에서는 skipped), 조각 없이 한 job · 빌드 1번, job 30분 · 테스트 단계 20분 상한, 전체 Chromium(`auth-bfcache`가 `channel: 'chromium'`) 별도 캐시 키, 실패 trace artifact 7일. `retries` 0
+- 근거: PR 전에는 세션이 바꾼 라우트에 닿는 e2e를, 그룹 경계에서는 관제탑이 전체 회귀를 이미 돌린다 — PR마다 러너 3대 · 빌드 3번은 낭비. #43 같은 회귀는 `main` push에서 잡힌다
+- 측정: 로컬 전체 2회 — 555 통과 · 실패 0 · 플레이크 0, 7.3분(빌드 포함) · 6.9분. CI 3조각 합 약 14분(한 job이면 빌드 1번이라 그보다 짧을 것)
+- QA 시나리오는 계속 CI 밖(캡처 리포트 — 관제탑이 그룹 끝에 돌림)
 - 되돌리려면: `pr-gate.yml`의 `e2e` job을 지운다(tech-decisions §CI·§10 줄도)
 
 **`pnpm qa` 전체**(2026-11-01, 이 브랜치, `E2E_SKIP_BUILD=1` — e2e가 빌드한 QR 주입 켠 빌드) — **387 통과 · 실패 0 · 건너뜀 61**(수동 시나리오 · 뷰포트 제외), 8.8분. 첫 실행은 새 통합 시나리오만 4건 실패(크롤러 UA 기준 · 문의처 빠뜨림 · "승인대기" 글자 · mock 선물 상태 — 위 #4 · #6) → 고친 뒤 위 숫자. 기존 피처 QA는 첫 실행부터 전부 통과
@@ -2200,7 +2202,7 @@ S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 
 
 **e2e 전체**: 555 통과 · 37 건너뜀 · 실패 0, 2회(7.3분 빌드 포함 · 6.9분).
 
-**CI 시간(이 PR, 2026-11-01)**: `check` 3분 4초 · `e2e` 조각 5분 48초 / 4분 9초 / 4분 18초(나란히 — 게이트 벽시계 약 6분). 첫 실행은 조각 2·3에서 `auth-bfcache.spec`이 실패했다 — 그 spec만 전체 Chrome(`channel: 'chromium'`)을 쓰는데 `--only-shell`로 깔아서. e2e job은 전체 Chromium을 별도 캐시 키(`playwright-full-…`)로 깐다.
+**CI 시간(이 PR, 처음 안 3조각일 때, 2026-11-01)**: `check` 3분 4초 · `e2e` 조각 5분 48초 / 4분 9초 / 4분 18초(나란히 — 게이트 벽시계 약 6분). 지금은 `main` push에서만 한 job. 첫 실행은 조각 2·3에서 `auth-bfcache.spec`이 실패했다 — 그 spec만 전체 Chrome(`channel: 'chromium'`)을 쓰는데 `--only-shell`로 깔아서. e2e job은 전체 Chromium을 별도 캐시 키(`playwright-full-…`)로 깐다.
 
 **ego-browser 확인**(운영 빌드 — e2e가 만든 standalone + 가짜 백엔드 앞문. 아래 #12 때문에 `pnpm dev:mock`이 아니다)
 
