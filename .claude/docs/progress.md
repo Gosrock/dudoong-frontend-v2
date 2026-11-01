@@ -12,6 +12,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
+| P15 컷오버 준비(308 · 포스터 next/image · 런북 · 릴리스 점검) | `9yujin/release-v2-cutover` | 2026-11-01 | 진행 중 | `next.config.ts` · 포스터 10곳 · `cutover-runbook.md` |
 | fix-qa-1101 사용자 눈 QA 수정(셸 Activity 판정 · 배너 넘침 · 상단 바 고정 · 프로필 버튼) | `9yujin/fix-qa-1101` · #86 | 2026-11-01 | PR | 셸 · `AccountMenu` |
 
 ## 사용자 대기

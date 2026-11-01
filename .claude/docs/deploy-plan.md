@@ -128,7 +128,7 @@ CMD ["node", "server.js"]
 
 **이미지 최적화(`next/image`).** 포스터는 호스트가 올린 원본이라 그대로 내려보내기엔 크다. `next/image`를 쓰되 변환 결과가 컨테이너 안(`.next/cache/images`)에 쌓여 배포마다 사라지는 점, 변환이 CPU·메모리를 쓰는 점을 D2(스테이징 첫 배포)에서 스테이징 서버 사양으로 본다. 부담이 크면 `deviceSizes`를 v1처럼 두세 개로 줄이고, 그래도 크면 캐시 폴더를 볼륨으로 뺀다.
 
-**nginx의 `/_next/image` 차단(Deploy #73).** 운영·스테이징 nginx가 `location = /_next/image { return 404; }`로 이 경로를 막는다. v1 티켓(Next 13.0.7)의 이미지 최적화 원격 코드 실행 취약점 때문이다(v1 #378, v1-additions G-1). **이 취약점은 Next 16에도 있었다** — GHSA-2xp9-vwfh-vxw4(AVIF, 16.3.3에서 고침)·GHSA-2464-fhr4-w9xw(SVG, **16.4.1에서 고침**), 둘 다 critical. v2는 `next` `16.4.1`(정확히 고친 버전, 2026-10-31 GitHub advisory 확인 — 16.4.1에 남은 공지 없음)이라 지금은 안전하다. 그래서 차단을 풀려면 지켜야 할 것: ① `next`를 16.4.1 아래로 내리지 않는다(`package.json` 정확한 버전 고정 유지) ② 이미지 최적화 공지를 지켜보다가 나오면 바로 올린다 — 이 저장소엔 의존성 자동 알림(Dependabot 등)이 없다 ③ 최적화 대상을 업로드 도메인 하나로(`images.remotePatterns`), `dangerouslyAllowSVG`는 켜지 않는다(기본값 false). sharp는 `0.35.5`(v1 #378의 libwebp CVE-2023-4863은 0.32.6에서 고침). Next 16의 이미지 처리는 `/_next/image` 한 경로에서만 돈다 — `images.path`는 브라우저가 부를 주소만 바꾸므로 nginx를 고치지 않고 피하는 방법은 없다. v2는 최적화를 켠 채 간다(`unoptimized`를 쓰지 않는다). 차단은 "그 뒤에 v1 티켓이 있는 호스트"에만 남긴다: 스테이징은 D2부터 `/`가 v2라 풀고(§6 8번), 운영은 컷오버 때 지운다(§6 9번). nginx 이미지 하나를 두 환경이 같이 쓰므로 호스트로 가른다(`nginx.conf`의 기존 `$admin_host` map과 같은 방식). 스테이징의 v1 어드민은 `/admin/_next/image`라 이 정확 일치 차단에 원래 걸리지 않는다(지금과 같다).
+**nginx의 `/_next/image` 차단(Deploy #73).** 운영·스테이징 nginx가 `location = /_next/image { return 404; }`로 이 경로를 막는다. v1 티켓(Next 13.0.7)의 이미지 최적화 원격 코드 실행 취약점 때문이다(v1 #378, v1-additions G-1). **이 취약점은 Next 16에도 있었다** — GHSA-2xp9-vwfh-vxw4(AVIF, 16.3.3에서 고침)·GHSA-2464-fhr4-w9xw(SVG, **16.4.1에서 고침**), 둘 다 critical. v2는 `next` `16.4.1`(정확히 고친 버전, 2026-10-31 GitHub advisory 확인 — 16.4.1에 남은 공지 없음)이라 지금은 안전하다. 그래서 차단을 풀려면 지켜야 할 것: ① `next`를 16.4.1 아래로 내리지 않는다(`package.json` 정확한 버전 고정 유지) ② 이미지 최적화 공지를 지켜보다가 나오면 바로 올린다 — 이 저장소엔 의존성 자동 알림(Dependabot 등)이 없다 ③ 최적화 대상을 업로드 도메인 하나로(`images.remotePatterns`), `dangerouslyAllowSVG`는 켜지 않는다(기본값 false). sharp는 `0.35.5`(v1 #378의 libwebp CVE-2023-4863은 0.32.6에서 고침). Next 16의 이미지 처리는 `/_next/image` 한 경로에서만 돈다 — `images.path`는 브라우저가 부를 주소만 바꾸므로 nginx를 고치지 않고 피하는 방법은 없다. v2는 최적화를 켠 채 간다 — 2026-11-01 P15에서 포스터 · 커버를 `next/image`로 바꿨다(`src/ui/components/UploadedImage`, 업로드 출처만 최적화하고 그 밖 주소만 `unoptimized`). 차단은 "그 뒤에 v1 티켓이 있는 호스트"에만 남긴다: 스테이징은 D2부터 `/`가 v2라 풀고(§6 8번), 운영은 컷오버 때 지운다(§6 9번). nginx 이미지 하나를 두 환경이 같이 쓰므로 호스트로 가른다(`nginx.conf`의 기존 `$admin_host` map과 같은 방식). 스테이징의 v1 어드민은 `/admin/_next/image`라 이 정확 일치 차단에 원래 걸리지 않는다(지금과 같다).
 
 ## 4. 환경변수 — 이미지 하나를 스테이징과 운영이 같이 쓴다
 
@@ -204,8 +204,8 @@ Deploy 저장소 PR은 손으로 올린다. 프론트 저장소에서 자동으�
 |---|---|---|
 | D1 | Dockerfile, `.dockerignore`, `/healthz`, `deploymentId`, 이미지 빌드 워크플로(P0에서 GHCR로 썼다 — **ECR로 다시 쓴다**: Deploy §6 7번이 된 뒤 `image.yml`은 main → `:dev`, `release.yml`은 `:dev` 승격 또는 빌드 → **2026-10-31 다시 썼다**, 첫 main 머지에서 처음 돈다). 이미지 크기와 유휴 메모리를 잰다 | P0(ECR 전환 2026-10-31) |
 | D2 | Deploy 저장소 1~4번. 스테이징에 v2를 올리고 확인 항목을 본다 | P4b(스테이징이 처음 필요한 시점). `plan.md` P4b의 포함·완료 기준에 들어 있다. 공개 URL이 필요한 확인(카카오 공유 디버거 P5b, QR 실기기 P13b)은 D2 뒤에 한다 |
-| D3 | 버전 태그 워크플로, 롤백 리허설 | P14 |
-| D4 | Deploy 저장소 5·6번, 컷오버 | P15 |
+| D3 | 버전 태그 워크플로, 롤백 리허설 | P14 → **워크플로 점검 끝(2026-11-01 P15 — `release.yml`·`image.yml`이 §5와 맞음, 고친 것 없음). 버전 올리는 법은 [`cutover-runbook.md`](./cutover-runbook.md) §6. 남은 것: 태그 ruleset(없음 — 사용자 대기), 첫 `v2.0.0` 실행(§9 17번), 롤백 리허설(런북 §4 마지막)** |
+| D4 | Deploy 저장소 5·6번, 컷오버 | P15 → **적용할 diff · 순서 · 롤백을 [`cutover-runbook.md`](./cutover-runbook.md) §3 · §5 · §7에 준비(2026-11-01, Deploy `d37e9ae` 대조). D2(1~4 · 8번)가 아직 안 들어가 있어 런북은 PR ①(스테이징 v2 — D2) → PR ②(운영 — 5 · 6 · 9번) 두 단계. 적용 · 배포는 사람** |
 
 D2는 백엔드 마이그레이션이 스테이징에 실행돼 있어야 의미가 있다([`backend-questions.md`](./backend-questions.md) B5). 2026-10-25: V001~V011은 Deploy #52, V012는 #57, V016·V019는 #68 체크리스트로 스테이징·운영에 실행하게 돼 있다(V013~V015·V017은 #66이 "이미 적용"). V018은 열린 PR #839 몫. 스테이징은 평소 꺼져 있다(§1 첫 절).
 
@@ -215,7 +215,7 @@ D2는 백엔드 마이그레이션이 스테이징에 실행돼 있어야 의미
 
 | # | 확인 | 언제 |
 |---|---|---|
-| 0 | nginx가 `proxy_set_header Host $host`(와 `X-Forwarded-Proto`)를 넘기는지 — 안 넘기면 공연 상세 `og:url`·canonical이 `127.0.0.1:3000`이 된다(P5b-L `requestOrigin()`). `curl -s -A 'kakaotalk-scrap/1.0' <스테이징>/events/<id> \| grep og:url` | D2 |
+| 0 | (2026-11-01 Deploy `d37e9ae` `nginx/proxy_headers.conf`에 `Host $host` · `X-Forwarded-Proto $forwarded_proto`가 있다 — 설정상 맞음, 값은 리허설에서) nginx가 `proxy_set_header Host $host`(와 `X-Forwarded-Proto`)를 넘기는지 — 안 넘기면 공연 상세 `og:url`·canonical이 `127.0.0.1:3000`이 된다(P5b-L `requestOrigin()`). `curl -s -A 'kakaotalk-scrap/1.0' <스테이징>/events/<id> \| grep og:url` | D2 |
 | 1 | standalone 이미지의 실제 크기, 유휴 상태와 공연 상세를 연속으로 열 때의 메모리 | D1 |
 | 2 | vanilla-extract + Cache Components 구성에서 `standalone` 산출물에 빠지는 파일이 없는지(컨테이너로 띄워 주요 라우트를 연다) | D1 |
 | 3 | `deploymentId`를 바꿔 배포했을 때 옛 탭이 새로고침으로 넘어가는지 | D2 |

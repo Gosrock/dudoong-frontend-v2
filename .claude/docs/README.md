@@ -23,6 +23,7 @@
 | [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문(41건), **프론트가 정한 것(핸드오프 원본, 30건)**, 해결된 것 |
 | [`backend-questions.md`](./backend-questions.md) | 백엔드 질문(남은 것 B16·B18 — 2026-10-31. B18은 약관 해결, v2 안내 문구 확정 대기)과 지켜보는 변경 |
 | [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
+| [`cutover-runbook.md`](./cutover-runbook.md) | **컷오버 · 롤백 런북**(P15, 2026-11-01) — 스테이징 → 운영 순서, 프리즈 윈도우 조건, go/no-go, Deploy 저장소에 붙일 diff(파일별), 롤백 단계 · 기준 · 시간, 리허설 체크리스트, 버전 태그 올리는 법, 컷오버 뒤 검색 등록 · 실측. 단계는 전부 사람이 한다 |
 | [`staging-deploy-plan.md`](./staging-deploy-plan.md) | 로컬에서 명령 하나로 스테이징에 배포하는 계획(미구현) — Deploy 저장소 변경, `pnpm deploy:staging` 스크립트, 준비물 |
 | [`directory-structure.md`](./directory-structure.md) | 폴더, 라우트, 계층 규칙 |
 | [`storyboard.md`](./storyboard.md) | 화면 흐름 + 호출 API + Phase |
