@@ -6,7 +6,8 @@ import { useMemo } from 'react';
 import { noticeQuery } from '@/api/notice/queries';
 import type { NoticeAudience } from '@/api/notice/schema';
 
-import { isNoticeEdited, noticeListHref, renderNoticeHtml } from './notice-rules';
+import { renderNoticeHtml } from './notice-html';
+import { isNoticeEdited, noticeListHref } from './notice-rules';
 
 /**
  * 공지 상세(GA-2, plan P9c). 관객 상세는 라우트가 서버에서 미리 읽어 두고(없으면 `notFound()`), 호스팅 센터 상세는

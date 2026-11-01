@@ -1958,3 +1958,86 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 - typecheck · 바꾼 파일 eslint 통과, `vitest related`(바꾼 파일) 63파일 1050건 통과 — 새 테스트 `csp.test.ts` · `summarize.test.ts` · `zxing-wasm.test.ts` · `serverQuery.test.ts` · `kakao-sdk.test.ts`(+1)
 - **e2e 전체 398/398 통과** — 모든 테스트에 `cspViolations` · `consolePii` fixture. 첫 실행에서 zod eval 위반(19번)을 잡아 고친 뒤 위반 0. 서버 로그 `csp.violation` 10건은 가짜 S3(`s3.mock.dudoong.test` 6 — fixture가 뺌)와 `security.spec`의 의도한 양성 대조 · 보고 받기 입력(4)뿐
 - **QA 전체(`pnpm qa`) 통과 381 · 수동 16** — 첫 실행의 SHELL-2 실패 1건은 #77 뒤 낡은 시나리오로, main #78이 고쳐 둔 것(main 병합 뒤 `pnpm qa shell` 10/10). QA `hosting-qr` QR-1(mobile · desktop)이 wasm을 우리 출처 `/vendor/zxing-wasm/3.1.6/zxing_reader.wasm`에서 200으로 받고 jsdelivr 요청 0인 것을 본다
+
+## P14 — 성능 · 부하
+
+**상태**: 브랜치 `9yujin/p14-perf`(2026-11-01) — 하드닝. 동작을 바꾼 수정은 없다(파일 하나를 둘로 나눔 · 이미지 우선순위 힌트 하나). 캐시는 붙이지 않았다(판단은 tech-decisions §2 "공연 상세 캐시 — P14 판단").
+
+**재는 법**(둘 다 `pnpm build` 뒤, 저장소에 넣음)
+- `node scripts/bundle-stats.mjs` — 라우트별 First Load JS(압축 전 · gzip)와 첫 로드에 실린 큰 의존성. Next 16(Turbopack) `next build` 출력에는 First Load JS 칸이 없어 `.next/diagnostics/route-bundle-stats.json`을 읽는다. `--json > before.json` · `--compare before.json`으로 전/후 표. 의존성이 **어디서** 들어오는지는 `pnpm next analyze --output` + `pnpm next analyze export`(설치본 `package-bundling.md`)로 찾았다 — 이 분석 빌드는 청크 해시가 실제 빌드와 달라 첫 로드 청크와 바로 맞대지 못한다(비동기 청크까지 섞여 보인다)
+- `node scripts/perf-lighthouse.mjs` — 빌드한 standalone + 가짜 nginx/백엔드(e2e와 같은 구성) 위에서 주요 8개 라우트 Lighthouse(성능, 모바일 기본 · 느린 4G 시뮬레이션) 3회 중앙값. 로그인 화면은 가짜 백엔드 로그인 쿠키를 헤더로. Lighthouse는 의존성에 넣지 않고 저장소 밖에 설치해 `LIGHTHOUSE_BIN`으로 준다. **수치는 로컬 · 모의 응답 기준 전/후 비교용**이다 — 같은 빌드를 다시 재도 LCP ±1초 · FCP가 1.5초/3.5초로 갈린다(Lantern 시뮬레이션)
+
+**수치**(전 = main `a17b5bc`(#79 보안 포함), 후 = 이 브랜치. gzip은 첫 로드 JS 청크를 하나씩 gzip한 합)
+
+| 라우트 | First Load JS gzip 전 → 후 (KB) | Lighthouse 점수 전 → 후 | LCP 전 → 후 | FCP 전 → 후 | CLS | TBT |
+|---|---:|---:|---:|---:|---:|---:|
+| 공연홈 `/` | 346 → **282** | 77 → 73 | 6.0s → 5.6s | 1.7s → 3.5s | 0.060 | 9ms |
+| 공연 리스트 `/events` | 355 → **291** | 79 → 80 | 5.7s → 5.4s | 1.5s → 1.5s | 0.060 | 3ms |
+| 공연 상세 `/events/[eventId]` | 384 → **384** | 82 → 73 | 4.2s → 5.3s | 2.6s → 3.5s | 0.060 | 6ms |
+| 체크아웃 `/events/[eventId]/checkout` | 393 → **329** | 75 → 75 | 6.6s → 6.3s | 1.7s → 1.7s | 0.081 | 12ms |
+| 티켓탭 `/tickets` | 378 → **314** | 75 → 76 | 7.1s → 6.4s | 1.5s → 1.5s | 0.008 | 0ms |
+| 호스팅 대시보드 `/hosting/events/[eventId]/dashboard` | 409 → **337** | 64 → 73 | 6.0s → 5.9s | 1.5s → 1.5s | 0.133 | 12ms |
+| 호스팅 기본 정보 `/hosting/events/[eventId]/info` | 423 → **352** | 71 → 71 | 6.6s → 6.5s | 1.8s → 1.8s | 0.133 | 16ms |
+| 호스팅 티켓 관리 `/hosting/events/[eventId]/tickets` | 419 → **348** | 71 → 72 | 6.5s → 5.9s | 1.8s → 1.8s | 0.133 | 8ms |
+
+- 나머지 라우트도 같은 폭으로 줄었다: 관객 화면 −64KB, 호스팅 −71KB. 안 줄어든 곳은 sanitize를 실제로 쓰는 공연 상세 · 공지 상세 · 호스팅 상세 정보(−0~8KB)
+- JS 전송량(Lighthouse)은 줄었지만(공연홈 421 → 355KB 등) **LCP는 측정 편차 안**이다. LCP는 텍스트 요소이고 "Render Delay"가 대부분 — 느린 4G 시뮬레이션에서 JS(~350KB) · Pretendard 동적 서브셋 글꼴(한글이라 화면마다 woff2 8개 안팎 × ~25KB) · CSS 17~27개가 대역을 나눠 쓴다. TTFB는 로컬이라 의미 없음(2~20ms)
+
+**찾은 것**(고침 / 남김(이유) / 사용자 대기)
+
+| # | 무엇 | 처리 |
+|---|---|---|
+| 1 | **`sanitize-html`(+ postcss · htmlparser2 · entities, gzip ~64KB)이 모든 라우트 첫 로드에** — 셸 상단 배너 훅 `useNoticeBanner`가 `notice-rules.ts`를 쓰고, 그 파일의 `renderNoticeHtml`이 sanitize를 import했다(P9c). 쓰지 않는 함수라도 CJS라 트리 셰이킹이 못 뺐다 | **고침** — `renderNoticeHtml`을 `notice-html.ts`로 옮김(상세 훅 `useNoticeDetail`만 씀). 동작 같음, 테스트는 import 경로만 |
+| 2 | 공연 상세 포스터(LCP 후보)에 우선순위 힌트 없음 | **고침** — `fetchPriority="high"`(공연홈 히어로와 같다). 가짜 백엔드의 포스터 도메인은 열리지 않아 로컬 수치에는 효과가 안 보인다 |
+| 3 | 큰 의존성 위치 — Tiptap(+ ProseMirror ~120KB) | **남김** — 호스팅 상세 정보 화면에만 실린다. 그 화면의 본문 편집기 자체라 지연 로드하면 로딩 상태만 는다 |
+| 4 | qr-code-styling · QR 스캐너(@yudiel · zxing) | **남김(이미 됨)** — 둘 다 동적 import(`QrCode`의 effect 안 `import()`, `QrCheckInView`의 `next/dynamic`). 첫 로드에 없다 |
+| 5 | 카카오 SDK(공유 · 지도 · 우편번호) | **남김(이미 됨)** — 필요할 때 스크립트를 붙인다. 첫 로드 표의 `kakaoSDK`는 주소 문자열이 청크에 있다는 표시일 뿐 |
+| 6 | vaul(~8KB) | **남김** — `BottomSheet`를 첫 화면에서 쓰는 라우트에만. 셸 드로어는 이미 동적 import(`ShellMenuButton`) |
+| 7 | `@tanstack/react-table`(~8KB) | **남김** — 예매자 관리 · 멤버 화면에만 |
+| 8 | `marked`(~13KB) | **남김** — 공연 상세(v1 이관 마크다운 본문)와 호스팅 상세 정보에만 |
+| 9 | zod(~34KB) 모든 라우트 | **남김** — API 응답 검사 전부가 쓴다(tech-decisions §4). `zod/mini`로 바꾸는 것은 스키마 전체 재작성 |
+| 10 | 아이콘 레지스트리(~19KB) 모든 라우트 | **남김** — `Icon name=…` 하나에 모든 SVG가 들어 있다. 아이콘별 컴포넌트로 쪼개면 DS API가 바뀐다(생성기 `src/ui/icons/generate.mjs`부터) |
+| 11 | CSS 파일이 라우트마다 17~27개(vanilla-extract 모듈마다) | **남김** — `experimental.cssChunking: { type: 'graph', requestCost: 100000 }`(설치본 `cssChunking.md`)로 빌드해 봤지만 파일 수가 그대로(17 → 18)라 되돌렸다. 운영 nginx가 HTTP/2면 요청 수 비용이 작다 |
+| 12 | `next/image` 안 씀(포스터 원본 그대로) | **사용자 대기 → P15** — nginx가 `/_next/image`를 막는다(v1 #378, deploy-plan §3). 컷오버에서 차단을 지운 뒤 포스터를 `next/image` + `images.remotePatterns`(업로드 도메인 하나)로 바꾸면 화면 폭에 맞는 크기를 받는다 |
+| 13 | 폰트 — Saira Condensed | **남김(이미 됨)** — 불러오지 않는다(Q14, `tokens.css.ts` `number`는 Pretendard). design-system §1 표의 "`next/font/google`" 문구만 낡아 고쳤다. Pretendard는 동적 서브셋 CSS(필요한 조각만) 그대로 |
+| 14 | `favicon.ico` 54KB(116×113 무압축 한 장) | **남김(디자인 요청)** — 렌더를 막지 않는다. 정사각 32 · 48 ICO + `apple-icon.png`로 받으면 수 KB |
+| 15 | **CLS** — 관객 0.06, 호스팅 0.13~0.27 | **남김(후속)** — 관객 0.06은 상단 배너가 GA-3 응답 뒤 위에 끼어 본문을 미는 것(배너 API를 막으면 0.000). 호스팅은 배너를 막아도 0.21이 남는다(셸 본문 `div` 이동 — 게이트 스켈레톤 → 본문 추정, 원인 미조사). 배너 자리 예약 · 위치는 디자인 결정(Q44 — 디자인 없음) |
+| 16 | 대시보드 포스터 — 이미지 실패 시 깨진 그림 + alt 글자(다른 화면은 빈 상자) | **남김** — 성능 범위 밖, ego-browser 확인 중 발견(모의 이미지 도메인). P14 회귀 · 접근성 쪽 후보 |
+
+**부하(티켓 오픈 순간) — 프론트에서 할 수 있는 것**
+
+| 확인 | 결과 |
+|---|---|
+| 중복 제출 | **문제 없음** — 체크아웃 `submit`이 `inflight` ref + `succeeded` + `submitting`(버튼 막음)으로 진행 중 제출을 막는다. 변경은 재시도하지 않는다(`mutations.retry: false`). 백엔드도 같은 주문 10초 중복을 앞 주문으로 돌려준다(api-contract) |
+| 조회 재시도 폭주 | **문제 없음** — 5xx · 네트워크만 1회(`shouldRetry`), ky 재시도 0(`client.ts` — 겹치지 않음). 최악은 실패 조회 하나당 2배 |
+| 401 재발급 폭주 | **문제 없음** — 탭 안 동시 401 N건 → 재발급 1회, 탭 사이는 잠금 + `dd:refreshedAt`(`auth-handlers.test.ts`) |
+| 포커스 재조회 | **남김(의도)** — GP-5는 `staleTime 0` + 포커스마다(잔여가 자주 바뀐다, P6), 벨 GN-2도 포커스마다(로그인), GM-1은 5분, 배너 1분, 공개 상세 30초. 오픈을 기다리며 탭을 오가면 포커스 한 번에 GP-5 1건(+ 벨 1건) |
+| 공연 상세 서버 캐시 | **붙이지 않음** — 아래 요청 수 · tech-decisions §2 |
+| 부하 시험 스크립트 | **초안** `scripts/load/ticket-open.k6.js`(k6, 저장소 의존성 아님) — 하드 내비게이션 → 브라우저 조회 3건 → 포커스 GP-5 3번 → 선택 주문(쓰기는 `WRITE=1` + 시험 계정 토큰 + 무료 티켓일 때만, 스테이징 · 로컬 주소만). 실행은 **사용자 대기**(D2 스테이징) |
+
+**요청 수**(공연 상세 한 번 = 하드 내비게이션)
+
+| 누가 | 호출 | 익명 | 로그인 |
+|---|---|---:|---:|
+| Next 서버 | GP-3(메타데이터 · 페이지 같은 QueryClient — 한 번), GE-5 | 2 | 2 |
+| 브라우저 | GM-1 세션(익명이면 401), GA-3 배너, GP-5 재고, (로그인) GN-2 벨 | 3 | 4 |
+| 합 | | **5** | **6** |
+
+예: 오픈 1분 동안 3,000명이 평균 3번 새로고침 → 공연 상세 9,000회 = 초당 150회 → 백엔드 초당 750~900건 중 GP-3 · GE-5가 300건. 서버 캐시(수명 10초, 컨테이너 하나)를 켜면 이 300건이 초당 0.2건으로 줄어 **전체 약 40% 감소**, GP-5 · GM-1 · GA-3 · O-1(초당 450~600건)은 그대로다. 같은 페이지 안 클라이언트 이동(목록 → 상세)도 서버 렌더라 GP-3 · GE-5를 다시 부른다.
+
+**결정 — 🤖 Claude 판단**(근거 / 되돌리려면)
+1. **공연 상세 서버 캐시를 붙이지 않음** — 줄일 수 있는 것이 GP-3 · GE-5뿐(위 표)이고 오픈 순간의 무거운 조회(GP-5 · O-1)는 캐시 대상이 아니며, 백엔드 포화를 아직 잰 적이 없다. 안 붙인 쪽이 되돌리기 쉽다 / 켜려면 tech-decisions §2 "켤 때 — 스위치 위치와 모양" 표대로(새 파일 하나 + 페이지 두 줄)
+2. `renderNoticeHtml` 파일 분리 — 같은 함수 · 같은 테스트, import 경로만 / 되돌리려면 `notice-rules.ts`로 다시 옮김(그러면 모든 라우트 +64KB)
+3. 포스터 `fetchPriority="high"` — 공연홈 히어로와 같은 방식 / 한 줄 삭제
+4. Lighthouse · k6를 의존성에 넣지 않음 — 게이트 밖 도구이고 무겁다 / 넣으려면 devDependencies + 스크립트의 `LIGHTHOUSE_BIN`
+
+**사용자 대기**
+- 부하 시험 실행 — D2 스테이징 뒤 `k6 run -e BASE_URL=https://staging.dudoong.com -e EVENT_ID=…`(읽기만). 주문까지는 시험 공연 · 무료 티켓 · 시험 계정 토큰을 백엔드와 시간 맞춰. 결과로 tech-decisions §2 캐시 스위치를 켤지 정한다
+- 운영 실측 LCP · TTFB — 로컬 수치는 비교용. 운영 도메인 · 실기기(P15 전후)
+- `next/image` 전환 — P15 nginx `/_next/image` 차단 삭제 뒤(#12)
+- favicon 다시 받기 · 상단 배너 자리(CLS) — 디자인
+
+**검사**(2026-11-01, `NEXT_PUBLIC_KAKAO_JS_KEY=dummy`)
+- typecheck · 바꾼 파일 eslint 통과, `vitest related`(바꾼 파일) 3파일 48건 통과
+- e2e `notices` · `event-detail` · `shell` 68/68 통과(모든 테스트에 #79의 `cspViolations` · `consolePii` fixture), QA `notices` 16 통과 · `event-detail` 18 통과(수동 1 — 카카오 실기기)
+- ego-browser(실제 화면, 빌드 + 가짜 백엔드) — 공연 상세 · 공지 상세(sanitize 본문) · 호스팅 대시보드를 모바일 390 · PC 1440으로. 상단 배너가 모든 화면에서 뜬다(sanitize를 뺀 뒤에도), 공지 본문이 sanitize되어 그려진다, 서버 HTML의 포스터에 `fetchPriority="high"`. 발견 #16

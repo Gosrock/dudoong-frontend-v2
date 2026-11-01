@@ -327,6 +327,8 @@ function EventPoster({ src, alt }: { src: string | null; alt: string }) {
       className={s.poster}
       src={src}
       alt={alt}
+      // 첫 화면의 가장 큰 그림(LCP 후보) — 먼저 받게 한다(P14 성능)
+      fetchPriority="high"
       onError={() => setFailed(true)}
     />
   );
