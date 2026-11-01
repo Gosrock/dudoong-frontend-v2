@@ -167,10 +167,10 @@ scenario(
         const drawer = await openDrawer(page);
         await expect(drawer.getByRole('link', { name: /^알림/ })).toBeVisible();
         await expect(drawer.getByRole('link', { name: /공연 준비/ })).toBeVisible();
-        // 말풍선은 포털로 그려져 드로어 밖에 있다
+        // 말풍선(포털로 드로어 밖)은 소속 호스트가 0개일 때만 — 이 계정은 호스트가 있다(이슈 #93 §3)
         await expect(
           page.getByRole('tooltip', { name: '두둥에서 공연을 시작해보세요!' }),
-        ).toBeVisible();
+        ).toHaveCount(0);
         // 로그아웃 위 "서비스 업데이트 노트" — 호스팅 드로어는 호스팅 공지 목록(P9c-V · Q4)
         await expect(drawer.getByRole('link', { name: '서비스 업데이트 노트' })).toHaveAttribute(
           'href',
@@ -227,6 +227,10 @@ scenario(
           `/login?redirect=${encodeURIComponent('/orders')}`,
         );
         await expect(drawer.getByText('아직 두둥에서 호스트가 없어요.')).toBeVisible();
+        // 호스트가 없으면 "공연 준비 ↗" 옆 말풍선(GUI 331:11622)이 보인다(이슈 #93 §3)
+        await expect(
+          page.getByRole('tooltip', { name: '두둥에서 공연을 시작해보세요!' }),
+        ).toBeVisible();
         await expect(page.getByText('호스팅 센터')).toHaveCount(0);
       },
     );

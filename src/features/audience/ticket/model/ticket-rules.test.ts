@@ -9,7 +9,14 @@ import {
   TICKET_STATE_VIEW,
   ticketStateView,
 } from './my-ticket-state';
-import { clampIndex, noticeBar, pagerLabel, stateCounts, toTicketGroupView } from './ticket-groups';
+import {
+  clampIndex,
+  noticeBar,
+  pagerLabel,
+  sortTicketGroups,
+  stateCounts,
+  toTicketGroupView,
+} from './ticket-groups';
 
 describe('티켓 state 11값 → 표시', () => {
   it.each([
@@ -153,6 +160,36 @@ describe('묶음 카드', () => {
   it('인덱스는 장수가 줄어도 범위 안', () => {
     expect(clampIndex(4, 2)).toBe(1);
     expect(clampIndex(Number.NaN, 2)).toBe(0);
+  });
+});
+
+describe('캐러셀 순서(이슈 #93 §3)', () => {
+  const ev = (eventId: number, displayStatus: 'UPCOMING' | 'ONGOING' | 'PAST') => ({
+    eventId,
+    name: `공연 ${eventId}`,
+    posterImageUrl: null,
+    startAt: null,
+    displayStatus,
+  });
+  it('다가오는·진행 중 → 지난 공연 → 삭제된 공연, 같은 무리 안은 서버 순서 그대로', () => {
+    const groups = [
+      { key: 'del1', event: null },
+      { key: 'past1', event: ev(1, 'PAST') },
+      { key: 'up1', event: ev(2, 'ONGOING') },
+      { key: 'del2', event: null },
+      { key: 'up2', event: ev(3, 'UPCOMING') },
+      { key: 'past2', event: ev(4, 'PAST') },
+    ];
+    expect(sortTicketGroups(groups).map((g) => g.key)).toEqual([
+      'up1',
+      'up2',
+      'past1',
+      'past2',
+      'del1',
+      'del2',
+    ]);
+    // 원본 배열은 바꾸지 않는다
+    expect(groups[0]!.key).toBe('del1');
   });
 });
 

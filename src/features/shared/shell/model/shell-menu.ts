@@ -106,6 +106,11 @@ type MenuBase = {
   /** 주문내역 · 관심 호스트 …(로그인이면 티켓 · 아카이빙까지) */
   items: ShellLink[];
   hostRow: ShellHostRow;
+  /**
+   * "공연 준비 ↗" 옆 말풍선 "두둥에서 공연을 시작해보세요!"(GUI `331:11622`)를 띄울지 — 소속 호스트가 0개일 때만
+   * (미로그인 포함). 호스트가 있는 사용자에게는 권유가 맞지 않는다(이슈 #93 §3)
+   */
+  startHint: boolean;
   /** 새 호스트 만들기 · 새 공연 만들기 */
   create: ShellLink[];
 };
@@ -124,13 +129,15 @@ export type ShellMenu =
 export function shellMenu(me: Me | null): ShellMenu {
   const loggedIn = me !== null;
   const link = (key: ShellLinkKey) => shellLink(key, loggedIn);
+  const hostRow = shellHostRow(me);
   const base: MenuBase = {
     bell: link('bell'),
     shortcuts: [link('browse'), link('hosting')],
     items: loggedIn
       ? [link('tickets'), link('orders'), link('following'), link('archive')]
       : [link('orders'), link('following')],
-    hostRow: shellHostRow(me),
+    hostRow,
+    startHint: hostRow.emptyText !== null,
     create: [link('newHost'), link('newEvent')],
   };
   if (!me) return { ...base, kind: 'anonymous', login: link('login') };

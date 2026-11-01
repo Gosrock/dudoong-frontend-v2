@@ -133,7 +133,10 @@ export function ShellDrawerContent({
       <Divider />
 
       <Flex direction="column" gap={4} fullWidth>
-        {hosting && (
+        {hosting &&
+          !menu.startHint &&
+          go(hosting, <ShortcutLabel label={hosting.label} />, s.shortcut)}
+        {hosting && menu.startHint && (
           <Tooltip
             content="두둥에서 공연을 시작해보세요!"
             side="right"

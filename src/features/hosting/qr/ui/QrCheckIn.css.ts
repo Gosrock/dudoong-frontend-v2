@@ -147,6 +147,12 @@ export const cameraProblem = style({
   textAlign: 'center',
 });
 
+/** 영상이 나오기 전 안내 — 카메라 칸 위에 겹친다(영상이 나오면 내린다) */
+export const cameraWaiting = style([
+  cameraProblem,
+  { position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' },
+]);
+
 export const problemIcon = style({
   display: 'inline-flex',
   color: vars.color.text.secondary,

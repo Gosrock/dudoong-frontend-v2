@@ -7,7 +7,13 @@ import { myTicketsQuery, newApprovedTicketsQuery } from '@/api/my-ticket/queries
 import type { MyTicketElement } from '@/api/my-ticket/schema';
 
 import { cardTarget, type TicketTarget } from './my-ticket-state';
-import { clampIndex, noticeBar, pagerLabel, toTicketGroupView } from './ticket-groups';
+import {
+  clampIndex,
+  noticeBar,
+  pagerLabel,
+  sortTicketGroups,
+  toTicketGroupView,
+} from './ticket-groups';
 
 /**
  * 티켓탭(`/tickets`, plan P8). 보호 화면이라 `<AsyncBoundary>` 안에서 T-1을 `useSuspenseQuery`로 읽는다.
@@ -15,12 +21,12 @@ import { clampIndex, noticeBar, pagerLabel, toTicketGroupView } from './ticket-g
  *
  * - 묶음 안 선택은 `ticketUuid`가 아니라 **인덱스**로 기억한다(선물 수락·반환 때 uuid가 바뀐다). 목록이 다시 와서 장수가 줄면 범위 안으로 맞춘다
  * - 상세를 여는 것(시트·전체화면)은 V가 한다. 이 훅은 카드 → 열 대상(`targetOf`)만 준다
- * - 정렬은 서버의 공연 임박순 하나(고정 라벨 "공연임박순")
+ * - 정렬은 서버의 공연 임박순 하나(고정 라벨 "공연임박순"). 지난 공연 · 삭제된 공연 묶음만 뒤로 모은다(`sortTicketGroups`)
  */
 export function useTicketTab() {
   const { data } = useSuspenseQuery(myTicketsQuery());
   const notice = useQuery(newApprovedTicketsQuery());
-  const groups = useMemo(() => data.groups.map(toTicketGroupView), [data]);
+  const groups = useMemo(() => sortTicketGroups(data.groups).map(toTicketGroupView), [data]);
   const [selected, setSelected] = useState<Record<string, number>>({});
 
   const selectedIndex = useCallback(

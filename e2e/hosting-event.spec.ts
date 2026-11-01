@@ -72,7 +72,11 @@ test.describe('간편 공연 만들기', () => {
     await expect(page.getByRole('button', { name: '다음' })).toBeDisabled();
     await page.getByRole('radio', { name: /고스락/ }).click();
     await page.getByRole('button', { name: '다음' }).click();
-    await expect(page).toHaveURL('/hosting/new/events?step=2');
+    await expect(page).toHaveURL(/\/hosting\/new\/events\?step=2&hostId=\d+$/);
+    await expect(page.getByTestId('selected-host')).toHaveText('호스트: 고스락');
+    // 새로고침해도 고른 호스트가 주소(&hostId=)로 남는다(이슈 #93 §4)
+    await page.reload();
+    await expect(page.getByTestId('wizard-step')).toHaveAttribute('data-step', '2');
     await expect(page.getByTestId('selected-host')).toHaveText('호스트: 고스락');
 
     await createNoTicketEvent(page);
@@ -95,7 +99,7 @@ test.describe('간편 공연 만들기', () => {
     await pick(page, '연락처 유형 1', '인스타그램');
     await page.getByLabel('연락처 1').fill('@newband');
     await page.getByRole('button', { name: '다음' }).click();
-    await expect(page).toHaveURL('/hosting/new/events?step=2');
+    await expect(page).toHaveURL(/\/hosting\/new\/events\?step=2&hostId=\d+$/);
     await expect(page.getByTestId('selected-host')).toHaveText('호스트: 새 밴드');
     // 뒤로가기 = Step1, 만든 호스트가 골라져 있다
     await page.goBack();
