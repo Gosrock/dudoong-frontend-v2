@@ -85,6 +85,8 @@ describe('크리티컬 패스: 상세 → 선택 → 체크아웃 → 주문 →
         { optionId: 702, answer: '보컬' },
       ]);
       co.result.current.form.setValue('agreeRefundPolicy', true);
+      co.result.current.form.setValue('hostProvisionAgreed', true);
+      co.result.current.form.setValue('dudoongTicketNoticeConfirmed', true);
     });
     await act(() => co.result.current.submit());
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
@@ -144,7 +146,11 @@ describe('크리티컬 패스: 상세 → 선택 → 체크아웃 → 주문 →
       () => useCheckout({ eventId: EVENT, checkout, depositorName: '두둥이', quantity: 1 }),
       { wrapper: audience.wrapper },
     );
-    act(() => co.result.current.form.setValue('agreeRefundPolicy', true));
+    act(() => {
+      co.result.current.form.setValue('agreeRefundPolicy', true);
+      co.result.current.form.setValue('hostProvisionAgreed', true);
+      co.result.current.form.setValue('dudoongTicketNoticeConfirmed', true);
+    });
     await act(() => co.result.current.submit());
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const orderUuid = /\/orders\/([^?]+)\?/.exec(String(router.replace.mock.calls[0]![0]))![1]!;

@@ -1,5 +1,9 @@
+import { http } from 'msw';
+
 import { CHECKOUT_TICKET } from '@/api/__mocks__/fixtures/order';
 import { orderHandlers } from '@/api/__mocks__/order.handlers';
+import { errors } from '@/api/__mocks__/respond';
+import { AGREEMENT_VERSION } from '@/api/shared/agreement';
 import { checkoutHref } from '@/features/audience/checkout/model/checkout-params';
 
 import { setMockSession } from './support/auth';
@@ -27,10 +31,15 @@ test.describe('체크아웃 → 주문 완료', () => {
       .click();
     await page.getByRole('textbox', { name: '응원하는 멤버' }).fill('보컬');
     await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
+    await page.getByRole('checkbox', { name: '(필수) 호스트에게 개인정보 제공 동의' }).click();
     // (15,000 + 10,000) × 2
     await expect(page.getByTestId('checkout-amount')).toHaveText('50,000 원');
 
     await page.getByRole('button', { name: '결제하기' }).click();
+    await page
+      .getByRole('alertdialog', { name: '주문 완료하기' })
+      .getByRole('checkbox', { name: '(필수) 위 내용을 확인했으며 이에 동의합니다' })
+      .click();
     await page
       .getByRole('alertdialog', { name: '주문 완료하기' })
       .getByRole('button', { name: '결제완료' })
@@ -119,5 +128,55 @@ test.describe('체크아웃 → 주문 완료', () => {
     await page.goBack();
     await expect(page).toHaveURL(/\/events\/101$/);
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+  });
+
+  test('동의 강제 백엔드(Agreement_400_1): 거절되면 동의가 풀리고 다시 체크해 주문한다 — 본문에 호스트 제공 동의·입금 전 확인', async ({
+    page,
+    mockApi,
+  }) => {
+    let rejected = false;
+    mockApi.use(
+      http.post('*/api/v2/me/orders', ({ request }) => {
+        if (rejected) return undefined;
+        rejected = true;
+        return errors.agreementRequired(request);
+      }),
+      ...orderHandlers.agreementEnforced,
+    );
+    await setMockSession(page, 'loggedIn');
+    await page.goto(
+      checkoutHref(101, { ticketItemId: CHECKOUT_TICKET.paidNoOptions, quantity: 1 }),
+    );
+    const host = page.getByRole('checkbox', { name: '(필수) 호스트에게 개인정보 제공 동의' });
+    const dialog = page.getByRole('alertdialog', { name: '주문 완료하기' });
+    const notice = dialog.getByRole('checkbox', {
+      name: '(필수) 위 내용을 확인했으며 이에 동의합니다',
+    });
+    await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
+    await host.click();
+    await page.getByRole('button', { name: '결제하기' }).click();
+    await expect(dialog.getByRole('button', { name: '결제완료' })).toBeDisabled();
+    await notice.click();
+    await dialog.getByRole('button', { name: '결제완료' }).click();
+
+    await expect(
+      page.getByRole('alert').filter({ hasText: '필수 동의를 다시 확인하고 체크해 주세요.' }),
+    ).toBeVisible();
+    await expect(host).not.toBeChecked();
+    await expect(page).toHaveURL(/\/checkout\?/);
+
+    await host.click();
+    await page.getByRole('button', { name: '결제하기' }).click();
+    await notice.click();
+    const post = page.waitForRequest(
+      (r) => r.method() === 'POST' && r.url().endsWith('/api/v2/me/orders'),
+    );
+    await dialog.getByRole('button', { name: '결제완료' }).click();
+    expect((await post).postDataJSON()).toMatchObject({
+      hostProvisionAgreed: true,
+      dudoongTicketNoticeConfirmed: true,
+      agreementVersion: AGREEMENT_VERSION,
+    });
+    await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
   });
 });

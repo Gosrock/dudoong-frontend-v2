@@ -45,8 +45,20 @@ const values = (
   t = withOptions,
 ): CheckoutFormValues => {
   const init = initialCheckoutValues(t);
-  return { ...init, options: { ...init.options, ...patch }, agreeRefundPolicy: true };
+  // 필수 동의를 모두 체크한 값(동의 칸 2026-11-01 붙임) — 동의를 빼 보는 테스트는 `unagreed`
+  return {
+    ...init,
+    options: { ...init.options, ...patch },
+    agreeRefundPolicy: true,
+    hostProvisionAgreed: true,
+    dudoongTicketNoticeConfirmed: true,
+  };
 };
+const unagreed = (v: CheckoutFormValues): CheckoutFormValues => ({
+  ...v,
+  hostProvisionAgreed: false,
+  dudoongTicketNoticeConfirmed: false,
+});
 
 const ctx = (t: PublicTicketItem, quantity: number) => ({
   eventId: CHECKOUT_EVENT_ID,
@@ -157,26 +169,32 @@ describe('검증 — 옵션 전부 필수', () => {
     const freeV = {
       ...initialCheckoutValues(free),
       agreeRefundPolicy: true,
+      hostProvisionAgreed: true,
       paymentChannel: 'BANK_TRANSFER' as const,
     };
     expect(issues(freeV, 1, free).map(([p]) => p)).toEqual(['paymentChannel']);
   });
 });
 
-describe('주문 동의 칸(#840 — Q42 대기, #384 강제 임박)', () => {
+describe('주문 동의 칸(#840 — 2026-11-01 붙임, 위치는 Q42 답 전 잠정)', () => {
   const ON = { hostProvision: true, dudoongNotice: true };
   const issues = (v: CheckoutFormValues, t: PublicTicketItem, fields = ON) =>
     checkoutFormSchema(t, 1, fields)
       .safeParse(v)
       .error?.issues.map((i) => [i.path.join('.'), i.message]) ?? [];
 
-  it('지금은 칸이 없다 — 미체크여도 통과', () => {
-    expect([HOST_PROVISION_FIELD, DUDOONG_NOTICE_FIELD]).toEqual([false, false]);
-    expect(checkoutAgreementFields(noOptions)).toEqual({
-      hostProvision: false,
-      dudoongNotice: false,
-    });
+  it('칸이 붙어 있다 — 기본 스키마도 미체크면 막는다', () => {
+    expect([HOST_PROVISION_FIELD, DUDOONG_NOTICE_FIELD]).toEqual([true, true]);
+    expect(checkoutAgreementFields(noOptions)).toEqual(ON);
+    expect(
+      checkoutFormSchema(noOptions, 1).safeParse(unagreed(values({}, noOptions))).success,
+    ).toBe(false);
     expect(checkoutFormSchema(noOptions, 1).safeParse(values({}, noOptions)).success).toBe(true);
+  });
+
+  it('칸을 끈 스키마(플래그 off)는 미체크여도 통과', () => {
+    const OFF = { hostProvision: false, dudoongNotice: false };
+    expect(issues(unagreed(values({}, noOptions)), noOptions, OFF)).toEqual([]);
   });
 
   it('칸을 켜면 두둥은 둘 다, 무료는 호스트 제공 동의만 필수', () => {
@@ -185,7 +203,7 @@ describe('주문 동의 칸(#840 — Q42 대기, #384 강제 임박)', () => {
       hostProvision: true,
       dudoongNotice: false,
     });
-    expect(issues(values({}, noOptions), noOptions)).toEqual([
+    expect(issues(unagreed(values({}, noOptions)), noOptions)).toEqual([
       ['hostProvisionAgreed', OPTION_ERROR.hostProvision],
       ['dudoongTicketNoticeConfirmed', OPTION_ERROR.dudoongNotice],
     ]);
@@ -263,6 +281,9 @@ describe('제출 본문 — 2모드가 요청 스키마를 통과', () => {
       paymentChannel: 'BANK_TRANSFER',
       depositorName: '두둥이',
       agreeRefundPolicy: true,
+      hostProvisionAgreed: true,
+      dudoongTicketNoticeConfirmed: true,
+      agreementVersion: AGREEMENT_VERSION,
     });
     expect(CreateOrderRequestSchema.safeParse(body).success).toBe(true);
   });

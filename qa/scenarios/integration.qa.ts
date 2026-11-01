@@ -193,9 +193,13 @@ scenario(
       '[관객] 동의 → [결제하기] → 입금 확인 금액도 50,000 원 → [결제완료] → 주문 완료',
       async () => {
         await page.getByRole('checkbox', { name: /주문내용과 환불\/취소 규정/ }).click();
+        await page.getByRole('checkbox', { name: '(필수) 호스트에게 개인정보 제공 동의' }).click();
         await page.getByRole('button', { name: '결제하기' }).click();
         const dialog = page.getByRole('alertdialog', { name: '주문 완료하기' });
         await expect(dialog.getByText('50,000 원')).toBeVisible();
+        await dialog
+          .getByRole('checkbox', { name: '(필수) 위 내용을 확인했으며 이에 동의합니다' })
+          .click();
         await dialog.getByRole('button', { name: '결제완료' }).click();
         await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
         orderUuid = new URL(page.url()).pathname.split('/').at(-1)!;

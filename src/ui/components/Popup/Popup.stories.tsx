@@ -79,3 +79,18 @@ export const Loading: Story = {
     await expect(screen.getByRole('alertdialog')).toBeInTheDocument();
   },
 };
+
+/** 확인만 막기(`confirmDisabled`) — 필수 체크 전(체크아웃 두둥 입금 전 확인, 2026-11-01). 취소는 그대로 */
+export const ConfirmDisabled: Story = {
+  args: { confirmDisabled: true },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement);
+    await userEvent.click(c.getByRole('button', { name: '열기' }));
+    const dialog = await screen.findByRole('alertdialog', { name: '주문 완료하기' });
+    await expect(within(dialog).getByRole('button', { name: '확인' })).toBeDisabled();
+    await expect(within(dialog).getByRole('button', { name: '취소' })).toBeEnabled();
+    await userEvent.click(within(dialog).getByRole('button', { name: '취소' }));
+    await expect(args.onConfirm).not.toHaveBeenCalled();
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+  },
+};

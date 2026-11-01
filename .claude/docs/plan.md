@@ -22,7 +22,7 @@
 | 기다리는 것 | 열린 칸 |
 |---|---|
 | D2 스테이징 첫 배포(백엔드 B15 — ECR 저장소·푸시 역할 **2026-10-31 처리**, 남은 것은 Deploy §6 1~4번과 main `:dev` 첫 빌드) | P4b 스테이징 배포·두 탭 동시 재발급 실확인·카카오톡 인앱 실기기, P5b 카카오 공유 디버거, P7 스테이징 실제 주문 1회, P8b 미가입 수신자 가입 왕복, P13a 크리티컬 패스 실왕복 |
-| design-requests Q42(동의 체크 칸 위치 — **우선순위 높음**: 백엔드 동의 강제가 v1 어드민 가입 수정 배포 직후 켜진다, v1 Front #384) | P4b `ageOver14Confirmed`, P7 주문 동의 필드, P12 `refundObligationAgreed` — L은 끝났고(2026-10-31 필드별 플래그 `AGE_OVER_14_FIELD`·`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`·`REFUND_OBLIGATION_FIELD`, 기본 끔) 칸이 생기면 플래그를 켠다 |
+| design-requests Q42(동의 체크 칸 위치 — **우선순위 높음**: 백엔드 동의 강제가 v1 어드민 가입 수정 배포 직후 켜진다, v1 Front #384) | P4b `ageOver14Confirmed`, P7 주문 동의 필드, P12 `refundObligationAgreed` — L은 끝났고(2026-10-31 필드별 플래그 `AGE_OVER_14_FIELD`·`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`·`REFUND_OBLIGATION_FIELD`, 기본 끔) 칸이 생기면 플래그를 켠다. **2026-11-01 칸을 DS로 붙이고 네 플래그를 켰다**(백엔드 #905 1-1 — 출시 전 필수). 남은 것은 위치(디자인 답) |
 | 실기기(P4s-V로 옮김) | P2 바텀시트·모달 iOS Safari 스크롤 락·키보드 회피 |
 
 - **V(화면)**: 전부 시작 전 — 디자인을 기다린다(디자인 후속 보류, 사용자 결정 2026-10-25). P14·P15는 전 Phase의 L·V 뒤.
@@ -372,7 +372,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] `AUTH_400_1`이면 로그인을 다시 시작
 - [ ] 두 탭이 동시에 만료돼도 실제 재발급 뒤 로그인이 유지됨(백엔드 #807로 기기별 세션 + 직전 토큰 30초 유예라 동시 재발급이 안전해졌다 — [`backend-questions.md`](./backend-questions.md) B1 해결. 실제 확인은 그대로 남긴다)
 - [x] **가입 전화번호는 `010-1234-1234` 모양만 보낸다(사용자 결정 2026-10-31)** — 입력은 숫자만 남겨 하이픈을 자동으로 넣고(`formatPhoneInput` — 11자리에서 자름), 카카오 값 `+82 10-…`도 `010-…`으로 바꿔 채운다. 비어 있으면 `null`(선택 그대로), 모양이 틀리면 칸 오류 `phoneFormat`(문구 잠정 "휴대폰 번호를 010-1234-5678 형식으로 입력해 주세요")으로 제출을 막는다(`register-form.test`·`useKakaoCallback.test`). 같은 사용자 전화번호 필드에 쓰는 다른 입력은 v2에 없다(PM-2는 이름·이미지뿐, 호스트·공연 연락처는 `PhoneNumberVo`가 아니다). 서버도 가입 때 검사한다(백엔드 #896 / 2.5.2 — B22 답, 빈 값 null·한국 번호는 유효 번호만): 400 `USER_400_2`는 서버 문구 대신 칸 오류 `phoneInvalid` "전화번호를 확인해 주세요"(문구 잠정)로 보이고 그 번호를 고칠 때까지 제출을 막는다(`useKakaoCallback.test`, patterns §24 P4b)
-- [ ] 가입 본문에 사용자가 체크한 동의 필드만 실림(UI 없는 것은 Q42 대기), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 이용약관 체크 → `termsAgreed` + `agreementVersion`, 미체크 → 키 없음(`register-form.test`), 강제 400 → 일반 실패(`useKakaoCallback.test`) 완료. `ageOver14Confirmed`는 Q42 칸이 정해진 뒤. 2026-10-31(#384 대응): `RegisterConsents.ageOver14` → 체크하면 `ageOver14Confirmed: true`(`register-form.test`), 체크하면 강제 백엔드 통과(`useKakaoCallback.test`), 필수 판정은 `AGE_OVER_14_FIELD`(기본 false — 사용자 결정 필드별 플래그)가 켜질 때만, "전체 동의"는 칸 없는 만 14세를 켜지 않는다. 남은 것: 칸(V) + 플래그 켜기. **위험(2026-10-31, v1 Front #384)**: 백엔드는 v1 호스트 어드민 가입 수정이 배포되면 바로 `AGREEMENT_ENFORCE=true`로 켠다 — v2 칸(Q42)·출시보다 먼저 켜질 가능성이 크다. 켜지면 v2는 가입(만 14세)·주문(호스트 제공 동의, 두둥 입금 전 확인)·두둥티켓 생성·무료 → 두둥 수정(환불 의무 동의)이 **전부 400 `Agreement_400_1`**이다(운영·스테이징 같은 env — 스테이징 백엔드를 쓰는 v2 스테이징도)
+- [x] 가입 본문에 사용자가 체크한 동의 필드만 실림(UI 없는 것은 Q42 대기), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 이용약관 체크 → `termsAgreed` + `agreementVersion`, 미체크 → 키 없음(`register-form.test`), 강제 400 → 일반 실패(`useKakaoCallback.test`) 완료. `ageOver14Confirmed`는 Q42 칸이 정해진 뒤. 2026-10-31(#384 대응): `RegisterConsents.ageOver14` → 체크하면 `ageOver14Confirmed: true`(`register-form.test`), 체크하면 강제 백엔드 통과(`useKakaoCallback.test`), 필수 판정은 `AGE_OVER_14_FIELD`(기본 false — 사용자 결정 필드별 플래그)가 켜질 때만, "전체 동의"는 칸 없는 만 14세를 켜지 않는다. 남은 것: 칸(V) + 플래그 켜기. **2026-11-01 칸 붙임(agreement-fields)**: 백엔드 #905 1-1 "v2는 출시 전 동의 칸 4개 필수" — Q42 답 전이라 DS로만(🤖 관제탑 판단 2026-11-01), 위치는 디자인 답이 오면 옮긴다(Q42 열림). 가입 오버레이 이용약관 위 DS Checkbox "(필수) 만 14세 이상입니다"(legal-copy B-3), `AGE_OVER_14_FIELD = true` — 필수·전체 동의에 들어감. 서버 거절 `Agreement_400_1` → 동의를 모두 풀고 `agreement` 오류("필수 동의를 다시 확인하고 체크해 주세요.", 동의 묶음 `aria-describedby`)로 다시 체크받음(`useKakaoCallback.test`, e2e `auth.spec`, QA LOGIN-11). 남은 것: 스테이징 강제 리허설. **위험(2026-10-31, v1 Front #384)**: 백엔드는 v1 호스트 어드민 가입 수정이 배포되면 바로 `AGREEMENT_ENFORCE=true`로 켠다 — v2 칸(Q42)·출시보다 먼저 켜질 가능성이 크다. 켜지면 v2는 가입(만 14세)·주문(호스트 제공 동의, 두둥 입금 전 확인)·두둥티켓 생성·무료 → 두둥 수정(환불 의무 동의)이 **전부 400 `Agreement_400_1`**이다(운영·스테이징 같은 env — 스테이징 백엔드를 쓰는 v2 스테이징도)
 - [x] 오픈 리다이렉트 차단
 - [ ] 카카오톡 인앱 브라우저(iOS WKWebView · Android WebView) 실기기에서 Web Locks 동작과 `localStorage`(`dd:session`) 유지 확인. Web Locks가 없으면 대체 경로로 동작 — 인증 로직 확인이라 L에 둔다(D2 뒤, 화면 디자인과 무관)
 - [x] **`SameSite=Strict` 재현**: 로컬에서 응답 쿠키를 `SameSite=Strict`로 바꿔(개발 프록시 또는 브라우저 확장) 외부 링크로 보호 화면 진입, 카카오 로그인 복귀 직후 로그인 상태 유지를 확인. 스테이징 쿠키는 `Lax`라 이 확인을 대신하지 못한다. 운영 확인은 P15 리허설 체크리스트
@@ -503,7 +503,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 3분기 각각 주문 생성 응답의 상태가 맞음(승인은 dev 서버의 v1 어드민이나 API 직접 호출로 대신한다)
 - [x] 주문 완료 주소에서 새로고침해도 같은 내용(G11/O-3 재조회)
 - [x] 토스 송금 링크의 금액 = `totalAmount`, 은행명 값은 [`backend-questions.md`](./backend-questions.md) B3 결과에 따라 P12 은행 목록 값 (B3 해결 2026-10-25: `bankCode` 기반 매핑으로 바꾸는 일이 남았다 — implementation-log 코드 수정 거리)
-- [ ] 주문 본문의 동의 필드(`hostProvisionAgreed`, 두둥은 `dudoongTicketNoticeConfirmed`, 그때만 `agreementVersion`)는 사용자가 체크한 필드만 실리고 동의 전 제출이 막힘(MSW 본문 검사), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 스키마(`order/schema.test`)·칸이 없어 안 보냄·강제 400 → 전역 토스트, 완료로 안 감(`useCheckout.test`) 완료. 실리는 것·동의 전 막힘은 Q42 칸이 생긴 뒤. 2026-10-31(#384 대응): 폼 값 `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed` → 체크한 것만 실림(무료는 두둥 확인을 싣지 않음), 체크하면 강제 백엔드 통과(`option-form.test`·`useCheckout.test`), 동의 전 막힘은 `HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`(기본 false)가 켜질 때만(스키마 테스트). `useCheckout().agreementFields`로 그릴 칸을 알려 준다(두둥 확인은 두둥만 — "입금하셨나요?" 단계). 남은 것: 칸(V) + 플래그 켜기
+- [x] 주문 본문의 동의 필드(`hostProvisionAgreed`, 두둥은 `dudoongTicketNoticeConfirmed`, 그때만 `agreementVersion`)는 사용자가 체크한 필드만 실리고 동의 전 제출이 막힘(MSW 본문 검사), 동의 강제 400 `Agreement_400_1` 분기(2026-10-25 추가). 2026-10-25: 스키마(`order/schema.test`)·칸이 없어 안 보냄·강제 400 → 전역 토스트, 완료로 안 감(`useCheckout.test`) 완료. 실리는 것·동의 전 막힘은 Q42 칸이 생긴 뒤. 2026-10-31(#384 대응): 폼 값 `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed` → 체크한 것만 실림(무료는 두둥 확인을 싣지 않음), 체크하면 강제 백엔드 통과(`option-form.test`·`useCheckout.test`), 동의 전 막힘은 `HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`(기본 false)가 켜질 때만(스키마 테스트). `useCheckout().agreementFields`로 그릴 칸을 알려 준다(두둥 확인은 두둥만 — "입금하셨나요?" 단계). **2026-11-01 칸 붙임(agreement-fields)**: 백엔드 #905 1-1 "v2는 출시 전 동의 칸 4개 필수" — Q42 답 전이라 DS로만(🤖 관제탑 판단 2026-11-01), 위치는 디자인 답이 오면 옮긴다(Q42 열림). ② 하단 바 위 섹션 DS Checkbox "(필수) 호스트에게 개인정보 제공 동의" + DS Accordion [자세히](legal-copy B-1 원문, 두둥은 ", 입금자명·환불 계좌") — 미체크 제출은 칸 오류. ③ 입금 확인 `Popup` 안 A-6 ①~③ + DS Checkbox "(필수) 위 내용을 확인했으며 이에 동의합니다" — 체크 전 [결제완료] 비활성(`Popup confirmDisabled` 추가), 모달 전 `validate()`는 ③을 빼고 본다. `HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD = true`. 서버 거절 `Agreement_400_1` → 표 `AGREEMENT`(폼 상단 안내) + 주문 동의 칸을 풀어 다시 체크(공용 토스트 없음 — `useCheckout.test`, e2e `checkout.spec`, QA CHK-19·CHK-20). 남은 것: 스테이징 강제 리허설
 - [x] `Order_400_15`·`Ticket_Item_400_1`(재고)·`Ticket_Item_400_6`(1인 제한) 뒤 GP-5를 다시 읽어 수량 상한이 갱신됨
 - [x] 에러 분기: patterns §화면별 에러 처리의 P7 행
 - [ ] 스테이징에서 agent-browser로 실제 주문 생성 1회(D2 뒤). 승인 → 티켓 발급까지의 전 구간은 P13a
@@ -775,7 +775,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 옵션 수정 본문에서 응답 형식을 바꿀 수 없음
 - [x] 에러 분기: patterns §화면별 에러 처리의 P12 행
 - [x] 새 티켓 폼을 기본값 그대로 저장해도 서버가 받는 조합(무제한이면 재고 공개 꺼짐)
-- [x] 두둥 티켓 생성 본문에 사용자가 체크한 `refundObligationAgreed`와 그때만 `agreementVersion`(칸은 Q42 대기), 무료 티켓에는 없음. 계좌 본문에 `bankCode`(2026-10-25 추가). 2026-10-31(#384): `REFUND_OBLIGATION_FIELD`는 칸이 생길 때까지 false 유지(사용자 결정 — 필드별 플래그, 기본 끔). 강제가 먼저 켜지면 두둥 생성·무료 → 두둥 수정이 400(P4b 위험 줄)
+- [x] 두둥 티켓 생성 본문에 사용자가 체크한 `refundObligationAgreed`와 그때만 `agreementVersion`(칸은 Q42 대기), 무료 티켓에는 없음. 계좌 본문에 `bankCode`(2026-10-25 추가). 2026-10-31(#384): `REFUND_OBLIGATION_FIELD`는 칸이 생길 때까지 false 유지(사용자 결정 — 필드별 플래그, 기본 끔). 강제가 먼저 켜지면 두둥 생성·무료 → 두둥 수정이 400(P4b 위험 줄). **2026-11-01 칸 붙임(agreement-fields)**: 백엔드 #905 1-1 "v2는 출시 전 동의 칸 4개 필수" — Q42 답 전이라 DS로만(🤖 관제탑 판단 2026-11-01), 위치는 디자인 답이 오면 옮긴다(Q42 열림). 폼 맨 아래(PC 왼쪽 열 끝, 저장 버튼 바로 위) FormSection "환불 의무 안내" + NoticeBox(legal-copy C-1 원문) + DS Checkbox "위 내용을 확인했고 환불 의무를 지키는 데 동의합니다" — 두둥 만들기·무료 → 두둥 수정에서만, 체크 전 [티켓 만들기]/[저장하기] 비활성. `REFUND_OBLIGATION_FIELD = true`. 서버 거절 `Agreement_400_1` → 폼 오류 + 체크 해제(`useTicketForm.test`, e2e `hosting-ticket.spec`, QA HT-7·HT-8)(#92-2)
 
 **완료 기준 — V**
 - [x] 라벨이 두둥 티켓/무료 티켓, 무제한이면 재고 공개 토글이 비활성으로 그려짐 — QA HT-7, e2e `hosting-ticket.spec`(P12-V 2026-11-01)
@@ -865,7 +865,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 - [x] 컷오버 · 롤백 런북 — 순서 · 프리즈 조건 · Deploy diff(§6 1~6 · 8 · 9번) · 롤백 단계 · 기준 · 시간 · 리허설 체크리스트 · 버전 올리는 법
 - [x] 릴리스 경로 점검(deploy-plan §8 D3) — `release.yml` · `image.yml` 문서와 일치
 - [ ] (사람) Deploy PR ①(스테이징 v2) · 리허설 · `v2.0.0` 태그 · 롤백 리허설 — 런북 §3-1 · §4 · §6
-- [ ] (사람) `AGREEMENT_ENFORCE` 확인 · 동의 칸(Q42) — 런북 §2
+- [ ] (사람) `AGREEMENT_ENFORCE` 확인 · 동의 칸(2026-11-01 DS로 붙임 — 스테이징 강제 리허설 대기, 위치는 Q42) — 런북 §2
 - [ ] (사람) 프리즈 윈도우 · Deploy PR ②(운영 컷오버) — 런북 §1 · §3-2 · §7-1
 - [ ] (사람) 서치 콘솔 · 네이버 인증 · sitemap 제출 · 리치 결과 테스트 · 운영 LCP/TTFB 실측 — 런북 §7-2
 

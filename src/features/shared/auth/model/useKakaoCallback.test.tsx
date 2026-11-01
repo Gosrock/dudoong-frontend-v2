@@ -151,8 +151,8 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
       privacy: false,
       marketing: false,
     });
-    // 만 14세 칸은 Q42 대기 — 그리지 않고 필수도 아니다
-    expect(form.consentFields).toEqual({ ageOver14: false });
+    // 만 14세 칸(2026-11-01 붙임) — 그리고 필수
+    expect(form.consentFields).toEqual({ ageOver14: true });
     expect(form.canSubmit).toBe(false);
     expect(replace).not.toHaveBeenCalled();
     expect(readSessionFlag()).toBeNull();
@@ -164,6 +164,9 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     act(() => form().setConsent('terms', true));
     expect(form().canSubmit).toBe(false);
     act(() => form().setConsent('privacy', true));
+    // 만 14세 칸이 필수(2026-11-01)
+    expect(form().canSubmit).toBe(false);
+    act(() => form().setConsent('ageOver14', true));
     expect(form().requiredAgreed).toBe(true);
     expect(form().allAgreed).toBe(false);
     expect(form().canSubmit).toBe(true);
@@ -183,7 +186,8 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
           profileImage: 'http://k.kakaocdn.net/dn/mock/new.jpg',
           name: '새내기',
           marketingAgree: false,
-          // 이용약관 체크 값(#850). 만 14세(ageOver14Confirmed)는 칸이 없어 키가 없다(Q42)
+          // 만 14세(#840) · 이용약관(#850) 체크 값
+          ageOver14Confirmed: true,
           termsAgreed: true,
           agreementVersion: '2026-11',
         },
@@ -204,24 +208,51 @@ describe('카카오 콜백 — 신규 사용자(회원가입)', () => {
     expect((await sent.list())[0]?.body).toMatchObject({ marketingAgree: true });
   });
 
-  it('동의 강제가 켜진 백엔드(Agreement_400_1 — 만 14세 미전송)면 일반 실패로 남고 이동하지 않는다', async () => {
+  it('전체 동의 → 동의 강제 백엔드도 통과(만 14세·이용약관 모두 실림)', async () => {
     server.use(...authHandlers.registerAgreementEnforced);
     const form = await untilRegister('code=mock-new&state=s1');
     act(() => form().setAllConsents(true));
     const sent = recordRequests();
     await act(() => form().submit());
     const [post] = await sent.list();
-    expect(post?.body).toMatchObject({ termsAgreed: true, agreementVersion: '2026-11' });
-    expect(post?.body).not.toHaveProperty('ageOver14Confirmed');
-    expect(form().error).toBe('failed');
-    expect(form().submitting).toBe(false);
-    expect(replace).not.toHaveBeenCalled();
+    expect(post?.body).toMatchObject({
+      ageOver14Confirmed: true,
+      termsAgreed: true,
+      agreementVersion: '2026-11',
+    });
+    expect(form().error).toBeNull();
+    expect(replace).toHaveBeenCalledWith('/gate-check');
   });
 
-  it('전체 동의는 칸 없는 만 14세를 켜지 않는다 — 체크하지 않은 동의를 보내지 않는다', async () => {
+  it('서버가 동의를 거절(Agreement_400_1)하면 동의를 모두 풀고 agreement 오류 — 이동하지 않고, 다시 체크하면 낼 수 있다', async () => {
+    server.use(
+      http.post('*/api/v1/auth/oauth/kakao/register', ({ request }) =>
+        errors.agreementRequired(request),
+      ),
+    );
     const form = await untilRegister('code=mock-new&state=s1');
     act(() => form().setAllConsents(true));
-    expect(form().consents.ageOver14).toBe(false);
+    await act(() => form().submit());
+    expect(form().error).toBe('agreement');
+    expect(form().consents).toEqual({
+      ageOver14: false,
+      terms: false,
+      privacy: false,
+      marketing: false,
+    });
+    expect(form().canSubmit).toBe(false);
+    expect(form().submitting).toBe(false);
+    expect(replace).not.toHaveBeenCalled();
+    server.resetHandlers();
+    act(() => form().setAllConsents(true));
+    await act(() => form().submit());
+    expect(replace).toHaveBeenCalledWith('/gate-check');
+  });
+
+  it('전체 동의는 만 14세까지 켜고 끈다', async () => {
+    const form = await untilRegister('code=mock-new&state=s1');
+    act(() => form().setAllConsents(true));
+    expect(form().consents.ageOver14).toBe(true);
     act(() => form().setAllConsents(false));
     expect(form().consents).toEqual({
       ageOver14: false,

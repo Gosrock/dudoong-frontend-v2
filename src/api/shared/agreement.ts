@@ -15,6 +15,13 @@
  * 사용자 결정 2026-10-31). v1은 #385에서 올리지 않아 v1 값은 `'2026-10'` 그대로다.
  */
 export const AGREEMENT_VERSION = '2026-11';
+/**
+ * 서버가 동의를 거절했을 때(400 `Agreement_400_1` — 동의 강제가 켜졌는데 필수 동의가 빠짐) 화면 문구. 세 화면(가입·주문·티켓 폼)이
+ * 같이 쓴다. 화면은 체크해 둔 동의를 모두 풀고 지금 보이는 문구로 다시 체크받는다(patterns §24 — 2026-11-01 칸 붙임)
+ */
+export const AGREEMENT_REJECTED_MESSAGE = '필수 동의를 다시 확인하고 체크해 주세요.';
+export const AGREEMENT_REJECTED_CODE = 'Agreement_400_1';
+
 /** `AgreementLog.VERSION_MAX_LENGTH` */
 export const AGREEMENT_VERSION_MAX = 50;
 

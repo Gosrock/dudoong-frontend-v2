@@ -4,7 +4,7 @@ import { setMockSession } from '../../e2e/support/auth';
 import { CHECKOUT_TICKET } from '../../src/api/__mocks__/fixtures/order';
 import { orderHandlers } from '../../src/api/__mocks__/order.handlers';
 import { checkoutHref } from '../../src/features/audience/checkout/model/checkout-params';
-import { expect, scenario } from '../scenario';
+import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
  * 체크아웃 · 입금 확인 · 주문 완료(plan P7 완료 기준 V). 근거는 GUI Ready — 체크아웃 `564:4156`·`567:9316`·`567:9159`·
@@ -26,6 +26,15 @@ const href = (ticketItemId: number, quantity = 1) => checkoutHref(101, { ticketI
 
 const confirmDialog = (page: Page) => page.getByRole('alertdialog', { name: '주문 완료하기' });
 
+const NOTICE_CHECK = '(필수) 위 내용을 확인했으며 이에 동의합니다';
+const HOST_CHECK = '(필수) 호스트에게 개인정보 제공 동의';
+
+/** 입금 확인 다이얼로그 — 입금 전 확인(두둥, #840 ③) 체크 → [결제완료] */
+async function confirmDeposit(page: Page) {
+  await confirmDialog(page).getByRole('checkbox', { name: NOTICE_CHECK }).click();
+  await confirmDialog(page).getByRole('button', { name: '결제완료' }).click();
+}
+
 async function fillPaidOptions(page: Page, answer: '예' | '아니오' = '예') {
   await page
     .getByRole('radiogroup', { name: /뒤풀이 참석/ })
@@ -36,6 +45,7 @@ async function fillPaidOptions(page: Page, answer: '예' | '아니오' = '예') 
 
 async function agree(page: Page) {
   await page.getByRole('checkbox', { name: /주문내용과 환불\/취소 규정/ }).click();
+  await page.getByRole('checkbox', { name: HOST_CHECK }).click();
 }
 
 scenario(
@@ -125,7 +135,9 @@ scenario(
     await step(
       '[결제완료]를 누르면 주문 완료 화면(일러스트 · 주문 완료! · 두 버튼)이다',
       async () => {
-        await confirmDialog(page).getByRole('button', { name: '결제완료' }).click();
+        // 입금 전 확인(③ — 2026-11-01 붙임) 전에는 [결제완료]가 막혀 있다
+        await expect(confirmDialog(page).getByRole('button', { name: '결제완료' })).toBeDisabled();
+        await confirmDeposit(page);
         await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
         await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
         await expect(
@@ -450,7 +462,7 @@ for (const [id, code, what, message] of formErrors) {
       await agree(page);
       await step(`[결제하기] → [결제완료]를 누르면 "${message}"`, async () => {
         await page.getByRole('button', { name: '결제하기' }).click();
-        await confirmDialog(page).getByRole('button', { name: '결제완료' }).click();
+        await confirmDeposit(page);
         await expect(confirmDialog(page)).toBeHidden();
         await expect(page.getByRole('alert').filter({ hasText: message })).toBeVisible();
         await expect(page).toHaveURL(/\/checkout\?/);
@@ -500,7 +512,7 @@ scenario(
     await agree(page);
     await step('[결제완료]를 누르면 상세로 가고 "공연이 시작되어 예매할 수 없어요."', async () => {
       await page.getByRole('button', { name: '결제하기' }).click();
-      await confirmDialog(page).getByRole('button', { name: '결제완료' }).click();
+      await confirmDeposit(page);
       await expect(page).toHaveURL(/\/events\/101$/);
       await expect(page.getByText('공연이 시작되어 예매할 수 없어요.')).toBeVisible();
     });
@@ -530,30 +542,96 @@ scenario(
   },
 );
 
+let orderRejected = false;
 scenario(
   'CHK-19',
-  '백엔드 동의 강제(Agreement_400_1)면 공용 토스트가 뜨고 완료로 가지 않는다',
+  '백엔드가 주문 동의를 거절(Agreement_400_1)하면 동의가 풀리고 다시 체크해 주문한다',
   {
     kind: '에러',
     summary:
-      '주문 동의 칸은 Q42 대기라 화면에 없다(`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD` false). 강제가 먼저 켜지면 모든 주문이 400 — plan P7 위험.',
-    basis: [
-      'plan P7 완료 기준 L(동의 필드)',
-      'design-requests Q42',
-      'patterns §24 Agreement_400_1',
+      '동의 강제 켠 백엔드에서 첫 주문이 400 Agreement_400_1(옛 문구 화면 등) → 다이얼로그가 닫히고 맨 위 안내 + 동의 칸이 풀린다. 다시 체크하면 강제 백엔드를 통과한다. 공용 토스트 없음.',
+    basis: ['백엔드 #905 1-1', 'design-requests Q42 ②·③', 'patterns §24 Agreement_400_1'],
+    mocks: [
+      http.post('*/api/v2/me/orders', () => {
+        if (orderRejected) return undefined;
+        orderRejected = true;
+        return HttpResponse.json(envelope.error(400, 'Agreement_400_1'), { status: 400 });
+      }),
+      ...orderHandlers.agreementEnforced,
     ],
-    mocks: orderHandlers.agreementEnforced,
-    viewports: ['mobile'],
+  },
+  async ({ page, step }) => {
+    orderRejected = false;
+    await setMockSession(page, 'loggedIn');
+    await page.goto(href(CHECKOUT_TICKET.paidNoOptions));
+    await agree(page);
+    await step('[결제완료] → 거절되면 맨 위 안내가 나오고 동의 칸이 풀린다', async () => {
+      await page.getByRole('button', { name: '결제하기' }).click();
+      await confirmDeposit(page);
+      await expect(confirmDialog(page)).toBeHidden();
+      await expect(
+        page.getByRole('alert').filter({ hasText: '필수 동의를 다시 확인하고 체크해 주세요.' }),
+      ).toBeVisible();
+      await expect(page.getByRole('checkbox', { name: HOST_CHECK })).not.toBeChecked();
+      await expect(page).toHaveURL(/\/checkout\?/);
+    });
+    await step('다시 체크하고 내면 주문 완료', async () => {
+      await page.getByRole('checkbox', { name: HOST_CHECK }).click();
+      await page.getByRole('button', { name: '결제하기' }).click();
+      await expect(
+        confirmDialog(page).getByRole('checkbox', { name: NOTICE_CHECK }),
+      ).not.toBeChecked();
+      await confirmDeposit(page);
+      await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
+    });
+  },
+);
+
+scenario(
+  'CHK-20',
+  '주문 동의 칸 — 호스트 제공 동의는 하단 바 위(체크 전 막힘 · [자세히] 펼침), 두둥 입금 전 확인은 입금 확인 다이얼로그 안',
+  {
+    kind: '정상',
+    summary:
+      '디자인 없음(Q42) — DS Checkbox · Accordion으로만. ② 호스트 제공 동의(legal-copy B-1 원문, 두둥은 ", 입금자명·환불 계좌") — 미체크로 누르면 칸 아래 오류. ③ 입금 전 확인(A-6 ①~③) — 체크 전 [결제완료] 비활성. 무료는 ③이 없다(무료 승인형 시나리오 — 다이얼로그 없이 완료).',
+    basis: ['백엔드 #905 1-1', 'design-requests Q42 ②·③', 'legal-copy B-1 · A-6'],
   },
   async ({ page, step }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto(href(CHECKOUT_TICKET.paidNoOptions));
-    await agree(page);
-    await step('[결제완료]를 눌러도 체크아웃에 남는다', async () => {
+    await step('환불 규정만 체크하고 누르면 호스트 제공 동의 오류', async () => {
+      await page.getByRole('checkbox', { name: /주문내용과 환불\/취소 규정/ }).click();
       await page.getByRole('button', { name: '결제하기' }).click();
-      await confirmDialog(page).getByRole('button', { name: '결제완료' }).click();
-      await expect(page.getByRole('status').or(page.getByRole('alert')).first()).toBeVisible();
-      await expect(page).toHaveURL(/\/checkout\?/);
+      await expect(page.getByText('개인정보 제공에 동의해 주세요')).toBeVisible();
+      await expect(page.getByRole('checkbox', { name: HOST_CHECK })).toHaveAccessibleDescription(
+        '개인정보 제공에 동의해 주세요',
+      );
+      await expect(confirmDialog(page)).toBeHidden();
     });
+    await step(
+      '[자세히]를 펼치면 제공받는 자 · 항목(두둥은 입금자명·환불 계좌) · 보유기간',
+      async () => {
+        await page.getByRole('button', { name: '자세히' }).click();
+        await expect(page.getByText(/^항목: .*입금자명·환불 계좌$/)).toBeVisible();
+        await expect(
+          page.getByText('보유기간: 공연 종료 후 6개월 (두둥티켓 입금·환불 내역은 3년)'),
+        ).toBeVisible();
+      },
+    );
+    await step(
+      '체크하면 입금 확인 다이얼로그 — 입금 전 확인 전에는 [결제완료]가 막힌다',
+      async () => {
+        await page.getByRole('checkbox', { name: HOST_CHECK }).click();
+        await page.getByRole('button', { name: '결제하기' }).click();
+        await expect(
+          confirmDialog(page).getByText(
+            '두둥티켓 대금은 호스트에게 직접 지급되며, 두둥은 대금을 받지 않습니다.',
+          ),
+        ).toBeVisible();
+        await expect(confirmDialog(page).getByRole('button', { name: '결제완료' })).toBeDisabled();
+        await confirmDialog(page).getByRole('checkbox', { name: NOTICE_CHECK }).click();
+        await expect(confirmDialog(page).getByRole('button', { name: '결제완료' })).toBeEnabled();
+      },
+    );
   },
 );

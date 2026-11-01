@@ -256,6 +256,14 @@ scenario(
       await page.getByRole('switch', { name: '판매 기간 설정' }).click();
       await expect(page.getByLabel('1인 최대 매수')).toBeVisible();
       await expect(page.getByTestId('sale-period')).toBeVisible();
+    });
+    await step('폼 맨 아래 환불 의무 안내 — 동의를 체크해야 [티켓 만들기]가 열린다', async () => {
+      // #840 ④ — 2026-11-01 DS로 붙임(디자인 Q42 답 전 잠정 위치)
+      await expect(page.getByTestId('refund-obligation')).toContainText('환불 의무 안내');
+      await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeDisabled();
+      await page
+        .getByRole('checkbox', { name: '위 내용을 확인했고 환불 의무를 지키는 데 동의합니다' })
+        .check();
       await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeEnabled();
     });
   },
@@ -276,6 +284,8 @@ scenario(
       await page.getByRole('radio', { name: '무료 티켓' }).click();
       await expect(page.getByLabel('가격')).toHaveCount(0);
       await expect(page.getByLabel('예금주')).toHaveCount(0);
+      // 환불 의무 동의는 두둥만
+      await expect(page.getByTestId('refund-obligation')).toHaveCount(0);
       await expect(page.getByRole('switch', { name: '관리자 승인 여부' })).toBeEnabled();
     });
     await step('ⓘ를 누르면 "관리자 승인이란?"', async () => {

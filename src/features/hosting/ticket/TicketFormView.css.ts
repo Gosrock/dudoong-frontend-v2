@@ -226,3 +226,11 @@ export const saveButton = style({
     },
   },
 });
+
+/** 환불 의무 동의(Q42 ④ — 디자인 없음). PC 두 열이면 왼쪽 열 맨 아래(저장 버튼 바로 위) */
+export const agreement = style({
+  display: 'flex',
+  flexDirection: 'column',
+  minWidth: 0,
+  '@media': { [media.desktopS]: { gridColumn: '1' } },
+});

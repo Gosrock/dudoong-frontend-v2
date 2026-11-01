@@ -3,7 +3,8 @@ import { http } from 'msw';
 
 import { authHandlers } from '@/api/__mocks__/auth.handlers';
 import { meHandlers } from '@/api/__mocks__/me.handlers';
-import { ok } from '@/api/__mocks__/respond';
+import { errors, ok } from '@/api/__mocks__/respond';
+import { AGREEMENT_VERSION } from '@/api/shared/agreement';
 
 import { readSessionFlag, setMockSession } from './support/auth';
 import { MOCK_ORIGIN } from './support/env';
@@ -67,10 +68,56 @@ test.describe('카카오 로그인 콜백', () => {
     await expect(submit).toBeDisabled();
     await page.getByRole('checkbox', { name: '(필수) 서비스 이용약관 동의' }).check();
     await page.getByRole('checkbox', { name: '(필수) 개인정보 처리방침 동의' }).check();
+    // 만 14세 칸(#840 — 2026-11-01 붙임)도 필수
+    await expect(submit).toBeDisabled();
+    await page.getByRole('checkbox', { name: '(필수) 만 14세 이상입니다' }).check();
     await submit.click();
 
     await expect(page).toHaveURL(/\/gate-check$/);
     await expect(page.getByText(LOGGED_IN_TEXT)).toBeVisible();
+  });
+
+  test('동의 강제 백엔드(Agreement_400_1): 거절되면 동의가 풀리고 다시 체크해 가입한다 — 본문에 만 14세·이용약관', async ({
+    page,
+    mockApi,
+  }) => {
+    // 첫 가입은 서버가 동의를 거절(문구가 바뀐 뒤 옛 화면 등) → 그다음은 강제 켠 백엔드 그대로
+    let rejected = false;
+    mockApi.use(
+      http.post('*/api/v1/auth/oauth/kakao/register', ({ request }) => {
+        if (rejected) return undefined;
+        rejected = true;
+        return errors.agreementRequired(request);
+      }),
+      ...authHandlers.registerAgreementEnforced,
+    );
+    await setMockSession(page, 'anonymous');
+    await page.goto('/gate-check');
+    await loginWithKakao(page, '신규 사용자(가입)');
+    const submit = page.getByRole('button', { name: '동의하고 시작하기' });
+    await page.getByRole('checkbox', { name: '전체 동의' }).check();
+    await submit.click();
+
+    await expect(page.getByText('필수 동의를 다시 확인하고 체크해 주세요.')).toBeVisible();
+    await expect(
+      page.getByRole('checkbox', { name: '(필수) 만 14세 이상입니다' }),
+    ).not.toBeChecked();
+    await expect(page.getByRole('group', { name: '약관 동의' })).toHaveAccessibleDescription(
+      '필수 동의를 다시 확인하고 체크해 주세요.',
+    );
+    await expect(submit).toBeDisabled();
+
+    const post = page.waitForRequest(
+      (r) => r.method() === 'POST' && r.url().endsWith('/oauth/kakao/register'),
+    );
+    await page.getByRole('checkbox', { name: '전체 동의' }).check();
+    await submit.click();
+    expect((await post).postDataJSON()).toMatchObject({
+      ageOver14Confirmed: true,
+      termsAgreed: true,
+      agreementVersion: AGREEMENT_VERSION,
+    });
+    await expect(page).toHaveURL(/\/gate-check$/);
   });
 
   test('정지 계정이면 "이용이 제한된 계정이에요"가 뜨고 로그인되지 않는다', async ({ page }) => {

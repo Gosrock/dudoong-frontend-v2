@@ -2483,3 +2483,27 @@ typecheck · 바꾼 파일 lint · `vitest related` 통과. QA(포트 3163 · 41
 Figma 코멘트(GUI, `[개발 · 스테이징 QA 제안]`): 공연 카드 `759:22415`(Q63 · Q68) · 체크아웃 `564:4156`(Q69~Q72) · 주문 완료 `939:27829`(Q72 · Q73) · 티켓탭 `908:3276`(Q64 · Q74 · Q75) · 기본 정보 `748:33351`(Q76).
 
 **ego-browser 확인**(`pnpm dev:mock`, `localhost:3063`, 공간 43): 햄버거 드로어 390 — 로그인(호스트 1개)은 말풍선 없음 · 미로그인은 "공연 준비 ↗" 옆 말풍선 / 티켓탭 390 · 1440 — 다가오는 공연 → 지난 공연 순 / 간편 만들기 390 · 1440 — 고스락 → [다음] → `?step=2&hostId=11`, 새로고침 뒤에도 "호스트: 고스락" / 공연 상세 390 · 1440 — 가짜 이미지 출처가 응답이 없어 600×800 시험 이미지를 포스터 칸에 넣어 봄: `contain`, 'GOSROCK' 좌우가 잘리지 않음. **QR 스캔 화면은 카메라 권한 창 때문에 ego-browser로 못 봄**(공간 41이 권한 창에서 멈춤) — QA `hosting-qr` 캡처로 대신, 사람 확인 필요(🤖 관제탑 판단).
+
+## 동의 칸 4개 — 가입 ① · 주문 ② · 두둥 주문 ③ · 두둥티켓 생성 ④ (agreement-fields, 2026-11-01)
+
+**근거**: 백엔드 Gosrock/DuDoong-Backend#905 1-1(2026-11-01) "v2는 출시(컷오버) 전에 동의 칸 4개를 반드시 갖춰야 한다 — v2만 기록 모드는 없다", 팀원 스테이징 QA #92-2(두둥 티켓 만들기에 환불 의무 동의 칸 없음). 디자인 Q42(칸 위치)는 답이 없다 → **🤖 관제탑 판단(2026-11-01)**: DS 컴포넌트로만 붙이고 플래그를 켠다, 위치는 각 화면 제출 버튼 바로 위(③은 확인 단계), 디자인이 오면 옮긴다.
+
+**한 것**
+1. 플래그 4개 `true` — `AGE_OVER_14_FIELD`(`register-form.ts`) · `HOST_PROVISION_FIELD` · `DUDOONG_NOTICE_FIELD`(`checkout/model/option-form.ts`) · `REFUND_OBLIGATION_FIELD`(`hosting/ticket/model/ticket-form.ts`). L(상태·본문·필수 판정)은 2026-10-31 그대로.
+2. ① 가입 오버레이: 전체 동의 아래 · 이용약관 위 DS Checkbox "(필수) 만 14세 이상입니다"(legal-copy B-3 순서). 필수·전체 동의에 들어간다(버튼은 원래대로 체크 전 비활성).
+3. ② 체크아웃: 하단 고정 바 위 섹션 — DS Checkbox "(필수) 호스트에게 개인정보 제공 동의" + DS Accordion [자세히](legal-copy B-1 ①~⑤ 원문, 공연명 · 두둥이면 ", 입금자명·환불 계좌"). 미체크 제출은 같은 바의 환불 규정 동의와 같은 방식(제출 때 검사 → 칸 아래 오류, `aria-describedby`).
+4. ③ 두둥 입금 확인 `Popup` 안: 결제 요약 아래 A-6 ①~③ 원문 + DS Checkbox "(필수) 위 내용을 확인했으며 이에 동의합니다". 체크 전 [결제완료] 비활성 — DS `Popup`에 `confirmDisabled` 추가(스토리 `ConfirmDisabled`). 모달을 열기 전 `useCheckout().validate()`는 ③을 빼고 본다(`PRE_CONFIRM_FIELDS`) — 처음엔 전체 검사라 두둥 주문 모달이 열리지 않았다(ego-browser로 발견, 단위 테스트 추가).
+5. ④ 티켓 폼: 폼 맨 아래(PC 1280~ 왼쪽 열 끝, 저장 버튼 바로 위) `FormSection` "환불 의무 안내"* + `NoticeBox`(C-1 원문) + DS Checkbox "위 내용을 확인했고 환불 의무를 지키는 데 동의합니다". 두둥 만들기 · 무료 → 두둥 수정(`agreement.required`)에서만. 체크 전 [티켓 만들기]/[저장하기] 비활성. `NoticeBox` 아이콘이 여러 줄에서 줄지 않게 `flexShrink: 0`.
+6. `Agreement_400_1`(서버 거절 — 칸을 붙였으니 정상 흐름에선 안 온다. 옛 문구 화면 · 서버 규칙 변경 등): 세 화면 모두 **체크해 둔 동의를 풀고 "필수 동의를 다시 확인하고 체크해 주세요."**(`AGREEMENT_REJECTED_MESSAGE`, `src/api/shared/agreement.ts`)로 지금 보이는 문구에 다시 동의받는다. 가입 = `RegisterSubmitError` `agreement`(전에는 일반 실패 `failed`), 주문 = `CHECKOUT_ERROR_TABLE` `AGREEMENT`(전에는 공용 토스트), 티켓 폼 = 폼 오류 + `setAgreed(false)`. 모두 `handleError(e, { 코드: 처리 })`.
+7. mock: `ORDER_ERROR_REASONS`에 `Agreement_400_1`(`createFails`로도 낼 수 있게).
+
+**Claude 판단(🤖 2026-11-01)**
+- 표기 "(필수)"는 v2 가입 오버레이의 기존 표기에 맞췄다(legal-copy 원문은 "[필수]"). 동의 문장 자체는 원문 그대로.
+- ③ A-6 ④ "'입금했어요'를 누르면 위 내용에 동의한 것으로 봅니다"는 v2가 체크 칸으로 받으므로 체크 글자로 바꿨다(①~③ 원문 그대로).
+- `AGREEMENT_VERSION`은 올리지 않았다(`'2026-11'` 그대로): v2는 아직 출시 전이라 `'2026-11'`로 기록된 v2 동의 문구가 없고, 이 PR이 그 버전의 첫 화면 문구다(v1은 `'2026-10'`이라 버전으로 이미 구분된다). 병렬 세션 `backend-905-sync`가 B18 확정 문구로 올리면 그 값 하나로 간다 — 늦게 머지되는 쪽이 main을 merge하며 **한 번만** 올라가게 한다.
+- ② 체크아웃 CTA는 비활성으로 두지 않았다 — 같은 바의 환불 규정 동의(GUI)와 같은 "제출 때 검사 → 칸 오류" 방식. ③ · ① · ④는 비활성.
+- 호스트 제공 동의 펼침은 DS Accordion(label "자세히") — legal-copy의 [자세히]/[접기] 버튼 대신 열림 상태는 chevron이 보인다.
+
+**검사**: typecheck · lint · vitest related 2456 · e2e(auth · checkout · hosting-ticket · gift-landing · hosting-guests · a11y · a11y-keyboard) 216 통과 · QA checkout 30 · hosting-ticket 30 · login 20 · gift 14 · integration 8 · hosting-guests 23 통과. 새 e2e 한 줄씩: 강제 백엔드에서 첫 제출 거절 → 동의 풀림 · 안내 → 다시 체크 → 통과(본문에 동의 필드) — `auth.spec` · `checkout.spec` · `hosting-ticket.spec`. 새 QA: LOGIN-11 · CHK-19(교체) · CHK-20, HT-7 · HT-8 단계.
+
+**남음**: 스테이징 강제 리허설(이 이미지가 스테이징 `:dev`에 올라간 뒤 백엔드 #905에 알림 → 스테이징만 `AGREEMENT_ENFORCE=true`), 칸 위치(Q42 디자인 답).

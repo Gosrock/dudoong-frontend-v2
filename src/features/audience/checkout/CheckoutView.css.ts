@@ -2,6 +2,7 @@ import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
+import { typography } from '@/ui/theme/typography.css';
 
 /**
  * 체크아웃(GUI `564:4156` 등 — 390 모바일만 Ready). PC(1024~)는 그림이 없어 같은 한 열을 가운데 640으로 둔다.
@@ -133,3 +134,41 @@ export const summaryDivider = style({ height: 1, background: vars.color.surface.
  * GUI는 1px 한 줄이라 위로 1px 겹쳐 놓는다.
  */
 export const collapseTopLine = style({ marginTop: -1 });
+
+/** 주문 동의(② 호스트 제공 동의) — 디자인 없음(Q42). 섹션 좌우 24 · 위 20, 펼침은 DS Accordion */
+export const agreement = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[3],
+  paddingTop: vars.space[5],
+});
+
+export const agreementCheck = style({ paddingInline: vars.space[5] });
+
+/** [자세히] 펼친 항목 — Accordion 행과 같은 좌우 24 */
+export const agreementDetailBody = style({
+  padding: `${vars.space[3]} ${vars.space[5]} ${vars.space[4]} calc(${vars.space[5]} + ${vars.space[5]})`,
+});
+
+/** 동의 항목 번호 목록(①②…은 원문 글머리표 — legal-copy 읽는 법) */
+export const agreementList = style([
+  typography.labelSm,
+  {
+    margin: 0,
+    color: vars.color.text.secondaryLabel,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[1],
+  },
+]);
+
+/** ③ 입금 전 확인(두둥) — 결제 요약 아래 */
+export const notice = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[3],
+  marginTop: vars.space[4],
+});
+
+/** ③ 고지 목록 — 글머리 자리 */
+export const noticeList = style({ margin: 0, paddingInlineStart: vars.space[5] });

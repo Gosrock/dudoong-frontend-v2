@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { http } from 'msw';
 import { type ReactNode, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -7,11 +8,12 @@ import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { hostingTicketSets } from '@/api/__mocks__/hosting-ticket.handlers';
+import { errors } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { setTicketAgreementEnforced } from '@/api/__mocks__/ticket-store';
 import { createEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
-import { AGREEMENT_VERSION } from '@/api/shared/agreement';
+import { AGREEMENT_REJECTED_MESSAGE, AGREEMENT_VERSION } from '@/api/shared/agreement';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import {
   CreateTicketItemRequestSchema,
@@ -70,7 +72,8 @@ async function save(result: Hook) {
 const banksLoaded = (result: Hook) =>
   waitFor(() => expect(result.current.bank.status).toBe('success'));
 
-async function fillDudoong(result: Hook) {
+/** 두둥 티켓 칸을 채운다. 환불 의무 동의(2026-11-01 칸 붙임)도 기본은 체크 — 빼 보는 테스트만 `{ agree: false }` */
+async function fillDudoong(result: Hook, { agree = true }: { agree?: boolean } = {}) {
   await banksLoaded(result);
   act(() => {
     result.current.setName('일반 예매');
@@ -78,6 +81,7 @@ async function fillDudoong(result: Hook) {
     result.current.bank.select('088');
     result.current.setAccountHolder('고스락');
     result.current.setAccountNumber('110-123');
+    result.current.agreement.setAgreed(agree);
   });
 }
 
@@ -100,6 +104,8 @@ describe('새 티켓(P10/T-2)', () => {
       account: { bankCode: '088', accountHolder: '고스락', accountNumber: '110-123' },
       approvalRequired: true,
       isQuantityPublic: false,
+      refundObligationAgreed: true,
+      agreementVersion: AGREEMENT_VERSION,
     });
     expect(CreateTicketItemRequestSchema.parse(post!.body)).toEqual(post!.body);
     expect(nav.router.replace).toHaveBeenCalledWith('/hosting/events/140/tickets');
@@ -184,13 +190,17 @@ describe('새 티켓(P10/T-2)', () => {
     expect(await writes(sent)).toEqual([]);
   });
 
-  it('동의(#840): 기본은 보내지 않는다(칸은 Q42 대기). 사용자가 체크한 값이 있을 때만 refundObligationAgreed + agreementVersion', async () => {
+  it('환불 의무 동의(#840 — 2026-11-01 칸 붙임): 두둥 만들기는 체크 전 저장할 수 없다(요청 없음), 체크하면 refundObligationAgreed + agreementVersion', async () => {
     const { result } = setup('140');
     await loaded(result);
-    await fillDudoong(result);
-    expect(result.current.agreement).toMatchObject({ field: false, required: true, agreed: false });
-    act(() => result.current.agreement.setAgreed(true));
+    await fillDudoong(result, { agree: false });
+    expect(result.current.agreement).toMatchObject({ field: true, required: true, agreed: false });
+    expect(result.current.canSave).toBe(false);
     const sent = recordRequests();
+    expect(await save(result)).toBe(false);
+    expect(await writes(sent)).toEqual([]);
+    act(() => result.current.agreement.setAgreed(true));
+    expect(result.current.canSave).toBe(true);
     expect(await save(result)).toBe(true);
     expect((await writes(sent))[0]!.body).toMatchObject({
       refundObligationAgreed: true,
@@ -198,14 +208,38 @@ describe('새 티켓(P10/T-2)', () => {
     });
   });
 
-  it('동의 강제가 켜졌는데 보내지 않으면 Agreement_400_1 → 폼 오류, 토스트 없음', async () => {
+  it('무료 티켓에는 환불 의무 동의가 필요 없다', async () => {
+    const { result } = setup('140');
+    await loaded(result);
+    act(() => result.current.setPayType('FREE'));
+    expect(result.current.agreement.required).toBe(false);
+  });
+
+  it('동의 강제 백엔드: 체크해서 보내면 통과한다', async () => {
     setTicketAgreementEnforced(true);
     const { result } = setup('140');
     await loaded(result);
     await fillDudoong(result);
+    expect(await save(result)).toBe(true);
+  });
+
+  it('서버가 동의를 거절(Agreement_400_1)하면 체크를 풀고 폼 오류 — 토스트 없음, 다시 체크하면 저장된다', async () => {
+    server.use(
+      http.post('*/api/v2/events/:eventId/ticket-items', ({ request }) =>
+        errors.agreementRequired(request),
+      ),
+    );
+    const { result } = setup('140');
+    await loaded(result);
+    await fillDudoong(result);
     expect(await save(result)).toBe(false);
-    await waitFor(() => expect(result.current.formError).toBe('필수 동의를 확인해 주세요'));
+    await waitFor(() => expect(result.current.formError).toBe(AGREEMENT_REJECTED_MESSAGE));
+    expect(result.current.agreement.agreed).toBe(false);
+    expect(result.current.canSave).toBe(false);
     expect(errorToast).not.toHaveBeenCalled();
+    server.resetHandlers();
+    act(() => result.current.agreement.setAgreed(true));
+    expect(await save(result)).toBe(true);
   });
 
   it.each([

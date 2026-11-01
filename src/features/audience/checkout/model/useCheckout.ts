@@ -91,6 +91,14 @@ export function useCheckoutData(eventId: number, params: CheckoutParams | null):
 
 // ─── 2단계: 폼 · 금액 · 제출 ───────────────────────────────────
 
+/** 입금 확인 모달을 열기 전에 보는 칸 — 모달 안의 입금 전 확인(`dudoongTicketNoticeConfirmed`)은 빼고 */
+const PRE_CONFIRM_FIELDS = [
+  'options',
+  'paymentChannel',
+  'agreeRefundPolicy',
+  'hostProvisionAgreed',
+] as const satisfies readonly (keyof CheckoutFormValues)[];
+
 export type UseCheckoutInput = {
   eventId: number;
   /** `useCheckoutData`의 ready 값. 이후 O-0이 다시 오면(재고 계열 에러 뒤) 캐시의 최신 값을 쓴다 */
@@ -108,7 +116,7 @@ export type UseCheckoutInput = {
  * - 금액: `orderTotalAmount` 하나에서(화면에서 다시 계산하지 않는다). 토스 링크 금액도 같은 값
  * - 제출: 요청 중·이동 중에는 다시 보내지 않는다(서버도 10초 안 같은 요청은 앞 주문을 돌려준다).
  *   성공하면 응답을 G11/O-3 키에 넣고 `/orders/[orderUuid]?created=1`로 `replace`(뒤로가기로 체크아웃에 돌아와 다시 내지 못하게)
- * - 에러: patterns §24 P7 행(`checkout-errors.ts`). 재고 계열(`Ticket_Item_400_1`·`Ticket_Item_400_6`·`Order_400_15`)은 GP-5와 O-0을
+ * - 에러: patterns §24 P7 행(`checkout-errors.ts`). `Agreement_400_1`(동의 강제)은 주문 동의 칸을 풀고 폼 상단 안내 — 다시 체크받는다. 재고 계열(`Ticket_Item_400_1`·`Ticket_Item_400_6`·`Order_400_15`)은 GP-5와 O-0을
  *   다시 읽어 상한을 갱신한다. 무료 선착순 확정 실패는 표에 없는 에러로 와도 "다시 시도" 안내(`FREE_FCFS_FAILED`)
  */
 export function useCheckout({
@@ -201,6 +209,11 @@ export function useCheckout({
   const onKnownError = useCallback(
     (outcome: CheckoutErrorOutcome, code: string) => {
       if (outcome.refetchTickets) refetchTickets();
+      if (outcome.kind === 'AGREEMENT') {
+        // 서버가 동의를 거절 — 체크해 둔 주문 동의를 풀고 지금 보이는 문구로 다시 체크받는다
+        form.setValue('hostProvisionAgreed', false);
+        form.setValue('dudoongTicketNoticeConfirmed', false);
+      }
       if (outcome.navigate) {
         // 이동하면 폼 상단 문구가 보이지 않으므로 토스트로 남긴다
         toast(outcome.message, { id: `checkout:${code}` });
@@ -209,7 +222,7 @@ export function useCheckout({
       }
       setSubmitError(outcome);
     },
-    [refetchTickets, router, eventId],
+    [refetchTickets, router, eventId, form],
   );
 
   // 주문 캐시 반영은 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
@@ -281,7 +294,7 @@ export function useCheckout({
     /** RHF 폼(옵션 답·결제 방식·환불 규정 동의·주문 동의). 칸 연결은 V */
     form,
     /**
-     * 주문 동의 칸(#840 — Q42 대기라 지금 둘 다 false). `hostProvision`: 호스트 제공 동의(`hostProvisionAgreed`) 칸,
+     * 주문 동의 칸(#840 — 2026-11-01 붙임, 위치는 Q42 답 전 잠정). `hostProvision`: 호스트 제공 동의(`hostProvisionAgreed`) 칸,
      * `dudoongNotice`: 두둥 입금 전 확인(`dudoongTicketNoticeConfirmed`) 칸 — 두둥티켓만, "입금하셨나요?" 확인 단계에 둔다.
      * 칸이 있으면 체크 전 제출이 막힌다
      */
@@ -303,8 +316,11 @@ export function useCheckout({
     tossLink,
     /** 입금자명(닉네임 고정, 읽기 전용) */
     depositorName,
-    /** 확인 모달을 열기 전 검증(칸 오류 표시). 통과하면 true */
-    validate: () => form.trigger(),
+    /**
+     * 확인 모달을 열기 전 검증(칸 오류 표시). 통과하면 true. 두둥 입금 전 확인(③)은 그 모달 안에서 받으므로 여기서는 보지 않는다
+     * (모달의 [결제완료]가 체크 전 비활성이고, `submit`이 전체를 다시 검사한다)
+     */
+    validate: () => form.trigger(PRE_CONFIRM_FIELDS),
     submit,
     submitting: mutation.isPending || succeeded,
     /** 폼 상단 오류(입금자명·옵션 답·재고·1인 제한·무료 선착순 실패) */
