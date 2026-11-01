@@ -44,3 +44,46 @@ jobs:
       - run: pnpm test:stories
       # Cache Components 규칙 위반(instant=false 누락, Suspense 밖 비캐시 데이터)은 build에서만 드러난다
       - run: pnpm build
+
+  # Playwright e2e — main push에서만(사용자 결정 2026-11-01, P14 회귀 · tech-decisions §10·§CI). PR에서는 skipped로 보인다.
+  # PR 전에는 세션이 바꾼 라우트의 e2e를, 그룹 경계에서는 관제탑이 전체 회귀를 돌린다 — PR마다 러너·빌드를 쓰지 않는다.
+  # 한 job · 빌드 1번(QR 판독 주입을 켠 e2e 빌드 — playwright.config.ts). 로컬 전체 7.3분(빌드 포함), CI 조각 합 약 14분(2026-11-01).
+  # QA 시나리오(`pnpm qa`)는 캡처 리포트라 여기에도 넣지 않는다.
+  e2e:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_KAKAO_JS_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Playwright Chromium 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-full-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      # 전체 Chromium(셸만이 아니라) — auth-bfcache.spec이 bfcache를 켜려고 `channel: 'chromium'`(새 headless)을 쓴다
+      - name: Playwright Chromium 설치(시스템 의존성 포함)
+        timeout-minutes: 17
+        run: |
+          for i in 1 2 3; do
+            timeout 300 pnpm exec playwright install --with-deps chromium && exit 0
+            echo "playwright install 실패/시간 초과 — 다시 시도 ($i/3)"
+          done
+          exit 1
+      - name: e2e
+        timeout-minutes: 20
+        run: pnpm test:e2e --reporter=line
+      - name: 실패 trace 올리기
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: test-results/e2e
+          retention-days: 7

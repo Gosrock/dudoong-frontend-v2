@@ -133,6 +133,8 @@ const next = spawn(
       ...process.env,
       DEV_API_ORIGIN: MOCK_ORIGIN,
       API_INTERNAL_URL: `${MOCK_ORIGIN}/api/v2`,
+      // 카메라 없이 QR 판독 값을 넣는 테스트 경로(`dd:qr-scan`) — 운영 빌드에서는 꺼져 있다(scan-injection.ts)
+      NEXT_PUBLIC_QR_SCAN_INJECTION: '1',
       ...(hasKakaoKey ? {} : { NEXT_PUBLIC_KAKAO_JS_KEY: 'dev-mock-placeholder' }),
     },
   },

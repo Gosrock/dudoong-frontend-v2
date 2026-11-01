@@ -4,7 +4,7 @@ import { APP_ORIGIN, APP_PORT, MOCK_ORIGIN, VIEWPORTS } from './e2e/support/env'
 
 /**
  * e2e(`pnpm test:e2e`) 설정. QA 시나리오(`pnpm qa`)는 qa/playwright.config.ts가 이 값을 이어받는다.
- * PR 게이트에 넣지 않는다 — 로컬과 qa-scenario 스킬에서만 돈다(tech-decisions §10).
+ * e2e는 main push의 CI(`pr-gate.yml` `e2e` job — PR에서는 돌지 않음, 사용자 결정 2026-11-01)에서도 돈다(tech-decisions §10). QA 시나리오는 로컬·qa-scenario 스킬에서만.
  *
  * 빌드한 standalone 서버를 띄운다(운영과 같은 산출물). 백엔드는 워커 안의 가짜 백엔드(e2e/support)다.
  * `E2E_SKIP_BUILD=1`이면 이미 있는 `.next`를 그대로 띄운다.
@@ -51,6 +51,9 @@ export const baseConfig = defineConfig({
       API_INTERNAL_URL: `${MOCK_ORIGIN}/api/v2`,
       // 빌드 때 검증하는 공개 값. e2e는 카카오 SDK를 부르지 않는다
       NEXT_PUBLIC_KAKAO_JS_KEY: process.env.NEXT_PUBLIC_KAKAO_JS_KEY ?? 'e2e-placeholder',
+      // QR 판독 주입(`dd:qr-scan`)을 켠 빌드 — 카메라 없는 hosting-checkin·hosting-qr이 쓴다. 운영 빌드에는 없다
+      // (features/hosting/qr/ui/scan-injection.ts). E2E_SKIP_BUILD=1로 띄울 .next도 이 값으로 빌드돼 있어야 한다
+      NEXT_PUBLIC_QR_SCAN_INJECTION: '1',
       NEXT_TELEMETRY_DISABLED: '1',
     },
   },
