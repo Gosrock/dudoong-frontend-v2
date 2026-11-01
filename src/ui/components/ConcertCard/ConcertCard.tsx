@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { Txt } from '../../primitives/Txt';
 import { colors } from '../../theme/colors';
@@ -31,7 +31,7 @@ export function ConcertCard({ href, title, date, posterUrl, badge, className }: 
   return (
     <Link href={href} className={className ? `${s.root} ${className}` : s.root}>
       <span className={s.posterWrap}>
-        <Poster key={posterUrl ?? ''} src={posterUrl ?? null} />
+        <Poster src={posterUrl ?? null} />
         {badge ? <span className={s.badge}>{badge}</span> : null}
       </span>
       <span className={s.meta}>
@@ -50,16 +50,12 @@ export function ConcertCard({ href, title, date, posterUrl, badge, className }: 
 }
 
 function Poster({ src }: { src: string | null }) {
-  const [failed, setFailed] = useState(false);
+  // 못 읽으면 `UploadedImage`가 아무것도 그리지 않아 회색 빈 상자만 남는다(#92-5 — 호스팅 카드도 같은 처리)
   return (
     <span className={s.poster}>
-      {src && !failed ? (
+      {src ? (
         // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 목록 4열(PC, 최대 1280) · 3열(600~) · 2열
         <UploadedImage
-          // 서버 HTML의 이미지는 하이드레이션 전에 실패할 수 있어 onError를 놓친다 — 붙을 때 한 번 더 본다
-          ref={(img) => {
-            if (img && img.complete && img.naturalWidth === 0) setFailed(true);
-          }}
           className={s.posterImage}
           src={src}
           alt=""
@@ -67,7 +63,6 @@ function Poster({ src }: { src: string | null }) {
           height={231}
           sizes="(min-width: 1024px) 320px, (min-width: 600px) 33vw, 50vw"
           decoding="async"
-          onError={() => setFailed(true)}
         />
       ) : null}
     </span>

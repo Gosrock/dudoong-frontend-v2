@@ -69,17 +69,23 @@ export const TICKET_SALE_CHIP_LABEL: Record<TicketSaleChip, string> = {
 
 /**
  * 칩 판정(`yyyy.MM.dd HH:mm` 문자열 비교 — 같은 형식이라 사전순 = 시간순). 판매 중단이 먼저, 판매 시작 전이면 판매 예정,
- * 판매 종료(없으면 공연 시작)가 지났으면 판매 종료, 그 밖은 판매중. 공연 등록 전·매진 여부는 칩에 넣지 않는다(Claude 판단)
+ * 판매 종료(없으면 공연 시작)가 지났으면 판매 종료, 그 밖은 판매중. 매진 여부는 칩에 넣지 않는다(재고 칩이 보여 준다 — Claude 판단).
+ *
+ * 공연 등록 전(준비중)이면 관객이 살 수 없다(`isPurchasable` false) — 기간 안이어도 **판매 예정**(#92-3, 스테이징 QA).
+ * `saleState: BEFORE_SALE`은 "재고 감소 없음"이라 판매 기간과 무관하다(api-contract — 판단에 쓰지 않는다).
+ * 등록 전 전용 칩은 GUI에 없어 있는 '판매 예정'을 쓴다(🤖 Claude 판단 — 와이어 `424:10935` "판매전"은 칩이 없다)
  */
 export function ticketSaleChipOf(
   t: Pick<TicketItemManage, 'saleState' | 'saleStartAt' | 'saleEndAt'>,
   eventStartAt: string | null,
   now: string,
+  eventRegistered = true,
 ): TicketSaleChip {
   if (t.saleState === 'SUSPENDED') return 'suspended';
   if (t.saleStartAt !== null && now < t.saleStartAt) return 'upcoming';
   const end = t.saleEndAt ?? eventStartAt;
   if (end !== null && now >= end) return 'ended';
+  if (!eventRegistered) return 'upcoming';
   return 'onSale';
 }
 

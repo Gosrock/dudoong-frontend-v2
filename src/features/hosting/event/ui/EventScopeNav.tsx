@@ -86,6 +86,7 @@ function EventSidebarBody({
             // 업로드 포스터(업로드 출처면 `/_next/image` 최적화 — P15). 고정 48×68 → 1x · 2x
             <UploadedImage
               className={s.poster}
+              fallback={<Illustration name="poster-placeholder" width={48} className={s.poster} />}
               src={event.posterImageUrl}
               alt=""
               width={48}

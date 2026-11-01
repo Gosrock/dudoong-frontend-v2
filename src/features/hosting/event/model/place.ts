@@ -13,8 +13,22 @@ import type { Place } from '@/api/shared/common-schema';
 
 export type Coordinates = { latitude: number; longitude: number };
 
-/** 주소 → 좌표. 찾지 못하면 `null`. SDK 오류는 던진다(호출부가 같은 "찾지 못함"으로 처리) */
+/**
+ * 주소 → 좌표. 찾지 못하면 `null`. 지도 SDK를 쓸 수 없으면(키·도메인·네트워크) `GeocoderUnavailableError`를 던진다 —
+ * 호출부는 "주소 좌표 없음"과 "지도 서비스 오류"를 다른 문구로 안내한다(#92-1). 그 밖의 예외도 서비스 오류로 본다
+ */
 export type Geocoder = (address: string) => Promise<Coordinates | null>;
+
+/** 지도 SDK를 불러오지 못했다(키 도메인 미등록 401·네트워크·키 없음) — 주소 탓이 아니다 */
+export class GeocoderUnavailableError extends Error {
+  constructor(message = 'Kakao Maps SDK unavailable') {
+    super(message);
+    this.name = 'GeocoderUnavailableError';
+  }
+}
+
+/** 좌표 찾기 실패의 종류 — 문구가 다르다 */
+export type PlaceLookupFailure = 'notFound' | 'unavailable';
 
 export type PlaceInput = {
   /** 우편번호 창에서 고른 주소(도로명 우선). 직접 입력하지 않는다 */
@@ -58,6 +72,12 @@ export const isPlaceComplete = (p: PlaceInput) =>
 export const PLACE_ERROR = {
   address: '주소를 검색해 골라 주세요',
   geocode: '이 주소의 위치를 찾지 못했어요. 다른 주소를 골라 주세요',
+  /**
+   * 지도 SDK 실패(#92-1). 서버가 좌표를 필수로 받아(`V2EventPlaceRequest` latitude·longitude) 좌표 없이 저장할 수 없다 —
+   * 주소를 잘못 고른 것처럼 읽히지 않게 서비스 쪽 문제임을 말한다
+   */
+  mapUnavailable:
+    '지도 서비스를 불러오지 못해 위치를 확인할 수 없어요. 잠시 뒤 주소를 다시 골라 주세요',
   name: '공연장 이름을 입력해 주세요',
   nameTooLong: `공연장 이름은 ${EVENT_PLACE_TEXT_MAX}자까지 입력할 수 있어요`,
   detailTooLong: `상세주소는 ${EVENT_PLACE_TEXT_MAX}자까지 입력할 수 있어요`,

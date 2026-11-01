@@ -35,3 +35,16 @@ export const fab = style({
     },
   },
 });
+
+/**
+ * 화면 오른쪽 아래에 떠 있는 버튼(FAB · [+ 새 … 만들기])의 자리 — 아래 24 + 기기 안전 영역.
+ * 떠 있는 버튼을 쓰는 화면은 본문 아래 여백을 `fabClearance`로 둔다 — 스크롤 끝에서 마지막 카드·문구를 가리지 않게
+ * (스테이징 QA #92-8: 여백 80이 안전 영역(iPhone 34)을 빼고 계산돼 마지막 줄을 가렸다).
+ */
+export const fabBottom = `calc(${vars.space[5]} + env(safe-area-inset-bottom))`;
+
+/** 본문 아래 여백 = 버튼 아래 24 + 버튼 높이 + 틈 16 + 안전 영역. 버튼 높이별(DS Button md 46 · Fab/Button lg 56) */
+export const fabClearance = {
+  md: `calc(${vars.space[5]} + 46px + ${vars.space[4]} + env(safe-area-inset-bottom))`,
+  lg: `calc(${vars.space[5]} + 56px + ${vars.space[4]} + env(safe-area-inset-bottom))`,
+} as const;

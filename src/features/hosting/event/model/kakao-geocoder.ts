@@ -1,6 +1,6 @@
 import { log } from '@/utils/log';
 
-import type { Coordinates, Geocoder } from './place';
+import { type Coordinates, type Geocoder, GeocoderUnavailableError } from './place';
 
 /**
  * 카카오맵 JS SDK의 주소 → 좌표 변환(`kakao.maps.services.Geocoder.addressSearch`)을 `Geocoder` 어댑터로 감싼다(plan P11 "장소").
@@ -74,28 +74,36 @@ export function loadKakaoMaps(): Promise<KakaoMaps> {
   return loading;
 }
 
-/** 기본 `Geocoder` — 첫 결과의 좌표(`y` 위도, `x` 경도). 결과 없음·SDK 실패는 `null`(호출부가 "다른 주소를 골라 주세요") */
+/**
+ * 기본 `Geocoder` — 첫 결과의 좌표(`y` 위도, `x` 경도). 결과 없음은 `null`(호출부가 "다른 주소를 골라 주세요"),
+ * SDK를 불러오지 못하면 `GeocoderUnavailableError`(호출부가 "지도 서비스 오류" — #92-1). 로그 이벤트도 둘을 나눈다.
+ * 주소는 로그에 남기지 않는다
+ */
 export const kakaoGeocoder: Geocoder = async (address) => {
+  let maps: KakaoMaps;
   try {
-    const maps = await loadKakaoMaps();
-    return await new Promise<Coordinates | null>((resolve) => {
-      new maps.services.Geocoder().addressSearch(address, (result, status) => {
-        const first = result[0];
-        if (status !== maps.services.Status.OK || !first) {
-          resolve(null);
-          return;
-        }
-        const latitude = Number(first.y);
-        const longitude = Number(first.x);
-        resolve(
-          Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null,
-        );
-      });
-    });
+    maps = await loadKakaoMaps();
   } catch (e) {
-    log('warn', 'kakao_geocoder.failed', { error: e instanceof Error ? e.message : 'unknown' });
-    return null;
+    const error = e instanceof Error ? e.message : 'unknown';
+    log('warn', 'kakao_maps.load_failed', { error });
+    throw new GeocoderUnavailableError(error);
   }
+  const coords = await new Promise<Coordinates | null>((resolve) => {
+    new maps.services.Geocoder().addressSearch(address, (result, status) => {
+      const first = result[0];
+      if (status !== maps.services.Status.OK || !first) {
+        resolve(null);
+        return;
+      }
+      const latitude = Number(first.y);
+      const longitude = Number(first.x);
+      resolve(
+        Number.isFinite(latitude) && Number.isFinite(longitude) ? { latitude, longitude } : null,
+      );
+    });
+  });
+  if (!coords) log('info', 'kakao_geocoder.not_found', {});
+  return coords;
 };
 
 /** 테스트 전용 — 불러오는 중 상태를 비운다 */
