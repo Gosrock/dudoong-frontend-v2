@@ -68,7 +68,11 @@ gh issue list --label "Design Sync" --state open --search '-label:"Test: figma-p
 - **근거 판정** — `gui-screens.md` §0의 그 Phase 줄(GUI 노드 id / 와이어). 세션이 `gui-implement` ②에서 지금 파일로 다시 확인한다.
 - **이미 된 것** — 그 Phase의 L(implementation-log 절), 머지된 선행 V PR 번호.
 - **사용자 결정** — 이 대화·`progress.md`·`plan.md`에 적힌 결정을 날짜와 함께 그대로 옮긴다.
-- **열린 질문** — 그 Phase에 걸린 design-requests Q번호.
+- **열린 질문** — 그 Phase에 걸린 design-requests Q번호. 틀을 채울 때 `design-requests.md` 머리(닫힌 답)를 **다시 읽는다** — 프롬프트의 기본안이 닫힌 답보다 낡은 일이 있었다(2026-11-01 Q49, 세션 회고).
+- **이미 붙은 기능** — 셸·공용 훅에 이미 연결된 것(예: 벨 빨간 점)은 "구현"이 아니라 "확인만(QA)"으로 쓴다.
+- **셸을 바꾸는 Phase**(셸·메뉴·드로어·셸 API 호출) — 검사에 `pnpm qa shell`과 `e2e/shell.spec.ts`를 넣는다(#78).
+- **병렬 세션이 새로 만드는 `src/ui`·반영 중인 DS 컴포넌트** — 틀의 그 칸에 목록을 적는다(겹쳐 만들거나 작업을 버린 일 — ConcertCard, ds-sync-1101b ↔ #63).
+- **열린 Design Sync 이슈** 칸은 `gh issue list --label "Design Sync" --state open` 결과 그대로 적는다.
 - **파일 소유** — 병렬로 띄우면 각 세션이 고칠 수 있는 공용 파일을 나눠 적는다(`src/ui` 새 컴포넌트는 먼저 띄운 쪽, 상태 문서는 "자기 Phase 줄만").
 
 ## ⑤ 오프로드
@@ -93,13 +97,15 @@ orca worktree create --repo id:<repoId> --name <ascii-name> --base-branch main -
 - `gui-screens.md` §0 그 화면의 상태·근거 칸을 고쳤는가. `progress.md`는 세션이 자기 줄만 고쳤는가.
 - PR 본문에 비교 표(Figma ↔ 캡처), 근거 없이 정한 것 목록, `Closes #n`/`Refs #n`이 있는가.
 - 세션이 Figma에 단 코멘트(`[개발 · DS 컴포넌트로 구현]`·`[개발 · 디자인 없음]`) 목록이 PR 본문에 있는가.
+- PR 본문에 **"ego-browser 확인" 절**(본 화면 · 폭 · 발견 · 처리)이 있는가 — 없으면 돌려보낸다(사용자 요청 2026-11-01).
+- 검토는 **`gh pr view --json headRefOid`의 최신 커밋 기준**으로 한다(옛 head를 보고 지적한 일 — 세션 회고). 문서에 자기 PR 번호를 일괄 치환하다 다른 문서의 같은 글자를 바꾸지 않았는지(`api-contract.md` `(#PR)` — #52·#74) diff로 본다.
 - 게이트는 **PR CI(`pr-gate`)가 정본**이다(design-workflow §9 검사 시점). 관제탑은 CI를 기다리고(`task-kickoff`의 `until gh pr checks …` 백그라운드), 로컬 전체 게이트를 다시 돌리지 않는다. main을 merge하며 충돌을 풀었을 때만 로컬에서 `pnpm typecheck && pnpm lint`.
 
 CI가 통과하고 검토에서 막을 것이 없으면 바로 ⑦. 막을 것(범위 밖 변경이 섞임, 정본 문서와 어긋남, 테스트를 지워서 통과 등)은 세션에 고치라고 전하고(`orca terminal send`) 다시 기다린다. 같은 문제가 두 번 반복되면 "사용자 대기".
 
 ## ⑦ 머지
 
-`gh pr merge <n> --squash` → `git pull` → `git push origin --delete <branch>`(`task-kickoff` 4절). 머지 뒤 그 세션 터미널에 "머지됐다, 끝"을 보낸다. Orca 워크트리·터미널은 지우지 않는다(사용자가 닫는다).
+`gh pr merge <n> --squash` → `git pull` → `git push origin --delete <branch>`(`task-kickoff` 4절). 머지 뒤 그 세션 터미널에 "머지됐다, 끝"을 보낸다 — **`gh pr merge`가 성공했을 때만**(또는 `gh pr view --json state`가 `MERGED`). 머지 명령과 알림을 `;`로 묶지 말고 `if gh pr merge …; then … fi`(2026-11-01 #40에 잘못 보냄). Orca 워크트리·터미널은 지우지 않는다(사용자가 닫는다).
 
 `progress.md`는 **세션 PR이 자기 줄을 고쳐서 들어온다**(프롬프트 틀 규칙) — Phase 판·"다음 순서"의 그 줄을 `끝`(PR 번호)으로, "지금 진행 중"에서 자기 줄을 뺀다. ⑥에서 빠졌으면 머지 전에 세션에 고치라고 하거나, 관제탑이 그 PR 브랜치에서 한 줄 고친다(통합 수정).
 
