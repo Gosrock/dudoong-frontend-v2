@@ -68,7 +68,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 20a | `p14-security` ∥ 20b | P14 보안 — 오픈 리다이렉트 · 토큰 · 로그 PII · 선물 토큰/QR 유출 · sanitize · CSP(Report-Only부터) · zxing wasm 자체 호스팅 · 의존성 감사 | 전 Phase L·V | 끝(#79) | F 하드닝 |
 | 20b | `p14-perf` ∥ 20a | P14 성능 · 부하 — 라우트별 번들 · LCP/TTFB · 동적 import · 공연 상세 캐시 판단(tech-decisions §2) · 부하 시험 스크립트 초안 | 전 Phase L·V | 끝(#82) | F 하드닝 |
 | 20c | `p14-a11y` ∥ 20d | P14 접근성 — axe 자동 검사 · 키보드 핵심 흐름 · 포커스 · 랜드마크/제목 · 대비 | 전 Phase L·V | 끝(#81) | F 하드닝 |
-| 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 끝(#85) | F 하드닝 **(끝 — 회귀 통과 e2e 560/0 · QA 387/0, 시나리오 22개. 전체 회귀 2026-11-01(#88 뒤): e2e 560/0 · QA 395/0 · 수동 16 — shell SHELL-8~10 · integration REG-4 추가)** |
+| 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 끝(#85) | F 하드닝 **(끝 — 회귀 통과 e2e 560/0 · QA 387/0, 시나리오 22개. 전체 회귀 2026-11-01(#88 뒤, #91): e2e 560/0 · QA 395/0 · 수동 16 — shell SHELL-8~10 · integration REG-4 추가)** |
 | 21 | `release-v2-cutover` | P15 컷오버(이 저장소의 코드·문서 몫 — 운영·사람 몫은 "사용자 대기") | P14 | 끝(코드 몫, #88) — 남은 것은 사람 몫("사용자 대기" · `cutover-runbook.md`) | — |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
