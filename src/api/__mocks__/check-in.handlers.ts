@@ -2,6 +2,7 @@ import { http, type HttpHandler, HttpResponse } from 'msw';
 
 import { CHECK_IN_TICKET_UUID_MAX } from '../check-in/schema';
 import { checkInStatsOf, checkInTokenOf, hostCheckIn, selfCheckIn } from './fixtures/my-ticket';
+import { hostCheckInGuestTicket } from './guest-store';
 import { guard } from './hosting-event.handlers';
 import { errors, fail, ok, readId, requireAuth } from './respond';
 
@@ -72,7 +73,10 @@ const scan = http.post(SCAN_PATH, async ({ request, cookies, params }) => {
   const g = guard(request, cookies, params.eventId, 'GUEST');
   if ('response' in g) return g.response;
   if (!isHostCheckInStatus(g.event.status)) return checkInError(request, 'Event_400_27');
-  return ok(hostCheckIn(g.event.eventId, ticketUuid));
+  // 예매자 관리 시드 티켓(GI-1)도 판정한다 — 수동 입장 처리(#106 §5)
+  return ok(
+    hostCheckInGuestTicket(g.event.eventId, ticketUuid) ?? hostCheckIn(g.event.eventId, ticketUuid),
+  );
 });
 
 const qr = http.get(QR_PATH, ({ request, cookies, params }) => {

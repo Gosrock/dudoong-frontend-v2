@@ -26,6 +26,9 @@ const CATEGORY_ICON: Record<NotificationIcon, ReactNode> = {
   gift: <Icon name="gift" />,
   ticket: <Icon name="ticket" />,
   'alarm-clock': <Icon name="clock" />,
+  // 주문취소·환불(관객)은 티켓, 호스트 주문 알림은 주문 상세, 멤버 추가는 사람 — 🤖 Claude 판단(#106, Q90)
+  'order-detail': <Icon name="order-detail" />,
+  people: <Icon name="people" />,
   default: <Icon name="notification" />,
 };
 

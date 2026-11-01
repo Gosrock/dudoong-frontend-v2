@@ -166,7 +166,10 @@ export function useOrderDetail(
   });
   const refundM = useMutation({
     ...completeRefundMutation(eventId),
-    onSuccess: onChanged(false),
+    // 목록 다시 읽기를 기다리지 않는다(환불 탭과 같다 — #106 §5)
+    onSuccess: (d) => {
+      void onChanged(false)(d);
+    },
   });
 
   const actions = useMemo(

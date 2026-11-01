@@ -8,15 +8,18 @@ import type {
 /**
  * 알림 타입 → 카테고리·아이콘·이동 경로(plan P9b, patterns §21). 문구는 서버 `title`·`body`를 그대로 쓴다 — 여기서 만들지 않는다.
  *
- * 카테고리는 GUI 알림함(`331:11574`)의 3종이다. 호스트·환불·취소 알림은 가까운 카테고리로 모은다
- * (멤버 추가 → 공연 알림, 주문·환불·취소 → 티켓승인 안내). 공연 리마인더 2종(#810)은 공연 알림(Q13).
- * 모르는 타입은 `OTHER`(기본 아이콘) — `title`·`body`는 그대로 그린다.
+ * 카테고리는 서비스 운영자가 정한 `type` 표(이슈 #106 댓글, 2026-11-01 — 서버 `NotificationType.kt`)를 따른다. GUI 알림함(`331:11574`,
+ * Ready 아님)의 3종(티켓선물 · 티켓승인 · 공연 알림)에 관객 주문취소·환불과 호스트 3종을 더했다 — 전에는 환불 완료·주문자 취소도
+ * '티켓승인 안내'로 보였다. 호스트가 받는 알림은 이름 앞에 "호스트 ·"를 붙여 관객 알림과 한 목록에서 구분한다(탭으로 나누는 것은
+ * design-requests Q90). 공연 리마인더 2종(#810)은 공연 알림(Q13). 모르는 타입은 `OTHER`(기본 아이콘) — `title`·`body`는 그대로 그린다.
  */
 
-export type NotificationCategory = 'GIFT' | 'TICKET' | 'EVENT' | 'OTHER';
+export type NotificationCategory =
+  'GIFT' | 'TICKET' | 'ORDER' | 'EVENT' | 'HOST_ORDER' | 'HOST_REFUND' | 'HOST_MEMBER' | 'OTHER';
 
 /** 아이콘 자리. V가 아이콘 컴포넌트에 잇는다(`alarm-clock`은 아이콘 세트에 아직 없다 — GUI `icon/alarm-clock`) */
-export type NotificationIcon = 'gift' | 'ticket' | 'alarm-clock' | 'default';
+export type NotificationIcon =
+  'gift' | 'ticket' | 'alarm-clock' | 'order-detail' | 'people' | 'default';
 
 export const NOTIFICATION_CATEGORIES: Record<
   NotificationCategory,
@@ -24,13 +27,17 @@ export const NOTIFICATION_CATEGORIES: Record<
 > = {
   GIFT: { label: '티켓선물 안내', icon: 'gift' },
   TICKET: { label: '티켓승인 안내', icon: 'ticket' },
+  ORDER: { label: '주문취소·환불 안내', icon: 'ticket' },
   EVENT: { label: '공연 알림', icon: 'alarm-clock' },
+  HOST_ORDER: { label: '호스트 · 새 주문', icon: 'order-detail' },
+  HOST_REFUND: { label: '호스트 · 취소·환불 요청', icon: 'order-detail' },
+  HOST_MEMBER: { label: '호스트 · 멤버', icon: 'people' },
   OTHER: { label: null, icon: 'default' },
 };
 
 /**
  * 받는 사람. `host`는 호스트 활성 마스터·매니저가 받는 주문 알림 — 이동은 호스팅 센터 예매자 관리(Q1 기본안).
- * 백엔드 `NotificationType.kt`의 "수신자" 주석 기준.
+ * 백엔드 `NotificationType.kt`의 "수신자" 주석 기준. 멤버 추가(`HOST_MEMBER_ADDED`)는 추가된 사용자 본인이 받고 호스트 홈으로 간다
  */
 export type NotificationAudience = 'user' | 'host';
 
@@ -38,15 +45,15 @@ const KINDS: Record<
   NotificationType,
   { category: NotificationCategory; audience: NotificationAudience }
 > = {
-  HOST_MEMBER_ADDED: { category: 'EVENT', audience: 'user' },
-  ORDER_PENDING_APPROVE: { category: 'TICKET', audience: 'host' },
+  HOST_MEMBER_ADDED: { category: 'HOST_MEMBER', audience: 'user' },
+  ORDER_PENDING_APPROVE: { category: 'HOST_ORDER', audience: 'host' },
   ORDER_APPROVED: { category: 'TICKET', audience: 'user' },
   ORDER_REFUSED: { category: 'TICKET', audience: 'user' },
-  ORDER_REFUND_REQUESTED: { category: 'TICKET', audience: 'host' },
-  ORDER_CANCELED_BY_USER: { category: 'TICKET', audience: 'host' },
-  ORDER_CANCELED_BY_HOST: { category: 'TICKET', audience: 'user' },
-  ORDER_REFUND_COMPLETED: { category: 'TICKET', audience: 'user' },
-  REFUND_ACCOUNT_CHANGED: { category: 'TICKET', audience: 'host' },
+  ORDER_REFUND_REQUESTED: { category: 'HOST_REFUND', audience: 'host' },
+  ORDER_CANCELED_BY_USER: { category: 'HOST_REFUND', audience: 'host' },
+  ORDER_CANCELED_BY_HOST: { category: 'ORDER', audience: 'user' },
+  ORDER_REFUND_COMPLETED: { category: 'ORDER', audience: 'user' },
+  REFUND_ACCOUNT_CHANGED: { category: 'HOST_REFUND', audience: 'host' },
   GIFT_SENT: { category: 'GIFT', audience: 'user' },
   GIFT_ACCEPTED: { category: 'GIFT', audience: 'user' },
   GIFT_RECEIVED: { category: 'GIFT', audience: 'user' },

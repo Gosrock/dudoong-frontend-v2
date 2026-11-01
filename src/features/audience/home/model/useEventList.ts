@@ -123,6 +123,13 @@ export function useEventList() {
     submitKeyword: () => applyKeyword(keywordInput),
     toggleTag: (tagId: number) => update({ tagIds: toggleTagId(currentFilter().tagIds, tagId) }),
     resetTags: () => update({ tagIds: [] }),
+    /** 검색어나 태그가 걸려 있는지 — 결과가 없을 때 [검색 조건 지우기]를 보일지(스테이징 QA #106 §3) */
+    hasConditions: filter.keyword !== '' || filter.tagIds.length > 0,
+    /** 검색어·태그를 한 번에 지운다(지난 공연 토글은 그대로) */
+    clearConditions: () => {
+      setKeywordInputState('');
+      update({ keyword: '', tagIds: [] });
+    },
     setIncludePast: (includePast: boolean) => update({ includePast }),
     tags: {
       status: tagsQuery.isPending ? 'pending' : tagsQuery.isError ? 'error' : 'success',

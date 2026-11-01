@@ -179,6 +179,32 @@ describe('발급된 티켓 탭(GI-1 · GI-2 · GI-3)', () => {
     );
   });
 
+  it('수동 입장 처리(#106 §5): 입장 전 티켓을 PQ-2로 입장시키고 목록·상세를 다시 읽는다', async () => {
+    const { result } = setup(() => useIssuedTicketList('101'));
+    await waitFor(() => expect(result.current?.status).toBe('success'));
+    expect(result.current.canManualCheckIn).toBe(true);
+    expect(result.current.checkInBlockMessage).toBeNull();
+    const before = result.current.rows.find((t) => t.entrance === 'BEFORE')!;
+    act(() => result.current.openTicket(before.ticketUuid!));
+    await waitFor(() => expect(result.current.detail?.ticket.entrance).toBe('BEFORE'));
+    const sent = recordRequests();
+    let view: Awaited<ReturnType<typeof result.current.manualCheckIn>> = null;
+    await act(async () => {
+      view = await result.current.manualCheckIn(before.ticketUuid!);
+    });
+    expect(view).toMatchObject({ kind: 'result', result: 'ENTERED', title: '입장 완료' });
+    expect((await sent.list())[0]).toMatchObject({
+      method: 'POST',
+      path: '/api/v2/events/101/check-ins',
+    });
+    await waitFor(() => expect(result.current.detail?.ticket.entrance).toBe('DONE'));
+    // 같은 티켓을 또 누르면 서버 판정(이미 입장)을 그대로 보여 준다
+    await act(async () => {
+      view = await result.current.manualCheckIn(before.ticketUuid!);
+    });
+    expect(view).toMatchObject({ result: 'ALREADY_ENTERED' });
+  });
+
   it('일반 멤버: 엑셀 없음, 연락처 검색 안내', async () => {
     actAsRole(11, 'GUEST');
     const { result } = setup(() => useIssuedTicketList('101'));
@@ -212,6 +238,10 @@ describe('환불 탭(GF-1 · PF-2)', () => {
     await act(async () => {
       await result.current.complete(GUEST_ORDER.userRefunded);
     });
+    // 다시 읽기를 기다리지 않아도 행은 응답으로 바로 바뀐다(#106 §5 — 누른 뒤 목록이 그대로이던 것)
+    expect(result.current.rows[0]!.refund.refundStatus).toBe('COMPLETED');
+    expect(result.current.rows[0]!.canComplete).toBe(false);
+    expect(result.current.pendingUuid).toBeNull();
     await waitFor(() => expect(result.current.rows[0]!.refund.refundStatus).toBe('COMPLETED'));
     const sent = recordRequests();
     act(() => result.current.setStatus('REQUESTED'));

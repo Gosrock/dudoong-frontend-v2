@@ -262,7 +262,7 @@ test.describe('멤버 관리 — 변경', () => {
     await email.fill('nobody@example.com');
     await dialog.getByRole('button', { name: '초대하기' }).click();
     await expect(dialog.getByTestId('invite-row').getByRole('alert')).toHaveText(
-      '가입되지 않은 이메일이에요',
+      '가입되지 않은 이메일이에요. 상대가 두둥에 가입한 뒤 그 카카오 계정 이메일로 다시 초대해 주세요',
     );
     await expect(roles(page)).toHaveCount(4);
     await email.fill('guitar@example.com');
