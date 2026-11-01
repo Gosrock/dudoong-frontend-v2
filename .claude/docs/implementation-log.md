@@ -1464,7 +1464,7 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 7. 🤖 전체화면 = 화면 안 고정 층(셸을 덮음) + 되면 브라우저 Fullscreen API(iPhone Safari는 화면 안만). 뒤로가기 · [‹] · Esc로 닫힘 — 와이어 `108:4656`, patterns §6 / `useStageFullscreen`
 8. 🤖 공연 상태로 막혔을 때(호스트 스캔 지난 · 준비중, 셀프 체크인 정산중 등)는 카메라/QR 자리에 `EmptyState` 문구 — 문구는 L 잠정 그대로 / 코멘트 `424:12001`
 9. 🤖 PC(와이어 없음): 본문 최대 640 · 왼쪽 정렬 · PC 제목 "QR 체크인"(기본 정보 · 예매자 관리와 같은 머리), 카메라 상자 4:3 — design-requests PC 기본안("사이드바 + 본문, 최대 폭 제한") / `QrCheckIn.css` `page`·`stage`
-10. 🤖 판독 값 주입 어댑터는 운영에서도 열려 있다(`window` 이벤트) — 카메라에 QR을 비추는 것과 같은 일만 하고 PQ-2 권한 · 검사는 서버. 테스트 전용 빌드 분기를 두지 않으려고 / `scan-injection.ts`(지우면 e2e · QA 주입이 안 됨)
+10. ~~🤖 판독 값 주입 어댑터는 운영에서도 열려 있다~~ → **사용자 결정(2026-11-01, P14 회귀)**: 빌드 플래그 `NEXT_PUBLIC_QR_SCAN_INJECTION=1`일 때만 듣는다 — e2e·QA(`playwright.config.ts` webServer 빌드)와 `pnpm dev:mock`에서만 켜고, 운영·스테이징 이미지와 PR 게이트 빌드는 꺼진다(implementation-log "P14 — 회귀 · 레거시 URL · 검색 노출") / `scan-injection.ts` `QR_SCAN_INJECTION_ENABLED`
 11. 🤖 판독 엔진: BarcodeDetector가 없는 브라우저(iPhone Safari 등)는 라이브러리 기본대로 zxing wasm(약 0.9MB)을 jsdelivr에서 받는다 — 자체 호스팅 · CSP 허용 목록은 P14 보안에서 정한다 / `setZXingModuleOverrides`로 `public/`에서 받게 바꿀 수 있다
 12. 🤖 통계 칸 숫자는 불러오기 전 "–", 실패는 줄 아래 "통계를 불러오지 못했어요" + [통계 다시 시도], 스캔 뒤 다시 읽기 실패는 입장률 앞 "통계를 새로 고치지 못했어요 ·" — 디자인 없음 / `CheckInStats`
 

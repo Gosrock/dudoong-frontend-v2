@@ -22,6 +22,7 @@ import { mockNow, storedEvent } from './event-store';
 import { me } from './fixtures/me';
 import {
   myTicketEntranceOf,
+  myTicketGiftStateOf,
   recordHostApprovedOrder,
   recordHostCanceledOrder,
 } from './fixtures/my-ticket';
@@ -820,7 +821,8 @@ export function toIssuedTicket(r: GuestTicketRow): HostIssuedTicket {
     ticketName: o.ticketName,
     buyerName: o.buyer.name,
     ownerName: t.owner.name,
-    giftState: t.giftState,
+    // 관객 주문은 티켓탭 저장소의 선물 상태를 따른다(입장 상태 `entranceOf`와 같은 이음)
+    giftState: (o.audience && myTicketGiftStateOf(t.ticketUuid)) || t.giftState,
     orderUuid: o.orderUuid,
     orderNo: o.orderNo,
     issuedAt: t.issuedAt,

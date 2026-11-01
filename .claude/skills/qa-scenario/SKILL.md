@@ -135,7 +135,7 @@ pnpm qa                                 # 전체(qa/reports/all/)
 
 처음이면 `pnpm exec playwright install chromium`. 3100·4100 포트가 비어 있어야 한다(`E2E_APP_PORT`·`E2E_MOCK_PORT`로 바꿀 수 있다).
 
-**병렬 세션이 있으면**(회고 6개): 기본 포트를 쓰지 않는다 — `E2E_APP_PORT=31xx E2E_MOCK_PORT=41xx`, dev:mock은 `PORT=… MOCK_API_PORT=…`. `pnpm qa` 전에는 dev 서버를 내린다(`.next`를 같이 쓴다). 남은 서버는 `lsof -i :<포트>`로 PID를 찾아 끈다(`pkill -f`는 못 끌 때가 있다). `E2E_SKIP_BUILD=1`은 `.next/standalone`이 있을 때만 쓴다.
+**병렬 세션이 있으면**(회고 6개): 기본 포트를 쓰지 않는다 — `E2E_APP_PORT=31xx E2E_MOCK_PORT=41xx`, dev:mock은 `PORT=… MOCK_API_PORT=…`. `pnpm qa` 전에는 dev 서버를 내린다(`.next`를 같이 쓴다). 남은 서버는 `lsof -i :<포트>`로 PID를 찾아 끈다(`pkill -f`는 못 끌 때가 있다). `E2E_SKIP_BUILD=1`은 e2e·qa가 빌드한 `.next/standalone`이 있을 때만 쓴다(맨 `pnpm build`는 QR 판독 주입 `NEXT_PUBLIC_QR_SCAN_INJECTION=1`이 빠져 hosting-qr이 깨진다).
 
 ### 5. 결과를 읽고 고친다
 

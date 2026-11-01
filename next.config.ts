@@ -44,6 +44,25 @@ const adminRedirects = [
 ].map((r) => ({ ...r, permanent: false }));
 
 /**
+ * v1 관객 앱 주소 → v2(tech-decisions §22 표 — P14 레거시 URL). 표의 "그대로"인 주소(`/events/:id`·`/mypage`·`/login`·
+ * `/login/expired`·`/kakao/callback`·`/meta/*`)는 v2 라우트·rewrite가 그대로 받는다. 307은 `/admin/*`과 같은 이유 —
+ * 영구(301)로 바꿀지는 컷오버(P15 URL 연속성)에서 정한다.
+ * PG 결과 주소(`/pay/*`)는 v1의 결제 복귀에서만 생겼고 v2에는 PG가 없다 — 주문내역으로 보낸다(쿼리는 Next가 넘기지만 읽지 않는다).
+ */
+const audienceRedirects = [
+  { source: '/home', destination: '/' },
+  { source: '/events/:eventId/book/:step(option|order)', destination: '/events/:eventId' },
+  { source: '/pay/:result(confirm|success|fail)', destination: '/orders' },
+  { source: '/history', destination: '/orders' },
+  // 쿠폰 화면은 없어졌다 — `/history/:orderId`보다 먼저 맞아야 한다
+  { source: '/history/mycoupon', destination: '/mypage' },
+  // v1 `orderId`도 주문 uuid라 값을 그대로 넘긴다
+  { source: '/history/:orderUuid', destination: '/orders/:orderUuid' },
+  // v1 `/ticket/:id`의 `id`는 주문 uuid라 티켓탭 하나로 받는다(묶음 카드가 주문 단위)
+  { source: '/ticket/:rest*', destination: '/tickets' },
+].map((r) => ({ ...r, permanent: false }));
+
+/**
  * CSP(P14 보안, `src/utils/csp.ts`). 기본은 Report-Only — `CSP_ENFORCE=1`로 빌드하면 강제.
  * 다른 보안 헤더(`X-Frame-Options`·HSTS·`Referrer-Policy`)는 nginx가 붙인다(tech-decisions §25 — 앱에서 중복으로 넣지 않는다).
  */
@@ -71,6 +90,7 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       ...adminRedirects,
+      ...audienceRedirects,
     ];
   },
   async rewrites() {

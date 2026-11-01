@@ -44,3 +44,47 @@ jobs:
       - run: pnpm test:stories
       # Cache Components 규칙 위반(instant=false 누락, Suspense 밖 비캐시 데이터)은 build에서만 드러난다
       - run: pnpm build
+
+  # Playwright e2e(P14 회귀에서 게이트에 넣음 — tech-decisions §10 "P14 재검토"). V 마크업 변경이 e2e를 깨도 CI가 못 잡던 것(#43)을 막는다.
+  # check와 나란히 돈다. 세 조각으로 나눠 각 조각이 자기 빌드(QR 판독 주입을 켠 e2e 빌드 — playwright.config.ts)와 가짜 백엔드를 띄운다.
+  # 로컬 전체 7.3분(빌드 포함, 2026-11-01). QA 시나리오(`pnpm qa`)는 캡처 리포트라 게이트 밖에 둔다.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    env:
+      NEXT_PUBLIC_KAKAO_JS_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Playwright Chromium 캐시
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - name: Playwright Chromium 설치(시스템 의존성 포함)
+        timeout-minutes: 17
+        run: |
+          for i in 1 2 3; do
+            timeout 300 pnpm exec playwright install --with-deps --only-shell chromium && exit 0
+            echo "playwright install 실패/시간 초과 — 다시 시도 ($i/3)"
+          done
+          exit 1
+      - name: e2e (조각 ${{ matrix.shard }}/3)
+        timeout-minutes: 15
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/3 --reporter=line
+      - name: 실패 trace 올리기
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.shard }}
+          path: test-results/e2e
+          retention-days: 7

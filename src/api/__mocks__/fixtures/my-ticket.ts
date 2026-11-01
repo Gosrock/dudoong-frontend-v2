@@ -832,3 +832,12 @@ export function myTicketEntranceOf(
   const t = store.tickets.find((x) => x.uuid === ticketUuid);
   return t ? { entrance: t.status, enteredAt: t.enteredAt } : null;
 }
+
+/**
+ * 관객 주문 티켓의 지금 선물 상태(호스트 GI-1 `giftState` — P14 회귀 통합 시나리오에서 이음). 선물 링크를 보낸 뒤 수락 전이면
+ * `PENDING`. 수락하면 uuid가 바뀌어(PG-4) 이 uuid로는 찾지 못하므로 null — 호스트 쪽 저장값을 그대로 쓴다.
+ */
+export function myTicketGiftStateOf(ticketUuid: string): 'PENDING' | null {
+  const t = store.tickets.find((x) => x.uuid === ticketUuid);
+  return t && latestGiftOf(t)?.status === 'PENDING' ? 'PENDING' : null;
+}
