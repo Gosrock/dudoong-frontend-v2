@@ -1,14 +1,27 @@
 'use client';
 
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useState } from 'react';
 
+import { hostCheckInMutation } from '@/api/check-in/mutations';
 import { getErrorCode } from '@/api/errors';
+import { handleError } from '@/api/handle-error';
 import { exportIssuedTicketsMutation } from '@/api/issued-ticket/mutations';
 import { hostIssuedTicketQuery, hostIssuedTicketsQuery } from '@/api/issued-ticket/queries';
 import type { EntranceFilter, IssuedTicketSearchType } from '@/api/issued-ticket/schema';
 import { OPERATION_KEYWORD_MAX } from '@/api/order/schema';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { invalidateAfterScan, invalidateEventStatus } from '@/features/hosting/qr/model/qr-cache';
+import {
+  EVENT_NOT_CHECKABLE_MESSAGE,
+  HOST_SCAN_BLOCK_MESSAGE,
+  hostScanBlockOf,
+} from '@/features/hosting/qr/model/qr-check-in-rules';
+import {
+  type CheckInResultView,
+  checkInResultView,
+} from '@/features/shared/checkin-result/model/checkin-result';
+import { can } from '@/features/shared/permission/model/can';
 
 import { invalidateGuestLists } from './guest-cache';
 import {
@@ -71,6 +84,35 @@ export function useIssuedTicketList(eventId: string) {
     setPage(0);
   }, [keywordInput, searchType]);
 
+  // ─── 수동 입장 처리(PQ-2 — QR 값 = 티켓 uuid, 스테이징 QA #106 §5) ───
+  // 카메라 고장·QR이 안 읽힐 때 상세에서 바로 입장. 스캔과 같은 API·권한(일반 멤버 이상)·공연 상태(OPEN·정산중)
+  const checkInM = useMutation(hostCheckInMutation(eventId));
+  const [checkInResult, setCheckInResult] = useState<CheckInResultView | null>(null);
+  const checkInBlock = hostScanBlockOf(scope.event.status);
+  const canManualCheckIn = can(scope.role, 'checkIn');
+  const manualCheckIn = useCallback(
+    async (ticketUuid: string) => {
+      if (!canManualCheckIn || checkInBlock !== null || checkInM.isPending) return null;
+      setCheckInResult(null);
+      try {
+        const res = await checkInM.mutateAsync({ ticketUuid });
+        const view = checkInResultView(res, 'host');
+        setCheckInResult(view);
+        void invalidateAfterScan(queryClient, eventId, res.result);
+        return view;
+      } catch (e) {
+        handleError(e, {
+          Event_400_27: () => {
+            setMissingNotice(EVENT_NOT_CHECKABLE_MESSAGE);
+            void invalidateEventStatus(queryClient, eventId);
+          },
+        });
+        return null;
+      }
+    },
+    [canManualCheckIn, checkInBlock, checkInM, eventId, queryClient],
+  );
+
   const exporter = useGuestExport(
     eventId,
     scope.role,
@@ -116,9 +158,22 @@ export function useIssuedTicketList(eventId: string) {
     selectedTicketUuid: selected,
     openTicket: (ticketUuid: string) => {
       setMissingNotice(null);
+      setCheckInResult(null);
       setSelected(ticketUuid);
     },
-    closeTicket: () => setSelected(null),
+    closeTicket: () => {
+      setSelected(null);
+      setCheckInResult(null);
+    },
+    /**
+     * [수동 입장 처리] — 일반 멤버 이상, 입장 전(`BEFORE`) 티켓만 보인다. 공연이 OPEN·정산중이 아니면 버튼 대신 `checkInBlockMessage`
+     */
+    canManualCheckIn,
+    checkInBlockMessage: checkInBlock ? HOST_SCAN_BLOCK_MESSAGE[checkInBlock] : null,
+    manualCheckIn,
+    checkingIn: checkInM.isPending,
+    /** 마지막 수동 입장 결과(상세를 닫으면 지운다) */
+    checkInResult,
     detailStatus: selected === null ? ('idle' as const) : detailQuery.status,
     detail: selected !== null ? (detailQuery.data ?? null) : null,
     missingNotice,

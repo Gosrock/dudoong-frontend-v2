@@ -315,13 +315,21 @@ scenario(
     await expect(layer.getByText('(2/3)')).toBeVisible();
     await step('[선물 취소]를 누르면 "선물을 취소하시겠습니까?" 시트', async () => {
       await layer.getByRole('button', { name: '선물 취소' }).click();
-      await expect(page.getByRole('dialog', { name: '선물을 취소하시겠습니까?' })).toBeVisible();
+      const sheet = page.getByRole('dialog', { name: '선물을 취소하시겠습니까?' });
+      await expect(sheet).toBeVisible();
+      // 이슈 #106 §1 — [아니요] · [선물 링크 다시 보기]
+      await expect(sheet.getByRole('button', { name: '아니요' })).toBeVisible();
+      await expect(sheet.getByRole('button', { name: '선물 링크 다시 보기' })).toBeVisible();
     });
-    await step('[선물 취소하기]를 누르면 층이 닫히고 "선물 취소 완료" 화면', async () => {
-      await page.getByRole('button', { name: '선물 취소하기' }).click();
-      await expect(page.getByRole('heading', { name: '선물 취소 완료' })).toBeVisible();
-      await expect(page.getByRole('dialog', { name: '입장 QR' })).toHaveCount(0);
-    });
+    await step(
+      '[선물 취소하기]를 누르면 층이 닫히고 "선물 취소 완료" 화면(알림을 약속하지 않는다)',
+      async () => {
+        await page.getByRole('button', { name: '선물 취소하기' }).click();
+        await expect(page.getByRole('heading', { name: '선물 취소 완료' })).toBeVisible();
+        await expect(page.getByText('선물 링크는 더 이상 쓸 수 없어요')).toBeVisible();
+        await expect(page.getByRole('dialog', { name: '입장 QR' })).toHaveCount(0);
+      },
+    );
     await step('[티켓 페이지로] → 다시 열면 그 티켓에 QR이 보인다', async () => {
       await page.getByRole('button', { name: '티켓 페이지로' }).click();
       const again = await openQr(page, NEW_APPROVED_ORDER_UUID);
@@ -330,6 +338,41 @@ scenario(
       await expect(page.getByTestId('qr-value')).toHaveAttribute(
         'data-value',
         TICKET_UUID.giftPending,
+      );
+    });
+  },
+);
+
+scenario(
+  'TIX-5b',
+  '선물중 티켓 — 취소 시트의 [선물 링크 다시 보기]로 링크 화면을 다시 연다 · [아니요]는 닫기만',
+  {
+    kind: '정상',
+    summary:
+      '이슈 #106 §1 ⭐ — 링크 생성 화면을 벗어나면 링크를 되찾을 수 없었다. T-2 `gift.linkPath`로 링크 생성 완료(908:13105)를 다시 띄운다(요청 없음).',
+    basis: ['이슈 #106 §1', 'GUI 908:13105', 'design-requests Q80 · Q81'],
+    viewports: ['mobile'],
+  },
+  async ({ page, mockApi, step }) => {
+    resetTicketStore();
+    await setMockSession(page, 'loggedIn');
+    await page.goto(TAB);
+    const layer = await openQr(page, NEW_APPROVED_ORDER_UUID);
+    await layer.getByRole('button', { name: '2번째 티켓으로' }).click();
+    const sheet = page.getByRole('dialog', { name: '선물을 취소하시겠습니까?' });
+    await step('[아니요]는 시트만 닫는다(취소 요청 없음)', async () => {
+      await layer.getByRole('button', { name: '선물 취소' }).click();
+      await sheet.getByRole('button', { name: '아니요' }).click();
+      await expect(sheet).toHaveCount(0);
+      expect(mockApi.calls().filter((c) => c.method === 'DELETE')).toEqual([]);
+    });
+    await step('[선물 링크 다시 보기] → 링크 생성 완료 화면에 같은 링크', async () => {
+      await layer.getByRole('button', { name: '선물 취소' }).click();
+      await sheet.getByRole('button', { name: '선물 링크 다시 보기' }).click();
+      await expect(page.getByRole('heading', { name: '선물 링크 생성 완료!' })).toBeVisible();
+      await expect(page.getByTestId('gift-link')).toHaveAttribute('data-value', /\/gifts\/.+$/);
+      expect(mockApi.calls().filter((c) => c.method !== 'GET' && c.path.includes('gift'))).toEqual(
+        [],
       );
     });
   },

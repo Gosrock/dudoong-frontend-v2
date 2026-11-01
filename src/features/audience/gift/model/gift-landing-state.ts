@@ -25,6 +25,13 @@ export type GiftLandingViewer = {
   giftId: number | null;
 };
 
+/**
+ * 보낸 사람이 선물을 취소·회수한 뒤 완료 화면 설명(티켓탭 · 선물 랜딩 공통). GUI `908:21359`의 "선물 받는분에게 선물 취소 알림이
+ * 전달됩니다"는 쓰지 않는다 — 선물 취소 알림은 기획상 없다(이슈 #106 운영자 답 2026-11-01, 11 문서 8-2)
+ */
+export const GIFT_CANCELED_DESCRIPTION =
+  '선물 링크는 더 이상 쓸 수 없어요. 티켓은 다시 내 티켓에서 쓸 수 있어요.';
+
 export function giftLandingScreen(
   viewState: GiftViewState,
   { isReceiver, giftId }: GiftLandingViewer,

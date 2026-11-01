@@ -33,8 +33,10 @@ export function useRefundList(eventId: string) {
 
   const m = useMutation({
     ...completeRefundMutation(eventId),
-    onSuccess: (d) =>
-      applyChangedOrder(queryClient, eventId, d, { ticketAvailabilityChanged: false }),
+    // 다시 읽기를 기다리지 않는다 — 행은 응답으로 바로 바뀌고(`patchRefundRows`), 토스트·버튼이 목록 다시 읽기에 묶이지 않게(#106 §5)
+    onSuccess: (d) => {
+      void applyChangedOrder(queryClient, eventId, d, { ticketAvailabilityChanged: false });
+    },
   });
 
   const canManage = can(scope.role, 'manageOrders');

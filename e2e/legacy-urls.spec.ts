@@ -66,3 +66,12 @@ test.describe('v1과 같은 주소는 리다이렉트 없이 그대로', () => {
     });
   }
 });
+
+test.describe('짐작 주소 → v2 (307 임시)', () => {
+  // 스테이징 QA #106 §2 — 알림함은 `/mypage/notifications`. v1에 없던 주소라 기억시키지 않는다(next.config.ts)
+  test('/notifications → /mypage/notifications', async ({ request }) => {
+    const res = await request.get('/notifications', { maxRedirects: 0 });
+    expect(res.status()).toBe(307);
+    expect(res.headers()['location']).toBe('/mypage/notifications');
+  });
+});

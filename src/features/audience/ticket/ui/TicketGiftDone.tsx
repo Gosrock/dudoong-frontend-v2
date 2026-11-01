@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { GiftLinkView } from '@/features/audience/gift/GiftActionSections';
+import { GIFT_CANCELED_DESCRIPTION } from '@/features/audience/gift/model/gift-landing-state';
 import { GiftResult } from '@/features/audience/gift/ui/GiftResult';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
@@ -32,7 +33,9 @@ export function TicketGiftDone({ done, onClose }: { done: GiftDone; onClose: () 
           aria-label={`선물 ${done.verb} 완료`}
           illustration="gift-return"
           title={`선물 ${done.verb} 완료`}
-          description={`선물 받는분에게 선물 ${done.verb} 알림이 전달됩니다.`}
+          // GUI 908:21359 "선물 받는분에게 선물 취소 알림이 전달됩니다" — 선물 취소·회수 알림은 기획상 없다(이슈 #106 운영자 답,
+          // 11 문서 8-2). 사실과 다른 안내라 실제 결과로 바꿨다(🤖, Figma 코멘트). 문구는 선물 랜딩 취소 완료와 같다
+          description={GIFT_CANCELED_DESCRIPTION}
           actions={toTickets}
         />
       );

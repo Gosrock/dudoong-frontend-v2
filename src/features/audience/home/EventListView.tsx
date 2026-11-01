@@ -118,6 +118,14 @@ export function EventListView() {
             <EmptyState
               illustration={<Illustration name="no-search-result" />}
               description="조건에 맞는 공연이 없어요."
+              action={
+                // 결과 없음 다음 행동(#106 §3) — 목록 상태는 디자인 없음(DS로만). 추천(태그·다가오는 공연)은 design-requests Q91
+                l.hasConditions ? (
+                  <Button variant="secondary" size="sm" onClick={l.clearConditions}>
+                    검색 조건 지우기
+                  </Button>
+                ) : undefined
+              }
             />
           </div>
         )}

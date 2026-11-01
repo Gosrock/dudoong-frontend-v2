@@ -6,23 +6,24 @@ import { NOTIFICATION_TYPES } from '@/api/notification/schema';
 import {
   isApprovalNotification,
   NOTIFICATION_CATEGORIES,
+  notificationAudience,
   notificationCategory,
   notificationHref,
   readRequestOf,
   toNotificationView,
 } from './notification-kind';
 
-describe('알림 17종 → 카테고리·아이콘(plan P9b, Q13)', () => {
+describe('알림 17종 → 카테고리·아이콘(plan P9b, Q13 · #106 운영자 type 표)', () => {
   it.each<[NotificationType, string | null, string]>([
-    ['HOST_MEMBER_ADDED', '공연 알림', 'alarm-clock'],
-    ['ORDER_PENDING_APPROVE', '티켓승인 안내', 'ticket'],
+    ['HOST_MEMBER_ADDED', '호스트 · 멤버', 'people'],
+    ['ORDER_PENDING_APPROVE', '호스트 · 새 주문', 'order-detail'],
     ['ORDER_APPROVED', '티켓승인 안내', 'ticket'],
     ['ORDER_REFUSED', '티켓승인 안내', 'ticket'],
-    ['ORDER_REFUND_REQUESTED', '티켓승인 안내', 'ticket'],
-    ['ORDER_CANCELED_BY_USER', '티켓승인 안내', 'ticket'],
-    ['ORDER_CANCELED_BY_HOST', '티켓승인 안내', 'ticket'],
-    ['ORDER_REFUND_COMPLETED', '티켓승인 안내', 'ticket'],
-    ['REFUND_ACCOUNT_CHANGED', '티켓승인 안내', 'ticket'],
+    ['ORDER_REFUND_REQUESTED', '호스트 · 취소·환불 요청', 'order-detail'],
+    ['ORDER_CANCELED_BY_USER', '호스트 · 취소·환불 요청', 'order-detail'],
+    ['ORDER_CANCELED_BY_HOST', '주문취소·환불 안내', 'ticket'],
+    ['ORDER_REFUND_COMPLETED', '주문취소·환불 안내', 'ticket'],
+    ['REFUND_ACCOUNT_CHANGED', '호스트 · 취소·환불 요청', 'order-detail'],
     ['GIFT_SENT', '티켓선물 안내', 'gift'],
     ['GIFT_ACCEPTED', '티켓선물 안내', 'gift'],
     ['GIFT_RECEIVED', '티켓선물 안내', 'gift'],
@@ -36,9 +37,25 @@ describe('알림 17종 → 카테고리·아이콘(plan P9b, Q13)', () => {
     expect(NOTIFICATION_CATEGORIES[notificationCategory(type)]).toEqual({ label, icon });
   });
 
-  it('17종 모두 UNKNOWN이 아닌 카테고리 3종 중 하나로 간다', () => {
+  it('17종 모두 OTHER가 아닌 카테고리 7종 중 하나로 간다', () => {
     const categories = new Set(NOTIFICATION_TYPES.map(notificationCategory));
-    expect([...categories].sort()).toEqual(['EVENT', 'GIFT', 'TICKET']);
+    expect([...categories].sort()).toEqual([
+      'EVENT',
+      'GIFT',
+      'HOST_MEMBER',
+      'HOST_ORDER',
+      'HOST_REFUND',
+      'ORDER',
+      'TICKET',
+    ]);
+  });
+
+  it('호스트가 받는 주문 알림은 모두 "호스트 ·" 카테고리다(관객 알림과 한 목록에서 구분)', () => {
+    for (const t of NOTIFICATION_TYPES) {
+      if (notificationAudience(t) === 'host') {
+        expect(NOTIFICATION_CATEGORIES[notificationCategory(t)].label).toMatch(/^호스트 · /);
+      }
+    }
   });
 
   it('승인 알림(ORDER_APPROVED)만 티켓탭 공지 바를 푸는 알림이다', () => {

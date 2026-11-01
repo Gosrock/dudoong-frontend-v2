@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import { selfCheckInMutation } from '@/api/check-in/mutations';
 import type { CheckInTicket, SelfCheckInRequest } from '@/api/check-in/schema';
@@ -19,6 +19,8 @@ import {
 } from './self-check-in-errors';
 
 export type SelfCheckInState =
+  /** 열린 직후 — [입장하기]를 누르기 전. 1장이면 첫 요청이 곧 입장 처리라(되돌릴 수 없다) 확인 단계를 둔다(이슈 #106 §6) */
+  | { status: 'ready' }
   /** 요청 중(첫 요청, 또는 후보를 고른 뒤) */
   | { status: 'checking'; candidates: CheckInTicket[] | null }
   /** 여러 장 — 하나를 고른다. `error`는 고른 티켓이 실패한 이유(`IssuedTicket_400_1` 등) */
@@ -29,7 +31,8 @@ export type SelfCheckInState =
 /**
  * 관객 셀프 체크인(`/check-in?token=…`, plan P8c). 보호 화면이라 게이트가 세션을 확정한 뒤에 돈다.
  *
- * - 열리면 PQ-5 `{token}`을 **한 번** 보낸다(StrictMode의 effect 두 번에도 한 번). 1장이면 서버가 바로 입장 처리한다
+ * - 열리면 `ready` — 사용자가 `start()`([입장하기])를 눌러야 PQ-5 `{token}`을 보낸다(이슈 #106 §6 확인 단계 — 1장이면 서버가 바로
+ *   입장 처리하고 되돌릴 수 없다). 시간 제한은 하지 않는다(서비스 운영자 결정 2026-11-01)
  * - `SELECT_TICKET`이면 후보를 돌려주고, `select(ticketUuid)`가 `{token, ticketUuid}`로 다시 보낸다
  * - 토큰이 없거나 모양이 틀리면(`token === null`) 요청 없이 `INVALID_QR`
  * - 에러는 모두 화면이 맡는다(`handleError`의 `otherwise` — 공용 토스트 없음). 세션 상실은 이동이 맡으므로 상태를 바꾸지 않는다
@@ -38,7 +41,7 @@ export function useSelfCheckIn(token: string | null) {
   const [state, setState] = useState<SelfCheckInState>(() =>
     token === null
       ? { status: 'error', error: SELF_CHECK_IN_ERRORS.INVALID_QR }
-      : { status: 'checking', candidates: null },
+      : { status: 'ready' },
   );
   const candidatesRef = useRef<CheckInTicket[] | null>(null);
   const mutation = useMutation(selfCheckInMutation());
@@ -78,7 +81,8 @@ export function useSelfCheckIn(token: string | null) {
   );
 
   const started = useRef(false);
-  useEffect(() => {
+  /** [입장하기] — 첫 요청은 한 번만(두 번 눌러도) */
+  const start = useCallback(() => {
     if (token === null || started.current) return;
     started.current = true;
     void send({ token });
@@ -100,5 +104,5 @@ export function useSelfCheckIn(token: string | null) {
     void send({ token });
   }, [token, send, mutation.isPending]);
 
-  return { state, select, retry, submitting: mutation.isPending };
+  return { state, start, select, retry, submitting: mutation.isPending };
 }

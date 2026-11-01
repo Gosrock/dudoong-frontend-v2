@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 
-import type { HostOrderDetail } from '@/api/order/schema';
+import { type HostOrderDetail, REFUSE_REASON_TEXT_MAX } from '@/api/order/schema';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Input } from '@/ui/components/Input/Input';
 import { Radio, RadioGroup } from '@/ui/components/Radio/Radio';
@@ -15,7 +16,11 @@ import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import { REFUSE_REASON_OPTIONS, type RefuseReasonKey } from '../model/guest-rules';
+import {
+  refundConfirmCopy,
+  REFUSE_REASON_OPTIONS,
+  type RefuseReasonKey,
+} from '../model/guest-rules';
 import type { useOrderDetail } from '../model/useOrderDetail';
 import {
   dateTimeText,
@@ -185,7 +190,7 @@ function OrderInfo({ d, o }: { d: Detail; o: HostOrderDetail }) {
             />
             <InfoRow
               className={s.infoRow}
-              label="계좌 수정일"
+              label="구매자 입력 시각"
               value={
                 <V testId="refund-account-updated">{dateTimeText(o.refundAccount.updatedAt)}</V>
               }
@@ -288,8 +293,9 @@ function RefuseStep({ d }: { d: Detail }) {
       {f.reasonType === 'ETC' && (
         <Input
           aria-label="기타 사유"
-          placeholder="최대 20자 입력 가능"
-          maxLength={20}
+          // 상한은 상수 하나(REFUSE_REASON_TEXT_MAX) — 백엔드 #921(20 → 100자) 배포 확인 뒤 그 값만 바꾼다(B31)
+          placeholder={`최대 ${REFUSE_REASON_TEXT_MAX}자 입력 가능`}
+          maxLength={REFUSE_REASON_TEXT_MAX}
           value={f.reasonText}
           onChange={(e) => f.setReasonText(e.target.value)}
           error={f.errors.reasonText}
@@ -432,7 +438,16 @@ function Footer({
           fullWidth
           loading={d.pending === 'completeRefund'}
           disabled={busy}
-          onClick={async () => after(await d.completeRefund(), '환불 완료로 바꿨어요')}
+          onClick={async () => {
+            // 되돌릴 수 없는 처리 — 확인 팝업(#106 §5). 계좌가 없으면 경고 문구
+            const ok = await openConfirm(
+              refundConfirmCopy({
+                buyerName: d.detail?.order.buyerName ?? null,
+                hasAccount: !d.canSeeRefundAccount || d.detail?.refundAccount != null,
+              }),
+            );
+            if (ok) after(await d.completeRefund(), '환불 완료로 바꿨어요');
+          }}
         >
           환불 완료
         </Button>

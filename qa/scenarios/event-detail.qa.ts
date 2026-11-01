@@ -282,20 +282,33 @@ scenario(
 
 scenario(
   'EVT-8',
-  '카카오 SDK를 못 불러오면 공유 버튼이 공연 주소를 복사한다',
+  '공유 고르기 — [카카오톡] · [링크 복사], 카카오 SDK를 못 불러오면 주소 복사',
   {
     kind: '에러',
     summary:
-      '공유(모바일 포스터 위 · PC 정사각 버튼 — Q22 기본안)는 카카오 공유창, 실패하면 주소 복사 + 토스트.',
-    basis: ['patterns §14 카카오 공유', 'design-requests Q22'],
+      '공유(모바일 포스터 위 · PC 정사각 버튼 — Q22 기본안)는 고르는 시트(이슈 #106 §7): [카카오톡](실패하면 주소 복사 + 토스트) · [링크 복사] · [다른 앱으로 공유](`navigator.share`가 있을 때만).',
+    basis: ['patterns §14 카카오 공유', 'design-requests Q22 · Q83', '이슈 #106 §7'],
   },
   async ({ page, step }) => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.route('https://t1.kakaocdn.net/**', (route) => route.abort());
     await page.goto(EVENT);
-    await step('[공유하기]를 누르면 "공연 주소를 복사했어요" 토스트가 뜬다', async () => {
+    const sheet = page.getByRole('dialog', { name: '공유하기' });
+    await step('[공유하기]를 누르면 공유 방법을 고르는 시트가 뜬다', async () => {
       await page.getByRole('button', { name: '공유하기' }).locator('visible=true').click();
+      await expect(sheet.getByRole('button', { name: '카카오톡' })).toBeVisible();
+      await expect(sheet.getByRole('button', { name: '링크 복사' })).toBeVisible();
+    });
+    await step('[링크 복사]는 공연 주소를 복사하고 시트를 닫는다', async () => {
+      await sheet.getByRole('button', { name: '링크 복사' }).click();
       await expect(page.getByText('공연 주소를 복사했어요')).toBeVisible();
+      await expect(sheet).toHaveCount(0);
+      expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/events\/\d+$/);
+    });
+    await step('[카카오톡] — SDK를 못 불러오면 "공연 주소를 복사했어요" 토스트', async () => {
+      await page.getByRole('button', { name: '공유하기' }).locator('visible=true').click();
+      await sheet.getByRole('button', { name: '카카오톡' }).click();
+      await expect(page.getByText('공연 주소를 복사했어요').first()).toBeVisible();
     });
   },
 );
@@ -321,5 +334,5 @@ scenario(
 scenario.manual('EVT-10', '실기기에서 카카오톡 공유창이 열리고 미리보기가 맞다', {
   kind: '크롤러',
   basis: ['plan P5b 완료 기준 L 카카오 공유 디버거(D2 뒤)', 'patterns §14'],
-  how: 'D2 스테이징에서 공연 상세 [공유하기]를 눌러 카카오톡 공유창이 뜨는지, 카카오 공유 디버거에 공개 URL을 넣어 제목·이미지를 본다.',
+  how: 'D2 스테이징에서 공연 상세 [공유하기] → [카카오톡]을 눌러 카카오톡 공유창이 뜨는지, [다른 앱으로 공유]가 기본 공유 시트를 여는지, 카카오 공유 디버거에 공개 URL을 넣어 제목·이미지를 본다.',
 });

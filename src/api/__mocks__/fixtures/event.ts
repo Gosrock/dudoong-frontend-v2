@@ -33,7 +33,7 @@ export const tagGroups = [
     category: 'GENRE',
     tags: [
       { tagId: 2, name: '락밴드' },
-      { tagId: 5, name: '어쿠스틱' },
+      { tagId: 5, name: '어쿠스틱·포크' },
       { tagId: 6, name: '재즈' },
     ],
   },

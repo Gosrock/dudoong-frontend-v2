@@ -9,6 +9,7 @@ import { Controller, useWatch } from 'react-hook-form';
 import { isSessionLost } from '@/api/errors';
 import { eventDetailQuery } from '@/api/event/queries';
 import type { Checkout, PaymentChannel } from '@/api/order/schema';
+import { formatKstDotDateTimeWeekday } from '@/api/shared/date';
 import { AudienceSubHeader } from '@/features/audience/shell/AudienceSubHeader';
 import { Accordion } from '@/ui/components/Accordion/Accordion';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
@@ -31,6 +32,7 @@ import { colors } from '@/ui/theme/colors';
 import * as s from './CheckoutView.css';
 import { type CheckoutParams, eventHref } from './model/checkout-params';
 import { firstInvalidTicket } from './model/option-form';
+import { REFUND_DEADLINE, refundPolicyItems } from './model/refund-policy';
 import { type CheckoutState, useCheckout, useCheckoutData } from './model/useCheckout';
 
 /** 결제 방식 버튼 글자 — GUI `564:4156` "토스간편송금"·"계좌이체" */
@@ -60,6 +62,7 @@ export function CheckoutView({
   // 공연 이름(헤더 제목). 공개 GP-3 — 상세에서 왔으면 캐시가 있다. 실패해도 체크아웃은 그린다
   const event = useQuery(eventDetailQuery(eventId));
   const eventName = event.data?.name ?? '';
+  const eventStartAt = event.data?.startAt ?? null;
   return (
     <>
       <AudienceSubHeader title={eventName} fallbackHref={eventHref(eventId)} />
@@ -68,7 +71,12 @@ export function CheckoutView({
           {eventName ? `${eventName} 결제하기` : '결제하기'}
         </Txt>
         <AsyncBoundary holdOn={isSessionLost}>
-          <CheckoutContent eventId={eventId} params={params} eventName={eventName} />
+          <CheckoutContent
+            eventId={eventId}
+            params={params}
+            eventName={eventName}
+            eventStartAt={eventStartAt}
+          />
         </AsyncBoundary>
       </main>
     </>
@@ -79,10 +87,12 @@ function CheckoutContent({
   eventId,
   params,
   eventName,
+  eventStartAt,
 }: {
   eventId: number;
   params: CheckoutParams | null;
   eventName: string;
+  eventStartAt: string | null;
 }) {
   const state = useCheckoutData(eventId, params);
   const router = useRouter();
@@ -114,12 +124,14 @@ function CheckoutContent({
       depositorName={state.depositorName}
       quantity={params?.quantity ?? 1}
       eventName={eventName}
+      eventStartAt={eventStartAt}
     />
   );
 }
 
 function CheckoutForm({
   eventName,
+  eventStartAt,
   ...props
 }: {
   eventId: number;
@@ -127,6 +139,7 @@ function CheckoutForm({
   depositorName: string | null;
   quantity: number;
   eventName: string;
+  eventStartAt: string | null;
 }) {
   const c = useCheckout(props);
   const errors = c.form.formState.errors;
@@ -280,6 +293,8 @@ function CheckoutForm({
           <HostProvisionField c={c} eventName={eventName} />
         </>
       )}
+
+      <RefundPolicy c={c} eventId={props.eventId} startAt={eventStartAt} />
 
       <div className={s.bottomBar}>
         <Controller
@@ -450,6 +465,58 @@ function DudoongNoticeField({ c }: { c: CheckoutState }) {
   );
 }
 
+// ─── 취소·환불 규정(이슈 #105) ─────────────────────────────
+
+/**
+ * 동의 줄("…환불/취소 규정을 확인하였으며…") 바로 위의 규정 보기 — legal-copy A-7 원문(`refundPolicyItems`) + 취소 기한 + 이용약관 ·
+ * 공연 상세(호스트가 쓴 환불 기준) 링크. 보지 못한 규정에 동의하지 않게(이슈 #105 ⭐).
+ * FIGMA-CUSTOM: 체크아웃 GUI(564:4156)에는 규정 자리가 없다(동의 줄만) → DS Accordion(접힘)으로 최소안. 요약 박스·크기는 디자인 Q79.
+ * 🤖 Claude 판단(2026-11-02): 되돌리려면 이 컴포넌트 한 줄을 빼면 된다. 링크는 새 탭 — 고른 옵션을 잃지 않게
+ */
+function RefundPolicy({
+  c,
+  eventId,
+  startAt,
+}: {
+  c: CheckoutState;
+  eventId: number;
+  startAt: string | null;
+}) {
+  const items = refundPolicyItems(c.ticket.payType);
+  if (!items) return null;
+  return (
+    <section aria-label="취소·환불 규정" className={s.refundPolicy}>
+      <div className={s.sectionGap} />
+      <Accordion label="취소·환불 규정 보기" className={s.collapseTopLine}>
+        <InfoRow label={REFUND_DEADLINE.label} value={REFUND_DEADLINE.value} />
+        {startAt && <InfoRow label="공연 시작" value={formatKstDotDateTimeWeekday(startAt)} />}
+        <ol className={`${s.agreementList} ${s.agreementDetailBody}`}>
+          {items.map((item) => (
+            <li key={item}>
+              <Txt typography="labelSm" color={colors.textSecondaryLabel}>
+                {item}
+              </Txt>
+            </li>
+          ))}
+        </ol>
+        <Flex gap={4} wrap className={s.refundPolicyLinks}>
+          <a
+            href={eventHref(eventId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={s.textLink}
+          >
+            호스트 환불 기준(공연 상세)
+          </a>
+          <a href="/meta/term" target="_blank" rel="noopener noreferrer" className={s.textLink}>
+            이용약관
+          </a>
+        </Flex>
+      </Accordion>
+    </section>
+  );
+}
+
 // ─── 결제정보 · 결제금액 · 결제방식 ─────────────────────────────
 
 const copyToast = {
@@ -463,6 +530,16 @@ function PaymentInfo({ c }: { c: CheckoutState }) {
   return (
     <section aria-label="결제정보">
       <InfoRow hierarchy="first" label="결제정보" value="입금자명은 닉네임과 동일하게 해주세요" />
+      {/* 서비스 운영자 결정(이슈 #106 §4, 2026-11-01) — 닉네임 = 입금자명은 의도. 다르면 닉네임을 바꾸도록 안내 + 마이페이지 링크.
+          마이페이지는 새 탭 — 고른 옵션을 잃지 않게. 바꾼 뒤 이 화면을 새로 고치면 새 닉네임이 입금자명이 된다 */}
+      <div className={s.depositorHint}>
+        <Txt typography="labelSm" color={colors.textSecondaryLabel}>
+          닉네임이 실제 입금자명과 다르면 마이페이지에서 닉네임을 바꿔 주세요.{' '}
+          <a href="/mypage" target="_blank" rel="noopener noreferrer" className={s.textLink}>
+            마이페이지
+          </a>
+        </Txt>
+      </div>
       <InfoRow label="입금자명" value={c.depositorName ?? '—'} />
       {/* plan P7 ② — GUI는 계좌·예금주만. 토스 송금·입금에 은행이 필요해 은행 줄을 더한다 */}
       <InfoRow label="입금은행" value={account?.bankName ?? '—'} />

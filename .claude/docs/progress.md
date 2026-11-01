@@ -12,7 +12,6 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
-| 백엔드 #905 답 반영 | `9yujin/backend-905-sync` · #100 | 2026-11-01 | PR 검토 대기 | 병렬 `agreement-fields`(동의 칸)와 파일 나눔 |
 | 코드 패턴 정리 ①문서 + ②공용 부품 | `9yujin/pattern-base` | 2026-11-02 | 진행 중 | 새로 만들기만(호출 쪽은 ③④). 병렬 `staging-qa-105-audience` · `staging-qa-106-host`와 파일 나눔 |
 
 ## 사용자 대기
@@ -81,7 +80,9 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 21 | `release-v2-cutover` | P15 컷오버(이 저장소의 코드·문서 몫 — 운영·사람 몫은 "사용자 대기") | P14 | 끝(코드 몫, #88) — 남은 것은 사람 몫("사용자 대기" · `cutover-runbook.md`) | — |
 | 22 | `layout-fixed-95` | 이슈 #95 레이아웃 고정 요소 — 상단 바 fixed(고무줄 오버스크롤) · 로그인 말풍선 흐름 안 · fixed/sticky/dvh 전수조사(implementation-log 끝 절) | P4s-V | 끝(#97) | — |
 | 23 | `staging-ux-93` | 이슈 #93 스테이징 QA UX 제안 — 분류표 · (가) 말풍선 · 티켓 캐러셀 순서 · 간편 만들기 hostId · QR 카메라 대기 안내 · 포스터 contain, 디자인 Q63~Q78 · 서버 B23~B27(implementation-log 끝 절) | — | 끝(#98) | — |
-| 24 | `backend-905-sync` | 백엔드 #905 답 반영 — 문서(backend-questions · api-contract · cutover-runbook · handoff) · B18 확정 문구(11-07 시행 전에는 ⑤ 숨김) · 티켓탭 공지 바 거절 · 공연 중(Q55) · Void 래퍼 테스트(implementation-log 끝 절) | — | PR #100 | — |
+| 24 | `backend-905-sync` | 백엔드 #905 답 반영 — 문서(backend-questions · api-contract · cutover-runbook · handoff) · B18 확정 문구(11-07 시행 전에는 ⑤ 숨김) · 티켓탭 공지 바 거절 · 공연 중(Q55) · Void 래퍼 테스트(implementation-log 끝 절) | — | 끝(#100) | — |
+| 25 | `staging-qa-105-audience` | 이슈 #105 전부 · #106 관객 — 체크아웃 취소·환불 규정 보기 · 주문상세 취소 기한 · 취소 시트 안내 · 선물(비로그인 요약 · 링크 다시 보기 · 문자 문구 · [아니요] · 취소 완료 문구) · 닉네임 안내 2곳 · 거절 주문 계좌 문구 · 셀프 체크인 확인 단계 · 공유 고르는 시트, 디자인 Q79~Q87 · 서버 B28~B30(implementation-log 끝 절) | — | 끝(#108) | — |
+| 26 | `staging-qa-106-host` | 이슈 #106 스테이징 QA(호스팅 · 알림 · 공지 · 검색) — 분류표 · (가) 알림 라벨 `type` 7종 · `/notifications` 리다이렉트 · 검색 조건 지우기 · 태그 칸 너비 · 환불 완료 확인 팝업 · 즉시 갱신 · 계좌 없음 경고 · 수동 입장 처리 · 초대 미가입 안내, 디자인 Q88~Q96 · 서버 B31~B33(implementation-log 끝 절) | — | 끝(#107) | — |
 | 27 | `pattern-base` | 코드 패턴 정리 ①문서(D1~D12 — D7은 30) + ②공용 부품 새로 만들기만(A1 · A3 · A4 · A5 · A7 · A8 · A11 · A12 · A19 · A21 · A22 · A23 · A44 · A45, [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md)) | — | 진행 중 | G 패턴 정리 |
 | 28 | `pattern-audience` ∥ 29 | ③ 관객 화면 옮기기 — A1(관객 확인 시트 6개 → `openConfirm`), A3 · A4 · A7 · A11 · A19 · A23 호출 쪽, A6, A10(profile), A12(gift-cache), A13(관심 호스트), A17, A18(관객), A20, A34~A39 | 27 · `staging-qa-105-audience` 머지 | 대기 | G 패턴 정리 |
 | 29 | `pattern-hosting` ∥ 28 | ④ 호스팅 화면 옮기기 — A2, A1(호스팅 확인 → `onConfirm: () => m.action()`), A3 · A4 · A7 · A8(`useDebouncedValue` — 공연 리스트 · 공연준비 홈) · A11 · A19 호출 쪽, A10, A13(OptionSheets), A16, A18(ScanResult), A26, A30, A32, A33, A41, A42 | 27 · `staging-qa-106-host` 머지 | 대기 | G 패턴 정리 |
