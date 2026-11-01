@@ -72,6 +72,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 끝(#85) | F 하드닝 **(끝 — 회귀 통과 e2e 560/0 · QA 387/0, 시나리오 22개. 전체 회귀 2026-11-01(#88 뒤, #91): e2e 560/0 · QA 395/0 · 수동 16 — shell SHELL-8~10 · integration REG-4 추가)** |
 | 21 | `release-v2-cutover` | P15 컷오버(이 저장소의 코드·문서 몫 — 운영·사람 몫은 "사용자 대기") | P14 | 끝(코드 몫, #88) — 남은 것은 사람 몫("사용자 대기" · `cutover-runbook.md`) | — |
 | 22 | `layout-fixed-95` | 이슈 #95 레이아웃 고정 요소 — 상단 바 fixed(고무줄 오버스크롤) · 로그인 말풍선 흐름 안 · fixed/sticky/dvh 전수조사(implementation-log 끝 절) | P4s-V | 끝(#97) | — |
+| 23 | `staging-ux-93` | 이슈 #93 스테이징 QA UX 제안 — 분류표 · (가) 말풍선 · 티켓 캐러셀 순서 · 간편 만들기 hostId · QR 카메라 대기 안내 · 포스터 contain, 디자인 Q63~Q78 · 서버 B23~B27(implementation-log 끝 절) | — | 끝(#98) | — |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
 

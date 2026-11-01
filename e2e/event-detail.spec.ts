@@ -122,6 +122,23 @@ test.describe('공연 상세 — 브라우저', () => {
     );
   });
 
+  test('포스터는 칸에 맞춰 줄이고 자르지 않는다(contain — 이슈 #93 §1)', async ({ page }) => {
+    // 가짜 이미지 출처는 응답이 없다 — 1×1 PNG로 채워 포스터가 그려지게 한다
+    await page.route('https://image.mock.dudoong.test/**', (route) =>
+      route.fulfill({
+        contentType: 'image/png',
+        body: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+          'base64',
+        ),
+      }),
+    );
+    await page.goto('/events/101');
+    const poster = page.getByRole('img', { name: '고스락 제37회 정기공연 포스터' });
+    await expect(poster).toBeVisible();
+    expect(await poster.evaluate((el) => getComputedStyle(el).objectFit)).toBe('contain');
+  });
+
   test('응답 HTML에 재고 값이 없다', async ({ request, mockApi }) => {
     const res = await request.get('/events/101');
     expect(res.status()).toBe(200);

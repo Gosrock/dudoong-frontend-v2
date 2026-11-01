@@ -30,7 +30,8 @@ import { SCHEDULE_ERROR, type ScheduleInput, toScheduleRange } from './schedule'
  * Step2 입력은 이 훅의 지역 상태다(tech-decisions §3 — 다단계 라이브러리 없이). UI 동작은 없다.
  *
  * - Step1: 내 호스트(GH-1 무한 목록, 지금 받은 것까지). **일반 멤버인 호스트는 고를 수 없다**(`selectable: false` — patterns §22).
- *   호스트 홈의 `?hostId=`(P5c)가 고를 수 있는 호스트면 미리 고른다. [다음]은 `?step=2`로 `push`(뒤로가기 = Step1)
+ *   호스트 홈의 `?hostId=`(P5c)가 고를 수 있는 호스트면 미리 고른다. [다음]은 `?step=2&hostId=`로 `push`(뒤로가기 = Step1,
+ *   새로고침하면 같은 호스트로 Step2 — 이슈 #93 §4)
  * - Step1 안의 호스트 만들기(GUI `41:2343`): P10a 호스트 만들기 로직(`useCreateHost`) 그대로 — 만들면 GH-1·GM-1을 다시 읽고,
  *   **만든 호스트가 골라진 채 `?step=2`로** 간다
  * - Step2: 이름(25자) · 날짜 1칸 + 시작·종료 시각(종료 ≤ 시작이면 다음 날) · 티켓 여부. 시작은 지금 이후(PE-2 `@Future`)
@@ -63,7 +64,7 @@ export function useNewEventWizard({ now = () => new Date() }: { now?: () => Date
   );
 
   const goToStep2 = useCallback(() => {
-    if (selectedHost) router.push(wizardStepHref(2));
+    if (selectedHost) router.push(wizardStepHref(2, selectedHost.hostId));
   }, [router, selectedHost]);
 
   // Step2인데 고른 호스트가 없다 — 목록을 받은 뒤에도 없으면 Step1로
@@ -78,7 +79,7 @@ export function useNewEventWizard({ now = () => new Date() }: { now?: () => Date
     onCreated: (hostId) => {
       setPickedHostId(hostId);
       setCreatingHost(false);
-      router.push(wizardStepHref(2));
+      router.push(wizardStepHref(2, hostId));
     },
   });
 

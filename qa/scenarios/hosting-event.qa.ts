@@ -367,7 +367,7 @@ scenario(
     await step('호스트를 고르고 [다음]을 누르면 Step2', async () => {
       await page.getByRole('radio', { name: /고스락/ }).click();
       await page.getByRole('button', { name: '다음' }).click();
-      await expect(page).toHaveURL('/hosting/new/events?step=2');
+      await expect(page).toHaveURL(/\/hosting\/new\/events\?step=2&hostId=\d+$/);
       await expect(page.getByRole('heading', { name: '공연을 새로 만들어볼까요?' })).toBeVisible();
     });
     await step('종료가 시작보다 빠르면 다음 날 안내가 보인다', async () => {

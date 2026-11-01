@@ -117,6 +117,7 @@ describe('메뉴 항목 — 로그인/비로그인', () => {
       ['새 공연 만들기', '/hosting/new/events'],
     ]);
     expect(menu.hostRow.hosts.map((h) => h.name)).toEqual(['고스락']);
+    expect(menu.startHint).toBe(false);
     const all = [menu.bell, menu.profile.edit, ...menu.shortcuts, ...menu.items, ...menu.create];
     expect(all.filter((l) => l.viaLogin)).toEqual([]);
   });
@@ -129,11 +130,19 @@ describe('메뉴 항목 — 로그인/비로그인', () => {
     expect(menu.bell.href).toBe('/login?redirect=%2Fmypage%2Fnotifications');
     expect(menu.items.map((l) => l.label)).toEqual(['주문내역', '관심 호스트']);
     expect(menu.hostRow.emptyText).toBe(SHELL_HOSTS_EMPTY_TEXT);
+    expect(menu.startHint).toBe(true);
     const links = [menu.bell, ...menu.shortcuts, ...menu.items, ...menu.create];
     expect(links.filter((l) => !l.viaLogin).map((l) => l.key)).toEqual(['browse']);
     for (const l of links.filter((x) => x.viaLogin)) {
       expect(l.href).toBe(`/login?redirect=${encodeURIComponent(l.to)}`);
     }
+  });
+
+  it('말풍선 "두둥에서 공연을 시작해보세요!"는 소속 호스트가 0개일 때만(이슈 #93 §3)', () => {
+    expect(shellMenu({ ...fixtureMe, hosts: [], hostCount: 0 }).startHint).toBe(true);
+    expect(shellMenu(fixtureMe).startHint).toBe(false);
+    // 목록은 비었지만 hostCount가 남은 경우(10개 상한 밖) — 호스트가 있는 사용자
+    expect(shellMenu({ ...fixtureMe, hosts: [], hostCount: 3 }).startHint).toBe(false);
   });
 
   it('화면 문구에 "호스팅 센터"가 없고 업데이트 노트·AD 항목이 없다(Q4)', () => {

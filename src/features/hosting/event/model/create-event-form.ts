@@ -19,8 +19,15 @@ export type WizardStep = 1 | 2;
 export const parseWizardStep = (params: Pick<URLSearchParams, 'get'>): WizardStep =>
   params.get('step') === '2' ? 2 : 1;
 
-/** 단계 주소. 1단계는 `?step=1`로 쓴다(뒤로가기로 돌아올 자리를 분명히) — 호스트 홈의 `?hostId=`는 남기지 않는다 */
-export const wizardStepHref = (step: WizardStep) => `${NEW_EVENT_PATH}?step=${step}`;
+/**
+ * 단계 주소. 1단계는 `?step=1`로 쓴다(뒤로가기로 돌아올 자리를 분명히) — 호스트 홈의 `?hostId=`는 남기지 않는다.
+ * 2단계는 고른 호스트를 `&hostId=`로 남긴다 — 새로고침해도 같은 호스트가 골라진 채 Step2에 남는다(이슈 #93 §4.
+ * 입력값은 지역 상태라 비워진다)
+ */
+export const wizardStepHref = (step: WizardStep, hostId?: number | null) =>
+  step === 2 && hostId != null
+    ? `${NEW_EVENT_PATH}?step=2&hostId=${hostId}`
+    : `${NEW_EVENT_PATH}?step=${step}`;
 
 /** 호스트 홈 [새 공연 만들기]가 넘기는 `?hostId=`(P5c) — 숫자가 아니면 무시 */
 export function parsePreselectedHostId(params: Pick<URLSearchParams, 'get'>): number | null {

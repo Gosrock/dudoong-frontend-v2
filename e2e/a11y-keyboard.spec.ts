@@ -128,7 +128,7 @@ test('호스팅 간편 공연 만들기 → 대시보드를 키보드로만', as
   await expect(host).toHaveAttribute('aria-checked', 'true');
   await tabTo(page, page.getByRole('button', { name: '다음' }));
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL('/hosting/new/events?step=2');
+  await expect(page).toHaveURL(/\/hosting\/new\/events\?step=2&hostId=\d+$/);
 
   const name = page.getByLabel('공연 이름');
   await tabTo(page, name);

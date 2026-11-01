@@ -94,7 +94,7 @@ describe('간편 공연 만들기 Step1 — 호스트 선택', () => {
     act(() => result.current.selectHost(11));
     expect(result.current.selectedHost?.hostId).toBe(11);
     act(() => result.current.goToStep2());
-    expect(nav.router.push).toHaveBeenCalledWith('/hosting/new/events?step=2');
+    expect(nav.router.push).toHaveBeenCalledWith('/hosting/new/events?step=2&hostId=11');
   });
 
   it('호스트 홈의 ?hostId=는 고를 수 있는 호스트일 때만 미리 고른다', async () => {
@@ -128,7 +128,9 @@ describe('간편 공연 만들기 Step1 — 호스트 선택', () => {
       result.current.createHost.setContactValue(0, '@newband');
     });
     await act(() => result.current.createHost.submit());
-    await waitFor(() => expect(nav.router.push).toHaveBeenCalledWith('/hosting/new/events?step=2'));
+    await waitFor(() =>
+      expect(nav.router.push).toHaveBeenCalledWith('/hosting/new/events?step=2&hostId=9001'),
+    );
     expect(nav.router.replace).not.toHaveBeenCalled();
     expect(result.current.creatingHost).toBe(false);
     // 만든 호스트(9001)가 GH-1에 나오고 골라져 있다
@@ -150,6 +152,16 @@ describe('간편 공연 만들기 Step2 — PE-2', () => {
     await waitFor(() =>
       expect(nav.router.replace).toHaveBeenCalledWith('/hosting/new/events?step=1'),
     );
+  });
+
+  it('?step=2&hostId=(새로고침)는 그 호스트가 골라진 채 Step2에 남는다(이슈 #93 §4)', async () => {
+    server.use(...hostingSets.mixedRoles);
+    nav.search.value = 'step=2&hostId=11';
+    const { result } = setup();
+    await hostsLoaded(result);
+    expect(result.current.step).toBe(2);
+    expect(result.current.selectedHost?.hostId).toBe(11);
+    expect(nav.router.replace).not.toHaveBeenCalled();
   });
 
   it('PE-2 {hostId, name, startAt, endAt(종료 ≤ 시작이면 다음 날), hasTicket} → GE-1 무효화 → 대시보드(?created=1)로 replace', async () => {
