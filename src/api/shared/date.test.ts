@@ -1,6 +1,17 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { formatKstDateTime, isKstDateTime, kstDateTime, parseKstDateTime } from './date';
+import {
+  formatKstDateTime,
+  isKstDateTime,
+  joinKstDateTime,
+  KOREAN_WEEKDAYS,
+  kstDateTime,
+  kstDayDiff,
+  kstParts,
+  parseKstDateTime,
+  splitKstDateTime,
+  toKstIso,
+} from './date';
 
 const ORIGINAL_TZ = process.env.TZ;
 
@@ -66,5 +77,63 @@ describe('date — yyyy.MM.dd HH:mm (KST)', () => {
 
   it('잘못된 Date는 직렬화하지 않는다', () => {
     expect(() => formatKstDateTime(new Date('nope'))).toThrow(RangeError);
+  });
+});
+
+describe('date — 계산·변환(A19)', () => {
+  it('kstParts — 벽시계 값 + 요일', () => {
+    expect(kstParts('2026.10.17 19:30')).toEqual({
+      year: 2026,
+      month: 10,
+      day: 17,
+      hour: 19,
+      minute: 30,
+      weekday: '토',
+    });
+    expect(() => kstParts('2026.02.30 10:00')).toThrow(RangeError);
+  });
+
+  it('KOREAN_WEEKDAYS — 일요일부터', () => {
+    expect(KOREAN_WEEKDAYS[0]).toBe('일');
+    expect(KOREAN_WEEKDAYS[6]).toBe('토');
+  });
+
+  it('kstDayDiff — KST 자정 기준 날짜 차이', () => {
+    const now = new Date('2026-11-02T14:59:00Z'); // 11-02 23:59 KST
+    expect(kstDayDiff('2026.11.02 00:00', now)).toBe(0);
+    expect(kstDayDiff('2026.11.03 00:00', now)).toBe(1);
+    expect(kstDayDiff('2026.10.31 23:00', now)).toBe(-2);
+    const afterMidnight = new Date('2026-11-02T15:00:00Z'); // 11-03 00:00 KST
+    expect(kstDayDiff('2026.11.03 00:00', afterMidnight)).toBe(0);
+  });
+
+  it('kstDayDiff — 실행 환경 시간대와 상관없다', () => {
+    process.env.TZ = 'America/Los_Angeles';
+    expect(kstDayDiff('2026.11.03 10:00', new Date('2026-11-02T15:00:00Z'))).toBe(0);
+    process.env.TZ = ORIGINAL_TZ;
+  });
+
+  it('splitKstDateTime — 입력칸 값, 없거나 틀리면 빈 칸', () => {
+    expect(splitKstDateTime('2026.01.05 09:05')).toEqual({ date: '2026-01-05', time: '09:05' });
+    expect(splitKstDateTime(null)).toEqual({ date: '', time: '' });
+    expect(splitKstDateTime('2026-01-05 09:05')).toEqual({ date: '', time: '' });
+  });
+
+  it('joinKstDateTime — 칸 → 서버 일시, 틀리면 null', () => {
+    expect(joinKstDateTime('2026-01-05', '09:05')).toBe('2026.01.05 09:05');
+    expect(joinKstDateTime('', '09:05')).toBeNull();
+    expect(joinKstDateTime('2026-02-30', '10:00')).toBeNull();
+    expect(joinKstDateTime('2026-01-05', '24:00')).toBeNull();
+    expect(joinKstDateTime('2026-1-5', '9:05')).toBeNull();
+  });
+
+  it('split ↔ join 왕복', () => {
+    const { date, time } = splitKstDateTime('2026.12.31 23:59');
+    expect(joinKstDateTime(date, time)).toBe('2026.12.31 23:59');
+  });
+
+  it('toKstIso — +09:00 오프셋 ISO', () => {
+    expect(toKstIso('2026.10.17 19:30')).toBe('2026-10-17T19:30:00+09:00');
+    expect(toKstIso('2026.01.01 00:00')).toBe('2026-01-01T00:00:00+09:00');
   });
 });

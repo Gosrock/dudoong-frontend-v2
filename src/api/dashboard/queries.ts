@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { eventManageKey } from '../event/queries';
 import { api } from '../http';
 import { DashboardSchema } from './schema';
 
@@ -9,7 +10,7 @@ import { DashboardSchema } from './schema';
  */
 export const eventDashboardQuery = (eventId: string | number) =>
   queryOptions({
-    queryKey: ['events', String(eventId), 'manage', 'dashboard'],
+    queryKey: [...eventManageKey(eventId), 'dashboard'],
     queryFn: ({ signal }) =>
       api.get(`events/${encodeURIComponent(eventId)}/dashboard`, DashboardSchema, { signal }),
   });

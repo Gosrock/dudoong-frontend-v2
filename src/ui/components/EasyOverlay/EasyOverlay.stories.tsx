@@ -13,7 +13,8 @@ const readMark = () => (window.history.state as { ddOverlay?: string } | null)?.
 
 function Demo({ variant }: { variant?: 'popup' | 'responsive' }) {
   const [result, setResult] = useState('없음');
-  const open = (fail: boolean) => async () => {
+  /** ok = 성공, throw = reject, false = 훅 계약(실패면 false) */
+  const open = (mode: 'ok' | 'throw' | 'false') => async () => {
     const ok = await openConfirm({
       variant,
       title: '주문을 승인할까요?',
@@ -21,7 +22,8 @@ function Demo({ variant }: { variant?: 'popup' | 'responsive' }) {
       confirmLabel: '승인',
       onConfirm: async () => {
         await wait(400);
-        if (fail) throw new Error('재고 부족');
+        if (mode === 'throw') throw new Error('재고 부족');
+        return mode !== 'false';
       },
     });
     setResult(String(ok));
@@ -29,9 +31,12 @@ function Demo({ variant }: { variant?: 'popup' | 'responsive' }) {
   return (
     <Flex direction="column" gap={3}>
       <Flex gap={2}>
-        <Button onClick={open(false)}>성공하는 확인</Button>
-        <Button variant="secondary" onClick={open(true)}>
+        <Button onClick={open('ok')}>성공하는 확인</Button>
+        <Button variant="secondary" onClick={open('throw')}>
           실패하는 확인
+        </Button>
+        <Button variant="secondary" onClick={open('false')}>
+          false를 돌려주는 확인
         </Button>
       </Flex>
       <Txt typography="bodyMd">결과: {result}</Txt>
@@ -93,6 +98,26 @@ export const Failure: Story = {
     await expect(screen.getByRole('alertdialog', { name: NAME })).toBeVisible();
     await expect(c.getByText('결과: 없음')).toBeVisible();
     await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(c.getByText('결과: false')).toBeVisible());
+  },
+};
+
+/**
+ * 훅 계약(patterns §6): `onConfirm`이 `false`로 resolve하면 reject와 같게 열린 채 남는다 — 호출 쪽은 `onConfirm: () => m.action()`.
+ * 실패 안내(토스트)는 훅의 `handleError`가 맡는다
+ */
+export const ReturnsFalse: Story = {
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await userEvent.click(c.getByRole('button', { name: 'false를 돌려주는 확인' }));
+    const dialog = await screen.findByRole('alertdialog', { name: NAME });
+    const confirm = within(dialog).getByRole('button', { name: '승인' });
+    await userEvent.click(confirm);
+    await expect(confirm).toBeDisabled();
+    await waitFor(() => expect(confirm).toBeEnabled());
+    await expect(screen.getByRole('alertdialog', { name: NAME })).toBeVisible();
+    await expect(c.getByText('결과: 없음')).toBeVisible();
+    await userEvent.click(within(dialog).getByRole('button', { name: '취소' }));
     await waitFor(() => expect(c.getByText('결과: false')).toBeVisible());
   },
 };

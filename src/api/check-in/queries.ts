@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { eventManageKey } from '../event/queries';
 import { api } from '../http';
 import { CheckInQrSchema, CheckInStatsSchema } from './schema';
 
@@ -9,7 +10,7 @@ import { CheckInQrSchema, CheckInStatsSchema } from './schema';
  */
 export const checkInStatsQuery = (eventId: string | number) =>
   queryOptions({
-    queryKey: ['events', String(eventId), 'manage', 'check-ins', 'stats'],
+    queryKey: [...eventManageKey(eventId), 'check-ins', 'stats'],
     queryFn: ({ signal }) =>
       api.get(`events/${encodeURIComponent(eventId)}/check-ins/stats`, CheckInStatsSchema, {
         signal,
@@ -22,7 +23,7 @@ export const checkInStatsQuery = (eventId: string | number) =>
  */
 export const checkInQrQuery = (eventId: string | number) =>
   queryOptions({
-    queryKey: ['events', String(eventId), 'manage', 'check-in-qr'],
+    queryKey: [...eventManageKey(eventId), 'check-in-qr'],
     queryFn: ({ signal }) =>
       api.get(`events/${encodeURIComponent(eventId)}/check-in-qr`, CheckInQrSchema, { signal }),
     staleTime: Infinity,

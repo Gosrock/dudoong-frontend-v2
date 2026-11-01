@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { eventManageKey } from '../event/queries';
 import { api } from '../http';
 import {
   type EntranceFilter,
@@ -10,7 +11,7 @@ import {
 
 /** 발급 티켓 키 접두 — GE-3 아래(마스터 양도 뒤 술어 무효화에 걸린다) */
 export const hostIssuedTicketsKey = (eventId: string | number) =>
-  ['events', String(eventId), 'manage', 'issued-tickets'] as const;
+  [...eventManageKey(eventId), 'issued-tickets'] as const;
 
 export type IssuedTicketsParams = {
   entrance?: EntranceFilter;

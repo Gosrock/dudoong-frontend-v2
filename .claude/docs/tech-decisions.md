@@ -100,7 +100,7 @@ Cache Components는 Next 16의 기본 캐시·프리렌더 모델이다. 끄고 
 | 규칙 | 이유 |
 |---|---|
 | 서버 조회 라우트의 **`page.tsx`마다** `export const instant = false`를 둔다(`(public)/layout.tsx`에도 둔다) | **빈 정적 셸 검증과 즉시 이동 검증에서 뺀다**. 렌더 방식(요청마다 await해 내려 주는 것)은 바꾸지 않는다 — 검증 설정이다. 레이아웃의 `false`는 밖에서 그 레이아웃으로 **들어오는** 이동만 허용하고, 같은 레이아웃 아래 페이지끼리의 이동은 여전히 검증한다(설치본 문서 `instant.md` "Disabling instant"). P0 스파이크에서 레이아웃에만 두면 `next dev`가 "uncached data … outside of `<Suspense>`" 에러를 내고, 페이지에도 두면 사라지는 것을 확인했다(§31). 2회차 검토의 "레이아웃 한 곳" 결정을 되돌렸다 |
-| 클라이언트 화면 묶음의 레이아웃에 `<Suspense>`를 둔다 | 클라이언트 페이지가 `useParams()`·`useSearchParams()`를 읽으려면 위에 경계가 있어야 한다. 없으면 빌드 에러 |
+| 클라이언트 화면 묶음의 레이아웃에 `<Suspense>`를 둔다 | 클라이언트 페이지가 `useParams()`·`useSearchParams()`를 읽으려면 위에 경계가 있어야 한다. 없으면 빌드 에러. 그래서 `(app)`·`hosting` 안의 페이지·model 훅은 자체 Suspense 없이 `useSearchParams`를 쓴다 — "말단 + 자체 Suspense" 규칙(아래 §8)은 셸·`(public)`에 닿는 컴포넌트 몫(2026-11-02 패턴 점검 D8) |
 
 그리고 조용히 깨지는 것이 하나 있다. **서버 조회 라우트 위에 `<Suspense>`나 `loading.tsx`가 있으면 스트림이 먼저 시작돼 없는 공연이 404가 아니라 200으로 나간다**(Next 문서 `loading` #status-codes). 그래서 라우트 그룹을 나눈다(§3): 서버 조회 화면은 Suspense가 없는 그룹에, 클라이언트 화면은 Suspense가 있는 그룹에 둔다.
 
@@ -380,7 +380,7 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 | 조작 화면 쿼리 `staleTime` | 0(기본) | 최신이 중요하다. 태그 목록처럼 잘 안 바뀌는 것만 길게 준다 |
 | viewer 쿼리 `staleTime` | 0 | 위 표 |
 | 세션 쿼리(GM-1) `staleTime` | 5분. `refetchOnWindowFocus`는 켠다 | 헤더·게이트·햄버거·체크아웃 입금자명이 마운트될 때마다 다시 조회하지 않게. 포커스 재조회는 stale일 때만 일어나므로(TanStack `queryObserver.shouldFetchOn`) 5분 안에는 다시 부르지 않는다. 다른 탭의 로그아웃·계정 전환은 `storage` 이벤트로 따로 잡는다(인증 표). 로그인·로그아웃·프로필 수정 뒤에는 명시적으로 갱신한다 |
-| 폼 화면 | RHF는 `defaultValues`로 한 번만 초기화한다 | `refetchOnWindowFocus`로 쿼리가 다시 와도 편집 중인 값을 덮지 않는다 |
+| 폼 화면 | 처음 값으로 한 번만 초기화한다 — RHF는 `defaultValues`, `useState` 폼은 처음 값(`base`)을 따로 든다(patterns §23 "폼 방식") | `refetchOnWindowFocus`로 쿼리가 다시 와도 편집 중인 값을 덮지 않는다 |
 | 전역 `QueryCache.onError` | 구조화 로그. 토스트는 **`query.state.data !== undefined`(배경 재조회 실패)일 때만**. 무한 목록의 다음 페이지 실패(`fetchNextPage`)는 제외하고, 토스트 id를 고정해 여러 쿼리가 한꺼번에 실패해도 하나만 띄운다 | 첫 로딩 실패는 `<AsyncBoundary>`나 공용 403·404 화면이 맡는다. 다음 페이지 실패는 목록 하단 재시도가 맡는다(patterns §12) |
 | 전역 `MutationCache.onError` | **구조화 로그만**(2026-10-31). 토스트·안내는 호출 쪽 `handleError`가 한다 | 전역이 토스트하면 화면이 맡는 코드를 미리 알려야 해서(`meta.handledCodes`) 목록과 분기가 두 곳에 갈렸다. 호출 쪽 처리로 바꿔 한 곳(`handleError`의 표)에만 쓴다 |
 | 변경 호출 try/catch + `handleError`(`src/api/handle-error.ts`) | 기본은 try/catch. 연쇄(단계별 실패 처리)만 `tryCatch(promise)` → `[data, null] \| [null, Error]`(`src/utils/try-catch.ts`, 절대 throw 안 함, Error가 아니면 감싸고 `cause`). `handleError(error, 표?, { otherwise? })`: 세션 상실 → 아무것도 안 함, 표에 코드가 있으면 그 처리, `otherwise`가 있으면 그 처리, 아니면 **공용 토스트**(`reason`, 비면 — 네트워크·타임아웃·파싱 실패 — 고정 문구, 검증 실패 400 `BAD_REQUEST`는 `VALIDATION_ERROR_MESSAGE`, id `mutation:<코드>`) | try/catch가 가장 흔한 모양이라 기본으로 둔다(2026-10-31 사용자 결정 — 처음 만든 결과값 유틸 `settle`은 TanStack 관례가 아니라 뺐다). 연쇄에서 try/catch를 겹치면 단계별 처리가 흐려져 그때만 `tryCatch`. try 블록 안 성공 후속 코드가 throw하면 catch로 가 공용 토스트가 뜨니 후속은 짧게 둔다. `otherwise`는 표에 없는 실패도 화면이 맡는 곳(무료 선착순 확정 실패, 셀프 체크인 결과, 마케팅 설정 실패 문구). 로그는 전역이 이미 남겨 다시 남기지 않는다 |
@@ -516,7 +516,7 @@ Next 문서의 TanStack Query 가이드(`node_modules/next/dist/docs/01-app/02-g
 
 ## 7. 폼
 
-`react-hook-form` v7 + zod resolver. 필드가 2개 이상이거나 검증 규칙이 있으면 RHF, 그 외는 `useState`. v1의 `useInput`/`useInputs`는 이식하지 않는다. zod 스키마는 `src/api`의 요청 스키마를 재사용한다. PATCH 본문은 `dirtyFields`로 만든다([`patterns.md`](./patterns.md) §23).
+~~`react-hook-form` v7 + zod resolver. 필드가 2개 이상이거나 검증 규칙이 있으면 RHF, 그 외는 `useState`.~~ **2026-11-02 고침(사용자 결정, 패턴 점검 D1)**: 간단한 폼은 `useState` + 순수 함수(`model/*-form.ts` — 검증 · 바뀐 필드 · 본문, 처음 값 `base` 비교), 복잡한 폼(반복 항목 · 서로 얽힌 입력이 많음 · 칸별 서버 에러 중 하나라도)은 `react-hook-form` v7 + zod resolver. P10a부터 폼 대부분이 `useState`로 만들어졌고(implementation-log P10a — "결과는 같다"), 복잡한 것은 ⑥ `pattern-split`에서 RHF로 옮긴다. 분류표는 [`patterns.md`](./patterns.md) §23. v1의 `useInput`/`useInputs`는 이식하지 않는다. zod 스키마는 `src/api`의 요청 스키마를 재사용한다. PATCH 본문은 RHF는 `dirtyFields`, `useState` 폼은 처음 값 비교로 만든다.
 
 ## 8. 저장소와 계층
 
@@ -599,7 +599,7 @@ GitHub Actions. Dockerfile 하나(`output: 'standalone'`, 멀티 스테이지). 
 
 Sentry 등 외부 수집은 두지 않는다. 구조는 둔다.
 
-- 라우트별 `error.tsx` + 루트 `global-error.tsx`. 금전 경로(체크아웃)에는 맥락 있는 문구의 경계를 따로 둔다.
+- 라우트별 `error.tsx` + 루트 `global-error.tsx`. 금전 경로(체크아웃)에는 맥락 있는 문구의 경계를 따로 둔다. 지금 있는 것(2026-11-02, 패턴 점검 A5): `src/app/global-error.tsx`(루트 레이아웃 대신 — 전역 스타일·글꼴을 스스로 import), `src/app/(audience)/error.tsx`(관객 셸 안), `src/app/hosting/error.tsx`(로그인 게이트·호스팅 셸 안). 셋 다 화면 디자인이 없어 EmptyState 배치 + [다시 시도](`retry`)이고 호스팅·루트는 `src/ui` `RouteErrorView`를 쓴다.
 - `QueryCache`/`MutationCache`의 `onError`에서 구조화 로그. 조회는 배경 재조회 실패일 때만 명령형 `toast()`(훅이 아니다 — 다음 페이지 실패 제외, 고정 id로 중복 합침). 변경 토스트는 호출 쪽 `handleError`가 표에 없는 코드일 때 띄운다(2026-10-31 — 전역 변경 토스트를 뺐다). `SessionLostError`는 둘 다 띄우지 않는다. 화면을 대체해야 하는 실패만 `throwOnError`(에러 경계로).
 - `serverQuery`는 구조화 JSON을 stdout에 남긴다. 계좌번호·입금자명·토큰은 넣지 않는다. **경로는 라우트 패턴으로 남긴다** — `routePattern()`이 소문자 단어 세그먼트만 남기고 나머지와 `gifts` 바로 뒤 세그먼트를 `:param`으로 가리며 쿼리스트링은 버린다(예: `GET gifts/:param`). `serverQuery` 로그는 리소스 이름(queryKey 첫 원소)·status·code·route만, `ApiError`가 아닌 에러는 이름만 남긴다(메시지에 queryKey·env 값이 들어 있을 수 있다).
 - nginx 접근 로그는 쿼리스트링을 지우고 경로까지 남긴다(Deploy `nginx.conf`). 경로에 있는 `giftToken`은 남는다 — 로그 보존 기간과 접근 권한은 Deploy 저장소 · 운영 계정 몫이라 P14 보안에서 사용자 대기로 남겼다(implementation-log "P14 — 보안", progress "사용자 대기"). 앱 쪽 로그는 토큰을 남기지 않는다(`routePattern`, CSP 보고는 화면 패턴만).
@@ -746,7 +746,7 @@ v1은 sanitize 코드가 레포 전체에 **0건**이며, toast-ui `Viewer`의 �
 
 ### 폼 모델
 
-RHF + zod. 화면의 두 모드를 판별 union으로 두고 제출 시 서버 본문으로 바꾼다.
+RHF + zod(티켓별 옵션 반복 — patterns §23 "폼 방식"의 복잡한 폼). 화면의 두 모드를 판별 union으로 두고 제출 시 서버 본문으로 바꾼다.
 
 ```ts
 // src/features/audience/checkout/OptionAnswersForm/formSchema.ts
@@ -1495,7 +1495,7 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 | 4-b. 인증 | v1 OAuth, JS로 쿠키 안 읽음, 401이면 코드 무관 재발급(탭 간 Web Locks, `authApi`는 가로채기 없음). 재발급이 4xx일 때만 세션 상실(429·408과 5xx·네트워크는 유지) — 보호 화면은 `/login/expired`, 공개 화면은 익명으로 다시 그림. `dd:session` 값으로 익명 방문자의 재발급 생략·탭 간 로그아웃 동기화. `proxy.ts` 없음 | 운영 쿠키가 `SameSite=Strict`라 서버 게이트가 외부 링크 진입을 잘못 막는다. 배포 중 502로 로그인 사용자가 튕기지 않게 |
 | 5. 상태 | 전역 상태 라이브러리 없음 | v1 전역 상태는 전부 서버 상태·오버레이·지역 상태였다 |
 | 6. 스타일 | vanilla-extract(+ recipes, sprinkles) | 제로 런타임, 서버 컴포넌트 동작, 토큰 타입 검사, emotion과 가까운 작성 방식 |
-| 7. 폼 | react-hook-form + zod | |
+| 7. 폼 | 간단한 폼 `useState` + 순수 함수, 복잡한 폼 react-hook-form + zod(2026-11-02 — patterns §23) | 반복 항목·얽힌 입력·칸별 서버 에러가 없는 폼에는 RHF가 과하다 |
 | 8. 계층 | `app → features → ui → api → utils`, eslint 강제 | 패키지 경계를 폴더 경계로 대체 |
 | 10. 테스트 | 게이트: Vitest(유닛 + 컴포넌트 통합, MSW), 스토리 테스트(P2부터). Playwright e2e는 `main` push CI에서만(P14부터 — 사용자 결정, PR에서는 돌지 않음). 게이트 밖: QA 시나리오(빌드한 앱 + 가짜 nginx/백엔드), agent-browser는 실제 환경 확인용 | 서버 조회까지 가짜로 막으려면 앞문 프록시가 필요하다. e2e는 PR 전 세션의 라우트별 실행 + 관제탑 그룹 경계 회귀 + main push(§CI) |
 | 11. 배포 | Dockerfile 하나, standalone. 서버 1대의 docker-compose에 v1 front·admin 대신 들어간다 | API는 같은 출처(`/api`) |

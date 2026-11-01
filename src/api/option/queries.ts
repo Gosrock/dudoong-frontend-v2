@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { eventManageKey } from '../event/queries';
 import { api } from '../http';
 import { TicketOptionsManageSchema } from './schema';
 
@@ -9,7 +10,7 @@ import { TicketOptionsManageSchema } from './schema';
  */
 export const eventOptionsQuery = (eventId: string | number) =>
   queryOptions({
-    queryKey: ['events', String(eventId), 'manage', 'options'],
+    queryKey: [...eventManageKey(eventId), 'options'],
     queryFn: ({ signal }) =>
       api.get(`events/${encodeURIComponent(eventId)}/options`, TicketOptionsManageSchema, {
         signal,

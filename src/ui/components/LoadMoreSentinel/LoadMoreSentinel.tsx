@@ -2,19 +2,16 @@
 
 import { useEffect, useRef } from 'react';
 
+import type { InfiniteListControls } from '@/api/shared/page';
+
 import { Flex } from '../../primitives/Flex';
 import { Txt } from '../../primitives/Txt';
 import { colors } from '../../theme/colors';
 import { Button } from '../Button/Button';
 import { Spinner } from '../Loader/Loader';
 
-export type LoadMoreState = {
-  hasNextPage: boolean;
-  isFetchingNextPage: boolean;
-  nextPageError: boolean;
-  loadMore: () => void;
-  retry: () => void;
-};
+/** 무한 목록 훅이 `infiniteListControls(query)`(`src/api/shared/page.ts`)로 만든다 */
+export type LoadMoreState = InfiniteListControls;
 
 /**
  * 무한 목록 하단(patterns §12) — 화면에 들어오면 다음 페이지를 읽는다. 읽는 중엔 스피너, 실패하면 기존 행을 둔 채 하단 재시도.

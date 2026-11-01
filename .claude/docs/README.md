@@ -30,6 +30,7 @@
 | [`directory-structure.md`](./directory-structure.md) | 폴더, 라우트, 계층 규칙 |
 | [`storyboard.md`](./storyboard.md) | 화면 흐름 + 호출 API + Phase |
 | [`patterns.md`](./patterns.md) | 구현 패턴(§1~§10 공통, §11~§23 화면, §24 화면별 에러 처리) |
+| [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) | 코드 패턴 점검(2026-11-02) — **채택 결정**(확인 창 계약 · es-toolkit · 폼 방식) · ①② 결과(만든 공용 부품) · 리포트 원문(제안 A1~A46 · 문서 D1~D12 · 하지 않을 것 · 묶음 ①~⑥). 묶음 ③~⑥ 세션의 근거 |
 | [`figma-structure.md`](./figma-structure.md) | Figma 관측 캐시 |
 | [`implementation-log.md`](./implementation-log.md) | Phase별 구현 기록 |
 

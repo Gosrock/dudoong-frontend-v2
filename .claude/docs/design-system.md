@@ -318,7 +318,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 |---|---|---|---|
 | **`Top bar_Host`** `538:4262` · GUI `727:23925` | 1440×58, 배경 #FFFFFF(새 변수 `606:1921`), 아래 선 1px #F7F7F6(`120:982`), 좌우 패딩 24. 왼쪽 로고(dudoong, "host" 글자 없음) + 글자 메뉴 "공연 둘러보기"(`text/tertiary-label`)·"공연 준비하기"(`text/primary-label`), 둘 다 `Heading/sm - emphasized` 16 Bold, 메뉴 칸 높이 58. 오른쪽 `ic/notification` 24 + 간격 20 + Avatar 32 grey + 닉네임 `Label/md` + `ic/chevron-down` 12. 옛 `Top app bar` 사본 `495:457`은 지워졌다 | 호스팅 셸 전역 상단 바(plan P4s). **코드 `TopBar`**(`src/ui/components/TopBar`, 2026-10-31 P4s-V) — 관객 PC 상단 바도 같은 컴포넌트(`plainNav` — 지금 있는 곳 표시 없이 메뉴 모두 검정, 와이어 `626:19888`·사용자 결정). 오른쪽 간격 20은 `space[4]` 16, 이름–▾ 0은 8(토큰 반올림). hover·안 읽은 벨(`notification-on`)은 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
 | **`host title`** `619:2116` · GUI `727:23982` | 390×64, 좌우 패딩 24. 왼쪽 `ic/menu` 24 + 로고("dudoong" + "host" 판). 벨 없음. GUI 로컬 `467:3169`가 이 파일로 옮겨졌다 | `Header` `logo="host"`(P2에 있음) | P2 · P10a |
-| **`사이드바 메뉴`** `91:913`(`true` `91:912` / `false` `91:766` / **`alert` `538:2786`** 새로 생김) · GUI `727:25256`~`727:25258` | 옛 Sample GUI 로컬 `Component 1`이 이름을 바꿔 Menu 페이지로 왔다. 행 249×47, 패딩 12, 아이콘 20 + 간격 16, 글자 #F7F7F6(`606:1920`) 18(`Heading/md2`, 선택은 `- emphasized`). 선택 배경은 #F7F7F6 10%(변수 없음, 모서리 12 `36:50`) — 옛 판은 `brand/primary`. `alert`는 오른쪽에 Badge large(빨강, 숫자) | 공연 사이드바 `SidebarItem` | P4s |
+| **`사이드바 메뉴`** `91:913`(`true` `91:912` / `false` `91:766` / **`alert` `538:2786`** 새로 생김) · GUI `727:25256`~`727:25258` | 옛 Sample GUI 로컬 `Component 1`이 이름을 바꿔 Menu 페이지로 왔다. 행 249×47, 패딩 12, 아이콘 20 + 간격 16, 글자 #F7F7F6(`606:1920`) 18(`Heading/md2`, 선택은 `- emphasized`). 선택 배경은 #F7F7F6 10%(변수 없음, 모서리 12 `36:50`) — 옛 판은 `brand/primary`. `alert`는 오른쪽에 Badge large(빨강, 숫자) | 공연 사이드바 `SidebarMenu`·`SidebarMenuItem`(`src/ui/components/SidebarMenu`) | P4s |
 | **`공연 리스트_Desktop`** `585:753` · GUI `741:28246` | 1196×205. `example poster` desktop 145×205 + 간격 24 + Concert state chip large + 공연명 `Heading/md - emphasized` 20 + 호스트·날짜·시각·장소 4줄 `Body/lg` `text/secondary-label`(각 1줄 말줄임) | 공연준비 홈 PC 목록 행 | P10a |
 | **`My`** `585:752` | 263×494, 배경 `Background/normal`, 모서리 20(`161:3481`), 패딩 20, 그림자 `drop shadow2`. 프로필(Avatar 45 + 닉네임 `Label/lg-emphasized` + 이메일 `Label/sm` + 검정 원 안 `ic/edit`) / 티켓·주문내역·관심 호스트·지난 공연 아카이빙(아이콘 20 `ticket`·`order detail`·`favorite`·`archiving` + `Label/md-emphasized`) / "내 호스트" + 호스트 줄(Avatar 24) + 새 호스트 만들기 / 서비스 업데이트 노트(`update`) · 로그아웃(`log out`). 구획 사이 `surface/default-border` 선. GUI 파일은 아직 이 컴포넌트를 쓰지 않는다. 항목은 와이어 관객 PC 상단 바 드롭다운(figma-structure 2026-10-25 절)과 같다 | PC 아바타 ▾ 메뉴(Radix `DropdownMenu`). **코드 `AccountMenu`·`AccountMenuTrigger`**(`src/ui/components/AccountMenu`, 2026-10-31 P4s-V). 업데이트 노트 뺌(Q4). 패딩 20 → `space[4]` 16, 아이콘–글자 14 → 12, 아이콘 20은 24를 CSS로 줄임(코드에 20 크기 없음), 그림자 새 토큰 `shadow.drop2`. 항목 선택 상태·호스트 0개/10개 초과는 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
 | **`승인 메뉴_desktop`** `538:2562` · GUI `727:23999` | 112×123, 배경 #F7F7F6(`120:982`), 모서리 20(`161:3481`), 패딩 12·16. `ic_대시보드` 36 + 라벨 `Label/md` `text/secondary-label` + "0건" `Heading/md - emphasized` + 오른쪽 위 `ic/diagonal` 24 | 대시보드 통계 카드(↗ 링크형) | P13a(V) 코드: `src/ui/components/StatCard`(P13a-V #58 — 데스크탑·모바일 한 컴포넌트). |
@@ -375,7 +375,9 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 - 날짜·시간 피커(달력 팝업)
 - 스켈레톤·로더·스피너 — Button 로딩, 화면 로딩
 - 페이지네이션 또는 더 보기
-- 403·404 안내 배치
+- 403·404 안내 배치 — 코드는 EmptyState 배치로 `NotFoundView`·`ForbiddenView`(`ForbiddenView`는 호스팅 `HostingAccessRejected` 한 곳). 라우트 에러 경계(`error.tsx`·`global-error.tsx`)는 `RouteErrorView`(2026-11-02 패턴 점검 A5)
+- "불러오지 못했어요 + 다시 시도" 줄 — 코드 `InlineError`(`src/ui`, column · row, 2026-11-02 A7 — 글자 `text/secondary-label` `Body/md` + secondary sm 버튼, 지역 fallback `DefaultErrorFallback`과 같은 문구 규칙)
+- 서버 이미지 실패 자리표시 — 코드 `UploadedImage`의 `fallback`(포스터는 `<Illustration name="poster-placeholder">`). 호출 쪽에서 실패 상태를 또 두지 않는다(A6)
 - 관객 데스크탑 헤더 — Top app bar는 모두 390폭. 호스팅 PC 상단 바는 `Top bar_Host`(위 "호스팅 PC·대시보드 컴포넌트")로 생겼고, 아바타 ▾ 드롭다운은 `My`로 생겼다. 관객 PC 상단 바(로고 + 글자 메뉴 + 검색 + 로그인/아바타 ▾)는 와이어프레임에만 있다(`626:19888`·`640:17991`) — 구성이 `Top bar_Host`와 같다(검색만 더함, gui-screens §3). GUI 요청 Q23
 - ⋮ 메뉴(DropdownMenu) — 공연 카드(P11), 티켓(수정·삭제·판매 중단·재개, P12)
 - 공연 전환 메뉴
@@ -422,7 +424,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | Toast | 성공·에러 구분, 액션 | 문구만 |
 | Badge | 두 자리 이상 숫자 | 폭 늘림, 99+ |
 | Ticket state chip | 서버 상태 11가지(`PENDING_APPROVE` · `REFUSED` · `APPROVED` · `GIFT_PENDING` · `GIFT_EXPIRED` · `GIFT_SENT` · `RECEIVED` · `ENTERED` · `CANCELED` · `REFUND_REQUESTED` · `REFUNDED`) 중 승인대기·승인완료·선물대기·선물완료 4가지만 있다 | **디자이너에게 에러·중립 칩 색을 요청한다**(§5). 기존 색으로 바로 만들 수 없는 이유: `status/error` = `brand/accent`라 거절 칩이 선물대기 칩과 똑같아지고, 회색(`interaction/disabled-*`)은 이미 승인대기가 쓰고 있으며 용도가 다른 토큰이다. 그때까지 코드는 컴포넌트 전용 토큰 `chip/neutral`·`chip/danger`를 두고 — 거절·취소는 `chip/danger`(글자 Coral + 테두리만, 배경 없음), 환불 요청·환불 완료·입장 완료는 `chip/neutral`, 선물 만료(`GIFT_EXPIRED`, 회수 안내가 필요한 상태)는 선물대기 모양, 받은 선물(`RECEIVED`)은 승인완료 모양 |
-| Concert state chip | D-0 표기. 공연 중(`ONGOING`)은 2026-10-25에 `ing`("공연중")으로 생겼다 | `ONGOING`은 `ing` 모양("공연중"), `dDay` 0은 "D-day" |
+| Concert state chip | D-0 표기. 공연 중(`ONGOING`)은 2026-10-25에 `ing`("공연중")으로 생겼다 | `ONGOING`은 `ing` 모양("공연중"), `dDay` 0은 "D-day". **글자는 `src/api/shared/dday.ts` 한 곳**(2026-11-02 패턴 점검 A4 — `formatDday`·`eventTimingLabel`): 사이드바 `D-0`·마이페이지 `D-DAY`는 ③④에서 이것으로 옮긴다. 🤖 칩 밖 글자의 공연 중·종료는 띄어 쓴다("공연 중"·"공연 종료" — `EVENT_ONGOING_LABEL`·`EVENT_ENDED_LABEL`) |
 | Checkbox | indeterminate | 지금 계획에는 쓰는 곳이 없다. 필요해지면 가운데 가로선 |
 | Search Field | 지우기 버튼, disabled | Input과 같게 |
 | dropdown item | disabled, hover | disabled는 `interaction/disabled-text`. hover는 선택 배경과 구별되는 옅은 배경(디자이너 확인) |
