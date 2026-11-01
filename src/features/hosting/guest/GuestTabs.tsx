@@ -6,6 +6,7 @@ import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { DataTable } from '@/ui/components/DataTable/DataTable';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Divider } from '@/ui/primitives/Divider';
@@ -14,6 +15,7 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './GuestsView.css';
+import { refundConfirmCopy } from './model/guest-rules';
 import { useIssuedTicketList } from './model/useIssuedTicketList';
 import { useRefundList } from './model/useRefundList';
 import { DetailCell } from './ui/DetailCell';
@@ -81,6 +83,33 @@ const TICKET_COLUMNS = nowrapColumns<HostIssuedTicket>([
   { id: 'detail', header: <span className={s.srOnly}>상세</span>, cell: () => <DetailCell /> },
 ]);
 
+/**
+ * [수동 입장 처리](스테이징 QA #106 §5 — 카메라 고장·QR이 안 읽힐 때). 와이어 `503:27502` 티켓 상세에 없는 버튼 —
+ * FIGMA-CUSTOM: 와이어에 없는 처리 버튼을 DS Button으로 더함. 🤖 Claude 판단(design-requests Q95). API는 QR 스캔과 같은 PQ-2(QR 값 = 티켓 uuid)
+ */
+function ManualCheckIn({
+  blockMessage,
+  checkingIn,
+  onCheckIn,
+}: {
+  blockMessage: string | null;
+  checkingIn: boolean;
+  onCheckIn: () => void;
+}) {
+  if (blockMessage) {
+    return (
+      <Txt as="p" typography="bodySm" color={colors.textSecondaryLabel}>
+        {blockMessage}
+      </Txt>
+    );
+  }
+  return (
+    <Button size="lg" fullWidth loading={checkingIn} onClick={onCheckIn}>
+      수동 입장 처리
+    </Button>
+  );
+}
+
 /** 발급된 티켓 탭(GI-1 · GI-2 · GI-3) — 와이어 `424:12014`(표) · `503:27502`(티켓 상세: 티켓 번호 + 옵션 응답) */
 export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   const l = useIssuedTicketList(eventId);
@@ -139,6 +168,24 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
         open={l.selectedTicketUuid !== null}
         onOpenChange={(open) => !open && l.closeTicket()}
         title={t ? `티켓 번호 - ${text(t.ticket.issuedTicketNo)}` : '티켓 상세'}
+        footer={
+          t && t.ticket.entrance === 'BEFORE' && t.ticket.ticketUuid && l.canManualCheckIn ? (
+            <ManualCheckIn
+              blockMessage={l.checkInBlockMessage}
+              checkingIn={l.checkingIn}
+              onCheckIn={async () => {
+                const ok = await openConfirm({
+                  title: `${text(t.ticket.ownerName)}님 티켓을 입장 처리할까요?`,
+                  description: 'QR을 읽을 수 없을 때 써 주세요. 입장 처리는 되돌릴 수 없어요.',
+                  confirmLabel: '입장 처리',
+                });
+                if (!ok) return;
+                const result = await l.manualCheckIn(t.ticket.ticketUuid!);
+                if (result?.kind === 'result') toast(result.title);
+              }}
+            />
+          ) : undefined
+        }
       >
         <div data-testid="ticket-detail" className={s.tab}>
           {l.detailStatus === 'pending' && <ListLoading />}
@@ -236,7 +283,8 @@ export function RefundsTab({ eventId }: { eventId: string }) {
                   </Txt>
                   <Txt typography="labelSm" color={colors.textSecondaryLabel}>
                     <span data-testid="refund-account-updated">
-                      계좌 수정 {dateTimeText(r.refundAccount.updatedAt)}
+                      {/* "계좌 수정 …"이 버튼처럼 읽혔다(#106 §5) — 구매자가 넣은 시각임을 글로 */}
+                      구매자 입력 {dateTimeText(r.refundAccount.updatedAt)}
                     </span>
                   </Txt>
                 </span>
@@ -257,7 +305,13 @@ export function RefundsTab({ eventId }: { eventId: string }) {
             loading={l.pendingUuid === r.orderUuid}
             disabled={l.pendingUuid !== null}
             onClick={async () => {
-              if (await l.complete(r.orderUuid!)) toast('환불 완료로 바꿨어요');
+              const ok = await openConfirm(
+                refundConfirmCopy({
+                  buyerName: r.buyerName,
+                  hasAccount: !l.canSeeRefundAccount || r.refundAccount !== null,
+                }),
+              );
+              if (ok && (await l.complete(r.orderUuid!))) toast('환불 완료로 바꿨어요');
             }}
           >
             환불 완료

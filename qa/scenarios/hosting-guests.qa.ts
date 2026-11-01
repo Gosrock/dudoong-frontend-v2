@@ -292,6 +292,20 @@ scenario(
       await expect(page.getByTestId('ticket-detail')).toBeVisible();
       await expect(page.getByRole('dialog')).toContainText('티켓 번호 -');
     });
+    await step(
+      '입장 전 티켓은 [수동 입장 처리] → 확인하면 입장 완료(QR이 안 읽힐 때 — #106 §5)',
+      async () => {
+        const detail = page.getByRole('dialog');
+        await expect(detail).toContainText('입장 전');
+        await detail.getByRole('button', { name: '수동 입장 처리' }).click();
+        const confirm = page.getByRole('alertdialog', { name: /입장 처리할까요/ });
+        await expect(confirm).toContainText('되돌릴 수 없어요');
+        await confirm.getByRole('button', { name: '입장 처리' }).click();
+        await expect(detail).not.toContainText('입장 전');
+        await expect(detail.getByRole('button', { name: '수동 입장 처리' })).toHaveCount(0);
+        await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 2');
+      },
+    );
   },
 );
 
@@ -309,14 +323,22 @@ scenario(
     await step('환불 탭에 환불 4건과 계좌 수정일이 보인다', async () => {
       await page.goto(`${GUESTS}?tab=refunds`);
       await expect(page.getByTestId('refund-row')).toHaveCount(4);
-      await expect(page.getByTestId('refund-account-updated').first()).toContainText('계좌 수정');
+      await expect(page.getByTestId('refund-account-updated').first()).toContainText('구매자 입력');
     });
-    await step('[환불 완료]를 누르면 그 행이 환불 완료가 된다', async () => {
-      const row = page.getByTestId('refund-row').filter({ hasText: '윤나리' });
-      await row.getByRole('button', { name: '환불 완료' }).click();
-      await expect(row.getByTestId('refund-status')).toHaveText('환불 완료');
-      await expect(row.getByRole('button', { name: '환불 완료' })).toHaveCount(0);
-    });
+    await step(
+      '[환불 완료]를 누르면 확인 팝업이 뜨고, 확인하면 그 행이 환불 완료가 된다',
+      async () => {
+        const row = page.getByTestId('refund-row').filter({ hasText: '윤나리' });
+        await row.getByRole('button', { name: '환불 완료' }).click();
+        // 되돌릴 수 없는 처리 — 확인 팝업(#106 §5)
+        const dialog = page.getByRole('alertdialog', { name: /환불 완료로 바꿀까요/ });
+        await expect(dialog).toContainText('되돌릴 수 없어요');
+        await dialog.getByRole('button', { name: '환불 완료' }).click();
+        await expect(page.getByText('환불 완료로 바꿨어요')).toBeVisible();
+        await expect(row.getByTestId('refund-status')).toHaveText('환불 완료');
+        await expect(row.getByRole('button', { name: '환불 완료' })).toHaveCount(0);
+      },
+    );
   },
 );
 

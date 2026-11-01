@@ -3,7 +3,8 @@ import type { QueryClient } from '@tanstack/react-query';
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { hostIssuedTicketsKey } from '@/api/issued-ticket/queries';
 import { hostOrderQuery, hostOrdersKey, hostRefundsKey } from '@/api/order/queries';
-import type { HostOrderDetail } from '@/api/order/schema';
+import type { HostOrderDetail, RefundElement } from '@/api/order/schema';
+import type { Page } from '@/api/shared/page';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
 
 /**
@@ -21,7 +22,37 @@ export async function applyChangedOrder(
   { ticketAvailabilityChanged }: { ticketAvailabilityChanged: boolean },
 ) {
   queryClient.setQueryData(hostOrderQuery(eventId, detail.order.orderUuid).queryKey, detail);
+  patchRefundRows(queryClient, eventId, detail);
   await invalidateGuestLists(queryClient, eventId, { ticketAvailabilityChanged });
+}
+
+/**
+ * 환불 목록(GF-1) 캐시에서 그 주문 행을 응답 값으로 바로 바꾼다 — 다시 읽기가 끝나기 전에도 [환불 완료]가 사라지고
+ * '환불 완료'로 보인다(스테이징 QA #106 §5 — 누른 뒤 목록이 그대로 '환불 요청'). 다시 읽기는 그대로 한다
+ */
+export function patchRefundRows(
+  queryClient: QueryClient,
+  eventId: string,
+  detail: HostOrderDetail,
+) {
+  const o = detail.order;
+  queryClient.setQueriesData<Page<RefundElement>>({ queryKey: hostRefundsKey(eventId) }, (page) =>
+    page
+      ? {
+          ...page,
+          content: page.content.map((r) =>
+            r.orderUuid === o.orderUuid
+              ? {
+                  ...r,
+                  status: o.status,
+                  refundStatus: o.refundStatus,
+                  refundStatusChangedAt: detail.refundStatusChangedAt,
+                }
+              : r,
+          ),
+        }
+      : page,
+  );
 }
 
 /** 목록·대시보드 다시 읽기(상세 키는 건드리지 않는다 — 열린 상세는 응답이나 `refetchOrder`로) */

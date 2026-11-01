@@ -30,7 +30,9 @@ export const groupHead = style({
 // FIGMA-CUSTOM: 태그 글자 칸(gui 759:12054 "Frame 1707480345" 4열 격자) 커스텀 → 커스텀 TagPanel.css.ts. DS 후보(design-system §3)
 export const tags = style({
   display: 'grid',
-  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  // 칸은 4등분이되 태그 글자보다 좁아지지 않는다 — '어쿠스틱·포크'(68px)가 57px 칸에서 '·' 뒤로 두 줄이 됐다(스테이징 QA #106 §3).
+  // 긴 태그가 있는 분류만 그 칸이 넓어지고 나머지 칸이 나눠 줄어든다(4열 · 간격 그대로)
+  gridTemplateColumns: 'repeat(4, minmax(max-content, 1fr))',
   columnGap: vars.space[4],
   rowGap: vars.space[2],
 });

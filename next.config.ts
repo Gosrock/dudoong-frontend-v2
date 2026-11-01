@@ -107,6 +107,9 @@ const nextConfig: NextConfig = {
         destination: '/hosting/events/:eventId/dashboard',
         permanent: false,
       },
+      // 알림함은 마이페이지 아래(`/mypage/notifications`) — 짐작으로 치는 `/notifications`는 404였다(스테이징 QA #106 §2).
+      // 임시(307): v1에 없던 주소라 검색엔진·브라우저에 기억시킬 이유가 없고, 나중에 알림함 자리를 옮겨도 되돌리기 쉽다
+      { source: '/notifications', destination: '/mypage/notifications', permanent: false },
       ...adminRedirects,
       ...audienceRedirects,
     ];

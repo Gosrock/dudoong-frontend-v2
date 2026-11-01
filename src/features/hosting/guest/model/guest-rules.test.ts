@@ -11,6 +11,7 @@ import {
   orderActionsOf,
   parseGuestTab,
   parseOrderParam,
+  refundConfirmCopy,
   REFUSE_ERRORS,
   toCancelBody,
   toRefuseBody,
@@ -185,5 +186,17 @@ describe('두둥 주문 판정(legal-copy C-3·C-4) — orderMethod(#888)', () =
     expect(CANCEL_CONFIRM.dudoongNotice).toBe(
       '두둥티켓은 호스트 계좌로 받은 금액이라 자동으로 환불되지 않아요. 구매자에게 지체 없이 직접 환불해 주세요',
     );
+  });
+});
+
+describe('[환불 완료] 확인 문구(#106 §5)', () => {
+  it('계좌가 있으면 되돌릴 수 없다는 안내, 없으면 계좌 없음 경고를 더한다', () => {
+    const withAccount = refundConfirmCopy({ buyerName: '윤나리', hasAccount: true });
+    expect(withAccount.title).toBe('윤나리님 주문을 환불 완료로 바꿀까요?');
+    expect(withAccount.description).toContain('되돌릴 수 없어요');
+    expect(withAccount.description).not.toContain('계좌가 아직');
+    const noAccount = refundConfirmCopy({ buyerName: null, hasAccount: false });
+    expect(noAccount.title).toBe('이 주문을 환불 완료로 바꿀까요?');
+    expect(noAccount.description).toContain('환불 계좌가 아직 입력되지 않았어요');
   });
 });
