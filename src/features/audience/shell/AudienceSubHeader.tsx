@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 
+import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 import { Header } from '@/ui/components/Header/Header';
 
 import * as s from './AudienceShell.css';
@@ -19,8 +20,10 @@ export function AudienceSubHeader({
   fallbackHref?: string;
 }) {
   const router = useRouter();
+  // 이동 뒤 숨은 Activity로 남아도 셸 로고 헤더를 숨기지 않게(fix-qa-1101)
+  const ref = useActivityMarker<HTMLDivElement>();
   return (
-    <div className={s.mobileOnly} {...{ [s.SUBHEADER_ATTR]: '' }}>
+    <div ref={ref} className={s.subHeader} {...{ [s.SUBHEADER_ATTR]: '' }}>
       <Header
         title={title}
         // 화면 제목(h1)은 페이지 본문이 갖는다 — 헤더 제목은 글자만(제목 중복 방지)

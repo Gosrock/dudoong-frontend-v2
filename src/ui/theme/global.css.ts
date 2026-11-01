@@ -1,9 +1,16 @@
 import { globalStyle } from '@vanilla-extract/css';
 
+import { HEADER_HEIGHT, TOP_BAR_HEIGHT } from './bars';
+import { media } from './breakpoints';
 import { vars } from './tokens.css';
 
 globalStyle('*, *::before, *::after', { boxSizing: 'border-box' });
 globalStyle('html, body', { margin: 0, padding: 0 });
+/** 상단 바가 고정이라(fix-qa-1101) 포커스 이동·앵커 스크롤이 바 아래로 오게 한다(가려지지 않게 — WCAG 2.4.11) */
+globalStyle('html', {
+  scrollPaddingTop: HEADER_HEIGHT,
+  '@media': { [media.desktop]: { scrollPaddingTop: TOP_BAR_HEIGHT } },
+});
 globalStyle('body', {
   fontFamily: vars.font.body,
   color: vars.color.text.primary,

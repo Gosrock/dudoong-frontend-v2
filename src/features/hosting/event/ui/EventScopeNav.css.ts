@@ -1,6 +1,8 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { stickyBar } from '@/features/shared/shell/shell.css';
 import { sidebarTint } from '@/ui/components/SidebarMenu/SidebarMenu';
+import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -20,14 +22,21 @@ export const sidebar = style({
   color: vars.color.text.inverse,
 });
 
+/**
+ * PC 사이드바 — 고정 상단 바 바로 아래에 붙고(sticky, fix-qa-1101), 칸(3단 왼쪽 열) 높이를 채우되 화면 높이 − 상단 바를 넘지 않는다.
+ * 넘치면 자체 스크롤. 높이를 `calc(100dvh - 58px)`로 못박지 않는다 — 배너가 있으면 내용 짧은 화면이 그만큼 넘쳤다
+ */
 export const desktopSidebar = style({
   display: 'none',
   '@media': {
     [media.desktop]: {
       display: 'flex',
       position: 'sticky',
-      top: 0,
-      height: 'calc(100dvh - 58px)',
+      top: TOP_BAR_HEIGHT,
+      height: '100%',
+      // 위 `sidebar`의 minHeight 100%(드로어용)가 maxHeight를 이기므로 푼다
+      minHeight: 0,
+      maxHeight: `calc(100dvh - ${TOP_BAR_HEIGHT}px)`,
       overflowY: 'auto',
     },
   },
@@ -99,9 +108,10 @@ export const publicLink = style({
 globalStyle(`${publicLink} > svg`, { width: 16, height: 16, flexShrink: 0 });
 
 /** 모바일 헤더(1024 미만만) — 공연 안에서는 셸의 로고 헤더 대신 이것("대시보드 ▾ / 공연명" + 벨, GUI `727:23088`) */
-export const mobileHeader = style({
-  '@media': { [media.desktop]: { display: 'none' } },
-});
+export const mobileHeader = style([
+  stickyBar,
+  { '@media': { [media.desktop]: { display: 'none' } } },
+]);
 
 /** 드로어 안 사이드바 — 드로어 머리 줄 아래를 채운다 */
 export const drawerSidebar = style({ minHeight: '100%', borderRadius: vars.radius[4] });
