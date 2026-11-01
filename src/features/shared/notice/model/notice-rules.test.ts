@@ -10,13 +10,13 @@ import {
   readDismissedBanners,
   resetDismissedBannersMemory,
 } from './banner-dismissal';
+import { renderNoticeHtml } from './notice-html';
 import {
   isBannerLive,
   isNoticeEdited,
   noticeHref,
   noticeListHref,
   parseNoticeIdParam,
-  renderNoticeHtml,
   toNoticeRow,
   visibleBanners,
 } from './notice-rules';

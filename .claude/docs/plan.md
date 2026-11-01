@@ -844,6 +844,8 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 **검색·AI 노출(이슈 #8, 2026-10-31)**: `robots.txt`·`sitemap.xml`·공연 상세 JSON-LD(`schema.org/Event`, 가격·재고 없음 — P5b 원칙)·`metadataBase`·검색엔진 소유 확인 메타 훅은 P5b의 확장으로 먼저 넣었다(implementation-log "이슈 #8"). 여기 남는 것: 기본 OG 이미지(디자인 대기 — `src/utils/site.ts` 값 하나), 리치 결과 테스트, 서치 콘솔·네이버 서치어드바이저 인증과 sitemap 제출(운영 도메인이 v2로 넘어간 뒤 — P15), 공연 수가 2,000개를 넘기 전 `generateSitemaps`.
 
+- [x] **성능 · 부하**(PR #82, 2026-11-01) — 셸에서 sanitize-html 분리(첫 로드 gzip −64~71KB), 측정 스크립트(`scripts/bundle-stats.mjs` · `scripts/perf-lighthouse.mjs`), 공연 상세 캐시는 붙이지 않음(tech-decisions §2 "공연 상세 캐시 — P14 판단"), 부하 시험 초안 `scripts/load/ticket-open.k6.js`(실행은 D2 뒤). 기록은 implementation-log "P14 — 성능 · 부하"
+
 **포함**: 성능(LCP/TTFB/번들, 티켓 오픈 시 공연 상세의 백엔드 부하 — 캐시가 필요한지 여기서 판단), 보안(오픈 리다이렉트, 토큰 취급, 로그 PII, 선물 토큰·QR 유출 경로), 접근성, 회귀(공유 지점(S1~S8) 통합 시나리오 — `pnpm qa` 전체, Playwright를 PR 게이트에 넣을지 재검토), 부하(티켓 오픈 순간), 레거시 URL.
 
 - [x] **보안**(2026-11-01, `p14-security`, #79) — 오픈 리다이렉트 · 토큰 · 로그 PII(grep + e2e·QA 런타임 검사) · 선물 토큰/QR 유출 · sanitize · 외부 링크 `rel` · CSP Report-Only(+ `/csp-report`, e2e·QA 위반 0 검사) · zxing wasm 자체 호스팅 · 의존성 감사. 찾은 것 표는 implementation-log "P14 — 보안". CSP 강제 · nginx 로그 보존은 사용자 대기

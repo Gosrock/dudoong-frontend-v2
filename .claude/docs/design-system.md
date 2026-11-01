@@ -193,7 +193,7 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 |---|---|---|
 | Pretendard | 본문 전부 | OFL. npm `pretendard`의 가변 폰트 **동적 서브셋 CSS**를 루트 레이아웃에서 불러온다(화면에 나온 글자 조각만 받는다) |
 | Kartrider Kor ExtraBold | `Title` — 공연 제목과 강조 문구(디자이너 설명), ConcertCard 제목 | 넥슨 폰트. **웹 임베드 라이선스 확인 필요** — P1에서는 불러오지 않고 font 스택만 둔다(설치돼 있으면 쓰고 아니면 Pretendard) |
-| Saira Condensed Bold | `Title_number` — Kartrider와 함께 쓰는 숫자 | OFL(Google Fonts). `next/font/google` |
+| Saira Condensed Bold | `Title_number` — Kartrider와 함께 쓰는 숫자 | **쓰지 않는다**(Q14 — 숫자도 Pretendard). 불러오지 않음(`next/font` 없음, P14 성능 2026-11-01 확인) |
 
 GUI 화면 파일에서 본 것(2026-10-15):
 - 숫자 폰트는 **Saira Condensed Bold**다. GUI 화면 대시보드의 공연명 숫자·통계 숫자(`329:7470`, `525:3580`, `525:4095` 등)에 실제로 쓰였고 메모 `295:1070`도 "Saira condensed"다. 메모 `315:2209` 한 곳만 "saira extra condensed"라고 적어 디자이너 확인만 남긴다(design-requests Q14 — 해결: 숫자도 Pretendard, 2026-10-25 디자이너 답). **2026-10-25 갱신**: 위 노드는 지워진 옛 대시보드 프레임 안에 있었다. 새 대시보드(`669:2787`·`712:1646` 등)는 숫자를 Pretendard 700으로 그렸고, Saira Condensed는 옛 제목형 판 `336:13781`에만 남았다(Q14 참고).
@@ -468,7 +468,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | `illust_dashboard` 4종(36×36) | Figma | `src/ui/illustrations/dashboard-*.svg` | `<Illustration />` | P2 완료 |
 | 아바타 캐릭터(4색) | Figma Avatar("40" = 45px 변형) | `src/ui/illustrations/avatar-*.svg` | Avatar 컴포넌트가 색으로 고른다 | P2 완료 |
 | 로고(관객·호스팅) | GUI `logo` 페이지 | `src/ui/brand/Logo.tsx` | 인라인 SVG, `currentColor`(호스팅 "host" 글자는 evenodd로 뚫음) | P2 완료 |
-| 폰트 | npm `pretendard`, Google Fonts(Saira Condensed) | 저장소에 파일 없음 | 루트 레이아웃에서 적재. Kartrider는 라이선스 확인 뒤 `next/font/local` | P1 완료 |
+| 폰트 | npm `pretendard`(Saira Condensed는 Q14로 뺌 — 불러오지 않음) | 저장소에 파일 없음 | 루트 레이아웃에서 적재. Kartrider는 라이선스 확인 뒤 `next/font/local` | P1 완료 |
 | 사용자 업로드(포스터·프로필·호스트 이미지) | 백엔드 S3(presigned 업로드) | 저장소 밖 | `next/image` + `images.remotePatterns`에 업로드 도메인 | P5a |
 | 고정 주소가 필요한 파일 | — | `src/app/`(favicon, robots, 기본 OG 이미지), `public/`(약관 HTML) | 파일 규칙 그대로 | P0 완료 · P5b(OG) |
 
