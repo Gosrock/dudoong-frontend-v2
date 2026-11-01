@@ -59,7 +59,7 @@ dudoong-frontend-v2/
 
 ## `src/app/` — 라우트
 
-라우트 그룹은 조회 방식으로 나눈다(tech-decisions §3). **`src/app`에는 라우트 파일과 루트 셸 클라이언트 파일 2개(`providers.tsx`, `OverlayRouteReset.tsx`)만 둔다**(tech-decisions §8). 라우트 파일은 얇게 둔다. 레이아웃, 메타데이터, `<Prefetch>`, 화면 컴포넌트 조립까지만 한다. **서버 컴포넌트는 라우트 파일뿐이고**, 화면 구현(`src/features`)은 전부 클라이언트 컴포넌트다.
+라우트 그룹은 조회 방식으로 나눈다(tech-decisions §3). **`src/app`에는 라우트 파일(메타데이터 파일 `robots.ts`·`sitemap.ts`, Route Handler 포함)과 루트 셸 클라이언트 파일 2개(`providers.tsx`, `OverlayRouteReset.tsx`)만 둔다**(tech-decisions §8). 예외로 Route Handler가 쓰는 순수 함수(`csp-report/summarize.ts`)는 그 폴더에 둔다. 라우트 파일은 얇게 둔다. 레이아웃, 메타데이터, `<Prefetch>`, 화면 컴포넌트 조립까지만 한다. **서버 컴포넌트는 라우트 파일뿐이고**, 화면 구현(`src/features`)은 전부 클라이언트 컴포넌트다.
 
 ```
 src/app/
@@ -67,8 +67,11 @@ src/app/
 ├─ layout.tsx                          # <html>, 전역 스타일, Providers(QueryClient, OverlayProvider)
 ├─ providers.tsx                       # P2·P4a  'use client' — QueryClientProvider(서버 렌더마다 새 것, 브라우저는 하나), OverlayProvider, 인증 핸들러 등록, storage(다른 탭 로그아웃)·pageshow(bfcache) 감시 — dd:session 값 비교. 경로는 읽지 않는다
 ├─ OverlayRouteReset.tsx               # P2  'use client' 말단 — 경로가 바뀌면 overlay.unmountAll(). children을 감싸지 않고 providers.tsx 안에서 <Suspense fallback={null}>로 감싸 형제로 둔다(<Toaster />도 여기)
-├─ not-found.tsx / error.tsx / global-error.tsx
-├─ healthz/route.ts                    # P0   배포 헬스체크. 유일한 Route Handler. 백엔드를 부르지 않는다
+├─ not-found.tsx                       # 어느 라우트에도 맞지 않는 주소 — 관객 셸을 직접 둘러 그린다
+├─ global-error.tsx                    # 2026-11-02(패턴 점검 A5)  루트 레이아웃·Providers 오류 — <html>·<body>·전역 스타일을 스스로 둔다, src/ui RouteErrorView
+├─ robots.ts / sitemap.ts              # P14  검색 노출(메타데이터 파일 — sitemap은 src/api/server/sitemap-source)
+├─ healthz/route.ts                    # P0   배포 헬스체크. 백엔드를 부르지 않는다
+├─ csp-report/route.ts                 # P14  CSP 위반 보고 수신 → 구조화 로그(summarize.ts). Route Handler는 healthz와 이것 둘
 │
 ├─ (audience)/
 │  ├─ layout.tsx                       # P5a  관객 헤더·내비게이션(공통). usePathname·useSearchParams 쓰는 부분은 children을 감싸지 않는 말단 + 자체 <Suspense>
@@ -127,7 +130,7 @@ src/app/
 │     └─ qr/page.tsx                   # P13b QR 체크인 (P13b-L 생성 — QrCheckInView, [호스트가 스캔]·[관객이 스캔] 전환 + 통계)
 ```
 
-Route Handler는 `/healthz` 하나다. 더 만들게 되면 nginx가 `/api`를 전부 백엔드로 보내므로 `/api` 밖에 둔다.
+Route Handler는 `/healthz`·`/csp-report` 둘이다(2026-11-02 패턴 점검 D12). 더 만들게 되면 nginx가 `/api`를 전부 백엔드로 보내므로 `/api` 밖에 둔다.
 
 `events/[eventId]`(공개 상세)와 `events/[eventId]/checkout`(보호)은 서로 다른 그룹에 있지만 URL은 이어진다. 라우트 그룹은 URL에 나오지 않는다.
 
@@ -176,7 +179,7 @@ src/features/
    ├─ notice/                  # P9c  서비스 공지(S9) — 관객·호스팅이 `audience`만 바꿔 쓴다. 최소 마크업 NoticeListView·NoticeDetailView·NoticeBannerView(셸에는 아직 안 붙음 — V). model/: notice-rules(경로 id·목록/상세 경로·행 값·본문 sanitize(section-viewer와 같은 허용 목록)·배너 종료 판정), banner-dismissal(닫은 배너 id — localStorage `dd:noticeBannerDismissed`, 최근 50개), useNoticeList(GA-1), useNoticeDetail(GA-2), useNoticeBanner(GA-3 + 닫기)
    ├─ notification/            # P9b · P10a  벨, 알림함, 타입 → 표시 매핑. 지금은 로직 연결 자리 NotificationInboxView. model/: notification-kind(17종 → 카테고리 3종·아이콘·받는 사람·이동 경로, PN-3 본문), useNotificationBell(GN-2 — P9b-L이 먼저 만들었다), useNotificationInbox(GN-1), useReadNotifications(PN-3 단건·전체)
    ├─ checkin-result/          # P8c · P13b  model/checkin-result — result → 화면(`'host' | 'self'`)
-   ├─ image-upload/            # P9 · P10b · P11 (먼저 착수한 Phase)  업로드 UI(DropZone 연결, 미리보기). 호출은 src/api/upload
+   ├─ image-upload/            # (아직 없음 — ⑤ `pattern-structure` A10) `UPLOAD_ERROR_MESSAGE` + `useImageUpload(target)`. 지금은 호스트 설정·공연 기본 정보·섹션·프로필이 각자 업로드 흐름을 둔다. 호출은 src/api/upload
    ├─ permission/              # P5c  model/can — can(role, action), HOST_ACTIONS(api-contract §2 표 — P10b-L이 `manageManagers` 추가)
    └─ kakao-share/             # P5b · P8b  model/: feed-template(공연과 무관 — 선물 링크도 쓴다), kakao-sdk(SDK 2.8.3 + SRI, 앱 키는 호출할 때 읽음)
 ```
@@ -193,9 +196,11 @@ src/ui/
 │  ├─ sprinkles.css.ts         # 조건(mobile/desktop) + 토큰 유틸리티
 │  ├─ breakpoints.ts           # desktop ≥ 1024, wide ≥ 1280(P1). 관객·호스팅 모두 1024부터 PC(사용자 결정 2026-10-31, Q38 닫힘 — GUI의 1133 경계 대신). 호스팅 우측 패널 폭은 1280 · 1440(GUI)
 │  ├─ types.ts                 # 공개 props 타입(SpaceKey, Responsive<T> …) — vanilla-extract 타입을 밖에 내보내지 않는다
-│  └─ global.css.ts            # reset, 본문 폰트, focus-visible
+│  ├─ global.css.ts            # reset, 본문 폰트, focus-visible
+│  ├─ bars.ts                  # 고정 상단 바 높이(셸·sticky 기준 — tech-decisions §33)
+│  └─ surface.css.ts           # 2026-11-02(A44)  floatingSurface — Popover·DropdownMenu가 같이 쓰는 떠 있는 면
 ├─ primitives/                 # Flex(+ .Center 등), Spacing, Txt, Divider, Container
-├─ hooks/                     # useMediaQueries, useCloseOnBack(뒤로가기로 오버레이 닫기), useOnExited, useReturnFocus
+├─ hooks/                     # useMediaQueries, useCloseOnBack(뒤로가기로 오버레이 닫기), useOnExited, useReturnFocus, useIsClient(마운트 뒤에만), useDebouncedValue(es-toolkit debounce — 2026-11-02 A8)
 ├─ illustrations/             # 일러스트 SVG(빈 화면 6종 — P2엔 PNG였다가 2026-10-25 Figma 벡터가 가벼워져 SVG로), illust_dashboard·아바타 캐릭터(SVG) → <Illustration name /> (<img>)
 ├─ brand/                     # Logo(audience·host) 인라인 SVG, currentColor
 ├─ stories/                    # Foundation 스토리 — 토큰, 프리미티브, 스타일 세 방법
@@ -204,15 +209,19 @@ src/ui/
    ├─ Button/ Fab/              # Fab: 56 원형 아이콘 버튼(Figma Button type=round). 아이콘만 있는 일반 버튼은 Button iconOnly
    ├─ Input/ SearchField/ TextArea/ Dropdown/ SelectButton/ Counter/ DropZone/ TagButton/   # SelectButton = GUI 로컬 `Check Button`(예/아니오, 결제방식 선택)
    ├─ Checkbox/ Radio/ Toggle/ Tabs/   # Radix Checkbox·RadioGroup·Switch·Tabs + vanilla-extract (design-system.md §3)
-   ├─ Badge/ Avatar/ FilterChip/ Chip/   # Chip: Ticket·Concert 상태, role, tag, money option
+   ├─ Badge/ Avatar/ FilterChip/ Chip/   # Chip: Ticket·Concert 상태, role, tag, money option(formatOptionAmount). formatDday는 src/api/shared/dday를 다시 내보낸다
    ├─ DatePicker/ TimePicker/
-   ├─ BottomSheet/ Modal/ Popup/ EasyOverlay/   # BottomSheet/ResponsiveOverlay: PC=Modal, 모바일=시트. EasyOverlay: openConfirm() → Promise<boolean>
+   ├─ BottomSheet/ Modal/ Popup/ Drawer/ EasyOverlay/   # BottomSheet/ResponsiveOverlay: PC=Modal, 모바일=시트. Drawer: vaul 드로어(셸 메뉴). EasyOverlay: openConfirm() → Promise<boolean> — onConfirm이 false·throw면 열린 채(patterns §6)
    ├─ Toast/                   # 명령형 toast() — 훅이 아니어서 QueryCache.onError에서도 부른다
    ├─ Popover/ Tooltip/ DropdownMenu/   # Radix 래퍼. 모바일 ⓘ 설명은 Popover(Tooltip은 터치로 안 열린다)
-   ├─ Loader/ Skeleton/ EmptyState/ LinkProgress/   # LinkProgress: 카드 <Link> 안의 인라인 이동 표시(useLinkStatus, 100ms 지연)
-   ├─ NotFoundView/ ForbiddenView/   # P2  클라이언트 조회 화면용 공용 404·403 안내 (P5a·P9·P10a가 쓴다)
+   ├─ Loader/ Skeleton/ EmptyState/ LinkProgress/ LoadMoreSentinel/   # LinkProgress: 카드 <Link> 안의 인라인 이동 표시(useLinkStatus, 100ms 지연). LoadMoreSentinel: 무한 목록 하단(infiniteListControls)
+   ├─ InlineError/             # 2026-11-02(A7)  "불러오지 못했어요 + 다시 시도"(column · row)
+   ├─ NotFoundView/ ForbiddenView/ RouteErrorView/   # P2  클라이언트 조회 화면용 공용 404·403 안내(ForbiddenView는 HostingAccessRejected가 쓴다). RouteErrorView: 라우트 error.tsx·global-error.tsx 공용(2026-11-02 A5)
    ├─ AsyncBoundary/           # P2  ErrorBoundary + suspensive Suspense. holdOn(SessionLostError)은 pending 유지
    ├─ ErrorBoundary/           # @suspensive/react ErrorBoundary + QueryErrorResetBoundary(shouldCatch·holdOn·resetKeys), ErrorBoundaryGroup 재노출(2026-10-31)
+   ├─ Popup/ AccountMenu/ TopBar/ SidebarMenu/   # Popup: DS 다이얼로그(alertdialog). AccountMenu: PC 아바타 ▾ 메뉴. TopBar: PC `Top bar_Host`(58). SidebarMenu·SidebarMenuItem: 호스팅 공연 사이드바
+   ├─ ConcertCard/ EntranceCard/ SalesCard/ StatCard/ Schedule/   # DS 카드(공연 카드 · 대시보드 입장·판매·통계·일정 — 쓰는 곳 1곳이어도 DS 컴포넌트라 여기)
+   ├─ QrCode/ UploadedImage/   # QrCode: 입장·체크인 QR. UploadedImage: 서버 이미지(next/image 최적화 + 실패 fallback — 호출 쪽에서 실패 상태를 또 두지 않는다)
    ├─ Accordion/ Header/ ListHeader/ InfoRow/   # Footer·NavBar는 쓰는 곳이 없어 보류(P2)   # Header = Figma Top app bar(관객·호스팅 공용, 뒤로가기·제목·공연 전환형). 로고 헤더(GUI 로컬 `basic title` 관객, `host title` 호스팅)는 각 셸이 Header의 변형으로 그린다. InfoRow = Figma list(라벨 + 값 행, 펼침형은 Accordion)
    └─ DataTable/
 ```
@@ -229,29 +238,32 @@ src/api/
 ├─ session-flag.ts             # P4a  dd:session(로그인마다 새 무작위 값)·dd:refreshedAt 읽기·쓰기. 저장소 실패 = 없음. client.ts의 401 처리가 읽어야 해서 api에 둔다
 ├─ errors.ts                   # ApiError{status, code, reason}, SessionLostError, getErrorCode
 ├─ query-client.ts             # getQueryClient() — Next 가이드 방식, 재시도는 5xx·status 0만
-├─ handle-error.ts             # handleError(error, { 코드: 처리 }, { otherwise }) — 변경 에러는 호출 쪽 try/catch에서 처리(2026-10-31)
+├─ handle-error.ts             # handleError(error, { 코드: 처리 }, { otherwise }) — 변경 에러는 호출 쪽 try/catch에서 처리(2026-10-31). handlersFrom(table, onCode) — 코드 표 → 처리기(2026-11-02 A23)
 ├─ error-toast.ts              # 공용 에러 토스트 주입(setErrorNotifier)·문구(errorMessageOf)
 ├─ upload.ts                   # P3  발급 → S3 PUT → key (호스트·공연·프로필 공용)
 ├─ server/                     # 'server-only' — 라우트 파일에서만 쓴다. src/api 중 유일하게 React(HydrationBoundary)·notFound를 쓴다
 │  ├─ serverQuery.ts           # 요청별 QueryClient + fetchQuery + 404 → notFound()
+│  ├─ sitemap-source.ts / request-origin.ts   # P14  sitemap 공연 목록 · 요청 출처(절대 주소)
 │  └─ Prefetch.tsx             # queries → dehydrate → HydrationBoundary. 무한 목록은 받지 않는다(GH-14는 브라우저 useInfiniteQuery)
 ├─ shared/
-│  ├─ common-schema.ts         # P3  Contact·Place·HostRole — 도메인 폴더끼리 import하면 순환이 생겨 여기 둔다
-│  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼
-│  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST)
+│  ├─ common-schema.ts         # P3  Contact·Place·HostRole — 도메인 폴더끼리 import하면 순환이 생겨 여기 둔다. 연락처 요청 contactRequestSchema·hostContactRequestSchema(전화 15자 — 호스트만, 2026-11-02 A21)
+│  ├─ page.ts                  # V2PageResponse 스키마 팩토리, 페이지 기반 무한 쿼리 헬퍼, flattenPages, infiniteListControls(무한 목록 하단 제어 — 2026-11-02 A11)
+│  ├─ date.ts                  # 'yyyy.MM.dd HH:mm' ↔ Date (KST), 표시 포맷, KOREAN_WEEKDAYS·kstParts·kstDayDiff·splitKstDateTime/joinKstDateTime(입력칸)·toKstIso(2026-11-02 A19)
+│  ├─ dday.ts                  # 2026-11-02(A4)  formatDday(0 → D-day)·ddayOf·eventTimingLabel(공연 중·공연 종료)
+│  ├─ zod-config.ts            # zod 전역 설정
 │  ├─ route-pattern.ts         # routePattern() — 로그용 경로(id·토큰 → :param, 쿼리 버림)
 │  ├─ agreement.ts             # 2026-10-25  동의 기록 필드(#840·#850) — AGREEMENT_VERSION('2026-10'), agreementFields(사용자가 체크한 true만 + 그때만 agreementVersion)
 │  └─ open-enum.ts             # openEnum(name, values) — 모르는 문자열은 UNKNOWN, 누락은 PARSE_ERROR
 ├─ auth/                       # P4b  calls.ts(카카오 링크·코드 교환·register/valid·login·info·register, 재발급·로그아웃 — authApi), schema.ts
 ├─ me/                         # GM-1·PM-2(mutations updateMeMutation)·GM-4 followingHostsQuery·GM-5 archiveQuery (P9)
 ├─ host/  event/  ticket-item/  option/   # P12: ticket-item — ticketItemsManageQuery(T-1 `['events', id, 'manage', 'ticket-items']`)·mutations.ts(T-2~T-6·O-5)·관리 스키마·요청 스키마(`.strict()`)·입력 규칙 상수(`TICKET_NAME_MAX` 12 등), option — eventOptionsQuery(O-1 `…, 'manage', 'options']`)·mutations.ts(O-2~O-4)·스키마(O-3에 `type` 없음). P10a: host — myHostsQuery(GH-1, `MY_HOSTS_KEY`)·createHostMutation(PH-2)·입력 규칙 상수, event — myEventsQuery(GE-1, `MY_EVENTS_KEY`). P10b: host — updateHostMutation(PH-4)·addHostMembersMutation(PH-7)·updateHostMemberRoleMutation(PH-10)·removeHostMemberMutation(DH-11)·transferMasterMutation(PH-12), event — `isEventManageQueryKey`(GE-3 키 모양 `['events', id, 'manage']`, 양도 뒤 무효화). P11: event — eventManageQuery(GE-3)·eventChecklistQuery(GE-7)·eventSectionsManageQuery(GE-5 쿠키 — 모두 `['events', id, 'manage', …]`)·`eventPublicKeys`, mutations.ts createEventMutation(PE-2)·updateEventBasicMutation(PE-4)·updateEventSectionsMutation(PE-6)·openEventMutation(PE-8)·deleteEventMutation(DE-9), 입력 규칙 상수(`EVENT_NAME_MAX` 25 등)
-├─ order/                      # + price.ts (금액 계산 순수함수). P9: myOrdersQuery(O-2)·myOrderQuery(O-3)·cancelMyOrderMutation(O-4)·putRefundAccountMutation(O-5). P13a: 호스트 주문 스키마(`HostOrder*`·`RefundElement`·`RefuseOrderRequestSchema`·`HostCancelOrderRequestSchema`·`OPERATION_*` 상수), hostOrdersQuery(GR-1 `['events', id, 'manage', 'orders', 'list', params]`)·hostOrderQuery(GR-2 `…, 'detail', uuid]`)·refundsQuery(GF-1 `…, 'manage', 'refunds', params]`), mutations approve·refuse·cancelHost·completeRefund·exportOrders(GR-6)
+├─ order/                      # + price.ts (금액 계산 순수함수). P9: myOrdersQuery(O-2)·myOrderQuery(O-3)·cancelMyOrderMutation(O-4)·putRefundAccountMutation(O-5). P13a: 호스트 주문 스키마(`HostOrder*`·`RefundElement`·`RefuseOrderRequestSchema`·`HostCancelOrderRequestSchema`·`OPERATION_*` 상수), hostOrdersQuery(GR-1 `['events', id, 'manage', 'orders', 'list', params]`)·hostOrderQuery(GR-2 `…, 'detail', uuid]`)·refundsQuery(GF-1 `…, 'manage', 'refunds', 'list', params]` — 2026-11-02 A22), mutations approve·refuse·cancelHost·completeRefund·exportOrders(GR-6)
 ├─ my-ticket/                  # P8   T-1·T-2·T-3 (state 11값 openEnum)
-├─ gift/                       # P8b  queries + mutations(보내기·회수·메모·수락·거절·반환)
+├─ gift/                       # P8b  queries + mutations(보내기·회수·메모·수락·거절·반환), GIFTS_KEY(`['gifts']` — 2026-11-02 A12)
 ├─ check-in/                   # P8c  PQ-5. P13b: queries.ts checkInStatsQuery(GQ-1 `['events', id, 'manage', 'check-ins', 'stats']`)·checkInQrQuery(GQ-4 `…, 'manage', 'check-in-qr']`, staleTime Infinity), mutations hostCheckInMutation(PQ-2), 스키마 CheckInStats·CheckInQr·HostCheckInRequest(`.strict()`, uuid 64자)
 ├─ bank/                       # P9·P12 은행 목록 banksQuery(`GET /api/v2/banks`, 공개) — 환불 계좌·티켓 입금 계좌 공통(P12-L에서 refund/ → bank/)
 ├─ user/                       # P9   calls.ts withdrawAccount — 회원 탈퇴 v1 `DELETE /api/v1/auth/me`를 withSessionRecovery로(authApi 아님)
-├─ notice/                     # P9c  GA-1 noticesQuery(`['notices','list',audience,{size}]`, 무한)·GA-2 noticeQuery(`['notices','detail',id]`)·GA-3 noticeBannersQuery(`['notices','banners',audience]`, meta.silent, staleTime 1분) — 모두 공개(쿠키 없음), 변경 API 없음
+├─ notice/                     # P9c  GA-1 noticesQuery(`['notices','list','infinite',audience,{size}]` — 2026-11-02 A22)·GA-2 noticeQuery(`['notices','detail',id]`)·GA-3 noticeBannersQuery(`['notices','banners',audience]`, meta.silent, staleTime 1분) — 모두 공개(쿠키 없음), 변경 API 없음
 ├─ notification/               # P9b  GN-1 notificationsQuery·GN-2 unreadNotificationCountQuery(meta.silent)·PN-3 readNotificationsMutation, NOTIFICATIONS_KEY(`['me','notifications']`)
 ├─ issued-ticket/               # P13a GI-1 hostIssuedTicketsQuery(`['events', id, 'manage', 'issued-tickets', 'list', params]`)·GI-2 hostIssuedTicketQuery·mutations exportIssuedTicketsMutation(GI-3), `EntranceStatsSchema`(GD-1·GI-1·GQ-1 공통 모양)
 ├─ dashboard/                  # P13a GD-1 eventDashboardQuery(`['events', id, 'manage', 'dashboard']`)
@@ -262,15 +274,21 @@ src/api/
 
 `env/`: `client.ts`(`NEXT_PUBLIC_KAKAO_JS_KEY`, 빌드 때 검증)만 둔다. 서버 값(`API_INTERNAL_URL`)은 `http.ts`가 호출할 때 기본값과 함께 읽으므로 검증 파일이 없다. `instrumentation.ts`도 두지 않는다(tech-decisions §12).
 
-queryKey 순서는 리소스 → `'viewer'` → `'infinite'` → 파라미터 객체다(예: `['hosts', id, 'events', 'viewer', 'infinite', { size }]`, tech-decisions §4).
+queryKey 순서는 리소스 → `'viewer'` → `'infinite'` → 파라미터 객체다(예: `['hosts', id, 'events', 'viewer', 'infinite', { size }]`, tech-decisions §4). 목록·상세를 따로 무효화하는 리소스는 `'list'`·`'detail'`을 끼운다(patterns §4-1). GE-3 아래 키는 `eventManageKey(id)`(`api/event/queries.ts`)로 만든다(2026-11-02 A12).
 
 ## `src/utils/`
+
+React·앱 상태·`features`에 기대지 않는 함수만 둔다. 브라우저 API를 부르는 작은 함수(`copy-text.ts`·`download.ts`·`log.ts`)는 둘 수 있다(patterns §7, 2026-11-02 패턴 점검 D4).
 
 ```
 src/utils/
 ├─ log.ts                      # 구조화 stdout 로그 log(level, event, fields)
-├─ clipboard.ts                # copyText()
-├─ money.ts                    # 원 단위 표시
+├─ copy-text.ts                # copyText() — 실패 폴백 포함(P5b-V)
+├─ money.ts                    # 2026-11-02(A3)  formatWon(1,000원)·formatPrice(0 → 무료)·formatSignedWon(+1,000원)·formatCount
+├─ csp.ts                      # P14  CSP 헤더 한 곳(patterns §10)
+├─ html-limited-bots.ts        # P14  HTML 제한 크롤러 판정
+├─ image.ts                    # P15  업로드 이미지 출처(next/image 최적화 여부)
+├─ site.ts                     # 사이트 주소 · 기본 OG
 ├─ download.ts                 # blob 저장 (엑셀) — saveBlob(blob, filename, fallback) (P13a-L 생성)
 ├─ try-catch.ts                # Go 스타일 tryCatch(promise) → [data, error] — 변경 요청 연쇄에서만(2026-10-31)
 └─ redirect.ts                 # P4a  safeRedirect(raw, fallback) — 같은 출처 상대 경로만. //·\\·제어 문자·2048자 초과·/login*·/kakao/callback(되돌이) 거부

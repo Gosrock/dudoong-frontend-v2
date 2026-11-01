@@ -1,6 +1,7 @@
 # DuDoong-Front v2 — 구현 패턴
 
 > 2026-10-14 개정. §1~§3(반응형 · 텍스트 · 레이아웃)은 vanilla-extract 기준이다. §4~§10(조회 · API 클라이언트 · 오버레이 · 계층 · 네이밍)은 tossinsu-desktop 인용을 지우고 DuDoong 규칙만 남겼다. §11 이후는 화면 패턴, §24는 화면별 에러 처리다. 2026-10-15 검토 2회차: 세션 상실·에러 토스트·URL 오버레이·zod enum 규칙을 확정하고 §24를 기획서 표 기준으로 채웠다. 같은 날 검토 3회차: 세션 표시를 `dd:session` 값 하나로 합치고 GM-1 결과를 셋으로 정했다(§5-1), `handleCodes` 헬퍼(§4-5), `?order=`는 열고 닫기 모두 `replace`(§6), GH-14는 브라우저에서만 읽는다(§4-2), 선물 취소 안내 조건을 백엔드 판정 순서에 맞췄다(§20).
+> 2026-11-02 코드 패턴 점검 반영([`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md)): 확인 창 계약(§6), 폼 방식 · 분류표(§4-4 · §23), list/detail 키 · 키 상수(§4-1), `src/utils` 범위(§7), 직접 구현하지 말 것 표에 debounce(es-toolkit) · 날짜 계산 · D-day · 금액 · `InlineError` · `infiniteListControls` · `handlersFrom`(§9), div 규칙(§3), 역할 표시 매핑(§22).
 > 근거 문서: [`tech-decisions.md`](./tech-decisions.md), [`plan.md`](./plan.md), [`directory-structure.md`](./directory-structure.md), [`api-contract.md`](./api-contract.md)
 
 ---
@@ -98,7 +99,7 @@
 <div className={bar} style={assignInlineVars({ [progressVar]: `${rate}%` })} />
 ```
 
-`Txt` · `Flex` · `Spacing`이 갖춰졌으므로 화면 코드에서 원시 `<div className={…}>`로 레이아웃을 짜는 것을 리뷰에서 지적한다.
+`Txt` · `Flex` · `Spacing`이 갖춰졌으므로 **flex·gap·margin만 하는 원시 `<div className={…}>`는 `Flex`·`Spacing`으로 쓴다**(리뷰에서 지적). 배경·테두리·자손 선택자처럼 고유한 모양을 가진 상자는 `.css.ts` + `div`로 둔다(2026-11-02 패턴 점검 D9 — 일괄로 고치지 않고 새 코드와 ⑥ `pattern-split`에서).
 
 vanilla-extract 함정(회고 2026-11-01): `display`를 지정한 요소는 `&[hidden]{ display: none }`이 따로 필요하다. `selectors`의 자손 선택자(`& svg path`)는 쓸 수 없어 `globalStyle`로 쓴다. `.css.ts`는 함수를 export하지 않는다(빌드 실패). `space[8]`처럼 PC에서 값이 바뀌는 토큰이 있다 — 고정 값이 필요하면 토큰 정의를 보고 고른다.
 
@@ -142,6 +143,8 @@ export const addHostMembersMutation = (hostId: string) =>
 
 - 이름은 `{대상}Query` / `{동작}Mutation`. 도메인 객체로 묶지 않는다.
 - queryKey는 경로를 쪼갠 모양으로 손으로 쓴다. `viewer`는 리소스 바로 뒤, `infinite`는 그 뒤, 파라미터는 마지막 원소다. 예: 호스트 공연 목록의 공개 키 `['hosts', id, 'events', 'infinite', params]`, 멤버용 `['hosts', id, 'events', 'viewer', 'infinite', params]`.
+- **목록과 상세를 따로 무효화해야 하는 리소스는 `'list'`·`'detail'`을 끼운다**(2026-11-02 패턴 점검 D5 — 허용 규칙): 호스트 주문 `[…, 'orders', 'list', params]` · `[…, 'orders', 'detail', uuid]`, 발급 티켓·환불·공지도 같다. 무한 목록이면 `'list'` 뒤에 `'infinite'`(공지 `['notices', 'list', 'infinite', audience, {size}]`). 무효화는 접두 키(`hostOrdersKey(id)` 등)로 한다.
+- 접두 키는 api의 상수·함수로만 쓴다 — `MY_TICKETS_KEY` · `NOTIFICATIONS_KEY` · `GIFTS_KEY` · `MY_EVENTS_KEY` · `eventManageKey(id)`(GE-3 아래 키 전부) · `hostOrdersKey(id)`. 화면·cache 파일에서 `['gifts']`·`['events', id, 'manage']`를 손으로 쓰거나 키 상수를 다시 정의하지 않는다(A12).
 - `mutationOptions`에는 `mutationFn`만. 캐시 반영·토스트·이동은 화면의 `onSuccess`에.
 - 의존값이 없으면 `skipToken`(또는 `useQuery`의 `enabled`). 파생 값은 호출부의 `select` 옵션. 헬퍼를 만들지 않는다.
 - `useQuery(xxxQuery())`를 감싸기만 하는 훅을 만들지 않는다. 여러 쿼리를 합쳐 파생 상태를 만들 때만 훅을 둔다.
@@ -218,7 +221,7 @@ export const addHostMembersMutation = (hostId: string) =>
 | 조작 화면 · viewer 쿼리 | `staleTime` 0 |
 | 호스팅 센터(공연준비 홈 GH-1·GE-1부터) | 전역 기본값 그대로 — `staleTime` 0, 5xx·네트워크 1회 재시도, 포커스 재조회. 브라우저에서만(게이트가 세션을 확정한 뒤 화면이 마운트된다). 변경 뒤에는 목록 접두 키(`MY_HOSTS_KEY` `['me','hosts']`·`MY_EVENTS_KEY` `['me','events']`)를 무효화한다(P10a-L, 2026-10-26) |
 | 무한 목록 | 서버에서 프리페치하지 않는다. `<Prefetch>`는 `queries`만 받는다 |
-| 폼 | RHF `defaultValues`로 한 번만 초기화. 다시 온 쿼리가 편집 중인 값을 덮지 않는다 |
+| 폼 | 처음 값으로 한 번만 초기화하고 다시 온 쿼리가 편집 중인 값을 덮지 않는다 — RHF는 `defaultValues`, `useState` 폼은 처음 값(`base`)을 따로 들고 바뀐 필드는 그것과 비교한다. 어느 쪽을 쓰는지는 §23 "폼 방식"(2026-11-02 패턴 점검 D1) |
 
 ### 4-5. 에러 토스트와 변경 에러 처리
 
@@ -347,6 +350,14 @@ try {
 
 - 확인·시트·모달은 `overlay-kit` 하나로 연다. `window.confirm()`을 쓰지 않는다.
 - **"확인 누르면 서버 호출 후 닫힘"은 `src/ui`의 `EasyOverlay`로 쓴다.** `onConfirm`(Promise)이 도는 동안 버튼을 잠그고, 성공하면 닫고, 실패하면 오버레이를 유지한다. 실패 토스트는 기본적으로 공용 토스트(`handleError` 기본, §4-5)에 맡긴다. 문구를 화면이 따로 정해야 하는 코드만 `handleError`의 표에 넣고 화면이 처리한다. 1차 소비처는 P13a(승인·거절·취소·환불 완료)와 P8b(선물 보내기·회수·반환·거절).
+  - **확인 창 계약(사용자 결정 2026-11-02, 패턴 점검 A1) — "실패하면 열린 채, 성공하면 닫힘"**: `onConfirm`이 **`false`로 resolve하거나 throw하면 열린 채**, 그 밖의 값(`true`·`undefined`)으로 resolve하면 닫히고 `openConfirm`은 `true`. model 훅은 지금처럼 `Promise<boolean>`(성공 `true`, 실패면 `handleError` 뒤 `false`)을 돌려주고, 호출 쪽은 그대로 넘긴다.
+
+    ```ts
+    const ok = await openConfirm({ title: '멤버를 삭제할까요?', onConfirm: () => m.remove(userId) });
+    if (ok) toast('멤버를 삭제했어요');
+    ```
+
+    쓰지 않는 것: `let ok = false` 클로저로 결과를 따로 들기(실패해도 닫힌다), 닫힌 뒤에 서버 부르기, `false`를 throw로 바꾸기, 시트에 pending·effect 닫기를 직접 달기. 옮기기는 ③(관객)·④(호스팅). 시트 안에 에러 문구를 띄워야 하는 확인(선물 보내기 `TicketGiftButton`, 탈퇴 `USER_400_6`)은 `content`에 문구를 넣고 훅의 에러 상태를 읽는다 — ③에서 맞는지 본다.
 - **뒤로가기는 열린 오버레이를 닫는다**(P2 사용자 결정). 시트·모달·팝업(`BottomSheet`·`Modal`·`Popup`·`ResponsiveOverlay`·`EasyOverlay`)은 `useCloseOnBack`으로 열 때 `window.history.pushState({ ...history.state, ddOverlay: id }, '', location.href)`로 항목을 하나 넣는다(주소는 그대로, Next의 `__NA` 등 기존 state 보존). 뒤로가기(popstate)로 표시가 빠지면 닫히고, UI로 닫으면(버튼·Esc·바깥·스와이프) 내 항목이 맨 위일 때 `history.back()`으로 소비한다. 겹친 오버레이는 맨 위 것만 닫힌다. 토스트·팝오버·툴팁·메뉴는 해당 없다. 실제 Next 16 dev 서버에서 RSC 재요청 0건을 확인했다.
   - `EasyOverlay`의 `onConfirm`이 도는 동안 뒤로가기는 무시한다(항목을 다시 넣는다). 요청은 이미 갔으니 결과를 보여 준다. 성공하면 항목을 소비한 뒤 resolve하므로 호출한 쪽이 `await` 뒤에 `router.push`해도 엇갈리지 않는다.
   - **오버레이 안에서 다른 경로로 갈 때는 `router.replace`·`<Link replace>`를 쓴다.** push하면 기록이 [A, A+오버레이, B]가 되어 B에서 뒤로가기를 두 번 눌러야 A로 간다.
@@ -354,7 +365,7 @@ try {
   - 남는 경우: 오버레이가 열린 채 새로고침하면 뒤로가기가 한 번 헛돈다. 위에 다른 오버레이가 있는 채 아래 것을 UI로 닫으면 그 항목이 남는다. 둘 다 드물어 두었다.
 - **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다. 위 규칙과 맞춰 **열 때는 `pushState`(파라미터를 더한 주소, state에 `ddOverlay` 표시), 닫을 때는 표시가 있으면 `router.back()`, 없으면(주소로 바로 들어온 경우) `router.replace`로 그 파라미터만 지운다.** 다른 쿼리(`?tab=`)는 남긴다. Next 라우터와 `useSearchParams`가 `pushState`를 따라간다. **P13a-L 구현(`useGuestsUrlState`)**: 열기 `pushState({ ddOverlay: 'guests-order' }, '', ?order=…)` — 첫 인자에 Next state(`__NA`)를 펼치지 않는다(Next가 내부 값을 덧붙이고 `useSearchParams`를 갱신한다, `app-router.js` `copyNextJsInternalHistoryState`). 닫기는 표시가 맨 위면 `router.back()`, 없으면 `router.replace` 대신 같은 결과의 얕은 `replaceState(null, …)`(§13 — 서버 왕복 없음). 상세에서 다른 주문을 열면 항목을 더 쌓지 않는다(`replaceState`). 탭(`?tab=`)도 얕은 교체이고 탭을 바꾸면 `order`를 지운다.
 - 경로가 바뀌면 `overlay.unmountAll()`을 호출한다. 이 감시는 루트 `Providers`의 children을 감싸지 않는 말단 컴포넌트 `<OverlayRouteReset />`이 하고, 형제 위치의 `<Suspense fallback={null}>` 안에 둔다. 이 파일과 `providers.tsx`는 `src/app`에 두는 루트 셸 클라이언트 파일이다(라우트 파일이 아닌 예외 둘, tech-decisions §8).
-- **`usePathname`·`useSearchParams`를 쓰는 컴포넌트는 children을 감싸지 않는 말단으로 두고 자체 `<Suspense fallback={null}>`로 감싼다.** Cache Components에서 이 훅은 `generateStaticParams`가 없는 동적 경로에서 suspend하고, Suspense가 없으면 빌드가 실패한다. children을 감싸는 위치에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404 상태 코드가 깨진다(tech-decisions §2).
+- **`usePathname`·`useSearchParams`를 쓰는 컴포넌트는 children을 감싸지 않는 말단으로 두고 자체 `<Suspense fallback={null}>`로 감싼다.** Cache Components에서 이 훅은 `generateStaticParams`가 없는 동적 경로에서 suspend하고, Suspense가 없으면 빌드가 실패한다. children을 감싸는 위치에 Suspense를 두면 `(public)` 서버 조회 라우트 위에 경계가 생겨 404 상태 코드가 깨진다(tech-decisions §2). 이 규칙은 **셸·`(public)`에 닿는 컴포넌트** 몫이다 — 서버 조회가 없는 `(app)`·`hosting` 그룹은 레이아웃이 children 전체를 `<Suspense>`로 감싸므로 그 안의 페이지·model 훅(`useEventList`·`useHostingHome`·`useGuestsUrlState` 등)은 자체 Suspense 없이 써도 된다(tech-decisions §2, 2026-11-02 패턴 점검 D8).
 - **숨은 Activity DOM이 `:has`·`querySelector`에 걸린다.** Next 16은 이동할 때 이전 페이지를 지우지 않고 React `<Activity>`로 `display: none` 숨겨 DOM에 남긴다(`node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`). "DOM에 있으면 지금 화면"으로 판정하지 않는다 — 셸이 읽는 표시(`data-event-scope` · `data-shell-subheader` · `data-shell-no-search` · `data-protected-area`)는 그 요소에 `useActivityMarker()` ref를 걸고, 판정은 `activeMarker(attr)`(`[attr]:not([data-activity-hidden])`)로 한다(`src/features/shared/shell/` — 숨겨질 때 layout effect 정리가 `data-activity-hidden`을 붙인다. 서버 HTML에는 없어 새로고침 첫 화면은 그대로 맞는다). 표시를 단 쪽 effect로 부모에 속성을 걸고 정리하는 방식(`TicketFormView` `useHideEventHeader`)도 같은 이유다. e2e: `e2e/shell-activity.spec.ts`(fix-qa-1101).
 
 ---
@@ -369,7 +380,7 @@ src/app → src/features → src/ui → src/api → src/utils
 - `features/audience` ↔ `features/hosting`은 서로 import하지 않는다. 같이 쓰는 것은 `features/shared`.
 - `src/api`는 `src/ui`·`features`를 import하지 않는다. 예외는 `src/api/server/`가 쓰는 `HydrationBoundary`·`notFound()`.
 - `src/api/server/`는 라우트 파일(`src/app`)에서만 쓴다.
-- `src/utils`는 순수 함수만 둔다. 훅은 `src/ui/hooks` 또는 `features`.
+- `src/utils`는 **React·앱 상태·`features`에 기대지 않는 함수**만 둔다. 브라우저 API를 부르는 작은 함수(`copy-text.ts` · `download.ts` · `log.ts`)는 둘 수 있다(2026-11-02 패턴 점검 D4). 훅은 `src/ui/hooks` 또는 `features`.
 - eslint(`boundaries`)로 강제한다(P0).
 
 ---
@@ -393,12 +404,17 @@ src/app → src/features → src/ui → src/api → src/utils
 | 용도 | 쓰지 말 것 | 쓸 것 |
 |---|---|---|
 | 로딩 상태 | `useState(false)` + try/finally | mutation의 `isPending`(`useLoading` 훅은 아직 없다 — 필요해지면 `src/ui/hooks`에 먼저 만든다) |
-| delay · debounce · throttle | 직접 구현 | `es-toolkit` |
+| delay · debounce · throttle | 직접 구현(`setTimeout` effect) | `es-toolkit`(설치됨 — 2026-11-02 사용자 결정, A8). 입력값을 따라가는 값은 `useDebouncedValue(value, ms)`(`src/ui/hooks`, es-toolkit `debounce` 위) |
 | 마운트 뒤에만 실행 | `useEffect` + `useState` 조합 | `useIsClient()`(`src/ui/hooks/useIsClient.ts`) — 셸에 넣는 클라이언트 컴포넌트가 `Date`·localStorage를 읽으면 이것으로 마운트 뒤에만 그린다 |
 | 확인 다이얼로그 | `window.confirm()` | `openConfirm()`·`EasyOverlay`(`src/ui/components/EasyOverlay`, §6) — 모양은 DS 다이얼로그(`Popup`) |
 | 토스트 | 훅이나 직접 구현 | 명령형 `toast()`(`src/ui/components/Toast`). 렌더러는 루트 `Providers`에 하나 |
 | 클립보드 | `navigator.clipboard.writeText()` 직접 | `copyText()`(`src/utils/copy-text.ts`, 실패 폴백 포함 — P5b-V에서 만듦) |
-| 날짜 파싱 · 표시 | 화면마다 포맷 | `src/api/shared/date.ts`(서버 형식 `yyyy.MM.dd HH:mm` ↔ 값, 표시 포맷) |
+| 날짜 파싱 · 표시 · 계산 | 화면마다 포맷, KST 오프셋(`9 * 3_600_000`)·요일 배열·입력칸 변환을 다시 짜기 | `src/api/shared/date.ts`(서버 형식 `yyyy.MM.dd HH:mm` ↔ 값, 표시 포맷, `KOREAN_WEEKDAYS` · `kstParts` · `kstDayDiff` · `splitKstDateTime`/`joinKstDateTime`(입력칸 `YYYY-MM-DD`·`HH:mm`) · `toKstIso`) |
+| D-day · 공연 중 · 공연 종료 글자 | 화면마다 `` `D-${n}` ``·"D-DAY"·"공연종료" | `src/api/shared/dday.ts` — `formatDday`(0 → `D-day`, design-system §3) · `ddayOf(startAt, now)`(서버 `dDay`가 없는 응답) · `eventTimingLabel` |
+| 금액 · 개수 | `toLocaleString('ko-KR')` + "원" | `src/utils/money.ts` — `formatWon`(`1,000원`, 붙여 씀) · `formatPrice`(0 → 무료) · `formatSignedWon`(`+1,000원`) · `formatCount`. money option chip의 "+ N원"만 `Chip`의 `formatOptionAmount` |
+| "불러오지 못했어요 + 다시 시도" | 화면마다 `role="alert"` + `Txt` + `Button` | `InlineError`(`src/ui`, `layout: column / row`). 경계 안이면 `AsyncBoundary`의 `rejected`로 |
+| 무한 목록 하단 제어 | `hasNextPage`·`loadMore`·`retry`를 훅마다 | `infiniteListControls(query)`(`src/api/shared/page.ts`) → `LoadMoreSentinel` |
+| 에러 코드 표 → 처리기 | `Object.fromEntries(Object.entries(TABLE).map(…))` | `handlersFrom(table, onCode)`(`src/api/handle-error.ts`) |
 | 에러 코드 추출 | `try { e.response… }` | `getErrorCode()`(`src/api/errors.ts`, §5) |
 | 엑셀 저장 | 직접 구현 | `api.download()` → `saveBlob()`(`src/utils/download.ts`). 버튼과 파일명은 `features/hosting` |
 | 데이터 경계 | `<Suspense>` + ErrorBoundary를 매번 조합, `@suspensive/react`를 화면에서 직접 import | `<AsyncBoundary>`·`<ErrorBoundary>`(`src/ui`, §4-3) |
@@ -622,7 +638,7 @@ useEffect(() => {
 ## 22. 호스팅 센터 — 권한별 화면
 
 - `myRole`(GH-1 · GH-3 · GE-1 · GE-3)로 화면 모드를 정한다: 매니저 이상 = 편집, 일반 멤버 = 읽기 전용.
-- 권한 판정은 한 곳(`can(role, action)`)에 두고 화면에서 역할 문자열을 직접 비교하지 않는다. 표는 api-contract §2.
+- 권한 판정은 한 곳(`can(role, action)`)에 두고 화면에서 역할 문자열을 직접 비교하지 않는다. 표는 api-contract §2. **역할 → 라벨·칩 색 같은 표시 매핑은 판정이 아니다** — if 체인 대신 `Record<HostRole, …>` 표로 둔다(2026-11-02 패턴 점검 D10).
 - 공연 만들기의 호스트 선택에서 내가 일반 멤버인 호스트는 비활성으로 둔다.
 - 매니저의 멤버 초대는 역할 선택지를 "일반"으로 고정한다. 마스터 행에는 메뉴를 두지 않는다. 매니저는 일반 멤버만 지운다 — 매니저 역할을 다루는 일은 `can(role, 'manageManagers')`(마스터, P10b-L). 내 행은 이 규칙만으로 늘 메뉴가 없다(백엔드도 본인 삭제를 막는다).
 - 호스트 설정에 일반 멤버가 주소로 들어오면 403이 아니라 읽기 전용으로 그린다(관리 화면 조회는 일반 멤버 읽기 전용 — api-contract §2, design-requests Q53). 공개 GH-3 viewer는 비멤버에게도 200 + `myRole: null`이라 호스트 설정은 G+ 조회 GH-6을 함께 읽는다 — 비멤버는 GH-6 403 → 공용 403(2026-10-31, 아래 SUPER_ADMIN 때문에).
@@ -637,7 +653,26 @@ useEffect(() => {
 
 ## 23. 호스팅 센터 — 폼과 부분 수정
 
-- **PATCH는 바뀐 필드만 보낸다.** RHF `dirtyFields`로 본문을 만든다.
+- **PATCH는 바뀐 필드만 보낸다.** RHF 폼은 `dirtyFields`로, `useState` 폼은 처음 값(`base`)과 비교하는 순수 함수(`isXDirty`·`toXBody`)로 본문을 만든다.
+- **폼 방식(사용자 결정 2026-11-02, 패턴 점검 D1)** — 하나로 통일하지 않는다. **간단한 폼은 `useState` + 순수 함수**(`model/*-form.ts`의 `validateX`·`isXDirty`·`toXBody`, 처음 값 `base`), **복잡한 폼은 RHF**. 🤖 관제탑 판단 — RHF 기준: ① 반복 항목(`useFieldArray` — 연락처·섹션 탭·초대 행·티켓별 옵션) ② 서로 얽힌 입력이 많음(한 칸이 다른 칸의 활성·값을 바꿈) ③ 칸별 서버 에러(`setError`) 중 **하나라도**. 순수 함수(검증·본문 만들기)는 RHF로 옮겨도 그대로 쓴다. 빠른 두 번 누름은 RHF에서도 `inflight` ref로 막는다(`isPending`은 늦게 바뀐다 — 리포트 §4). 지금 있는 복잡한 폼의 전환은 ⑥ `pattern-split`(큰 훅 나누기와 같이).
+
+  | 폼(훅 · 순수 함수) | 분류 | 이유 | 전환 |
+  |---|---|---|---|
+  | 체크아웃 `useCheckout` · `checkout/model/option-form.ts` | 복잡 | 티켓별 옵션 반복 · 입금자 · 동의 | 이미 RHF |
+  | 가입 `useRegisterForm` · `register-form.ts` | 간단 | 칸 몇 개 + 동의 체크, 서버 에러는 폼 한 줄 | 그대로 |
+  | 프로필 편집 `useProfileEdit` | 간단 | 이름 · 이미지 | 그대로 |
+  | 환불 계좌 `mypage/model/useOrderDetail` · `refund-account-form.ts` | 간단 | 은행 · 계좌 · 예금주 | 그대로 |
+  | 거절 사유 `hosting/guest/model/useOrderDetail` · `guest-rules.ts` `RefuseForm` | 간단 | 사유 고르기 + 글 | 그대로 |
+  | 간편 공연 만들기 `useNewEventWizard` · `create-event-form.ts` | 간단 | 이름 · 일정 · 티켓 여부 3칸 | 그대로 |
+  | 공연 기본 정보 `useEventBasicInfo` · `basic-info-form.ts` | 복잡 | 문의처 반복 · 장소·일정·포스터 얽힘 · 칸별 서버 에러 | ⑥ |
+  | 공연 상세 섹션 `useEventSections` · `sections-form.ts` | 복잡 | 섹션 탭 반복 | ⑥ |
+  | 호스트 만들기 `useCreateHost` · `create-host-form.ts` | 복잡 | 연락처 반복 | ⑥ |
+  | 호스트 설정 `useHostSettings` · `host-settings-form.ts` | 복잡 | 연락처 반복 · 이미지 2칸 | ⑥ |
+  | 멤버 초대 `useInviteMembers` | 복잡 | 행 반복 · 행별 서버 에러 | ⑥ |
+  | 티켓 만들기·수정 `useTicketForm` · `ticket-form.ts` | 복잡 | 무제한↔재고 공개 · 결제 방식↔가격 · 판매 기간 얽힘 · 칸별 서버 에러 | ⑥ |
+  | 옵션 만들기·수정 `useOptionEditor` · `hosting/ticket/model/option-form.ts` | 복잡 | 칸별 서버 에러(`OPTION_FIELD_ERRORS`) | ⑥ |
+
+  리포트는 12개로 셌고 거절 사유 폼을 더해 13개다. 새 폼은 위 기준으로 고른다.
 - 객체·배열 필드는 통째 교체다. `place`를 고치면 `detailAddress`까지 다시 보낸다. `contacts`·`tagIds`도 전체를 보낸다.
 - **티켓 수정(P10/T-3)**: 값을 비울 때는 `null`이 아니라 `clear[]`. 같은 필드에 값과 clear를 함께 보내지 않는다. `payType`을 바꾸면 `price`를 함께 보낸다.
 - **티켓 폼**: "무제한"을 고르면 "재고 공개"를 끄고 비활성. 잠긴 티켓(`isSold || hasPendingOrders`)은 허용 필드만 활성.

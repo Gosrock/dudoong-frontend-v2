@@ -1,7 +1,7 @@
 # 진행 현황판
 
 > **지금 어디까지 왔는지 한 장으로 본다.** 작업을 시작·끝낼 때마다 이 문서를 고친다(규칙은 아래 "갱신 규칙").
-> 마지막 갱신: **2026-11-01** — 전체 회귀(e9cf097) e2e 585/0 · QA 407/0, `staging-deploy` 스킬(#102). 동의 칸 4개 DS로 붙임 · 플래그 켬(#101, 백엔드 #905 1-1 — 스테이징 강제 리허설 대기). 스테이징 v2 첫 배포(Deploy#94) 뒤 QA 반영: #94(관객 — 크롤러 404 · 주문 타임아웃) · #96(호스팅) · #98(#93 분류, 디자인 Q63~Q78 · 서버 B23~B27). 레이아웃 고정 요소(#95, 상단 바 fixed · 로그인 말풍선 · 전수조사). P14 하드닝 끝(보안 #79 · 접근성 #81 · 성능 #82 · 회귀 #85, 그룹 F) + 사용자 눈 QA 수정(#86). P15 컷오버 코드 몫 끝(#88 — 308 · 포스터 next/image · 런북), 남은 것은 사람 몫(사용자 대기).
+> 마지막 갱신: **2026-11-02** — 코드 패턴 정리 묶음 27~31 추가(`pattern-base` ①문서 + ②공용 부품 진행 중). 2026-11-01: 전체 회귀(e9cf097) e2e 585/0 · QA 407/0, `staging-deploy` 스킬(#102). 동의 칸 4개 DS로 붙임 · 플래그 켬(#101, 백엔드 #905 1-1 — 스테이징 강제 리허설 대기). 스테이징 v2 첫 배포(Deploy#94) 뒤 QA 반영: #94(관객 — 크롤러 404 · 주문 타임아웃) · #96(호스팅) · #98(#93 분류, 디자인 Q63~Q78 · 서버 B23~B27). 레이아웃 고정 요소(#95, 상단 바 fixed · 로그인 말풍선 · 전수조사). P14 하드닝 끝(보안 #79 · 접근성 #81 · 성능 #82 · 회귀 #85, 그룹 F) + 사용자 눈 QA 수정(#86). P15 컷오버 코드 몫 끝(#88 — 308 · 포스터 next/image · 런북), 남은 것은 사람 몫(사용자 대기).
 > 정본은 따로 있다 — Phase 정의·선행·완료 기준은 [`plan.md`](./plan.md), 화면별 구현 상태·Figma 노드는 [`gui-screens.md`](./gui-screens.md) §0, 구현 기록은 [`implementation-log.md`](./implementation-log.md). 이 문서는 그 셋을 요약해 이어 붙인 판이다. 어긋나면 정본이 맞고, 이 문서를 고친다.
 
 ## 한 줄 요약
@@ -13,6 +13,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
 | 백엔드 #905 답 반영 | `9yujin/backend-905-sync` · #100 | 2026-11-01 | PR 검토 대기 | 병렬 `agreement-fields`(동의 칸)와 파일 나눔 |
+| 코드 패턴 정리 ①문서 + ②공용 부품 | `9yujin/pattern-base` | 2026-11-02 | 진행 중 | 새로 만들기만(호출 쪽은 ③④). 병렬 `staging-qa-105-audience` · `staging-qa-106-host`와 파일 나눔 |
 
 ## 사용자 대기
 
@@ -81,6 +82,11 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 22 | `layout-fixed-95` | 이슈 #95 레이아웃 고정 요소 — 상단 바 fixed(고무줄 오버스크롤) · 로그인 말풍선 흐름 안 · fixed/sticky/dvh 전수조사(implementation-log 끝 절) | P4s-V | 끝(#97) | — |
 | 23 | `staging-ux-93` | 이슈 #93 스테이징 QA UX 제안 — 분류표 · (가) 말풍선 · 티켓 캐러셀 순서 · 간편 만들기 hostId · QR 카메라 대기 안내 · 포스터 contain, 디자인 Q63~Q78 · 서버 B23~B27(implementation-log 끝 절) | — | 끝(#98) | — |
 | 24 | `backend-905-sync` | 백엔드 #905 답 반영 — 문서(backend-questions · api-contract · cutover-runbook · handoff) · B18 확정 문구(11-07 시행 전에는 ⑤ 숨김) · 티켓탭 공지 바 거절 · 공연 중(Q55) · Void 래퍼 테스트(implementation-log 끝 절) | — | PR #100 | — |
+| 27 | `pattern-base` | 코드 패턴 정리 ①문서(D1~D12 — D7은 30) + ②공용 부품 새로 만들기만(A1 · A3 · A4 · A5 · A7 · A8 · A11 · A12 · A19 · A21 · A22 · A23 · A44 · A45, [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md)) | — | 진행 중 | G 패턴 정리 |
+| 28 | `pattern-audience` ∥ 29 | ③ 관객 화면 옮기기 — A1(관객 확인 시트 6개 → `openConfirm`), A3 · A4 · A7 · A11 · A19 · A23 호출 쪽, A6, A10(profile), A12(gift-cache), A13(관심 호스트), A17, A18(관객), A20, A34~A39 | 27 · `staging-qa-105-audience` 머지 | 대기 | G 패턴 정리 |
+| 29 | `pattern-hosting` ∥ 28 | ④ 호스팅 화면 옮기기 — A2, A1(호스팅 확인 → `onConfirm: () => m.action()`), A3 · A4 · A7 · A8(`useDebouncedValue` — 공연 리스트 · 공연준비 홈) · A11 · A19 호출 쪽, A10, A13(OptionSheets), A16, A18(ScanResult), A26, A30, A32, A33, A41, A42 | 27 · `staging-qa-106-host` 머지 | 대기 | G 패턴 정리 |
+| 30 | `pattern-structure` | ⑤ 구조 이동 — A14 `fh/shared` + eslint 피처 경계, A15 activity-marker → `src/ui/hooks`(+ D7 patterns §6 경로), A29, A31, A40, A9 골격 묶기(폼 RHF 전환은 31) | 28 · 29 | 대기 | G 패턴 정리 |
+| 31 | `pattern-split` | ⑥ 큰 파일 나누기 — A24 · A25 큰 파일 · 큰 반환 객체, **복잡한 폼 RHF 전환**(patterns §23 분류표 "⑥" 7개), A27 `Divider` 변형, A28 flex 전용 클래스, A46 | 30 | 대기 | G 패턴 정리 **(그룹 끝 — 전체 회귀)** |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
 
