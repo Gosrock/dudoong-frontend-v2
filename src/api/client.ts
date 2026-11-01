@@ -143,6 +143,10 @@ export type CallOptions = {
    * (주문 생성 — `ORDER_CREATE_TIMEOUT_MS`, 이슈 #92-4)
    */
   timeout?: number;
+  /**
+   * 요청 헤더(값은 로그·에러에 남기지 않는다). 지금은 주문 생성의 `Idempotency-Key`(#923)만 쓴다
+   */
+  headers?: Record<string, string>;
 };
 
 /**
@@ -171,6 +175,7 @@ export async function request<T>(
       searchParams: opts.searchParams,
       signal: opts.signal,
       credentials: opts.public ? 'omit' : 'include',
+      headers: opts.headers,
     });
   } catch (e) {
     if (isTimeoutError(e)) throw new ApiError(0, 'TIMEOUT', '', route);

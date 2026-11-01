@@ -21,11 +21,11 @@ export type CheckoutErrorKind =
   | 'DEPOSITOR_NAME'
   /** 옵션 답 오류 — 폼 상단 */
   | 'OPTION_ANSWERS'
-  /** 같은 무료 선착순 주문 처리 중 — 주문내역으로 */
+  /** 같은 주문 처리 중(`Order_400_26` 무료 선착순 확정 중 · `Redisson_500_1` 락 대기 10초 초과) — 같은 키로 다시 시도 */
   | 'DUPLICATE_IN_PROGRESS'
   /** 무료 선착순 확정 실패(표에 없는 에러) — 재시도 안내 */
   | 'FREE_FCFS_FAILED'
-  /** 응답을 받지 못함(TIMEOUT·NETWORK) — 서버가 주문을 만들었을 수 있다. 다시 내기 전에 주문내역 확인 */
+  /** 응답을 받지 못함(TIMEOUT·NETWORK) — 서버가 주문을 만들었을 수 있다. 같은 키로 다시 보내면 그 주문이 돌아온다 */
   | 'ORDER_UNCERTAIN'
   /** 서버가 동의를 거절(`Agreement_400_1` — 동의 강제, #840). 동의 칸을 풀고 지금 보이는 문구로 다시 동의받는다 */
   | 'AGREEMENT';
@@ -38,6 +38,11 @@ export type CheckoutErrorOutcome = {
   refetchTickets: boolean;
   /** 이동할 곳. `event` = 공연 상세(티켓 선택), `orders` = 주문내역 */
   navigate: 'event' | 'orders' | null;
+  /**
+   * 주문이 만들어졌는지 모르는 실패 — 다음 제출이 같은 `Idempotency-Key`를 다시 쓴다(백엔드 #923, 재시도에만 같은 키).
+   * 폼 상단에 [다시 시도] · [주문내역 확인]을 보인다
+   */
+  retrySameKey: boolean;
 };
 
 const row = (
@@ -45,7 +50,17 @@ const row = (
   message: string,
   refetchTickets = false,
   navigate: CheckoutErrorOutcome['navigate'] = null,
-): CheckoutErrorOutcome => ({ kind, message, refetchTickets, navigate });
+  retrySameKey = false,
+): CheckoutErrorOutcome => ({ kind, message, refetchTickets, navigate, retrySameKey });
+
+/** 같은 주문 처리 중 — 서버가 "잠시 뒤 같은 키로 다시"라고 답한 두 코드(#914 답 1) */
+const DUPLICATE_IN_PROGRESS = row(
+  'DUPLICATE_IN_PROGRESS',
+  '같은 주문을 처리하고 있어요. 잠시 후 [다시 시도]를 눌러 주세요. 주문이 중복되지 않아요.',
+  false,
+  null,
+  true,
+);
 
 /** 코드 → 처리. `handleError` 표의 키가 이 표의 키다 */
 export const CHECKOUT_ERROR_TABLE = {
@@ -71,12 +86,8 @@ export const CHECKOUT_ERROR_TABLE = {
   ),
   Order_400_23: row('OPTION_ANSWERS', '옵션 답변을 확인해 주세요.'),
   Agreement_400_1: row('AGREEMENT', AGREEMENT_REJECTED_MESSAGE),
-  Order_400_26: row(
-    'DUPLICATE_IN_PROGRESS',
-    '같은 주문을 처리하고 있어요. 잠시 후 주문내역을 확인해 주세요.',
-    false,
-    'orders',
-  ),
+  Order_400_26: DUPLICATE_IN_PROGRESS,
+  Redisson_500_1: DUPLICATE_IN_PROGRESS,
 } as const satisfies Record<string, CheckoutErrorOutcome>;
 
 export type CheckoutErrorCode = keyof typeof CHECKOUT_ERROR_TABLE;
@@ -91,13 +102,17 @@ export const FREE_FCFS_FAILED: CheckoutErrorOutcome = row(
 );
 
 /**
- * 주문 생성 응답을 받지 못했다(TIMEOUT·NETWORK — 이슈 #92-4). 서버가 늦게 성공했을 수 있고 `Idempotency-Key`가 없어
- * 다시 내면 서버의 10초 중복 판정 밖에서 새 주문이 될 수 있다 — 폼 상단에 주문내역 링크와 함께 남긴다(토스트는 사라진다).
- * 결제 수단과 상관없이 같다(무료 선착순의 "다시 시도" 안내보다 먼저).
+ * 주문 생성 응답을 받지 못했다(TIMEOUT·NETWORK — 이슈 #92-4). 서버가 늦게 성공했을 수 있다. 다시 보낼 때 같은
+ * `Idempotency-Key`를 쓰므로(백엔드 #923) 서버가 앞 주문을 돌려준다 — 중복 주문 걱정 없이 [다시 시도]. 폼 상단에
+ * [다시 시도] · [주문내역 확인]을 남긴다(토스트는 사라진다). 결제 수단과 상관없이 같다(무료 선착순의 "다시 시도" 안내보다 먼저).
+ * 운영 2.5.3(헤더 무시) 동안은 10초 창 밖 재시도가 새 주문이 될 수 있어 주문내역 링크를 같이 둔다.
  */
 export const ORDER_UNCERTAIN: CheckoutErrorOutcome = row(
   'ORDER_UNCERTAIN',
-  '주문 결과를 확인하지 못했어요. 다시 주문하기 전에 주문내역에서 주문이 들어갔는지 확인해 주세요.',
+  '주문 결과를 확인하지 못했어요. [다시 시도]를 누르면 같은 주문으로 이어져 중복되지 않아요.',
+  false,
+  null,
+  true,
 );
 
 /** 응답을 받지 못한 실패의 코드(`ApiError` status 0 — patterns §5) */
