@@ -1,7 +1,7 @@
 # 진행 현황판
 
 > **지금 어디까지 왔는지 한 장으로 본다.** 작업을 시작·끝낼 때마다 이 문서를 고친다(규칙은 아래 "갱신 규칙").
-> 마지막 갱신: **2026-11-01** — 기능 Phase 전부 끝(그룹 A~E 회귀 통과). P14: 보안 끝(#79), 성능 ∥ 접근성 진행 중.
+> 마지막 갱신: **2026-11-01** — P15 컷오버 코드 몫 끝(#88 — 308 · 포스터 next/image · 런북). 남은 것은 사람 몫(사용자 대기).
 > 정본은 따로 있다 — Phase 정의·선행·완료 기준은 [`plan.md`](./plan.md), 화면별 구현 상태·Figma 노드는 [`gui-screens.md`](./gui-screens.md) §0, 구현 기록은 [`implementation-log.md`](./implementation-log.md). 이 문서는 그 셋을 요약해 이어 붙인 판이다. 어긋나면 정본이 맞고, 이 문서를 고친다.
 
 ## 한 줄 요약
@@ -12,7 +12,6 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
-| P15 컷오버 준비(308 · 포스터 next/image · 런북 · 릴리스 점검) | `9yujin/release-v2-cutover` | 2026-11-01 | 진행 중 | `next.config.ts` · 포스터 10곳 · `cutover-runbook.md` |
 | fix-qa-1101 사용자 눈 QA 수정(셸 Activity 판정 · 배너 넘침 · 상단 바 고정 · 프로필 버튼) | `9yujin/fix-qa-1101` · #86 | 2026-11-01 | PR | 셸 · `AccountMenu` |
 
 ## 사용자 대기
@@ -29,6 +28,9 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | GA · 카카오 애드핏 넣기 | plan P14(사용자 결정 2026-10-31) | 사용자가 직접 — `next/script`로 루트 레이아웃 한 곳, CSP 허용 목록(P14 보안 PR 뒤), 광고 자리는 디자인. P15 전에 |
 | CSP 강제 전환 · 출처 좁히기 | P14 보안 #79 | D2 스테이징에서 실제 카카오 SDK·지도·우편번호·S3 업로드를 돌려 `csp.violation` 로그 0 확인 → `CSP_ENFORCE=1`로 빌드. S3 presigned 실제 호스트로 `connect-src`를 좁힘 |
 | 선물 토큰이 남는 nginx 접근 로그 · 운영 응답 헤더 | P14 보안 #79 | Deploy·운영: 접근 로그 보존 기간·접근 권한, `Referrer-Policy`·`X-Frame-Options` 응답 헤더, `/csp-report` 요청 수 제한 |
+| P15 컷오버 — 사람 몫 전부 | P15 #88 | [`cutover-runbook.md`](./cutover-runbook.md) 순서대로 — §2 go/no-go(**`AGREEMENT_ENFORCE` 확인 · 동의 칸 Q42**), §3-1 Deploy PR ①(스테이징 v2 · `Nginx-v1.9.6`), §4 리허설(SameSite=Strict · 동의 강제 흐름 · 리다이렉트 · `og:url` · `/healthz` · CSP · 롤백 리허설), §6 `v2.0.0` 태그, §5-3 롤백용 nginx, §1 프리즈 윈도우, §3-2 · §7-1 운영 컷오버, §7-2 서치 콘솔 · 네이버 인증 · sitemap · 리치 결과 · 운영 LCP/TTFB |
+| `v*` 태그 ruleset 없음 | P15 #88 | 저장소 Settings → Rules — 태그 `v*` 생성 · 삭제를 관리자만(푸시 역할이 `refs/tags/v*`를 믿는다, 런북 §6) |
+| `/hosting` 해외 차단 여부 · 308 출시 시점 | P15 #88 | 런북 "결정 대기" — v1은 `/admin`을 해외 차단했다. 308은 롤백 시 브라우저가 기억한다(§5-3) |
 | iOS Safari 실기기 확인(SHELL-7) | P4s-V #32 | `pnpm storybook --host 0.0.0.0` → iPhone Safari에서 BottomSheet `LongContent`·`WithInput`, Modal, Drawer `LongContent` — 뒤 화면 스크롤 잠김 · 입력칸 키보드 위 · 닫은 뒤 스크롤 위치 |
 
 ## 다음 순서
@@ -63,7 +65,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 20b | `p14-perf` ∥ 20a | P14 성능 · 부하 — 라우트별 번들 · LCP/TTFB · 동적 import · 공연 상세 캐시 판단(tech-decisions §2) · 부하 시험 스크립트 초안 | 전 Phase L·V | 끝(#82) | F 하드닝 |
 | 20c | `p14-a11y` ∥ 20d | P14 접근성 — axe 자동 검사 · 키보드 핵심 흐름 · 포커스 · 랜드마크/제목 · 대비 | 전 Phase L·V | 끝(#81) | F 하드닝 |
 | 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 끝(#85) | F 하드닝 **(끝)** |
-| 21 | `release/v2-cutover` | P15 컷오버 | P14 | 대기 | — |
+| 21 | `release-v2-cutover` | P15 컷오버 | P14 | 끝(코드 몫, #88) — 남은 것은 사람 몫("사용자 대기" · `cutover-runbook.md`) | — |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
 
@@ -113,7 +115,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | Phase | 내용 | 상태 | 선행 |
 |---|---|---|---|
 | P14 | 통합 하드닝(성능·보안·접근성·회귀·부하, 기본 OG 이미지) | 대기 | 전 Phase L·V |
-| P15 | 컷오버 · 롤백 | 대기 | P14 |
+| P15 | 컷오버 · 롤백 | 끝(코드 몫, #88) — 운영 적용은 사용자 대기 | P14 |
 
 ## 디자인 근거 집계
 
