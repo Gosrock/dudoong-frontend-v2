@@ -1,5 +1,6 @@
 import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
 
+import { HEADER_HEIGHT } from '../../theme/bars';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
@@ -13,7 +14,7 @@ export const root = style({
   alignItems: 'center',
   columnGap: vars.space[4],
   width: '100%',
-  minHeight: 64,
+  minHeight: HEADER_HEIGHT,
   padding: `${vars.space[2]} ${vars.space[5]}`,
   boxSizing: 'border-box',
   background: vars.color.background.normal,

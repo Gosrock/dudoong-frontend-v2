@@ -2090,6 +2090,43 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 
 **사용자 대기**: 실제 화면 읽기 도구(VoiceOver iOS · TalkBack) 청취 확인 — 사람만 할 수 있음. 대비 토큰(Q56~Q61) 디자인 답.
 
+## fix-qa-1101 — 사용자 눈 QA 수정(셸 레이아웃 · 배너 · 상단 바 고정 · 프로필 버튼)
+
+2026-11-01. 사용자가 `pnpm dev:mock` 화면에서 짚은 넷. 화면 근거는 기존 그대로(셸 PC 상단 바 GUI `712:1648`, 나머지 와이어/없음).
+
+### 1. 클라이언트 이동 뒤 셸 레이아웃이 깨짐
+
+- **원인**(관제탑 진단과 같음): Next 16(Cache Components)은 이동할 때 이전 페이지를 React `<Activity>`로 `display: none` 숨겨 DOM에 남긴다(`preserving-ui-state.md`). 셸이 `:has([표시])`로 "지금 화면"을 판정해 숨은 페이지의 표시에도 맞았다. 세 곳 — 호스팅 `[data-event-scope]`(본문 폭 제한 풀기 · 모바일 로고 헤더 숨김), 관객 `[data-shell-subheader]`(모바일 로고 헤더 숨김) · `[data-shell-no-search]`(검색 아이콘 숨김).
+- **같은 가정을 훑은 결과**(`grep ':has(' / querySelector`): 넷째 — `isInProtectedArea()`의 `document.querySelector('[data-protected-area]')`(게이트 스켈레톤). 확인 중에 공개 화면으로 이동하면 숨은 스켈레톤이 "보호 영역 안"으로 읽힐 수 있어 같이 고쳤다. `TicketFormView`는 이미 effect 방식(`useHideEventHeader`)이라 그대로. `HomeCards`의 `:has(a:focus-visible)`·스토리 `querySelector`는 해당 없음.
+- **고른 방법**: 표시를 단 요소에 `useActivityMarker()` ref(`src/features/shared/shell/useActivityMarker.ts`) — layout effect 정리(Activity가 숨기기 직전에 동기로 돈다)가 `data-activity-hidden`을 붙이고, 다시 보이면 뗀다. 셸 CSS는 `:has(${activeMarker(attr)})` = `[attr]:not([data-activity-hidden])`.
+  - 이유: 서버 HTML에는 `data-activity-hidden`이 없어 새로고침 첫 화면이 지금과 똑같이 맞는다(CSS 판정 · 같은 DOM 유지, JS 화면 크기 분기 없음). Next 문서가 권하는 "숨겨질 때 effect 정리로 전역 효과를 끈다"와 같은 방식.
+  - 표시 속성 자체를 지우지 않고 따로 붙이는 이유: `TicketFormView`가 `closest('[data-event-scope]')`로 틀을 찾는데, 다시 보일 때 자식 effect가 부모 effect보다 먼저 돌아 속성이 아직 없을 수 있다.
+  - 고르지 않은 것: 셸이 `useSelectedLayoutSegment(s)`로 판정 — 경로 목록을 셸이 알아야 하고(하위 헤더 화면 11곳), 셸 쪽이 경로를 읽지 않는다는 기존 결정(`AudienceShell` 주석)과 어긋난다. 셸 상태(Context)로 표시를 모으는 방식 — 첫 렌더가 서버에서 표시 없이 그려져 새로고침 첫 화면이 깜빡인다.
+  - `EventScopeFrame`은 ref를 위해 `'use client'`가 됐다(부모 `EventScopeView`가 이미 클라이언트라 경계 변화 없음).
+- e2e `e2e/shell-activity.spec.ts` — 공연 대시보드 → "내 공연"(본문 위치·폭이 새로고침과 같음 · 로고 헤더), `/` → 드로어 → 공지 → 뒤로(모바일 로고 헤더), `/events` → 공연 상세(검색 아이콘). 셀렉터만 되돌린 빌드에서 5개 모두 실패, 고친 빌드에서 통과를 확인.
+- 규칙: patterns §6 "숨은 Activity DOM이 `:has`·`querySelector`에 걸린다".
+
+### 2. 상단 배너가 있으면 화면이 48px 넘침
+
+- **원인**: 공연 스코프 `minHeight: calc(100dvh - 58px)`(`EventScopeFrame.css.ts`)와 PC 사이드바 `height: calc(100dvh - 58px)`(`EventScopeNav.css.ts`)가 배너 높이를 빼지 않았다. 셸 `minHeight: 100dvh` + 세로 flex 자체는 맞다(본문이 `flex: 1 0 auto`로 남은 높이를 채움).
+- **수정**: 3단 틀은 `calc` 없이 셸 본문의 남은 높이를 flex로 채운다. 사이드바는 `height: 100%`(3단 왼쪽 칸) + `maxHeight: calc(100dvh - 58px)` + sticky — 내용 짧은 화면은 칸 높이(= 남은 화면), 긴 화면은 상단 바 아래 화면 높이. `sidebar` 기본의 `minHeight: 100%`(드로어용)가 `maxHeight`를 이겨 PC에서는 `minHeight: 0`으로 푼다.
+- 다른 `100dvh`: `LoginGate.fullScreen`(게이트 스켈레톤 — 관객 보호 화면에서는 셸 안이라 확인 중 잠깐 헤더만큼 길다. 잠깐이라 두었다), `Loader.screenFull`·`Drawer`·`Modal`·`BottomSheet`(셸 밖 · 오버레이)는 해당 없음.
+- 확인(ego-browser, 배너 있음 · 닫음): 1440 공연 대시보드(준비중) 넘침 0 · 사이드바 107~900, 390 티켓 관리(빈) 넘침 0. 390 대시보드는 내용이 화면보다 길어 스크롤이 맞다.
+
+### 3. 상단 바 고정
+
+- 고정(sticky top 0, `zIndex.header` 100 — 오버레이 `sheet` 1000 이상보다 아래): PC `TopBar`(관객·호스팅), 모바일 로고 헤더(관객·호스팅), 하위 화면 헤더(`AudienceSubHeader`), 공연 모바일 헤더(`EventMobileHeader`), 새 티켓/수정 ← 헤더(공연 헤더 대신이라). 공통 `stickyBar`(`src/features/shared/shell/shell.css.ts`), 높이 상수 `src/ui/theme/bars.ts`(`TopBar`·`Header`도 이 값을 쓴다).
+- PC 공연 사이드바는 상단 바 아래(top 58)에 sticky, 넘치면 자체 스크롤. 공연 상세 PC 오른쪽 카드 sticky top 24 → 58 + 24.
+- `html { scroll-padding-top }` 64(모바일) · 58(PC) — 포커스 이동·앵커가 고정 바에 가리지 않게(WCAG 2.4.11).
+- 하단 고정 바(`EditorParts` · `TicketFormView` · `CheckoutView` · `NewEventView` sticky bottom, 공연 상세 모바일 fixed bottom)는 아래쪽이라 겹치지 않는다. `scroll-margin`을 쓰는 곳은 없었다.
+- 🤖 Claude 판단(관제탑 판단 그대로) — 서비스 배너는 고정하지 않는다(위로 스크롤돼 사라진다). 근거: 배너는 한 번 읽으면 되는 안내, 고정 바가 둘이면 모바일 화면을 너무 가린다. 되돌리려면: 셸 `NoticeBannerView`를 바와 같이 sticky 묶음에 넣고 사이드바 top을 배너 높이만큼.
+- 🤖 Claude 판단 — 호스팅 화면 안의 제목 헤더(호스트 만들기 · 호스트 설정 · 멤버 · 간편 공연 만들기의 `Header`)는 고정하지 않았다. 근거: 셸 로고 헤더 아래에 오는 화면 제목이라 둘 다 고정하면 모바일에서 128px가 가린다. 되돌리려면: 그 `Header`에 `stickyBar` + `top: HEADER_HEIGHT`.
+- 🤖 Claude 판단 — PC 긴 공연 화면에서 배너가 보이는 맨 위 위치에서는 사이드바 맨 아래("공연 페이지 보기")가 배너 높이(48)만큼 화면 밖이다(스크롤하면 보인다). 근거: 사이드바 높이를 배너 유무로 바꾸려면 JS 측정이 든다. 되돌리려면: 배너 높이를 CSS 변수로 두고 `maxHeight`에서 뺀다.
+
+### 4. 프로필(아바타 ▾) 버튼 호버 영역
+
+- `AccountMenu.css.ts` `trigger` 좌우 4 → 12(`space[3]`), 바깥 여백 −8로 아바타·▾ 자리(오른쪽 끝 정렬)는 그대로. 최대 폭 200 → 216(늘어난 패딩만큼). 높이 40 알약 — 벨 호버 40 원과 같은 높이. 디자인 없음 → Figma 코멘트 `[개발 · 디자인 없음] 상단 바 프로필(아바타 ▾) 버튼의 마우스 올림 · 누름 모양`(GUI `712:1648`, 코멘트 1989756772).
+
 ## P14 — 회귀 · 레거시 URL · 검색 노출
 
 **상태**: PR #85(2026-11-01, 브랜치 `9yujin/p14-regression`) — 하드닝. 화면 동작은 바꾸지 않았다. 바뀐 것: 운영 빌드에서 QR 판독 주입이 꺼짐(사용자 결정), v1 관객 주소 리다이렉트, PR 게이트에 e2e.

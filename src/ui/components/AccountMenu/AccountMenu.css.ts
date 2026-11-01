@@ -122,14 +122,19 @@ export const ellipsis = style({
   whiteSpace: 'nowrap',
 });
 
-/** 상단 바 오른쪽 아바타 ▾ — Avatar 32 + 간격 10 + 닉네임 + ▾ 12 */
+/**
+ * 상단 바 오른쪽 아바타 ▾ — Avatar 32 + 간격 10 + 닉네임 + ▾ 12(GUI `712:1648`).
+ * 호버·누름 영역은 디자인이 없다(Figma 코멘트 `[개발 · 디자인 없음]`, fix-qa-1101) — 벨(40 원)과 어울리게 높이 40 · 좌우 12의 알약.
+ * 좌우 여백이 4 → 12로 늘어난 8만큼 바깥 여백을 음수로 두어 아바타·▾ 자리(오른쪽 끝 정렬)는 그대로 둔다.
+ */
 export const trigger = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: vars.space[2],
-  maxWidth: 200,
+  maxWidth: 216,
   height: 40,
-  padding: `0 ${vars.space[1]}`,
+  margin: `0 calc(${vars.space[2]} * -1)`,
+  padding: `0 ${vars.space[3]}`,
   border: 0,
   borderRadius: vars.radius.full,
   background: 'transparent',

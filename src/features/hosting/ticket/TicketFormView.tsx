@@ -198,7 +198,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
   return (
     <section ref={pageRef} aria-labelledby="ticket-form-title" className={s.page}>
       <Header
-        className={s.mobileOnly}
+        className={s.mobileHeaderBar}
         title={title}
         titleAs="p"
         backHref={f.listHref}

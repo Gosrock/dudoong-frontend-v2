@@ -1,5 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { TOP_BAR_HEIGHT } from '../../theme/bars';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
@@ -13,7 +14,7 @@ export const root = style({
   justifyContent: 'space-between',
   gap: vars.space[5],
   width: '100%',
-  height: 58,
+  height: TOP_BAR_HEIGHT,
   padding: `0 ${vars.space[5]}`,
   boxSizing: 'border-box',
   background: vars.color.background.normal,

@@ -4,6 +4,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useId } from 'react';
 
 import { NO_SEARCH_ATTR } from '@/features/audience/shell/AudienceShell.css';
+import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 import { Button } from '@/ui/components/Button/Button';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
@@ -35,8 +36,10 @@ export function EventListView() {
   const l = useEventList();
   const pastLabelId = useId();
   const { events } = l;
+  // 이동 뒤 숨은 Activity로 남아도 다른 화면의 검색 아이콘을 숨기지 않게(fix-qa-1101)
+  const markerRef = useActivityMarker<HTMLElement>();
   return (
-    <main className={s.main} {...{ [NO_SEARCH_ATTR]: '' }}>
+    <main ref={markerRef} className={s.main} {...{ [NO_SEARCH_ATTR]: '' }}>
       <VisuallyHidden asChild>
         <h1>공연 둘러보기</h1>
       </VisuallyHidden>

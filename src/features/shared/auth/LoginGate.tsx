@@ -7,6 +7,7 @@ import { type ReactNode, useEffect, useRef, useSyncExternalStore } from 'react';
 import { hasSessionLostFired } from '@/api/auth-handlers';
 import { isSessionLost } from '@/api/errors';
 import { meQuery } from '@/api/me/queries';
+import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 import {
   AsyncBoundary,
   type ErrorFallbackProps,
@@ -81,8 +82,10 @@ function GateContent({ children }: { children: ReactNode }) {
 
 /** 세션 확인 중. 화면 모양을 모르므로 제목·본문 줄 정도의 일반 자리표시 */
 function GateSkeleton() {
+  const ref = useActivityMarker<HTMLDivElement>();
   return (
     <div
+      ref={ref}
       role="status"
       aria-label="로그인 확인 중"
       aria-busy
