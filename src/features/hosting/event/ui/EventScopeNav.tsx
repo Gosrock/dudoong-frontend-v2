@@ -17,6 +17,7 @@ import { Chip } from '@/ui/components/Chip/Chip';
 import { Drawer } from '@/ui/components/Drawer/Drawer';
 import { Header, HeaderIconButton } from '@/ui/components/Header/Header';
 import { SidebarMenuItem } from '@/ui/components/SidebarMenu/SidebarMenu';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
 import type { IconSpec } from '@/ui/icons/registry';
 import { Illustration } from '@/ui/illustrations/Illustration';
@@ -82,9 +83,15 @@ function EventSidebarBody({
       <div className={s.cardAndMenu}>
         <div className={s.card} data-testid="event-card">
           {event.posterImageUrl ? (
-            // 업로드 포스터를 그대로 그린다(공연준비 홈 카드와 같다 — v1 #378 `/_next/image` 차단)
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className={s.poster} src={event.posterImageUrl} alt="" decoding="async" />
+            // 업로드 포스터(업로드 출처면 `/_next/image` 최적화 — P15). 고정 48×68 → 1x · 2x
+            <UploadedImage
+              className={s.poster}
+              src={event.posterImageUrl}
+              alt=""
+              width={48}
+              height={68}
+              decoding="async"
+            />
           ) : (
             <Illustration name="poster-placeholder" width={48} className={s.poster} />
           )}

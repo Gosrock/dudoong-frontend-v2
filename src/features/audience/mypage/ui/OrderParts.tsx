@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { Chip, type ChipColor } from '@/ui/components/Chip/Chip';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 
 import type { OrderStatusView, OrderTone } from '../model/order-status';
 import * as s from './mypage.css';
@@ -42,10 +43,13 @@ export function OrderPoster({ src, badge }: { src: string | null; badge: string 
   return (
     <span className={s.poster}>
       {src && !failed && (
-        // eslint-disable-next-line @next/next/no-img-element -- 서버 이미지(S3) 그대로. next/image는 nginx가 막는다(#378)
-        <img
+        // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 폭 76 · PC 120(mypage.css `poster`)
+        <UploadedImage
           src={src}
           alt=""
+          width={120}
+          height={160}
+          sizes="(min-width: 1024px) 120px, 76px"
           ref={(img) => {
             if (img && img.complete && img.naturalWidth === 0) setFailed(true);
           }}

@@ -12,6 +12,7 @@ import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { ListHeader } from '@/ui/components/ListHeader/ListHeader';
 import { Spinner } from '@/ui/components/Loader/Loader';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
 import { Container } from '@/ui/primitives/Container';
 import { Flex } from '@/ui/primitives/Flex';
@@ -48,9 +49,16 @@ export function HostHomeView({ hostId }: { hostId: string }) {
     <Container as="main" className={s.page}>
       <div className={s.banner}>
         {host.coverImageUrl && (
-          // 업로드 배경 이미지를 그대로 그린다(Avatar와 같은 이유 — 이미지 최적화는 정하지 않았다)
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className={s.cover} src={host.coverImageUrl} alt="" decoding="async" />
+          // 업로드 배경(업로드 출처면 `/_next/image` 최적화 — P15). 화면 폭 · PC 높이 280(HostHomeView.css `banner`)
+          <UploadedImage
+            className={s.cover}
+            src={host.coverImageUrl}
+            alt=""
+            width={1280}
+            height={280}
+            sizes="(min-width: 1440px) 1280px, 100vw"
+            decoding="async"
+          />
         )}
         {/* 관리 버튼은 viewer가 확정되고 `can`이 허락할 때만 — 확정 전에는 그리지 않는다(자리는 배너·화면 고정이라 밀리지 않는다) */}
         {(settingsHref || newEventHref) && (

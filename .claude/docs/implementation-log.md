@@ -2224,3 +2224,53 @@ S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 
 | 11 | 포스터가 깨진 그림 | **남김(mock)** — 가짜 이미지 주소(`image.mock.dudoong.test`)는 풀리지 않는다 |
 | 12 | `pnpm dev:mock`(그리고 main의 `:3000` dev 서버도)에서 ego-browser로 열면 클라이언트 조회가 돌지 않음 — 티켓 옵션 스켈레톤 · 로그인 아바타 없음 · [티켓 구매하기] 비활성. dev 로그에 `Route "/events/[eventId]": … unstable value Date.now() while prerendering`(`serverQuery` → TanStack `fetchQuery`) · `instant-unrendered-segment` 안내 | **남김(조사만)** — 운영 빌드에서는 같은 흐름이 정상이고 e2e·QA도 운영 빌드다. dev 전용이고 이 브랜치가 만든 것이 아니다(main dev 서버도 같음). 다음 dev 화면 확인 전에 원인을 볼 거리 — Cache Components dev 검증과 `fetchQuery`의 `Date.now()` |
 | 13 | 호스트 QR 화면을 열면 브라우저 카메라 권한 창 | **남김(정상 동작)** — 카메라 화면은 캡처를 지우고 남기지 않았다. 판독은 주입으로 확인 |
+
+## P15 — 컷오버 준비(코드 · 문서 몫)
+
+2026-11-01, `release-v2-cutover`(브랜치 `9yujin/release-v2-cutover`). 이 저장소에서 코드 · 문서로 되는 것만 — Deploy 저장소 · 운영 · 태그 · 서치 콘솔은 사람 몫이고 [`cutover-runbook.md`](./cutover-runbook.md)에 단계 · diff로 적었다.
+
+**바꾼 것**
+
+| 무엇 | 위치 |
+|---|---|
+| v1 관객 주소(§22 표) · `/admin/*` 리다이렉트 307 → **308(영구)**. `/hosting/events/:id` → 대시보드는 v2 안의 주소라 307 그대로 | `next.config.ts` |
+| e2e 기대 상태 코드만 307 → 308(쿼리 유지 · 404 줄 그대로). `hosting.spec` "리다이렉트"에서 `/hosting/events/101`을 따로 307로 | `e2e/legacy-urls.spec.ts` · `e2e/hosting.spec.ts` |
+| 포스터 · 커버 `next/image` 전환 — 새 `UploadedImage`(업로드 출처면 최적화, 아니면 `unoptimized`) + `isOptimizableImage` | `src/ui/components/UploadedImage/` · `src/utils/image.ts`(+ 테스트) |
+| `images`: `remotePatterns` 업로드 출처 하나(`https://asset.dudoong.com/**`), `qualities [75]`, `minimumCacheTTL` 31일, `maximumRedirects 0` | `next.config.ts` |
+| 전환한 곳 10 — 공연홈 · 리스트 · 호스트 홈 카드(`ConcertCard`), 공연 상세, 티켓탭 카드, 선물 랜딩, 주문내역 · 아카이빙, 호스트 홈 커버, 공연준비 홈 카드 · 공연 사이드바 · 대시보드 | 각 화면 |
+| 컷오버 · 롤백 런북(순서 · 프리즈 조건 · go/no-go · Deploy diff · 롤백 · 리허설 · 버전 올리는 법 · 컷오버 뒤) | `.claude/docs/cutover-runbook.md` |
+
+**308 · 301 판단**(1번) — 설치본 `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/redirects.md`: `permanent: true`는 308, 301은 "옛 HTTP 클라이언트"를 위한 `statusCode`로만. 308은 메서드를 지키고(301은 브라우저가 POST를 GET으로 바꿀 수 있다), 구글은 308을 301과 같은 영구 신호로 다룬다. 이 주소들은 링크 · 북마크로 여는 GET뿐이라 둘의 차이가 실제로 없고, 문서가 권하는 기본값을 쓴다. 🤖 Claude 판단 — 근거: 위 문서 · 대상 주소가 GET뿐 / 되돌리려면: `adminRedirects` · `audienceRedirects`의 `permanent: true`를 `statusCode: 301`로(둘을 같이 쓸 수 없다), e2e 기대값 308 → 301.
+
+**308의 대가** — 브라우저가 영구로 기억해서, 컷오버 뒤 롤백하면 그 사이 옛 주소를 연 사람은 v1에 없는 v2 주소로 간다(404). 런북 §5-3에 롤백용 nginx 되돌림(v2 주소 → v1 주소 302)을 미리 만들어 두게 했고, "안정될 때까지 307" 선택지를 런북 "결정 대기"에 남겼다.
+
+**`next/image` 방법 — 고른 것과 이유**(2번)
+
+- **최적화 여부를 주소로 가른다**(`unoptimized={!isOptimizableImage(src)}`). remotePatterns 밖 주소를 `/_next/image`로 보내면 400이라 그림이 깨진다. 가짜 백엔드(`image.mock.dudoong.test`) · 혹시 남은 다른 호스트 주소 · 깨진 값이 원본 `<img>`처럼 그대로 나와 e2e · QA · Storybook이 바뀌지 않는다. 환경변수로 끄는 방식(`NODE_ENV`·`E2E`)은 운영 빌드와 테스트 빌드를 갈라 놓아서 쓰지 않았다
+- **`width`/`height` + 기존 CSS**(`fill`이 아님) — 크기는 지금처럼 CSS(`width/height 100%`, `object-fit`)가 정하고, 숫자는 비율 · `sizes` 없을 때 1x/2x 기준으로만 쓴다. 레이아웃이 바뀌지 않는다
+- **`sizes`** — 폭이 화면에 따라 바뀌는 곳만(카드 그리드 `(min-width: 1024px) 320px, (min-width: 600px) 33vw, 50vw`, 상세 `(min-width: 1024px) 282px, 100vw`, 티켓 · 선물 카드 `(min-width: 392px) 294px, 75vw`, 주문 76/120, 커버 100vw). 고정 크기(94 · 48 · 180)는 `sizes` 없이 1x · 2x
+- **LCP** — 공연 상세 포스터 `loading="eager"` + `fetchPriority="high"`. `preload`(옛 `priority`)는 쓰지 않았다 — 설치본 `image.md` "In most cases, you should use `loading="eager"` or `fetchPriority="high"` instead of `preload`"
+- **remotePatterns 값** — 운영 공개 GET(`/api/v2/events`)의 `posterImageUrl`이 `https://asset.dudoong.com/production/event/…`, 이관 본문 이미지도 같은 호스트(`src/api/__mocks__/fixtures/v1-sections.ts`). 스테이징은 경로 첫 칸만 다르다고 보고 호스트 전체(`/**`)를 받는다 — 스테이징 업로드 주소가 다른 호스트면 원본으로 나올 뿐 깨지지 않는다(리허설 체크 줄)
+- **CSP** — 영향 없음. 최적화된 그림은 같은 출처(`/_next/image`)라 `img-src 'self'`, 원본으로 남는 것은 이미 있는 `https:`(`src/utils/csp.ts`)
+- **standalone · sharp** — `.next/standalone/node_modules/.pnpm`에 `sharp@0.35.5`가 들어간다(로컬 macOS 빌드 확인). 컨테이너(alpine arm64)는 lockfile의 `@img/sharp-linuxmusl-arm64`가 깔린다 — 스테이징 리허설에서 `/_next/image` 200 `image/webp`로 본다(런북 §4)
+- 🤖 Claude 판단 — 근거: 위 / 되돌리려면: `UploadedImage`가 항상 `unoptimized`를 넘기게(`isOptimizableImage`가 `false`) 한 줄 — 화면 코드는 그대로 둬도 원본 `<img>`와 같다
+
+로컬 확인(운영 빌드 + 가짜 백엔드 앞에 가짜 이미지 주소를 실제 업로드 주소로 바꾸는 확인용 프록시 — 커밋하지 않음): 원본 포스터 2,417,724B → `/_next/image?…&w=640&q=75` 59,544B `image/webp`(약 1/40). 업로드 출처 밖 주소(`example.com`) → 400.
+
+**릴리스 경로 점검**(4번, deploy-plan §8 D3) — `release.yml` · `image.yml`을 deploy-plan §5와 대조: 트리거(`main` push → `:dev`, `v*.*.*` 태그 → `:2.x.y`), 승격 판단(`:dev` digest 고정 → 라벨 `org.opencontainers.image.revision` = `GITHUB_SHA`), 재실행 멱등(같은 버전 · 같은 커밋이면 성공), sha 태그 없음, 역할 `dudoong-github-ecr-front-v2` — 문서와 맞다. 워크플로는 고치지 않았다. 확인한 바깥 사실: `image.yml`은 main 머지마다 성공 중(2026-11-01 3회), **태그 ruleset이 없다**(`gh api repos/Gosrock/dudoong-frontend-v2/rulesets` → `[]` — 문서는 "관리자만"을 전제한다 → 사용자 대기), 태그는 아직 하나도 없다. 주석 달린 태그의 `GITHUB_SHA`(§9 17번)는 실행 전엔 알 수 없어 런북에 **가벼운 태그**로 달게 적었다. 버전 규칙(`v2.MINOR.PATCH`, 첫 컷오버 `v2.0.0`, `package.json` version은 쓰지 않음)은 런북 §6.
+
+**Deploy 저장소 대조**(`d37e9ae`, 읽기만) — D2(§6 1~4 · 8번)가 **아직 안 들어갔다**: 스테이징 compose front가 `dudoong-ticket:dev`(v1), `site.conf` `location /`이 `localhost:3000`, `/_next/image`는 전 호스트 차단, `remote-deploy.sh`는 백엔드만 본다. 그래서 런북을 "PR ① 스테이징을 v2로 → 리허설 → PR ② 운영 컷오버" 두 단계로 썼다. `proxy_headers.conf`가 `Host $host` · `X-Forwarded-Proto`를 넘겨 deploy-plan §9 0번(`og:url`)은 설정상 맞다(값 확인은 리허설). nginx 설정은 이미지에 구워져 `Nginx-v*` 태그 → `nginx-build.yml` → compose 태그 순서.
+
+**검사**: typecheck · 바꾼 파일 eslint · `vitest related`(5 파일 52) · 스토리 `ConcertCard` 5 · `pnpm build` 통과. **e2e 전체** 560 통과 · 38 건너뜀 · 실패 0(7.0분, 로컬 — PR CI에서 돌지 않아 전부 로컬로). **QA** `event-detail` 18/0(수동 1) · `home` 8/0(수동 1) · `tickets` 13/0(수동 1).
+
+**ego-browser 확인**(운영 빌드 standalone + 가짜 백엔드 + 확인용 프록시 — 가짜 이미지 주소를 실제 업로드 주소 두 개로 바꿔 `/_next/image` 경로를 탄다)
+
+| 폭 | 화면 | 결과 |
+|---|---|---|
+| 390(DPR 3) | 공연홈 | 카드 포스터 `currentSrc` = `/_next/image?…&w=640&q=75`, 163px 폭, 로드됨. 포스터 없는 공연(103)은 빈 상자 그대로 |
+| 390 | 공연 상세 | `/_next/image?…&w=1200`(342px × 3), `loading=eager` · `fetchPriority=high` · `sizes` 서버 HTML에 있음 |
+| 390 | 티켓탭(로그인 흉내) | 카드 3장 `/_next/image?…&w=1080~1200`(293px × 3) |
+| 1440(DPR 1) | 공연홈 · 공연 상세 · 티켓탭 | 모두 `/_next/image`, 로드됨(폭 282 · 282 · 294). 고른 폭이 1080~1200인 것은 앞서 390×3에서 받은 큰 그림을 브라우저가 캐시에서 다시 쓴 것 — srcset에는 640부터 있다 |
+| 390 | v1 `/history/mock-order-tickets-a` · `/ticket/qr` · `/admin/events/101/guests` | 각각 `/orders/…` · `/tickets` · `/hosting/events/101/guests`로 도착 |
+
+상태 코드(같은 서버, `curl`): `/home` 308 → `/`, `/history/abc?x=1` 308 → `/orders/abc?x=1`(쿼리 유지), `/ticket/qr` 308, `/admin` 308 → `/hosting`, `/admin/events/101/guests` 308, `/hosting/events/101` 307(그대로).

@@ -858,6 +858,17 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 **포함**: URL 연속성(기존 공유 링크, 없어진 라우트와 `/admin/*` 301). Deploy 저장소 변경(tech-decisions §25): compose에서 `admin` 서비스 삭제·`front` 이미지 교체, nginx `location /admin/` 삭제, nginx `/_next/image` 차단 삭제(v1 티켓용 — 운영에서 안 지우면 v2 이미지가 404, deploy-plan §3·§6 9번). 컷오버 순서(스테이징 → 운영. 호스팅 센터만 먼저 열려면 nginx에 `/hosting` 분기를 임시로 추가), 프리즈 윈도우(진행 중·임박 공연 없는 시간대), 롤백(compose의 이미지 태그와 nginx 설정을 되돌림), 리허설. 리허설 체크리스트에 운영 쿠키(`SameSite=Strict`)에서 외부 링크 진입과 카카오 로그인 복귀를 넣는다(P4b는 로컬 재현까지). **동의 강제(2026-10-31, v1 Front #384)**: 컷오버 전에 백엔드 `AGREEMENT_ENFORCE` 값을 확인하고, 켜져 있으면(v1 어드민 배포 직후 켜진다) 동의 칸 4개(Q42)와 플래그가 켜진 v2여야 한다 — 스테이징 리허설에서 강제 켠 백엔드로 가입·주문(두둥·무료)·두둥티켓 생성·무료 → 두둥 수정이 200인지 본다. 칸 없이 출시하면 이 흐름이 전부 400이다. 데이터는 v1·v2가 같은 테이블을 쓰므로 FE 이관 대상이 아니다 — 백엔드 마이그레이션 실행과 순서만 맞춘다(2026-10-25: V001~V017·V019 실행, V018은 열린 PR #839 — backend-questions B5).
 
+**완료 기준**(코드 몫은 2026-11-01 `release-v2-cutover` — 기록은 implementation-log "P15 — 컷오버 준비", 사람 몫은 [`cutover-runbook.md`](./cutover-runbook.md))
+
+- [x] URL 연속성 — v1 관객 주소 · `/admin/*` 영구 리다이렉트(301 대신 **308** — Next `permanent: true`, 근거 implementation-log), 쿼리 유지, e2e 전수
+- [x] 포스터 `next/image` 전환(P14 성능 남김 12번) — `images.remotePatterns` 업로드 출처 하나, 그 밖 주소는 원본
+- [x] 컷오버 · 롤백 런북 — 순서 · 프리즈 조건 · Deploy diff(§6 1~6 · 8 · 9번) · 롤백 단계 · 기준 · 시간 · 리허설 체크리스트 · 버전 올리는 법
+- [x] 릴리스 경로 점검(deploy-plan §8 D3) — `release.yml` · `image.yml` 문서와 일치
+- [ ] (사람) Deploy PR ①(스테이징 v2) · 리허설 · `v2.0.0` 태그 · 롤백 리허설 — 런북 §3-1 · §4 · §6
+- [ ] (사람) `AGREEMENT_ENFORCE` 확인 · 동의 칸(Q42) — 런북 §2
+- [ ] (사람) 프리즈 윈도우 · Deploy PR ②(운영 컷오버) — 런북 §1 · §3-2 · §7-1
+- [ ] (사람) 서치 콘솔 · 네이버 인증 · sitemap 제출 · 리치 결과 테스트 · 운영 LCP/TTFB 실측 — 런북 §7-2
+
 **선행**: P14
 
 ## 5. Phase 요약

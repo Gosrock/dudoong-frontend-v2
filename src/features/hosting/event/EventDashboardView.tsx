@@ -23,6 +23,7 @@ import { SalesCard } from '@/ui/components/SalesCard/SalesCard';
 import { ScheduleStep, WeekStrip } from '@/ui/components/Schedule/Schedule';
 import { StatCard } from '@/ui/components/StatCard/StatCard';
 import { toast } from '@/ui/components/Toast/Toast';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Flex } from '@/ui/primitives/Flex';
@@ -99,9 +100,15 @@ function EventHead({ event, eventId }: { event: EventManage; eventId: string }) 
     <div className={s.head}>
       <div className={s.posterBox}>
         {event.posterImageUrl ? (
-          // 업로드 포스터를 그대로 그린다(v1 #378 `/_next/image` 차단)
-          // eslint-disable-next-line @next/next/no-img-element
-          <img className={s.poster} src={event.posterImageUrl} alt="공연 포스터" decoding="async" />
+          // 업로드 포스터(업로드 출처면 `/_next/image` 최적화 — P15). 폭 180 · PC 176
+          <UploadedImage
+            className={s.poster}
+            src={event.posterImageUrl}
+            alt="공연 포스터"
+            width={180}
+            height={254}
+            decoding="async"
+          />
         ) : (
           <Illustration name="poster-placeholder" width={180} className={s.poster} />
         )}
