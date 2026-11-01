@@ -302,7 +302,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 
 - [ ] `/healthz` 200 (`curl -s -o /dev/null -w '%{http_code}' https://staging.dudoong.com/healthz`) · 배포 로그에 "front 헬스체크" 통과
 - [ ] `og:url`이 스테이징 도메인(deploy-plan §9 0번 — nginx가 `Host`·`X-Forwarded-Proto`를 넘기는 것은 `proxy_headers.conf`로 확인됨, 실제 값을 본다): `curl -s -A 'kakaotalk-scrap/1.0' https://staging.dudoong.com/events/<id> | grep -o '<meta property="og:url"[^>]*>'` → `https://staging.dudoong.com/events/<id>`. canonical도 같은 줄
-- [ ] 없는 공연 `/events/999999999` → 404 상태 코드(카카오 UA · 브라우저 UA)
+- [ ] 없는 공연 `/events/999999999` → 크롤러 UA는 **404**, 브라우저 UA는 **200 + `noindex`**(Cache Components 셸 — tech-decisions §26 끝, 이슈 #90). 크롤러는 줄이지 않은 UA로: `curl -s -o /dev/null -w '%{http_code}' -A 'facebookexternalhit/1.1; kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984' …` · `-A 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'` → 404. 브라우저: `curl -s -A 'Mozilla/5.0' … | grep -o '<meta name="robots"[^>]*>'` → `noindex`
 - [ ] `/_next/image` 열림: 공연 상세를 열고 포스터 `<img>`의 `currentSrc`가 `/_next/image?url=https%3A%2F%2Fasset.dudoong.com…`, 응답 200 `image/webp`. `curl -s -o /dev/null -w '%{http_code}' 'https://staging.dudoong.com/_next/image?url=https%3A%2F%2Fexample.com%2Fa.png&w=640&q=75'` → 400(업로드 출처 밖)
 - [ ] 이미지 변환 부하(deploy-plan §9 5번): 공연홈을 처음 열 때 서버 CPU · 메모리(`docker stats front`) — 버거우면 `images.deviceSizes`를 줄인다
 - [ ] `localhost`가 `::1`로 풀리는지(§9 4번 — 3번 diff를 넣었으니 참고용)

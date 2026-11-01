@@ -2302,6 +2302,58 @@ S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 
 **ego-browser 확인**(빌드 standalone + 가짜 백엔드, 390 · 1440): 리포트 index.html(395/0/16, 캡처 887장 깨짐 0), SHELL-8 이동 뒤 x · 폭 · 여백 = 새로고침(1440 80/1280/80px, 390 24/342/24px, 모바일 로고 헤더 보임), SHELL-9 상단 바 y 0 · 사이드바 58 / 모바일 공연 헤더 버튼 y 12, SHELL-10 배너 있음 넘침 0(두 폭), REG-4 `/events/101/book/order?utm_source=kakao` → `/events/101?utm_source=kakao`, `/history` → `/orders`. `pnpm dev:mock`(next dev)은 보호 화면이 "로그인 확인 중"에서 넘어가지 않아(dev 전용, 운영 빌드는 정상 — 원인 미조사) 운영 빌드로 봤다.
 
 
+## 스테이징 QA 수정(관객) — #90 soft 404 · #92-4 · 8 · 9
+
+스테이징 v2 첫 배포(Gosrock/DuDoong-Deploy#94) 뒤 팀원 QA 이슈 중 관객 몫. 호스팅 몫(#92 1·3·5·6·7·FAB)은 병렬 세션 `fix-staging-hosting`. 브랜치 `9yujin/fix-staging-audience`.
+
+### #90 없는 공연 200 — 원인과 결정
+
+**스테이징과 로컬은 다르지 않다.** 로컬 운영 빌드(`output: standalone`, `node .next/standalone/server.js` + 모든 요청 404인 가짜 백엔드)에서 스테이징과 같은 결과가 나왔다(수정 전, `curl -A … /events/999999999`):
+
+| UA | 스테이징 | 로컬 standalone |
+|---|---|---|
+| 실제 카카오(`facebookexternalhit/1.1; kakaotalk-scrap/1.0; +https://devtalk…`) | 404 | 404 |
+| `kakaotalk-scrap/1.0`만(이슈 재현 명령) | 200 | 200 |
+| `Mozilla/5.0` | 200 | 200 |
+| Googlebot(`Mozilla/5.0 (compatible; Googlebot/2.1; …)`) | 200 | 200 |
+| 네이버 Yeti | 404 | 404 |
+
+nginx 압축·버퍼링, 이미지 빌드 방식은 원인이 아니다. 스테이징 응답 헤더 `x-nextjs-prerender: 1` · `x-nextjs-postponed: 1`, 본문 `<html id="__next_error__">` + `noindex`.
+
+**원인**(설치본 `streaming.md` "The HTTP contract" · "Cache Components", `build/templates/app-page-runtime.js`): Cache Components에서 `/events/[eventId]`는 빌드 때 셸(`instant = false`라 비어 있음 — prerender-manifest `response: 'empty'`, `fallback: '/events/[eventId]'`)이 만들어지고, 요청이 오면 런타임이 그 셸을 **바로 보내며(200 확정)** 이어서 렌더한다(`resumeRender`). 그 뒤의 `notFound()`는 상태 코드를 바꾸지 못하고 `noindex`만 넣는다. 셸을 건너뛰는 것은 `htmlLimitedBots`에 걸린 UA뿐(`shouldForceDynamicPPRRender = isRoutePPREnabled && !serveStreamingMetadata`)이다. Next 기본 목록에는 `facebookexternalhit`·`Yeti`는 있지만 **Googlebot은 없다**(JS를 실행하는 크롤러로 보고 셸을 준다), `kakaotalk-scrap`만 있는 UA도 없다. 이슈의 재현 명령은 줄인 카카오 UA였다(tech-decisions §2 "테스트할 때 UA를 줄여 쓰지 않는다").
+
+**고친 것**: `next.config.ts` `htmlLimitedBots: HTML_LIMITED_BOTS`(`src/utils/html-limited-bots.ts`) — Next 기본 목록(설치본 `html-bots.js`의 정규식을 import) + `Googlebot` · `kakaotalk-scrap` · `Daumoa` · `bot/` · `crawler` · `spider`. 설정하면 기본 목록을 덮어쓰므로 기본 목록을 이어 붙인다(Next를 올리면 따라온다). 수정 뒤 로컬 standalone: 위 크롤러 UA 전부 404, 브라우저 200.
+
+**🤖 Claude 판단 — 브라우저 UA는 200 + `noindex`로 둔다.** 브라우저도 404로 만드는 길은 `htmlLimitedBots: /.*/`뿐인데, 이 값은 라우트를 가리지 않고 **모든 UA · 모든 화면**을 셸 없이 렌더한다(같은 판정이 RSC 요청에도 걸린다) — 호스팅 센터 등 정적 셸 · 즉시 이동(프리페치 셸)을 다 잃는다. `proxy`에서 백엔드를 미리 불러 404를 정하는 길은 요청마다 GP-3를 두 번 부르고 공지 · 호스트 · 선물 라우트마다 같은 일을 해야 한다. 검색 · 미리보기에 중요한 것은 크롤러의 상태 코드이고, 사람에게는 화면(찾을 수 없어요)이 같다. 되돌리기: `next.config.ts`의 한 줄.
+
+**검사**: `src/utils/html-limited-bots.test.ts`(크롤러 9종은 걸리고, 데스크탑 · iOS Safari · 카카오톡 · 네이버 · 웨일 인앱 브라우저는 안 걸림), e2e `event-detail.spec.ts` "없는 공연은 검색·미리보기 크롤러에 404 — {Googlebot · `kakaotalk-scrap/1.0` · Yeti · Daumoa}"(e2e는 원래 빌드한 standalone 서버를 띄운다 — 운영 산출물 기준). 브라우저 UA 단언 `[200, 404]`은 그대로.
+
+### #92-4 주문 생성 타임아웃
+
+- 서버 계약(api-contract "메서드 의미"): 같은 사용자의 같은 요청은 **10초 안**에만 앞 주문을 돌려주고 `Idempotency-Key`는 없다 → 재시도에 실을 요청 키가 없다. 프론트 타임아웃도 10초라, 타임아웃 뒤 다시 누른 주문은 언제나 서버 중복 판정 밖이다(서버가 늦게 성공하면 주문 두 개).
+- `CallOptions.timeout`(`src/api/client.ts`)을 더하고 주문 생성만 `ORDER_CREATE_TIMEOUT_MS = 30_000`(`src/api/order/mutations.ts`) — 스테이징에서 서버가 26초 뒤 응답했다. **🤖 Claude 판단**(값).
+- 응답을 못 받은 실패(`TIMEOUT` · `NETWORK`)는 결제 수단과 상관없이 새 결과 `ORDER_UNCERTAIN` — 폼 상단에 "주문 결과를 확인하지 못했어요. 다시 주문하기 전에 주문내역에서 주문이 들어갔는지 확인해 주세요." + [주문내역 확인](`/orders`) 링크, 주문 목록 쿼리(`['me','orders','infinite']`) 무효화. 토스트는 사라지고 Toast에는 액션이 없어(`src/ui` — 병렬 세션 소유) 폼 상단 안내로 했다. 5xx는 그대로(서버가 실패를 답했다 — 입금형 공용 토스트 · 무료 선착순 "다시 시도").
+- 서버 몫(PR 본문 "백엔드 몫"): 주문 생성에 `Idempotency-Key`(또는 클라이언트 주문 키) 지원, 중복 판정 창을 응답 시간보다 길게, 26초 · 500의 원인.
+- 검사: `http.test.ts` "요청 시간 제한" 2건, `useCheckout.test.tsx` "응답을 받지 못한 주문" 2건(입금형 · 무료 선착순).
+
+### #92-8 '맨 위로'
+
+`ScrollTopButton` — 화면 높이의 절반을 넘게 내려가야 보인다(`data-visible`, 숨김은 `visibility: hidden`이라 탭 · 스크린리더에서도 빠짐, 축소 모션이면 전환 없음). 서버 · 첫 렌더는 숨김으로 같다(patterns §1). 짧은 공연홈(가짜 데이터 390에서 최대 스크롤 109px)에서는 뜨지 않는다. **🤖 Claude 판단**: Figma 첫 화면(`759:12102`)에는 버튼이 보이지만 카드 제목을 가리는 쪽이 더 크다고 보고 스크롤 뒤 노출로 정했다.
+
+### #92-9 체크아웃에 남은 '티켓 종류' 시트
+
+**원인**: 시트에서 [티켓 구매하기]를 누르면 시트를 닫고(`'closing'`) 체크아웃으로 이동한다. Next 16은 이전 화면을 `<Activity>`로 숨겨 DOM에 남기고(patterns §10-4), 숨길 때 effect를 정리한다 — 닫힘 애니메이션 뒤 `onExited`를 부를 `useOnExited`의 타이머도 정리돼 시트가 `'closing'`에 멈추고 숨은 화면 안에 `role=dialog`가 남았다. overlay-kit로 연 것이 아니라(`TicketSheet` 주석 — 선택 상태를 따라가려고 선언적으로 그림) `<OverlayRouteReset />`의 `unmountAll()`에도 걸리지 않았다.
+
+**고친 것**: `EventDetailView`에 `useLayoutEffect(() => () => setSheet('closed'), [])` — 화면이 숨겨지거나 언마운트될 때만 도는 정리라 시트를 바로 뗀다. 처음 그릴 때(StrictMode 이중 실행 포함)는 이미 닫힌 상태라 바뀌는 것이 없다.
+
+**검사**: e2e `checkout.spec.ts` "공연 상세 시트에서 체크아웃으로 가면 시트(role=dialog)가 DOM에 남지 않는다"(모바일) — `getByRole`은 숨은 요소를 세지 않아 `[role="dialog"]` 개수로 센다, 뒤로가기 뒤 상세에도 0. 고치기 전 코드로 빌드해 돌리면 `Received: 1`로 실패하는 것을 확인했다.
+
+### 검사 결과
+
+typecheck · 바꾼 파일 lint · `vitest related`(60파일 1081건) 통과. e2e(standalone 빌드, 포트 3162 · 4162) `event-detail` · `checkout` · `home` · `event-list` · `a11y-keyboard` · `seo` 81 통과(3 건너뜀). QA `event-detail` 18 · `checkout` 27 · `ticket-select` 13 · `home` 8 · `events` 19 · `integration` 8 통과.
+
+**ego-browser 확인**(`pnpm dev:mock`, `localhost:3062`): 공연홈 390 — 맨 아래까지 내려도 버튼 숨김 · 카드 제목 가림 없음 / 공연 리스트 390 · 1440 — 첫 화면 숨김 → 1000px 넘게 내리면 노출 → 누르면 맨 위 + 다시 숨김 / 공연 상세 390 — 시트 열기 → 일반 예매 → [티켓 구매하기] → 체크아웃 도착 뒤 `[role=dialog]` 0 / 체크아웃 390 · 1440 — 주문 POST를 네트워크 실패로 바꿔 [결제완료] → 확인 창 닫힘, 폼 상단 안내 + [주문내역 확인] → `/orders` 도착. `127.0.0.1`로 열면 dev 리소스가 `allowedDevOrigins`로 막혀 하이드레이션이 안 된다 — dev는 `localhost`로 연다.
+
 ## 스테이징 QA 수정(호스팅) — #92 의 1 · 3 · 5 · 6 · 7 · 8
 
 스테이징 v2 첫 배포(Gosrock/DuDoong-Deploy#94) 뒤 팀원 QA 이슈 #92 중 호스팅 몫. 관객 몫(#90 · #92 의 4 · 8 '맨 위로' · 9)은 병렬 세션 `fix-staging-audience`. PR은 `Refs #92`.

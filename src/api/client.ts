@@ -138,6 +138,11 @@ export type CallOptions = {
   public?: boolean;
   searchParams?: Options['searchParams'];
   signal?: AbortSignal;
+  /**
+   * 요청 하나의 전체 시간(ms). 기본 `REQUEST_TIMEOUT_MS`. 서버가 오래 걸려도 결과를 기다려야 하는 변경만 늘린다
+   * (주문 생성 — `ORDER_CREATE_TIMEOUT_MS`, 이슈 #92-4)
+   */
+  timeout?: number;
 };
 
 /**
@@ -154,11 +159,13 @@ export async function request<T>(
 ): Promise<T> {
   const route = `${method.toUpperCase()} ${routePattern(path)}`;
   // Date.now()는 Cache Components 프리렌더에서 금지된다 — 시간 측정은 performance.now()
-  const deadline = performance.now() + REQUEST_TIMEOUT_MS;
+  const timeout = opts.timeout ?? REQUEST_TIMEOUT_MS;
+  const deadline = performance.now() + timeout;
   let res: Response;
   try {
     res = await kyBase(path, {
       method,
+      timeout,
       prefix: prefix(),
       json: body,
       searchParams: opts.searchParams,

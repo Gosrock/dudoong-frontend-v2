@@ -95,4 +95,29 @@ test.describe('체크아웃 → 주문 완료', () => {
     await page.goto('/orders/mock-order-missing?created=1');
     await expect(page.getByText('주문을 찾을 수 없어요')).toBeVisible();
   });
+
+  test('공연 상세 시트에서 체크아웃으로 가면 시트(role=dialog)가 DOM에 남지 않는다(이슈 #92-9)', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', '바텀시트는 모바일');
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/events/101');
+    await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
+    const sheet = page.getByRole('dialog', { name: '티켓 종류' });
+    await expect(sheet).toBeVisible();
+    await sheet
+      .getByRole('listitem')
+      .getByRole('button', { name: /일반 예매/ })
+      .click();
+    await sheet.getByRole('button', { name: '티켓 구매하기' }).click();
+    await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=1/);
+    await expect(page.getByRole('button', { name: '결제하기' })).toBeVisible();
+    // 숨은 화면(Activity) 안의 것까지 — getByRole은 숨은 요소를 세지 않아 속성으로 센다
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+
+    // 뒤로가면 상세가 시트 없이 돌아온다
+    await page.goBack();
+    await expect(page).toHaveURL(/\/events\/101$/);
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+  });
 });

@@ -1,6 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { http } from 'msw';
+import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -580,6 +580,26 @@ describe('무료 선착순 확정 실패 — 주문이 아니라 에러', () => 
     expect(r.result.current.submitError).toBeNull();
     expect(errorToast).toHaveBeenCalled();
   });
+});
+
+describe('응답을 받지 못한 주문(이슈 #92-4)', () => {
+  it.each([
+    ['입금형', CHECKOUT_TICKET.paidNoOptions],
+    ['무료 선착순', CHECKOUT_TICKET.freeFcfs],
+  ])(
+    '%s — 네트워크 실패면 다시 시도 대신 주문내역 확인 안내(공용 토스트 없음), 주문 목록을 무효화',
+    async (_, ticket) => {
+      server.use(http.post('*/api/v2/me/orders', () => HttpResponse.error()));
+      const r = await openCheckout(ticket, 1);
+      const invalidate = vi.spyOn(r.queryClient, 'invalidateQueries');
+      fill(r.result);
+      await submitAndWait(r.result);
+      expect(r.result.current.submitError?.kind).toBe('ORDER_UNCERTAIN');
+      expect(errorToast).not.toHaveBeenCalled();
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: ['me', 'orders', 'infinite'] });
+    },
+  );
 });
 
 describe('mock 세션', () => {

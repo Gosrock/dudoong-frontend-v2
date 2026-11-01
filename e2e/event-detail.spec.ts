@@ -61,6 +61,22 @@ test.describe('공연 상세 — 카카오 크롤러 계약', () => {
     });
   }
 
+  // 셸을 먼저 흘려보내는 Cache Components에서 404를 받는 것은 `htmlLimitedBots`에 걸린 UA뿐이다(이슈 #90 —
+  // src/utils/html-limited-bots.ts). Next 기본 목록에 없던 Googlebot·줄인 카카오 UA·다음도 404여야 한다
+  for (const ua of [
+    'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+    'kakaotalk-scrap/1.0',
+    'Mozilla/5.0 (compatible; Yeti/1.1; +https://naver.me/spd)',
+    'Mozilla/5.0 (compatible; Daum/4.1; +http://cs.daum.net/faq/15/4118.html?faqId=28966) Daumoa',
+  ]) {
+    test(`없는 공연은 검색·미리보기 크롤러에 404 — ${ua}`, async ({ request }) => {
+      const res = await request.get(`/events/${MISSING_EVENT_ID}`, {
+        headers: { 'User-Agent': ua },
+      });
+      expect(res.status()).toBe(404);
+    });
+  }
+
   test('숫자가 아닌 id는 백엔드를 부르지 않고 404', async ({ request, mockApi }) => {
     const res = await request.get('/events/abc', { headers: { 'User-Agent': KAKAO_SCRAP_UA } });
     expect(res.status()).toBe(404);
