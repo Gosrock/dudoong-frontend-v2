@@ -1961,7 +1961,7 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 
 ## P14 — 성능 · 부하
 
-**상태**: 브랜치 `9yujin/p14-perf`(2026-11-01) — 하드닝. 동작을 바꾼 수정은 없다(파일 하나를 둘로 나눔 · 이미지 우선순위 힌트 하나). 캐시는 붙이지 않았다(판단은 tech-decisions §2 "공연 상세 캐시 — P14 판단").
+**상태**: PR #82(2026-11-01, 브랜치 `9yujin/p14-perf`) — 하드닝. 동작을 바꾼 수정은 없다(파일 하나를 둘로 나눔 · 이미지 우선순위 힌트 하나). 캐시는 붙이지 않았다(판단은 tech-decisions §2 "공연 상세 캐시 — P14 판단").
 
 **재는 법**(둘 다 `pnpm build` 뒤, 저장소에 넣음)
 - `node scripts/bundle-stats.mjs` — 라우트별 First Load JS(압축 전 · gzip)와 첫 로드에 실린 큰 의존성. Next 16(Turbopack) `next build` 출력에는 First Load JS 칸이 없어 `.next/diagnostics/route-bundle-stats.json`을 읽는다. `--json > before.json` · `--compare before.json`으로 전/후 표. 의존성이 **어디서** 들어오는지는 `pnpm next analyze --output` + `pnpm next analyze export`(설치본 `package-bundling.md`)로 찾았다 — 이 분석 빌드는 청크 해시가 실제 빌드와 달라 첫 로드 청크와 바로 맞대지 못한다(비동기 청크까지 섞여 보인다)
