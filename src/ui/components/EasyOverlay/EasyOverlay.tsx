@@ -18,8 +18,13 @@ export type ConfirmOptions = {
   /** null이면 확인 버튼만 */
   cancelLabel?: string | null;
   /**
-   * 확인을 누르면 부른다. 도는 동안 버튼·Esc·바깥 클릭·스와이프·뒤로가기를 잠근다.
-   * resolve → 닫히고 `true`, reject → 열린 채 남는다. 실패 안내는 onConfirm이 `handleError`로 하고 throw한다(patterns §4-5).
+   * 확인을 누르면 부른다. 도는 동안 버튼·Esc·바깥 클릭·스와이프·뒤로가기를 잠근다(patterns §6 확인 창 계약).
+   * - **`false`로 resolve → 열린 채 남는다**(실패). model 훅의 `Promise<boolean>`(실패면 `handleError` 뒤 `false`)을 그대로 넘긴다:
+   *   `onConfirm: () => m.remove(id)`
+   * - reject(throw) → 열린 채 남는다(`false`와 같다)
+   * - 그 밖의 값(`true`·`undefined` …)으로 resolve → 닫히고 `openConfirm`은 `true`
+   *
+   * 실패 안내는 onConfirm 쪽이 맡는다(`handleError` — patterns §4-5).
    */
   onConfirm?: () => Promise<unknown>;
   /** popup(기본) = 확인 팝업, responsive = PC 모달 · 모바일 바텀시트 */
@@ -62,9 +67,13 @@ export function EasyOverlay({
   const handleConfirm = async () => {
     if (pending) return;
     setPending(true);
+    let result: unknown;
     try {
-      await onConfirm?.();
+      result = await onConfirm?.();
     } catch {
+      result = false;
+    }
+    if (result === false) {
       // 실패: 열린 채 둔다. 안내는 onConfirm이 맡는다(handleError)
       setPending(false);
       return;
@@ -134,20 +143,15 @@ export function EasyOverlay({
 
 /**
  * 확인 오버레이를 열고 결과를 기다린다. 확인(+ onConfirm 성공)이면 true, 취소·Esc·뒤로가기면 false.
+ * "실패하면 열린 채, 성공하면 닫힘"(patterns §6) — 훅이 `Promise<boolean>`을 돌려주면 그대로 넘긴다.
  *
  * ```ts
+ * // model 훅: 성공 true, 실패면 handleError 뒤 false
  * const ok = await openConfirm({
  *   title: '주문을 승인할까요?',
- *   onConfirm: async () => {
- *     try {
- *       await approve.mutateAsync(orderUuid);
- *     } catch (e) {
- *       handleError(e); // 공용 토스트(표가 있으면 표로)
- *       throw e; // reject → 열린 채 남는다
- *     }
- *   },
+ *   onConfirm: () => guests.approve(orderUuid), // false → 열린 채(토스트는 훅이 띄웠다)
  * });
- * if (ok) router.push('/hosting/...');
+ * if (ok) toast('승인했어요');
  * ```
  *
  * 경로가 바뀌어 `unmountAll`로 사라지면 Promise는 끝나지 않는다(기다리던 화면도 함께 사라진다).

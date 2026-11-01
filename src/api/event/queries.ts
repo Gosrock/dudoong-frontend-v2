@@ -155,13 +155,20 @@ export const myEventsQuery = (params: MyEventsParams = {}) => {
 const managePath = (eventId: string | number) => `events/${encodeURIComponent(eventId)}`;
 
 /**
+ * GE-3 공연 관리 키 `['events', id, 'manage']` — 호스팅 공연 스코프 키(티켓·옵션·주문·발급 티켓·대시보드·체크인)는 모두 이 아래에 둔다.
+ * 화면·cache 파일에서 이 모양을 손으로 쓰지 않는다(코드 패턴 점검 A12, 2026-11-02)
+ */
+export const eventManageKey = (eventId: string | number) =>
+  ['events', String(eventId), 'manage'] as const;
+
+/**
  * GE-3 공연 관리 상세(일반 멤버 이상, `myRole`·`checklist` 포함). 공연 스코프 레이아웃(`events/[eventId]/layout.tsx`)이
  * 메뉴·읽기 전용 판정에 쓰고, 기본 정보 폼이 처음 값으로 쓴다. 비멤버는 403(`HOST_400_2`), 없는·지운 공연은 404.
  * 키 `['events', id, 'manage']` — 마스터 양도(P10b)가 이 모양(`isEventManageQueryKey`)으로 무효화한다. 호스팅 센터 기본값(브라우저에서만).
  */
 export const eventManageQuery = (eventId: string | number) =>
   queryOptions({
-    queryKey: ['events', String(eventId), 'manage'],
+    queryKey: [...eventManageKey(eventId)],
     queryFn: ({ signal }) =>
       api.get(`${managePath(eventId)}/manage`, EventManageSchema, { signal }),
   });
@@ -169,7 +176,7 @@ export const eventManageQuery = (eventId: string | number) =>
 /** GE-7 등록 체크리스트(일반 멤버 이상). 대시보드가 준비중일 때만 부른다(등록 뒤에는 쓰지 않는다 — patterns §23) */
 export const eventChecklistQuery = (eventId: string | number) =>
   queryOptions({
-    queryKey: ['events', String(eventId), 'manage', 'checklist'],
+    queryKey: [...eventManageKey(eventId), 'checklist'],
     queryFn: ({ signal }) =>
       api.get(`${managePath(eventId)}/checklist`, EventChecklistSchema, { signal }),
   });
@@ -180,7 +187,7 @@ export const eventChecklistQuery = (eventId: string | number) =>
  */
 export const eventSectionsManageQuery = (eventId: string | number) =>
   queryOptions({
-    queryKey: ['events', String(eventId), 'manage', 'sections'],
+    queryKey: [...eventManageKey(eventId), 'sections'],
     queryFn: ({ signal }) =>
       api.get(`${managePath(eventId)}/sections`, EventSectionsSchema, { signal }),
   });

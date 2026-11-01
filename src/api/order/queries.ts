@@ -1,5 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 
+import { eventManageKey } from '../event/queries';
 import { api } from '../http';
 import { pageInfinite, type PageParams } from '../shared/page';
 import {
@@ -67,12 +68,13 @@ export const myOrdersQuery = (params: MyOrdersParams = {}) => {
 
 /**
  * 호스트 주문 키 접두. 모두 GE-3 아래(`['events', id, 'manage', …]`)라 마스터 양도 뒤 술어 무효화(P10b)에 함께 걸린다 —
- * 역할이 바뀌면 가림(#822)·환불 계좌 노출도 바뀐다. 목록은 `…, 'orders', 'list', params]`, 상세는 `…, 'orders', 'detail', uuid]`.
+ * 역할이 바뀌면 가림(#822)·환불 계좌 노출도 바뀐다. 목록은 `…, 'orders', 'list', params]`, 상세는 `…, 'orders', 'detail', uuid]`, 환불 목록은 `…, 'refunds', 'list', params]`
+ * (patterns §4-1 list/detail — 무효화는 접두 키로 하므로 2026-11-02 `'list'`를 더해도 cache 파일은 그대로다).
  */
 export const hostOrdersKey = (eventId: string | number) =>
-  ['events', String(eventId), 'manage', 'orders'] as const;
+  [...eventManageKey(eventId), 'orders'] as const;
 export const hostRefundsKey = (eventId: string | number) =>
-  ['events', String(eventId), 'manage', 'refunds'] as const;
+  [...eventManageKey(eventId), 'refunds'] as const;
 
 export type HostOrdersParams = {
   status?: HostOrderStatusFilter;
@@ -134,7 +136,7 @@ export const refundsQuery = (eventId: string | number, params: RefundsParams = {
     ...(params.size !== undefined && { size: params.size }),
   };
   return queryOptions({
-    queryKey: [...hostRefundsKey(eventId), p],
+    queryKey: [...hostRefundsKey(eventId), 'list', p],
     queryFn: ({ signal }) =>
       api.get(`events/${encodeURIComponent(eventId)}/refunds`, RefundPageSchema, {
         searchParams: p,

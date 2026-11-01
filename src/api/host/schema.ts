@@ -1,7 +1,15 @@
 import { z } from 'zod';
 
 import { EventDisplayStatusSchema, EventStatusSchema } from '../event/schema';
-import { CONTACT_TYPES, ContactSchema, HostRoleSchema, PlaceSchema } from '../shared/common-schema';
+import {
+  CONTACT_TYPES,
+  CONTACT_VALUE_MAX,
+  ContactSchema,
+  HOST_PHONE_CONTACT_MAX,
+  hostContactRequestSchema,
+  HostRoleSchema,
+  PlaceSchema,
+} from '../shared/common-schema';
 import { kstDateTime } from '../shared/date';
 import { pageSchema } from '../shared/page';
 
@@ -111,9 +119,9 @@ export const HOST_NAME_MAX = 15;
 export const HOST_INTRODUCE_MAX = 255;
 export const HOST_CONTACTS_MIN = 1;
 export const HOST_CONTACTS_MAX = 10;
-export const HOST_CONTACT_VALUE_MAX = 200;
+export const HOST_CONTACT_VALUE_MAX = CONTACT_VALUE_MAX;
 /** `PHONE` 값은 v1 컬럼 때문에 15자 이하 */
-export const HOST_PHONE_VALUE_MAX = 15;
+export const HOST_PHONE_VALUE_MAX = HOST_PHONE_CONTACT_MAX;
 
 /** 보내는 연락처 유형 — 서버 enum 그대로(UNKNOWN은 보내지 않는다) */
 export const HostContactTypeSchema = z.enum(CONTACT_TYPES);
@@ -126,17 +134,7 @@ export type HostContactType = z.infer<typeof HostContactTypeSchema>;
 export const CreateHostRequestSchema = z.object({
   name: z.string().trim().min(1).max(HOST_NAME_MAX),
   introduce: z.string().max(HOST_INTRODUCE_MAX).nullable(),
-  contacts: z
-    .array(
-      z
-        .object({
-          type: HostContactTypeSchema,
-          value: z.string().trim().min(1).max(HOST_CONTACT_VALUE_MAX),
-        })
-        .refine((c) => c.type !== 'PHONE' || c.value.length <= HOST_PHONE_VALUE_MAX),
-    )
-    .min(HOST_CONTACTS_MIN)
-    .max(HOST_CONTACTS_MAX),
+  contacts: z.array(hostContactRequestSchema).min(HOST_CONTACTS_MIN).max(HOST_CONTACTS_MAX),
 });
 export type CreateHostRequest = z.infer<typeof CreateHostRequestSchema>;
 
@@ -146,13 +144,8 @@ export type CreateHostResponse = z.infer<typeof CreateHostResponseSchema>;
 
 // ─── 호스트 설정 (PH-4) ──────────────────────────────────────
 
-/** PH-2와 같은 연락처 한 줄(`V2HostContactRequest`, 432cce4) */
-const HostContactRequestSchema = z
-  .object({
-    type: HostContactTypeSchema,
-    value: z.string().trim().min(1).max(HOST_CONTACT_VALUE_MAX),
-  })
-  .refine((c) => c.type !== 'PHONE' || c.value.length <= HOST_PHONE_VALUE_MAX);
+/** PH-2와 같은 연락처 한 줄(`V2HostContactRequest`) — 공용 `hostContactRequestSchema`(`shared/common-schema.ts`) */
+const HostContactRequestSchema = hostContactRequestSchema;
 
 /** 이미지 key 길이(`V2UpdateHostRequest` `@Size(max = 255)`) */
 export const HOST_IMAGE_KEY_MAX = 255;

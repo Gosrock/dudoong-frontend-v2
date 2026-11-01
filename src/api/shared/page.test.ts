@@ -1,8 +1,15 @@
 import { infiniteQueryOptions, QueryClient } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
-import { flattenPages, type Page, pageInfinite, pageSchema } from './page';
+import {
+  flattenPages,
+  infiniteListControls,
+  type InfiniteListQuery,
+  type Page,
+  pageInfinite,
+  pageSchema,
+} from './page';
 
 const Item = z.object({ id: z.number() });
 const ItemPage = pageSchema(Item);
@@ -82,5 +89,54 @@ describe('flattenPages', () => {
 
   it('데이터가 없으면 빈 배열', () => {
     expect(flattenPages(undefined, (i: { id: number }) => i.id)).toEqual([]);
+  });
+});
+
+describe('infiniteListControls', () => {
+  const query = (over: Partial<InfiniteListQuery> = {}) => {
+    const fetchNextPage = vi.fn(() => Promise.resolve());
+    const refetch = vi.fn(() => Promise.resolve());
+    return {
+      hasNextPage: true,
+      isFetching: false,
+      isFetchingNextPage: false,
+      isFetchNextPageError: false,
+      fetchNextPage,
+      refetch,
+      ...over,
+    };
+  };
+
+  it('상태를 그대로 옮긴다', () => {
+    const c = infiniteListControls(
+      query({ hasNextPage: false, isFetchingNextPage: true, isFetchNextPageError: true }),
+    );
+    expect(c).toMatchObject({ hasNextPage: false, isFetchingNextPage: true, nextPageError: true });
+  });
+
+  it('loadMore — 다음 페이지가 있고 읽는 중이 아닐 때만, 진행 중 요청을 취소하지 않는다', () => {
+    const q = query();
+    infiniteListControls(q).loadMore();
+    expect(q.fetchNextPage).toHaveBeenCalledWith({ cancelRefetch: false });
+
+    const busy = query({ isFetching: true });
+    infiniteListControls(busy).loadMore();
+    expect(busy.fetchNextPage).not.toHaveBeenCalled();
+
+    const end = query({ hasNextPage: false });
+    infiniteListControls(end).loadMore();
+    expect(end.fetchNextPage).not.toHaveBeenCalled();
+  });
+
+  it('retry — 다음 페이지 실패면 그 페이지만, 아니면 전체 다시 읽기', () => {
+    const failed = query({ isFetchNextPageError: true });
+    infiniteListControls(failed).retry();
+    expect(failed.fetchNextPage).toHaveBeenCalledOnce();
+    expect(failed.refetch).not.toHaveBeenCalled();
+
+    const first = query();
+    infiniteListControls(first).retry();
+    expect(first.refetch).toHaveBeenCalledOnce();
+    expect(first.fetchNextPage).not.toHaveBeenCalled();
   });
 });

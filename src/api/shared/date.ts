@@ -68,7 +68,8 @@ export function formatKstDateTime(date: Date): string {
   return `${pad(year, 4)}.${pad(k.getUTCMonth() + 1)}.${pad(k.getUTCDate())} ${pad(k.getUTCHours())}:${pad(k.getUTCMinutes())}`;
 }
 
-const KOREAN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
+/** 요일 한 글자(일요일부터) — `Date.getUTCDay()` 순서. 화면에서 요일 배열을 다시 만들지 않는다 */
+export const KOREAN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
 /** `'2026.05.11 19:30'`(KST) → `'2026년 5월 11일 (월)'` — 공연준비 홈 카드 날짜 줄(plan P10a, GUI 카드 문구 2026-10-25) */
 export function formatKstKoreanDate(value: string): string {
@@ -170,4 +171,53 @@ export function formatKstRelative(value: string, now: Date): string {
   return p.year === thisYear
     ? `${p.month}월 ${p.day}일`
     : `${pad(p.year, 4)}.${pad(p.month)}.${pad(p.day)}`;
+}
+
+// ─── 계산·변환(코드 패턴 점검 A19, 2026-11-02) — KST 오프셋·요일·입력칸 변환을 화면에서 다시 짜지 않는다 ───
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** KST 벽시계 값 + 요일. `'2026.10.17 19:30'` → `{ year: 2026, month: 10, day: 17, hour: 19, minute: 30, weekday: '토' }` */
+export function kstParts(value: string) {
+  const p = readParts(value);
+  if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()]!;
+  return { ...p, weekday };
+}
+
+/** KST 날짜 번호(1970-01-01부터 며칠째) — 자정 기준 날짜 차이 계산용 */
+const kstDayIndexOf = (date: Date) => Math.floor((date.getTime() + KST_OFFSET_MS) / DAY_MS);
+
+/**
+ * `value`(KST)의 날짜가 `now`의 KST 날짜보다 며칠 뒤인지. 같은 날 0, 지난 날은 음수. 시각은 보지 않는다
+ * (서버 `V2EventDisplayRule.dDayOf`와 같은 규칙 — design-requests Q29)
+ */
+export function kstDayDiff(value: string, now: Date): number {
+  return kstDayIndexOf(parseKstDateTime(value)) - kstDayIndexOf(now);
+}
+
+/**
+ * 서버 일시 → 입력칸 값. `'2026.10.17 19:30'` → `{ date: '2026-10-17', time: '19:30' }`(`<input type="date">`·`"time"` 형식).
+ * `null`·형식이 틀린 값은 빈 칸
+ */
+export function splitKstDateTime(value: string | null): { date: string; time: string } {
+  const p = value === null ? null : readParts(value);
+  if (!p) return { date: '', time: '' };
+  return {
+    date: `${pad(p.year, 4)}-${pad(p.month)}-${pad(p.day)}`,
+    time: `${pad(p.hour)}:${pad(p.minute)}`,
+  };
+}
+
+/** 입력칸 값 → 서버 일시. `('2026-10-17', '19:30')` → `'2026.10.17 19:30'`. 칸이 비었거나 형식·달력 값이 틀리면 `null` */
+export function joinKstDateTime(date: string, time: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+  const value = `${date.replaceAll('-', '.')} ${time}`;
+  return isKstDateTime(value) ? value : null;
+}
+
+/** `'2026.10.17 19:30'`(KST) → `'2026-10-17T19:30:00+09:00'`(ISO 8601 — JSON-LD 등) */
+export function toKstIso(value: string): string {
+  const p = kstParts(value);
+  return `${pad(p.year, 4)}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}:00+09:00`;
 }
