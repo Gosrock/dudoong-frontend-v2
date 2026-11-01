@@ -9,6 +9,7 @@ import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptySt
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Tab, TabList, Tabs } from '@/ui/components/Tabs/Tabs';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
@@ -127,10 +128,13 @@ function ArchivePoster({ src }: { src: string | null }) {
   return (
     <span className={s.gridPoster}>
       {src && !failed && (
-        // eslint-disable-next-line @next/next/no-img-element -- 서버 이미지(S3) 그대로
-        <img
+        // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 2열 · PC 4열(mypage.css `grid`)
+        <UploadedImage
           src={src}
           alt=""
+          width={240}
+          height={240}
+          sizes="(min-width: 1024px) 320px, 50vw"
           ref={(img) => {
             if (img && img.complete && img.naturalWidth === 0) setFailed(true);
           }}

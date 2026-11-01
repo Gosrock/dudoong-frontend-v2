@@ -3,10 +3,10 @@ import { expect, test } from './support/fixtures';
 /**
  * P14 레거시 URL — v1 운영 주소가 v2에서 어디로 가는지(tech-decisions §22 "v1 라우트와 리다이렉트" 표 전수).
  * `/admin/*`(호스트 앱) 줄은 `hosting.spec.ts` "리다이렉트"에 있다. 여기는 관객 앱 줄과 "그대로" 줄이다.
- * 307인 이유와 301 전환 시점은 `next.config.ts` 주석(컷오버 P15에서 정한다).
+ * 영구(308)인 이유는 `next.config.ts` 주석(P15 URL 연속성 — 301 대신 308).
  */
 
-test.describe('v1 관객 주소 → v2 (307)', () => {
+test.describe('v1 관객 주소 → v2 (308 영구)', () => {
   const cases: [string, string][] = [
     ['/home', '/'],
     ['/events/101/book/option', '/events/101'],
@@ -24,7 +24,7 @@ test.describe('v1 관객 주소 → v2 (307)', () => {
   for (const [from, to] of cases) {
     test(`${from} → ${to}`, async ({ request }) => {
       const res = await request.get(from, { maxRedirects: 0 });
-      expect(res.status()).toBe(307);
+      expect(res.status()).toBe(308);
       expect(res.headers()['location']).toBe(to);
     });
   }

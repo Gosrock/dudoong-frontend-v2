@@ -10,6 +10,7 @@ import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
 import { Container } from '@/ui/primitives/Container';
 import { Flex } from '@/ui/primitives/Flex';
@@ -317,9 +318,8 @@ function EventPoster({ src, alt }: { src: string | null; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return null;
   return (
-    // 서버 이미지(자산 도메인). nginx가 `/_next/image`를 막아 next/image 최적화를 쓰지 않는다(v1 #378)
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 모바일은 화면 폭, PC는 282
+    <UploadedImage
       // 서버 HTML의 이미지는 하이드레이션 전에 실패할 수 있어 onError를 놓친다 — 붙을 때 한 번 더 본다
       ref={(img) => {
         if (img && img.complete && img.naturalWidth === 0) setFailed(true);
@@ -327,7 +327,12 @@ function EventPoster({ src, alt }: { src: string | null; alt: string }) {
       className={s.poster}
       src={src}
       alt={alt}
-      // 첫 화면의 가장 큰 그림(LCP 후보) — 먼저 받게 한다(P14 성능)
+      width={282}
+      height={400}
+      sizes="(min-width: 1024px) 282px, 100vw"
+      // 첫 화면의 가장 큰 그림(LCP 후보) — 지연 로드하지 않고 먼저 받게 한다(P14 성능). `preload`(옛 `priority`)는 쓰지 않는다 —
+      // 설치본 image.md가 `loading="eager"`·`fetchPriority="high"`를 권한다
+      loading="eager"
       fetchPriority="high"
       onError={() => setFailed(true)}
     />

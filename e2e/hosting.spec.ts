@@ -135,8 +135,16 @@ test.describe('호스트 만들기', () => {
 });
 
 test.describe('리다이렉트(next.config redirects)', () => {
+  test('/hosting/events/101 → /hosting/events/101/dashboard (307 — v2 안의 주소, 영구가 아니다)', async ({
+    request,
+  }) => {
+    const res = await request.get('/hosting/events/101', { maxRedirects: 0 });
+    expect(res.status()).toBe(307);
+    expect(res.headers()['location']).toBe('/hosting/events/101/dashboard');
+  });
+
+  // v1 호스트 앱 주소 — 영구(308, P15 URL 연속성)
   const cases: [string, string][] = [
-    ['/hosting/events/101', '/hosting/events/101/dashboard'],
     ['/admin', '/hosting'],
     ['/admin/new/hosts', '/hosting/new/hosts'],
     ['/admin/new/events/2', '/hosting/new/events'],
@@ -157,9 +165,9 @@ test.describe('리다이렉트(next.config redirects)', () => {
     ['/admin/login', '/login'],
   ];
   for (const [from, to] of cases) {
-    test(`${from} → ${to} (307)`, async ({ request }) => {
+    test(`${from} → ${to} (308)`, async ({ request }) => {
       const res = await request.get(from, { maxRedirects: 0 });
-      expect(res.status()).toBe(307);
+      expect(res.status()).toBe(308);
       expect(res.headers()['location']).toBe(to);
     });
   }

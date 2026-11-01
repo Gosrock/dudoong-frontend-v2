@@ -7,6 +7,7 @@ import type { MyHost } from '@/api/host/schema';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Txt } from '@/ui/primitives/Txt';
@@ -42,9 +43,15 @@ export function MyEventCard({
   return (
     <li className={s.card} data-testid="my-event" aria-busy={deleting || undefined}>
       {event.posterImageUrl ? (
-        // 업로드 포스터를 그대로 그린다(Avatar와 같은 이유 — 이미지 최적화는 정하지 않았다)
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className={s.poster} src={event.posterImageUrl} alt="" decoding="async" />
+        // 업로드 포스터(업로드 출처면 `/_next/image` 최적화 — P15). 고정 94×133 → 1x · 2x
+        <UploadedImage
+          className={s.poster}
+          src={event.posterImageUrl}
+          alt=""
+          width={94}
+          height={133}
+          decoding="async"
+        />
       ) : (
         <Illustration name="poster-placeholder" width={94} className={s.poster} />
       )}

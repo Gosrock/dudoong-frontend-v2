@@ -6,6 +6,7 @@ import { type ReactNode, useState } from 'react';
 import { Txt } from '../../primitives/Txt';
 import { colors } from '../../theme/colors';
 import { LinkProgress } from '../LinkProgress/LinkProgress';
+import { UploadedImage } from '../UploadedImage/UploadedImage';
 import * as s from './ConcertCard.css';
 
 export type ConcertCardProps = {
@@ -53,9 +54,8 @@ function Poster({ src }: { src: string | null }) {
   return (
     <span className={s.poster}>
       {src && !failed ? (
-        // 서버 이미지(자산 도메인). nginx가 `/_next/image`를 막아 next/image 최적화를 쓰지 않는다(v1 #378)
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 목록 4열(PC, 최대 1280) · 3열(600~) · 2열
+        <UploadedImage
           // 서버 HTML의 이미지는 하이드레이션 전에 실패할 수 있어 onError를 놓친다 — 붙을 때 한 번 더 본다
           ref={(img) => {
             if (img && img.complete && img.naturalWidth === 0) setFailed(true);
@@ -63,7 +63,9 @@ function Poster({ src }: { src: string | null }) {
           className={s.posterImage}
           src={src}
           alt=""
-          loading="lazy"
+          width={163}
+          height={231}
+          sizes="(min-width: 1024px) 320px, (min-width: 600px) 33vw, 50vw"
           decoding="async"
           onError={() => setFailed(true)}
         />

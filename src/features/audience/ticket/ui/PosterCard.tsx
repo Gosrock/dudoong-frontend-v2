@@ -3,6 +3,8 @@
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useState } from 'react';
 
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
+
 import type { TicketGroupView } from '../model/ticket-groups';
 import { TicketStateChips } from './ticket-chips';
 import * as s from './TicketTab.css';
@@ -47,15 +49,17 @@ function Poster({ src }: { src: string | null }) {
   const [failed, setFailed] = useState(false);
   if (!src || failed) return null;
   return (
-    // 서버 이미지(자산 도메인). nginx가 `/_next/image`를 막아 next/image 최적화를 쓰지 않는다(v1 #378, ConcertCard와 같다)
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 카드 폭 `min(294px, 75vw)`(TicketTab.css)
+    <UploadedImage
       ref={(img) => {
         if (img && img.complete && img.naturalWidth === 0) setFailed(true);
       }}
       className={s.posterImage}
       src={src}
       alt=""
+      width={294}
+      height={416}
+      sizes="(min-width: 392px) 294px, 75vw"
       decoding="async"
       onError={() => setFailed(true)}
     />

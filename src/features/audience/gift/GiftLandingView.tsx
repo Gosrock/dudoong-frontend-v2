@@ -10,6 +10,7 @@ import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 import { Skeleton, SkeletonText } from '@/ui/components/Skeleton/Skeleton';
+import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import type { IllustrationName } from '@/ui/illustrations/Illustration';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
@@ -277,12 +278,14 @@ function Summary({ landing, heading = 'h1' }: { landing: Landing; heading?: 'h1'
       {/* FIGMA-CUSTOM: 받는 선물 포스터(gui 939:26845 "image 182-1") 커스텀 → 커스텀 GiftLanding.css.ts. DS 후보(design-system §3) */}
       <div className={s.poster}>
         {poster && !failed && (
-          // 서버 이미지(자산 도메인). nginx가 `/_next/image`를 막아 next/image를 쓰지 않는다(v1 #378)
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 폭 `min(294px, 75vw)`(GiftLanding.css)
+          <UploadedImage
             className={s.posterImage}
             src={poster}
             alt=""
+            width={294}
+            height={416}
+            sizes="(min-width: 392px) 294px, 75vw"
             ref={(img) => {
               if (img && img.complete && img.naturalWidth === 0) setFailed(true);
             }}
