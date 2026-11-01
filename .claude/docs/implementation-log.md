@@ -2486,7 +2486,7 @@ Figma 코멘트(GUI, `[개발 · 스테이징 QA 제안]`): 공연 카드 `759:2
 
 ## 백엔드 #905 답 반영(2026-11-01, `backend-905-sync`)
 
-**상태**: PR 대기 — 원본 [Gosrock/DuDoong-Backend#905](https://github.com/Gosrock/DuDoong-Backend/issues/905) 답(2026-11-01 10:21Z) · #897 댓글(B18 확정 문구) · #898(동의 강제 날짜 — 미정). 백엔드 2.5.4는 **스테이징에만**(운영 2.5.3). 동의 칸 4개는 병렬 세션 `agreement-fields` 몫이라 건드리지 않았다.
+**상태**: PR #100 — 원본 [Gosrock/DuDoong-Backend#905](https://github.com/Gosrock/DuDoong-Backend/issues/905) 답(2026-11-01 10:21Z) · #897 댓글(B18 확정 문구) · #898(동의 강제 날짜 — 미정). 백엔드 2.5.4는 **스테이징에만**(운영 2.5.3). 동의 칸 4개는 병렬 세션 `agreement-fields` 몫이라 건드리지 않았다.
 
 ### 코드
 
