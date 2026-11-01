@@ -87,7 +87,7 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
   const cards: TicketCard[] = useMemo(
     () =>
       tickets.map((t) => {
-        const chip = ticketSaleChipOf(t, scope.event.startAt, nowText);
+        const chip = ticketSaleChipOf(t, scope.event.startAt, nowText, scope.registered);
         return {
           ticket: t,
           chip,
@@ -101,7 +101,7 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
           canManageOptions: canChangeTicketOptions(t, scope.canEdit),
         };
       }),
-    [eventId, nowText, scope.canEdit, scope.event.startAt, tickets],
+    [eventId, nowText, scope.canEdit, scope.event.startAt, scope.registered, tickets],
   );
 
   /** 메뉴에 있는 동작만 보낸다. 끝나면 `true` */

@@ -128,6 +128,47 @@ test.describe('호스트 설정', () => {
     await expect(page.getByTestId('image-PROFILE').getByRole('img')).toHaveAttribute('src', src!);
   });
 
+  test('호스트 홈 → 설정에서 저장 → 뒤로 가기: 호스트 홈이 오류 없이 새 값으로 그려진다(#92-6)', async ({
+    page,
+  }) => {
+    const puts = await routeS3(page);
+    const errors: string[] = [];
+    page.on('pageerror', (e) => errors.push(e.message));
+    // 이미지 주소(가짜 S3·CDN) 로드 실패는 이 검사의 대상이 아니다
+    page.on(
+      'console',
+      (m) =>
+        m.type() === 'error' &&
+        !m.text().startsWith('Failed to load resource') &&
+        errors.push(m.text()),
+    );
+    await setMockSession(page, 'loggedIn');
+    // 스테이징 흐름: 공연준비 홈(호스트 카드 링크가 /hosts/11을 프리페치) → 호스트 홈 → 설정
+    await page.goto('/hosting?tab=hosts');
+    await page.getByTestId('my-host').getByRole('link').first().click();
+    await expect(page).toHaveURL('/hosts/11');
+    await expect(page.getByRole('heading', { name: '고스락' })).toBeVisible();
+    await page.getByRole('link', { name: '설정' }).click();
+    await expect(page).toHaveURL('/hosting/hosts/11/settings');
+    await page.getByLabel('소개글').fill('새 소개글');
+    const chooser = page.waitForEvent('filechooser');
+    await page.getByRole('button', { name: '프로필 이미지 올리기' }).click();
+    await (await chooser).setFiles(PNG);
+    await expect(page.getByTestId('image-PROFILE').getByRole('img')).toHaveAttribute(
+      'src',
+      /\/host\/11\//,
+    );
+    await expect.poll(() => puts.length).toBe(1);
+    await page.getByRole('button', { name: '저장' }).click();
+    await expect(page.getByText('저장했어요')).toBeVisible();
+    await page.getByRole('link', { name: '뒤로 가기' }).click();
+    await expect(page).toHaveURL('/hosts/11');
+    // 설정 화면은 Activity로 숨겨져 DOM에 남는다 — 보이는 것만 본다
+    await expect(page.getByText('새 소개글').filter({ visible: true })).toBeVisible();
+    await expect(page.getByText('화면을 불러오지 못했어요')).toHaveCount(0);
+    expect(errors.filter((m) => !m.includes('favicon'))).toEqual([]);
+  });
+
   test('일반 멤버는 읽기 전용 — 저장 버튼이 없다', async ({ page }) => {
     actAsRole(11, 'GUEST');
     await setMockSession(page, 'loggedIn');

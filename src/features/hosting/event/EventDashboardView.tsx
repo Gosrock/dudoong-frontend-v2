@@ -103,6 +103,7 @@ function EventHead({ event, eventId }: { event: EventManage; eventId: string }) 
           // 업로드 포스터(업로드 출처면 `/_next/image` 최적화 — P15). 폭 180 · PC 176
           <UploadedImage
             className={s.poster}
+            fallback={<Illustration name="poster-placeholder" width={180} className={s.poster} />}
             src={event.posterImageUrl}
             alt="공연 포스터"
             width={180}

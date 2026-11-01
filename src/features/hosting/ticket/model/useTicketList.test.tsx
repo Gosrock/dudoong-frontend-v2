@@ -11,6 +11,7 @@ import { server } from '@/api/__mocks__/server';
 import { createEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
 import { eventOptionsQuery } from '@/api/option/queries';
+import { createTicketItemMutation } from '@/api/ticket-item/mutations';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
@@ -74,6 +75,35 @@ describe('티켓 관리 목록(G10/T-1)', () => {
     expect(result.current.canAdd).toBe(true);
     expect(result.current.newHref).toBe('/hosting/events/101/tickets/new');
     expect(result.current.cards[0]!.editHref).toBe('/hosting/events/101/tickets/501');
+  });
+
+  it('공연 등록 전(준비중)이면 기간 안이어도 판매 예정 — BEFORE_SALE로 판매 중을 띄우지 않는다(#92-3)', async () => {
+    const { eventId } = await createEventMutation().mutationFn!(
+      {
+        hostId: 11,
+        name: '정기공연',
+        startAt: '2030.05.01 19:00',
+        endAt: '2030.05.01 21:00',
+        hasTicket: true,
+      },
+      {} as never,
+    );
+    await createTicketItemMutation(eventId).mutationFn!(
+      {
+        payType: 'FREE',
+        name: '무료',
+        price: 0,
+        supplyCount: 100,
+        approvalRequired: false,
+        isQuantityPublic: true,
+      },
+      {} as never,
+    );
+    const { result } = setup(String(eventId));
+    await loaded(result);
+    expect(
+      result.current.cards.map((c) => [c.ticket.saleState, c.ticket.isPurchasable, c.chipLabel]),
+    ).toEqual([['BEFORE_SALE', false, '판매 예정']]);
   });
 
   it('티켓이 없으면 빈 목록(만든 티켓이 없어요)', async () => {
