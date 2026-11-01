@@ -271,11 +271,16 @@ scenario(
         await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
       },
     );
-    await step('가입되지 않은 이메일로 초대하면 칸 아래 "가입되지 않은 이메일이에요"', async () => {
-      await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
-      await dialog.getByRole('button', { name: '초대하기' }).click();
-      await expect(dialog.getByRole('alert')).toHaveText('가입되지 않은 이메일이에요');
-    });
+    await step(
+      '가입되지 않은 이메일로 초대하면 칸 아래 미가입 안내와 다음 행동(#106)',
+      async () => {
+        await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
+        await dialog.getByRole('button', { name: '초대하기' }).click();
+        await expect(dialog.getByRole('alert')).toHaveText(
+          '가입되지 않은 이메일이에요. 상대가 두둥에 가입한 뒤 그 카카오 계정 이메일로 다시 초대해 주세요',
+        );
+      },
+    );
     await step('가입한 이메일로 고쳐 다시 내면 팝업이 닫히고 목록에 5명 + 토스트', async () => {
       await dialog.getByLabel('초대할 이메일').fill('guitar@example.com');
       await dialog.getByRole('button', { name: '초대하기' }).click();

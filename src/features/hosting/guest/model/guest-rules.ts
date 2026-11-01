@@ -291,6 +291,29 @@ export const WITHDRAW_ERROR_MESSAGE = {
   Event_400_5: ORDER_ACTION_BLOCK_MESSAGE.notOpen,
 } as const;
 
+/**
+ * [환불 완료] 확인 팝업 문구(스테이징 QA #106 §5 — 되돌릴 수 없는데 확인 없이 바로 처리됐다). 환불 탭·주문 상세 공용.
+ * 디자인 없음(Q32 — 환불 탭은 DS로만) → DS `openConfirm`. 🤖 Claude 판단(문구 · 계좌 없음 경고 — design-requests Q96).
+ * `hasAccount` — 매니저가 보는 환불 계좌가 있는지. 없으면(구매자가 아직 안 넣음) 경고 한 줄을 더한다 — 막지는 않는다
+ * (계좌를 따로 받아 송금했을 수 있다)
+ */
+export function refundConfirmCopy({
+  buyerName,
+  hasAccount,
+}: {
+  buyerName: string | null;
+  hasAccount: boolean;
+}) {
+  const who = buyerName ? `${buyerName}님 주문을` : '이 주문을';
+  return {
+    title: `${who} 환불 완료로 바꿀까요?`,
+    description: hasAccount
+      ? '송금을 마친 뒤에 눌러 주세요. 환불 완료는 되돌릴 수 없어요.'
+      : '환불 계좌가 아직 입력되지 않았어요. 구매자에게 계좌를 따로 받아 송금했을 때만 눌러 주세요. 환불 완료는 되돌릴 수 없어요.',
+    confirmLabel: '환불 완료',
+  };
+}
+
 export const REFUND_ERROR_MESSAGE = {
   Order_400_17: '환불 요청 상태가 아니에요. 최신 상태를 불러왔어요',
 } as const;

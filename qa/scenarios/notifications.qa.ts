@@ -54,10 +54,11 @@ scenario(
   {
     kind: '정상',
     summary:
-      '첫 페이지 20건 → 아래로 내리면 다음 페이지 5건. 카테고리 3종(티켓선물 안내 · 티켓승인 안내 · 공연 알림) + 모르는 타입은 벨 아이콘과 "알림".',
+      '첫 페이지 20건 → 아래로 내리면 다음 페이지 5건. 카테고리 7종(관객 — 티켓선물 안내 · 티켓승인 안내 · 주문취소·환불 안내 · 공연 알림, 호스트 — 호스트 · 새 주문 · 호스트 · 취소·환불 요청 · 호스트 · 멤버) + 모르는 타입은 벨 아이콘과 "알림".',
     basis: [
       'plan P9b 완료 기준 V',
       'gui-screens §1 331:11574 카테고리 3종',
+      '이슈 #106 운영자 type 표(2026-11-01) — 환불 완료 · 주문자 취소가 티켓승인 안내로 보이던 것',
       '와이어 128:2827 · 668:4772',
     ],
   },
@@ -69,6 +70,8 @@ scenario(
       await expect(row(page, '티켓 주문이 승인되었습니다!')).toContainText('티켓승인 안내');
       await expect(row(page, '1시간 뒤에 시작됩니다!')).toContainText('공연 알림');
       await expect(row(page, '선물받은 티켓이 도착했어요')).toContainText('티켓선물 안내');
+      await expect(row(page, '새 주문이 승인을 기다리고 있어요')).toContainText('호스트 · 새 주문');
+      await expect(row(page, '호스트 멤버로 추가되었어요')).toContainText('호스트 · 멤버');
     });
     await step('모르는 타입은 깨지지 않고 "알림" + 서버 문구로 보인다', async () => {
       const unknown = row(page, '새로운 종류의 알림');
@@ -82,7 +85,7 @@ scenario(
       await rows(page).last().scrollIntoViewIfNeeded();
     });
     await step(
-      '17종이 모두 카테고리 3종 중 하나로, 모르는 타입 1건만 기타로 나뉜다',
+      '17종이 모두 카테고리 7종 중 하나로, 모르는 타입 1건만 기타로 나뉜다',
       async () => {
         const counts = await rows(page).evaluateAll((els) =>
           els.reduce<Record<string, number>>((acc, el) => {
@@ -92,11 +95,28 @@ scenario(
           }, {}),
         );
         await note(`카테고리별 ${JSON.stringify(counts)}`);
-        expect(Object.keys(counts).sort()).toEqual(['EVENT', 'GIFT', 'OTHER', 'TICKET']);
+        expect(Object.keys(counts).sort()).toEqual([
+          'EVENT',
+          'GIFT',
+          'HOST_MEMBER',
+          'HOST_ORDER',
+          'HOST_REFUND',
+          'ORDER',
+          'OTHER',
+          'TICKET',
+        ]);
         expect(counts.OTHER).toBe(1);
       },
       { capture: false },
     );
+    await step('환불 완료 · 주문자 취소는 더는 "티켓승인 안내"가 아니다(#106)', async () => {
+      const refunded = row(page, '환불이 완료되었습니다');
+      await refunded.scrollIntoViewIfNeeded();
+      await expect(refunded).toContainText('주문취소·환불 안내');
+      const canceled = row(page, '주문자가 주문을 취소했어요');
+      await canceled.scrollIntoViewIfNeeded();
+      await expect(canceled).toContainText('호스트 · 취소·환불 요청');
+    });
   },
 );
 

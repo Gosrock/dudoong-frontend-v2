@@ -315,7 +315,11 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
   });
 
   it.each([
-    ['nobody@example.com', 'HOST_400_13', '가입되지 않은 이메일이에요'],
+    [
+      'nobody@example.com',
+      'HOST_400_13',
+      '가입되지 않은 이메일이에요. 상대가 두둥에 가입한 뒤 그 카카오 계정 이메일로 다시 초대해 주세요',
+    ],
     ['DRUM@example.com', 'HOST_400_15', '이미 이 호스트의 멤버예요'],
     [
       'twin@example.com',

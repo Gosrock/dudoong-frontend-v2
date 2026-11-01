@@ -115,7 +115,9 @@ export const toAddMembersBody = (rows: readonly InviteRow[]): AddHostMembersRequ
  * 문구는 잠정(디자인 없음).
  */
 export const INVITE_ERROR_MESSAGE = {
-  HOST_400_13: '가입되지 않은 이메일이에요',
+  // 다음 행동을 함께(스테이징 QA #106 §5). 초대 링크로 보내는 길은 서버 초대 API가 없어 backend-questions B33
+  HOST_400_13:
+    '가입되지 않은 이메일이에요. 상대가 두둥에 가입한 뒤 그 카카오 계정 이메일로 다시 초대해 주세요',
   HOST_400_14: '같은 이메일을 두 번 넣었어요',
   HOST_400_15: '이미 이 호스트의 멤버예요',
   HOST_400_18: '같은 이메일로 가입된 계정이 여러 개예요. 두둥에 문의해 주세요',

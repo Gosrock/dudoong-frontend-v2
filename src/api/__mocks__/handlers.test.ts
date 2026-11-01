@@ -98,7 +98,7 @@ describe('공연 탐색', () => {
     const byHost = await qc.fetchInfiniteQuery(eventListQuery({ keyword: '고스락' }));
     expect(byHost.pages[0]!.content.length).toBeGreaterThan(0);
 
-    // 부산(8) AND 어쿠스틱(5) → 102만
+    // 부산(8) AND 어쿠스틱·포크(5) → 102만
     const both = await qc.fetchInfiniteQuery(eventListQuery({ tagIds: [8, 5] }));
     expect(both.pages[0]!.content.map((e) => e.eventId)).toEqual([102]);
 
