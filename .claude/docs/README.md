@@ -24,6 +24,8 @@
 | [`backend-questions.md`](./backend-questions.md) | 백엔드 질문(남은 것 B16·B18 — 2026-10-31. B18은 약관 해결, v2 안내 문구 확정 대기)과 지켜보는 변경 |
 | [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
 | [`cutover-runbook.md`](./cutover-runbook.md) | **컷오버 · 롤백 런북**(P15, 2026-11-01) — 스테이징 → 운영 순서, 프리즈 윈도우 조건, go/no-go, Deploy 저장소에 붙일 diff(파일별), 롤백 단계 · 기준 · 시간, 리허설 체크리스트, 버전 태그 올리는 법, 컷오버 뒤 검색 등록 · 실측. 단계는 전부 사람이 한다 |
+| [`backend-handoff-2026-11-01.md`](./backend-handoff-2026-11-01.md) | **서버(백엔드 · 운영) 전달 문서**(2026-11-01) — 출시를 막는 것(동의 강제 시점 · 스테이징 D2 · 컷오버/롤백), 출시 전 답(B18 문구 · 티켓탭 공지 바 서버 값 · 쿠키 · Void 본문), nginx · 인프라 설정, 작은 서버 이슈 · 제안. 원본은 backend-questions · cutover-runbook |
+| [`claude-decisions-2026-11-01.md`](./claude-decisions-2026-11-01.md) | 관제탑 자율 진행(2026-10-31 ~ 11-01) 동안 Claude가 정한 것 모음 — 운영 순서 · DS · Phase별 V · P14/P15, 확인을 권하는 것(⚠) |
 | [`staging-deploy-plan.md`](./staging-deploy-plan.md) | 로컬에서 명령 하나로 스테이징에 배포하는 계획(미구현) — Deploy 저장소 변경, `pnpm deploy:staging` 스크립트, 준비물 |
 | [`directory-structure.md`](./directory-structure.md) | 폴더, 라우트, 계층 규칙 |
 | [`storyboard.md`](./storyboard.md) | 화면 흐름 + 호출 API + Phase |
