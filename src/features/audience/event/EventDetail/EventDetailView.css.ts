@@ -152,6 +152,11 @@ export const aside = style([
         position: 'sticky',
         // 고정 상단 바(58) 아래 + space[5](fix-qa-1101)
         top: `calc(${TOP_BAR_HEIGHT}px + ${vars.space[5]})`,
+        // 낮은 PC 화면(1024×600 등)에서 카드가 화면보다 길면 아래 [티켓 구매하기]가 페이지 끝까지 안 보였다 — 화면 안에 묶고
+        // 넘치면 카드 안에서 스크롤(이슈 #95, EventScopeNav 사이드바와 같은 방식)
+        maxHeight: `calc(100dvh - ${TOP_BAR_HEIGHT}px - ${vars.space[5]} * 2)`,
+        overflowY: 'auto',
+        overscrollBehavior: 'contain',
       },
     },
   },

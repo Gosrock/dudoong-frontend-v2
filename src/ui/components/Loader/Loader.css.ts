@@ -1,5 +1,6 @@
 import { keyframes, style, styleVariants } from '@vanilla-extract/css';
 
+import { FULL_SCREEN_MIN_HEIGHT } from '../../theme/bars';
 import { vars } from '../../theme/tokens.css';
 
 const spin = keyframes({ to: { transform: 'rotate(360deg)' } });
@@ -37,7 +38,8 @@ export const screen = style({
   color: vars.color.text.tertiary,
 });
 
-export const screenFull = style({ minHeight: '100dvh' });
+/** 화면 높이 채우기 — 셸 안이면 고정 바 자리를 뺀다(이슈 #95, `bars.ts`) */
+export const screenFull = style({ minHeight: FULL_SCREEN_MIN_HEIGHT });
 
 /** 라벨 폭을 유지한 채 스피너로 바꾼다(design-system §3 "없는 상태" — Button 로딩) */
 export const loadingLabel = style({

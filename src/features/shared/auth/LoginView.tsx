@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { Button } from '@/ui/components/Button/Button';
-import { Tooltip } from '@/ui/components/Tooltip/Tooltip';
+import { TooltipBubble } from '@/ui/components/Tooltip/Tooltip';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
@@ -32,13 +32,13 @@ export function LoginView({ expired = false }: { expired?: boolean }) {
       <VisuallyHidden asChild>
         <h1>{expired ? '로그인이 만료됐어요' : '로그인'}</h1>
       </VisuallyHidden>
-      {/* FIGMA-CUSTOM: 로그인 말풍선(wire 218:4792 "로그인") 커스텀 → DS Tooltip(늘 열림). Figma 코멘트 2026-11-01 */}
-      <Tooltip content={expired ? BUBBLE.expired : BUBBLE.login} side="top" open>
-        <span className={s.character}>
-          {/* FIGMA-CUSTOM: 로그인 캐릭터(wire 218:4797 "image 129") 래스터 자리표시 → DS 일러스트 img_login(같은 285 자리). Figma 코멘트 2026-11-01 */}
-          <Illustration name="login" />
-        </span>
-      </Tooltip>
+      {/* 말풍선 + 캐릭터는 한 묶음(흐름 안) — 같이 스크롤·오버스크롤된다(이슈 #95. 전에는 말풍선만 포털 fixed라 따로 놀았다) */}
+      <div className={s.hero}>
+        {/* FIGMA-CUSTOM: 로그인 말풍선(wire 218:4792 "로그인") 커스텀 → DS Tooltip 모양(TooltipBubble, 흐름 안). Figma 코멘트 2026-11-01 */}
+        <TooltipBubble>{expired ? BUBBLE.expired : BUBBLE.login}</TooltipBubble>
+        {/* FIGMA-CUSTOM: 로그인 캐릭터(wire 218:4797 "image 129") 래스터 자리표시 → DS 일러스트 img_login(같은 285 자리). Figma 코멘트 2026-11-01 */}
+        <Illustration name="login" />
+      </div>
       <div className={s.action}>
         <Suspense fallback={null}>
           <KakaoLoginAction />

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { NoticeBannerView } from '@/features/shared/notice/NoticeBannerView';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
+import { barSpace } from '@/features/shared/shell/shell.css';
 import { ShellMenuButton } from '@/features/shared/shell/ShellMenuButton';
 import { ShellAccountMenu, ShellRetry } from '@/features/shared/shell/ShellParts';
 import { button } from '@/ui/components/Button/Button.css';
@@ -32,8 +33,8 @@ const NAV = [
 export function AudienceShell({ children }: { children: ReactNode }) {
   return (
     <div className={s.root}>
-      {/* 서비스 공지 상단 배너 한 줄(P9c-V) — 헤더보다 위. 하위 화면 헤더(AudienceSubHeader)는 페이지 안이라 헤더 아래에 두면 화면마다 자리가 달라진다 */}
-      <NoticeBannerView audience="USER" />
+      {/* 고정 상단 바(로고 헤더 · 하위 화면 헤더 · PC 상단 바 — 모두 fixed)의 자리. 이슈 #95 */}
+      <div className={barSpace} aria-hidden />
       <div className={s.mobileHeader}>
         <Header
           logo="audience"
@@ -76,6 +77,8 @@ export function AudienceShell({ children }: { children: ReactNode }) {
           </>
         }
       />
+      {/* 서비스 공지 상단 배너 한 줄(P9c-V) — 고정 바 아래 흐름 안. 스크롤하면 바 밑으로 사라진다(이슈 #95 — 바가 fixed라 위에 두면 가려진다) */}
+      <NoticeBannerView audience="USER" />
       <div className={s.body}>{children}</div>
     </div>
   );

@@ -400,10 +400,10 @@ scenario(
   {
     kind: '반응형',
     summary:
-      'PC 상단 바(관객·호스팅)와 모바일 로고 헤더 · 공연 헤더가 sticky top 0. PC 공연 사이드바는 상단 바 바로 아래(58)에 붙는다. 서비스 배너는 고정하지 않는다(위로 사라진다 — Claude 판단).',
+      'PC 상단 바(관객·호스팅)와 모바일 로고 헤더 · 하위 화면 헤더 · 공연 헤더가 fixed top 0(이슈 #95 — sticky는 고무줄 오버스크롤 때 콘텐츠와 같이 밀렸다). 스크롤 끝에서도 맨 위. PC 공연 사이드바는 상단 바 바로 아래(58)에 붙는다. 서비스 배너는 바 아래 흐름 안이라 위로 사라진다(Claude 판단).',
     basis: [
-      'implementation-log fix-qa-1101 §3',
-      'src/features/shared/shell/shell.css.ts stickyBar',
+      'implementation-log fix-qa-1101 §3 · layout-fixed-95',
+      'src/features/shared/shell/shell.css.ts fixedBar · barSpace',
       'src/ui/theme/bars.ts',
     ],
   },
@@ -422,6 +422,18 @@ scenario(
       await note(`${label} y ${box.y}`);
       expect(box.y).toBe(0);
     };
+    /** 보이는 셸 바(헤더·상단 바)를 감싼 고정 요소들 — 맨 위 0, `position: fixed`(이슈 #95) */
+    const fixedTopBars = () =>
+      page.evaluate(() =>
+        [...document.querySelectorAll('body *')]
+          .filter((e) => {
+            const r = e.getBoundingClientRect();
+            return (
+              getComputedStyle(e).position === 'fixed' && r.height > 0 && r.width >= innerWidth - 20
+            );
+          })
+          .map((e) => Math.round(e.getBoundingClientRect().top)),
+      );
 
     await step(
       `관객 공연홈을 아래로 스크롤해도 ${desktop ? 'PC 상단 바' : '로고 헤더'}가 맨 위에 보인다`,
@@ -457,6 +469,38 @@ scenario(
           await note(`공연 메뉴 버튼 y ${btn.y}`);
           expect(btn.y).toBeLessThan(64);
         }
+      },
+    );
+    await step(
+      '스크롤 끝까지 내려도 상단 바는 fixed로 맨 위(0)에 있고, 맨 위에서는 첫 내용이 바에 가려지지 않는다',
+      async () => {
+        await page.goto('/orders');
+        await expect(page.getByRole('main')).toBeVisible();
+        const barH = desktop ? 58 : 64;
+        // 맨 위: 고정 바 바로 아래가 흐름의 시작(배너 또는 본문) — 바 자리(barSpace)가 잡혀 있다
+        const firstTop = await page.evaluate(() => {
+          const el =
+            document.querySelector('[data-testid="notice-banner"]') ??
+            document.querySelector('main');
+          return Math.round(el!.getBoundingClientRect().top);
+        });
+        await note(`맨 위 — 첫 내용 y ${firstTop}`);
+        expect(firstTop).toBeGreaterThanOrEqual(barH);
+        // 목록은 main 뒤에 채워진다 — 끝까지 스크롤이 닿을 때까지 다시 스크롤한다
+        await expect
+          .poll(() =>
+            page.evaluate(() => {
+              window.scrollTo(0, document.documentElement.scrollHeight);
+              return (
+                window.scrollY > 0 &&
+                Math.ceil(window.scrollY + innerHeight) >= document.documentElement.scrollHeight - 1
+              );
+            }),
+          )
+          .toBe(true);
+        const tops = await fixedTopBars();
+        await note(`스크롤 끝 — 고정 바 top ${tops.join(', ')}`);
+        expect(tops).toContain(0);
       },
     );
   },
@@ -506,6 +550,58 @@ scenario(
     });
   },
 );
+
+scenario(
+  'SHELL-11',
+  '로그인 말풍선과 캐릭터가 한 묶음으로 스크롤된다',
+  {
+    kind: '반응형',
+    summary:
+      '말풍선이 포털 fixed(Radix Tooltip)라 스크롤 · 오버스크롤 때 캐릭터와 따로 놀았다(이슈 #95). 이제 흐름 안 `TooltipBubble` — 스크롤해도 둘의 간격이 같다. 가로 모드(667×375)처럼 낮은 화면에서도 겹치지 않는다.',
+    basis: ['이슈 #95 §2', 'src/features/shared/auth/LoginView.tsx'],
+  },
+  async ({ page, step, note, testInfo }) => {
+    resetStores();
+    await setMockSession(page, 'anonymous');
+    const desktop = testInfo.project.name === 'desktop';
+    await page.setViewportSize(
+      desktop ? { width: 1440, height: 600 } : { width: 667, height: 375 },
+    );
+    await step(
+      '스크롤 전후로 말풍선 ↔ 캐릭터 간격이 같고, 말풍선이 캐릭터 위에 겹치지 않는다',
+      async () => {
+        await page.goto('/login');
+        const bubble = page.getByText('두둥에 로그인하고 즐거운 공연 라이프를 즐겨보세요!');
+        await expect(bubble).toBeVisible();
+        const gap = () =>
+          page.evaluate(() => {
+            // 묶음(hero)도 같은 글자라 가장 안쪽(마지막) div가 말풍선
+            const b = [...document.querySelectorAll('div')].findLast(
+              (d) => d.textContent === '두둥에 로그인하고 즐거운 공연 라이프를 즐겨보세요!',
+            )!;
+            const img = document.querySelector('main img')!;
+            return {
+              pos: getComputedStyle(b).position,
+              gap: Math.round(img.getBoundingClientRect().top - b.getBoundingClientRect().bottom),
+            };
+          });
+        const before = await gap();
+        await page.evaluate(() => window.scrollTo(0, 200));
+        const after = await gap();
+        await note(`말풍선 position ${before.pos} · 간격 ${before.gap} → ${after.gap}`);
+        expect(before.pos).not.toBe('fixed');
+        expect(after.gap).toBe(before.gap);
+        expect(before.gap).toBeGreaterThanOrEqual(0);
+      },
+    );
+  },
+);
+
+scenario.manual('SHELL-12', '실기기 고무줄 오버스크롤 — 상단 바 고정', {
+  kind: '반응형',
+  basis: ['이슈 #95 §1', 'tech-decisions §33'],
+  how: 'iPhone Safari · macOS Safari/Chrome(트랙패드) · Android Chrome에서 공연홈 · 주문내역 · 호스팅 공연 대시보드를 맨 위에서 아래로 당기고, 맨 아래에서 위로 밀어 본다 — ① 상단 바는 제자리, 콘텐츠만 늘어난다 ② Android 당겨서 새로고침이 된다 ③ 주소창이 스크롤에 따라 숨고 나온다 ④ 뒤로 가기 뒤 스크롤 위치가 돌아온다 ⑤ 입력칸(체크아웃 입금자명 · 호스팅 기본 정보)을 눌러 키보드가 올라와도 상단 바가 화면 밖으로 밀리지 않는다.',
+});
 
 scenario.manual('SHELL-7', '바텀시트·모달·드로어 iOS Safari 스크롤 잠금·키보드 회피', {
   kind: '반응형',
