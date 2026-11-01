@@ -22,7 +22,9 @@ export type CheckoutErrorKind =
   /** 같은 무료 선착순 주문 처리 중 — 주문내역으로 */
   | 'DUPLICATE_IN_PROGRESS'
   /** 무료 선착순 확정 실패(표에 없는 에러) — 재시도 안내 */
-  | 'FREE_FCFS_FAILED';
+  | 'FREE_FCFS_FAILED'
+  /** 응답을 받지 못함(TIMEOUT·NETWORK) — 서버가 주문을 만들었을 수 있다. 다시 내기 전에 주문내역 확인 */
+  | 'ORDER_UNCERTAIN';
 
 export type CheckoutErrorOutcome = {
   kind: CheckoutErrorKind;
@@ -82,6 +84,19 @@ export const FREE_FCFS_FAILED: CheckoutErrorOutcome = row(
   'FREE_FCFS_FAILED',
   '신청을 완료하지 못했어요. 잠시 후 다시 시도해 주세요.',
 );
+
+/**
+ * 주문 생성 응답을 받지 못했다(TIMEOUT·NETWORK — 이슈 #92-4). 서버가 늦게 성공했을 수 있고 `Idempotency-Key`가 없어
+ * 다시 내면 서버의 10초 중복 판정 밖에서 새 주문이 될 수 있다 — 폼 상단에 주문내역 링크와 함께 남긴다(토스트는 사라진다).
+ * 결제 수단과 상관없이 같다(무료 선착순의 "다시 시도" 안내보다 먼저).
+ */
+export const ORDER_UNCERTAIN: CheckoutErrorOutcome = row(
+  'ORDER_UNCERTAIN',
+  '주문 결과를 확인하지 못했어요. 다시 주문하기 전에 주문내역에서 주문이 들어갔는지 확인해 주세요.',
+);
+
+/** 응답을 받지 못한 실패의 코드(`ApiError` status 0 — patterns §5) */
+export const UNCERTAIN_ERROR_CODES = ['TIMEOUT', 'NETWORK'] as const;
 
 export function classifyCheckoutError(code: string | null): CheckoutErrorOutcome | null {
   if (code === null || !Object.hasOwn(CHECKOUT_ERROR_TABLE, code)) return null;

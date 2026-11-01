@@ -71,6 +71,9 @@ export const errorBanner = style({
   background: vars.color.status.warningSubtle,
 });
 
+/** 오류 문구 아래 버튼(주문 결과 미확인 → 주문내역) */
+export const errorBannerAction = style({ marginTop: vars.space[2] });
+
 /** 총 결제금액 위 선(GUI `567:7924` LINE — 좌우 24 안쪽) */
 export const totalDivider = style({
   height: 1,

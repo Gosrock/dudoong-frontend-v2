@@ -13,13 +13,21 @@ import {
 } from './schema';
 
 /**
+ * 주문 생성의 시간 제한. 일반 요청(10초)보다 길게 — 스테이징에서 서버가 26초 뒤에 답한 일이 있다(이슈 #92-4).
+ * 10초에 끊으면 서버는 계속 처리하는데 화면은 실패로 보여, 다시 누른 주문이 서버의 10초 중복 판정 밖에서 새 주문이 된다.
+ * 끊기면(TIMEOUT·NETWORK) 화면은 다시 시도 대신 주문내역 확인을 권한다(`useCheckout` — `ORDER_UNCERTAIN`).
+ */
+export const ORDER_CREATE_TIMEOUT_MS = 30_000;
+
+/**
  * P11/O-1 주문 생성(로그인). 응답은 G11/O-3과 같은 주문 상세다. 같은 사용자의 같은 요청이 10초 안에 다시 오면
- * 서버가 앞 주문을 돌려준다(`Idempotency-Key` 없음). 무료 선착순 확정이 실패하면 주문이 아니라 원래 에러가 온다.
- * 캐시 반영·이동은 화면(`useCheckout`)이 한다.
+ * 서버가 앞 주문을 돌려준다(`Idempotency-Key` 없음 — 재시도에 실을 요청 키가 없다). 무료 선착순 확정이 실패하면
+ * 주문이 아니라 원래 에러가 온다. 캐시 반영·이동은 화면(`useCheckout`)이 한다.
  */
 export const createOrderMutation = () =>
   mutationOptions({
-    mutationFn: (body: CreateOrderRequest) => api.post('me/orders', MyOrderDetailSchema, body),
+    mutationFn: (body: CreateOrderRequest) =>
+      api.post('me/orders', MyOrderDetailSchema, body, { timeout: ORDER_CREATE_TIMEOUT_MS }),
   });
 
 /**

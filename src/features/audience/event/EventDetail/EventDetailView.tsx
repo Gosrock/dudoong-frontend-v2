@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useId, useLayoutEffect, useState } from 'react';
 
 import type { EventDetail } from '@/api/event/schema';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
@@ -56,6 +56,10 @@ export function EventDetailView({ eventId }: { eventId: string }) {
     (open: boolean) => setSheet((cur) => (open ? 'open' : cur === 'closed' ? 'closed' : 'closing')),
     [],
   );
+  // 이 화면이 숨겨지면(다른 화면으로 이동 — Next가 이전 화면을 Activity로 숨겨 DOM에 남긴다, patterns §10-4) 시트를 바로 뗀다.
+  // 시트를 닫으며 이동하면 닫힘 타이머(`useOnExited`)가 숨김과 함께 정리돼 'closing'에 멈추고, 숨은 화면 안에
+  // role=dialog가 남는다(이슈 #92-9). 숨김·언마운트 때만 도는 정리라 처음 그릴 때(닫힌 상태)는 바뀌는 것이 없다
+  useLayoutEffect(() => () => setSheet('closed'), []);
   const { checkoutHref } = tickets;
   const buyFromCard = () => checkoutHref && router.push(checkoutHref);
   // 시트에서 살 때는 시트를 닫아 그 기록 항목을 먼저 소비하고(BottomSheet가 history.back) 그 뒤에 push한다 — 기록이
