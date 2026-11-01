@@ -170,7 +170,7 @@ function RefundAccountSheet({
       description={
         mode === 'edit'
           ? '보안을 위해 계좌번호는 다시 입력해 주세요.'
-          : '환불받을 계좌를 입력해 주세요. 호스트가 이 계좌로 환불해요.'
+          : '환불받을 계좌를 입력해 주세요. 입력하신 계좌로 호스트가 환불해요.'
       }
       footer={
         <Button type="submit" form={formId} size="lg" fullWidth loading={r.pending}>
@@ -297,8 +297,11 @@ function PaidCancelSheet({
         </Flex>
         <div className={s.sheetNotice}>
           <Txt typography="labelMd">환불받을 계좌</Txt>
+          {/* 위 A-9 원문("호스트에게 연락해 계좌를 알려주세요")은 v1 기준 — 약관 근거라 그대로 두고(B28), v2 흐름은 이 줄이 알린다.
+              약관 제29조③은 "서비스에 입력하거나 호스트에게 알린 때" 둘 다 허용(legal-copy "v2 계획과 다른 점 공통"). 이슈 #105 🤖 */}
           <Txt typography="bodySm" color={colors.textSecondaryLabel}>
-            취소하려면 환불받을 계좌가 필요해요. 호스트가 이 계좌로 환불해요.
+            취소하려면 환불받을 계좌가 필요해요. 여기에 입력한 계좌는 호스트에게 바로 전달되고,
+            호스트가 이 계좌로 환불해요. 환불이 늦어지면 호스트에게 연락해 주세요.
           </Txt>
         </div>
         <RefundAccountFields

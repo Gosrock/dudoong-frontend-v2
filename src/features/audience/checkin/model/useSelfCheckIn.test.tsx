@@ -24,24 +24,37 @@ afterEach(() => {
   restore();
 });
 
-function open(token: string | null) {
+/** 연다 — 기본은 [입장하기](`start`)까지 누른다(이슈 #106 §6 확인 단계). `start: false`면 연 채로 */
+function open(token: string | null, { start = true } = {}) {
   const queryClient = createTestQueryClient();
   const wrapper = ({ children }: { children: ReactNode }) => (
     <StrictMode>
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </StrictMode>
   );
-  return { ...renderHook(() => useSelfCheckIn(token), { wrapper }), queryClient };
+  const rendered = renderHook(() => useSelfCheckIn(token), { wrapper });
+  if (start) act(() => rendered.result.current.start());
+  return { ...rendered, queryClient };
 }
 
 const posts = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method === 'POST' && r.path === '/api/v2/check-ins/self');
 
 describe('셀프 체크인 — useSelfCheckIn(PQ-5)', () => {
-  it('1장이면 열자마자 {token}을 한 번만 보내 입장 완료(StrictMode에서도 한 번)', async () => {
+  it('열면 요청 없이 확인 단계(ready) — [입장하기]를 눌러야 보낸다(이슈 #106 §6)', async () => {
+    const sent = recordRequests();
+    const { result } = open(CHECK_IN_TOKEN.single, { start: false });
+    expect(result.current.state.status).toBe('ready');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(await posts(sent)).toEqual([]);
+    expect(result.current.state.status).toBe('ready');
+  });
+
+  it('1장이면 [입장하기]에 {token}을 한 번만 보내 입장 완료(두 번 눌러도 · StrictMode에서도 한 번)', async () => {
     const sent = recordRequests();
     const { result } = open(CHECK_IN_TOKEN.single);
     expect(result.current.state.status).toBe('checking');
+    act(() => result.current.start());
     await waitFor(() => expect(result.current.state.status).toBe('result'));
     expect(result.current.state).toMatchObject({
       view: { result: 'ENTERED', title: '입장이 완료됐어요', ticket: { ownerName: '두둥이' } },

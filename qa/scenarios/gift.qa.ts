@@ -46,7 +46,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '#19 — 체크해야 [티켓 선물하기]가 눌린다(PG-1 본문은 그대로). 링크 생성 완료 화면에서 메모(PG-8)를 칸을 떠날 때 저장하고, [링크복사]는 토스트, [메세지]는 sms: 링크.',
+      '#19 — 체크해야 [티켓 선물하기]가 눌린다(PG-1 본문은 그대로). 링크 생성 완료 화면에서 메모(PG-8)를 칸을 떠날 때 저장하고, [링크복사]는 토스트, [메시지]는 sms: 링크(본문에 제목 · 공연 · 링크 — #106 §1).',
     basis: ['plan P8b V 범위 · #19', 'GUI 908:12032 · 908:13105 · 908:21508', 'patterns §18 공유'],
     viewports: ['mobile'],
   },
@@ -82,9 +82,9 @@ scenario(
           'data-value',
           /\/gifts\/mock-gift-new-\d+$/,
         );
-        await expect(page.getByRole('link', { name: '메세지' })).toHaveAttribute(
+        await expect(page.getByRole('link', { name: '메시지' })).toHaveAttribute(
           'href',
-          /^sms:\?body=/,
+          /^sms:\?body=%EB%91%90%EB%91%A5%20%ED%8B%B0%EC%BC%93%20%EC%84%A0%EB%AC%BC.*%2Fgifts%2Fmock-gift-new-\d+$/,
         );
         const posts = mockApi.calls().filter((c) => c.method === 'POST');
         expect(posts.map((c) => c.path)).toEqual([
@@ -170,7 +170,7 @@ scenario(
 
 scenario(
   'GIFT-4',
-  '미가입 수신자: 링크 → 로그인 안내 → [카카오 로그인하기] → 가입 → 같은 랜딩 → 다시 눌러 수락',
+  '미가입 수신자: 링크 → 선물 요약 + 로그인 안내 → [카카오 로그인하기] → 가입 → 같은 랜딩 → 다시 눌러 수락',
   {
     kind: '정상',
     summary:
@@ -183,11 +183,13 @@ scenario(
     await setMockSession(page, 'anonymous');
     const url = landing(GIFT_TOKEN.forMe);
     await step(
-      '링크를 열면 "두둥에 로그인하고…" + [카카오 로그인하기], 수락 버튼은 없다',
+      '링크를 열면 보낸 사람(가린 이름) · 공연 요약 · "두둥에 로그인하면…" + [카카오 로그인하기], 수락 버튼은 없다(#106 §1)',
       async () => {
         await page.goto(url);
         await expect(statusArea(page)).toHaveAttribute('data-view-state', 'AVAILABLE');
-        await expect(page.getByText('두둥에 로그인하고 다양한 공연을 즐겨보세요!')).toBeVisible();
+        await expect(page.getByText(/님이 보낸 티켓 선물이에요$/)).toBeVisible();
+        await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('공연 정보 없음');
+        await expect(page.getByText('두둥에 로그인하면 선물을 받을 수 있어요')).toBeVisible();
         await expect(page.getByRole('button', { name: '선물받기' })).toHaveCount(0);
       },
     );
@@ -409,10 +411,10 @@ scenario(
   },
 );
 
-scenario.manual('GIFT-10', '[카카오톡] 공유 · [메세지] 문자 앱이 실기기에서 열린다', {
+scenario.manual('GIFT-10', '[카카오톡] 공유 · [메시지] 문자 앱이 실기기에서 열린다', {
   kind: '정상',
   basis: ['plan P8b L 범위 공유', 'progress D2 스테이징 첫 배포'],
-  how: 'D2 스테이징 뒤 iOS·Android 실기기에서 링크 생성 완료 화면의 [카카오톡](카카오 공유창, 미리보기에 메모·보낸 사람 없음)과 [메세지](문자 앱 본문에 링크)를 누른다.',
+  how: 'D2 스테이징 뒤 iOS·Android 실기기에서 링크 생성 완료 화면의 [카카오톡](카카오 공유창, 미리보기에 메모·보낸 사람 없음)과 [메시지](문자 앱 본문에 제목 · 공연 · 링크)를 누른다.',
 });
 
 scenario.manual('GIFT-11', '실제 카카오 가입 왕복 뒤 랜딩으로 돌아와 수락', {

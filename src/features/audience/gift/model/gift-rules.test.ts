@@ -112,7 +112,7 @@ describe('링크와 공유 내용', () => {
     expect(giftLinkUrl('https://dudoong.com', 'gifts/abc')).toBe('https://dudoong.com/gifts/abc');
   });
 
-  it('[메세지]는 sms: 링크, [카카오톡]은 공유 피드 템플릿(공연·티켓 요약만)', () => {
+  it('[메시지]는 sms: 링크(제목 · 요약 · 링크 본문), [카카오톡]은 공유 피드 템플릿(공연·티켓 요약만)', () => {
     const share = giftShare({
       origin: 'https://dudoong.com',
       linkPath: '/gifts/abc_DEF-1',
@@ -122,7 +122,9 @@ describe('링크와 공유 내용', () => {
     });
     expect(share.url).toBe('https://dudoong.com/gifts/abc_DEF-1');
     expect(share.smsHref).toBe(
-      `sms:?body=${encodeURIComponent('https://dudoong.com/gifts/abc_DEF-1')}`,
+      `sms:?body=${encodeURIComponent(
+        '두둥 티켓 선물이 도착했어요\n고스락 제37회 정기공연 · 일반 예매\nhttps://dudoong.com/gifts/abc_DEF-1',
+      )}`,
     );
     expect(share.kakao).toEqual({
       objectType: 'feed',

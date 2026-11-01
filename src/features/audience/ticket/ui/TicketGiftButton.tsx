@@ -12,6 +12,7 @@ import {
 import { BottomSheet } from '@/ui/components/BottomSheet/BottomSheet';
 import { Button } from '@/ui/components/Button/Button';
 import { Icon } from '@/ui/icons/Icon';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -48,7 +49,12 @@ export function TicketGiftButton({
   const [sheet, setSheet] = useState<Sheet>(null);
   const [sendTarget, setSendTarget] = useState<MyTicketDetail | null>(null);
   /** 연 순간의 대기 중 선물 — 취소가 끝나 T-2가 다시 와서 `pendingGift`가 없어져도 시트가 끝까지 남아 결과를 알린다 */
-  const [cancelTarget, setCancelTarget] = useState<{ giftId: number; verb: string } | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<{
+    giftId: number;
+    verb: string;
+    /** 다시 보기(이슈 #106 §1) — 대기 중 선물의 링크·메모와 그 티켓 */
+    relink: { link: GiftLink; detail: MyTicketDetail } | null;
+  } | null>(null);
 
   const pending = view?.pendingGift ?? null;
   const ticketUuid = view?.detail.ticketUuid ?? null;
@@ -89,7 +95,24 @@ export function TicketGiftButton({
         data-keep-open
         onClick={() => {
           if (mode === 'send' && view) setSendTarget(view.detail);
-          if (mode === 'cancel' && pending) setCancelTarget({ giftId: pending.giftId, verb });
+          if (mode === 'cancel' && pending && view) {
+            setCancelTarget({
+              giftId: pending.giftId,
+              verb,
+              relink:
+                pending.linkPath && !view.detail.isGiftExpired
+                  ? {
+                      link: {
+                        giftId: pending.giftId,
+                        linkPath: pending.linkPath,
+                        memo: pending.memo,
+                        existing: true,
+                      },
+                      detail: view.detail,
+                    }
+                  : null,
+            });
+          }
           if (mode !== 'none') setSheet(mode);
         }}
       />
@@ -108,7 +131,17 @@ export function TicketGiftButton({
           giftId={cancelTarget.giftId}
           ticketUuid={ticketUuid}
           verb={cancelTarget.verb}
+          memo={cancelTarget.relink?.link.memo ?? null}
           onDone={() => onDone({ kind: 'canceled', verb: cancelTarget.verb })}
+          onRelink={
+            cancelTarget.relink
+              ? () => {
+                  const relink = cancelTarget.relink!;
+                  setSheet(null);
+                  onDone({ kind: 'linked', ...relink });
+                }
+              : null
+          }
         />
       )}
       {mode === 'return' && ticketUuid && (
@@ -129,14 +162,19 @@ function CancelGiftSheet({
   giftId,
   ticketUuid,
   verb,
+  memo,
   onDone,
+  onRelink,
 }: {
   open: boolean;
   onClose: () => void;
   giftId: number;
   ticketUuid: string | null;
   verb: string;
+  memo: string | null;
   onDone: () => void;
+  /** 링크 다시 보기 — 링크 생성 완료 화면(`908:13105`)을 다시 띄운다. 링크가 없거나 공연이 끝난 선물(회수)은 null */
+  onRelink: (() => void) | null;
 }) {
   const cancel = useCancelGift(giftId, { ticketUuid });
   const fired = useRef(false);
@@ -155,17 +193,48 @@ function CancelGiftSheet({
       title={`선물을 ${verb}하시겠습니까?`}
       description={`확인을 누르시면 해당 티켓 선물이 ${verb}됩니다.`}
       footer={
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          loading={cancel.pending}
-          onClick={() => void cancel.cancel()}
-        >
-          {`선물 ${verb}하기`}
-        </Button>
+        // FIGMA-CUSTOM: GUI 908:21252는 [선물 취소하기] 하나 + X — 이슈 #106 §1로 [아니요]를 더했다(선물 랜딩 거절 시트 939:26914의 두 버튼 배치). 🤖 Q81
+        <Flex gap={2} fullWidth>
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            disabled={cancel.pending}
+            onClick={onClose}
+          >
+            아니요
+          </Button>
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            loading={cancel.pending}
+            onClick={() => void cancel.cancel()}
+          >
+            {`선물 ${verb}하기`}
+          </Button>
+        </Flex>
       }
     >
+      {/* 대기 중 선물의 링크·메모를 다시 볼 곳(이슈 #106 §1 ⭐ — 링크 화면을 벗어나면 되찾을 수 없었다). 디자인 없음 → DS Button. 🤖 Q80 */}
+      {onRelink && (
+        <Flex direction="column" gap={2} align="flex-start">
+          {memo && (
+            <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
+              선물 대상 메모: {memo}
+            </Txt>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Icon name="link" />}
+            disabled={cancel.pending}
+            onClick={onRelink}
+          >
+            선물 링크 다시 보기
+          </Button>
+        </Flex>
+      )}
       {cancel.error && (
         <p role="alert">
           <Txt typography="bodyMd" color={colors.textDangerLabel}>

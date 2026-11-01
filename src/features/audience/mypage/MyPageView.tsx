@@ -120,7 +120,8 @@ export function MyPageView() {
               maxLength={NICKNAME_MAX}
               showCount
               error={name.error ?? undefined}
-              helper={`${NICKNAME_MIN}~${NICKNAME_MAX}자로 지어 주세요`}
+              // 닉네임 = 예매자명·입금자명(서비스 운영자 결정, 이슈 #106 §4 — 화면 안내만 보강)
+              helper={`${NICKNAME_MIN}~${NICKNAME_MAX}자로 지어 주세요. 예매자명·입금자명으로 호스트에게 보여요`}
             />
             <Button
               type="submit"

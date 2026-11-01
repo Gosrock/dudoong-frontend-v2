@@ -52,6 +52,9 @@ export function useOrderDetail(orderUuid: string) {
       cancelNotice: cancelNotice(order),
       refundAccount: refundAccountEntry(order),
       refuseReason: refuseReasonText(order),
+      /** 입금 미확인 거절 — 환불 계좌는 입금한 경우에만(이슈 #106 §5) */
+      depositUnconfirmed:
+        order.status === 'REFUSED' && order.refuseReasonType === 'DEPOSIT_UNCONFIRMED',
       amounts: orderAmounts(order),
       optionMode: optionMode(order),
     }),

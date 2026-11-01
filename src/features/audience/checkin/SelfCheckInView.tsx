@@ -10,6 +10,7 @@ import type {
 } from '@/features/shared/checkin-result/model/checkin-result';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { ScreenLoader } from '@/ui/components/Loader/Loader';
@@ -37,7 +38,7 @@ const TONE = {
  * 결과·실패는 `EmptyState` 배치(톤 아이콘 + 제목 + 설명) + 티켓 정보 `InfoRow` + [티켓탭으로].
  */
 export function SelfCheckInView({ token }: { token: string | null }) {
-  const { state, select, retry, submitting } = useSelfCheckIn(token);
+  const { state, start, select, retry, submitting } = useSelfCheckIn(token);
 
   if (state.status === 'checking' && state.candidates === null) {
     return <ScreenLoader label="체크인하는 중" fullScreen />;
@@ -46,6 +47,7 @@ export function SelfCheckInView({ token }: { token: string | null }) {
   return (
     <main className={s.page}>
       <div className={s.content}>
+        {state.status === 'ready' && <Ready onStart={start} />}
         {(state.status === 'select' || state.status === 'checking') && (
           <SelectTicket
             candidates={state.candidates ?? []}
@@ -73,6 +75,24 @@ function SelectTicket({
   onSelect: (ticketUuid: string) => void;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
+  // 고른 티켓을 한 번 더 확인한다 — 입장 처리는 되돌릴 수 없다(이슈 #106 §6, 디자인 없음 → DS EasyOverlay confirm)
+  const confirmPick = async () => {
+    const ticket = candidates.find((c) => c.ticketUuid === picked);
+    if (!picked || !ticket) return;
+    const name = [ticket.ticketName ?? '티켓', ticket.issuedTicketNo].filter(Boolean).join(' · ');
+    const ok = await openConfirm({
+      title: '이 티켓으로 입장할까요?',
+      description: (
+        <>
+          {name}
+          <br />
+          입장 처리는 되돌릴 수 없어요.
+        </>
+      ),
+      confirmLabel: '입장하기',
+    });
+    if (ok) onSelect(picked);
+  };
   return (
     <section aria-label="티켓 고르기">
       <Flex direction="column" gap={2}>
@@ -80,8 +100,8 @@ function SelectTicket({
           입장할 티켓을 골라 주세요
         </Txt>
         <Txt as="p" typography="bodyMd" color={colors.textSecondary}>
-          이 공연에 입장할 수 있는 내 티켓이 {candidates.length}장 있어요. 고른 티켓은 바로 입장
-          처리돼요.
+          이 공연에 입장할 수 있는 내 티켓이 {candidates.length}장 있어요. 회차·좌석이 다른 티켓이
+          있다면 티켓 이름을 확인하고 골라 주세요.
         </Txt>
       </Flex>
       {error && (
@@ -127,10 +147,43 @@ function SelectTicket({
         fullWidth
         disabled={!picked}
         loading={submitting}
-        onClick={() => picked && onSelect(picked)}
+        onClick={() => void confirmPick()}
       >
         이 티켓으로 입장
       </Button>
+    </section>
+  );
+}
+
+/**
+ * 확인 단계(이슈 #106 §6) — QR을 스캔하고 들어오면 바로 입장 처리하지 않고 [입장하기]를 누르게 한다.
+ * 디자인 없음 — DS EmptyState와 같은 배치(아이콘 · 제목 · 설명) + 버튼. 문구는 🤖 Claude 판단(2026-11-02)
+ */
+function Ready({ onStart }: { onStart: () => void }) {
+  // 진짜 h1(접근성 — 화면마다 h1 하나). EmptyState 제목은 <p>라 그 배치만 따른다
+  return (
+    <section aria-label="입장 확인">
+      <Flex direction="column" align="center" gap={3} paddingY={8}>
+        <Icon name="qr" className={s.toneIcon} />
+        <Txt as="h1" typography="headingMdEmphasized" align="center">
+          공연장 입구에서 입장해 주세요
+        </Txt>
+        <Txt as="p" typography="bodyLg" color={colors.textSecondary} align="center">
+          [입장하기]를 누르면 내 티켓이 바로 입장 처리돼요. 입장 처리는 되돌릴 수 없어요.
+        </Txt>
+      </Flex>
+      <Spacing size={6} />
+      <Flex direction="column" gap={3} fullWidth>
+        <Button variant="primary" size="lg" fullWidth onClick={onStart}>
+          입장하기
+        </Button>
+        <Link
+          href="/tickets"
+          className={button({ variant: 'secondary', size: 'lg', fullWidth: true })}
+        >
+          티켓탭으로
+        </Link>
+      </Flex>
     </section>
   );
 }

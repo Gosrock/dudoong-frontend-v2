@@ -47,7 +47,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
   const desktopTicketsId = `${ids}-tickets-d`;
   const hasContacts = event.contacts.length > 0;
   const openContacts = () => openEventContacts(eventId, event.host);
-  const share = () => void shareEvent(event);
+  const share = () => shareEvent(event);
   const router = useRouter();
   // 살 수 있는 티켓이 있을 때만 모바일 [티켓 구매하기]가 시트를 연다
   const canBuy = tickets.listState === 'AVAILABLE';
