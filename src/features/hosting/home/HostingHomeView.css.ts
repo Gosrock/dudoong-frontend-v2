@@ -3,10 +3,29 @@ import { style } from '@vanilla-extract/css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
-/** PC 제목 "{닉네임}님의 공연 준비 홈"(plan P10a) — 모바일은 로고 헤더가 대신해 감춘다 */
+/**
+ * PC 제목 "{닉네임}님의 공연 준비 홈"(plan P10a) — 모바일은 로고 헤더가 대신해 눈에서는 감추고,
+ * 화면 읽기 도구에는 h1로 남긴다(P14 접근성 — 흐름 밖이라 `page`의 gap도 먹지 않는다)
+ */
 export const desktopTitle = style({
-  display: 'none',
-  '@media': { [media.desktop]: { display: 'block', paddingTop: vars.space[8] } },
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  '@media': {
+    [media.desktop]: {
+      position: 'static',
+      width: 'auto',
+      height: 'auto',
+      overflow: 'visible',
+      clip: 'auto',
+      whiteSpace: 'normal',
+      display: 'block',
+      paddingTop: vars.space[8],
+    },
+  },
 });
 
 export const page = style({

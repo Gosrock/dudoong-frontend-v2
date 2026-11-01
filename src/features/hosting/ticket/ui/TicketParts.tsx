@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import type { ReactNode } from 'react';
 
 import type { TicketOptionType } from '@/api/ticket-item/schema';
@@ -98,6 +99,8 @@ export function OptionRow({
       <OptionChips type={type} yesAdditionalPrice={yesAdditionalPrice} />
     </>
   );
+  // 이름 = 보이는 옵션 이름 · 칩 + "옵션 상세"(aria-label로 덮으면 칩이 읽히지 않는다 — WCAG 2.5.3, P14 접근성)
+  const detailSuffix = <VisuallyHidden> 옵션 상세</VisuallyHidden>;
   if (!onOpen) {
     return (
       <div className={s.optionRow}>
@@ -110,13 +113,9 @@ export function OptionRow({
   }
   if (!onDetach) {
     return (
-      <button
-        type="button"
-        className={s.optionRowButton}
-        onClick={onOpen}
-        aria-label={`${name} 옵션 상세`}
-      >
+      <button type="button" className={s.optionRowButton} onClick={onOpen}>
         <span className={s.optionRowBody}>{body}</span>
+        {detailSuffix}
         <span className={s.optionTrail} aria-hidden>
           <Icon name="chevron-right" size={12} />
         </span>
@@ -125,13 +124,9 @@ export function OptionRow({
   }
   return (
     <div className={s.optionRow}>
-      <button
-        type="button"
-        className={s.optionRowBody}
-        onClick={onOpen}
-        aria-label={`${name} 옵션 상세`}
-      >
+      <button type="button" className={s.optionRowBody} onClick={onOpen}>
         {body}
+        {detailSuffix}
       </button>
       <button
         type="button"

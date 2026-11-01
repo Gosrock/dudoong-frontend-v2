@@ -49,7 +49,7 @@ export function NewEventView() {
     else router.push('/hosting');
   };
   return (
-    <div className={s.page}>
+    <main className={s.page}>
       <Header title="간편 공연만들기" align="center" onBack={back} />
       <div className={s.body}>
         <div
@@ -69,7 +69,7 @@ export function NewEventView() {
         {step === 'createHost' && <CreateHostStep w={w} />}
         {step === 'event' && <EventStep w={w} />}
       </div>
-    </div>
+    </main>
   );
 }
 

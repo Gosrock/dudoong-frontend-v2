@@ -1,7 +1,8 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 
 import { Button } from '@/ui/components/Button/Button';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
@@ -25,6 +26,8 @@ const ALL = 'all';
  */
 export function ArchiveView() {
   const a = useArchive();
+  // 연도 탭은 패널을 따로 두지 않고 아래 목록 하나를 거른다 — Radix가 붙이는 없는 패널 id 대신 그 목록을 가리킨다(P14 접근성)
+  const listId = useId();
   return (
     <main className={s.page}>
       <Txt as="h1" typography="headingMdEmphasized" className={s.title}>
@@ -38,7 +41,11 @@ export function ArchiveView() {
           >
             <TabList aria-label="연도" size="responsive">
               {a.tabs.map((t) => (
-                <Tab key={t.label} value={t.year === null ? ALL : String(t.year)}>
+                <Tab
+                  key={t.label}
+                  value={t.year === null ? ALL : String(t.year)}
+                  aria-controls={listId}
+                >
                   {t.year === null ? t.label : `${t.label}년`}
                 </Tab>
               ))}
@@ -77,7 +84,12 @@ export function ArchiveView() {
         </div>
       )}
 
-      <ul className={s.grid} aria-label="관람한 공연" aria-busy={a.switching || undefined}>
+      <ul
+        id={listId}
+        className={s.grid}
+        aria-label="관람한 공연"
+        aria-busy={a.switching || undefined}
+      >
         {a.events.map((e) => {
           const body: ReactNode = (
             <>
@@ -93,12 +105,10 @@ export function ArchiveView() {
           return (
             <li key={e.eventId} data-testid="archive-event">
               {e.orderHref ? (
-                <Link
-                  href={e.orderHref}
-                  className={s.gridItem}
-                  aria-label={`${e.name ?? '공연'} 주문상세`}
-                >
+                <Link href={e.orderHref} className={s.gridItem}>
                   {body}
+                  {/* 이름 = 보이는 공연명 · 날짜 + "주문상세"(WCAG 2.5.3, P14 접근성) */}
+                  <VisuallyHidden> 주문상세</VisuallyHidden>
                 </Link>
               ) : (
                 <div className={s.gridItem}>{body}</div>

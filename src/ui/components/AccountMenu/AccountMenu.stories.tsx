@@ -55,7 +55,7 @@ type Story = StoryObj<typeof meta>;
 /** 디자인 시스템 `My`(`585:752`) — 프로필 / 항목 4 / 내 호스트 / 로그아웃. `footerItems`를 주지 않으면 업데이트 노트 줄이 없다 */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
-    const trigger = within(canvasElement).getByRole('button', { name: '내 메뉴' });
+    const trigger = within(canvasElement).getByRole('button', { name: /내 메뉴$/ });
     await userEvent.click(trigger);
     const menu = await screen.findByRole('menu');
     await expect(within(menu).getByRole('menuitem', { name: '주문내역' })).toBeVisible();
@@ -79,7 +79,7 @@ export const WithUpdateNote: Story = {
     ],
   },
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByRole('button', { name: '내 메뉴' }));
+    await userEvent.click(within(canvasElement).getByRole('button', { name: /내 메뉴$/ }));
     const menu = await screen.findByRole('menu');
     const items = within(menu).getAllByRole('menuitem');
     const names = items.map((i) => i.textContent);

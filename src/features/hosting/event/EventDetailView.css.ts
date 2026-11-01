@@ -20,10 +20,26 @@ export const body = style({
 
 export const head = style({ display: 'flex', flexDirection: 'column', gap: vars.space[1] });
 
+/** PC만 보인다. 모바일은 헤더 제목("상세 정보 ▾")이 대신하고 h1은 화면 읽기 도구에만 남긴다(P14 접근성 — 기본 정보와 같다) */
 export const desktopTitle = style({
   margin: 0,
-  display: 'none',
-  '@media': { [media.desktop]: { display: 'block' } },
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+  '@media': {
+    [media.desktop]: {
+      position: 'static',
+      width: 'auto',
+      height: 'auto',
+      overflow: 'visible',
+      clip: 'auto',
+      whiteSpace: 'normal',
+      display: 'block',
+    },
+  },
 });
 
 /** 모바일 두 줄 · PC 한 줄 */
