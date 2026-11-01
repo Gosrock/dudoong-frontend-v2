@@ -60,3 +60,40 @@ export function flattenPages<T>(
   }
   return out;
 }
+
+/** 무한 목록 하단이 받는 값 — `src/ui` `LoadMoreSentinel`의 `LoadMoreState`와 같은 모양 */
+export type InfiniteListControls = {
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  /** 다음 페이지 실패 — 기존 행은 두고 하단 재시도(patterns §12) */
+  nextPageError: boolean;
+  loadMore: () => void;
+  retry: () => void;
+};
+
+/** `infiniteListControls`가 읽는 `useInfiniteQuery`·`useSuspenseInfiniteQuery` 결과의 일부 */
+export type InfiniteListQuery = {
+  hasNextPage: boolean;
+  isFetching: boolean;
+  isFetchingNextPage: boolean;
+  isFetchNextPageError: boolean;
+  fetchNextPage: (options?: { cancelRefetch?: boolean }) => Promise<unknown>;
+  refetch: () => Promise<unknown>;
+};
+
+/**
+ * 무한 목록 훅 끝의 하단 제어 묶음(코드 패턴 점검 A11, 2026-11-02). `return { items, ...infiniteListControls(list) }`.
+ * - `loadMore`: 다음 페이지가 있고 읽는 중이 아닐 때만, 진행 중인 요청을 취소·재요청하지 않는다(`cancelRefetch: false`)
+ * - `retry`: 다음 페이지 실패면 그 페이지만 다시, 아니면 목록 전체를 다시 읽는다
+ */
+export function infiniteListControls(list: InfiniteListQuery): InfiniteListControls {
+  return {
+    hasNextPage: list.hasNextPage,
+    isFetchingNextPage: list.isFetchingNextPage,
+    nextPageError: list.isFetchNextPageError,
+    loadMore: () => {
+      if (list.hasNextPage && !list.isFetching) void list.fetchNextPage({ cancelRefetch: false });
+    },
+    retry: () => void (list.isFetchNextPageError ? list.fetchNextPage() : list.refetch()),
+  };
+}

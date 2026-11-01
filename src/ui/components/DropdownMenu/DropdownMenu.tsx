@@ -3,7 +3,7 @@
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import type { ReactNode } from 'react';
 
-import { surface } from '../Popover/Popover.css';
+import { floatingSurface } from '../../theme/surface.css';
 import * as s from './DropdownMenu.css';
 
 export type DropdownMenuItem = {
@@ -43,7 +43,7 @@ export function DropdownMenu({
           align={align}
           sideOffset={4}
           collisionPadding={16}
-          className={`${surface} ${s.content}`}
+          className={`${floatingSurface} ${s.content}`}
         >
           {items.map((item, i) => (
             <RadixMenu.Item

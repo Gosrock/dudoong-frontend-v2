@@ -23,7 +23,7 @@ export const NOTICES_KEY = ['notices'] as const;
 export const noticesQuery = (audience: NoticeAudience, params: PageParams = {}) =>
   infiniteQueryOptions({
     ...pageInfinite,
-    queryKey: [...NOTICES_KEY, 'list', audience, { size: params.size }],
+    queryKey: [...NOTICES_KEY, 'list', 'infinite', audience, { size: params.size }],
     queryFn: ({ pageParam, signal }) => {
       const searchParams = new URLSearchParams({ audience, page: String(pageParam) });
       if (params.size !== undefined) searchParams.set('size', String(params.size));

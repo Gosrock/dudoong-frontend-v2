@@ -4,7 +4,7 @@ import { errorToast } from '@/test/error-toast';
 
 import { FALLBACK_ERROR_MESSAGE, VALIDATION_ERROR_MESSAGE } from './error-toast';
 import { ApiError, SessionLostError } from './errors';
-import { handleError } from './handle-error';
+import { handleError, handlersFrom } from './handle-error';
 
 describe('handleError', () => {
   it('표에 있는 코드는 그 처리만 하고 토스트하지 않는다', () => {
@@ -61,5 +61,31 @@ describe('handleError', () => {
     handleError(null, { toString: handler });
     expect(handler).not.toHaveBeenCalled();
     expect(errorToast).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('handlersFrom', () => {
+  const TABLE = {
+    Option_400_1: { field: 'name', message: '이름을 확인해 주세요' },
+    Option_400_2: { field: 'price', message: '금액을 확인해 주세요' },
+  } as const;
+
+  it('표의 값·코드·에러로 처리기를 만든다', () => {
+    const onCode = vi.fn();
+    const e = new ApiError(400, 'Option_400_2', '금액');
+    handleError(e, handlersFrom(TABLE, onCode));
+    expect(onCode).toHaveBeenCalledExactlyOnceWith(TABLE.Option_400_2, 'Option_400_2', e);
+    expect(errorToast).not.toHaveBeenCalled();
+  });
+
+  it('다른 처리기와 펼쳐 합칠 수 있고, 표에 없는 코드는 공용 토스트', () => {
+    const onCode = vi.fn();
+    const ended = vi.fn();
+    const handlers = { ...handlersFrom(TABLE, onCode), Event_400_17: ended };
+    handleError(new ApiError(400, 'Event_400_17', '끝난 공연'), handlers);
+    expect(ended).toHaveBeenCalledOnce();
+    handleError(new ApiError(400, 'Option_400_9', '다른 실패'), handlers);
+    expect(onCode).not.toHaveBeenCalled();
+    expect(errorToast).toHaveBeenCalledWith('다른 실패', 'mutation:Option_400_9');
   });
 });

@@ -3,6 +3,7 @@
 import * as RadixPopover from '@radix-ui/react-popover';
 import type { ReactNode } from 'react';
 
+import { floatingSurface } from '../../theme/surface.css';
 import * as s from './Popover.css';
 
 export type PopoverProps = {
@@ -42,7 +43,7 @@ export function Popover({
           sideOffset={8}
           collisionPadding={16}
           aria-label={label}
-          className={`${s.surface} ${s.content}`}
+          className={`${floatingSurface} ${s.content}`}
         >
           {children}
         </RadixPopover.Content>

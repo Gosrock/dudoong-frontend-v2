@@ -1,5 +1,8 @@
 import type { CSSProperties, ReactNode } from 'react';
 
+import { formatDday } from '@/api/shared/dday';
+import { formatWon } from '@/utils/money';
+
 import { chip, type ChipColor, type ChipTheme } from './Chip.css';
 
 export type { ChipColor, ChipTheme };
@@ -18,13 +21,12 @@ export type ChipProps = {
   style?: CSSProperties;
 };
 
-/** 옵션 추가 금액 표기 — Figma "+ N 원" */
+/** money option chip 금액 표기 — Figma "+ N 원"(부호 뒤 한 칸). 칩 밖의 추가금은 `formatSignedWon`(`src/utils/money.ts`) */
 export const formatOptionAmount = (amount: number) =>
-  `${amount < 0 ? '-' : '+'} ${Math.abs(amount).toLocaleString('ko-KR')}원`;
+  `${amount < 0 ? '-' : '+'} ${formatWon(Math.abs(amount))}`;
 
-/** 공연 D-day 글자. 0이면 "D-day"(design-system §3 "없는 상태"), 지난 날은 "D+n" */
-export const formatDday = (dDay: number) =>
-  dDay === 0 ? 'D-day' : dDay > 0 ? `D-${dDay}` : `D+${-dDay}`;
+/** 공연 D-day 글자 — 정의는 `src/api/shared/dday.ts`(한 곳). 기존 import 경로를 위해 다시 내보낸다 */
+export { formatDday };
 
 /**
  * Figma `tag_v2` 범용 칩. 모양만 고른다 — 서버 상태(티켓 상태, 공연 단계 등) → 색은 쓰는 Phase가 정한다

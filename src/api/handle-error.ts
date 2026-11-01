@@ -47,3 +47,26 @@ export function handleError(
   }
   notifyError(errorMessageOf(error), `mutation:${code ?? 'UNKNOWN'}`);
 }
+
+/**
+ * 코드 표 → `handleError` 처리기(코드 패턴 점검 A23, 2026-11-02). `Object.fromEntries(Object.entries(TABLE).map(…))`를 화면마다 다시 쓰지 않는다.
+ *
+ * ```ts
+ * handleError(e, {
+ *   ...handlersFrom(OPTION_FIELD_ERRORS, ({ field, message }) => setServerErrors((p) => ({ ...p, [field]: message }))),
+ *   Event_400_17: () => setError(ENDED_MESSAGE),
+ * });
+ * ```
+ * 표의 값·코드·에러를 받는다. 표에 없는 코드는 그대로 공용 처리(`handleError` 2~4번)로 간다.
+ */
+export function handlersFrom<T>(
+  table: Readonly<Record<string, T>>,
+  onCode: (value: T, code: string, error: ApiError) => void,
+): ErrorCodeHandlers {
+  return Object.fromEntries(
+    Object.entries(table).map(([code, value]) => [
+      code,
+      (error: ApiError) => onCode(value, code, error),
+    ]),
+  );
+}

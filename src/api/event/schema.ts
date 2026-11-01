@@ -1,6 +1,12 @@
 import { z } from 'zod';
 
-import { CONTACT_TYPES, ContactSchema, HostRoleSchema, PlaceSchema } from '../shared/common-schema';
+import {
+  CONTACT_VALUE_MAX,
+  contactRequestSchema,
+  ContactSchema,
+  HostRoleSchema,
+  PlaceSchema,
+} from '../shared/common-schema';
 import { kstDateTime } from '../shared/date';
 import { openEnum } from '../shared/open-enum';
 import { pageSchema } from '../shared/page';
@@ -169,7 +175,7 @@ export const EVENT_NAME_MAX = 25;
 export const EVENT_PLACE_TEXT_MAX = 255;
 /** 공연 문의처 0~10개(체크리스트 ①은 1개 이상), 값 200자. 호스트 연락처와 달리 전화 15자 제한이 없다 */
 export const EVENT_CONTACTS_MAX = 10;
-export const EVENT_CONTACT_VALUE_MAX = 200;
+export const EVENT_CONTACT_VALUE_MAX = CONTACT_VALUE_MAX;
 /** 태그는 중복을 뺀 뒤 10개까지(넘으면 `Event_400_23`) */
 export const EVENT_TAGS_MAX = 10;
 export const EVENT_POSTER_KEY_MAX = 255;
@@ -227,10 +233,8 @@ export const EventManageSchema = z.object({
 });
 export type EventManage = z.infer<typeof EventManageSchema>;
 
-const eventContactRequest = z.object({
-  type: z.enum(CONTACT_TYPES),
-  value: z.string().trim().min(1).max(EVENT_CONTACT_VALUE_MAX),
-});
+/** 공연 문의처 한 줄(`V2EventContactRequest`) — 공용 `contactRequestSchema`(전화 15자 제한 없음) */
+const eventContactRequest = contactRequestSchema;
 
 /** PE-2 간편 공연 만들기(호스트의 매니저 이상). 시작은 현재 이후(`@Future`), 종료 > 시작(`Event_400_2`) */
 export const CreateEventRequestSchema = z
