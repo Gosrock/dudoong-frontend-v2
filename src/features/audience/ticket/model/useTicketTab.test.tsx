@@ -51,11 +51,14 @@ describe('티켓탭 — useTicketTab', () => {
     const sent = recordRequests();
     const { wrapper } = setup();
     const { result } = renderHook(() => useTicketTab(), { wrapper });
-    await waitFor(() => expect(result.current?.notice.show).toBe(true));
+    await waitFor(() => expect(result.current?.notice.kind).toBe('APPROVED'));
     const lines = await sent.lines();
     expect(lines).toEqual(expect.arrayContaining([TICKETS, NOTICE]));
     expect(lines.filter(isDetail)).toEqual([]);
-    expect(result.current.notice.targetGroupKey).toBe(NEW_APPROVED_ORDER_UUID);
+    expect(result.current.notice).toEqual({
+      kind: 'APPROVED',
+      targetGroupKey: NEW_APPROVED_ORDER_UUID,
+    });
     // 그동안 공지 바는 그대로(서버에서 풀리지 않았다)
     expect((await sent.list()).every((r) => r.credentials === 'include')).toBe(true);
   });
@@ -128,7 +131,7 @@ describe('티켓탭 — useTicketTab', () => {
     const { wrapper } = setup();
     const { result } = renderHook(() => useTicketTab(), { wrapper });
     await waitFor(() => expect(result.current?.empty).toBe(true));
-    expect(result.current.notice.show).toBe(false);
+    expect(result.current.notice.kind).toBe('DEFAULT');
   });
 });
 
@@ -146,7 +149,7 @@ describe('티켓 상세 — useTicketDetail', () => {
   it('카드를 열면 T-2를 한 번 부르고, 그 뒤 공지 바(T-3)를 다시 읽어 풀린다', async () => {
     const { wrapper, queryClient } = setup();
     const tab = renderHook(() => useTicketTab(), { wrapper });
-    await waitFor(() => expect(tab.result.current?.notice.show).toBe(true));
+    await waitFor(() => expect(tab.result.current?.notice.kind).toBe('APPROVED'));
 
     const sent = recordRequests();
     const { result } = renderHook(
@@ -154,7 +157,7 @@ describe('티켓 상세 — useTicketDetail', () => {
       { wrapper },
     );
     await waitFor(() => expect(result.current.status).toBe('ready'));
-    await waitFor(() => expect(tab.result.current.notice.show).toBe(false));
+    await waitFor(() => expect(tab.result.current.notice.kind).not.toBe('APPROVED'));
     const lines = await sent.lines();
     expect(lines.filter(isDetail)).toEqual([`GET /api/v2/me/tickets/${TICKET_UUID.approved}`]);
     expect(lines.indexOf(NOTICE)).toBeGreaterThan(

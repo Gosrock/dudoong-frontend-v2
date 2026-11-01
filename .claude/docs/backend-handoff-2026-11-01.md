@@ -1,5 +1,18 @@
 # 서버(백엔드 · 운영) 전달 문서 — v2 프론트 출시 전(2026-11-01)
 
+> ## ✅ 답 받음 — Backend #905(2026-11-01 10:21Z)
+> 이 문서로 연 [Gosrock/DuDoong-Backend#905](https://github.com/Gosrock/DuDoong-Backend/issues/905)에 백엔드 답이 왔다(백엔드 2.5.4는 **스테이징에만**, 운영 2.5.3 — Deploy #96). 답은 원본 문서로 옮겼다 — 아래 본문은 **보낸 당시의 판**이라 지금 상태와 다르다(지금 상태는 원본을 본다).
+> - 1-1 동의 강제 → `backend-questions.md` B16(환경별 따로 · v2만 기록 모드 없음 — 출시 전 칸 필수 · 날짜는 #898) · `cutover-runbook.md` §2 · "정해진 것"
+> - 1-2 스테이징 v2 → **끝남**(Deploy #93 · #94, `cutover-runbook.md` 머리 · 단계 A). 확인된 문제: 없는 공연 상태 코드 200 → 이슈 #90
+> - 1-3 컷오버 · 롤백 → PR ② · 롤백 nginx는 **컷오버 날짜가 정해지면**. `/hosting` 해외 차단 · `--remove-orphans` 결정(`cutover-runbook.md` §3-2 · "정해진 것")
+> - 2-1 B18 → **확정 문구**(#897 댓글) — `legal-copy.md` "B18 확정 문구", 2026-11-07 시행 전에는 ⑤를 뺀다. `agreementVersion`은 그대로
+> - 2-2 티켓탭 공지 바 → T-3 `refusedOrderUuids`(2.5.4) · '공연 시작'은 프론트 판정 — `api-contract.md` 마이페이지 절, `design-requests.md` Q55, 코드 `ticket-groups.ts` `noticeBar`
+> - 2-3 쿠키 · 인증 → 일정 없음(`backend-questions.md` "지켜보는 것" #871)
+> - 2-4 `Void` → 래퍼(`api-contract.md` §1, `src/api/http.test.ts`)
+> - 3 운영 · 인프라 → `cutover-runbook.md` "정해진 것"(선물 토큰 로그 가림 · 보안 헤더 있음 · `/csp-report` 제한 · S3 호스트 · `v*` ruleset 설정됨 · 스테이징 전원)
+> - 4 작은 이슈 → 2.5.3 · 2.5.4로 고침, PQ-5는 400 유지(`api-contract.md` §1 · §4 · 공연 절 · 운영 절)
+> - **남은 사람 몫**: 스테이징 리허설(런북 §4), 컷오버 날짜(§1), CSP 강제(리허설 뒤), 동의 강제 날짜(#898). B23~B27은 #905에 보내지 않았다
+
 > v2 프론트 기능 Phase · P14 하드닝 · P15 컷오버 준비(코드 몫)가 끝난 시점에 서버 쪽에 넘길 것을 한 장으로 모았다.
 > 원본: [`backend-questions.md`](./backend-questions.md)(열린 질문 B16 · B18 · "지켜보는 것"), [`cutover-runbook.md`](./cutover-runbook.md), `implementation-log.md` P14 보안 · 성능 · 회귀 · P15 절, `design-requests.md` Q55, `progress.md` "사용자 대기".
 > 기준 소스: 백엔드 `dev` `cb53bfaa`(2.5.2) · Deploy `main` `d37e9ae`(백엔드 2.5.3 배포). 받은 답이 생기면 원본 문서를 고치고 이 문서는 지운다.

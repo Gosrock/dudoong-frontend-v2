@@ -3,16 +3,17 @@
 > 2026-11-01 작성(P15 — 이 저장소에서 코드·문서로 되는 것만). **이 문서의 모든 단계는 사람이 한다** — Deploy 저장소 PR · 태그 푸시 · 운영 배포 · DNS · 서치 콘솔은 프론트 세션이 하지 않는다.
 > 근거: [`deploy-plan.md`](./deploy-plan.md) §5 · §6 · §8 · §9, [`tech-decisions.md`](./tech-decisions.md) §22(레거시 URL) · §25(배포 인프라), [`plan.md`](./plan.md) P15.
 > Deploy 저장소 대조 기준: `Gosrock/DuDoong-Deploy` `main` **`d37e9ae`**(2026-11-01, 백엔드 2.5.3 배포) — `gh api` 읽기로 맞췄다. 적용 전에 `main`이 바뀌었으면 아래 diff를 그 판에 다시 맞춘다.
+> **2026-11-01 백엔드 답(Backend #905) 반영**: 단계 A(스테이징 v2)는 **끝났다** — Deploy #93(§3-1 그대로 + 선물 토큰 로그 가림 · `/csp-report` 제한 → `Nginx-v1.9.6`) · #94(`docker-compose.staging.yml` front `dudoong-front:dev`). 스테이징 배포 확인 2026-11-01 18:48(`front try 1: 200`, `/healthz` 200, `og:url` = `https://staging.dudoong.com/events/55`, 업로드 출처 밖 `/_next/image` 400, 운영 `/_next/image` 404 그대로). "결정 대기" 대부분이 정해졌다(문서 끝 "정해진 것"). PR ②와 롤백 nginx 이미지는 **컷오버 날짜가 정해지면** 백엔드가 같이 준비한다(`v2.0.0` 이미지가 있어야 compose를 쓸 수 있어서).
 
 ## 0. 한눈에
 
 | 단계 | 무엇 | 누가 · 어디 | 되돌리기 |
 |---|---|---|---|
-| A | **스테이징을 v2로**(D2 — deploy-plan §6 1 · 2 · 3 · 4 · 8번) — 지금 스테이징은 아직 v1(`dudoong-ticket:dev`)이다 | Deploy PR ①, `Nginx-v1.9.6` 태그 | PR ① 되돌림 |
+| A | **스테이징을 v2로**(D2 — deploy-plan §6 1 · 2 · 3 · 4 · 8번) — **끝남(2026-11-01, Deploy #93 · #94)**. 스테이징은 평소 꺼져 있다(매일 02:00 자동 종료) — 리허설할 때 Deploy Actions → **Staging Power → start**(최신 `:dev`를 다시 배포) | Deploy PR ①, `Nginx-v1.9.6` 태그 | PR ① 되돌림 |
 | B | 스테이징 리허설(§4 체크리스트 전부) | 사람 · 스테이징 | — |
 | C | 첫 버전 태그 `v2.0.0`(§6) — `:dev` 승격 | 프론트 저장소 관리자 | 태그는 덮어쓸 수 없다 — 다음 패치 버전으로 |
-| D | 롤백용 nginx 이미지 미리 만들기(§5-3) | Deploy, `Nginx-v1.9.7` 태그 | — |
-| E | **운영 컷오버**(deploy-plan §6 5 · 6 · 9번) — 프리즈 윈도우 안에서 | Deploy PR ②, `Nginx-v1.10.0` 태그, Deployment(운영 승인) | §5 롤백 |
+| D | 롤백용 nginx 이미지 미리 만들기(§5-3) — 컷오버 날짜가 정해지면 백엔드가 PR ②와 같이(#905 §1-3) | Deploy, `Nginx-v1.9.7` 태그 | — |
+| E | **운영 컷오버**(deploy-plan §6 5 · 6 · 9번) — 프리즈 윈도우 안에서. 그 시간대에는 백엔드를 배포하지 않는다(#905 §1-3) | Deploy PR ②, `Nginx-v1.10.0` 태그, Deployment(운영 승인) | §5 롤백 |
 | F | 컷오버 뒤 확인 · 검색 등록(§7) | 사람 | — |
 
 nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `nginx.conf`를 복사). 설정을 바꾸면 **`Nginx-vX.Y.Z` 태그 → `nginx-build.yml`이 ECR에 올린 뒤** compose의 nginx 태그를 올리는 순서다. 버전 번호(1.9.6 · 1.9.7 · 1.10.0)는 예시다 — 그때 최신 다음 번호를 쓴다.
@@ -36,7 +37,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 
 하나라도 아니면 컷오버하지 않는다.
 
-- [ ] **백엔드 `AGREEMENT_ENFORCE` 값 확인**(plan P15, v1 Front #384). 켜져 있으면 v2에 동의 칸 4개와 플래그(`AGE_OVER_14_FIELD` · `HOST_PROVISION_FIELD` · `DUDOONG_NOTICE_FIELD` · `REFUND_OBLIGATION_FIELD`)가 켜져 있어야 한다 — **칸 없이 출시하면 가입 · 주문 · 두둥티켓 생성 · 무료→두둥 수정이 전부 400(`Agreement_400_1`)이다.** **2026-11-01 칸 4개를 DS로 붙이고 플래그를 모두 켰다**(백엔드 #905 1-1 — v2는 출시 전 필수, 위치는 디자인 Q42 답 전 잠정). 남은 확인: 스테이징만 `AGREEMENT_ENFORCE=true`로 켠 리허설(§4 — 가입 · 두둥/무료 주문 · 두둥티켓 생성 · 무료→두둥 수정이 통과하는지). 운영 강제는 v1 Front#384 배포 뒤 백엔드가 켜고 날짜를 #898에 남긴다
+- [ ] **백엔드 `AGREEMENT_ENFORCE` 값 확인**(plan P15, v1 Front #384). 켜져 있으면 v2에 동의 칸 4개(Q42 — 디자인 대기)와 플래그(`AGE_OVER_14_FIELD` · `HOST_PROVISION_FIELD` · `DUDOONG_NOTICE_FIELD` · `REFUND_OBLIGATION_FIELD`)가 켜져 있어야 한다 — **칸 없이 출시하면 가입 · 주문 · 두둥티켓 생성 · 무료→두둥 수정이 전부 400(`Agreement_400_1`)이다.** 꺼져 있어도 **v2는 칸 4개를 켠 채로 출시한다**(동의는 법적으로 받아야 하는 값 — v2만 기록 모드로 두는 길은 없다, Backend #905 §1-1). 강제 날짜는 Backend #898에 미리 남겨 준다 **2026-11-01 칸 4개를 DS로 붙이고 플래그를 모두 켰다**(#PR_AF — 위치는 디자인 Q42 답 전 잠정). 남은 확인: 스테이징만 `AGREEMENT_ENFORCE=true`로 켠 리허설(§4 — 가입 · 두둥/무료 주문 · 두둥티켓 생성 · 무료→두둥 수정이 통과하는지)
 - [ ] GA · 카카오 애드핏이 들어가 있다(처리방침이 수집을 이미 적고 있다 — plan P14, 사용자가 직접)
 - [ ] 단계 A · B 끝 — 스테이징 리허설(§4) 전부 체크
 - [ ] `v2.0.0` 이미지가 ECR에 있고(단계 C), 그 이미지가 스테이징에서 본 이미지다(`release.yml` 로그 "태그만 붙인다")
@@ -212,7 +213,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 -    }
 ```
 
-`$admin_path` map(`^/(admin|internal-admin|internal-api)`)은 그대로 둔다 — 해외에서 옛 `/admin/*` 주소를 열면 리다이렉트 대신 "관리자 화면은 국내에서만" 403이다. v2 `/hosting`을 같은 정책으로 막을지는 **사용자 결정**(아래 "결정 대기").
+`$admin_path` map(`^/(admin|internal-admin|internal-api)`)은 남긴다 — 해외에서 옛 `/admin/*` 주소를 열면 리다이렉트 대신 "관리자 화면은 국내에서만" 403이다. **v2 `/hosting`도 같은 정책으로 막는다(결정 2026-11-01, Backend #905 §1-3)** — PR ②에서 그 정규식에 `hosting`을 더한다(`^/(admin|hosting|internal-admin|internal-api)`, 화면만 막히고 API는 그대로).
 
 → 커밋 뒤 **`Nginx-v1.10.0` 태그 푸시**, 이미지가 올라간 뒤 compose:
 
@@ -292,7 +293,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 +    image: "${ECR_REGISTRY:?}/dudoong-nginx:1.10.0"
 ```
 
-> 주의: `admin` 서비스를 compose에서 지워도 `docker-compose up -d`는 남은 `admin` 컨테이너를 지우지 않는다(고아 컨테이너 — 3100을 계속 연다). nginx가 더는 보내지 않으니 해는 없지만, 컷오버 뒤 서버에서 `sudo docker rm -f admin`으로 정리하거나 `remote-deploy.sh`의 `up -d`에 `--remove-orphans`를 더한다(Deploy 쪽 판단).
+> 주의: `admin` 서비스를 compose에서 지워도 `docker-compose up -d`는 남은 `admin` 컨테이너를 지우지 않는다(고아 컨테이너 — 3100을 계속 연다). nginx가 더는 보내지 않으니 해는 없지만 — **PR ②에서 `remote-deploy.sh`의 `up -d`에 `--remove-orphans`를 더해 정리한다(결정 2026-11-01, Backend #905 §1-3)**.
 
 ## 4. 리허설 체크리스트(스테이징, 단계 B)
 
@@ -435,7 +436,7 @@ location ~ ^/hosts/([0-9]+)$ { return 302 /admin/hosts/$1/dashboard$is_args$args
 주의:
 
 - 승격은 `:dev`가 정확히 그 커밋일 때만 된다. 태그를 달기 전에 `main`에 다른 PR이 머지되면 `:dev`가 넘어간다 — 컷오버 버전 태그는 머지를 잠시 멈추고 단다
-- `v*` 태그는 **관리자만 만들어야 한다**(푸시 역할이 `refs/tags/v*`를 믿는다). 2026-11-01 확인: 이 저장소에 태그 ruleset이 **없다**(`gh api repos/Gosrock/dudoong-frontend-v2/rulesets` → `[]`) — 사용자 대기
+- `v*` 태그는 **관리자만 만들어야 한다**(푸시 역할이 `refs/tags/v*`를 믿는다). **설정됨(2026-11-01, Backend #905 §3)**: ruleset "v* 릴리스 태그는 관리자만" — 생성 · 수정 · 삭제를 저장소 관리자와 조직 관리자만
 - ECR 수명 정책은 태그 이미지를 최근 10개만 남긴다 — 롤백 가능한 프론트 버전은 최근 9개(`:dev` 하나 포함 10개)
 
 ## 7. 컷오버 당일 · 뒤
@@ -459,7 +460,7 @@ location ~ ^/hosts/([0-9]+)$ { return 302 /admin/hosts/$1/dashboard$is_args$args
 
 ### 7-2. 뒤(하루~일주일)
 
-- [ ] 서버 고아 컨테이너 정리 `sudo docker rm -f admin`(§3-2 주의)
+- [ ] 서버 고아 `admin` 컨테이너가 없는지(PR ② `--remove-orphans` — §3-2 주의). 남았으면 `sudo docker rm -f admin`
 - [ ] 백엔드 허용 목록에서 `/admin/kakao/callback` 빼기, 카카오 콘솔 Redirect URI 정리(tech-decisions §22)
 - [ ] **서치 콘솔 · 네이버 서치어드바이저 소유 확인**: 각 콘솔에서 "HTML 태그" 방식 값을 받아 `docker-compose.prod.yml` front `environment`의 `GOOGLE_SITE_VERIFICATION` · `NAVER_SITE_VERIFICATION` 주석을 풀어 넣는다(§3-2) → 배포 → `curl -s https://dudoong.com/ | grep -o '<meta name="\(google\|naver\)-site-verification"[^>]*>'`. 메타는 `src/app/(audience)/(public)/layout.tsx` `generateMetadata`가 런타임 환경변수로 넣는다(이미지를 다시 빌드하지 않는다). 공개 화면(`(public)`)에만 붙으므로 콘솔에 확인 주소로 `https://dudoong.com/`을 준다
 - [ ] **sitemap 제출**: 두 콘솔에 `https://dudoong.com/sitemap.xml`(`src/app/sitemap.ts`), `robots.txt`가 그 주소를 가리키는지(`curl https://dudoong.com/robots.txt`)
@@ -473,7 +474,24 @@ location ~ ^/hosts/([0-9]+)$ { return 302 /admin/hosts/$1/dashboard$is_args$args
 
 | 무엇 | 선택지 |
 |---|---|
-| 프리즈 윈도우 날짜 · 시각 | §1 표 |
-| `/hosting`도 해외 차단(`$admin_path`)할지 | v1은 호스트 어드민 `/admin`을 해외 차단했다(Deploy #58). v2 `/hosting`은 지금 막히지 않는다. 막으려면 `nginx.conf` `map $uri $admin_path`의 정규식에 `hosting`을 더한다(API는 어차피 막지 않으므로 화면만 막힌다) |
-| `v*` 태그 ruleset | 저장소 Settings → Rules → 태그 대상 `v*`, 생성 · 삭제를 관리자만 |
+| 프리즈 윈도우 날짜 · 시각 | §1 표. 정해지면 백엔드에 알린다 — PR ② · 롤백 nginx 이미지를 그때 같이 준비하고, 프리즈 · 백엔드 담당 대기 시간도 그때 맞춘다(#905 §1-3) |
 | 308로 출시할지, 안정될 때까지 307 | 이 PR은 plan P15대로 308(영구). 롤백 가능성이 크다고 보면 `next.config.ts`의 두 `permanent: true`를 `false`로 되돌린 패치 버전으로 출시하고 일주일 뒤 308로 — §5-3 되돌림 nginx가 필요 없어진다 |
+| CSP 강제 전환(`CSP_ENFORCE=1`) | 리허설 때 스테이징 `csp.violation` 0 확인 뒤. 업로드 한 번으로 S3 presigned 실제 호스트를 확인한다(아래) |
+
+## 정해진 것(2026-11-01, Backend #905)
+
+| 무엇 | 결정 · 사실 |
+|---|---|
+| `/hosting` 해외 차단 | **막는다**(v1 `/admin`과 같은 정책) — PR ②에서 `$admin_path` 정규식에 `hosting`(§3-2) |
+| 고아 `admin` 컨테이너 | PR ②에서 `remote-deploy.sh` `up -d --remove-orphans`(§3-2 주의) |
+| `v*` 태그 ruleset | **설정됨** — "v* 릴리스 태그는 관리자만"(생성 · 수정 · 삭제를 저장소 · 조직 관리자만, §6) |
+| 보안 응답 헤더 | **운영에 이미 붙는다** — `Referrer-Policy: strict-origin-when-cross-origin` · `X-Frame-Options: DENY` · `X-Content-Type-Options: nosniff` · HSTS. nginx가 앱 헤더를 숨기고 자기 값 하나만 보낸다(`site.conf`) — 선물 토큰 Referer 전제(tech-decisions §25)가 맞다 |
+| `/csp-report` 요청 수 제한 | **넣음**(Deploy #93) — IP당 5r/s, burst 10, 넘으면 429 |
+| 선물 토큰 접근 로그 | **가림**(Deploy #93, 스테이징 `Nginx-v1.9.6`) — 요청 경로 · Referer의 `/gifts/<token>` · `/api/v2/gifts/<token>/…` → `/gifts/***`(`/api/v2/me/gifts/{id}`는 그대로). 운영은 컷오버 nginx(PR ②)에 같이 들어간다. 로그 보존: CloudWatch `dudoong-prod` 30일 · `dudoong-staging` 7일(IAM 권한 필요) |
+| 스테이징 전원 | 평소 꺼짐(매일 02:00 자동 종료). 리허설 때 Deploy Actions → **Staging Power → start** — 최신 `:dev`가 다시 배포된다 |
+| S3 업로드(presigned) 호스트 | 운영 버킷 `dudoong`의 SDK 기본(가상 호스트) 주소 **`https://dudoong.s3.ap-northeast-2.amazonaws.com`**. 스테이징 버킷은 다를 수 있다 — 리허설 때 업로드를 한 번 해서 실제 값을 확인하고 CSP `connect-src`를 좁힌다. 보이는 이미지는 `https://asset.dudoong.com` |
+| nginx 버퍼링 | 리허설 때 확인, 필요하면 PR ②에 넣는다 |
+| `Host` · `X-Forwarded-Proto` | **확인됨** — 스테이징 `og:url` = `https://staging.dudoong.com/events/55` |
+| 카카오 `/admin/kakao/callback` | 컷오버 뒤 백엔드가 허용 목록 · 콘솔에서 뺀다 |
+| 동의 강제 `AGREEMENT_ENFORCE` | 운영 · 스테이징 따로(SSM env), 지금 둘 다 꺼짐. **v2만 기록 모드로 두는 길은 없다 — v2는 컷오버 전에 동의 칸 4개를 갖춘다.** 운영 강제는 v1 Front #384 배포 뒤 켜고 날짜를 Backend #898에 미리 남긴다. 칸을 켠 v2 이미지가 준비되면 #905에 알리면 스테이징만 `AGREEMENT_ENFORCE=true`로 바꿔 준다(리허설 §4) |
+| 운영 백엔드 마이그레이션(B5) | V018(#839 사업자 정보)은 열린 PR — 컷오버 전에 백엔드가 운영 실행 여부를 다시 확인해 준다 |

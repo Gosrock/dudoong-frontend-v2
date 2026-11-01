@@ -11,6 +11,7 @@ import {
 import type { PublicTicketItem } from '../ticket-item/schema';
 import { storedEvent } from './event-store';
 import { banks } from './fixtures/bank';
+import { markRefusedRead } from './fixtures/my-ticket';
 import {
   buildMockOrder,
   findCheckoutTicket,
@@ -256,7 +257,10 @@ const detail = http.get('*/api/v2/me/orders/:orderUuid', ({ request, params, coo
   const denied = requireAuth(request, cookies);
   if (denied) return denied;
   const order = orders.get(String(params.orderUuid));
-  return order ? ok(order) : orderError(request, 'Order_404_1');
+  if (!order) return orderError(request, 'Order_404_1');
+  // 서버는 응답 전에 그 주문의 거절 알림을 읽음 처리한다 — 다음 T-3에서 빠진다(#905 §2-2)
+  markRefusedRead(order.orderUuid);
+  return ok(order);
 });
 
 // ─── P9: O-2 목록 · O-4 취소 · O-5 환불 계좌 ──────────────────

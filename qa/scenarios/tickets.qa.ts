@@ -7,8 +7,10 @@ import {
   readMyTicket,
   resetTicketStore,
   SENT_GIFT_ID,
+  setUnreadRefused,
   TICKET_UUID,
 } from '../../src/api/__mocks__/fixtures/my-ticket';
+import { P9_ORDER } from '../../src/api/__mocks__/fixtures/order';
 import { myTicketHandlers } from '../../src/api/__mocks__/my-ticket.handlers';
 import type { MyTicketDetail, MyTicketGroup, MyTicketState } from '../../src/api/my-ticket/schema';
 import { MY_TICKET_STATES } from '../../src/api/my-ticket/schema';
@@ -443,3 +445,106 @@ scenario.manual('TIX-10', '실제 폰에서 카드 스와이프 · QR 판독 · 
   basis: ['plan P8 V 범위', 'P13b QR-8(실기기 판독)'],
   how: 'D2 스테이징 뒤 iPhone Safari · Android Chrome에서 티켓탭 카드를 손가락으로 넘기고, 입장 QR을 호스트 스캐너(/hosting/events/:id/qr)로 찍어 입장 처리되는지 본다.',
 });
+
+// ─── 공지 바 변형(Q55 — 백엔드 #905 §2-2) ─────────────────────────
+
+scenario(
+  'TIX-11',
+  '거절 공지 바 — "티켓 주문 승인이 거절되었습니다." + [티켓보기]는 주문 상세(O-3)로, 열면 풀린다',
+  {
+    kind: '정상',
+    summary:
+      'T-3 `refusedOrderUuids`(2.5.4)가 있으면 승인 공지보다 먼저 거절 바. [티켓보기] → /orders/{uuid}. 그 상세를 열면 서버가 풀어 다음 T-3에서 빠지고, 남은 승인 공지가 보인다.',
+    basis: [
+      'GUI 939:25571 승인거절',
+      'backend #905 §2-2 · V2NewApprovedResponse(#908)',
+      'design-requests Q55 — 우선순위 🤖 거절 > 승인 > 공연 중 > 기본',
+    ],
+  },
+  async ({ page, step }) => {
+    resetTicketStore();
+    setUnreadRefused([P9_ORDER.refusedDeposit]);
+    await setMockSession(page, 'loggedIn');
+    await page.goto(TAB);
+    const bar = page.getByRole('status');
+    await step('승인 공지가 있어도 거절 바가 먼저 보인다', async () => {
+      await expect(bar).toContainText('NEW 티켓 주문 승인이 거절되었습니다.');
+      await expect(bar.getByRole('link', { name: '티켓보기 →' })).toHaveAttribute(
+        'href',
+        `/orders/${P9_ORDER.refusedDeposit}`,
+      );
+    });
+    await step('[티켓보기]를 누르면 그 주문 상세(거절)가 열린다', async () => {
+      await bar.getByRole('link', { name: '티켓보기 →' }).click();
+      await expect(page).toHaveURL(new RegExp(`/orders/${P9_ORDER.refusedDeposit}$`));
+      await expect(page.getByRole('main')).toContainText('거절');
+    });
+    await step('티켓탭으로 돌아오면 거절 바가 풀리고 승인 바가 보인다', async () => {
+      await page.goto(TAB);
+      await expect(page.getByRole('status')).toContainText('NEW 티켓 주문이 승인되었습니다!');
+    });
+  },
+);
+
+/** 첫 묶음(승인 주문 a)의 공연을 진행 중으로 — 서버 `displayStatus`가 요청 시점에 시작 ≤ 지금 < 종료로 정한다 */
+const ongoingList = http.get('*/api/v2/me/tickets', () => {
+  const { groups } = listMyTickets();
+  return HttpResponse.json(
+    envelope.ok({
+      groups: groups.map((g) =>
+        g.groupKey === NEW_APPROVED_ORDER_UUID && g.event
+          ? { ...g, event: { ...g.event, displayStatus: 'ONGOING' } }
+          : g,
+      ),
+    }),
+  );
+});
+
+scenario(
+  'TIX-12',
+  '공연 중 공지 바 — 새 소식이 없고 내 티켓의 공연이 진행 중이면 "공연이 시작되었습니다!"',
+  {
+    kind: '정상',
+    summary:
+      '서버 값이 없다(#905 §2-2) — T-1 `event.displayStatus === ONGOING`인 묶음(티켓 있음)이 있으면. 승인 공지가 있으면 승인이 먼저.',
+    basis: ['GUI 939:25755 공연중', 'backend #905 §2-2', 'design-requests Q55'],
+    mocks: [ongoingList],
+  },
+  async ({ page, step }) => {
+    resetTicketStore();
+    await setMockSession(page, 'loggedIn');
+    await page.goto(TAB);
+    await step('승인 공지가 남아 있으면 승인 바가 먼저', async () => {
+      await expect(page.getByRole('status')).toContainText('NEW 티켓 주문이 승인되었습니다!');
+    });
+    await step('승인 공지가 풀리면(T-2를 열면) 공연 중 바', async () => {
+      readMyTicket(TICKET_UUID.approved);
+      await page.reload();
+      const bar = page.getByRole('status');
+      await expect(bar).toContainText('NEW 공연이 시작되었습니다!');
+      await expect(bar.getByRole('link')).toHaveCount(0);
+    });
+  },
+);
+
+scenario(
+  'TIX-13',
+  '운영 2.5.3 — T-3에 refusedOrderUuids 키가 없어도 승인 공지 바가 그대로',
+  {
+    kind: '에러',
+    summary: '2.5.4 전용 필드는 운영에 없다 — 빈 배열로 읽고 기존 동작(승인 바).',
+    basis: ['backend #905 머리(2.5.4는 스테이징에만)', 'api-contract G11/T-3'],
+    viewports: ['mobile'],
+    mocks: myTicketHandlers.noticeWithoutRefused,
+  },
+  async ({ page, step }) => {
+    resetTicketStore();
+    await setMockSession(page, 'loggedIn');
+    await page.goto(TAB);
+    await step('승인 바와 [티켓보기 →]', async () => {
+      const bar = page.getByRole('status');
+      await expect(bar).toContainText('NEW 티켓 주문이 승인되었습니다!');
+      await expect(bar.getByRole('link', { name: '티켓보기 →' })).toBeVisible();
+    });
+  },
+);

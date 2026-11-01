@@ -22,6 +22,18 @@ export const AGREEMENT_VERSION = '2026-11';
 export const AGREEMENT_REJECTED_MESSAGE = '필수 동의를 다시 확인하고 체크해 주세요.';
 export const AGREEMENT_REJECTED_CODE = 'Agreement_400_1';
 
+/**
+ * 이용약관 일부 개정(제19조②·제27조③·제29조③1호 — 두둥티켓 승인 전 셀프 취소 허용) 시행 시각: **2026-11-07 00:00 KST**
+ * (부칙 제1조②, v1 Front #385). 승인 전 취소 안내(legal-copy A-2 ⑤ · A-7 ⑤ · A-8 ⑤-b, 백엔드 #897 확정 문구)는 이 시각부터만
+ * 보인다 — "v2를 11-07 전에 출시하면 ⑤는 빼 주세요"(백엔드 #897 · #905 §2-1). 시각이 지나면 상수와 분기를 지워도 된다.
+ * 동의 칸 문구가 아니라서 `AGREEMENT_VERSION`과 무관하다(#897 §3).
+ */
+export const PRE_APPROVAL_CANCEL_TERMS_EFFECTIVE_AT = Date.parse('2026-11-07T00:00:00+09:00');
+
+/** 승인 전 취소 개정 약관이 시행됐는지(`now`는 epoch ms) */
+export const isPreApprovalCancelTermsEffective = (now: number = Date.now()) =>
+  now >= PRE_APPROVAL_CANCEL_TERMS_EFFECTIVE_AT;
+
 /** `AgreementLog.VERSION_MAX_LENGTH` */
 export const AGREEMENT_VERSION_MAX = 50;
 

@@ -16,12 +16,12 @@
 | [`error-codes.md`](./error-codes.md) | 백엔드 에러 코드 203개(`24aa595` 자동 추출 200개 + 2026-10-25 `432cce4` 대조로 손으로 더한 `AUTH_401_2`·`Agreement_400_1`·`Notice_404_1`) |
 | [`plan.md`](./plan.md) | 26개 Phase(2026-10-31 P9c 서비스 공지 추가, 남은 Phase는 로직 L / 뷰 V로 나눔 — §0), 선행 관계, API 배정. **진행 현황**은 개요 끝(2026-10-31: L은 전부 끝남 — P4s-L이 마지막, V는 전부 디자인 대기) |
 | [`v1-additions.md`](./v1-additions.md) | 2026-10 v1 프론트 PR(서버 개발자 — 약관 개정·동의 기록·연락처 가림)에서 **요건만** 뽑아 v2 기준으로 정리 — 요건별 v2 위치·상태, 가져오지 않는 v1 구현, 출시 전에 닫을 것. 약관 전문은 [`legal/terms-2026-10-25.md`](./legal/terms-2026-10-25.md)·[`legal/privacy-2026-10-25.md`](./legal/privacy-2026-10-25.md) |
-| [`legal-copy.md`](./legal-copy.md) | 약관 근거 화면 문구(2026-10-25 시행 약관 + 2026-11-07 시행 일부 개정) — v1 운영 원문, 조항, v2 Phase·위치, "약관 표시 의무 — v2 계획에 위치 없음(위험)" 표시, 승인 전 취소 안내 "B18 잠정안"(확정 아님). 문구가 바뀌면 `agreementVersion`을 올린다 |
+| [`legal-copy.md`](./legal-copy.md) | 약관 근거 화면 문구(2026-10-25 시행 약관 + 2026-11-07 시행 일부 개정) — v1 운영 원문, 조항, v2 Phase·위치, "약관 표시 의무 — v2 계획에 위치 없음(위험)" 표시, 승인 전 취소 안내 "B18 확정 문구"(백엔드 #897, 2026-11-07 시행 전에는 뺀다). 문구가 바뀌면 `agreementVersion`을 올린다 |
 | [`gui-screens.md`](./gui-screens.md) | Figma "GUI 화면" 파일 — **화면별 구현 상태(§0, 2026-10-31 기준 Ready for dev 23개)**, 관객·호스팅 화면 목록과 라우트·Phase 대응, 데스크탑 대시보드, GUI와 서버가 다른 것의 요약(원본은 design-requests §3) |
 | [`design-workflow.md`](./design-workflow.md) | **디자인 반영 규칙(디자인 → 코드)** — 근거 판정(Ready for dev → GUI / 아니면 와이어), `Design Sync` 이슈 처리 순서·닫는 규칙(`Closes #n`만), 커스텀 지양과 판단 표, `FIGMA-CUSTOM:` 주석·Figma 코멘트 형식, 완료 기준(QA 캡처 ↔ Figma 스크린샷), 상태표(2026-10-31) |
 | [`design-system.md`](./design-system.md) | 디자인 시스템(토큰·그리드·폰트·아이콘)과 컴포넌트 구현 결정(Radix + vanilla-extract, 컴포넌트별 출처·props) |
 | [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문(41건), **프론트가 정한 것(핸드오프 원본, 30건)**, 해결된 것 |
-| [`backend-questions.md`](./backend-questions.md) | 백엔드 질문(남은 것 B16·B18 — 2026-10-31. B18은 약관 해결, v2 안내 문구 확정 대기)과 지켜보는 변경 |
+| [`backend-questions.md`](./backend-questions.md) | 백엔드 질문(남은 것 B16 동의 강제 날짜 · B23~B27 — 2026-11-01 #905 답으로 B18 닫힘)과 지켜보는 변경 |
 | [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
 | [`cutover-runbook.md`](./cutover-runbook.md) | **컷오버 · 롤백 런북**(P15, 2026-11-01) — 스테이징 → 운영 순서, 프리즈 윈도우 조건, go/no-go, Deploy 저장소에 붙일 diff(파일별), 롤백 단계 · 기준 · 시간, 리허설 체크리스트, 버전 태그 올리는 법, 컷오버 뒤 검색 등록 · 실측. 단계는 전부 사람이 한다 |
 | [`backend-handoff-2026-11-01.md`](./backend-handoff-2026-11-01.md) | **서버(백엔드 · 운영) 전달 문서**(2026-11-01) — 출시를 막는 것(동의 강제 시점 · 스테이징 D2 · 컷오버/롤백), 출시 전 답(B18 문구 · 티켓탭 공지 바 서버 값 · 쿠키 · Void 본문), nginx · 인프라 설정, 작은 서버 이슈 · 제안. 원본은 backend-questions · cutover-runbook |
@@ -74,6 +74,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 | 2026-10-31 | 디자인 반영 규칙 — [`design-workflow.md`](./design-workflow.md) 신설(사용자·디자이너 합의 프로세스 + 사용자 승인 보완안 6개 + 구현 원칙): Ready for dev 노드만 GUI 근거, 나머지는 와이어 수준(부채로 상태표에 남김), `Design Sync` 이슈는 시작·PR 직전 확인하고 `Design: 디자인 시스템` 먼저, 반영 PR의 `Closes #n`으로만 닫음, **커스텀 지양**(Figma가 커스텀이지만 DS로 되면 DS + `FIGMA-CUSTOM:` 주석 + Figma 코멘트), GUI 화면 완료는 QA 캡처 ↔ Figma 스크린샷 비교. 스킬 `gui-implement`(+ 읽기 전용 `figma_nodes.py`). `gui-screens.md` §0 baseline — Ready for dev 23개(GUI 2026-10-31T13:11Z 판), 열린 Design Sync 이슈 0, 모든 화면 미구현 |
 | 2026-10-31 | 디자인 시스템 최신화 — DS 파일 지금 판(`2416497620013456256`)을 10-25T09:12Z 판과 비교해 [`design-system.md`](./design-system.md) 갱신(새 §8 변경 반영 기록 + 코드 반영 거리): `interaction/disabled` Neutral 200, 새 변수 `Background/normal 3`·`dimmed`(85%), 새 범용 칩 `tag_v2`, 칩 모서리 8, dropdown item 36h, Tabs 데스크탑 48 통일, Top app bar 슬롯 40·패딩 8, 아이콘 11변형 + `lightbulb`. 머리에 **동기화 기준 버전**을 두고, 디자인 시스템 변경은 `Design: 디자인 시스템` 이슈 + 버전 비교(`ds_diff.py`)로 계속 반영한다. 스킬 `gui-implement` 검토 반영(선행 확인, DS 변경 절차, DS override 분류, `ready --contains`, PR 직전 재비교, 코멘트는 사용자 확인 뒤, `test:stories`) |
 | 2026-11-01 | **P4s-V 레이아웃 셸** — V 레인 첫 번째, 스킬 `gui-implement` 첫 적용. 호스팅 PC `Top bar_Host`(GUI Ready) · 3단 틀, 관객·호스팅 모바일 헤더 + 햄버거 드로어 · 관객 PC 상단 바(와이어), 셸 안 404·에러. 새 `src/ui` `TopBar`·`AccountMenu`(DS `My`)·`Drawer`. 빌드에서만 보호 화면이 게이트에서 멈추던 문제(셸이 GM-1을 먼저 받아 게이트 하이드레이션이 어긋남)를 `LoginGate` 하이드레이션 중 스켈레톤으로 고침(implementation-log P4s-V). 스킬 `gui-implement`에 "단계마다 — ego-browser로 실제 화면 ↔ Figma, 추론 점검"과 "디자인 없음 Figma 코멘트"(사용자 지시). Q17 닫힘, Q54 추가 |
+| 2026-11-01 | 백엔드 #905 답 반영(백엔드 2.5.3 운영 · 2.5.4 스테이징만) — B18 확정 문구(legal-copy, 11-07 시행 전에는 ⑤ 숨김), B16 동의 강제(환경별 · v2만 기록 모드 없음), T-3 `refusedOrderUuids` · 티켓탭 공지 바 거절 · 공연 중(Q55), `Void` 래퍼, 섹션 기본 제목 '공연소개', 런북 "정해진 것"(스테이징 v2 끝 · `/hosting` 해외 차단 · ruleset · 보안 헤더 · S3 호스트), handoff "답 받음" |
 
 ## 원본 위치
 
@@ -105,7 +106,7 @@ Next 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 확
 
 ### 물어야 하는 것
 
-- **백엔드 질문 — 답 못 받은 것만 2건(B16 동의 강제 날짜와 참고 항목·B18 v2 승인 전 취소 안내 문구 — 약관은 2026-10-31 v1 Front #385로 해결)과 지켜보는 항목** — 2026-10-31 백엔드 2.5.1 답변으로 B2·B7·B9·B13·B15·B17·B19, 2.5.2 최종 답변으로 B8·B11·B21·B22가 닫혔다 → [`backend-questions.md`](./backend-questions.md)
+- **백엔드 질문 — 답 못 받은 것만(B16 동의 강제 날짜 — #898, B23~B27 스테이징 QA 제안)과 지켜보는 항목** — 2026-11-01 #905 답으로 B18(확정 문구)과 B16 참고 항목이 닫혔다 — — 2026-10-31 백엔드 2.5.1 답변으로 B2·B7·B9·B13·B15·B17·B19, 2.5.2 최종 답변으로 B8·B11·B21·B22가 닫혔다 → [`backend-questions.md`](./backend-questions.md)
 - **기획 질문 — 답 못 받은 것만 41건 + 문구 정정 요청** → [`design-requests.md`](./design-requests.md) §2
 - **약관 표시 의무 — v2 계획에 위치 없음(위험)** 목록 → [`legal-copy.md`](./legal-copy.md) (공연 상세 중개자 고지·판매정보 굵은 문단, 첫 화면 중개자 고지, 체크아웃 호스트 제공 동의·중개자 문장·두둥 입금 전 고지, 가입 만 14세, 두둥티켓 개설 환불 의무 동의)
 

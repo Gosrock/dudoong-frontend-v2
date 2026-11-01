@@ -77,15 +77,44 @@ export const clampIndex = (index: number, total: number) =>
   total <= 0 ? 0 : Math.min(Math.max(0, Math.trunc(index) || 0), total - 1);
 
 /**
- * T-3 공지 바. `hasNew`면 보이고, [티켓 보러가기]는 `orderUuids[0]`의 묶음으로(목록에 없으면 첫 묶음 없이 null).
- * 티켓탭 진입만으로는 풀리지 않는다 — T-2를 열거나 알림을 읽어야 서버가 푼다.
+ * 티켓탭 공지 바(GUI `908:3276` — 승인 `939:29784` · 승인거절 `939:25571` · 공연중 `939:25755`, design-requests Q55).
+ * - `REFUSED`: T-3 `refusedOrderUuids`(2.5.4~)가 있으면 "티켓 주문 승인이 거절되었습니다." + [티켓보기] → **O-3 주문 상세**
+ *   (`refusedOrderUuids[0]`). O-3을 열어야 서버가 푼다(백엔드 #905 §2-2) — 티켓탭 묶음으로 넘기지 않는다
+ * - `APPROVED`: `hasNew`면 "티켓 주문이 승인되었습니다!" + [티켓보기] → `orderUuids[0]`의 묶음(목록에 없으면 버튼 없이).
+ *   티켓탭 진입만으로는 풀리지 않는다 — T-2를 열거나 알림을 읽어야 서버가 푼다
+ * - `ONGOING`: 서버 값이 없다 — 티켓이 있는 묶음 중 공연이 진행 중이면(T-1 `event.displayStatus === 'ONGOING'`, 서버가 요청 시점에
+ *   시작 ≤ 지금 < 종료로 계산 — T-1에는 종료 시각 필드가 없다) "공연이 시작되었습니다!"
+ * - `DEFAULT`: 기본 Notice
+ *
+ * 우선순위 거절 > 승인 > 공연 중 > 기본 — Figma에 없어 정함(🤖 Claude 판단 2026-11-01: 놓치면 안 되는 것 · 할 일이 있는 것 먼저.
+ * Figma 코멘트로 물음). T-3이 실패하거나 아직이면 승인·거절 없이 공연 중 · 기본만 본다.
  */
+export type TicketNoticeBar =
+  | { kind: 'REFUSED'; orderHref: string }
+  | { kind: 'APPROVED'; targetGroupKey: string | null }
+  | { kind: 'ONGOING' }
+  | { kind: 'DEFAULT' };
+
+/** T-3 응답. `refusedOrderUuids`는 2.5.4부터라 없을 수 있다(스키마는 빈 배열로 채운다) */
+type NoticeInput = {
+  hasNew: NewApproved['hasNew'];
+  orderUuids: readonly string[];
+  refusedOrderUuids?: readonly string[];
+};
+
 export function noticeBar(
-  notice: NewApproved | undefined,
-  groups: readonly Pick<MyTicketGroup, 'groupKey' | 'orderUuid'>[],
-): { show: boolean; targetGroupKey: string | null } {
-  if (!notice?.hasNew) return { show: false, targetGroupKey: null };
-  const first = notice.orderUuids[0];
-  const target = groups.find((g) => g.orderUuid !== null && g.orderUuid === first);
-  return { show: true, targetGroupKey: target?.groupKey ?? null };
+  notice: NoticeInput | undefined,
+  groups: readonly Pick<MyTicketGroup, 'groupKey' | 'orderUuid' | 'event' | 'tickets'>[],
+): TicketNoticeBar {
+  const refused = notice?.refusedOrderUuids?.[0];
+  if (refused) return { kind: 'REFUSED', orderHref: orderDetailHref(refused) };
+  if (notice?.hasNew) {
+    const first = notice.orderUuids[0];
+    const target = groups.find((g) => g.orderUuid !== null && g.orderUuid === first);
+    return { kind: 'APPROVED', targetGroupKey: target?.groupKey ?? null };
+  }
+  if (groups.some((g) => g.tickets.length > 0 && g.event?.displayStatus === 'ONGOING')) {
+    return { kind: 'ONGOING' };
+  }
+  return { kind: 'DEFAULT' };
 }

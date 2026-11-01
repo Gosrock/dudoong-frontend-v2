@@ -2484,6 +2484,33 @@ Figma 코멘트(GUI, `[개발 · 스테이징 QA 제안]`): 공연 카드 `759:2
 
 **ego-browser 확인**(`pnpm dev:mock`, `localhost:3063`, 공간 43): 햄버거 드로어 390 — 로그인(호스트 1개)은 말풍선 없음 · 미로그인은 "공연 준비 ↗" 옆 말풍선 / 티켓탭 390 · 1440 — 다가오는 공연 → 지난 공연 순 / 간편 만들기 390 · 1440 — 고스락 → [다음] → `?step=2&hostId=11`, 새로고침 뒤에도 "호스트: 고스락" / 공연 상세 390 · 1440 — 가짜 이미지 출처가 응답이 없어 600×800 시험 이미지를 포스터 칸에 넣어 봄: `contain`, 'GOSROCK' 좌우가 잘리지 않음. **QR 스캔 화면은 카메라 권한 창 때문에 ego-browser로 못 봄**(공간 41이 권한 창에서 멈춤) — QA `hosting-qr` 캡처로 대신, 사람 확인 필요(🤖 관제탑 판단).
 
+## 백엔드 #905 답 반영(2026-11-01, `backend-905-sync`)
+
+**상태**: PR #100 — 원본 [Gosrock/DuDoong-Backend#905](https://github.com/Gosrock/DuDoong-Backend/issues/905) 답(2026-11-01 10:21Z) · #897 댓글(B18 확정 문구) · #898(동의 강제 날짜 — 미정). 백엔드 2.5.4는 **스테이징에만**(운영 2.5.3). 동의 칸 4개는 병렬 세션 `agreement-fields` 몫이라 건드리지 않았다.
+
+### 코드
+
+- **티켓탭 공지 바(Q55)** — `ticket-groups.ts` `noticeBar` → `TicketNoticeBar`(`REFUSED` · `APPROVED` · `ONGOING` · `DEFAULT`), `TicketTabView` `NoticeBar`. 거절: T-3 `refusedOrderUuids[0]` → NEW "티켓 주문 승인이 거절되었습니다." + [티켓보기 →] = `<Link href="/orders/{uuid}">`(O-3을 열어야 서버가 푼다). 공연 중: 티켓이 있는 묶음의 T-1 `event.displayStatus === 'ONGOING'` → NEW "공연이 시작되었습니다!"(버튼 없음 — GUI `939:25755`). 스키마 `refusedOrderUuids: z.array(z.string()).optional().default([])` — 운영 2.5.3(키 없음)은 빈 배열.
+- **MSW**: 저장소 `unreadRefused`(기본 비어 있음 — 기존 승인 기본 화면 그대로) · `setUnreadRefused` · `markRefusedRead`(O-3 `GET /me/orders/:orderUuid`가 부른다), 세트 `myTicketHandlers.noticeWithoutRefused`(2.5.3 모양).
+- **B18 확정 문구** — A-8 ⑤-b를 #897 확정본으로. `PRE_APPROVAL_CANCEL_TERMS_EFFECTIVE_AT`(2026-11-07 00:00 KST) · `isPreApprovalCancelTermsEffective()`(`src/api/shared/agreement.ts`) — `cancelNotice(order, now)`의 `pendingApproval`이 시행 전에는 false라 ⑤-b가 빠진다. A-2 ⑤ · A-7 ⑤는 화면에 자리가 아직 없다(legal-copy 표). `AGREEMENT_VERSION`은 바꾸지 않았다.
+- **`Void` 래퍼** — 파서는 이미 래퍼를 전제로 했다(`unwrap` — `success` 없으면 `BAD_ENVELOPE`). 운영 바이트 그대로 로그아웃 · 탈퇴 테스트를 더했다(`src/api/http.test.ts`).
+- **섹션 기본 제목** — 프론트는 이미 '공연소개'(`DEFAULT_SECTION_TITLES`). 목 데이터의 '공연 소개'는 호스트가 저장한 제목 예시라 그대로(서버도 저장된 제목은 바꾸지 않는다). QA 단계 이름만 고침.
+
+### 문서
+
+backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #871 · 2.5.4), api-contract(머리 · §1 Void · §1 · §7 PQ-5 400 유지 · §4 공백만 400 · 동의 버전 · 공연 절 섹션 제목 · GP-2 `hostId` · `updatedAt` · 운영 절 `HOST_400_15` · 마이페이지 절 T-3 `refusedOrderUuids`), cutover-runbook(머리 · 단계 A 끝 · §2 동의 칸 · §3-2 `/hosting` 해외 차단 · `--remove-orphans` · §6 ruleset · "결정 대기" 줄이고 "정해진 것" 표), backend-handoff(머리 "답 받음"), legal-copy(B18 잠정안 → "B18 확정 문구" + 시행 조건), plan P9 · v1-additions D-2 · design-requests Q55 · README · progress(사용자 대기 — ruleset · 보안 헤더 · 선물 토큰 로그 · `/hosting` 줄 지우거나 줄임).
+
+### 결정
+
+| # | 결정 | 왜 · 근거 | 어디 |
+|---|---|---|---|
+| 1 | 🤖 공지 바 우선순위 **거절 > 승인 > 공연 중 > 기본** | Figma에 없음. 놓치면 안 되는 것(거절 — 환불 계좌 · 문의가 필요)과 할 일이 있는 것(승인 — QR 확인)을 먼저, 공연 중은 카드 칩(ON AIR)으로도 보인다. Figma 코멘트 답글 `1989848801` | `noticeBar` |
+| 2 | 🤖 '공연 중'은 T-1 `displayStatus === 'ONGOING'` | 백엔드는 "T-1 시작 · 종료 시각으로"라 했지만 T-1 `V2MyOrderEventResponse`에는 `startAt`뿐(종료 시각 없음 — 소스 `dev` 확인). `ONGOING`은 서버가 요청 시점에 시작 ≤ 지금 < 종료로 계산한 같은 판정 | `noticeBar` |
+| 3 | 🤖 티켓 없는 묶음(승인 대기 · 거절)은 '공연 중'으로 치지 않는다 | 입장할 티켓이 없는데 "공연이 시작되었습니다!"는 맞지 않다 | `noticeBar` |
+| 4 | 🤖 승인대기 바("티켓 주문이 완료되었습니다!", `939:25698`)는 그리지 않는다 | 서버 값이 없어 언제 지울지 정할 수 없다 — 카드 칩으로 보인다 | Q55 |
+| 5 | 🤖 `AGREEMENT_VERSION` `'2026-11'` 그대로 | #897 §3은 "올리지 않아도 된다('2026-10' 유지)". v2는 2026-10-31 사용자 결정으로 이미 `'2026-11'` — 서버는 기록만 해서 어느 값이든 동작은 같고, 되돌리면 병렬 세션 `agreement-fields`와 겹친다. 바꿀지는 사용자 몫(PR 본문) | `agreement.ts` |
+| 6 | 🤖 ⑤-b 시행 전 숨김은 클라이언트 시계 기준 | 주문 상세는 보호 화면(브라우저 조회)이라 서버 · 클라이언트 렌더 차이가 없다. 시행 뒤 상수와 분기를 지운다 | `cancelNotice` |
+
 ## 동의 칸 4개 — 가입 ① · 주문 ② · 두둥 주문 ③ · 두둥티켓 생성 ④ (agreement-fields, 2026-11-01)
 
 **근거**: 백엔드 Gosrock/DuDoong-Backend#905 1-1(2026-11-01) "v2는 출시(컷오버) 전에 동의 칸 4개를 반드시 갖춰야 한다 — v2만 기록 모드는 없다", 팀원 스테이징 QA #92-2(두둥 티켓 만들기에 환불 의무 동의 칸 없음). 디자인 Q42(칸 위치)는 답이 없다 → **🤖 관제탑 판단(2026-11-01)**: DS 컴포넌트로만 붙이고 플래그를 켠다, 위치는 각 화면 제출 버튼 바로 위(③은 확인 단계), 디자인이 오면 옮긴다.
