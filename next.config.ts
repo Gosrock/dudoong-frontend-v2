@@ -5,6 +5,7 @@ import { createVanillaExtractPlugin } from '@vanilla-extract/next-plugin';
 import type { NextConfig } from 'next';
 
 import { contentSecurityPolicy, cspHeaderName } from './src/utils/csp';
+import { HTML_LIMITED_BOTS } from './src/utils/html-limited-bots';
 import { UPLOAD_IMAGE_ORIGIN } from './src/utils/image';
 
 const withVanillaExtract = createVanillaExtractPlugin({
@@ -78,6 +79,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,
+  // 크롤러는 셸 없이 끝까지 렌더해 없는 공연이 404 상태 코드를 받는다(이슈 #90, src/utils/html-limited-bots.ts). 브라우저는 셸(200 + noindex)
+  htmlLimitedBots: HTML_LIMITED_BOTS,
   // 배포 사이 버전 불일치를 감지해 하드 내비게이션으로 넘긴다(deploy-plan §3).
   deploymentId: process.env.GIT_SHA,
   /**

@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
@@ -70,6 +70,27 @@ describe('api', () => {
     await expect(api.get('tags', TagGroupsSchema)).resolves.toEqual([
       { category: 'UNKNOWN', tags: [] },
     ]);
+  });
+});
+
+describe('요청 시간 제한', () => {
+  const slowEcho = (ms: number) =>
+    http.post('*/api/v2/echo', async () => {
+      await delay(ms);
+      return HttpResponse.json({ success: true, status: 200, data: { value: 1 }, timeStamp: '' });
+    });
+
+  it('timeout을 넘기면 TIMEOUT(status 0)', async () => {
+    server.use(slowEcho(300));
+    await expect(api.post('echo', Echo, {}, { timeout: 50 })).rejects.toMatchObject({
+      status: 0,
+      code: 'TIMEOUT',
+    });
+  });
+
+  it('timeout을 늘린 요청은 그 안의 응답을 받는다(주문 생성 — 이슈 #92-4)', async () => {
+    server.use(slowEcho(100));
+    await expect(api.post('echo', Echo, {}, { timeout: 1_000 })).resolves.toEqual({ value: 1 });
   });
 });
 

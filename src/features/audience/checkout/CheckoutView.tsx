@@ -182,6 +182,14 @@ function CheckoutForm(props: {
           <Txt typography="labelMd" color={colors.textDangerLabel}>
             {c.submitError.message}
           </Txt>
+          {/* 응답을 못 받은 주문 — 다시 내기 전에 주문내역부터(이슈 #92-4). 새 탭이 아니라 이동: 결과를 보고 돌아온다 */}
+          {c.submitError.kind === 'ORDER_UNCERTAIN' && (
+            <div className={s.errorBannerAction}>
+              <Link href="/orders" className={button({ variant: 'secondary', size: 'sm' })}>
+                주문내역 확인
+              </Link>
+            </div>
+          )}
         </div>
       )}
       {c.quantityAdjusted && (

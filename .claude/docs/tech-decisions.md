@@ -119,6 +119,8 @@ Cache Components는 Next 16의 기본 캐시·프리렌더 모델이다. 끄고 
 
 브라우저에 200이 나가는 것은 사용자에게는 차이가 없고(not-found 화면이 뜬다) 검색 엔진에는 `noindex`로 전달된다. 받아들인다.
 
+> **2026-11-01 갱신(이슈 #90, §26 끝)**: 404를 받는 것은 `htmlLimitedBots`에 걸린 UA뿐이다. Next 기본 목록에 Googlebot이 없어 Googlebot도 200이었다 — `next.config.ts` `htmlLimitedBots`에 기본 목록 + Googlebot · `kakaotalk-scrap` · Daumoa · `bot/` · `crawler` · `spider`를 넣었다(`src/utils/html-limited-bots.ts`). 브라우저 200은 그대로 받아들인다.
+
 ### 카카오 미리보기 — 확인된 동작
 
 App Router는 데이터 조회가 필요한 메타 태그를 `<head>`가 나간 뒤 `<body>`로 흘려 보낸다(스트리밍 메타데이터, Next 15.2~). Next는 내장 크롤러 목록에 있는 User-Agent에게만 `<head>`에 넣어 준다.
@@ -126,7 +128,7 @@ App Router는 데이터 조회가 필요한 메타 태그를 `<head>`가 나간 
 - 카카오 스크랩 서버의 UA는 `facebookexternalhit/1.1; kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984`다(카카오 데브톡, 2021). `facebookexternalhit`이 내장 목록에 있어 **기본 설정으로 `<head>`에 들어간다**(캐시 없는 첫 요청에서 확인).
 - `kakaotalk-scrap/1.0`만 보내면 `<body>`로 나간다. 테스트할 때 UA를 줄여 쓰지 않는다.
 - 이 동작은 UA 문자열에 의존한다. **실제 카카오 공유 디버거로 확인하는 것을 P5b 완료 기준에 넣는다.**
-- 없는 공연의 상태 코드는 `generateMetadata`와 페이지가 모두 `serverQuery`를 쓰고 `loading.tsx`가 없을 때, 켠 구성(채택)에서 크롤러 404 / 브라우저 200이다(§26). 끈 구성에서는 둘 다 404였다(§22). 켠 구성에서 브라우저가 200인 이유는 문서에서 찾지 못했다.
+- 없는 공연의 상태 코드는 `generateMetadata`와 페이지가 모두 `serverQuery`를 쓰고 `loading.tsx`가 없을 때, 켠 구성(채택)에서 크롤러 404 / 브라우저 200이다(§26). 끈 구성에서는 둘 다 404였다(§22). 켠 구성에서 브라우저가 200인 이유는 빌드 때 만든 빈 셸을 먼저 보내기 때문이고, 404를 받는 "크롤러"는 `htmlLimitedBots` 목록에 걸린 UA다 — Googlebot 등을 더했다(§26 끝, 2026-11-01).
 
 ## 3. 렌더 전략과 라우트
 
@@ -1182,6 +1184,18 @@ nginx 경로 분기(`nginx/site.conf`):
 | 없는 공연 | 카카오 UA 404, 브라우저 UA 200 |
 
 이 확인은 ky와 vanilla-extract를 뺀 축소 구성으로 했다. 전체 구성(§22)은 끈 상태로만 돌렸으므로, **켠 상태의 전체 구성 확인이 P0의 첫 작업**이다.
+
+### 브라우저가 200인 이유와 크롤러 목록(2026-11-01, 이슈 #90)
+
+위 표의 "켠 구성에서 브라우저가 200인 이유"를 설치본(Next 16.4.1)으로 확인했다. 서버 조회 페이지(`instant = false`)도 빌드 때 **빈 셸**이 만들어지고(prerender-manifest `response: 'empty'`), 런타임(`build/templates/app-page-runtime.js`)은 그 셸을 먼저 보내 상태 코드 200을 확정한 뒤 이어서 렌더한다(`resumeRender`). 셸을 건너뛰고 끝까지 렌더하는 것은 `htmlLimitedBots`에 걸린 UA뿐이다(`shouldForceDynamicPPRRender`, 설치본 `streaming.md` "Cache Components"). Suspense · `loading.tsx` 유무와 상관없다.
+
+| UA | 기본 목록(전) | 지금 |
+|---|---|---|
+| 실제 카카오(`facebookexternalhit` 포함) · 네이버 Yeti · Bingbot | 404 | 404 |
+| Googlebot · `kakaotalk-scrap/1.0`만 · Daumoa · 이름 모를 `…bot/` | **200** | 404 |
+| 브라우저 · 인앱 브라우저 | 200 + `noindex` | 200 + `noindex`(결정 — 아래) |
+
+**결정**: `next.config.ts` `htmlLimitedBots: HTML_LIMITED_BOTS`(`src/utils/html-limited-bots.ts` — Next 기본 정규식을 import해 덧붙인다. 설정은 기본 목록을 덮어쓴다). 브라우저까지 404로 만드는 `/.*/`는 모든 화면 · 모든 UA(RSC 요청 포함)에서 셸을 버려 정적 셸 · 즉시 이동을 잃으므로 쓰지 않는다. 검사는 e2e `event-detail.spec.ts`(standalone 빌드) 크롤러 404 4종 + 유닛 `html-limited-bots.test.ts`. 기록은 implementation-log "스테이징 QA 수정(관객)".
 
 ## 27. 검토 1회차 (2026-10-14)
 

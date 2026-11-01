@@ -11,7 +11,7 @@ import { handleError } from '@/api/handle-error';
 import { meQuery } from '@/api/me/queries';
 import { createOrderMutation } from '@/api/order/mutations';
 import { orderTotalAmount } from '@/api/order/price';
-import { checkoutQuery, myOrderQuery } from '@/api/order/queries';
+import { checkoutQuery, MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order/queries';
 import type { Checkout } from '@/api/order/schema';
 import { eventTicketItemsQuery } from '@/api/ticket-item/queries';
 import { toTicketView } from '@/features/audience/event/model/ticket-state';
@@ -21,6 +21,8 @@ import {
   CHECKOUT_ERROR_TABLE,
   type CheckoutErrorOutcome,
   FREE_FCFS_FAILED,
+  ORDER_UNCERTAIN,
+  UNCERTAIN_ERROR_CODES,
 } from './checkout-errors';
 import { type CheckoutParams, eventHref } from './checkout-params';
 import {
@@ -235,14 +237,20 @@ export function useCheckout({
         router.replace(orderCreatedHref(order.orderUuid));
       } catch (e) {
         inflight.current = false;
+        // 응답을 못 받았으면 주문내역이 바뀌었을 수 있다 — 다음에 열 때 새로 읽게 한다
+        const onUncertain = () => {
+          void queryClient.invalidateQueries({ queryKey: MY_ORDERS_INFINITE_KEY });
+          setSubmitError(ORDER_UNCERTAIN);
+        };
         handleError(
           e,
-          Object.fromEntries(
-            Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
+          Object.fromEntries([
+            ...Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
               code,
               () => onKnownError(outcome, code),
             ]),
-          ),
+            ...UNCERTAIN_ERROR_CODES.map((code) => [code, onUncertain]),
+          ]),
           // 무료 선착순은 표에 없는 실패도 화면이 맡는다(공용 토스트 대신 재시도 안내)
           kind === 'FREE_FCFS' ? { otherwise: () => setSubmitError(FREE_FCFS_FAILED) } : {},
         );
@@ -259,6 +267,7 @@ export function useCheckout({
     succeeded,
     onKnownError,
     router,
+    queryClient,
   ]);
 
   return {
