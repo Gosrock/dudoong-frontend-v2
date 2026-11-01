@@ -10,6 +10,8 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # 보통 4~5분. 걸려도 6시간(기본값)씩 붙잡지 않게(2026-11-01 playwright --with-deps의 apt가 1시간 넘게 멈춤)
+    timeout-minutes: 40
     env:
       # next.config.ts가 공개 env를 검증한다. 게이트에서는 자리 값으로 충분하다.
       NEXT_PUBLIC_KAKAO_JS_KEY: ci-placeholder
@@ -30,7 +32,15 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-      - run: pnpm exec playwright install --with-deps --only-shell chromium
+      # --with-deps는 apt-get을 부른다 — 미러가 멈추면 끝없이 기다리므로 5분씩 끊고 세 번까지 다시 한다
+      - name: Playwright Chromium 설치(시스템 의존성 포함)
+        timeout-minutes: 17
+        run: |
+          for i in 1 2 3; do
+            timeout 300 pnpm exec playwright install --with-deps --only-shell chromium && exit 0
+            echo "playwright install 실패/시간 초과 — 다시 시도 ($i/3)"
+          done
+          exit 1
       - run: pnpm test:stories
       # Cache Components 규칙 위반(instant=false 누락, Suspense 밖 비캐시 데이터)은 build에서만 드러난다
       - run: pnpm build
