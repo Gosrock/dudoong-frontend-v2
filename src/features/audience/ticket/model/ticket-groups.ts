@@ -54,7 +54,7 @@ export function toTicketGroupView(group: MyTicketGroup): TicketGroupView {
 /**
  * 캐러셀 순서. 서버 T-1은 공연 임박순(종료 전 → 지난 공연)이지만 삭제된 공연(`event=null`) 묶음이 섞여 와
  * 앞쪽 카드를 가린다(이슈 #93 §3 — 스테이징 계정에 10장 넘게). 다가오는·진행 중 → 지난 공연 → 삭제된 공연으로 모으고,
- * 같은 무리 안에서는 서버 순서를 그대로 둔다(안정 정렬). 숨기지는 않는다 — 지난/삭제 티켓을 따로 보일지는 design-requests Q63
+ * 같은 무리 안에서는 서버 순서를 그대로 둔다(안정 정렬). 숨기지는 않는다 — 지난/삭제 티켓을 따로 보일지는 design-requests Q64
  */
 const groupRank = (g: Pick<MyTicketGroup, 'event'>) =>
   g.event === null ? 2 : g.event.displayStatus === 'PAST' ? 1 : 0;

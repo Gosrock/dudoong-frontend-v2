@@ -63,7 +63,7 @@ export const posterWrap = style({
 
 /**
  * 포스터는 칸(282:400)에 맞춰 줄이고 자르지 않는다(`contain`) — 3:4 포스터를 `cover`로 채우면 좌우 글자가 잘렸다
- * (이슈 #93 §1 'GOSROCK' → 'OSROCK'). 남는 칸은 `posterWrap`의 이미지 바탕색. 와이어 구현 화면이라 모양 결정은 Q64
+ * (이슈 #93 §1 'GOSROCK' → 'OSROCK'). 남는 칸은 `posterWrap`의 이미지 바탕색. 와이어 구현 화면이라 모양 결정은 Q65
  */
 export const poster = style({
   display: 'block',
