@@ -407,13 +407,18 @@ scenario(
     reset();
     await setMockSession(page, 'loggedIn');
     await step(
-      '입금 미확인 거절 — 사유 설명이 있고, [계좌 입력]은 있지만 유도 문구는 없다',
+      '입금 미확인 거절 — 사유 설명이 있고, [계좌 입력]은 있지만 유도 문구 대신 "입금하셨다면" 안내(#106 §5)',
       async () => {
         await page.goto(detail(P9_ORDER.refusedDeposit));
         await expect(page.getByTestId('refuse-reason')).toHaveText('입금 미확인');
         await expect(page.getByText('입금 내역을 찾을 수 없습니다.')).toBeVisible();
         await expect(page.getByRole('button', { name: '계좌 입력' })).toBeVisible();
-        await expect(page.getByText('환불받을 계좌를 입력해 주세요')).toHaveCount(0);
+        await expect(page.getByText('환불받을 계좌를 입력해 주세요', { exact: true })).toHaveCount(
+          0,
+        );
+        await expect(page.getByTestId('refund-account-optional')).toContainText(
+          '입금하지 않으셨다면 입력하지 않아도 돼요',
+        );
       },
     );
     await step('기타 거절 — 호스트가 쓴 사유("공연 일정 변경")가 보인다', async () => {

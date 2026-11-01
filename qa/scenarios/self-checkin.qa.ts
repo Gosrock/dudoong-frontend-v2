@@ -48,7 +48,7 @@ const enter = (page: Page) =>
 /** 여러 장 — [이 티켓으로 입장] 뒤 확인 팝업의 [입장하기] */
 const confirmPick = (page: Page) =>
   page
-    .getByRole('dialog', { name: '이 티켓으로 입장할까요?' })
+    .getByRole('alertdialog', { name: '이 티켓으로 입장할까요?' })
     .getByRole('button', { name: '입장하기' })
     .click();
 const failRegion = (page: Page) => page.getByRole('region', { name: '체크인 실패' });
@@ -118,9 +118,9 @@ scenario(
     });
     await step('[이 티켓으로 입장]을 누르면 확인 팝업 — 아직 요청은 한 번', async () => {
       await page.getByRole('button', { name: '이 티켓으로 입장' }).click();
-      await expect(page.getByRole('dialog', { name: '이 티켓으로 입장할까요?' })).toContainText(
-        '되돌릴 수 없어요',
-      );
+      await expect(
+        page.getByRole('alertdialog', { name: '이 티켓으로 입장할까요?' }),
+      ).toContainText('되돌릴 수 없어요');
       expect(selfCalls()).toHaveLength(1);
     });
     await step('팝업의 [입장하기]를 누르면 입장 완료', async () => {

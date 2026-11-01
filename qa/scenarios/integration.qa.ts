@@ -263,7 +263,7 @@ scenario(
         await picker.getByRole('radio', { name: new RegExp(no) }).click();
         await picker.getByRole('button', { name: '이 티켓으로 입장' }).click();
         await page
-          .getByRole('dialog', { name: '이 티켓으로 입장할까요?' })
+          .getByRole('alertdialog', { name: '이 티켓으로 입장할까요?' })
           .getByRole('button', { name: '입장하기' })
           .click();
         await expect(page.getByRole('region', { name: '체크인 결과' })).toHaveAttribute(

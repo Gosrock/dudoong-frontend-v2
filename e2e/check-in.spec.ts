@@ -42,7 +42,7 @@ test.describe('셀프 체크인', () => {
     await picker.getByRole('radio').first().click();
     await picker.getByRole('button', { name: '이 티켓으로 입장' }).click();
     // 고른 티켓을 한 번 더 확인(이슈 #106 §6) — 확인 전에는 두 번째 요청이 없다
-    const confirm = page.getByRole('dialog', { name: '이 티켓으로 입장할까요?' });
+    const confirm = page.getByRole('alertdialog', { name: '이 티켓으로 입장할까요?' });
     await expect(confirm).toBeVisible();
     expect(selfCalls(mockApi.calls())).toHaveLength(1);
     await confirm.getByRole('button', { name: '입장하기' }).click();

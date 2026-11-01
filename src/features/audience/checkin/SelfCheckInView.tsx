@@ -157,20 +157,21 @@ function SelectTicket({
 
 /**
  * 확인 단계(이슈 #106 §6) — QR을 스캔하고 들어오면 바로 입장 처리하지 않고 [입장하기]를 누르게 한다.
- * 디자인 없음 — DS EmptyState 배치 + 버튼. 문구는 🤖 Claude 판단(2026-11-02)
+ * 디자인 없음 — DS EmptyState와 같은 배치(아이콘 · 제목 · 설명) + 버튼. 문구는 🤖 Claude 판단(2026-11-02)
  */
 function Ready({ onStart }: { onStart: () => void }) {
+  // 진짜 h1(접근성 — 화면마다 h1 하나). EmptyState 제목은 <p>라 그 배치만 따른다
   return (
     <section aria-label="입장 확인">
-      <EmptyState
-        illustration={<Icon name="qr" className={s.toneIcon} />}
-        title={
-          <span role="heading" aria-level={1}>
-            공연장 입구에서 입장해 주세요
-          </span>
-        }
-        description="[입장하기]를 누르면 내 티켓이 바로 입장 처리돼요. 입장 처리는 되돌릴 수 없어요."
-      />
+      <Flex direction="column" align="center" gap={3} paddingY={8}>
+        <Icon name="qr" className={s.toneIcon} />
+        <Txt as="h1" typography="headingMdEmphasized" align="center">
+          공연장 입구에서 입장해 주세요
+        </Txt>
+        <Txt as="p" typography="bodyLg" color={colors.textSecondary} align="center">
+          [입장하기]를 누르면 내 티켓이 바로 입장 처리돼요. 입장 처리는 되돌릴 수 없어요.
+        </Txt>
+      </Flex>
       <Spacing size={6} />
       <Flex direction="column" gap={3} fullWidth>
         <Button variant="primary" size="lg" fullWidth onClick={onStart}>
