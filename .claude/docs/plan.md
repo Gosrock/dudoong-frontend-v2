@@ -850,6 +850,7 @@ L 레인의 순서는 관객 돈 경로(상세 → 선택 → 체크아웃)를 �
 
 - [x] **보안**(2026-11-01, `p14-security`, #79) — 오픈 리다이렉트 · 토큰 · 로그 PII(grep + e2e·QA 런타임 검사) · 선물 토큰/QR 유출 · sanitize · 외부 링크 `rel` · CSP Report-Only(+ `/csp-report`, e2e·QA 위반 0 검사) · zxing wasm 자체 호스팅 · 의존성 감사. 찾은 것 표는 implementation-log "P14 — 보안". CSP 강제 · nginx 로그 보존은 사용자 대기
 - [x] **접근성**(2026-11-01, `p14-a11y`, #81) — axe 35화면 × 모바일 · PC 위반 0(대비는 토큰 — design-requests Q56~Q61) · `main`/`h1` 하나 · 키보드 핵심 흐름 2개 + 오버레이 포커스 · 축소 모션 · 리플로 320. 찾은 것 표는 implementation-log "P14 — 접근성". 화면 읽기 도구 실기기 청취는 사용자 대기
+- [x] **회귀 · 레거시 URL · 검색 노출**(2026-11-01, `p14-regression`, #85) — 공유 지점 통합 QA `pnpm qa integration`(REG-1~3, S1~S5), `pnpm qa` 전체 · e2e 전체 통과, **Playwright e2e를 PR 게이트에 넣음**(별도 job 3조각 · 25분 상한), v1 관객 주소 리다이렉트(§22 표 전수 e2e), QR 판독 주입은 e2e·QA·dev:mock 빌드에서만(사용자 결정), JSON-LD 리치 결과 구조 검사(로컬), `generateSitemaps`는 근거만(종료 전 공연 33개). 기록은 implementation-log "P14 — 회귀 · 레거시 URL · 검색 노출". 기본 OG 이미지는 디자인 대기, 서치 콘솔·sitemap 제출은 P15
 
 **선행**: 전 기능 Phase
 

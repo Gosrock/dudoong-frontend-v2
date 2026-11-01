@@ -2089,3 +2089,74 @@ worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';
 | 16 | 확대 200% · 리플로 | — | **남김(문제 없음)** — 35곳 320 폭 가로 스크롤 0(캐러셀 · 표는 자기 안에서 가로 스크롤) |
 
 **사용자 대기**: 실제 화면 읽기 도구(VoiceOver iOS · TalkBack) 청취 확인 — 사람만 할 수 있음. 대비 토큰(Q56~Q61) 디자인 답.
+
+## P14 — 회귀 · 레거시 URL · 검색 노출
+
+**상태**: PR #85(2026-11-01, 브랜치 `9yujin/p14-regression`) — 하드닝. 화면 동작은 바꾸지 않았다. 바뀐 것: 운영 빌드에서 QR 판독 주입이 꺼짐(사용자 결정), v1 관객 주소 리다이렉트, PR 게이트에 e2e.
+
+**찾은 것 · 처리**
+
+| # | 무엇 | 처리 |
+|---|---|---|
+| 1 | QR 판독 주입(`dd:qr-scan`, P13b-V)이 운영에서도 열려 있음 | **고침(사용자 결정 2026-11-01)** — `scan-injection.ts` `QR_SCAN_INJECTION_ENABLED`(`NEXT_PUBLIC_QR_SCAN_INJECTION === '1'`, 빌드 때 인라인). 켜는 곳: `playwright.config.ts` webServer(e2e·QA가 빌드하는 그 빌드) · `scripts/dev-mock.mjs`. Dockerfile·PR 게이트 `check` 빌드는 꺼짐. e2e `hosting-checkin` · QA `hosting-qr` 통과. 🤖 스테이징은 운영과 같은 이미지(재배포만 — staging-deploy-plan)라 꺼진다 — 스테이징에서 켜려면 별도 빌드 인자. 맨 `pnpm build` 산출물로 `E2E_SKIP_BUILD=1`을 쓰면 hosting-checkin·hosting-qr이 깨진다(CLAUDE.md · qa-scenario 스킬에 적음) |
+| 2 | v1 관객 앱 주소(tech-decisions §22 표)에 리다이렉트가 없음 — `/home` · `/history` 등이 404 | **고침** — `next.config.ts` `audienceRedirects`(307 — `/admin/*`과 같은 이유, 301 전환은 P15 URL 연속성). 아래 "레거시 URL 표" |
+| 3 | 공유 지점(plan §3) 통합 흐름을 한 번에 보는 시나리오가 없음 — 피처 QA는 한쪽 화면만 | **고침** — `qa/scenarios/integration.qa.ts`(`pnpm qa integration`) REG-1~3 |
+| 4 | mock: 관객이 보낸 선물 상태가 호스트 GI-1(`giftState`)에 안 이어짐(입장 상태는 이어져 있었음) | **고침(mock만)** — `myTicketGiftStateOf` → `guest-store` `toIssuedTicket`(관객 주문만). 실제 백엔드는 같은 테이블이라 해당 없음 |
+| 5 | mock: 호스트가 새로 만든 공연(7001~)은 관객 체크아웃(O-0·O-1)·티켓탭 공연 정보가 fixture(`findPublicEvent`)만 읽어 주문할 수 없음 | **남김** — 통합 시나리오는 등록 → 관객 상세까지 7001로, 주문 이후는 fixture 공연 101로 잇는다. 고치려면 `fixtures/order.ts` `findCheckoutTicket`과 `my-ticket` `eventOf`가 `event-store`·`ticket-store`를 읽게 |
+| 6 | 크롤러 상태 코드 | **남김(설계대로)** — 등록 전(준비중) 공연은 크롤러 UA에 404, 브라우저 UA는 스트리밍 200 + 찾을 수 없음 화면(tech-decisions §2). 통합 시나리오도 크롤러 UA로 본다 |
+| 7 | Playwright e2e를 PR 게이트에 넣을지(plan P14) | **고침 — 넣음**(🤖 Claude 판단, 아래 "e2e 게이트") |
+| 8 | 리치 결과용 JSON-LD | **고침(검사 추가)** — `event-json-ld.rich-results.test.ts`: Google Event 필수(`name`·`startDate`·`location.address`) 오류 0, 권장 경고는 `offers`(P5b 원칙으로 뺌)·`performer`(공개 응답에 없음)뿐, 날짜 오프셋 · 절대 URL, mock 공개 공연 전부. 장소 이름만 있고 주소가 없으면 `location.address` 오류(리치 결과 자격 없음 — 호스트 입력 문제라 남김). 실제 리치 결과 테스트·서치 콘솔은 운영 도메인 뒤(P15) |
+| 9 | `generateSitemaps` | **남김(근거)** — sitemap은 종료 전 공연만 넣는다. 운영 공개 GP-2(`includePast=false`) 2026-11-01 **33개**(지난 공연 포함 전체 1,141) — 상한 2,000(`MAX_PAGES` 40 × 50)까지 멀다. 상한에 닿으면 `sitemap.events_truncated` 경고 로그가 남으니 그때 나눈다 |
+| 10 | 기본 OG 이미지 | **사용자 대기** — 디자인 대기(`src/utils/site.ts` 값 하나) |
+
+**레거시 URL 표**(tech-decisions §22 전수 — e2e `legacy-urls.spec`(관객 · 그대로) · `hosting.spec` "리다이렉트"(`/admin/*`))
+
+| v1 | v2 | 상태 |
+|---|---|---|
+| `/` · `/events/:id` · `/mypage` · `/login` · `/login/expired` · `/kakao/callback` · `/meta/term` · `/meta/privacy` | 그대로 | 200(이번에 e2e 추가) |
+| `/home` | `/` | 307 **새로** |
+| `/events/:id/book/option` · `book/order` | `/events/:id` | 307 **새로**(그 밖의 `book/*`은 404) |
+| `/pay/confirm` · `success` · `fail` | `/orders` | 307 **새로** |
+| `/history` | `/orders` | 307 **새로** |
+| `/history/mycoupon` | `/mypage` | 307 **새로**(`/history/:id`보다 먼저) |
+| `/history/:orderId` | `/orders/:orderId` | 307 **새로** |
+| `/ticket` · `/ticket/:id` · `/ticket/qr` | `/tickets` | 307 **새로** |
+| `/admin` · `/admin/new/hosts` · `/admin/new/events/:step` · `/admin/hosts/:id/*` · `/admin/events/:id/*` · `/admin/login` | 표대로 | 307(P10a부터 있음) |
+| `/admin/kakao/callback` | — | 404(표대로 받지 않음) |
+
+쿼리는 Next가 그대로 넘긴다(공유 링크의 `utm_*`). `/pay/*`의 PG 쿼리도 넘어가지만 `/orders`는 읽지 않는다.
+
+**통합 시나리오**(`qa/scenarios/integration.qa.ts`, 모바일 390 · PC 1280/1440, 2회 연속 6/6)
+
+| ID | 흐름 | 공유 지점 |
+|---|---|---|
+| REG-1 | [호스팅] 간편 만들기 → (크롤러 404) → 기본 정보(포스터 · 주소 · 문의처) → 상세 정보 → 등록 → [관객] 상세 200 · 이름 · 장소 · 섹션 본문 | S3 |
+| REG-2 | [관객] 상세 → 2매 · 옵션 → 체크아웃 50,000 원 = 입금 확인 금액 → 주문 완료 → 주문상세 승인대기 → [호스팅] 예매자 관리 같은 주문 승인 대기 · 50,000 → 승인 → [관객] 티켓탭 NEW · 2장 → 한 장 선물 링크 → 남은 한 장 셀프 체크인(고르기) → [호스팅] QR 스캔 "이미 입장" · 선물 티켓 "선물 대기" → 발급된 티켓 탭에 같은 두 장(입장 · 선물 대기) | S1 · S2 · S4 · S5 |
+| REG-3 | [호스팅] 판매 중단 → [관객] 상세 "판매 중단" · 잔여 숨김 → 재개 → 관객 다시 고를 수 있음 | S1 |
+
+S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 QA(notifications · host-home · host-settings · notices)가 본다.
+
+**e2e 게이트**(🤖 Claude 판단 — 계획이 P14에 맡긴 재검토)
+
+- 근거: 그룹 A 회귀에서 V 마크업 변경이 e2e 14건을 깼는데 CI는 못 잡았다(#43). 로컬 전체 2회 — 555 통과 · 실패 0 · 플레이크 0, 7.3분(빌드 포함) · 6.9분(빌드 제외). 게이트 `check` job은 최근 3.7~5.3분
+- 넣은 모양: `pr-gate.yml` `e2e` job — `check`와 나란히, matrix 3조각(`--shard`), 각 조각이 자기 e2e 빌드(QR 주입 켬), job 25분 · 테스트 단계 15분 상한, Chromium 설치는 `check`와 같은 5분 × 3회 재시도, 실패하면 trace를 artifact로(7일). `retries`는 0 그대로(플레이크를 숨기지 않는다)
+- QA 시나리오는 계속 게이트 밖(캡처 리포트 — 관제탑이 그룹 끝에 돌림)
+- 되돌리려면: `pr-gate.yml`의 `e2e` job을 지운다(tech-decisions §CI·§10 줄도)
+
+**`pnpm qa` 전체**(2026-11-01, 이 브랜치, `E2E_SKIP_BUILD=1` — e2e가 빌드한 QR 주입 켠 빌드) — **387 통과 · 실패 0 · 건너뜀 61**(수동 시나리오 · 뷰포트 제외), 8.8분. 첫 실행은 새 통합 시나리오만 4건 실패(크롤러 UA 기준 · 문의처 빠뜨림 · "승인대기" 글자 · mock 선물 상태 — 위 #4 · #6) → 고친 뒤 위 숫자. 기존 피처 QA는 첫 실행부터 전부 통과
+
+| 시나리오 | 통과 | 실패 | 건너뜀 | | 시나리오 | 통과 | 실패 | 건너뜀 |
+|---|---|---|---|---|---|---|---|---|
+| auth-gate | 15 | 0 | 7 | | hosting-qr | 16 | 0 | 4 |
+| checkout | 27 | 0 | 11 | | hosting-ticket | 30 | 0 | 2 |
+| event-detail | 18 | 0 | 2 | | **integration** | 6 | 0 | 0 |
+| events | 19 | 0 | 1 | | login | 18 | 0 | 2 |
+| gift | 14 | 0 | 8 | | mypage | 33 | 0 | 1 |
+| home | 8 | 0 | 2 | | notices | 16 | 0 | 0 |
+| host-home | 14 | 0 | 0 | | notifications | 14 | 0 | 0 |
+| host-settings | 28 | 0 | 0 | | self-checkin | 14 | 0 | 2 |
+| hosting-event | 20 | 0 | 2 | | shell | 10 | 0 | 4 |
+| hosting-guests | 23 | 0 | 3 | | ticket-select | 13 | 0 | 3 |
+| hosting-home | 18 | 0 | 0 | | tickets | 13 | 0 | 7 |
+
+**e2e 전체**: 555 통과 · 37 건너뜀 · 실패 0, 2회(7.3분 빌드 포함 · 6.9분).
