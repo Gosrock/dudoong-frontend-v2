@@ -1,7 +1,7 @@
 # 진행 현황판
 
 > **지금 어디까지 왔는지 한 장으로 본다.** 작업을 시작·끝낼 때마다 이 문서를 고친다(규칙은 아래 "갱신 규칙").
-> 마지막 갱신: **2026-11-01** — 기능 Phase 전부 끝(그룹 A~E 회귀 통과). P14: 보안 끝(#79), 성능 ∥ 접근성 진행 중.
+> 마지막 갱신: **2026-11-01** — P14 하드닝 끝(보안 #79 · 접근성 #81 · 성능 #82 · 회귀 #85, 그룹 F) + 사용자 눈 QA 수정(#86). 다음은 P15 컷오버.
 > 정본은 따로 있다 — Phase 정의·선행·완료 기준은 [`plan.md`](./plan.md), 화면별 구현 상태·Figma 노드는 [`gui-screens.md`](./gui-screens.md) §0, 구현 기록은 [`implementation-log.md`](./implementation-log.md). 이 문서는 그 셋을 요약해 이어 붙인 판이다. 어긋나면 정본이 맞고, 이 문서를 고친다.
 
 ## 한 줄 요약
@@ -12,7 +12,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
-| fix-qa-1101 사용자 눈 QA 수정(셸 Activity 판정 · 배너 넘침 · 상단 바 고정 · 프로필 버튼) | `9yujin/fix-qa-1101` · #86 | 2026-11-01 | PR | 셸 · `AccountMenu` |
+| P15 컷오버 준비(리다이렉트 301 · 포스터 `next/image` · 런북 · 릴리스 경로) | `9yujin/release-v2-cutover` | 2026-11-01 | 진행 중 | Deploy 저장소는 diff만(쓰지 않음) |
 
 ## 사용자 대기
 
@@ -29,6 +29,13 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | CSP 강제 전환 · 출처 좁히기 | P14 보안 #79 | D2 스테이징에서 실제 카카오 SDK·지도·우편번호·S3 업로드를 돌려 `csp.violation` 로그 0 확인 → `CSP_ENFORCE=1`로 빌드. S3 presigned 실제 호스트로 `connect-src`를 좁힘 |
 | 선물 토큰이 남는 nginx 접근 로그 · 운영 응답 헤더 | P14 보안 #79 | Deploy·운영: 접근 로그 보존 기간·접근 권한, `Referrer-Policy`·`X-Frame-Options` 응답 헤더, `/csp-report` 요청 수 제한 |
 | iOS Safari 실기기 확인(SHELL-7) | P4s-V #32 | `pnpm storybook --host 0.0.0.0` → iPhone Safari에서 BottomSheet `LongContent`·`WithInput`, Modal, Drawer `LongContent` — 뒤 화면 스크롤 잠김 · 입력칸 키보드 위 · 닫은 뒤 스크롤 위치 |
+| 실제 화면 읽기 도구 청취(VoiceOver iOS · TalkBack) | P14 접근성 #81 | 사람만 — 핵심 흐름(로그인 · 티켓 선택 · 체크아웃 · 티켓탭 · 예매자 관리)을 실기기로 듣기 |
+| 색 대비 토큰 6묶음(design-requests Q56~Q61) | P14 접근성 #81 | 디자인 답 — 답이 오면 토큰 값과 `e2e/a11y.spec.ts`의 대비 제외 색 쌍을 지운다 |
+| 부하 시험 실행(k6) | P14 성능 #82 | D2 스테이징 뒤 `k6 run -e BASE_URL=… -e EVENT_ID=… scripts/load/ticket-open.k6.js`(읽기만, 주문은 시험 계정 · 무료 티켓 · 백엔드와 시간 맞춰). 결과로 tech-decisions §2 캐시 스위치 판단 |
+| 운영 실측 LCP · TTFB | P14 성능 #82 | 운영 도메인 · 실기기(P15 전후) — 로컬 수치는 비교용 |
+| `next/image` 전환(포스터) | P14 성능 #82 | P15 — nginx `/_next/image` 차단을 지운 뒤 `images.remotePatterns`(업로드 도메인) |
+| favicon 다시 받기 · 상단 배너 자리 예약(CLS 관객 0.06 · 호스팅 0.13~0.27) | P14 성능 #82 | 디자인 — 정사각 32 · 48 ICO + `apple-icon.png`, 배너 자리는 Q44 |
+| 서치 콘솔 · 네이버 서치어드바이저 인증 · sitemap 제출 · 실제 리치 결과 테스트 · 레거시 리다이렉트 307 → 301 | P14 회귀 #85 | P15 — 운영 도메인이 v2로 넘어간 뒤 |
 
 ## 다음 순서
 
@@ -61,8 +68,8 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 20a | `p14-security` ∥ 20b | P14 보안 — 오픈 리다이렉트 · 토큰 · 로그 PII · 선물 토큰/QR 유출 · sanitize · CSP(Report-Only부터) · zxing wasm 자체 호스팅 · 의존성 감사 | 전 Phase L·V | 끝(#79) | F 하드닝 |
 | 20b | `p14-perf` ∥ 20a | P14 성능 · 부하 — 라우트별 번들 · LCP/TTFB · 동적 import · 공연 상세 캐시 판단(tech-decisions §2) · 부하 시험 스크립트 초안 | 전 Phase L·V | 끝(#82) | F 하드닝 |
 | 20c | `p14-a11y` ∥ 20d | P14 접근성 — axe 자동 검사 · 키보드 핵심 흐름 · 포커스 · 랜드마크/제목 · 대비 | 전 Phase L·V | 끝(#81) | F 하드닝 |
-| 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 끝(#85) | F 하드닝 **(끝)** |
-| 21 | `release/v2-cutover` | P15 컷오버 | P14 | 대기 | — |
+| 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 끝(#85) | F 하드닝 **(끝 — 회귀 통과 e2e 560/0 · QA 387/0, 시나리오 22개)** |
+| 21 | `release-v2-cutover` | P15 컷오버(이 저장소의 코드·문서 몫 — 운영·사람 몫은 "사용자 대기") | P14 | 진행 중 | — |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
 
@@ -111,7 +118,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | Phase | 내용 | 상태 | 선행 |
 |---|---|---|---|
-| P14 | 통합 하드닝(성능·보안·접근성·회귀·부하, 기본 OG 이미지) | 대기 | 전 Phase L·V |
+| P14 | 통합 하드닝(성능·보안·접근성·회귀·부하, 기본 OG 이미지) | 끝(#79 · #81 · #82 · #85 — 기본 OG 이미지 · 실기기 · 운영 실측은 사용자 대기) | 전 Phase L·V |
 | P15 | 컷오버 · 롤백 | 대기 | P14 |
 
 ## 디자인 근거 집계
