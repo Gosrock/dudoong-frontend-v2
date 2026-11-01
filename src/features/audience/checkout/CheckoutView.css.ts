@@ -172,3 +172,22 @@ export const notice = style({
 
 /** ③ 고지 목록 — 글머리 자리 */
 export const noticeList = style({ margin: 0, paddingInlineStart: vars.space[5] });
+
+/** 본문 속 링크(이용약관 · 공연 상세 · 마이페이지) — 공연 상세 `textLink`와 같은 밑줄 */
+export const textLink = style({ color: 'inherit', textDecoration: 'underline' });
+
+/** 결제정보 첫 줄 아래 닉네임 안내(이슈 #106 §4) — InfoRow와 같은 좌우 24 */
+export const depositorHint = style({
+  padding: `${vars.space[2]} ${vars.space[5]} ${vars.space[3]}`,
+});
+
+/** 취소·환불 규정(이슈 #105) */
+export const refundPolicy = style({ display: 'flex', flexDirection: 'column' });
+
+export const refundPolicyLinks = style([
+  typography.labelMd,
+  {
+    padding: `0 ${vars.space[5]} ${vars.space[4]}`,
+    color: vars.color.text.secondaryLabel,
+  },
+]);

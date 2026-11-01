@@ -281,7 +281,18 @@ function RefundAccount({ d, orderUuid }: { d: Detail; orderUuid: string }) {
           <div className={s.warningNotice} role="status">
             <Txt typography="labelMd">환불받을 계좌를 입력해 주세요</Txt>
             <Txt typography="bodySm" color={colors.textSecondaryLabel}>
-              호스트가 입력한 계좌로 환불해요.
+              입력하신 계좌로 호스트가 환불해요.
+            </Txt>
+          </div>
+        )}
+        {/* 입금 미확인 거절 — 서버가 입력 유도를 끈다(`refundAccountRequired=false`, api-contract). 입구는 열려 있어
+            "왜 계좌를 넣으라는지" 헷갈리지 않게 입금한 경우에만 넣으면 된다고 알린다(이슈 #106 §5, 🤖 문구) */}
+        {entry.kind === 'open' && !entry.prompt && !current && d.depositUnconfirmed && (
+          <div className={s.notice} role="status" data-testid="refund-account-optional">
+            <Txt typography="labelMd">입금하셨다면 환불받을 계좌를 입력해 주세요</Txt>
+            <Txt typography="bodySm" color={colors.textSecondaryLabel}>
+              호스트가 입금을 확인하지 못해 거절한 주문이에요. 입금하지 않으셨다면 입력하지 않아도
+              돼요.
             </Txt>
           </div>
         )}
@@ -512,6 +523,9 @@ function CancelNotice({ d }: { d: Detail }) {
       <div className={s.sectionGap} />
       <section aria-label="예매취소 안내">
         <InfoRow hierarchy="first" label="예매취소 안내" />
+        {/* legal-copy A-7 공통 행 "취소 기한 / 공연 시작 전 까지" + 그 날짜(이슈 #105 — '취소기한'이 언제인지) */}
+        <InfoRow label="취소 기한" value="공연 시작 전 까지" />
+        {d.order.event?.startAt && <InfoRow label="공연 시작" value={d.order.event.startAt} />}
         <Flex paddingX={5} paddingY={3}>
           <ul className={s.noticeList}>
             {items.map((item, i) => (

@@ -154,7 +154,7 @@ export type UseGiftLinkInput = {
 const browserOrigin = () => (typeof window === 'undefined' ? '' : window.location.origin);
 
 /**
- * 링크 생성 완료 화면(`455:8935`) — 공유 내용(메세지·카카오톡·링크 복사)과 메모 수정(PG-8, 대기 중일 때만, 빈 값 = 삭제).
+ * 링크 생성 완료 화면(`455:8935`) — 공유 내용(메시지·카카오톡·링크 복사)과 메모 수정(PG-8, 대기 중일 때만, 빈 값 = 삭제).
  * 공유를 실제로 여는 것(`shareKakaoFeed`, 클립보드)은 V가 한다.
  */
 export function useGiftLink(input: UseGiftLinkInput) {

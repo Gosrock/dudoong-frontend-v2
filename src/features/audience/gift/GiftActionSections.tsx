@@ -110,7 +110,7 @@ export function SendGiftSheet({
 }
 
 /**
- * 링크 생성 완료 — GUI `908:13105`(복사 토스트 `908:21508`). 메모(PG-8, 선택) · [메세지] `sms:` · [카카오톡] · [링크복사] · [티켓 페이지로].
+ * 링크 생성 완료 — GUI `908:13105`(복사 토스트 `908:21508`). 메모(PG-8, 선택) · [메시지] `sms:` · [카카오톡] · [링크복사] · [티켓 페이지로].
  * 메모는 칸을 떠날 때(또는 Enter) 바뀌었으면 저장한다 — Figma에 저장 버튼이 없다.
  * 카카오 공유가 안 되면 링크를 복사한다(P5b 공유와 같다).
  */
@@ -181,7 +181,8 @@ export function GiftLinkView({
       <div className={s.shareRow} data-testid="gift-link" data-value={gift.share.url}>
         <a href={gift.share.smsHref} className={button({ variant: 'secondary', size: 'md' })}>
           <Icon name="mail" variant="filled" className={s.shareIcon} />
-          메세지
+          {/* GUI 908:13105 글자는 '메세지' — 표준어 '메시지'로(이슈 #106 §1, Figma 코멘트) */}
+          메시지
         </a>
         <Button
           variant="secondary"

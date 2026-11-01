@@ -42,21 +42,38 @@ async function answerSelf(page: Page, ...answers: Array<{ status: number; body: 
 const okBody = (res: CheckInResponse) => ({ status: 200, body: envelope.ok(res) });
 
 const resultRegion = (page: Page) => page.getByRole('region', { name: '체크인 결과' });
+/** 확인 단계(이슈 #106 §6) — 열면 [입장하기]를 눌러야 PQ-5를 보낸다 */
+const enter = (page: Page) =>
+  page.getByRole('region', { name: '입장 확인' }).getByRole('button', { name: '입장하기' }).click();
+/** 여러 장 — [이 티켓으로 입장] 뒤 확인 팝업의 [입장하기] */
+const confirmPick = (page: Page) =>
+  page
+    .getByRole('dialog', { name: '이 티켓으로 입장할까요?' })
+    .getByRole('button', { name: '입장하기' })
+    .click();
 const failRegion = (page: Page) => page.getByRole('region', { name: '체크인 실패' });
 
 scenario(
   'CHK-1',
-  '내 티켓이 한 장이면 열자마자 입장 완료',
+  '내 티켓이 한 장이면 [입장하기]를 누르면 입장 완료',
   {
     kind: '정상',
-    summary: 'QR로 열린 주소에서 PQ-5를 한 번 보내고, 1장이면 서버가 바로 입장 처리한다.',
+    summary:
+      'QR로 열린 주소는 먼저 확인 단계(요청 없음, 이슈 #106 §6) — [입장하기]에 PQ-5를 한 번 보내고, 1장이면 서버가 바로 입장 처리한다.',
     basis: ['plan P8c 완료 기준 V', 'api-contract PQ-5', 'checkin-result ENTERED(self)'],
   },
   async ({ page, mockApi, step }) => {
     resetTicketStore();
     await setMockSession(page, 'loggedIn');
-    await step('셀프 체크인 주소를 열면 입장 완료와 내 티켓 정보가 보인다', async () => {
+    await step('셀프 체크인 주소를 열면 확인 단계 — 아직 요청이 없다', async () => {
       await page.goto(`/check-in?token=${CHECK_IN_TOKEN.single}`);
+      await expect(
+        page.getByRole('heading', { name: '공연장 입구에서 입장해 주세요' }),
+      ).toBeVisible();
+      expect(mockApi.calls().filter((c) => c.path === '/api/v2/check-ins/self')).toEqual([]);
+    });
+    await step('[입장하기]를 누르면 입장 완료와 내 티켓 정보가 보인다', async () => {
+      await enter(page);
       await expect(resultRegion(page)).toHaveAttribute('data-result', 'ENTERED');
       await expect(page.getByRole('heading', { name: '입장이 완료됐어요' })).toBeVisible();
       await expect(page.getByTestId('check-in-ticket')).toContainText('티켓 번호');
@@ -76,7 +93,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '`SELECT_TICKET` → 후보 라디오 목록. 고르기만으로는 보내지 않고, 버튼을 눌러야 `{token, ticketUuid}`로 다시 보낸다.',
+      '`SELECT_TICKET` → 후보 라디오 목록. 고르기만으로는 보내지 않고, 버튼 → 확인 팝업(이슈 #106 §6)의 [입장하기]를 눌러야 `{token, ticketUuid}`로 다시 보낸다.',
     basis: [
       'plan P8c V 범위 "후보 선택 화면"',
       'api-contract PQ-5 SELECT_TICKET',
@@ -89,6 +106,7 @@ scenario(
     const selfCalls = () => mockApi.calls().filter((c) => c.path === '/api/v2/check-ins/self');
     await step('열면 입장할 티켓을 고르는 화면이 보이고 버튼은 비활성', async () => {
       await page.goto(`/check-in?token=${CHECK_IN_TOKEN.multi}`);
+      await enter(page);
       const picker = page.getByRole('region', { name: '티켓 고르기' });
       await expect(picker.getByRole('radio')).toHaveCount(2);
       await expect(picker.getByRole('button', { name: '이 티켓으로 입장' })).toBeDisabled();
@@ -98,8 +116,15 @@ scenario(
       await expect(page.getByRole('button', { name: '이 티켓으로 입장' })).toBeEnabled();
       expect(selfCalls()).toHaveLength(1);
     });
-    await step('[이 티켓으로 입장]을 누르면 입장 완료', async () => {
+    await step('[이 티켓으로 입장]을 누르면 확인 팝업 — 아직 요청은 한 번', async () => {
       await page.getByRole('button', { name: '이 티켓으로 입장' }).click();
+      await expect(page.getByRole('dialog', { name: '이 티켓으로 입장할까요?' })).toContainText(
+        '되돌릴 수 없어요',
+      );
+      expect(selfCalls()).toHaveLength(1);
+    });
+    await step('팝업의 [입장하기]를 누르면 입장 완료', async () => {
+      await confirmPick(page);
       await expect(resultRegion(page)).toHaveAttribute('data-result', 'ENTERED');
       expect(selfCalls()).toHaveLength(2);
     });
@@ -163,6 +188,7 @@ scenario(
         await page.unroute(SELF);
         await answerSelf(page, okBody(c.res as unknown as CheckInResponse));
         await page.goto(`/check-in?token=qa-${c.result.toLowerCase()}`);
+        await enter(page);
         await expect(resultRegion(page)).toHaveAttribute('data-result', c.result);
         await expect(page.getByRole('heading', { name: c.title })).toBeVisible();
         await expect(resultRegion(page)).toContainText(c.text);
@@ -187,6 +213,7 @@ scenario(
     const selfCalls = () => mockApi.calls().filter((c) => c.path === '/api/v2/check-ins/self');
     await step('없는 토큰이면 잘못된 체크인 QR 안내', async () => {
       await page.goto('/check-in?token=invalid-token');
+      await enter(page);
       await expect(failRegion(page)).toHaveAttribute('data-error', 'INVALID_QR');
       await expect(page.getByRole('heading', { name: '잘못된 체크인 QR이에요' })).toBeVisible();
       expect(selfCalls()).toHaveLength(1);
@@ -198,6 +225,7 @@ scenario(
     });
     await step('끝난 공연이면 셀프 체크인 불가 + 호스트에게 QR 안내, [티켓탭으로]', async () => {
       await page.goto(`/check-in?token=${CHECK_IN_TOKEN.ended}`);
+      await enter(page);
       await expect(failRegion(page)).toHaveAttribute('data-error', 'EVENT_NOT_OPEN');
       await expect(failRegion(page)).toContainText('호스트에게 티켓 QR을 보여 주세요');
       await expect(page.getByRole('button', { name: '다시 시도' })).toHaveCount(0);
@@ -219,6 +247,7 @@ scenario(
     await setMockSession(page, 'loggedIn');
     await step('서버가 실패하면 체크인하지 못했다는 안내와 [다시 시도]', async () => {
       await page.goto(`/check-in?token=${CHECK_IN_TOKEN.single}`);
+      await enter(page);
       await expect(failRegion(page)).toHaveAttribute('data-error', 'FAILED');
       await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible();
     });
@@ -255,8 +284,10 @@ scenario(
     );
     await step('고르고 입장을 누르면 실패 안내가 뜨고 목록은 그대로', async () => {
       await page.goto('/check-in?token=qa-not-mine');
+      await enter(page);
       await page.getByRole('radio', { name: /얼리버드/ }).click();
       await page.getByRole('button', { name: '이 티켓으로 입장' }).click();
+      await confirmPick(page);
       const picker = page.getByRole('region', { name: '티켓 고르기' });
       await expect(picker.getByRole('alert')).toContainText('내 티켓이 아니에요');
       await expect(picker.getByRole('radio')).toHaveCount(2);
@@ -282,10 +313,11 @@ scenario(
       await page.goto(href);
       await expect(page).toHaveURL(`/login?redirect=${encodeURIComponent(href)}`);
     });
-    await step('로그인하면 같은 주소로 돌아와 입장 완료', async () => {
+    await step('로그인하면 같은 주소로 돌아와 [입장하기] → 입장 완료', async () => {
       await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
       await page.getByRole('link', { name: '기존 사용자로 로그인', exact: true }).click();
       await expect(page).toHaveURL(href);
+      await enter(page);
       await expect(resultRegion(page)).toHaveAttribute('data-result', 'ENTERED');
     });
   },
@@ -294,5 +326,5 @@ scenario(
 scenario.manual('CHK-8', '실제 폰으로 호스트의 [관객이 스캔] QR을 찍어 입장', {
   kind: '정상',
   basis: ['plan P8c 범위 밖(D2 스테이징)', 'P13b-V 셀프 체크인 QR'],
-  how: '스테이징에서 호스트 QR 체크인 화면을 [관객이 QR 스캔]으로 두고, 관객 폰 카메라로 찍어 /check-in이 열리고 입장 완료가 뜨는지, 호스트 통계가 늘어나는지 본다.',
+  how: '스테이징에서 호스트 QR 체크인 화면을 [관객이 QR 스캔]으로 두고, 관객 폰 카메라로 찍어 /check-in이 열리고 [입장하기] 뒤 입장 완료가 뜨는지, 호스트 통계가 늘어나는지 본다.',
 });

@@ -13,6 +13,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
 | 백엔드 #905 답 반영 | `9yujin/backend-905-sync` · #100 | 2026-11-01 | PR 검토 대기 | 병렬 `agreement-fields`(동의 칸)와 파일 나눔 |
+| 스테이징 QA #105 · #106 관객 | `9yujin/staging-qa-105-audience` · PR 준비 | 2026-11-02 | PR 검토 대기 | 병렬 `staging-qa-106-host`(#106 호스팅 · 알림 · 검색)와 파일 나눔 — Q79~Q87 · B28~B30 |
 
 ## 사용자 대기
 
@@ -81,6 +82,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 22 | `layout-fixed-95` | 이슈 #95 레이아웃 고정 요소 — 상단 바 fixed(고무줄 오버스크롤) · 로그인 말풍선 흐름 안 · fixed/sticky/dvh 전수조사(implementation-log 끝 절) | P4s-V | 끝(#97) | — |
 | 23 | `staging-ux-93` | 이슈 #93 스테이징 QA UX 제안 — 분류표 · (가) 말풍선 · 티켓 캐러셀 순서 · 간편 만들기 hostId · QR 카메라 대기 안내 · 포스터 contain, 디자인 Q63~Q78 · 서버 B23~B27(implementation-log 끝 절) | — | 끝(#98) | — |
 | 24 | `backend-905-sync` | 백엔드 #905 답 반영 — 문서(backend-questions · api-contract · cutover-runbook · handoff) · B18 확정 문구(11-07 시행 전에는 ⑤ 숨김) · 티켓탭 공지 바 거절 · 공연 중(Q55) · Void 래퍼 테스트(implementation-log 끝 절) | — | PR #100 | — |
+| 25 | `staging-qa-105-audience` | 이슈 #105 전부 · #106 관객 — 체크아웃 취소·환불 규정 보기 · 주문상세 취소 기한 · 취소 시트 안내 · 선물(비로그인 요약 · 링크 다시 보기 · 문자 문구 · [아니요] · 취소 완료 문구) · 닉네임 안내 2곳 · 거절 주문 계좌 문구 · 셀프 체크인 확인 단계 · 공유 고르는 시트, 디자인 Q79~Q87 · 서버 B28~B30(implementation-log 끝 절) | — | PR 준비 | — |
 
 순서의 이유: GUI Ready가 몰린 P11~P13(그룹 B)이 P10a-V·P5b-V를 기다리므로 둘을 셸 바로 뒤에 둔다. 그 밖은 plan §5 V 선행. 끼워 넣는 것 — `ci/staging-deploy`(언제든), D2 스테이징 첫 배포 뒤 실환경 확인(P4b·P5b·P7·P8b·P13a), Q42 답 뒤 동의 칸 플래그(P4b·P7·P12)는 관제탑이 사용자와 정해 이 표에 줄을 더한다.
 

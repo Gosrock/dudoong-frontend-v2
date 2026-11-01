@@ -253,13 +253,19 @@ scenario(
     const tickets = () => listMyTickets().groups.find((g) => g.orderUuid === orderUuid)!.tickets;
     const kept = () => tickets().find((t) => t.ticketUuid !== gifted)!;
     await step(
-      '[관객] 셀프 체크인 QR 주소 — 고르는 목록에서 남은 한 장을 골라 입장 완료',
+      '[관객] 셀프 체크인 QR 주소 — [입장하기] → 고르는 목록에서 남은 한 장을 골라 확인 → 입장 완료',
       async () => {
         const no = kept().issuedTicketNo!;
         await page.goto(`/check-in?token=${checkInTokenOf(101)}`);
+        // 확인 단계 · 고른 티켓 확인 팝업(이슈 #106 §6)
+        await page.getByRole('button', { name: '입장하기' }).click();
         const picker = page.getByRole('region', { name: '티켓 고르기' });
         await picker.getByRole('radio', { name: new RegExp(no) }).click();
         await picker.getByRole('button', { name: '이 티켓으로 입장' }).click();
+        await page
+          .getByRole('dialog', { name: '이 티켓으로 입장할까요?' })
+          .getByRole('button', { name: '입장하기' })
+          .click();
         await expect(page.getByRole('region', { name: '체크인 결과' })).toHaveAttribute(
           'data-result',
           'ENTERED',
