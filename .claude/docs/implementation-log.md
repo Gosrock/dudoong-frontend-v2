@@ -2261,4 +2261,16 @@ S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 
 
 **Deploy 저장소 대조**(`d37e9ae`, 읽기만) — D2(§6 1~4 · 8번)가 **아직 안 들어갔다**: 스테이징 compose front가 `dudoong-ticket:dev`(v1), `site.conf` `location /`이 `localhost:3000`, `/_next/image`는 전 호스트 차단, `remote-deploy.sh`는 백엔드만 본다. 그래서 런북을 "PR ① 스테이징을 v2로 → 리허설 → PR ② 운영 컷오버" 두 단계로 썼다. `proxy_headers.conf`가 `Host $host` · `X-Forwarded-Proto`를 넘겨 deploy-plan §9 0번(`og:url`)은 설정상 맞다(값 확인은 리허설). nginx 설정은 이미지에 구워져 `Nginx-v*` 태그 → `nginx-build.yml` → compose 태그 순서.
 
-**검사**: typecheck · 바꾼 파일 eslint · `vitest related`(5 파일 52) · 스토리 `ConcertCard` 5 · `pnpm build` 통과. e2e · QA는 아래.
+**검사**: typecheck · 바꾼 파일 eslint · `vitest related`(5 파일 52) · 스토리 `ConcertCard` 5 · `pnpm build` 통과. **e2e 전체** 560 통과 · 38 건너뜀 · 실패 0(7.0분, 로컬 — PR CI에서 돌지 않아 전부 로컬로). **QA** `event-detail` 18/0(수동 1) · `home` 8/0(수동 1) · `tickets` 13/0(수동 1).
+
+**ego-browser 확인**(운영 빌드 standalone + 가짜 백엔드 + 확인용 프록시 — 가짜 이미지 주소를 실제 업로드 주소 두 개로 바꿔 `/_next/image` 경로를 탄다)
+
+| 폭 | 화면 | 결과 |
+|---|---|---|
+| 390(DPR 3) | 공연홈 | 카드 포스터 `currentSrc` = `/_next/image?…&w=640&q=75`, 163px 폭, 로드됨. 포스터 없는 공연(103)은 빈 상자 그대로 |
+| 390 | 공연 상세 | `/_next/image?…&w=1200`(342px × 3), `loading=eager` · `fetchPriority=high` · `sizes` 서버 HTML에 있음 |
+| 390 | 티켓탭(로그인 흉내) | 카드 3장 `/_next/image?…&w=1080~1200`(293px × 3) |
+| 1440(DPR 1) | 공연홈 · 공연 상세 · 티켓탭 | 모두 `/_next/image`, 로드됨(폭 282 · 282 · 294). 고른 폭이 1080~1200인 것은 앞서 390×3에서 받은 큰 그림을 브라우저가 캐시에서 다시 쓴 것 — srcset에는 640부터 있다 |
+| 390 | v1 `/history/mock-order-tickets-a` · `/ticket/qr` · `/admin/events/101/guests` | 각각 `/orders/…` · `/tickets` · `/hosting/events/101/guests`로 도착 |
+
+상태 코드(같은 서버, `curl`): `/home` 308 → `/`, `/history/abc?x=1` 308 → `/orders/abc?x=1`(쿼리 유지), `/ticket/qr` 308, `/admin` 308 → `/hosting`, `/admin/events/101/guests` 308, `/hosting/events/101` 307(그대로).
