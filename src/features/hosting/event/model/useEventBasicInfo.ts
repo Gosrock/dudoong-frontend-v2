@@ -29,7 +29,7 @@ import {
 } from './basic-info-form';
 import { applySavedBasic } from './event-cache';
 import { kakaoGeocoder } from './kakao-geocoder';
-import { type Geocoder, PLACE_ERROR } from './place';
+import { type Geocoder, PLACE_ERROR, type PlaceLookupFailure } from './place';
 import type { ScheduleInput } from './schedule';
 import { toScheduleRange } from './schedule';
 import { useEventScope } from './useEventScope';
@@ -81,7 +81,7 @@ export function useEventBasicInfo(
   const [posterError, setPosterError] = useState<string | null>(null);
   const [savedNotice, setSavedNotice] = useState<SavedNotice | null>(null);
   const [geocoding, setGeocoding] = useState(false);
-  const [placeLookupFailed, setPlaceLookupFailed] = useState(false);
+  const [placeLookupFailed, setPlaceLookupFailed] = useState<PlaceLookupFailure | null>(null);
   const lastPosterFile = useRef<File | null>(null);
   const geocodeSeq = useRef(0);
   const inflight = useRef(false);
@@ -153,19 +153,28 @@ export function useEventBasicInfo(
       if (!canEdit) return;
       const trimmed = address.trim();
       const seq = ++geocodeSeq.current;
-      setPlaceLookupFailed(false);
+      setPlaceLookupFailed(null);
       edit(null, (v) => ({
         ...v,
         place: { ...v.place, address: trimmed, latitude: null, longitude: null },
       }));
       if (!trimmed) return;
       setGeocoding(true);
-      const coords = await geocode(trimmed).catch(() => null);
+      let coords: Awaited<ReturnType<Geocoder>>;
+      let failure: PlaceLookupFailure | null = null;
+      try {
+        coords = await geocode(trimmed);
+        if (!coords) failure = 'notFound';
+      } catch {
+        // `GeocoderUnavailableError`(SDK 실패)도, 어댑터가 분류하지 못한 예외도 주소 탓이 아니다 — 서비스 오류로 안내한다
+        coords = null;
+        failure = 'unavailable';
+      }
       // 그사이 다른 주소를 골랐으면 버린다
       if (seq !== geocodeSeq.current) return;
       setGeocoding(false);
       if (!coords) {
-        setPlaceLookupFailed(true);
+        setPlaceLookupFailed(failure);
         return;
       }
       setValues((v) =>
@@ -318,8 +327,18 @@ export function useEventBasicInfo(
     setPlaceName,
     setDetailAddress,
     geocoding,
-    /** 좌표를 못 얻었다 — 다른 주소를 고르게 한다 */
-    placeLookupError: placeLookupFailed ? PLACE_ERROR.geocode : null,
+    /**
+     * 좌표를 못 얻었다 — 주소에 좌표가 없으면 다른 주소를 고르게, 지도 SDK 실패면 서비스 오류로 안내(#92-1).
+     * 서버가 좌표를 필수로 받아 어느 쪽이든 저장은 막힌다
+     */
+    /** 좌표 찾기 실패의 종류(`notFound` · `unavailable`) — 지도 미리보기 안내도 나눈다 */
+    placeLookupFailure: placeLookupFailed,
+    placeLookupError:
+      placeLookupFailed === 'unavailable'
+        ? PLACE_ERROR.mapUnavailable
+        : placeLookupFailed === 'notFound'
+          ? PLACE_ERROR.geocode
+          : null,
     // 문의처
     setContactType,
     setContactValue,

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLayoutEffect, useRef, useState } from 'react';
 
 import { isSessionLost } from '@/api/errors';
@@ -45,6 +46,10 @@ export function TicketFormView({
   /** 주소의 티켓 id(수정). 만들기면 undefined */
   ticketItemId?: string;
 }) {
+  // Cache Components는 떠난 페이지를 `<Activity>`로 숨겨 state를 남긴다 — 그대로면 '새 티켓 만들기'에 다시 들어올 때 직전 입력이
+  // 채워져 있다(#92-7). push·replace로 들어올 때마다 바뀌는 `bfcacheId`를 key로 새로 그리고, 뒤로·앞으로 가기만 복원한다
+  // (node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md). 수정 폼도 저장 뒤 다시 들어오면 최신 값에서 시작한다
+  const { bfcacheId } = useRouter();
   const id = ticketItemId === undefined ? null : parseTicketItemIdParam(ticketItemId);
   if (ticketItemId !== undefined && id === null) return <HostingNotFound />;
   return (
@@ -53,7 +58,7 @@ export function TicketFormView({
       rejected={HostingAccessRejected}
       resetKeys={[eventId, id]}
     >
-      <TicketForm eventId={eventId} ticketItemId={id} />
+      <TicketForm key={bfcacheId} eventId={eventId} ticketItemId={id} />
     </AsyncBoundary>
   );
 }

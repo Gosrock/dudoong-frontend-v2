@@ -342,8 +342,13 @@ function PlaceSection({ f, readOnly }: { f: Form; readOnly: boolean }) {
           onChange={(e) => f.setDetailAddress(e.target.value)}
         />
       </div>
-      <KakaoMapPreview latitude={f.values.place.latitude} longitude={f.values.place.longitude} />
-      <FieldError>{f.attempted ? f.errors.place : null}</FieldError>
+      <KakaoMapPreview
+        latitude={f.values.place.latitude}
+        longitude={f.values.place.longitude}
+        unavailable={f.placeLookupFailure === 'unavailable'}
+      />
+      {/* 좌표 찾기 실패 안내가 이미 위에 있으면 같은 칸 오류("다른 주소를 골라 주세요")를 겹쳐 띄우지 않는다(#92-1) */}
+      <FieldError>{f.attempted && !f.placeLookupError ? f.errors.place : null}</FieldError>
     </FormSection>
   );
 }

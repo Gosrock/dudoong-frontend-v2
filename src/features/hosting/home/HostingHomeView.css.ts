@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { fabBottom, fabClearance } from '@/ui/components/Fab/Fab.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -32,7 +33,9 @@ export const page = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.space[4],
-  paddingBottom: vars.space[10],
+  // 모바일은 [+ 새 …]가 떠 있다 — 마지막 카드를 가리지 않게(#92-8). PC는 탭 줄 안이라 기존 80
+  paddingBottom: fabClearance.md,
+  '@media': { [media.desktop]: { paddingBottom: vars.space[10] } },
 });
 
 /** 탭 + (검색) + [새 … 만들기] 한 줄 */
@@ -77,7 +80,7 @@ export const searchField = style({ flex: 1, minWidth: 0 });
 export const createAction = style({
   position: 'fixed',
   right: vars.space[5],
-  bottom: `calc(${vars.space[5]} + env(safe-area-inset-bottom))`,
+  bottom: fabBottom,
   zIndex: vars.zIndex.header,
   textDecoration: 'none',
   '@media': {

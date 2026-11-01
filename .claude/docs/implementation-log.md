@@ -2301,3 +2301,28 @@ S7(알림)·S8(호스트 홈)·S9(공지)는 한 화면 안의 분기라 피처 
 
 **ego-browser 확인**(빌드 standalone + 가짜 백엔드, 390 · 1440): 리포트 index.html(395/0/16, 캡처 887장 깨짐 0), SHELL-8 이동 뒤 x · 폭 · 여백 = 새로고침(1440 80/1280/80px, 390 24/342/24px, 모바일 로고 헤더 보임), SHELL-9 상단 바 y 0 · 사이드바 58 / 모바일 공연 헤더 버튼 y 12, SHELL-10 배너 있음 넘침 0(두 폭), REG-4 `/events/101/book/order?utm_source=kakao` → `/events/101?utm_source=kakao`, `/history` → `/orders`. `pnpm dev:mock`(next dev)은 보호 화면이 "로그인 확인 중"에서 넘어가지 않아(dev 전용, 운영 빌드는 정상 — 원인 미조사) 운영 빌드로 봤다.
 
+
+## 스테이징 QA 수정(호스팅) — #92 의 1 · 3 · 5 · 6 · 7 · 8
+
+스테이징 v2 첫 배포(Gosrock/DuDoong-Deploy#94) 뒤 팀원 QA 이슈 #92 중 호스팅 몫. 관객 몫(#90 · #92 의 4 · 8 '맨 위로' · 9)은 병렬 세션 `fix-staging-audience`. PR은 `Refs #92`.
+
+| # | 원인 | 고친 것 |
+|---|---|---|
+| 1 지도 SDK 실패 | `kakaoGeocoder`가 SDK 로드 실패(키 도메인 401 · 네트워크 · 키 없음)도 `null`(= 주소 좌표 없음)로 돌려 "다른 주소를 골라 주세요"가 나왔다 | SDK 실패는 `GeocoderUnavailableError`를 던지고 훅이 `placeLookupFailure: 'unavailable'`로 나눠 "지도 서비스를 불러오지 못해 위치를 확인할 수 없어요…"(`PLACE_ERROR.mapUnavailable`) + 지도 자리 "지도를 불러오지 못했어요". 로그 이벤트도 `kakao_maps.load_failed`(warn) · `kakao_geocoder.not_found`(info)로 나눴다(주소는 남기지 않는다). **좌표 없이 저장은 허용하지 않는다** — 서버 `V2EventPlaceRequest`가 `latitude`·`longitude` 필수(api-contract "공연" 줄, `EventPlaceRequestSchema`). 같은 칸 오류("다른 주소를…")를 아래에 겹쳐 띄우지 않는다 |
+| 3 '판매 중' 배지 | 칩 판정이 판매 기간만 보고 공연 등록 여부를 보지 않았다(`saleState: BEFORE_SALE`은 "재고 감소 없음"이라 판매 상태가 아니다) | `ticketSaleChipOf(…, eventRegistered)` — 준비중 공연이면 기간 안이어도 **판매 예정**. 판매 중단 · 판매 종료가 먼저. 상태별 단위 테스트 + 훅 테스트(준비중 공연에 만든 티켓 = `BEFORE_SALE` · `isPurchasable:false` · '판매 예정') |
+| 5 깨진 이미지 | `UploadedImage` · `Avatar`에 실패 처리가 없었다(공연 둘러보기 `ConcertCard`만 자체 처리) | `UploadedImage`에 `fallback`(실패하면 그것을, 없으면 아무것도) + 하이드레이션 전 실패 검사, `Avatar`는 실패하면 캐릭터. 공연준비 홈 카드 · 공연 헤더 카드 · 대시보드 포스터는 `fallback`에 포스터 자리표시. `ConcertCard`는 공용 처리로 바꿔 자체 상태를 뺐다(모양 같음 — 회색 빈 상자). 셸 드로어 · 상단 바 메뉴 · 호스트 홈 · 멤버 아바타는 `Avatar`로 같이 고쳐진다 |
+| 6 설정 저장 뒤 #441 | **재현 못 함**. React #441 = Flight 클라이언트가 받은 RSC 응답에 서버 컴포넌트 오류 행이 있다(운영은 메시지 생략, digest만) — `/hosts/17` RSC 렌더 중 서버에서 던졌다. dev:mock · 운영 빌드 + 가짜 백엔드에서 "공연준비 홈 → 호스트 카드 → 설정(소개글 + 프로필 이미지) → 저장 → 뒤로"를 돌려도 정상, 스테이징 `/hosts/17` RSC 요청 · GH-3 응답(스키마 통과)도 지금은 정상 | 회귀 e2e만 더했다(`hosting-host.spec.ts` "#92-6"). 서버 쪽 후보: 호스트 홈 서버 조회(GH-3, 토큰 없음)가 저장 직후 한 번 실패(5xx · 10초 시간 초과) — 그러면 `server_query.failed {resource:"hosts"}` 로그가 남는다. **사람 몫**: 스테이징 CloudWatch에서 그 시각의 `server_query.failed` · digest `3618770173` 확인 |
+| 7 새 티켓 폼 직전 값 | Cache Components는 떠난 페이지를 `<Activity>`로 숨겨 state를 남긴다(`node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`). 초안 유지는 설계 의도가 아니었다(plan · implementation-log P12에 초안 언급 없음) | `TicketFormView`가 폼을 `useRouter().bfcacheId`로 key — push · replace로 들어올 때마다 새로, 뒤로 · 앞으로 가기만 복원. 수정 폼도 저장 뒤 다시 들어오면 최신 값. e2e "#92-7" |
+| 8 FAB가 가림 | 이슈의 화면은 **호스트 홈**(`/hosts/:id`, "두둥! 등록한 공연이 없습니다." · 카드 D-day). 떠 있는 버튼은 `bottom: 24 + safe-area`인데 본문 아래 여백(80 · PC 64)은 safe-area를 빼고 계산돼 iPhone(34)에서 스크롤 끝에서도 마지막 줄을 가렸다(PC는 버튼 46 + 24 = 70 > 64) | `Fab.css.ts`에 `fabBottom` · `fabClearance.md/lg`(아래 24 + 버튼 높이 + 틈 16 + safe-area)를 두고 호스트 홈 · 공연준비 홈(모바일) · 티켓 관리(모바일) · 멤버 관리의 본문 아래 여백과 버튼 자리를 같은 값으로. 390에서 마지막 카드 아래 ↔ 버튼 위 20px(ego-browser 측정) |
+
+#93 §4 "하단 고정 저장 버튼이 마지막 입력을 가림"은 원인이 다르다 — 그쪽 바는 `position: sticky`라 스크롤 끝에서는 자기 자리(흐름 안)에 있어 가리지 않고, 스크롤 중에 위 입력을 덮는 것은 sticky 바의 본래 동작이다. 이 PR에서 고치지 않는다(🤖 — 바꾸려면 sticky를 버리고 폼 끝 고정으로, 와이어 위치와 달라진다).
+
+**결정**
+- 🤖 등록 전 칩은 GUI의 '판매 예정'(청록)을 쓴다 — 전용 칩이 GUI에 없다. 되돌리려면 `ticket-rules.ts` `ticketSaleChipOf`의 `!eventRegistered` 줄을 지운다. Figma 코멘트 gui `767:50048`(2026-11-01)
+- 🤖 지도 SDK 실패 문구 · 지도 자리 문구 — Figma 코멘트 gui `748:33492`(2026-11-01)
+- 🤖 이미지 실패 대체(포스터 = 자리표시 그림, 프로필 = 기본 캐릭터) — Figma 코멘트 wire `424:11664`(2026-11-01)
+- 🤖 `Avatar`를 클라이언트 컴포넌트로(실패 상태 기억). 서버 컴포넌트에서 그려도 된다
+
+**검사**: typecheck · 바꾼 파일 lint · `vitest related` 332 통과, e2e(빌드 포함, 3161 · 4161) hosting-ticket · hosting-host · hosting-event · hosting · host-home · shell · shell-activity · a11y 272 통과, QA hosting-home 18 · hosting-ticket 30(수동 1) · hosting-event 20(수동 1) · host-settings 28 · host-home 14 · shell 16(수동 1) 실패 0.
+
+**ego-browser 확인**(dev:mock, 390 · 1188): 호스트 홈 스크롤 끝 마지막 카드 아래 754 ↔ 버튼 위 774(390), 760 ↔ 780(PC) / 준비중 공연(140)에 무료 티켓을 만들면 칩 '판매 예정'(청록) / 만든 뒤 [+](FAB)로 새 티켓에 다시 들어가면 이름 빈 칸. 이미지 실패 · 지도 실패는 브라우저에서 만들 수 없어 단위 테스트로 봤다. 참고: dev:mock 보호 화면이 "로그인 확인 중"에서 멈추는 것(전체 회귀 절 끝)은 ego-browser 탭이 뒤에 있을 때였다 — `page.cdp("Page.bringToFront")` 뒤 바로 넘어갔다(백그라운드 탭 타이머 지연으로 보임). `127.0.0.1`로 열면 dev 리소스가 막혀 하이드레이션이 안 된다 — `localhost`로 연다.
