@@ -109,6 +109,8 @@ scenario.manual('EVT-9', '카카오 공유 미리보기가 맞게 나온다', {
 - 서버/브라우저 어느 쪽이 불렀는지는 `mockApi.calls()`의 `from`(`'server' | 'browser'`)으로 본다(프리페치 뒤 브라우저가 다시 부르지 않는지 등).
 - 브라우저 요청만 바꾸려면(배경 재조회 실패 → 토스트 등) `page.route('**/api/v2/...', (r) => r.fulfill({...}))`.
 - 시간 의존 값(오픈 전·후, D-day)은 가짜 응답의 날짜로 만든다. 브라우저 시계는 `page.clock`으로 고정할 수 있다.
+- **로케이터 함정**(세션 회고 2026-11-01): `getByRole('alert')`는 Next route announcer와 겹치니 `main` 안으로 좁히거나 `filter({ hasText })`. Activity(Cache Components가 숨겨 둔 이전 화면)·반응형 같은 DOM·PC 헤더/GNB 때문에 같은 문구가 둘 잡히면 `getByRole('main')` 안이나 `locator('visible=true')`로. 이름이 다른 이름의 앞부분이면(`문의처 1`/`문의처 10`, `검색`/`검색어 지우기`) `exact: true`, 목록 줄은 `listitem`으로 먼저 좁힌다.
+- CSP·PII 자동 검사: e2e·QA 공용 fixture `cspViolations`·`consolePii`(`e2e/support/fixtures.ts`, P14 #79)는 위반이 하나라도 있으면 실패한다. 외부 SDK·출처를 더하면 같은 PR에서 `src/utils/csp.ts` 허용 목록을 넓힌다.
 - 로그인 상태: `e2e/support/auth.ts`의 `setMockSession(page, 'loggedIn' | 'anonymous' | 'expired' | 'expiredRefreshFails')`로 쿠키와 `dd:session`을 함께 세운다. `readSessionFlag(page)`로 확인한다. mock 쿠키 규칙: `accessToken=expired`는 만료(401 `AUTH_401_1`), `refreshToken=mock-refresh`는 재발급 성공, `revoked`는 실패. 예시는 `qa/scenarios/auth-gate.qa.ts`. `pnpm dev:mock`에서는 `/api/__mock/login`·`/api/__mock/expire[?refresh=fail]`·`/api/__mock/logout`(`?redirect=`)으로 같은 상태를 만든다.
 
 ### 3. (선택) agent-browser로 먼저 눌러 본다
@@ -133,7 +135,11 @@ pnpm qa                                 # 전체(qa/reports/all/)
 
 처음이면 `pnpm exec playwright install chromium`. 3100·4100 포트가 비어 있어야 한다(`E2E_APP_PORT`·`E2E_MOCK_PORT`로 바꿀 수 있다).
 
+**병렬 세션이 있으면**(회고 6개): 기본 포트를 쓰지 않는다 — `E2E_APP_PORT=31xx E2E_MOCK_PORT=41xx`, dev:mock은 `PORT=… MOCK_API_PORT=…`. `pnpm qa` 전에는 dev 서버를 내린다(`.next`를 같이 쓴다). 남은 서버는 `lsof -i :<포트>`로 PID를 찾아 끈다(`pkill -f`는 못 끌 때가 있다). `E2E_SKIP_BUILD=1`은 `.next/standalone`이 있을 때만 쓴다.
+
 ### 5. 결과를 읽고 고친다
+
+실패하면 먼저 `git log origin/main -- qa/scenarios/<feature>.qa.ts`로 main에서 그 시나리오를 고친 커밋이 있는지 본다(있으면 main을 merge).
 
 - `qa/reports/<feature>/latest/results.json` — 시나리오·뷰포트별 상태, 단계별 상태와 에러, 노트. 에이전트는 이것을 읽는다.
 - `qa/reports/<feature>/latest/index.html` — 사람이 보는 리포트(단계 설명 + 캡처 + 실패 원인). `images/`의 캡처를 Read로 직접 볼 수 있다.
@@ -148,6 +154,15 @@ pnpm qa                                 # 전체(qa/reports/all/)
 - 실패와 원인, 고친 것
 - 수동 확인 항목과 방법
 - 문서와 다르게 정한 것(빈 상태 문구 등)이 있으면 해당 문서 위치
+
+## 요령(세션 회고 2026-11-01 — 한 번씩 걸린 것)
+
+- 시나리오 콜백 인자는 `{ page, step, note, testInfo }` — 프로젝트 이름은 `testInfo.project.name`. 권한은 `context.grantPermissions`.
+- `page.route` glob의 `?`는 한 글자 와일드카드다 — 쿼리가 있는 주소는 `**` 또는 정규식으로.
+- Radix Select는 단계 캡처 때 닫힌다 — 연 상태를 찍으려면 같은 단계 안에서 열고 단언한다.
+- `handlers.ts`의 액션 이름은 정의에서 확인한다. 배지가 붙는 접근성 이름은 정규식으로. `alt=""` 이미지는 role img가 아니다.
+- 애니메이션 중 크기는 `getComputedStyle`로, transition 중 캡처는 `toBeEnabled` 같은 상태 단언으로 증명한다.
+- 업로드는 `page.route`로 가짜 S3 PUT을 받는다. `viewAs`는 여러 GET을 함께 덮는다. 권한 기대값은 `can()`을 읽고 정한다. 카메라는 `stubCamera`.
 
 ## 하지 않는 것
 

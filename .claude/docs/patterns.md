@@ -48,6 +48,7 @@
 - 크기·굵기·행간·자간은 `typography` 프리셋으로 정한다. 프리셋은 Figma 텍스트 스타일 21개다(`src/ui/theme/typography.css.ts`, design-system §1). 이름은 Figma 이름을 정리한 것이다 — `Body/md` → `bodyMd`, `Heading/sm - emphasized` → `headingSmEmphasized`.
 - 색은 **`colors`의 값**으로 넘긴다(`src/ui/theme/colors.ts`). 의미 색(`colors.textSecondary`, `colors.brandPrimary` …)은 CSS 변수라 이쪽을 먼저 쓴다(라이트 한 벌 — 다크 모드 미지원(사용자 결정 2026-10-25)). 원시 색(`colors.blue400` …)은 Figma Atomic 값 그대로다 — 의미 색에 없는 색이 꼭 필요할 때만 쓰고, 그런 색은 디자이너에게 의미 색 추가를 요청한다.
 - 시맨틱 태그가 필요하면 스타일과 분리해 `as`로만 지정한다. 줄 수 제한은 `lines={1 | 2}`.
+- **함정(세션 회고 10개 — 2026-11-01)**: `Txt`·`Flex`는 정해진 props만 DOM에 넘긴다 — `id`·`role`·`aria-*`·`data-*`·`ref`는 버려진다(P13b에서 e2e 8건 실패). 이런 속성은 감싸는 `div`·`span`·`p`에 단다.
 
 ```tsx
 <Txt as="h2" typography="headingSmEmphasized">공연 정보</Txt>
@@ -63,7 +64,8 @@
 
 - `div` + `display: flex` 대신 `<Flex>`, margin 대신 `<Spacing>`. 페이지 폭은 `<Container>`(Figma 그리드 여백 24 · 40 · 80), 구분선은 `<Divider>`.
 - 정렬은 `Flex.Center`(양축), `Flex.CenterVertical`(교차축), `Flex.CenterHorizontal`(주축).
-- props는 토큰 키만 받는다 — `gap={4}`는 `Space/4`(16px). 반응형 값은 `{ mobile, desktop }`.
+- props는 토큰 키만 받는다 — `gap={4}`는 `Space/4`(16px). 반응형 값은 `{ mobile, desktop }`. `justify`·`align`은 CSS 값 그대로(`flex-start`·`space-between` — `start`·`between` 아님).
+- 그 밖의 부품 함정: `Icon`의 `size`는 레지스트리에 있는 (이름, 크기) 조합만 받는다(대부분 24, 일부 12·20 — 다른 크기는 className으로). `Button`에 ghost 변형은 없다.
 - **간격을 추측하지 않는다.** Figma 노드에서 읽고, 모르면 묻는다.
 
 ```tsx
@@ -97,6 +99,8 @@
 ```
 
 `Txt` · `Flex` · `Spacing`이 갖춰졌으므로 화면 코드에서 원시 `<div className={…}>`로 레이아웃을 짜는 것을 리뷰에서 지적한다.
+
+vanilla-extract 함정(회고 2026-11-01): `display`를 지정한 요소는 `&[hidden]{ display: none }`이 따로 필요하다. `selectors`의 자손 선택자(`& svg path`)는 쓸 수 없어 `globalStyle`로 쓴다. `.css.ts`는 함수를 export하지 않는다(빌드 실패). `space[8]`처럼 PC에서 값이 바뀌는 토큰이 있다 — 고정 값이 필요하면 토큰 정의를 보고 고른다.
 
 ---
 
@@ -338,6 +342,7 @@ try {
 - **뒤로가기는 열린 오버레이를 닫는다**(P2 사용자 결정). 시트·모달·팝업(`BottomSheet`·`Modal`·`Popup`·`ResponsiveOverlay`·`EasyOverlay`)은 `useCloseOnBack`으로 열 때 `window.history.pushState({ ...history.state, ddOverlay: id }, '', location.href)`로 항목을 하나 넣는다(주소는 그대로, Next의 `__NA` 등 기존 state 보존). 뒤로가기(popstate)로 표시가 빠지면 닫히고, UI로 닫으면(버튼·Esc·바깥·스와이프) 내 항목이 맨 위일 때 `history.back()`으로 소비한다. 겹친 오버레이는 맨 위 것만 닫힌다. 토스트·팝오버·툴팁·메뉴는 해당 없다. 실제 Next 16 dev 서버에서 RSC 재요청 0건을 확인했다.
   - `EasyOverlay`의 `onConfirm`이 도는 동안 뒤로가기는 무시한다(항목을 다시 넣는다). 요청은 이미 갔으니 결과를 보여 준다. 성공하면 항목을 소비한 뒤 resolve하므로 호출한 쪽이 `await` 뒤에 `router.push`해도 엇갈리지 않는다.
   - **오버레이 안에서 다른 경로로 갈 때는 `router.replace`·`<Link replace>`를 쓴다.** push하면 기록이 [A, A+오버레이, B]가 되어 B에서 뒤로가기를 두 번 눌러야 A로 간다.
+  - **닫고 나서 이동이 더 안전하다**(회고 p6·p7·p11 — 드로어 링크와 `close()`의 `history.back()`이 경쟁해 이동이 씹힘): 먼저 닫고, `ddOverlay` 항목이 빠지는 popstate를 기다린 뒤 `push`한다(`useCloseOnBack().release()`와 같은 순서). Next 16은 뒤로가기 때 라우트 state를 살려 두므로, 열림 state를 둔 채 가면 돌아왔을 때 다시 열린다. 확인 다이얼로그 안의 변경은 `release()` 뒤에 `submit()`한다.
   - 남는 경우: 오버레이가 열린 채 새로고침하면 뒤로가기가 한 번 헛돈다. 위에 다른 오버레이가 있는 채 아래 것을 UI로 닫으면 그 항목이 남는다. 둘 다 드물어 두었다.
 - **URL로 여는 오버레이는 `overlay.open`을 쓰지 않는다.** 예매자 관리의 `?order={orderUuid}`처럼 주소가 원본인 것은 페이지가 쿼리 값을 보고 선언적으로 렌더한다. 위 규칙과 맞춰 **열 때는 `pushState`(파라미터를 더한 주소, state에 `ddOverlay` 표시), 닫을 때는 표시가 있으면 `router.back()`, 없으면(주소로 바로 들어온 경우) `router.replace`로 그 파라미터만 지운다.** 다른 쿼리(`?tab=`)는 남긴다. Next 라우터와 `useSearchParams`가 `pushState`를 따라간다. **P13a-L 구현(`useGuestsUrlState`)**: 열기 `pushState({ ddOverlay: 'guests-order' }, '', ?order=…)` — 첫 인자에 Next state(`__NA`)를 펼치지 않는다(Next가 내부 값을 덧붙이고 `useSearchParams`를 갱신한다, `app-router.js` `copyNextJsInternalHistoryState`). 닫기는 표시가 맨 위면 `router.back()`, 없으면 `router.replace` 대신 같은 결과의 얕은 `replaceState(null, …)`(§13 — 서버 왕복 없음). 상세에서 다른 주문을 열면 항목을 더 쌓지 않는다(`replaceState`). 탭(`?tab=`)도 얕은 교체이고 탭을 바꾸면 `order`를 지운다.
 - 경로가 바뀌면 `overlay.unmountAll()`을 호출한다. 이 감시는 루트 `Providers`의 children을 감싸지 않는 말단 컴포넌트 `<OverlayRouteReset />`이 하고, 형제 위치의 `<Suspense fallback={null}>` 안에 둔다. 이 파일과 `providers.tsx`는 `src/app`에 두는 루트 셸 클라이언트 파일이다(라우트 파일이 아닌 예외 둘, tech-decisions §8).
@@ -378,15 +383,15 @@ src/app → src/features → src/ui → src/api → src/utils
 
 | 용도 | 쓰지 말 것 | 쓸 것 |
 |---|---|---|
-| 로딩 상태 | `useState(false)` + try/finally | mutation의 `isPending`, 그 밖은 `useLoading()`(`src/ui/hooks`) |
+| 로딩 상태 | `useState(false)` + try/finally | mutation의 `isPending`(`useLoading` 훅은 아직 없다 — 필요해지면 `src/ui/hooks`에 먼저 만든다) |
 | delay · debounce · throttle | 직접 구현 | `es-toolkit` |
-| 마운트 뒤에만 실행 | `useEffect` + `useState` 조합 | `useIsClient()`(`src/ui/hooks`) |
-| 확인 다이얼로그 | `window.confirm()` | `overlay-kit` 기반 `ConfirmDialog`, `EasyOverlay`(§6) |
-| 토스트 | 훅이나 직접 구현 | 명령형 `toast()`(`src/ui`). 렌더러는 루트 `Providers`에 하나 |
-| 클립보드 | `navigator.clipboard.writeText()` 직접 | `copyText()`(`src/utils`, 실패 폴백 포함) |
+| 마운트 뒤에만 실행 | `useEffect` + `useState` 조합 | `useIsClient()`(`src/ui/hooks/useIsClient.ts`) — 셸에 넣는 클라이언트 컴포넌트가 `Date`·localStorage를 읽으면 이것으로 마운트 뒤에만 그린다 |
+| 확인 다이얼로그 | `window.confirm()` | `openConfirm()`·`EasyOverlay`(`src/ui/components/EasyOverlay`, §6) — 모양은 DS 다이얼로그(`Popup`) |
+| 토스트 | 훅이나 직접 구현 | 명령형 `toast()`(`src/ui/components/Toast`). 렌더러는 루트 `Providers`에 하나 |
+| 클립보드 | `navigator.clipboard.writeText()` 직접 | `copyText()`(`src/utils/copy-text.ts`, 실패 폴백 포함 — P5b-V에서 만듦) |
 | 날짜 파싱 · 표시 | 화면마다 포맷 | `src/api/shared/date.ts`(서버 형식 `yyyy.MM.dd HH:mm` ↔ 값, 표시 포맷) |
-| 에러 코드 추출 | `try { e.response… }` | `getErrorCode()`(§5) |
-| 엑셀 저장 | 직접 구현 | `api.download()` → `saveBlob()`(`src/utils`). 버튼과 파일명은 `features/hosting` |
+| 에러 코드 추출 | `try { e.response… }` | `getErrorCode()`(`src/api/errors.ts`, §5) |
+| 엑셀 저장 | 직접 구현 | `api.download()` → `saveBlob()`(`src/utils/download.ts`). 버튼과 파일명은 `features/hosting` |
 | 데이터 경계 | `<Suspense>` + ErrorBoundary를 매번 조합, `@suspensive/react`를 화면에서 직접 import | `<AsyncBoundary>`·`<ErrorBoundary>`(`src/ui`, §4-3) |
 
 ---
@@ -396,7 +401,10 @@ src/app → src/features → src/ui → src/api → src/utils
 1. **typecheck는 `pnpm typecheck`로 한다**(`next typegen && tsc --noEmit`). 라우트 타입이 생성돼 있어야 통과한다. `tsc`만 돌리지 않는다.
 2. **`any` 금지.** `unknown` 또는 구체 타입. `@typescript-eslint/no-explicit-any`로 강제한다(P0).
 3. **간격·치수를 추측하지 않는다.** Figma 노드에서 읽고, 모르면 묻는다.
-4. **v1 → v2 차이는 표(쓰지 말 것 → 쓸 것)로 남긴다.** Phase를 끝낼 때 [`implementation-log.md`](./implementation-log.md)에 적어 리뷰 체크리스트로 쓴다.
+4. **Cache Components는 이전 화면을 Activity로 숨긴 채 DOM에 남긴다**(회고 p12·p7·p9c — 2026-11-01). 다른 화면의 요소를 바꾸는 전역 `:has()`·`querySelector`는 숨긴 화면에도 맞는다. 레이아웃 밖 요소(예: 셸 헤더 숨기기)는 마운트된 화면에서 `useLayoutEffect`로 속성을 붙였다 뗀다. 테스트 로케이터도 숨긴 화면을 잡을 수 있다(qa-scenario "로케이터 함정").
+5. **훅·lint 함정**: 훅이 `ref`를 담은 객체를 돌려주면 구조분해로 받는다(react-hooks/refs). 테스트 헬퍼 이름을 `use`로 시작하지 않는다. `eslint-disable-next-line`은 대상 바로 윗줄에 둔다(아니면 `--fix`가 지운다).
+6. **CSP는 `src/utils/csp.ts` 한 곳에서 만든다**(P14 #79). 외부 SDK·출처를 더하는 PR은 같은 PR에서 허용 목록을 넓힌다 — e2e·QA의 `cspViolations` fixture가 위반 하나에도 실패한다.
+7. **v1 → v2 차이는 표(쓰지 말 것 → 쓸 것)로 남긴다.** Phase를 끝낼 때 [`implementation-log.md`](./implementation-log.md)에 적어 리뷰 체크리스트로 쓴다.
 
 ---
 
