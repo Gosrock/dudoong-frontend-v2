@@ -202,7 +202,12 @@ function seed() {
   ];
   // 셀프 체크인 토큰 → 공연. GQ-4(P13b)가 토큰이 없는 공연에 새로 만들어 넣는다
   const checkInTokens = new Map<string, number>(Object.entries(CHECK_IN_EVENTS));
-  return { orders, tickets, gifts, checkInTokens, sequence: 0 };
+  /**
+   * 안 읽은 거절 알림이 있는 내 주문(T-3 `refusedOrderUuids`, 백엔드 2.5.4 — #905). 기본은 비어 있다(기본 공지 바는 승인).
+   * O-3 주문 상세(`order.handlers`의 P9 주문)를 열면 빠진다 — `myTicketHandlers.refused`가 채운다
+   */
+  const unreadRefused: string[] = [];
+  return { orders, tickets, gifts, checkInTokens, unreadRefused, sequence: 0 };
 }
 
 function order(
@@ -504,7 +509,17 @@ export function newApproved() {
   const orderUuids = store.orders
     .filter((o) => o.buyer === 'me' && o.unreadApproved && o.status === 'APPROVED')
     .map((o) => o.orderUuid);
-  return { hasNew: orderUuids.length > 0, orderUuids };
+  return { hasNew: orderUuids.length > 0, orderUuids, refusedOrderUuids: [...store.unreadRefused] };
+}
+
+/** 거절 알림을 안 읽은 주문으로 둔다(최근 알림 순으로 앞에) — T-3 `refusedOrderUuids` */
+export function setUnreadRefused(orderUuids: string[]) {
+  store.unreadRefused = [...orderUuids];
+}
+
+/** O-3 주문 상세를 열면 그 주문의 거절 공지가 풀린다(서버는 응답 전에 읽음 처리 — #905 §2-2) */
+export function markRefusedRead(orderUuid: string) {
+  store.unreadRefused = store.unreadRefused.filter((u) => u !== orderUuid);
 }
 
 // ─── 선물 ────────────────────────────────────────────────────

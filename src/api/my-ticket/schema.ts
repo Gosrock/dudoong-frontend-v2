@@ -89,10 +89,16 @@ export type MyTicketGroup = z.infer<typeof MyTicketGroupSchema>;
 export const MyTicketsSchema = z.object({ groups: z.array(MyTicketGroupSchema) });
 export type MyTickets = z.infer<typeof MyTicketsSchema>;
 
-/** G11/T-3 공지 바. `orderUuids[0]`이 [티켓 보러가기]의 대상 묶음 */
+/**
+ * G11/T-3 공지 바. `hasNew`·`orderUuids`는 새로 승인된 주문(최근 승인 알림 순) — `orderUuids[0]`이 [티켓보기]의 대상 묶음.
+ * `refusedOrderUuids`는 안 읽은 거절 알림 중 지금도 거절 상태인 내 주문(최근 거절 알림 순, 없으면 빈 배열) — `hasNew`와 따로 본다.
+ * 그 거절 알림을 읽거나(N-3) 그 주문 상세(O-3)를 열면 빠진다. **백엔드 2.5.4(스테이징)부터** — 운영 2.5.3에는 키가 없어
+ * 빈 배열로 읽는다(백엔드 #905 §2-2 · `V2NewApprovedResponse` #908).
+ */
 export const NewApprovedSchema = z.object({
   hasNew: z.boolean(),
   orderUuids: z.array(z.string()),
+  refusedOrderUuids: z.array(z.string()).optional().default([]),
 });
 export type NewApproved = z.infer<typeof NewApprovedSchema>;
 

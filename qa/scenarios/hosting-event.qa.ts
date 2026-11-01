@@ -279,7 +279,7 @@ scenario(
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
-    await step('상세 정보를 열면 탭 4개(공연 소개 선택)와 에디터가 보인다', async () => {
+    await step('상세 정보를 열면 탭 4개(공연소개 선택)와 에디터가 보인다', async () => {
       await page.goto('/hosting/events/101/detail');
       await expect(page.getByTestId('section')).toHaveCount(4);
       await expect(page.getByRole('toolbar', { name: '본문 서식' })).toBeVisible();

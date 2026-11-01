@@ -6,6 +6,7 @@ import { resetMeStore } from '../../src/api/__mocks__/me.handlers';
 import { orderHandlers, resetOrderStore } from '../../src/api/__mocks__/order.handlers';
 import { MOCK_S3_ORIGIN } from '../../src/api/__mocks__/upload-handlers';
 import { userHandlers } from '../../src/api/__mocks__/user.handlers';
+import { isPreApprovalCancelTermsEffective } from '../../src/api/shared/agreement';
 import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
@@ -264,11 +265,21 @@ scenario(
         await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
       },
     );
-    await step('아래 예매취소 안내에 승인 전 취소 잠정 문구가 있다', async () => {
-      const notice = page.getByRole('region', { name: '예매취소 안내' });
-      await notice.scrollIntoViewIfNeeded();
-      await expect(notice).toContainText('아직 승인 전이라도 지금 취소할 수 있어요');
-    });
+    // 승인 전 취소 안내(⑤-b, 백엔드 #897 확정 문구)는 개정 약관 제27조③ 시행(2026-11-07 KST) 뒤에만 보인다
+    const effective = isPreApprovalCancelTermsEffective();
+    await step(
+      effective
+        ? '아래 예매취소 안내에 승인 전 취소 문구(⑤-b)가 있다'
+        : '개정 약관 시행(2026-11-07) 전이라 예매취소 안내에 승인 전 취소 문구(⑤-b)가 없다',
+      async () => {
+        const notice = page.getByRole('region', { name: '예매취소 안내' });
+        await notice.scrollIntoViewIfNeeded();
+        await expect(notice).toContainText('두둥티켓은 호스트 계좌로 입금한 티켓이라');
+        const preApproval = notice.getByText('아직 호스트가 승인하기 전이에요');
+        if (effective) await expect(preApproval).toBeVisible();
+        else await expect(preApproval).toHaveCount(0);
+      },
+    );
   },
 );
 

@@ -39,6 +39,9 @@ import {
 
 const order = (uuid: string) => p9SeededOrders[uuid]!;
 
+/** 개정 약관(2026-11-07 KST) 시행 뒤 */
+const AFTER = Date.parse('2026-11-08T00:00:00+09:00');
+
 describe('주문 상태 5종 × refundStatus → 표시(목록·상세 공용 매핑 하나)', () => {
   it.each<[MyOrderStatus | null, RefundStatus, string, string | null]>([
     ['PENDING_APPROVE', 'NONE', '승인대기', null],
@@ -226,7 +229,7 @@ describe('거절 사유 · 금액 · 옵션 · 안내 종류', () => {
 
   it.each<[string, Pick<MyOrderDetail, 'ticket' | 'status'>, ReturnType<typeof cancelNotice>]>([
     [
-      '두둥 승인 대기 → ⑤-b(승인 전 취소 안내 — 문구 확정 대기 B18)',
+      '두둥 승인 대기 → ⑤-b(승인 전 취소 안내 — #897 확정 문구, 시행 뒤)',
       {
         ticket: { ...order(P9_ORDER.approvedPaid).ticket, payType: 'DUDOONG' },
         status: 'PENDING_APPROVE',
@@ -260,7 +263,18 @@ describe('거절 사유 · 금액 · 옵션 · 안내 종류', () => {
       null,
     ],
   ])('약관 안내 종류: %s', (_, o, expected) => {
-    expect(cancelNotice(o)).toEqual(expected);
+    expect(cancelNotice(o, AFTER)).toEqual(expected);
+  });
+
+  it('⑤-b는 개정 약관 제27조③ 시행(2026-11-07 00:00 KST) 전에는 빠진다(백엔드 #897)', () => {
+    const pending: Pick<MyOrderDetail, 'ticket' | 'status'> = {
+      ticket: { ...order(P9_ORDER.approvedPaid).ticket, payType: 'DUDOONG' },
+      status: 'PENDING_APPROVE',
+    };
+    const at = (iso: string) => cancelNotice(pending, Date.parse(iso))?.pendingApproval;
+    expect(at('2026-11-06T23:59:59.999+09:00')).toBe(false);
+    expect(at('2026-11-07T00:00:00+09:00')).toBe(true);
+    expect(at('2026-11-06T15:00:00Z')).toBe(true);
   });
 
   it.each<[MyOrderStatus, RefundStatus, ReturnType<typeof cancelResult>]>([
