@@ -69,12 +69,13 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          key: playwright-full-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      # 전체 Chromium(셸만이 아니라) — auth-bfcache.spec이 bfcache를 켜려고 `channel: 'chromium'`(새 headless)을 쓴다
       - name: Playwright Chromium 설치(시스템 의존성 포함)
         timeout-minutes: 17
         run: |
           for i in 1 2 3; do
-            timeout 300 pnpm exec playwright install --with-deps --only-shell chromium && exit 0
+            timeout 300 pnpm exec playwright install --with-deps chromium && exit 0
             echo "playwright install 실패/시간 초과 — 다시 시도 ($i/3)"
           done
           exit 1
