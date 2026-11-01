@@ -54,3 +54,49 @@ test.describe('비로그인 /hosting/**', () => {
     });
   }
 });
+
+/**
+ * 이슈 #95 — 상단 바는 `position: fixed`(sticky는 고무줄 오버스크롤 때 콘텐츠와 같이 밀렸다). 고무줄 자체는 자동 검사로
+ * 재현할 수 없어(QA SHELL-12 실기기), 스크롤 끝에서 바가 fixed · top 0인지와 맨 위에서 바 자리가 비어 있는지를 본다.
+ */
+test.describe('상단 바 고정(이슈 #95)', () => {
+  for (const { width, height, barH } of [
+    { width: 390, height: 844, barH: 64 },
+    { width: 1440, height: 900, barH: 58 },
+  ]) {
+    test(`${width}: 주문내역 스크롤 끝에서도 바가 fixed · top 0, 맨 위에서 첫 내용은 바 아래`, async ({
+      page,
+    }) => {
+      await setMockSession(page, 'loggedIn');
+      await page.setViewportSize({ width, height });
+      await page.goto('/orders');
+      await expect(page.getByRole('main')).toBeVisible();
+      const firstTop = await page.evaluate(() => {
+        const el =
+          document.querySelector('[data-testid="notice-banner"]') ?? document.querySelector('main');
+        return el!.getBoundingClientRect().top;
+      });
+      expect(firstTop).toBeGreaterThanOrEqual(barH);
+      // 목록은 main 뒤에 채워진다 — 채워질 때까지 끝으로 다시 스크롤한다
+      await expect
+        .poll(() =>
+          page.evaluate(() => {
+            window.scrollTo(0, document.documentElement.scrollHeight);
+            return window.scrollY;
+          }),
+        )
+        .toBeGreaterThan(0);
+      const bars = await page.evaluate(() =>
+        [...document.querySelectorAll('body *')]
+          .filter((e) => {
+            const r = e.getBoundingClientRect();
+            return getComputedStyle(e).position === 'fixed' && r.height > 0 && r.top === 0;
+          })
+          // 화면 폭 전체(스크롤바 폭만큼은 봐준다)
+          .filter((e) => e.clientWidth >= innerWidth - 20)
+          .map((e) => Math.round(e.getBoundingClientRect().height)),
+      );
+      expect(bars).toContain(barH);
+    });
+  }
+});

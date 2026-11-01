@@ -2,7 +2,7 @@ import { globalStyle, style } from '@vanilla-extract/css';
 
 import { mobileHeader } from '@/features/hosting/event/ui/EventScopeNav.css';
 import { EVENT_SCOPE_ATTR } from '@/features/hosting/shell/HostingShell.css';
-import { stickyBar } from '@/features/shared/shell/shell.css';
+import { fixedBar } from '@/features/shared/shell/shell.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -24,7 +24,7 @@ export const page = style({ display: 'flex', flexDirection: 'column', flex: '1 0
 export const mobileOnly = style({ '@media': { [media.desktop]: { display: 'none' } } });
 
 /** ← 제목 헤더 — 공연 헤더 대신이라 그것처럼 위에 고정(fix-qa-1101) */
-export const mobileHeaderBar = style([stickyBar, mobileOnly]);
+export const mobileHeaderBar = style([fixedBar, mobileOnly]);
 
 export const body = style({
   flex: '1 0 auto',

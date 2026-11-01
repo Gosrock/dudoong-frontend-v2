@@ -1468,6 +1468,22 @@ Figma "GUI 화면" 파일(`1Cn4WOu6TDaSajbFIuH6fO`)을 읽었다. 화면 목록�
 
 **남은 것**: 로그인 상태 픽스처(P4a·P4b 이후), 크롤러 계약의 OG `<head>`·404(P5b·P8b), Playwright를 게이트에 넣을지 P14에서 재검토 → main push에서만(사용자 결정, §CI).
 
+## 33. 레이아웃 고정 방식 — 상단 바 fixed, 스크롤은 문서 (2026-11-01, 이슈 #95)
+
+사용자 눈 QA: 오버스크롤(고무줄)할 때 네비바도 같이 밀린다 · 로그인 말풍선만 고정이다.
+
+**원인.** 스크롤은 처음부터 문서(window)가 하고(내부 스크롤 컨테이너 없음), 상단 바는 `position: sticky; top: 0`(fix-qa-1101)이었다. sticky는 흐름 안 요소라 iOS Safari · macOS 트랙패드의 고무줄(문서가 스크롤 범위 밖으로 밀리는 것)에서 콘텐츠와 같이 움직인다. 로그인 말풍선은 Radix Tooltip(포털, floating-ui `position: fixed`)이라 반대로 혼자 화면에 붙어 있었다.
+
+**결정.**
+- 상단 바(`fixedBar` — PC `TopBar` · 모바일 로고 헤더 · 하위 화면 헤더 · 공연 모바일 헤더 · 티켓 폼 헤더)는 `position: fixed`. 바 자리는 셸 맨 위 `barSpace`(64 / PC 58) 하나가 흐름 안에 잡는다 — 페이지 안 헤더도 같은 자리라 바마다 자리를 두지 않는다. 오버레이가 스크롤을 잠그며 스크롤바 폭을 빼면 `right: var(--removed-body-scroll-bar-size)`로 같이 뺀다.
+- 서비스 배너는 바 아래 흐름 안으로 옮겼다(위에 두면 fixed 바가 덮는다). 스크롤하면 바 밑으로 사라지는 것은 그대로.
+- 스크롤은 계속 문서가 한다. 버린 후보: ① 내부 스크롤 컨테이너(바를 스크롤 영역 밖에) — 주소창 숨김 · 당겨서 새로고침 · Next 스크롤 복원 · `scroll-padding` 앵커가 모두 window 기준이라 깨진다. ② `html { overscroll-behavior: none }` — 고무줄 자체를 없애 바는 안 움직이지만 Android 당겨서 새로고침도 꺼지고, 이슈의 기대("콘텐츠만 오버스크롤")와 다르다.
+- 화면 높이를 채우는 대기 화면(`LoginGate` · `ScreenLoader fullScreen`)은 `calc(100dvh - var(--shell-bar-space))` — 셸 루트가 변수에 바 높이를 넣는다(셸 밖은 0). 전에는 `100dvh`라 셸 안에서 바 높이만큼 넘쳤다.
+- 말풍선이 그림과 같이 움직여야 하는 곳은 흐름 안 `TooltipBubble`(Tooltip과 같은 모양, 포털 없음). 로그인이 첫 사용처.
+- 루트 `viewport`에 `interactiveWidget: 'resizes-content'` — Android Chrome에서 키보드가 올라오면 레이아웃 뷰포트가 줄어 하단 sticky 버튼이 키보드 위에 선다. iOS는 읽지 않는다.
+
+**확인.** 자동: `e2e/shell.spec.ts` "상단 바 고정"(스크롤 끝에서 바 fixed · top 0, 맨 위에서 첫 내용이 바 아래), QA SHELL-9 · SHELL-11. 고무줄 자체는 자동 검사로 재현할 수 없어 실기기 QA SHELL-12(사람 몫).
+
 ## 핵심 결정 요약
 
 | 항목 | 결정 | 한 줄 근거 |

@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { NoticeBannerView } from '@/features/shared/notice/NoticeBannerView';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
+import { barSpace } from '@/features/shared/shell/shell.css';
 import { ShellMenuButton } from '@/features/shared/shell/ShellMenuButton';
 import { ShellAccountMenu, ShellBell, ShellRetry } from '@/features/shared/shell/ShellParts';
 import { Header } from '@/ui/components/Header/Header';
@@ -28,8 +29,8 @@ const NAV = [
 export function HostingShell({ children }: { children: ReactNode }) {
   return (
     <div className={s.root}>
-      {/* 서비스 공지 상단 배너 한 줄(P9c-V) — 헤더·상단 바보다 위(관객 셸과 같은 자리), 공연 안 3단 위에도 */}
-      <NoticeBannerView audience="HOST" />
+      {/* 고정 상단 바(로고 헤더 · 공연 모바일 헤더 · 티켓 폼 헤더 · PC 상단 바 — 모두 fixed)의 자리. 이슈 #95 */}
+      <div className={barSpace} aria-hidden />
       <div className={s.mobileHeader}>
         <Header
           logo="host"
@@ -44,6 +45,8 @@ export function HostingShell({ children }: { children: ReactNode }) {
         nav={NAV}
         trailing={<HostingTopBarEnd />}
       />
+      {/* 서비스 공지 상단 배너 한 줄(P9c-V) — 고정 바 아래 흐름 안(관객 셸과 같은 자리), 공연 안 3단 위에도 */}
+      <NoticeBannerView audience="HOST" />
       <div className={s.body}>{children}</div>
     </div>
   );

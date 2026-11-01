@@ -14,12 +14,23 @@ export const main = style({
   justifyContent: 'center',
   gap: vars.space[7],
   padding: `${vars.space[9]} ${vars.space[4]}`,
+  // 낮은 화면(390×667 · 가로 모드)은 위아래 여백을 줄여 한 화면에 더 들어오게 — 넘치면 문서가 스크롤한다(고정 높이 없음)
+  '@media': {
+    '(max-height: 700px)': { gap: vars.space[5], padding: `${vars.space[5]} ${vars.space[4]}` },
+  },
 });
 
-/** 말풍선(Tooltip)의 기준 — 캐릭터 위 가운데. 늘 열린 말풍선이 붙을 자리를 위해 위 간격을 둔다 */
-export const character = style({
-  display: 'inline-flex',
-  marginTop: vars.space[8],
+/**
+ * 말풍선 + 캐릭터 한 묶음(흐름 안 세로 쌓기 — 이슈 #95). 간격 12(꼬리 5 포함 — Radix Tooltip `sideOffset` 6 + 꼬리와 비슷).
+ * 캐릭터는 좁은 화면에서 줄어든다(전역 `img { max-width: 100% }`).
+ */
+export const hero = style({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: vars.space[3],
+  width: '100%',
+  maxWidth: 320,
 });
 
 export const action = style({

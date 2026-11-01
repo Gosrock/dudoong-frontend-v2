@@ -2378,3 +2378,49 @@ typecheck · 바꾼 파일 lint · `vitest related`(60파일 1081건) 통과. e2
 **검사**: typecheck · 바꾼 파일 lint · `vitest related` 332 통과, e2e(빌드 포함, 3161 · 4161) hosting-ticket · hosting-host · hosting-event · hosting · host-home · shell · shell-activity · a11y 272 통과, QA hosting-home 18 · hosting-ticket 30(수동 1) · hosting-event 20(수동 1) · host-settings 28 · host-home 14 · shell 16(수동 1) 실패 0.
 
 **ego-browser 확인**(dev:mock, 390 · 1188): 호스트 홈 스크롤 끝 마지막 카드 아래 754 ↔ 버튼 위 774(390), 760 ↔ 780(PC) / 준비중 공연(140)에 무료 티켓을 만들면 칩 '판매 예정'(청록) / 만든 뒤 [+](FAB)로 새 티켓에 다시 들어가면 이름 빈 칸. 이미지 실패 · 지도 실패는 브라우저에서 만들 수 없어 단위 테스트로 봤다. 참고: dev:mock 보호 화면이 "로그인 확인 중"에서 멈추는 것(전체 회귀 절 끝)은 ego-browser 탭이 뒤에 있을 때였다 — `page.cdp("Page.bringToFront")` 뒤 바로 넘어갔다(백그라운드 탭 타이머 지연으로 보임). `127.0.0.1`로 열면 dev 리소스가 막혀 하이드레이션이 안 된다 — `localhost`로 연다.
+
+## 레이아웃 고정 요소 — 이슈 #95 (layout-fixed-95, 2026-11-01)
+
+사용자 눈 QA: 오버스크롤 때 네비바가 같이 밀린다 · 로그인 에셋은 움직이는데 말풍선은 고정 · Figma 배치를 그대로 옮겨 고정·레이아웃이 이상한 곳 전수조사. 결정과 버린 후보는 tech-decisions §33, 규칙은 patterns §3 "고정 요소".
+
+### 1. 상단 바 — sticky → fixed
+
+- 스크롤은 문서(window), 상단 바는 `sticky top 0`(fix-qa-1101)이었다. sticky는 흐름 안이라 고무줄(iOS Safari · macOS 트랙패드)에서 콘텐츠와 같이 밀린다.
+- `fixedBar`(`shell.css.ts`, 옛 `stickyBar`) — `position: fixed; top 0; left 0; right var(--removed-body-scroll-bar-size, 0)`. 쓰는 곳: 관객 로고 헤더 · PC 상단 바 · 하위 화면 헤더(`AudienceSubHeader`), 호스팅 로고 헤더 · PC 상단 바 · 공연 모바일 헤더(`EventScopeNav`) · 티켓 폼 헤더.
+- 바 자리: 셸 맨 위 `barSpace`(모바일 64 · PC 58) 하나. 페이지 안 헤더는 늘 셸 로고 헤더 대신 나오므로 같은 자리를 쓴다.
+- 🤖 서비스 배너는 바 아래 흐름 안으로(design-requests Q44 셀 갱신). 위에 두면 fixed 바가 덮는다.
+- 오버레이 스크롤 잠금(react-remove-scroll)이 스크롤바 폭을 body 여백으로 바꿀 때 그 폭을 바 오른쪽에서 빼 버튼이 튀지 않는다(Windows 등 스크롤바가 자리를 차지하는 환경).
+
+### 2. 로그인 — 말풍선 + 캐릭터 한 묶음
+
+- 말풍선은 Radix Tooltip `open`(포털 · floating-ui `fixed`)이라 스크롤·고무줄 때 혼자 화면에 붙어 있었다. DS `Tooltip` 파일에 흐름 안 `TooltipBubble`(같은 모양 · 아래 꼬리 · 포털 없음, 스토리 `InlineBubble`)을 더하고, 로그인은 `hero`(세로 flex: 말풍선 → 12 → 캐릭터)로 묶었다.
+- 낮은 화면(`max-height: 700px` — 390×667 · 가로 모드)은 위아래 여백 64 → 24, 사이 40 → 24. 고정 높이가 없어 넘치면 문서가 스크롤한다. 390×667 한 화면에 들어오고, 667×375는 스크롤(바는 0에 그대로).
+
+### 3. 전수조사
+
+`src/**/*.css.ts`의 `fixed` · `absolute` · `sticky` · `100vh/dvh` · 고정 높이 · 음수 margin · 고정 `top/left` px 전부(absolute 50곳 — 대부분 화면 읽기 전용 글자 · 카드 안 배지 · 진행 막대라 문제없음). 화면은 ego-browser로 390×844 · 390×667 · 667×375 · 1024×560 · 1440×900을 열어 맨 위 · 스크롤 끝 · 드로어 열고 닫기를 봤다.
+
+| 화면 | 증상 | 원인 | 처리 |
+|---|---|---|---|
+| 관객 · 호스팅 모든 화면 상단 바 | 고무줄 오버스크롤 때 바가 콘텐츠와 같이 밀림 | `sticky` | **고침** — `fixed` + `barSpace`(§1) |
+| 로그인 · 세션 만료 | 캐릭터는 움직이고 말풍선은 고정 | 말풍선만 포털 `fixed` | **고침** — `TooltipBubble`(§2) |
+| 로그인 게이트 대기 · 셀프 체크인 처리 중(`ScreenLoader fullScreen`) | 셸 안에서 바 높이만큼 세로로 넘쳐 스피너가 가운데가 아님 | `min-height: 100dvh` + 셸 바 자리 | **고침** — `FULL_SCREEN_MIN_HEIGHT = calc(100dvh - var(--shell-bar-space))`, 셸 루트가 변수에 64/58(셸 밖 호스팅 게이트는 0). 배너가 떠 있으면 배너 높이만큼은 여전히 넘친다(대기 화면이라 둠) |
+| 공연 상세 PC 오른쪽 카드(`/events/[id]`) | 낮은 PC 화면(1024×560)에서 카드가 화면보다 길어 아래 [티켓 구매하기]가 페이지 끝까지 안 보임 | `sticky` 카드에 높이 제한 없음 | **고침** — `maxHeight: calc(100dvh - 58 - 24×2)` + 카드 안 스크롤 |
+| QR 체크인 전체화면(CSS 대체 — iPhone Safari) | 덮은 채로 끌면 뒤 문서가 스크롤·고무줄 | `fixed inset 0`에 스크롤 잠금 없음 | **고침** — `touch-action: none` · `overscroll-behavior: none` |
+| QR 체크인 카메라 · QR 크기 | iOS에서 툴바가 보이면 조금 넘침 | `70vh` · `60vh`(iOS `vh`는 큰 뷰포트) | **고침** — `dvh` |
+| 체크아웃 입금자명 · 호스팅 편집 입력칸(Android) | 키보드가 올라오면 하단 sticky 버튼이 키보드 뒤로 | 기본 `interactive-widget=resizes-visual` | **고침** — 루트 `viewport` `interactiveWidget: 'resizes-content'`(iOS는 읽지 않음 — 실기기 SHELL-12) |
+| 체크아웃 · 호스팅 편집 하단 바 · 티켓 폼 · 새 공연 단계 버튼 | 고무줄 때 하단 바가 콘텐츠 끝과 같이 움직임 | `sticky bottom 0`(콘텐츠 끝에 붙는 바) | 🤖 **그대로** — 디자인 판단 **Q62**(Figma 코멘트 gui `564:4156`). 콘텐츠를 가리는 문제는 fix-staging-hosting 몫 |
+| PC 공연 사이드바(호스팅) | 트랙패드 고무줄 때 사이드바가 같이 움직임 | `sticky top 58`(높이 제한은 이미 있음) | 그대로 — 3단 왼쪽 열이라 fixed로 빼면 칸을 따로 잡아야 한다. 영향 작음 |
+| 호스트 멤버 [+ 멤버 초대하기] · 호스트 홈 [+ 새 공연 만들기] FAB(1440) | 내용(최대 600 · 1280)과 멀리 화면 오른쪽 아래 끝에 붙음 | `fixed right 24` | **fix-staging-hosting 몫**(FAB·하단 고정 버튼) — 표에만. 아래 여백 · safe-area는 #92-8에서 고쳐졌고(`fabClearance`), 큰 화면 가로 위치는 남음 |
+| 공연준비 홈 FAB · 티켓 목록 FAB | 오버레이가 스크롤바를 지울 때 옆으로 튐(스크롤바가 자리를 차지하는 환경) · iOS 키보드 위에 뜸 | `fixed`, 스크롤바 폭 보정 없음 | **fix-staging-hosting 몫** — `right: calc(… + var(--removed-body-scroll-bar-size, 0px))`이면 된다 |
+| 공연 기본 정보 우편번호 검색(시트 · 모달) | 낮은 화면에서 460 iframe이 시트 안에서 이중 스크롤 | `height: 460` | **fix-staging-hosting 몫**(기본 정보 · 지도) — `min(460px, 60dvh)` 제안 |
+| 공연홈 · 공연 리스트 [맨 위로] | iOS 키보드(리스트 검색칸) 위에 뜰 수 있음 | `fixed` | 그대로 — 스크롤한 뒤에만 보이고 검색 중에는 영향 작음 |
+| 1200px 호스팅 콘텐츠 왼쪽 붙음 | — | — | **staging-ux-93 몫**(이 세션은 하지 않음) |
+| 모달 · 바텀시트 · 드로어 · 티켓탭 QR 레이어 · 공연 상세 모바일 하단 바 | 문제없음 | `dvh` 상한 + 안쪽 스크롤 + `overscroll-behavior: contain` / 하단 바는 자리(spacer) 있음 | — |
+
+### 검사
+
+- typecheck · 바꾼 파일 lint · `vitest related` 28파일 192건 통과.
+- `pnpm test:e2e` 전체(빌드 포함, 3164/4164): 569 통과 · 4 실패 — 4건은 새 "상단 바 고정" 테스트가 목록이 채워지기 전에 스크롤한 것(테스트 고침) → `shell.spec` · `shell-activity.spec` · `auth.spec` 다시 49/0. 기존 테스트는 고친 것 없음.
+- `pnpm qa`: shell 18/0(SHELL-9 스크롤 끝 단계 · SHELL-11 로그인 말풍선 새로, SHELL-12 실기기 수동) · login 18/0 · event-detail 18/0 · hosting-qr 16/0 · self-checkin 14/0 · auth-gate 15/0.
+- ego-browser: 390×844 · 1440×900에서 관객 `/` · `/events` · `/events/101` · `/orders` · `/mypage` · `/tickets` · `/notices`, 호스팅 `/hosting` · 공연 대시보드 · 기본 정보 · 티켓 만들기 · 예매자 관리 — 스크롤 끝에서 고정 바 top 0(64 / 58). 로그인 390×667 · 667×375 · 1440×900, 공연 상세 1024×560, 드로어 열고 닫은 뒤 스크롤 위치 그대로. 크롬 모바일 에뮬레이션은 고무줄을 재현하지 못한다(실기기 SHELL-12).
