@@ -32,7 +32,7 @@ Next.js 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 
 ## 명령
 
 - `pnpm dev` / `pnpm build` / `pnpm typecheck` / `pnpm lint` / `pnpm test` / `pnpm storybook`
-- 게이트 안에 `pnpm test:stories`(스토리 테스트, 실제 Chromium)도 있다. 게이트 밖: `pnpm test:e2e`(Playwright, 빌드 포함) / `pnpm qa <feature>`(QA 시나리오 → `qa/reports/<feature>/latest/index.html`). 처음이면 `pnpm exec playwright install chromium`. 방금 빌드했으면 `E2E_SKIP_BUILD=1`
+- 게이트 안에 `pnpm test:stories`(스토리 테스트, 실제 Chromium)도 있다. 게이트 밖: `pnpm test:e2e`(Playwright, 빌드 포함) / `pnpm qa <feature>`(QA 시나리오 → `qa/reports/<feature>/latest/index.html`). 처음이면 `pnpm exec playwright install chromium`. 방금 빌드했으면 `E2E_SKIP_BUILD=1`. 병렬 세션이 있으면 `E2E_APP_PORT=31xx E2E_MOCK_PORT=41xx`(기본 3100·4100이 겹친다). 새 워크트리는 먼저 `pnpm install --frozen-lockfile`
 - 피처 화면을 만들면 `qa-scenario` 스킬(`.claude/skills/qa-scenario/SKILL.md`)로 시나리오를 쓰고 돌린다. 컴포넌트 테스트는 `renderWithProviders`(`src/test/render.tsx`)
 - 로컬 실행에는 `.env.local`에 `NEXT_PUBLIC_KAKAO_JS_KEY`가 필요하다(`.env.example`).
 - 백엔드 없이: `pnpm dev:mock`(MSW 가짜 백엔드 + next dev). 운영 공개 GET으로 스키마 확인: `pnpm check:contract`.

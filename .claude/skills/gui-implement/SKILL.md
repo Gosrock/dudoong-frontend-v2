@@ -24,6 +24,8 @@ D diff <기준 버전> --out <dir>    # 기준 판 → 지금 판 컴포넌트·
 
 출력 파일(스크린샷, JSON)은 scratchpad에 둔다. 저장소에 넣지 않는다.
 
+도구 메모(세션 회고 2026-11-01): `figma_nodes.get()`은 `/v1`을 스스로 붙인다(경로에 `/v1`을 또 넣지 않는다). `ds_diff.get()`은 bytes를 돌려준다(`json.loads`로 푼다). 스토리 id는 Storybook `/index.json`에서 찾는다. 새 워크트리는 먼저 `pnpm install --frozen-lockfile`.
+
 ## 단계마다 — 실제 화면 ↔ Figma 확인과 추론 점검(사용자 결정 2026-10-31)
 
 ④ 구현 안의 덩어리(공용 컴포넌트, 셸, 화면 하나)를 끝낼 때마다, 그리고 ⑥·⑦ 전에 **실제로 띄운 화면을 `ego-browser` 스킬로 열어** Figma와 맞춰 본다. 게이트·QA 리포트로 대신하지 않는다 — 다음 덩어리로 넘어가기 전에 한다.
@@ -31,6 +33,7 @@ D diff <기준 버전> --out <dir>    # 기준 판 → 지금 판 컴포넌트·
 **검사는 빠른 것만**(`design-workflow.md` §9 검사 시점, 2026-11-01): `NEXT_PUBLIC_KAKAO_JS_KEY=dummy pnpm typecheck`, 바꾼 파일만 `pnpm exec eslint <파일>`, `pnpm exec vitest related <바꾼 파일> --run`. 이 단계에서는 새 테스트(스토리·QA 시나리오·unit)를 쓰지 않는다 — Phase 끝(⑥)에 한꺼번에.
 
 1. 앱을 띄운다 — 백엔드 없이 `pnpm dev:mock`(로그인 상태는 `/api/__mock/login`·`/api/__mock/logout`). **`http://localhost:<포트>`로 연다** — `127.0.0.1`로 열면 Next dev 리소스가 막혀 하이드레이션이 안 된다(P4s-V). 폭은 `page.cdp("Emulation.setDeviceMetricsOverride", …)`로 Figma 프레임 폭(390 · 1133/1024 · 1280 · 1440)에 맞춘다.
+   - ego-browser 요령(회고 7개 세션): 뷰포트 덮어쓰기는 스크립트가 끝나거나 `goto`·`reload` 하면 풀린다 — 매번 다시 걸고, 흐름 하나는 호출 하나로 끝낸다. `loc=role:` 로케이터는 안 되니 `css=[role=dialog]`를 쓴다. 누르기 전에 `nextjs-portal`과 열린 dialog를 치운다. 시트는 열고 1.5초 기다린 뒤 찍는다. 카메라처럼 권한이 필요한 화면은 ego-browser로 열지 말고 가짜 장치를 넣은 headless Playwright로 본다. `pnpm dev:mock`에서 보호 화면이 스켈레톤에 멈추면 빌드 + `pnpm start` + 가짜 백엔드 앞문으로 연다.
 2. 같은 폭의 브라우저 스크린샷과 ③의 Figma PNG(`F shot`, 와이어 근거면 와이어 PNG)를 나란히 Read로 본다. 누를 수 있는 것(메뉴 열기·드로어·드롭다운)은 실제로 눌러 열린 상태도 본다.
 3. **다르게 구현한 것**을 줄마다 적는다 — 배치·간격·크기·글자·색·모서리·아이콘·문구·변형. 범위 안이면 고치고 다시 1, 범위 밖이면 PR "범위 밖", 일부러 다르게 한 것이면 그 이유.
 4. **근거 없이 추론해서 정한 것**을 따로 적는다 — Figma·와이어·문서에 없는데 Claude가 정한 값·문구·동작·링크 목적지·아이콘 대체·토큰 반올림 등. 각 줄에 "근거 없음 / 무엇을 보고 그렇게 정했나 / 되돌리려면"을 쓴다. 이 목록은 `implementation-log.md` 그 Phase 절 "결정"과 ⑦ PR 본문에 옮기고, 사용자 결정이 필요한 것은 다음 덩어리 전에 묻는다(디스코드 기록에는 `🤖 Claude 판단` + 태그).
@@ -66,6 +69,7 @@ gh issue view <n> --comments   # 본문 + 이어 쓴 댓글 모두
 
 `Design: 디자인 시스템` 이슈가 왔을 때, 그리고 **이슈가 없어도 화면 작업을 시작할 때마다** 한다(이슈 없이 바뀌는 일이 있다 — 2026-10-25 오후에만 18번 공개됐고, 10-31 편집도 이슈 없이 들어왔다).
 
+0. 시작 전에 `gh pr list`로 같은 DS 판을 반영 중인 PR이 있는지 본다(2026-11-01 ds-sync-1101b가 P7-V #63과 겹쳐 작업을 버림). **범위가 조정돼도 반영 여부 판정은 컴포넌트 단위로 다시 한다** — `GUI 구현됨` 화면이 쓰는 컴포넌트면 바로(design-workflow §4).
 1. `D versions`로 `design-system.md` 머리의 "동기화 기준 버전" 뒤에 버전이 있나 본다. 없으면 끝.
 2. `D diff <기준 버전> --out <scratchpad>` — 컴포넌트 세트·변형·값(크기·채움·테두리·모서리·패딩·간격·글자 스타일·변수 id)의 차이.
 3. 변수(토큰) 값은 REST로 못 읽는다(403). Desktop Bridge가 디자인 시스템 파일(`0QD9tGSt8ZciDqe7ol2gYH`)에 연결돼 있으면(`figma_list_open_files`) `figma_execute`(`fileKey` 지정, 읽기만)로:
@@ -78,6 +82,7 @@ gh issue view <n> --comments   # 본문 + 이어 쓴 댓글 모두
    return cols.map(c => ({ name: c.name, vars: c.variableIds.map(id => byId[id]).map(v => `${v.name} | ${v.id} | ${fmt(v.valuesByMode[c.modes[0].modeId])}`) }));
    ```
    결과를 `src/ui/theme/tokens.css.ts`·`palette.ts`와 1:1로 대조한다(Light 모드만 — 다크 모드 미지원). 텍스트 스타일은 `figma.getLocalTextStylesAsync()`로 `typography.css.ts`와. 연결이 없으면 사용자에게 디자인 시스템 파일에서 플러그인을 켜 달라고 한다.
+   diff가 "변수만 바뀜"이어도 바뀐 컴포넌트의 지금 숫자를 `design-system.md` §3과 대조한다. 아이콘은 `ic`와 `ic_v2`를 둘 다 찾는다. Figma 코멘트에 쓸 숫자는 쓰기 직전에 노드에서 다시 읽고, "반영함" 답글은 PR에 남는 것이 확실할 때만 단다.
 4. `design-system.md`를 고친다 — 해당 줄(§1·§3·§4·§5)에 날짜를 붙여 바뀐 사실, §8에 "버전 → 버전" 절(바뀐 것 · 코드 영향 표), 머리의 동기화 기준 버전을 지금 버전으로.
 5. 코드(토큰·`src/ui` 컴포넌트·아이콘·스토리)를 반영한다. 같은 PR로 할지 따로 할지는 크기를 보고 사용자에게 묻는다. 아이콘은 `src/ui/icons/README.md` 절차.
 6. 이슈는 반영 PR의 `Closes #n`으로만 닫는다.
@@ -147,6 +152,8 @@ Ready 프레임에 펼친 상태가 없어 **DS 컴포넌트만 근거인 것**(
 - 누를 수 있는 부분을 실제로 동작하게 만든다(버튼·링크·탭·폼). Figma는 정지 화면이다.
 - 정적 에셋은 정확한 것만(`design-workflow.md` §5). 서버 이미지는 데이터로.
 - 와이어 근거 화면은 `design-workflow.md` §3 — DS 토큰·컴포넌트만, 모양을 짓지 않는다.
+- 화면에 `useRouter`·`useLeaveGuard`를 새로 쓰면 그 화면을 그리는 기존 vitest에 `vi.mock('next/navigation')`이 필요할 수 있다. jsdom 스텁(ResizeObserver·matchMedia·포인터 캡처)은 `vitest.setup.ts`에 더한다. 화면 크기 JS 분기보다 CSS 변형을 먼저 쓴다(회고 p10b·p6·p4b·p5b).
+- 셸·메뉴·드로어·셸 API 호출을 바꾸면 ⑥에서 `pnpm qa shell`과 `e2e/shell.spec.ts`도 돌린다(#78).
 
 ## ⑤ "커스텀인데 DS 가능" — 주석 + 코멘트
 
@@ -191,7 +198,8 @@ Ready 프레임에 펼친 상태가 없어 **DS 컴포넌트만 근거인 것**(
    - ①을 다시 — 새 이슈·댓글.
    - 근거 노드를 `F shot`으로 다시 받아 ③의 PNG와 비교하고, 다르면 `F map`도 다시. 바뀐 것은 반영하거나 PR 본문에 적고 사용자에게 알린다.
    - `D versions` — 디자인 시스템이 그사이 바뀌었는지.
-4. PR 본문: 근거(Ready 노드 / 와이어 노드), ③ 매핑 표, ⑥ 비교 표, 범위 밖 차이, 반영 이슈 `Closes #n`(일부만이면 `Refs #n` + 남은 것). 이슈를 손으로 닫지 않는다.
+4. PR 본문: 근거(Ready 노드 / 와이어 노드), ③ 매핑 표, ⑥ 비교 표, **"ego-browser 확인" 절**(본 화면 · 폭 390/1440 · 발견 · 처리 — QA 캡처로 대신하지 않는다. DS만 바꾼 PR은 Storybook을 ego-browser로 연다, 사용자 요청 2026-11-01), 범위 밖 차이, "열린 Design Sync 이슈" 줄(`gh issue list` 결과 그대로), 반영 이슈 `Closes #n`(일부만이면 `Refs #n` + 남은 것). 이슈를 손으로 닫지 않는다.
+5. PR 직전에 `git fetch origin main && git merge origin/main`(리베이스 금지) — 공용 표는 내 줄만, implementation-log는 main 판에 내 절을 통째로 다시 붙인다. PR 번호는 내가 쓴 줄만 손으로 고친다(디렉터리 전체 `sed` 금지 — #52·#74).
 
 ## 하지 말 것
 
