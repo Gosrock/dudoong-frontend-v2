@@ -1,7 +1,7 @@
 # 진행 현황판
 
 > **지금 어디까지 왔는지 한 장으로 본다.** 작업을 시작·끝낼 때마다 이 문서를 고친다(규칙은 아래 "갱신 규칙").
-> 마지막 갱신: **2026-11-01** — 그룹 E: P8 · P8b · P8c · P9 · P9b 끝, P9c 진행 중. P14를 주제 4개(보안 · 성능 · 접근성 · 회귀)로 나눔.
+> 마지막 갱신: **2026-11-01** — 기능 Phase 전부 끝(그룹 A~E 회귀 통과). P14: 보안 끝(#79), 성능 ∥ 접근성 진행 중.
 > 정본은 따로 있다 — Phase 정의·선행·완료 기준은 [`plan.md`](./plan.md), 화면별 구현 상태·Figma 노드는 [`gui-screens.md`](./gui-screens.md) §0, 구현 기록은 [`implementation-log.md`](./implementation-log.md). 이 문서는 그 셋을 요약해 이어 붙인 판이다. 어긋나면 정본이 맞고, 이 문서를 고친다.
 
 ## 한 줄 요약
@@ -12,6 +12,8 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
+| P14 성능 · 부하 | `9yujin/p14-perf` | 2026-11-01 | 진행 중 | Orca 세션 |
+| P14 접근성 | `9yujin/p14-a11y` | 2026-11-01 | 진행 중 | Orca 세션 |
 
 ## 사용자 대기
 
@@ -25,6 +27,8 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 카카오맵 · 우편번호 SDK 실환경(카카오 앱 도메인 · 키) | P11-V #45 | D2 스테이징 뒤 — QA HE-11 수동(기본 정보 주소 검색 → 지도 미리보기 마커) |
 | 기본 OG 이미지 | plan P14 검색 노출 | 디자인 대기 — 이미지가 오면 `src/utils/site.ts` 값 하나 |
 | GA · 카카오 애드핏 넣기 | plan P14(사용자 결정 2026-10-31) | 사용자가 직접 — `next/script`로 루트 레이아웃 한 곳, CSP 허용 목록(P14 보안 PR 뒤), 광고 자리는 디자인. P15 전에 |
+| CSP 강제 전환 · 출처 좁히기 | P14 보안 #79 | D2 스테이징에서 실제 카카오 SDK·지도·우편번호·S3 업로드를 돌려 `csp.violation` 로그 0 확인 → `CSP_ENFORCE=1`로 빌드. S3 presigned 실제 호스트로 `connect-src`를 좁힘 |
+| 선물 토큰이 남는 nginx 접근 로그 · 운영 응답 헤더 | P14 보안 #79 | Deploy·운영: 접근 로그 보존 기간·접근 권한, `Referrer-Policy`·`X-Frame-Options` 응답 헤더, `/csp-report` 요청 수 제한 |
 | iOS Safari 실기기 확인(SHELL-7) | P4s-V #32 | `pnpm storybook --host 0.0.0.0` → iPhone Safari에서 BottomSheet `LongContent`·`WithInput`, Modal, Drawer `LongContent` — 뒤 화면 스크롤 잠김 · 입력칸 키보드 위 · 닫은 뒤 스크롤 위치 |
 
 ## 다음 순서
@@ -54,10 +58,10 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 16 | `p8c-v-self-checkin` ∥ 15 | P8c-V 셀프 체크인 | P4s-V | 끝(#71) | E 관객 보유 |
 | 17 | `p9-v-mypage` ∥ 18 | P9-V 마이페이지 · 주문내역 · 관심 호스트 · 아카이빙 | P4s-V | 끝(#74) | E 관객 보유 |
 | 18 | `p9b-v-notifications` ∥ 17 | P9b-V 알림함 | P4s-V | 끝(#73) | E 관객 보유 |
-| 19 | `p9c-v-notices` | P9c-V 서비스 공지 · 상단 배너(디자인 없음 — Q44) | P4s-V | 끝(#77) | E 관객 보유 **(끝)** |
+| 19 | `p9c-v-notices` | P9c-V 서비스 공지 · 상단 배너(디자인 없음 — Q44) | P4s-V | 끝(#77) | E 관객 보유 **(끝 — 회귀 통과 e2e 388/0 · QA 7개, shell 기대값 #78)** |
 | 20a | `p14-security` ∥ 20b | P14 보안 — 오픈 리다이렉트 · 토큰 · 로그 PII · 선물 토큰/QR 유출 · sanitize · CSP(Report-Only부터) · zxing wasm 자체 호스팅 · 의존성 감사 | 전 Phase L·V | 끝(#79) | F 하드닝 |
-| 20b | `p14-perf` ∥ 20a | P14 성능 · 부하 — 라우트별 번들 · LCP/TTFB · 동적 import · 공연 상세 캐시 판단(tech-decisions §2) · 부하 시험 스크립트 초안 | 전 Phase L·V | 대기 | F 하드닝 |
-| 20c | `p14-a11y` ∥ 20d | P14 접근성 — axe 자동 검사 · 키보드 핵심 흐름 · 포커스 · 랜드마크/제목 · 대비 | 전 Phase L·V | 대기 | F 하드닝 |
+| 20b | `p14-perf` ∥ 20a | P14 성능 · 부하 — 라우트별 번들 · LCP/TTFB · 동적 import · 공연 상세 캐시 판단(tech-decisions §2) · 부하 시험 스크립트 초안 | 전 Phase L·V | 진행 중 | F 하드닝 |
+| 20c | `p14-a11y` ∥ 20d | P14 접근성 — axe 자동 검사 · 키보드 핵심 흐름 · 포커스 · 랜드마크/제목 · 대비 | 전 Phase L·V | 진행 중 | F 하드닝 |
 | 20d | `p14-regression` ∥ 20c | P14 회귀 · 레거시 URL · 검색 노출 마무리 — 공유 지점 통합 시나리오 · `pnpm qa` 전체 · e2e를 PR 게이트에 넣을지 · 레거시 리다이렉트 · JSON-LD | 전 Phase L·V | 대기 | F 하드닝 **(끝)** |
 | 21 | `release/v2-cutover` | P15 컷오버 | P14 | 대기 | — |
 
