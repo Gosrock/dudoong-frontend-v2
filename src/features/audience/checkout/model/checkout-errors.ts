@@ -4,6 +4,8 @@
  * 표에 없는 실패도 화면이 "다시 시도" 안내로 맡는다(`useCheckout`).
  */
 
+import { AGREEMENT_REJECTED_MESSAGE } from '@/api/shared/agreement';
+
 export type CheckoutErrorKind =
   /** 오픈 전·시작 후 — 구매 버튼 비활성 + 상세로 돌려보냄 */
   | 'EVENT_CLOSED'
@@ -24,7 +26,9 @@ export type CheckoutErrorKind =
   /** 무료 선착순 확정 실패(표에 없는 에러) — 재시도 안내 */
   | 'FREE_FCFS_FAILED'
   /** 응답을 받지 못함(TIMEOUT·NETWORK) — 서버가 주문을 만들었을 수 있다. 다시 내기 전에 주문내역 확인 */
-  | 'ORDER_UNCERTAIN';
+  | 'ORDER_UNCERTAIN'
+  /** 서버가 동의를 거절(`Agreement_400_1` — 동의 강제, #840). 동의 칸을 풀고 지금 보이는 문구로 다시 동의받는다 */
+  | 'AGREEMENT';
 
 export type CheckoutErrorOutcome = {
   kind: CheckoutErrorKind;
@@ -66,6 +70,7 @@ export const CHECKOUT_ERROR_TABLE = {
     '입금자명이 올바르지 않아요. 프로필에서 닉네임을 확인해 주세요.',
   ),
   Order_400_23: row('OPTION_ANSWERS', '옵션 답변을 확인해 주세요.'),
+  Agreement_400_1: row('AGREEMENT', AGREEMENT_REJECTED_MESSAGE),
   Order_400_26: row(
     'DUPLICATE_IN_PROGRESS',
     '같은 주문을 처리하고 있어요. 잠시 후 주문내역을 확인해 주세요.',

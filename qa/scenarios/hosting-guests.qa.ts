@@ -427,7 +427,12 @@ scenario(
         checkoutHref(101, { ticketItemId: CHECKOUT_TICKET.paidNoOptions, quantity: 1 }),
       );
       await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
+      await page.getByRole('checkbox', { name: '(필수) 호스트에게 개인정보 제공 동의' }).click();
       await page.getByRole('button', { name: '결제하기' }).click();
+      await page
+        .getByRole('alertdialog', { name: '주문 완료하기' })
+        .getByRole('checkbox', { name: '(필수) 위 내용을 확인했으며 이에 동의합니다' })
+        .click();
       await page
         .getByRole('alertdialog', { name: '주문 완료하기' })
         .getByRole('button', { name: '결제완료' })

@@ -1,4 +1,4 @@
-import { agreementFields } from '@/api/shared/agreement';
+import { AGREEMENT_REJECTED_MESSAGE, agreementFields } from '@/api/shared/agreement';
 import { isKstDateTime } from '@/api/shared/date';
 import {
   type CreateTicketItemRequest,
@@ -328,11 +328,11 @@ export const hasTicketFormErrors = (e: TicketFormErrors) =>
 // ─── 본문 ────────────────────────────────────────────────────
 
 /**
- * 동의 칸(#840 · #873). **값을 만들 칸(호스트 환불 의무 동의 체크)이 v2 계획에 없다 — design-requests Q42.**
- * 칸이 정해질 때까지 `false`로 두고 사용자가 체크한 값(`refundObligationAgreed`)만 싣는다(지금은 체크할 칸이 없어 보내지 않는다).
- * 칸이 생기면 이 값을 `true`로 바꾼다 — 그때부터 동의 전 저장을 막는다(`needsRefundObligation`)
+ * 동의 칸(#840 · #873) — 호스트 환불 의무 동의 체크(legal-copy C-1). 2026-11-01 DS Checkbox로 붙여 켰다(백엔드 #905 1-1 — 출시 전 필수,
+ * 위치는 design-requests Q42 답 전 잠정: 폼 맨 아래 저장 버튼 위). 동의 전 저장을 막는다(`needsRefundObligation`).
+ * 사용자가 체크한 값(`refundObligationAgreed`)만 싣는다
  */
-export const REFUND_OBLIGATION_FIELD = false;
+export const REFUND_OBLIGATION_FIELD = true;
 
 export type TicketAgreements = { refundObligationAgreed: boolean };
 
@@ -466,7 +466,7 @@ export const TICKET_FORM_ERRORS = {
   Ticket_Item_400_15: '입력한 값의 조합을 확인해 주세요',
   Ticket_Item_400_11: '이 티켓은 두둥 티켓·무료 티켓이 아니라 고칠 수 없어요',
   Item_Option_Group_400_4: '추가금이 있는 옵션이 붙은 티켓은 무료 티켓으로 바꿀 수 없어요',
-  Agreement_400_1: '필수 동의를 확인해 주세요',
+  Agreement_400_1: AGREEMENT_REJECTED_MESSAGE,
   Event_400_17: '끝난 공연은 수정할 수 없어요',
   Ticket_Item_404_1: '티켓을 찾을 수 없어요. 목록을 다시 불러왔어요',
 } as const;

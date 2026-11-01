@@ -87,8 +87,9 @@ function fill(
     const { form } = result.current;
     if (patch.same) form.setValue('options.same', patch.same);
     form.setValue('agreeRefundPolicy', patch.agree ?? true);
-    if (patch.hostProvision) form.setValue('hostProvisionAgreed', true);
-    if (patch.dudoongNotice) form.setValue('dudoongTicketNoticeConfirmed', true);
+    // 동의 칸이 붙어(2026-11-01) 기본은 필수 동의를 모두 체크한 사용자 — 빼 보는 테스트만 false로
+    form.setValue('hostProvisionAgreed', patch.hostProvision ?? true);
+    form.setValue('dudoongTicketNoticeConfirmed', patch.dudoongNotice ?? true);
   });
 }
 
@@ -104,9 +105,6 @@ const created = () => {
   const uuid = call?.match(/^\/orders\/([^?]+)\?created=1$/)?.[1];
   return uuid ? decodeURIComponent(uuid) : null;
 };
-
-const lastMutation = (r: { queryClient: ReturnType<typeof createTestQueryClient> }) =>
-  r.queryClient.getMutationCache().getAll().at(-1)!;
 
 // ─────────────────────────────────────────────────────────────
 
@@ -212,6 +210,9 @@ describe('3분기 — 주문 생성 응답의 상태, 실제 보낸 본문, 완�
       paymentChannel: 'BANK_TRANSFER',
       depositorName: '두둥이',
       agreeRefundPolicy: true,
+      hostProvisionAgreed: true,
+      dudoongTicketNoticeConfirmed: true,
+      agreementVersion: '2026-11',
     });
     expect(CreateOrderRequestSchema.safeParse(post?.body).success).toBe(true);
 
@@ -250,6 +251,8 @@ describe('3분기 — 주문 생성 응답의 상태, 실제 보낸 본문, 완�
       options: { applyToAll: true, answers: [{ optionId: 702, answer: '드럼' }] },
       paymentChannel: 'FREE',
       agreeRefundPolicy: true,
+      hostProvisionAgreed: true,
+      agreementVersion: '2026-11',
     });
     const order = r.queryClient.getQueryData<MyOrderDetail>(myOrderQuery(created()!).queryKey)!;
     expect(order).toMatchObject({ status: 'PENDING_APPROVE', payment: null, issuedTickets: [] });
@@ -306,6 +309,8 @@ describe('계약 — 클라이언트 총액 == 주문 응답 totalAmount(mock은
         form.setValue('options.tickets', sets);
       }
       form.setValue('agreeRefundPolicy', true);
+      form.setValue('hostProvisionAgreed', true);
+      form.setValue('dudoongTicketNoticeConfirmed', true);
     });
     const shown = r.result.current.amount;
     await submitAndWait(r.result);
@@ -470,37 +475,56 @@ describe('에러 분기 — patterns §24 P7 행(handleError)', () => {
   });
 });
 
-describe('동의 기록 필드(#840) — 칸은 Q42 대기, 체크한 것만 보낸다', () => {
-  const AGREEMENT_KEYS = [
-    'hostProvisionAgreed',
-    'dudoongTicketNoticeConfirmed',
-    'agreementVersion',
-  ];
-
-  it.each([
-    ['두둥(입금형)', CHECKOUT_TICKET.paidNoOptions],
-    ['무료 승인형', CHECKOUT_TICKET.freeApproval],
-  ])('%s 주문 — 체크하지 않으면 본문에 동의 필드 키가 하나도 없다', async (_, ticketItemId) => {
-    const r = await openCheckout(ticketItemId, 1);
-    fill(
-      r.result,
-      ticketItemId === CHECKOUT_TICKET.freeApproval
-        ? { same: [{ optionId: 702, answer: '드럼' }] }
-        : {},
-    );
-    const sent = recordRequests();
-    await submitAndWait(r.result);
-    const [post] = await posted(sent);
-    expect(post).toBeDefined();
-    for (const key of AGREEMENT_KEYS) expect(post?.body).not.toHaveProperty(key);
-  });
-
-  it('칸 플래그(Q42)는 지금 둘 다 꺼져 있다', async () => {
-    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
-    expect(r.result.current.agreementFields).toEqual({
-      hostProvision: false,
+describe('동의 칸(#840 — 2026-11-01 붙임) — 체크 전 제출 불가, 체크한 것만 보낸다', () => {
+  it('칸 플래그: 호스트 제공 동의는 모든 주문, 입금 전 확인은 두둥만', async () => {
+    const dudoong = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    expect(dudoong.result.current.agreementFields).toEqual({
+      hostProvision: true,
+      dudoongNotice: true,
+    });
+    const free = await openCheckout(CHECKOUT_TICKET.freeApproval, 1);
+    expect(free.result.current.agreementFields).toEqual({
+      hostProvision: true,
       dudoongNotice: false,
     });
+  });
+
+  it.each([
+    ['호스트 제공 동의 미체크', { hostProvision: false }, 'hostProvisionAgreed'],
+    ['두둥 입금 전 확인 미체크', { dudoongNotice: false }, 'dudoongTicketNoticeConfirmed'],
+  ] as const)('두둥: %s → 요청하지 않고 그 칸 오류', async (_, patch, field) => {
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    fill(r.result, patch);
+    const sent = recordRequests();
+    await submitAndWait(r.result);
+    expect(await posted(sent)).toEqual([]);
+    let valid = true;
+    await act(async () => {
+      valid = await r.result.current.form.trigger(field);
+    });
+    expect(valid).toBe(false);
+  });
+
+  it('두둥: 모달을 열기 전 검증(validate)은 입금 전 확인을 보지 않는다 — 그 칸은 모달 안에 있다', async () => {
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    fill(r.result, { dudoongNotice: false });
+    let valid = false;
+    await act(async () => {
+      valid = await r.result.current.validate();
+    });
+    expect(valid).toBe(true);
+    fill(r.result, { hostProvision: false, dudoongNotice: false });
+    await act(async () => {
+      valid = await r.result.current.validate();
+    });
+    expect(valid).toBe(false);
+  });
+
+  it('무료: 입금 전 확인 없이 호스트 제공 동의만으로 주문된다', async () => {
+    const r = await openCheckout(CHECKOUT_TICKET.freeApproval, 1);
+    fill(r.result, { same: [{ optionId: 702, answer: '드럼' }], dudoongNotice: false });
+    await submitAndWait(r.result);
+    expect(created()).not.toBeNull();
   });
 
   it('두둥: 둘 다 체크하면 둘 다 실려 동의 강제 백엔드도 통과한다(#384)', async () => {
@@ -534,16 +558,22 @@ describe('동의 기록 필드(#840) — 칸은 Q42 대기, 체크한 것만 보
     expect(created()).not.toBeNull();
   });
 
-  it('동의 강제가 켜진 백엔드면 400 Agreement_400_1 — 화면 표에 없어 공용 토스트, 완료로 가지 않는다', async () => {
-    server.use(...orderHandlers.agreementEnforced);
+  it('서버가 동의를 거절(Agreement_400_1)하면 동의 칸을 풀고 폼 상단 안내 — 공용 토스트 없음, 다시 체크하면 낼 수 있다', async () => {
+    server.use(http.post('*/api/v2/me/orders', ({ request }) => errors.agreementRequired(request)));
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
     await submitAndWait(r.result);
     expect(created()).toBeNull();
-    expect(r.result.current.submitError).toBeNull();
-    const m = lastMutation(r);
-    expect(m.state.error).toMatchObject({ status: 400, code: 'Agreement_400_1' });
-    expect(errorToast).toHaveBeenCalledWith(expect.any(String), 'mutation:Agreement_400_1');
+    expect(r.result.current.submitError?.kind).toBe('AGREEMENT');
+    expect(r.result.current.form.getValues()).toMatchObject({
+      hostProvisionAgreed: false,
+      dudoongTicketNoticeConfirmed: false,
+    });
+    expect(errorToast).not.toHaveBeenCalled();
+    server.resetHandlers();
+    fill(r.result);
+    await submitAndWait(r.result);
+    expect(created()).not.toBeNull();
   });
 });
 

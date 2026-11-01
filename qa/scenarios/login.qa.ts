@@ -101,7 +101,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '디자인 없음 — 모바일 바텀시트 · PC 모달. 카카오 값으로 채운 이름·이메일·전화번호, 전체 동의 + 필수 2 · 선택 1(만 14세 칸은 Q42 대기로 없음). 필수 동의 전에는 버튼이 막힌다.',
+      '디자인 없음 — 모바일 바텀시트 · PC 모달. 카카오 값으로 채운 이름·이메일·전화번호, 전체 동의 + 필수 3(만 14세 — 2026-11-01 DS로 붙임, 위치는 Q42 답 전 잠정) · 선택 1. 필수 동의 전에는 버튼이 막힌다.',
     basis: ['plan P4b 완료 기준 V', 'design-requests Q25 · Q42', 'legal-copy B-3·B-5'],
   },
   async ({ page, step }) => {
@@ -112,14 +112,19 @@ scenario(
       await expect(page.getByRole('heading', { name: '회원가입' })).toBeVisible();
       await expect(page.getByRole('textbox', { name: '이름' })).toHaveValue('새내기');
       await expect(page.getByRole('checkbox', { name: '전체 동의' })).toBeVisible();
-      await expect(page.getByRole('checkbox', { name: /만 14세/ })).toHaveCount(0);
+      await expect(page.getByRole('checkbox', { name: '(필수) 만 14세 이상입니다' })).toBeVisible();
       await expect(page.getByRole('button', { name: '동의하고 시작하기' })).toBeDisabled();
     });
-    await step('필수 동의 두 개를 체크하면 버튼이 풀린다', async () => {
-      await page.getByRole('checkbox', { name: '(필수) 서비스 이용약관 동의' }).check();
-      await page.getByRole('checkbox', { name: '(필수) 개인정보 처리방침 동의' }).check();
-      await expect(page.getByRole('button', { name: '동의하고 시작하기' })).toBeEnabled();
-    });
+    await step(
+      '필수 동의 세 개(만 14세 · 이용약관 · 개인정보)를 체크하면 버튼이 풀린다',
+      async () => {
+        await page.getByRole('checkbox', { name: '(필수) 서비스 이용약관 동의' }).check();
+        await page.getByRole('checkbox', { name: '(필수) 개인정보 처리방침 동의' }).check();
+        await expect(page.getByRole('button', { name: '동의하고 시작하기' })).toBeDisabled();
+        await page.getByRole('checkbox', { name: '(필수) 만 14세 이상입니다' }).check();
+        await expect(page.getByRole('button', { name: '동의하고 시작하기' })).toBeEnabled();
+      },
+    );
     await step('[동의하고 시작하기]를 누르면 원래 화면(/events)으로 돌아간다', async () => {
       await page.getByRole('button', { name: '동의하고 시작하기' }).click();
       await expect(page).toHaveURL(/\/events$/);
@@ -280,3 +285,43 @@ scenario.manual('LOGIN-10', '실제 카카오 로그인 왕복 화면(대기 표
   basis: ['plan P4b 완료 기준 L D2 스테이징', 'deploy-plan D2'],
   how: 'D2 스테이징 배포 뒤 실제 카카오 계정으로 로그인 → 콜백 대기 표시("로그인하는 중")가 잠깐 보이고 원래 화면으로 돌아오는지, 신규 계정이면 가입 오버레이가 뜨는지 본다(실기기 모바일 포함).',
 });
+
+let registerRejected = false;
+scenario(
+  'LOGIN-11',
+  '동의 강제 백엔드가 가입 동의를 거절(Agreement_400_1)하면 동의가 풀리고 다시 체크해 가입한다',
+  {
+    kind: '에러',
+    summary:
+      '첫 가입 400 Agreement_400_1 → 동의 체크가 모두 풀리고 "필수 동의를 다시 확인하고 체크해 주세요." · 버튼 막힘 → 다시 전체 동의 → 강제 켠 백엔드를 통과(만 14세·이용약관 실림).',
+    basis: ['백엔드 #905 1-1', 'patterns §24 Agreement_400_1', 'design-requests Q42 ①'],
+    mocks: [
+      http.post('*/api/v1/auth/oauth/kakao/register', () => {
+        if (registerRejected) return undefined;
+        registerRejected = true;
+        return HttpResponse.json(envelope.error(400, 'Agreement_400_1'), { status: 400 });
+      }),
+      ...authHandlers.registerAgreementEnforced,
+    ],
+  },
+  async ({ page, step }) => {
+    registerRejected = false;
+    await setMockSession(page, 'anonymous');
+    await page.goto('/login?redirect=%2Fevents');
+    await step('전체 동의 뒤 가입하면 서버가 거절 — 동의가 풀리고 안내가 보인다', async () => {
+      await chooseKakao(page, '신규 사용자(가입)');
+      await page.getByRole('checkbox', { name: '전체 동의' }).check();
+      await page.getByRole('button', { name: '동의하고 시작하기' }).click();
+      await expect(page.getByText('필수 동의를 다시 확인하고 체크해 주세요.')).toBeVisible();
+      await expect(
+        page.getByRole('checkbox', { name: '(필수) 만 14세 이상입니다' }),
+      ).not.toBeChecked();
+      await expect(page.getByRole('button', { name: '동의하고 시작하기' })).toBeDisabled();
+    });
+    await step('다시 전체 동의하면 가입되고 원래 화면으로 돌아간다', async () => {
+      await page.getByRole('checkbox', { name: '전체 동의' }).check();
+      await page.getByRole('button', { name: '동의하고 시작하기' }).click();
+      await expect(page).toHaveURL(/\/events$/);
+    });
+  },
+);

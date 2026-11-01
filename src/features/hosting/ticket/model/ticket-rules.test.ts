@@ -424,8 +424,8 @@ describe('티켓 폼 — 만들기 본문(P10/T-2)', () => {
     ).not.toHaveProperty('refundObligationAgreed');
   });
 
-  it('체크 칸은 Q42 대기 — 칸이 정해질 때까지 없다', () => {
-    expect(REFUND_OBLIGATION_FIELD).toBe(false);
+  it('체크 칸이 붙어 있다(2026-11-01 — 위치는 Q42 답 전 잠정)', () => {
+    expect(REFUND_OBLIGATION_FIELD).toBe(true);
   });
 });
 

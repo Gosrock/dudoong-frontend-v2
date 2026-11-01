@@ -56,8 +56,8 @@ type ServerErrors = Partial<Record<TicketFormField, string>>;
  * - 은행은 목록에서만 고른다(`bank` — `useBankSelect`), 보낼 때는 `bankCode`
  * - 저장: 만들기는 '값 없음' 키를 빼고, 수정은 바뀐 필드만 + 비울 때 `clear[]`. 성공하면 목록 캐시에 넣고(체크리스트 ③·GP-5 무효화)
  *   티켓 목록으로 `replace`
- * - 동의(#840·#873): 두둥 만들기 · 무료 → 두둥 수정에서 사용자가 체크한 `refundObligationAgreed`만 싣는다. 체크 칸은 Q42 대기라
- *   `agreement.field`가 false — 지금은 보내지 않는다. 칸이 생기면 동의 전 저장을 막는다
+ * - 동의(#840·#873): 두둥 만들기 · 무료 → 두둥 수정에서 사용자가 체크한 `refundObligationAgreed`만 싣는다. 체크 칸은 2026-11-01
+ *   붙였다(`agreement.field` true — 위치는 Q42 답 전 잠정). 동의 전 저장을 막는다
  * - 에러(patterns §24 P12): `Ticket_Item_400_3` 가격 · `400_8` 계좌 · `400_13` 판매 기간 · `400_2` 수량 → 칸 오류(고치면 지운다).
  *   `400_12` 티켓 없음 공연 · `Event_400_17` → 폼 오류 + GE-3 다시 읽기, `400_14` 잠긴 필드 · 404 → 폼 오류 + 목록 다시 읽기,
  *   `400_15` · `400_11` · `Item_Option_Group_400_4` · `Agreement_400_1` → 폼 오류. 그 밖은 공용 토스트(handleError)
@@ -168,7 +168,8 @@ export function useTicketForm(
       Ticket_Item_400_15: form('Ticket_Item_400_15'),
       Ticket_Item_400_11: form('Ticket_Item_400_11'),
       Item_Option_Group_400_4: form('Item_Option_Group_400_4'),
-      Agreement_400_1: form('Agreement_400_1'),
+      // 서버가 동의를 거절 — 체크를 풀고 지금 보이는 문구로 다시 체크받는다(저장 버튼이 다시 막힌다)
+      Agreement_400_1: form('Agreement_400_1', () => setAgreed(false)),
     };
   }, [eventId, queryClient]);
 
@@ -283,7 +284,7 @@ export function useTicketForm(
     bank,
     /**
      * 환불 의무 동의(#840·#873) — `required`: 이 저장에 동의가 필요한지(두둥 만들기·무료 → 두둥). `field`: 체크 칸이 있는지
-     * (Q42 대기 — 지금 false라 그리지 않고 보내지 않는다). `agreed`·`setAgreed`: 사용자가 체크한 값
+     * (2026-11-01 붙임 — 위치는 Q42 답 전 잠정). `agreed`·`setAgreed`: 사용자가 체크한 값
      */
     agreement: {
       field: REFUND_OBLIGATION_FIELD,

@@ -47,14 +47,14 @@ export const OPTION_ERROR = {
 } as const;
 
 /**
- * 주문 동의 칸이 화면에 있는지(design-requests Q42 ②·③). 칸이 생기면 `true`로 바꾼다 — 그때부터 체크 전 주문을 막는다
- * (사용자 결정 2026-10-31 — 필드별 플래그, 기본 끔). 체크값은 플래그와 상관없이 사용자가 체크했을 때만 본문에 싣는다.
+ * 주문 동의 칸이 화면에 있는지(design-requests Q42 ②·③). 2026-11-01 DS Checkbox로 붙여 켰다(백엔드 #905 1-1 — 출시 전 필수,
+ * 위치는 Q42 답 전 잠정): ② 체크아웃 하단 바 환불 규정 동의 위, ③ 두둥 "입금하셨나요?" 확인 다이얼로그 안. 체크 전 주문을 막는다.
+ * 체크값은 사용자가 체크했을 때만 본문에 싣는다.
  * 백엔드 동의 강제(`AGREEMENT_ENFORCE=true`, v1 Front #384 — v1 어드민 가입 수정 배포 직후 켠다)가 켜지면 `V2CreateOrderUseCase`가
  * 주문을 만들기 전에 `hostProvisionAgreed`(항상)·`dudoongTicketNoticeConfirmed`(두둥만)를 보고 400 `Agreement_400_1`(@cb53bfaa).
- * 칸보다 강제가 먼저 켜지면 v2 주문은 모두 400이다(plan P7 위험)
  */
-export const HOST_PROVISION_FIELD = false;
-export const DUDOONG_NOTICE_FIELD = false;
+export const HOST_PROVISION_FIELD = true;
+export const DUDOONG_NOTICE_FIELD = true;
 
 /** 주문 동의 칸 플래그(테스트에서 바꿔 본다) */
 export type CheckoutAgreementFields = { hostProvision: boolean; dudoongNotice: boolean };
@@ -233,8 +233,7 @@ const toAnswers = (answers: readonly AnswerValue[]) =>
  * - 입금자명은 계좌이체일 때만(무료는 서버가 무시하므로 보내지 않는다)
  * - 동의 기록(#840): 사용자가 체크한 것만 — `hostProvisionAgreed`, 두둥티켓이면 `dudoongTicketNoticeConfirmed`, 하나라도 있으면
  *   `agreementVersion`(`agreementFields`). 무료 주문에는 두둥 확인을 싣지 않는다(서버도 두둥만 검사·기록).
- *   TODO(Q42): 칸이 아직 없어(`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD = false`) 지금 화면은 보내지 못한다 — 백엔드가 동의
- *   강제를 켜면 이 본문은 400 `Agreement_400_1`이다(mock `orderHandlers.agreementEnforced`)
+ *   백엔드가 동의 강제를 켜면 빠진 본문은 400 `Agreement_400_1`(mock `orderHandlers.agreementEnforced`)
  */
 export function toOrderBody(
   values: CheckoutFormValues,

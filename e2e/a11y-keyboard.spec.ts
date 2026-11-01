@@ -100,6 +100,11 @@ test('상세 → 티켓 선택 → 체크아웃 → 주문 완료를 키보드�
   const memo = page.getByRole('textbox', { name: '응원하는 멤버' });
   await tabTo(page, memo);
   await page.keyboard.type('보컬');
+  // 하단 바 위 호스트 제공 동의(#840) → 바 안 환불 규정 동의 순서(DOM 순서)
+  const host = page.getByRole('checkbox', { name: '(필수) 호스트에게 개인정보 제공 동의' });
+  await tabTo(page, host);
+  await page.keyboard.press('Space');
+  await expect(host).toBeChecked();
   const agree = page.getByRole('checkbox', { name: /환불\/취소 규정/ });
   await tabTo(page, agree);
   await page.keyboard.press('Space');
@@ -111,6 +116,12 @@ test('상세 → 티켓 선택 → 체크아웃 → 주문 완료를 키보드�
   const confirm = page.getByRole('alertdialog', { name: '주문 완료하기' });
   await expect(confirm).toBeVisible();
   await expect.poll(() => focusIsInside(confirm)).toBe(true);
+  const notice = confirm.getByRole('checkbox', {
+    name: '(필수) 위 내용을 확인했으며 이에 동의합니다',
+  });
+  await tabTo(page, notice);
+  await page.keyboard.press('Space');
+  await expect(notice).toBeChecked();
   await tabTo(page, confirm.getByRole('button', { name: '결제완료' }));
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);

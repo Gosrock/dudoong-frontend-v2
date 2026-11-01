@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
 import { colors } from '@/ui/theme/colors';
@@ -20,6 +20,9 @@ export const notice = style({
   color: vars.color.text.primaryLabel,
   textAlign: 'left',
 });
+
+/** 여러 줄 안내(환불 의무 — #840 ④)에서도 아이콘이 줄지 않게 */
+globalStyle(`${notice} > svg`, { flexShrink: 0 });
 
 export const noticeButton = style([
   notice,

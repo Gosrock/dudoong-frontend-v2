@@ -99,6 +99,7 @@ test.describe('선물 랜딩 — 사용자별 판정', () => {
 
     await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
     await page.getByRole('link', { name: '신규 사용자(가입)', exact: true }).click();
+    await page.getByRole('checkbox', { name: '(필수) 만 14세 이상입니다' }).check();
     await page.getByRole('checkbox', { name: '(필수) 서비스 이용약관 동의' }).check();
     await page.getByRole('checkbox', { name: '(필수) 개인정보 처리방침 동의' }).check();
     await page.getByRole('button', { name: '동의하고 시작하기' }).click();

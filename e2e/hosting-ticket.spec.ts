@@ -1,11 +1,15 @@
 import type { Page } from '@playwright/test';
+import { http } from 'msw';
 
 import { createStoredEvent } from '@/api/__mocks__/event-store';
 import { HOST_GOSROCK } from '@/api/__mocks__/fixtures/event';
 import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
+import { errors } from '@/api/__mocks__/respond';
+import { setTicketAgreementEnforced } from '@/api/__mocks__/ticket-store';
 import { MOCK_S3_ORIGIN } from '@/api/__mocks__/upload-handlers';
+import { AGREEMENT_VERSION } from '@/api/shared/agreement';
 
 import { setMockSession } from './support/auth';
 import {
@@ -66,6 +70,8 @@ async function publicTickets(page: Page, eventId: number) {
 const suspendedIds = async (page: Page, eventId: number) =>
   (await publicTickets(page, eventId)).filter((t) => t.isSuspended).map((t) => t.ticketItemId);
 
+const REFUND_AGREE = '위 내용을 확인했고 환불 의무를 지키는 데 동의합니다';
+
 async function fillDudoongForm(page: Page, name: string) {
   await page.getByLabel('티켓 이름').fill(name);
   await page.getByLabel('가격').fill('15000');
@@ -73,6 +79,9 @@ async function fillDudoongForm(page: Page, name: string) {
   await expect(page.getByRole('combobox', { name: '은행' })).toHaveText(/신한은행/);
   await page.getByLabel('예금주').fill('고스락');
   await page.getByLabel('계좌번호').fill('110-123-456789');
+  // 환불 의무 동의(#840 ④ — 2026-11-01 붙임). 체크 전에는 [티켓 만들기]가 막힌다
+  await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeDisabled();
+  await page.getByRole('checkbox', { name: REFUND_AGREE }).check();
 }
 
 test.describe('새 티켓 만들기', () => {
@@ -103,6 +112,8 @@ test.describe('새 티켓 만들기', () => {
       account: { bankCode: '088', accountHolder: '고스락', accountNumber: '110-123-456789' },
       approvalRequired: true,
       isQuantityPublic: false,
+      refundObligationAgreed: true,
+      agreementVersion: AGREEMENT_VERSION,
     });
     await expect(page).toHaveURL('/hosting/events/140/tickets');
     await expect(card(page, '일반 예매')).toBeVisible();
@@ -114,6 +125,44 @@ test.describe('새 티켓 만들기', () => {
         .map((c) => [c.from, c.path, c.status]),
     ).toEqual([['browser', '/api/v2/events/140/ticket-items', 200]]);
     expect(mockApi.calls().filter((c) => c.from === 'server')).toEqual([]);
+  });
+
+  test('동의 강제 백엔드(Agreement_400_1): 거절되면 환불 의무 동의가 풀리고 다시 체크해 만든다', async ({
+    page,
+    mockApi,
+  }) => {
+    setTicketAgreementEnforced(true);
+    let rejected = false;
+    mockApi.use(
+      http.post('*/api/v2/events/:eventId/ticket-items', ({ request }) => {
+        if (rejected) return undefined;
+        rejected = true;
+        return errors.agreementRequired(request);
+      }),
+    );
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/events/140/tickets/new');
+    await fillDudoongForm(page, '일반 예매');
+    await page.getByRole('button', { name: '티켓 만들기' }).click();
+
+    const agree = page.getByRole('checkbox', { name: REFUND_AGREE });
+    await expect(
+      page.getByRole('alert').filter({ hasText: '필수 동의를 다시 확인하고 체크해 주세요.' }),
+    ).toBeVisible();
+    await expect(agree).not.toBeChecked();
+    await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeDisabled();
+    await expect(page).toHaveURL('/hosting/events/140/tickets/new');
+
+    await agree.check();
+    const post = page.waitForRequest(
+      (r) => r.method() === 'POST' && r.url().endsWith('/api/v2/events/140/ticket-items'),
+    );
+    await page.getByRole('button', { name: '티켓 만들기' }).click();
+    expect((await post).postDataJSON()).toMatchObject({
+      refundObligationAgreed: true,
+      agreementVersion: AGREEMENT_VERSION,
+    });
+    await expect(page).toHaveURL('/hosting/events/140/tickets');
   });
 
   test('무료 티켓: 가격·계좌 칸이 없고 승인 토글이 열린다', async ({ page }) => {

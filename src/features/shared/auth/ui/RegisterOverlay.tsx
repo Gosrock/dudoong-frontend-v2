@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 
+import { AGREEMENT_REJECTED_MESSAGE } from '@/api/shared/agreement';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
@@ -24,6 +25,7 @@ import * as s from './RegisterOverlay.css';
 
 const SUBMIT_ERROR_MESSAGE: Record<RegisterSubmitError, string> = {
   invalid: '입력한 정보를 확인해 주세요.',
+  agreement: AGREEMENT_REJECTED_MESSAGE,
   ...AUTH_FAILURE_MESSAGE,
 };
 
@@ -53,12 +55,15 @@ export type RegisterOverlayProps = {
  * 열림은 훅 상태(`status === 'register'`)가 원본이라 `overlay.open`이 아니라 선언형으로 연다(patterns §6 — URL로 여는 오버레이와 같은
  * 이유: 상태가 바뀔 때마다 폼을 다시 그려야 한다). 뒤로가기로 닫히는 것은 ResponsiveOverlay가 맡는다.
  *
- * 동의 문구는 L(P4b-L)의 것 그대로다 — 바꾸면 `AGREEMENT_VERSION`을 올린다. 만 14세 칸은 Q42 답 전까지 없다
- * (`form.consentFields.ageOver14` false). 약관 링크는 새 탭 — 이 탭을 떠나면 메모리의 카카오 토큰과 입력이 사라진다.
+ * 동의 문구는 L(P4b-L)의 것 그대로다 — 바꾸면 `AGREEMENT_VERSION`을 올린다. 만 14세 칸(legal-copy B-3 "만 14세 이상입니다", 약관 제7조①)은
+ * 2026-11-01 붙였다(`form.consentFields.ageOver14` — 백엔드 #905 1-1 출시 전 필수. 디자인 Q42 답 전이라 v1 순서대로 이용약관 위에 DS Checkbox로,
+ * 디자인이 오면 옮긴다). 서버가 동의를 거절하면(`Agreement_400_1`) 체크가 모두 풀리고 안내가 동의 묶음에 이어진다.
+ * 약관 링크는 새 탭 — 이 탭을 떠나면 메모리의 카카오 토큰과 입력이 사라진다.
  * 칸 오류는 그 칸을 떠난 뒤부터 보인다. 서버가 거절한 전화번호(`phoneInvalid`)는 바로 보인다.
  */
 export function RegisterOverlay({ form, onCancel }: RegisterOverlayProps) {
   const formId = useId();
+  const errorId = useId();
   const [touched, setTouched] = useState<Partial<Record<RegisterField, boolean>>>({});
   const touch = (field: RegisterField) => () => setTouched((t) => ({ ...t, [field]: true }));
   const show = (field: RegisterField) => {
@@ -77,7 +82,7 @@ export function RegisterOverlay({ form, onCancel }: RegisterOverlayProps) {
       footer={
         <Flex direction="column" gap={3} fullWidth>
           {form.error && (
-            <div role="alert">
+            <div role="alert" id={errorId}>
               <Txt as="p" typography="bodyMd" color={colors.textDangerLabel} align="center">
                 {SUBMIT_ERROR_MESSAGE[form.error]}
               </Txt>
@@ -140,7 +145,10 @@ export function RegisterOverlay({ form, onCancel }: RegisterOverlayProps) {
           error={show('phoneNumber')}
         />
 
-        <fieldset className={s.consents}>
+        <fieldset
+          className={s.consents}
+          aria-describedby={form.error === 'agreement' ? errorId : undefined}
+        >
           <legend className={`${field.label} ${s.legend}`}>약관 동의</legend>
           <Checkbox
             label="전체 동의"
@@ -148,6 +156,13 @@ export function RegisterOverlay({ form, onCancel }: RegisterOverlayProps) {
             onCheckedChange={form.setAllConsents}
           />
           <Divider />
+          {form.consentFields.ageOver14 && (
+            <Checkbox
+              label="(필수) 만 14세 이상입니다"
+              checked={form.consents.ageOver14}
+              onCheckedChange={(v) => form.setConsent('ageOver14', v)}
+            />
+          )}
           <Checkbox
             label={
               <span>

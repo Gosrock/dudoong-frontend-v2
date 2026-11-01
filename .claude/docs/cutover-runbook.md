@@ -37,7 +37,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 
 하나라도 아니면 컷오버하지 않는다.
 
-- [ ] **백엔드 `AGREEMENT_ENFORCE` 값 확인**(plan P15, v1 Front #384). 켜져 있으면 v2에 동의 칸 4개(Q42 — 디자인 대기)와 플래그(`AGE_OVER_14_FIELD` · `HOST_PROVISION_FIELD` · `DUDOONG_NOTICE_FIELD` · `REFUND_OBLIGATION_FIELD`)가 켜져 있어야 한다 — **칸 없이 출시하면 가입 · 주문 · 두둥티켓 생성 · 무료→두둥 수정이 전부 400(`Agreement_400_1`)이다.** 꺼져 있어도 **v2는 칸 4개를 켠 채로 출시한다**(동의는 법적으로 받아야 하는 값 — v2만 기록 모드로 두는 길은 없다, Backend #905 §1-1). 강제 날짜는 Backend #898에 미리 남겨 준다
+- [ ] **백엔드 `AGREEMENT_ENFORCE` 값 확인**(plan P15, v1 Front #384). 켜져 있으면 v2에 동의 칸 4개(Q42 — 디자인 대기)와 플래그(`AGE_OVER_14_FIELD` · `HOST_PROVISION_FIELD` · `DUDOONG_NOTICE_FIELD` · `REFUND_OBLIGATION_FIELD`)가 켜져 있어야 한다 — **칸 없이 출시하면 가입 · 주문 · 두둥티켓 생성 · 무료→두둥 수정이 전부 400(`Agreement_400_1`)이다.** 꺼져 있어도 **v2는 칸 4개를 켠 채로 출시한다**(동의는 법적으로 받아야 하는 값 — v2만 기록 모드로 두는 길은 없다, Backend #905 §1-1). 강제 날짜는 Backend #898에 미리 남겨 준다 **2026-11-01 칸 4개를 DS로 붙이고 플래그를 모두 켰다**(#101 — 위치는 디자인 Q42 답 전 잠정). 남은 확인: 스테이징만 `AGREEMENT_ENFORCE=true`로 켠 리허설(§4 — 가입 · 두둥/무료 주문 · 두둥티켓 생성 · 무료→두둥 수정이 통과하는지)
 - [ ] GA · 카카오 애드핏이 들어가 있다(처리방침이 수집을 이미 적고 있다 — plan P14, 사용자가 직접)
 - [ ] 단계 A · B 끝 — 스테이징 리허설(§4) 전부 체크
 - [ ] `v2.0.0` 이미지가 ECR에 있고(단계 C), 그 이미지가 스테이징에서 본 이미지다(`release.yml` 로그 "태그만 붙인다")

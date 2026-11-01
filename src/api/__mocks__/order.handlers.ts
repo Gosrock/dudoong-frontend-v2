@@ -57,6 +57,8 @@ export const ORDER_ERROR_REASONS = {
   Order_400_23: [400, '옵션 답변이 올바르지 않습니다.'],
   Order_400_26: [400, '같은 주문을 처리하고 있습니다. 잠시 후 주문내역을 확인해 주세요.'],
   Order_404_1: [404, '주문을 찾을 수 없습니다.'],
+  // 동의 강제(#840 — `agreementEnforced`). 문구는 respond.ts `agreementRequired`와 같다
+  Agreement_400_1: [400, '필수 동의 또는 확인이 필요합니다.'],
   // P9 취소·환불 계좌(error-codes.md)
   Order_400_5: [400, '주문을 취소할 수 없는 상태입니다.'],
   Order_400_9: [400, '환불을 할 수 있는 기한을 지났습니다.'],

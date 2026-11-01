@@ -19,9 +19,9 @@ import { agreementFields } from '@/api/shared/agreement';
  * v1은 "약관 동의하고 시작하기" 한 버튼이었다 — 항목을 몇 개로 보일지는 V(디자인)에서 정하고, 필수 판정은 여기 하나다.
  * 서버 동의 기록(#840·#850)에는 이용약관 체크를 `termsAgreed`로 싣는다. 처리방침 동의는 서버가 기록하지 않는다(화면에서만 받는다).
  *
- * 만 14세 이상 확인(`ageOver14` → `ageOver14Confirmed`, 약관 제7조① — v1-additions B-1)은 체크 칸이 Q42 대기라 `AGE_OVER_14_FIELD`가
- * false다. 그동안은 필수 판정·"전체 동의"에 넣지 않고, 칸(V)이 생겨 상수를 켜면 필수가 된다(사용자 결정 2026-10-31 — 필드별 플래그,
- * 기본 끔). 체크값은 플래그와 상관없이 사용자가 체크했을 때만 본문에 싣는다(`true`를 만들어 넣지 않는다).
+ * 만 14세 이상 확인(`ageOver14` → `ageOver14Confirmed`, 약관 제7조① — v1-additions B-1)은 2026-11-01 칸을 붙였다(`AGE_OVER_14_FIELD`
+ * true — 출시 전 필수, 백엔드 #905 1-1. 위치는 디자인 Q42 답 전 잠정). 필수 판정·"전체 동의"에 들어간다.
+ * 체크값은 사용자가 체크했을 때만 본문에 싣는다(`true`를 만들어 넣지 않는다).
  * 백엔드 동의 강제(`AGREEMENT_ENFORCE=true`, v1 Front #384 — v1 어드민 가입 수정 배포 직후 켠다)가 켜지면 `RegisterUseCase`가
  * 전화번호·id 토큰 검사보다 **먼저** `ageOver14Confirmed`·`termsAgreed`를 보고 400 `Agreement_400_1`(@cb53bfaa).
  */
@@ -34,7 +34,7 @@ export type RegisterValues = {
 export type RegisterField = keyof RegisterValues;
 
 export type RegisterConsents = {
-  /** [필수] 만 14세 이상 확인 — 칸은 `AGE_OVER_14_FIELD`가 켜질 때만(Q42) */
+  /** [필수] 만 14세 이상 확인 — 칸은 `AGE_OVER_14_FIELD`(2026-11-01 켬) */
   ageOver14: boolean;
   terms: boolean;
   privacy: boolean;
@@ -43,10 +43,10 @@ export type RegisterConsents = {
 export type RegisterConsent = keyof RegisterConsents;
 
 /**
- * 가입 만 14세 확인 칸이 화면에 있는지(design-requests Q42 ①). 칸이 생기면 `true`로 바꾼다 — 그때부터 체크 전 가입을 막는다.
- * 강제가 v2 칸보다 먼저 켜지면 v2 가입은 400이다(plan P4b 위험)
+ * 가입 만 14세 확인 칸이 화면에 있는지(design-requests Q42 ①). 2026-11-01 DS Checkbox로 붙여 켰다(백엔드 #905 1-1 — v2는 출시 전에
+ * 동의 칸 4개를 갖춰야 한다). 체크 전 가입을 막는다. 위치는 Q42 답이 오면 옮긴다
  */
-export const AGE_OVER_14_FIELD = false;
+export const AGE_OVER_14_FIELD = true;
 
 /** 화면 칸 플래그(테스트에서 바꿔 본다) */
 export type RegisterConsentFields = { ageOver14: boolean };
@@ -153,8 +153,7 @@ export const canSubmitRegister = (
  * 제출 본문. 앞뒤 공백을 지우고, 빈 전화번호는 `null`(칸 검증을 통과한 값만 오므로 전화번호는 `010-1234-1234` 모양이다).
  * 동의 기록: 체크한 것만 — 만 14세 확인 → `ageOver14Confirmed: true`, 이용약관 → `termsAgreed: true`, 하나라도 있으면
  * `agreementVersion`(아무것도 체크하지 않았으면 동의 키가 하나도 없다).
- * TODO(Q42): 만 14세 칸이 아직 없어(`AGE_OVER_14_FIELD = false`) 지금 화면은 `ageOver14Confirmed`를 보내지 못한다 — 백엔드가 동의
- * 강제를 켜면 이 본문은 400 `Agreement_400_1`이 된다(mock `authHandlers.registerAgreementEnforced`).
+ * 백엔드가 동의 강제를 켜면 만 14세·이용약관이 빠진 본문은 400 `Agreement_400_1`(mock `authHandlers.registerAgreementEnforced`).
  */
 export function toRegisterBody(input: {
   idToken: string;

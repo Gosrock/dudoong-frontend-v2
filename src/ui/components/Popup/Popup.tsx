@@ -20,6 +20,8 @@ export type PopupProps = {
   onCancel?: () => void;
   /** 확인이 진행 중 — 두 버튼과 Esc를 잠그고 확인 자리에 스피너 */
   loading?: boolean;
+  /** 확인만 막는다(필수 체크 전 등). 취소·Esc는 그대로 */
+  confirmDisabled?: boolean;
   /** 뒤로가기로 닫기. EasyOverlay가 직접 맡을 때 false. 기본 true */
   closeOnBack?: boolean;
   onExited?: () => void;
@@ -44,6 +46,7 @@ export function Popup({
   onConfirm,
   onCancel,
   loading,
+  confirmDisabled,
   closeOnBack = true,
   onExited,
 }: PopupProps) {
@@ -75,7 +78,12 @@ export function Popup({
               {cancelLabel}
             </Button>
           )}
-          <Button size="md" disabled={loading} aria-busy={loading || undefined} onClick={onConfirm}>
+          <Button
+            size="md"
+            disabled={loading || confirmDisabled}
+            aria-busy={loading || undefined}
+            onClick={onConfirm}
+          >
             <LoadingLabel loading={loading} size="base">
               {confirmLabel}
             </LoadingLabel>

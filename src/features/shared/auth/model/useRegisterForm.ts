@@ -5,6 +5,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { loginWithKakao, registerWithKakao } from '@/api/auth/calls';
 import type { KakaoProfile } from '@/api/auth/schema';
 import { getErrorCode, getErrorStatus, isValidationError } from '@/api/errors';
+import { AGREEMENT_REJECTED_CODE } from '@/api/shared/agreement';
 import { log } from '@/utils/log';
 
 import { classifyAuthFailure } from './auth-outcome';
@@ -36,9 +37,10 @@ export type RegisterInput = { idToken: string; profile: KakaoProfile };
  * - `invalid` — 400 `BAD_REQUEST`(이메일·이름이 비었음 — `isValidationError`). 폼에서 고쳐 다시 낸다
  *   (400 `USER_400_2` 무효 전화번호는 제출 실패가 아니라 칸 오류 `errors.phoneNumber = 'phoneInvalid'`다 — 백엔드 #896)
  * - `suspended` — 이미 가입한 정지 계정(`USER_400_1` → 로그인 → `USER_403_1`)
+ * - `agreement` — 서버가 동의를 거절(400 `Agreement_400_1`, 동의 강제). 동의 체크를 모두 풀고 다시 체크받는다
  * - `failed` — 그 밖(5xx·네트워크, 카카오 id 토큰 만료 `KAKAO_KOE403` 등). 다시 내거나 로그인을 처음부터
  */
-export type RegisterSubmitError = 'invalid' | 'suspended' | 'failed';
+export type RegisterSubmitError = 'invalid' | 'suspended' | 'agreement' | 'failed';
 
 const ALREADY_REGISTERED = 'USER_400_1';
 
@@ -123,6 +125,12 @@ export function useRegisterForm(input: RegisterInput | null) {
         setRejectedPhone(values.phoneNumber.trim());
         return;
       }
+      if (getErrorCode(e) === AGREEMENT_REJECTED_CODE) {
+        // 지금 보이는 문구로 다시 동의받는다 — 체크해 둔 것을 모두 푼다(버튼이 다시 막힌다)
+        setConsents(NO_CONSENTS);
+        setError('agreement');
+        return;
+      }
       setError(registerError(e));
     }
   }, [input, values, consents, phoneRejected]);
@@ -133,7 +141,7 @@ export function useRegisterForm(input: RegisterInput | null) {
     consents,
     setConsent,
     setAllConsents,
-    /** 동의 칸 플래그 — `ageOver14`: 만 14세 확인 칸을 그리는지(Q42 대기 — 지금 false). 켜지면 필수 */
+    /** 동의 칸 플래그 — `ageOver14`: 만 14세 확인 칸을 그리는지(2026-11-01 켬 — 위치는 Q42 답 전 잠정). 켜지면 필수 */
     consentFields: { ageOver14: AGE_OVER_14_FIELD },
     /** 필수 동의를 마쳤는지 */
     requiredAgreed: hasRequiredConsents(consents),
