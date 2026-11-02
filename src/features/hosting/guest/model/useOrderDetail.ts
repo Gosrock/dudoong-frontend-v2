@@ -1,9 +1,8 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
-import { getErrorCode } from '@/api/errors';
 import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import {
   approveOrderMutation,
@@ -41,6 +40,7 @@ import {
   validateRefuse,
   WITHDRAW_ERROR_MESSAGE,
 } from './guest-rules';
+import { useMissingDetail } from './useMissingDetail';
 
 const INITIAL_REFUSE: RefuseForm = { reasonType: null, reasonText: '' };
 
@@ -96,18 +96,17 @@ export function useOrderDetail(
     onMissing();
   }, [eventId, onMissing, queryClient]);
 
-  // 조회 404 → 닫고 목록 다시 읽기. 안내는 렌더 중에(이전 값 비교), 닫기·무효화는 이펙트에서
-  const notFound = orderUuid !== null && getErrorCode(query.error) === 'Order_404_1';
-  const [missingFor, setMissingFor] = useState<string | null>(null);
-  if (notFound && missingFor !== orderUuid) {
-    setMissingFor(orderUuid);
-    setMissingNotice(DETAIL_MISSING_MESSAGE);
-  }
-  useEffect(() => {
-    if (!notFound) return;
-    void invalidateGuestLists(queryClient, eventId);
-    onMissing();
-  }, [eventId, notFound, onMissing, queryClient]);
+  // 조회 404 → 닫고 목록 다시 읽기. 안내는 렌더 중에, 닫기·무효화는 이펙트에서(`useMissingDetail`)
+  const notFound = useMissingDetail({
+    id: orderUuid,
+    error: query.error,
+    code: 'Order_404_1',
+    onNotFound: () => setMissingNotice(DETAIL_MISSING_MESSAGE),
+    afterNotFound: () => {
+      void invalidateGuestLists(queryClient, eventId);
+      onMissing();
+    },
+  });
 
   /** 안내 + 상세·목록 다시 읽기. `eventChanged`면 GE-3도(공연 상태·시작 여부가 바뀌었을 수 있다) */
   const reread = useCallback(
