@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
 import { formatKstDotDateWeekdayTime } from '@/api/shared/date';
-import { DELETED_EVENT } from '@/features/audience/event-labels';
+import { DELETED_EVENT } from '@/features/shared/event-labels';
 import { button } from '@/ui/components/Button/Button.css';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';

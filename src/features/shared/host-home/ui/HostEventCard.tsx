@@ -2,6 +2,7 @@
 
 import type { HostEvent } from '@/api/host/schema';
 import { formatDday } from '@/api/shared/dday';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Chip, type ChipColor, type ChipTheme } from '@/ui/components/Chip/Chip';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 
@@ -45,7 +46,7 @@ export function HostEventCard({ item }: { item: HostEventCardItem }) {
     <li className={s.item}>
       <ConcertCard
         href={href}
-        title={event.name ?? '이름 없는 공연'}
+        title={event.name ?? UNNAMED_EVENT}
         date={event.startAt?.slice(0, 10) ?? null}
         posterUrl={event.posterImageUrl}
         badge={

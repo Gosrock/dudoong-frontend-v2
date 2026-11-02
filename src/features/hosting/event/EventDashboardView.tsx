@@ -12,8 +12,9 @@ import {
   kstWeekOf,
 } from '@/api/shared/date';
 import { eventHref } from '@/features/hosting/shared/model/event-scope';
-import { eventChipOf, UNNAMED_EVENT } from '@/features/hosting/shared/model/home-cards';
+import { eventChipOf } from '@/features/hosting/shared/model/home-cards';
 import { EventPanelLayout } from '@/features/hosting/shared/ui/EventScopeFrame';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';

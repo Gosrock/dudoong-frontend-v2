@@ -10,9 +10,9 @@ import {
   DepositAccountRows,
   DEPOSITOR_NOTICE,
 } from '@/features/audience/checkout/ui/PaymentBlocks';
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
-import { eventHref } from '@/features/audience/routes';
 import { STATE_TONE_COLOR } from '@/features/audience/ticket/ui/state-tone';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
+import { eventHref } from '@/features/shared/routes';
 import { Accordion } from '@/ui/components/Accordion/Accordion';
 import {
   AsyncBoundary,

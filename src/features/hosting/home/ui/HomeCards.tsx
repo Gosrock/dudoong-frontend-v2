@@ -8,9 +8,9 @@ import {
   eventChipOf,
   eventLinesOf,
   roleChipOf,
-  UNNAMED_EVENT,
   UNNAMED_HOST,
 } from '@/features/hosting/shared/model/home-cards';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';

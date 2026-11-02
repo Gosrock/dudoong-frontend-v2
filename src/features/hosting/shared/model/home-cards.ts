@@ -73,8 +73,7 @@ export function eventLinesOf(
   return lines;
 }
 
-/** 이름을 아직 안 정한 준비중 공연·호스트 */
-export const UNNAMED_EVENT = '이름 없는 공연';
+/** 이름을 아직 안 정한 준비중 호스트(공연은 `features/shared/event-labels` `UNNAMED_EVENT`) */
 export const UNNAMED_HOST = '이름 없는 호스트';
 
 /** 공연 탭 빈 상태(와이어 `487:15070`) · 검색 결과 없음(와이어 `531:12320`·`531:12470`) */

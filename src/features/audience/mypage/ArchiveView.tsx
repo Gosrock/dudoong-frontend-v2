@@ -4,7 +4,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
 import { type ReactNode, useId } from 'react';
 
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';

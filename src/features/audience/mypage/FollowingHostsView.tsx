@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import type { FollowingHostFilter } from '@/api/me/schema';
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Chip, type ChipColor } from '@/ui/components/Chip/Chip';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';

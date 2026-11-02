@@ -1,6 +1,7 @@
 import type { MyEvent } from '@/api/event/schema';
 import type { MyHost } from '@/api/host/schema';
 import { HOSTING_TAB_PARAM } from '@/features/hosting/shared/routes';
+import { hostHref } from '@/features/shared/routes';
 
 /**
  * 공연준비 홈(`/hosting`, plan P10a) 규칙 — 탭 · 검색어 · 빈 상태 · 카드 이동 주소.
@@ -52,7 +53,7 @@ export const HOSTS_EMPTY_TITLE = '두둥! 등록한 호스트가 없어요.';
 export const NEW_HOST_HREF = '/hosting/new/hosts';
 
 /** 호스트 카드 → 호스트 홈(storyboard F — 설정·멤버 입구가 거기 있다) */
-export const myHostHref = (host: Pick<MyHost, 'hostId'>) => `/hosts/${host.hostId}`;
+export const myHostHref = (host: Pick<MyHost, 'hostId'>) => hostHref(host.hostId);
 
 /** 공연 카드 → 공연 관리. `/hosting/events/{id}`는 `redirects()`가 대시보드로 보낸다(호스트 홈 준비중 카드와 같은 주소) */
 export const myEventHref = (event: Pick<MyEvent, 'eventId'>) => `/hosting/events/${event.eventId}`;

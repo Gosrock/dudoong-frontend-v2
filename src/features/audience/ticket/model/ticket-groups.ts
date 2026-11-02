@@ -1,6 +1,6 @@
 import type { MyTicketGroup, MyTicketState, NewApproved } from '@/api/my-ticket/schema';
 import { MY_TICKET_STATES } from '@/api/my-ticket/schema';
-import { orderHref } from '@/features/audience/routes';
+import { orderHref } from '@/features/shared/routes';
 
 import { TICKET_STATE_ORDER, ticketStateView, type TicketTone } from './my-ticket-state';
 

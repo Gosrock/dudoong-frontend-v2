@@ -1,5 +1,6 @@
 import type { EventManage, EventStatus } from '@/api/event/schema';
 import { type ActorRole, can, superAdminOrRole } from '@/features/shared/permission/model/can';
+import { eventHref as publicEventHref } from '@/features/shared/routes';
 
 /**
  * 공연 스코프(`/hosting/events/[eventId]/…`, plan P11) 규칙 — 등록 상태별 메뉴, 읽기 전용 판정, 티켓 여부 잠금, 삭제 가능.
@@ -43,7 +44,7 @@ export function eventMenuOf(eventId: string | number, status: EventStatus): Even
 
 /** "공연 페이지 보기"(등록 후만) — 관객 공연 상세 */
 export const eventPublicHref = (eventId: string | number, status: EventStatus) =>
-  isRegistered(status) ? `/events/${eventId}` : null;
+  isRegistered(status) ? publicEventHref(eventId) : null;
 
 /**
  * 읽기 전용인 이유. `role` — 일반 멤버(관리 화면은 볼 수만 있다, api-contract §2), `ended` — 정산중·지난 공연(`Event_400_17`).

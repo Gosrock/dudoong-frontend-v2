@@ -9,6 +9,7 @@ import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { HOST_ROLE_LABEL } from '@/features/hosting/shared/model/host-role';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
 import type { ActorRole } from '@/features/shared/permission/model/can';
+import { hostHref } from '@/features/shared/routes';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { DataTable } from '@/ui/components/DataTable/DataTable';
@@ -75,7 +76,7 @@ function HostMembers({ hostId }: { hostId: string }) {
 
   return (
     <main className={s.page}>
-      <Header title="멤버" backHref={`/hosts/${hostId}`} linkAs={Link} />
+      <Header title="멤버" backHref={hostHref(hostId)} linkAs={Link} />
       <div className={s.members}>
         <Button
           variant="secondary"

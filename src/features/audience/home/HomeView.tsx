@@ -5,8 +5,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
 import { homeQuery } from '@/api/event/queries';
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
-import { eventHref } from '@/features/audience/routes';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
+import { eventHref } from '@/features/shared/routes';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 import { fab } from '@/ui/components/Fab/Fab.css';
 import { Icon } from '@/ui/icons/Icon';

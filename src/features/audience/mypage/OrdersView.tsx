@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import { isSessionLost } from '@/api/errors';
-import { DELETED_EVENT, UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { DELETED_EVENT, UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';

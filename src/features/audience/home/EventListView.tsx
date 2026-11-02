@@ -3,9 +3,9 @@
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useId } from 'react';
 
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
-import { eventHref } from '@/features/audience/routes';
 import { NO_SEARCH_ATTR } from '@/features/audience/shell/AudienceShell.css';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
+import { eventHref } from '@/features/shared/routes';
 import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 import { Button } from '@/ui/components/Button/Button';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';

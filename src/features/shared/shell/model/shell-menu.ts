@@ -1,5 +1,6 @@
 import type { Me, MeHost } from '@/api/me/schema';
 import { loginHref } from '@/features/shared/auth/login-href';
+import { hostHref } from '@/features/shared/routes';
 
 /**
  * 셸 메뉴(plan P4s-L) — 관객 모바일 햄버거 · 관객 PC 아바타 드롭다운 · 호스팅 모바일 드로어 · 호스팅 PC 아바타 드롭다운이
@@ -86,7 +87,7 @@ export function shellHostRow(me: Pick<Me, 'hosts' | 'hostCount'> | null): ShellH
     name: h.name,
     profileImageUrl: h.profileImageUrl,
     myRole: h.myRole,
-    href: `/hosts/${h.hostId}`,
+    href: hostHref(h.hostId),
   }));
   const hidden = Math.max(0, (me?.hostCount ?? 0) - hosts.length);
   return {

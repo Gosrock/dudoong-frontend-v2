@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useId, useLayoutEffect, useState } from 'react';
 
 import type { EventDetail } from '@/api/event/schema';
-import { hostHref } from '@/features/audience/routes';
+import { hostHref } from '@/features/shared/routes';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';

@@ -1,6 +1,6 @@
 import type { ArchiveEvent, FollowingHostFilter, RepresentativeEvent } from '@/api/me/schema';
 import { eventTimingLabel } from '@/api/shared/dday';
-import { orderHref } from '@/features/audience/routes';
+import { orderHref } from '@/features/shared/routes';
 
 /**
  * 관심 호스트(GM-4) 필터 탭. 서버 `status` 3값을 그대로 쓴다 — 라벨은 design-requests 기본안("전체 / 공연 예정 / 지난 공연만").
