@@ -9,9 +9,9 @@ import {
   AsyncBoundary,
   type ErrorFallbackProps,
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
-import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 import { Container } from '@/ui/primitives/Container';
 import { Divider } from '@/ui/primitives/Divider';
@@ -61,18 +61,7 @@ export function NoticeDetailView({
 }
 
 function Retry({ reset }: ErrorFallbackProps) {
-  return (
-    <div role="alert" className={s.retry}>
-      <Flex direction="column" align="center" gap={3}>
-        <Txt typography="bodyLg" color={colors.textSecondary}>
-          불러오지 못했어요
-        </Txt>
-        <Button variant="secondary" size="sm" onClick={reset}>
-          다시 시도
-        </Button>
-      </Flex>
-    </div>
-  );
+  return <InlineError className={s.retry} message="불러오지 못했어요" onRetry={reset} />;
 }
 
 function NoticeDetailContent({

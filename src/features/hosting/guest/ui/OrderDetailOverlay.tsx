@@ -8,6 +8,7 @@ import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
 import { Txt } from '@/ui/primitives/Txt';
@@ -93,12 +94,7 @@ export function OrderDetailOverlay({ d, onClose }: { d: Detail; onClose: () => v
           </Txt>
         )}
         {d.status === 'error' && (
-          <div role="alert" className={s.errorBox}>
-            <Txt typography="bodyMd">주문을 불러오지 못했어요.</Txt>
-            <Button variant="secondary" size="sm" onClick={d.retry}>
-              다시 시도
-            </Button>
-          </div>
+          <InlineError message="주문을 불러오지 못했어요." onRetry={d.retry} />
         )}
         {o && step === 'detail' && <OrderInfo d={d} o={o} />}
         {o && step === 'refuse' && <RefuseStep d={d} />}

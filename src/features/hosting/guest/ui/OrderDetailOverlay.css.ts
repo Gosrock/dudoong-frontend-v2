@@ -103,14 +103,6 @@ export const plain = style({ margin: 0 });
 
 export const alert = style({ margin: 0 });
 
-export const errorBox = style({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: vars.space[3],
-  padding: vars.space[5],
-});
-
 /** 버튼 위 가운데 안내(GUI `1029:7706` "입장했거나 선물한 티켓이 있어 …") */
 export const centerNote = style({ margin: 0, textAlign: 'center' });
 

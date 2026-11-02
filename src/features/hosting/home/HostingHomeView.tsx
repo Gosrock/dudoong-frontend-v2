@@ -7,10 +7,10 @@ import { type ReactNode, useState } from 'react';
 import { meQuery } from '@/api/me/queries';
 import { NEW_EVENT_PATH } from '@/features/hosting/event/model/create-event-form';
 import { useDeleteEvent } from '@/features/hosting/event/model/useDeleteEvent';
-import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import {
   LoadMoreSentinel,
   type LoadMoreState,
@@ -20,7 +20,6 @@ import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
-import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -226,16 +225,11 @@ function ListArea({
   }
   if (list.status === 'error') {
     return (
-      <div role="alert" className={s.centered}>
-        <Flex direction="column" align="center" gap={3}>
-          <Txt as="p" typography="bodyLg" color={colors.textSecondary}>
-            불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-          </Txt>
-          <Button variant="secondary" size="sm" onClick={list.retry}>
-            다시 시도
-          </Button>
-        </Flex>
-      </div>
+      <InlineError
+        className={s.centered}
+        message="불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+        onRetry={list.retry}
+      />
     );
   }
   if (list.status === 'empty') {

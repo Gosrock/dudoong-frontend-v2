@@ -18,6 +18,7 @@ import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EntranceCard } from '@/ui/components/EntranceCard/EntranceCard';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Popup } from '@/ui/components/Popup/Popup';
 import { SalesCard } from '@/ui/components/SalesCard/SalesCard';
 import { ScheduleStep, WeekStrip } from '@/ui/components/Schedule/Schedule';
@@ -178,14 +179,11 @@ function ChecklistSection({ d }: { d: Dashboard }) {
             </Txt>
           )}
           {d.checklistStatus === 'error' && (
-            <div role="alert">
-              <Flex align="center" gap={2} wrap>
-                <Txt typography="bodyMd">체크리스트를 불러오지 못했어요.</Txt>
-                <Button variant="secondary" size="sm" onClick={d.retryChecklist}>
-                  다시 시도
-                </Button>
-              </Flex>
-            </div>
+            <InlineError
+              layout="row"
+              message="체크리스트를 불러오지 못했어요."
+              onRetry={d.retryChecklist}
+            />
           )}
           {d.checklistItems && (
             <ul className={s.checkRows}>
@@ -274,14 +272,12 @@ function RegisteredSection({ d }: { d: Dashboard }) {
         </div>
       )}
       {d.statsStatus === 'error' && (
-        <div role="alert" className={s.statsState}>
-          <Flex align="center" gap={2} wrap>
-            <Txt typography="bodyMd">대시보드를 불러오지 못했어요.</Txt>
-            <Button variant="secondary" size="sm" onClick={d.retryStats}>
-              다시 시도
-            </Button>
-          </Flex>
-        </div>
+        <InlineError
+          layout="row"
+          className={s.statsState}
+          message="대시보드를 불러오지 못했어요."
+          onRetry={d.retryStats}
+        />
       )}
       {d.stats && (
         <>

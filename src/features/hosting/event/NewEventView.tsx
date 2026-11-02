@@ -18,6 +18,7 @@ import { Chip } from '@/ui/components/Chip/Chip';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { Header } from '@/ui/components/Header/Header';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Input } from '@/ui/components/Input/Input';
 import { Radio, RadioGroup } from '@/ui/components/Radio/Radio';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
@@ -88,14 +89,7 @@ function PickHostStep({ w }: { w: Wizard }) {
         </Flex>
       )}
       {h.status === 'error' && (
-        <div role="alert">
-          <Flex direction="column" gap={3} align="flex-start">
-            <Txt typography="bodyMd">호스트 목록을 불러오지 못했어요.</Txt>
-            <Button variant="secondary" size="sm" onClick={h.retry}>
-              다시 시도
-            </Button>
-          </Flex>
-        </div>
+        <InlineError layout="row" message="호스트 목록을 불러오지 못했어요." onRetry={h.retry} />
       )}
       {h.status === 'empty' && (
         <p data-testid="no-hosts" className={s.plain}>

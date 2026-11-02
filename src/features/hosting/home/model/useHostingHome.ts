@@ -1,11 +1,13 @@
 'use client';
 
 import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
+import { debounce } from 'es-toolkit';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { myEventsQuery } from '@/api/event/queries';
 import { myHostsQuery } from '@/api/host/queries';
+import { infiniteListControls } from '@/api/shared/page';
 import { flattenPages } from '@/api/shared/page';
 import { canDeleteEvent } from '@/features/hosting/event/model/event-scope';
 
@@ -58,15 +60,7 @@ function listState<T>(
     status,
     items,
     emptyKind: status === 'empty' ? emptyKindOf(keyword) : null,
-    hasNextPage: query.hasNextPage,
-    isFetchingNextPage: query.isFetchingNextPage,
-    nextPageError: query.isFetchNextPageError,
-    loadMore: () => {
-      // 읽는 중에 다시 불려도 진행 중인 요청을 취소·재요청하지 않는다
-      if (query.hasNextPage && !query.isFetching)
-        void query.fetchNextPage({ cancelRefetch: false });
-    },
-    retry: () => void (query.isFetchNextPageError ? query.fetchNextPage() : query.refetch()),
+    ...infiniteListControls(query),
   };
 }
 
@@ -86,12 +80,12 @@ export function useHostingHome() {
   // ─── 검색어(입력 초안 → 300ms 뒤 적용) ───
   const [keywordInput, setKeywordInputState] = useState('');
   const [keyword, setKeyword] = useState('');
-  useEffect(() => {
-    const next = keywordInput.trim();
-    if (next === keyword) return;
-    const timer = setTimeout(() => setKeyword(next), HOSTING_KEYWORD_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [keywordInput, keyword]);
+  // debounce는 `es-toolkit`(patterns §9, 코드 패턴 점검 A8) — 엔터·검색 버튼은 대기를 버리고 바로 적용(`submitKeyword`)
+  const applyKeywordLater = useMemo(
+    () => debounce((next: string) => setKeyword(next), HOSTING_KEYWORD_DEBOUNCE_MS),
+    [],
+  );
+  useEffect(() => () => applyKeywordLater.cancel(), [applyKeywordLater]);
 
   // ─── 조회 ───
   const hostsQuery = useInfiniteQuery({ ...myHostsQuery({ keyword }), enabled: tab === 'hosts' });
@@ -124,9 +118,16 @@ export function useHostingHome() {
     setTab,
     /** 검색칸 값(50자에서 막힌다) */
     keywordInput,
-    setKeywordInput: (value: string) => setKeywordInputState(clampHostingKeyword(value)),
+    setKeywordInput: (value: string) => {
+      const next = clampHostingKeyword(value);
+      setKeywordInputState(next);
+      applyKeywordLater(next.trim());
+    },
     /** 기다리지 않고 바로 적용(엔터·검색 버튼) */
-    submitKeyword: () => setKeyword(keywordInput.trim()),
+    submitKeyword: () => {
+      applyKeywordLater.cancel();
+      setKeyword(keywordInput.trim());
+    },
     /** 적용된 검색어 */
     keyword,
     hosts: listState(hostsQuery, hosts, keyword),

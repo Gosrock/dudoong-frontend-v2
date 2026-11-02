@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react';
 
-import { Button } from '@/ui/components/Button/Button';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Spinner } from '@/ui/components/Loader/Loader';
 import { Divider } from '@/ui/primitives/Divider';
 import { Flex } from '@/ui/primitives/Flex';
@@ -38,16 +38,7 @@ export function TagPanel({
   }
   if (tags.status === 'error') {
     return (
-      <div className={s.root} role="alert">
-        <Flex direction="column" align="center" gap={2} paddingY={2}>
-          <Txt typography="bodySm" color={colors.textSecondary}>
-            태그를 불러오지 못했어요.
-          </Txt>
-          <Button variant="secondary" size="sm" onClick={tags.retry}>
-            다시 시도
-          </Button>
-        </Flex>
-      </div>
+      <InlineError className={s.root} message="태그를 불러오지 못했어요." onRetry={tags.retry} />
     );
   }
   if (tags.groups.length === 0) {

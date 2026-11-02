@@ -9,6 +9,7 @@ import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Input } from '@/ui/components/Input/Input';
 import { Radio, RadioGroup } from '@/ui/components/Radio/Radio';
 import { toast } from '@/ui/components/Toast/Toast';
@@ -171,12 +172,7 @@ export function AddOptionsOverlay({
       {view === 'pick' ? (
         <div className={s.body} data-testid="option-pick">
           {o.poolStatus === 'error' ? (
-            <Txt as="p" typography="bodyMd" color={colors.textSecondaryLabel}>
-              옵션을 불러오지 못했어요{' '}
-              <Button variant="secondary" size="sm" onClick={o.retryPool}>
-                다시 시도
-              </Button>
-            </Txt>
+            <InlineError layout="row" message="옵션을 불러오지 못했어요" onRetry={o.retryPool} />
           ) : (
             <ul className={s.pickList} aria-label="옵션 목록">
               {o.attached.map((a) => (

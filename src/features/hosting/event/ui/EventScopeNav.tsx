@@ -17,6 +17,7 @@ import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { Drawer } from '@/ui/components/Drawer/Drawer';
 import { Header, HeaderIconButton } from '@/ui/components/Header/Header';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { SidebarMenuItem } from '@/ui/components/SidebarMenu/SidebarMenu';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
@@ -262,14 +263,11 @@ function EventSwitchList({
   }
   if (q.status === 'error') {
     return (
-      <div role="alert">
-        <Flex direction="column" gap={3} align="flex-start">
-          <Txt typography="bodyMd">공연 목록을 불러오지 못했어요.</Txt>
-          <Button variant="secondary" size="sm" onClick={() => void q.refetch()}>
-            다시 시도
-          </Button>
-        </Flex>
-      </div>
+      <InlineError
+        layout="row"
+        message="공연 목록을 불러오지 못했어요."
+        onRetry={() => void q.refetch()}
+      />
     );
   }
   const events = q.data.pages.flatMap((p) => p.content);

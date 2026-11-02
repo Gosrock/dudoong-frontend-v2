@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { isSessionLost } from '@/api/errors';
 import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
-import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { Fab } from '@/ui/components/Fab/Fab';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Txt } from '@/ui/primitives/Txt';
@@ -72,14 +72,7 @@ function TicketList({ eventId }: { eventId: string }) {
         </p>
       )}
       {l.status === 'error' && (
-        <p role="alert">
-          <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-            티켓을 불러오지 못했어요{' '}
-          </Txt>
-          <Button variant="secondary" size="sm" onClick={l.retry}>
-            다시 시도
-          </Button>
-        </p>
+        <InlineError layout="row" message="티켓을 불러오지 못했어요" onRetry={l.retry} />
       )}
 
       {l.empty ? (

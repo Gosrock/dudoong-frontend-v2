@@ -9,6 +9,7 @@ import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { ListHeader } from '@/ui/components/ListHeader/ListHeader';
 import { Spinner } from '@/ui/components/Loader/Loader';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
@@ -157,14 +158,11 @@ export function HostHomeView({ hostId }: { hostId: string }) {
         )}
 
         {h.viewerStatus === 'error' && (
-          <Flex align="center" gap={2}>
-            <Txt typography="labelSm" color={colors.textTertiaryLabel}>
-              내 관심·권한 정보를 불러오지 못했어요.
-            </Txt>
-            <Button variant="secondary" size="sm" onClick={h.retryViewer}>
-              다시 시도
-            </Button>
-          </Flex>
+          <InlineError
+            layout="row"
+            message="내 관심·권한 정보를 불러오지 못했어요."
+            onRetry={h.retryViewer}
+          />
         )}
       </section>
 
@@ -224,18 +222,7 @@ function HostEvents({ events }: { events: Events }) {
     );
   }
   if (events.status === 'error') {
-    return (
-      <div role="alert">
-        <Flex direction="column" align="center" gap={3} fullWidth>
-          <Txt typography="bodyMd" color={colors.textSecondary}>
-            공연을 불러오지 못했어요.
-          </Txt>
-          <Button variant="secondary" size="sm" onClick={events.retry}>
-            다시 시도
-          </Button>
-        </Flex>
-      </div>
-    );
+    return <InlineError message="공연을 불러오지 못했어요." onRetry={events.retry} />;
   }
   if (events.status === 'empty') {
     return <EmptyState title={HOST_EVENTS_EMPTY} />;

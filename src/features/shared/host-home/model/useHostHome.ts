@@ -11,6 +11,7 @@ import {
   hostViewerQuery,
 } from '@/api/host/queries';
 import type { HostEvent } from '@/api/host/schema';
+import { infiniteListControls } from '@/api/shared/page';
 import { flattenPages } from '@/api/shared/page';
 import { useSession } from '@/features/shared/auth/useSession';
 import {
@@ -140,15 +141,8 @@ export function useHostHome(hostId: string) {
       mode: eventsMode,
       status: eventsStatus,
       items: events,
-      hasNextPage: list.hasNextPage,
-      isFetchingNextPage: list.isFetchingNextPage,
-      /** 다음 페이지 실패 — 기존 행은 두고 하단 재시도(patterns §12) */
-      nextPageError: list.isFetchNextPageError,
-      loadMore: () => {
-        // 읽는 중에 다시 불려도 진행 중인 요청을 취소·재요청하지 않는다
-        if (list.hasNextPage && !list.isFetching) void list.fetchNextPage({ cancelRefetch: false });
-      },
-      retry: () => void (list.isFetchNextPageError ? list.fetchNextPage() : list.refetch()),
+      /** 다음 페이지 실패(`nextPageError`) — 기존 행은 두고 하단 재시도(patterns §12) */
+      ...infiniteListControls(list),
     },
   };
 }

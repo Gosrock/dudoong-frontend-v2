@@ -6,7 +6,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getErrorCode } from '@/api/errors';
 import { eventListQuery, eventTagsQuery } from '@/api/event/queries';
+import { infiniteListControls } from '@/api/shared/page';
 import { flattenPages } from '@/api/shared/page';
+import { useDebouncedValue } from '@/ui/hooks/useDebouncedValue';
 
 import {
   clampKeyword,
@@ -67,11 +69,13 @@ export function useEventList() {
     if (keyword !== current.keyword) replaceFilter({ ...current, keyword });
   }, []);
 
+  // 입력이 300ms 멈추면 주소에 적용(`es-toolkit` debounce — patterns §9, 코드 패턴 점검 A8).
+  // 멈춘 값(`settledInput === keywordInput`)만 적용한다 — 바깥에서 주소가 바뀌어 입력칸이 따라간 직후의 옛 값으로 되돌리지 않게
+  const settledInput = useDebouncedValue(keywordInput, KEYWORD_DEBOUNCE_MS);
   useEffect(() => {
-    if (keywordInput.trim() === filter.keyword) return;
-    const timer = setTimeout(() => applyKeyword(keywordInput), KEYWORD_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [keywordInput, filter.keyword, applyKeyword]);
+    if (settledInput !== keywordInput || settledInput.trim() === filter.keyword) return;
+    applyKeyword(settledInput);
+  }, [settledInput, keywordInput, filter.keyword, applyKeyword]);
 
   const update = useCallback((patch: Partial<EventListFilter>) => {
     const current = currentFilter();
@@ -140,15 +144,8 @@ export function useEventList() {
     events: {
       status,
       items: events,
-      hasNextPage: list.hasNextPage,
-      isFetchingNextPage: list.isFetchingNextPage,
-      /** 다음 페이지 실패 — 기존 행은 두고 하단 재시도(patterns §12) */
-      nextPageError: list.isFetchNextPageError,
-      loadMore: () => {
-        // 읽는 중에 다시 불려도 진행 중인 요청을 취소·재요청하지 않는다
-        if (list.hasNextPage && !list.isFetching) void list.fetchNextPage({ cancelRefetch: false });
-      },
-      retry: () => void (list.isFetchNextPageError ? list.fetchNextPage() : list.refetch()),
+      /** 다음 페이지 실패(`nextPageError`) — 기존 행은 두고 하단 재시도(patterns §12) */
+      ...infiniteListControls(list),
     },
   } as const;
 }
