@@ -6,7 +6,7 @@ import type { PublicTicketItem } from '@/api/ticket-item/schema';
  *
  * | 분기 | 티켓 | `paymentChannel` | CTA | 주문 생성 직후 |
  * |---|---|---|---|---|
- * | 입금형 | 두둥 | `BANK_TRANSFER` · `TOSS_TRANSFER` | 결제하기 → 입금 확인 모달 | `PENDING_APPROVE` |
+ * | 입금형 | 두둥 | `BANK_TRANSFER` · `TOSS_TRANSFER` | 결제하기 → 주문 확인 모달 [주문 완료하기] | `PENDING_APPROVE`(재고 잡힘) → 완료 화면에서 계좌·금액 안내 → 입금(B23) |
  * | 무료 승인형 | 무료 + 승인 | `FREE` | 신청하기(모달 없음) | `PENDING_APPROVE` |
  * | 무료 선착순 | 무료 + 승인 없음 | `FREE` | 신청하기(모달 없음) | `APPROVED`(즉시 발급). 확정 실패는 주문이 아니라 에러 |
  */
@@ -24,8 +24,11 @@ export function checkoutKind(
 /** CTA 문구 — GUI의 "저장"을 동작에 맞게 바꾼다(plan P7 ③) */
 export const ctaLabel = (kind: CheckoutKind) => (kind === 'TRANSFER' ? '결제하기' : '신청하기');
 
-/** CTA 뒤에 "입금하셨나요?" 확인 모달을 거치는지(V가 모달을 열고, 확인에서 `submit`을 부른다) */
-export const needsDepositConfirm = (kind: CheckoutKind) => kind === 'TRANSFER';
+/**
+ * CTA 뒤에 주문 확인 모달(요약 + 두둥 입금 전 확인 → [주문 완료하기])을 거치는지(V가 모달을 열고, 확인에서 `submit`을 부른다).
+ * 입금은 주문을 만든 뒤 완료 화면의 안내로 한다(B23 — 예전 "입금하셨나요?" 확인 뒤 생성 순서를 바꿨다, 사용자 결정 2026-11-02)
+ */
+export const needsOrderConfirm = (kind: CheckoutKind) => kind === 'TRANSFER';
 
 /** 고를 수 있는 결제 방식. 무료는 고르지 않는다(`PaymentChannelSelect`를 그리지 않는다) */
 export const selectablePaymentChannels = (kind: CheckoutKind): readonly PaymentChannel[] =>

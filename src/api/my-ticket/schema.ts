@@ -76,6 +76,11 @@ export const MyTicketGroupSchema = z.object({
   event: OrderEventSchema.nullable(),
   ticketName: z.string().nullable(),
   /**
+   * 승인형 주문인지(O-3 `approvalRequired`와 같은 값 — 백엔드 #924, 2.5.6 스테이징만). false = 무료 선착순(즉시 발급) →
+   * 배지 '발급 완료'(Q74). 받은 티켓 묶음은 원 주문 기준. 운영 2.5.3 응답에는 없어 optional — 없으면 '승인완료' 그대로
+   */
+  approvalRequired: z.boolean().optional(),
+  /**
    * 화면 상태별 개수(예: `{APPROVED: 2, GIFT_PENDING: 1}`). 티켓 없는 승인 대기·거절 주문은 주문 수량.
    * 키는 열어 둔다(모르는 상태는 화면 매핑에서 UNKNOWN으로 모은다 — `ticket-groups.ts`)
    */

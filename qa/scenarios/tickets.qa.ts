@@ -191,6 +191,40 @@ scenario(
 );
 
 scenario(
+  'TIX-1b',
+  '무료 선착순(즉시 발급) 묶음은 칩이 "승인완료" 대신 "발급 완료"',
+  {
+    kind: '정상',
+    summary:
+      'T-1 `groups[].approvalRequired`(백엔드 #924 — 2.5.6)가 false면 design-requests Q74 기본안 "발급 완료". 값이 없으면(운영 2.5.3) 지금처럼 "승인완료"(TIX-1).',
+    basis: ['Backend #914 답 5(B26)', 'design-requests Q74'],
+    viewports: ['mobile'],
+    mocks: [
+      http.get('*/api/v2/me/tickets/new-approved', () =>
+        HttpResponse.json(envelope.ok({ hasNew: false, orderUuids: [] })),
+      ),
+      http.get('*/api/v2/me/tickets', () =>
+        HttpResponse.json(
+          envelope.ok({
+            groups: allStateGroups()
+              .filter((g) => g.groupKey === 'qa-APPROVED')
+              .map((g) => ({ ...g, approvalRequired: false })),
+          }),
+        ),
+      ),
+    ],
+  },
+  async ({ page, step }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto(TAB);
+    await step('칩이 "발급 완료"다', async () => {
+      const group = page.getByTestId('ticket-group').first();
+      await expect(group.getByRole('listitem')).toHaveText(['발급 완료']);
+    });
+  },
+);
+
+scenario(
   'TIX-2',
   '들어가면 NEW 공지 바 · 첫 카드 · 공연명/일시/티켓 이름 · [주문상세], 정렬 라벨·유료옵션 금액은 없다',
   {

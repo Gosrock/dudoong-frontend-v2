@@ -40,13 +40,22 @@ test.describe('체크아웃 → 주문 완료', () => {
       .getByRole('alertdialog', { name: '주문 완료하기' })
       .getByRole('checkbox', { name: '(필수) 위 내용을 확인했으며 이에 동의합니다' })
       .click();
+    const post = page.waitForRequest(
+      (r) => r.method() === 'POST' && r.url().endsWith('/api/v2/me/orders'),
+    );
     await page
       .getByRole('alertdialog', { name: '주문 완료하기' })
-      .getByRole('button', { name: '결제완료' })
+      .getByRole('button', { name: '주문 완료하기' })
       .click();
+    // 주문 시도마다 Idempotency-Key(#923 — 영문·숫자·_·- 8~64자)
+    expect((await post).headers()['idempotency-key']).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
 
     await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
     await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+    // B23 — 주문을 입금 전에 만들고, 완료 화면이 계좌·금액을 안내한다
+    await expect(page.getByTestId('deposit-guide').getByTestId('deposit-amount')).toHaveText(
+      '50,000원',
+    );
     await expect(page.getByTestId('order-result')).toHaveAttribute(
       'data-kind',
       'AWAITING_DEPOSIT_APPROVAL',
@@ -66,6 +75,8 @@ test.describe('체크아웃 → 주문 완료', () => {
       'data-kind',
       'AWAITING_DEPOSIT_APPROVAL',
     );
+    // 새로고침(앱이 꺼진 뒤 다시 연 것과 같다)해도 계좌 안내가 남는다
+    await expect(page.getByTestId('deposit-guide')).toBeVisible();
     const reads = mockApi.calls().filter((c) => c.path === `/api/v2/me${orderPath}`);
     expect(reads.map((c) => [c.from, c.status])).toEqual([['browser', 200]]);
 
@@ -155,9 +166,9 @@ test.describe('체크아웃 → 주문 완료', () => {
     await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
     await host.click();
     await page.getByRole('button', { name: '결제하기' }).click();
-    await expect(dialog.getByRole('button', { name: '결제완료' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: '주문 완료하기' })).toBeDisabled();
     await notice.click();
-    await dialog.getByRole('button', { name: '결제완료' }).click();
+    await dialog.getByRole('button', { name: '주문 완료하기' }).click();
 
     await expect(
       page.getByRole('alert').filter({ hasText: '필수 동의를 다시 확인하고 체크해 주세요.' }),
@@ -171,7 +182,7 @@ test.describe('체크아웃 → 주문 완료', () => {
     const post = page.waitForRequest(
       (r) => r.method() === 'POST' && r.url().endsWith('/api/v2/me/orders'),
     );
-    await dialog.getByRole('button', { name: '결제완료' }).click();
+    await dialog.getByRole('button', { name: '주문 완료하기' }).click();
     expect((await post).postDataJSON()).toMatchObject({
       hostProvisionAgreed: true,
       dudoongTicketNoticeConfirmed: true,

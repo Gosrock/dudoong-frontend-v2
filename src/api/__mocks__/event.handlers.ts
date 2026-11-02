@@ -64,7 +64,11 @@ export const eventHandlers = [
       .filter((e) => includePast || e.displayStatus !== 'PAST')
       .filter(
         (e) =>
-          !keyword || (e.name ?? '').includes(keyword) || (e.host.name ?? '').includes(keyword),
+          !keyword ||
+          (e.name ?? '').includes(keyword) ||
+          (e.host.name ?? '').includes(keyword) ||
+          // 공연장 이름도(#922)
+          (e.place?.name ?? '').includes(keyword),
       )
       .filter((e) => [...wanted.values()].every((ids) => e.tags.some((t) => ids.has(t.tagId))))
       .sort(upcomingOrder)

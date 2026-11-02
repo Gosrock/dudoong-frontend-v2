@@ -65,6 +65,18 @@ export const HostCheckInRequestSchema = z.strictObject({
 });
 export type HostCheckInRequest = z.infer<typeof HostCheckInRequestSchema>;
 
+/** 티켓 번호 최대 길이(`V2CheckInByNoRequest` `TICKET_NO_MAX` — 백엔드 #926) */
+export const CHECK_IN_TICKET_NO_MAX = 20;
+
+/**
+ * PQ-2b 티켓 번호 체크인 본문(엄격, 백엔드 #926 — 2.5.6 스테이징만). `@NotBlank @Size(max = 20)` — 밖이면 400 `BAD_REQUEST`.
+ * 서버가 대소문자 · 앞뒤 공백을 무시하고, 숫자만 오면 `T`를 붙인다(`T1000118`). 없는 번호 · 다른 공연 번호는 200 + `OTHER_EVENT`
+ */
+export const HostCheckInByTicketNoRequestSchema = z.strictObject({
+  ticketNo: z.string().trim().min(1).max(CHECK_IN_TICKET_NO_MAX),
+});
+export type HostCheckInByTicketNoRequest = z.infer<typeof HostCheckInByTicketNoRequestSchema>;
+
 /**
  * GQ-1 체크인 통계(`V2EntranceStatsResponse`). `issuedCount` = 유효 발급 티켓(입장 전 + 입장 완료, 취소 제외 — 탈퇴 회원 티켓 포함),
  * `notEnteredCount` = 발급 − 입장, `entranceRate` = 입장률(%) 소수 첫째 자리 반올림, 발급 0이면 0.0(`V2EntranceStats`)

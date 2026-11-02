@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { isNotFound, isSessionLost } from '@/api/errors';
 import type { MyOrderDetail } from '@/api/order/schema';
+import { orderTossLink, TossTransferButton } from '@/features/audience/checkout/ui/DepositGuide';
 import { Accordion } from '@/ui/components/Accordion/Accordion';
 import {
   AsyncBoundary,
@@ -453,6 +454,12 @@ function PaymentInfo({ order }: { order: MyOrderDetail }) {
           )}
           <InfoRow label="예금주" value={account.accountHolder ?? '—'} />
         </>
+      )}
+      {/* B23 — 주문을 입금 전에 만들므로 앱이 꺼진 뒤에도 여기서 송금을 이어 간다(승인 대기 + 토스 송금만) */}
+      {order.status === 'PENDING_APPROVE' && orderTossLink(order) && (
+        <div className={s.tossTransfer}>
+          <TossTransferButton order={order} />
+        </div>
       )}
     </section>
   );

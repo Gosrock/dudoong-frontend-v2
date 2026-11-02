@@ -275,7 +275,7 @@ export function OptionAnswers({
   );
 }
 
-/** 거절 사유 — 와이어 `108:4850`(라디오 4개) · `108:5023`(기타 - 직접 입력, 최대 20자) + 약관 근거 안내(C-2·C-3) */
+/** 거절 사유 — 와이어 `108:4850`(라디오 4개) · `108:5023`(기타 - 직접 입력 — 와이어 20자, 서버 #921로 100자) + 약관 근거 안내(C-2·C-3) */
 function RefuseStep({ d }: { d: Detail }) {
   const f = d.refuseForm;
   return (
@@ -293,7 +293,7 @@ function RefuseStep({ d }: { d: Detail }) {
       {f.reasonType === 'ETC' && (
         <Input
           aria-label="기타 사유"
-          // 상한은 상수 하나(REFUSE_REASON_TEXT_MAX) — 백엔드 #921(20 → 100자) 배포 확인 뒤 그 값만 바꾼다(B31)
+          // 상한은 상수 하나(REFUSE_REASON_TEXT_MAX — 백엔드 #921, 100자)
           placeholder={`최대 ${REFUSE_REASON_TEXT_MAX}자 입력 가능`}
           maxLength={REFUSE_REASON_TEXT_MAX}
           value={f.reasonText}

@@ -679,6 +679,16 @@ export function completeGuestRefund(eventId: number, orderUuid: string): Result 
  * PQ-2(호스트 입장 처리)가 이 저장소의 발급 티켓을 판정한다 — 실제 서버는 GI-1 `ticketUuid`가 QR 값과 같아(api-contract §6)
  * 예매자 관리 [수동 입장 처리](#106 §5)가 같은 API를 쓴다. 관객 주문(`audience`)은 티켓탭 저장소가 맡으므로 null(그쪽 판정을 쓴다)
  */
+/** 예매자 관리 시드 티켓의 번호 → uuid(PQ-2b mock — #926). 이 공연 것만, 없으면 null */
+export function guestTicketUuidByNo(eventId: number, ticketNo: string): string | null {
+  for (const o of orders.values()) {
+    if (o.eventId !== eventId || o.audience) continue;
+    const t = o.issuedTickets.find((x) => x.issuedTicketNo === ticketNo);
+    if (t?.ticketUuid) return t.ticketUuid;
+  }
+  return null;
+}
+
 export function hostCheckInGuestTicket(
   eventId: number,
   ticketUuid: string,

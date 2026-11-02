@@ -39,8 +39,20 @@ export const TICKET_STATE_ORDER: readonly MyTicketState[] = [
   'UNKNOWN',
 ];
 
-export const ticketStateView = (state: MyTicketState): TicketStateView =>
-  TICKET_STATE_VIEW[state] ?? TICKET_STATE_VIEW.UNKNOWN;
+/** 승인 없이 바로 발급된(무료 선착순) 티켓의 '승인완료' 대신(design-requests Q74 기본안, 백엔드 #924) */
+export const ISSUED_WITHOUT_APPROVAL: TicketStateView = { label: '발급 완료', tone: 'positive' };
+
+/**
+ * 상태 → 표시. `approvalRequired`(T-1 묶음 — 백엔드 #924, 2.5.6)가 `false`면 '승인완료'를 '발급 완료'로.
+ * 값이 없으면(운영 2.5.3 응답 · T-2 상세) 지금처럼 '승인완료'
+ */
+export const ticketStateView = (
+  state: MyTicketState,
+  approvalRequired?: boolean,
+): TicketStateView =>
+  state === 'APPROVED' && approvalRequired === false
+    ? ISSUED_WITHOUT_APPROVAL
+    : (TICKET_STATE_VIEW[state] ?? TICKET_STATE_VIEW.UNKNOWN);
 
 /**
  * 카드를 눌렀을 때 열 상세. 티켓 uuid가 있으면 T-2, 선물 완료(SENT, uuid 없음)는 GG-7a(`giftId`).

@@ -1,4 +1,4 @@
-import { CHECK_IN_TICKET_UUID_MAX } from '@/api/check-in/schema';
+import { CHECK_IN_TICKET_NO_MAX, CHECK_IN_TICKET_UUID_MAX } from '@/api/check-in/schema';
 import { getErrorCode, getErrorStatus, isValidationError } from '@/api/errors';
 import type { EventStatus } from '@/api/event/schema';
 
@@ -86,6 +86,28 @@ export function normalizeScanValue(raw: string): ScanValue {
   if (value.length > CHECK_IN_TICKET_UUID_MAX) return { kind: 'invalid' };
   return { kind: 'ticket', ticketUuid: value };
 }
+
+// ─── 티켓 번호 입력(PQ-2b — 백엔드 #926) ─────────────────────
+
+export type TicketNoInput =
+  | { kind: 'empty' }
+  /** 20자 넘음(서버 400 `BAD_REQUEST`) — 보내지 않는다 */
+  | { kind: 'invalid' }
+  | { kind: 'ticketNo'; ticketNo: string };
+
+/**
+ * 입력 → PQ-2b `ticketNo`. 앞뒤 공백만 뺀다 — 대소문자 · 숫자만 입력(`1000118` → `T1000118`)은 서버가 맞춘다.
+ * 모양은 따지지 않는다: 없는 번호는 서버가 200 + `OTHER_EVENT`로 판정한다
+ */
+export function normalizeTicketNoInput(raw: string): TicketNoInput {
+  const value = raw.trim();
+  if (!value) return { kind: 'empty' };
+  if (value.length > CHECK_IN_TICKET_NO_MAX) return { kind: 'invalid' };
+  return { kind: 'ticketNo', ticketNo: value };
+}
+
+/** 번호 입력 칸 오류(빈 값 · 너무 김 · 서버 400). 🤖 문구 */
+export const TICKET_NO_INVALID_MESSAGE = '티켓 번호를 확인해 주세요 (예: T1000118)';
 
 // ─── 연속 스캔 스로틀(patterns §19) ──────────────────────────
 
