@@ -53,3 +53,38 @@ export function FilterChip({
     </button>
   );
 }
+
+export type CountFilterChipProps = Omit<ComponentPropsWithRef<'button'>, 'children'> & {
+  label: string;
+  /** 개수. `null`(아직 모름)·0이면 숫자를 그리지 않는다(GUI 예매자 관리 — "승인 대기"만 남은 칩) */
+  count?: number | null;
+  /** 고른 칩(테두리 검정). `aria-pressed`로 나간다 */
+  selected: boolean;
+};
+
+/**
+ * Figma Filter Chip 개수형(`state` `selected/number` `776:2019` · `deselected/number` `776:2030` — #61, 2026-11-01).
+ * 32h · 패딩 6·12 · 간격 4 · 모서리 8 · 흰 배경, 글자 + 개수(`Label/sm`). chevron·Badge 없음 — 펼치지 않고 누르면 그 값으로 거르는
+ * 단일 선택 필터(예매자 관리 상태 칩). 고른 칩은 테두리 `text/primary-label`
+ */
+export function CountFilterChip({
+  label,
+  count,
+  selected,
+  className,
+  type = 'button',
+  ...rest
+}: CountFilterChipProps) {
+  return (
+    <button
+      type={type}
+      aria-pressed={selected}
+      data-selected={selected ? 'true' : undefined}
+      className={[s.root, s.count, className].filter(Boolean).join(' ')}
+      {...rest}
+    >
+      {label}
+      {count ? <span>{count.toLocaleString('ko-KR')}</span> : null}
+    </button>
+  );
+}

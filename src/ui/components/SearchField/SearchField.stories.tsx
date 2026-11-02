@@ -7,7 +7,7 @@ import { SearchField } from './SearchField';
 const meta = {
   title: 'Components/SearchField',
   component: SearchField,
-  args: { placeholder: '검색어를 입력해주세요', 'aria-label': '공연 검색' },
+  args: { placeholder: '검색어를 입력해 주세요', 'aria-label': '공연 검색' },
   decorators: [
     (Story) => (
       <div style={{ width: 358 }}>
@@ -53,7 +53,7 @@ function Controlled() {
     <>
       <SearchField
         aria-label="공연 검색"
-        placeholder="검색어를 입력해주세요"
+        placeholder="검색어를 입력해 주세요"
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />

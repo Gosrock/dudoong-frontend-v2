@@ -4,7 +4,7 @@ import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { Flex } from '../../primitives/Flex';
 import { Txt } from '../../primitives/Txt';
-import { FilterChip } from './FilterChip';
+import { CountFilterChip, FilterChip } from './FilterChip';
 
 const meta = {
   title: 'Components/FilterChip',
@@ -58,5 +58,28 @@ export const WithPopover: Story = {
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(chip).toHaveAttribute('aria-expanded', 'false'));
     await expect(chip).toHaveFocus();
+  },
+};
+
+/** 개수형(#61 — `selected/number` · `deselected/number`). 0·null이면 숫자 없음 */
+export const CountVariants: Story = {
+  render: () => (
+    <Flex gap={2} align="center" padding={4}>
+      <CountFilterChip label="전체" count={6} selected />
+      <CountFilterChip label="승인 대기" count={2} selected={false} />
+      <CountFilterChip label="승인 완료" count={0} selected={false} />
+      <CountFilterChip label="환불 요청" count={null} selected={false} />
+    </Flex>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('button', { name: '전체 6' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(canvas.getByRole('button', { name: '승인 완료' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
   },
 };

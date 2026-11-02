@@ -48,3 +48,10 @@ export const srOnly = style({
   clip: 'rect(0 0 0 0)',
   whiteSpace: 'nowrap',
 });
+
+/** 개수형(#61) — 고른 칩은 테두리 검정(`text/primary-label`) */
+export const count = style({
+  selectors: {
+    '&[data-selected="true"]': { borderColor: vars.color.text.primaryLabel },
+  },
+});
