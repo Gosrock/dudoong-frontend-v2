@@ -56,5 +56,12 @@ const colors = defineProperties({
   },
 });
 
-export const sprinkles = createSprinkles(responsive, colors);
+/** 목록 표식 리셋(`ul`·`ol`을 목록 의미로만 쓸 때). 전역 리셋은 두지 않는다 — 번호 · 글머리를 보이는 목록이 있다(체크아웃 동의 · 안내) */
+const lists = defineProperties({
+  properties: {
+    listStyle: ['none'],
+  },
+});
+
+export const sprinkles = createSprinkles(responsive, colors, lists);
 export type Sprinkles = Parameters<typeof sprinkles>[0];

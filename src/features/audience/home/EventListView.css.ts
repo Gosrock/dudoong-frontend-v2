@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -48,19 +49,22 @@ export const pastToggle = style({
 });
 
 /** 카드 격자 — 모바일 2열 · 600부터 3열 · PC 4열(plan P5a), 간격 16 · PC 24(와이어) */
-export const grid = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: vars.space[4],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-  '@media': {
-    'screen and (min-width: 600px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' },
-    [media.desktop]: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: vars.space[5] },
+export const grid = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: vars.space[4],
+    margin: 0,
+    padding: 0,
+    '@media': {
+      'screen and (min-width: 600px)': { gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' },
+      [media.desktop]: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: vars.space[5] },
+    },
   },
-});
+]);
 
+/** 카드 뼈대 — `ConcertCard`의 포스터 · 글자 간격 10과 같게(토큰에 10이 없다 — DS 카드 값) */
 export const skeletonCard = style({ display: 'flex', flexDirection: 'column', gap: 10 });
 
 export const skeletonPoster = style({ aspectRatio: '163 / 231' });

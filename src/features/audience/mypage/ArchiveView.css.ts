@@ -1,18 +1,21 @@
 import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** 아카이빙 포스터 그리드(와이어 `503:16328` 2열, PC `671:6692` 4열) */
-export const grid = style({
-  listStyle: 'none',
-  margin: 0,
-  padding: `${vars.space[4]} ${vars.space[5]}`,
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: `${vars.space[5]} ${vars.space[4]}`,
-  '@media': { [media.desktop]: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' } },
-});
+export const grid = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    margin: 0,
+    padding: `${vars.space[4]} ${vars.space[5]}`,
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: `${vars.space[5]} ${vars.space[4]}`,
+    '@media': { [media.desktop]: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' } },
+  },
+]);
 
 export const gridPoster = style({
   position: 'relative',

@@ -1,6 +1,7 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 
 import { media } from '../../theme/breakpoints';
+import { sprinkles } from '../../theme/sprinkles.css';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
@@ -125,15 +126,17 @@ export const footerEnd = style({
   transform: 'translateY(-50%)',
 });
 
-export const pagination = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: vars.space[1],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const pagination = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: vars.space[1],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 export const pageButton = style([
   typography.labelMd,

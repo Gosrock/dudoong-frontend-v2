@@ -1,17 +1,20 @@
 import { style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** 와이어 `121:2026` 행(테두리 상자 + 아이콘 + 값)을 DS 토큰으로 */
-export const list = style({
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  width: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-});
+export const list = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    margin: 0,
+    padding: 0,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[2],
+  },
+]);
 
 export const row = style({
   display: 'flex',

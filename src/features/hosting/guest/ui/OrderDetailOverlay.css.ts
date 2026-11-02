@@ -1,5 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 export const sectionTitle = style({ margin: 0 });
@@ -52,14 +53,16 @@ export const lineValue = style({
 });
 
 /** 티켓 카드 목록(간격 8) */
-export const cards = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const cards = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[2],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 /** 티켓 카드(GUI `1029:6909` — 테두리 `surface/default-border` · 모서리 8 · 안쪽 12 · 간격 8) */
 export const card = style({
