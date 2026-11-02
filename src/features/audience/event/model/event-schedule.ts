@@ -1,13 +1,11 @@
 import type { EventDetail } from '@/api/event/schema';
-import { formatKstDateTime, parseKstDateTime } from '@/api/shared/date';
+import { formatKstDotDate, formatKstTime, kstParts, parseKstDateTime } from '@/api/shared/date';
 
 /**
  * 공연 상세의 일시 표시값(GUI `29:1017` "일시 (180분)"). 러닝타임은 시작·종료로 FE가 계산한다(plan P5b).
  * 서버의 `endAt`은 `startAt + runTime`(분)이라 두 값은 같다(백엔드 `Event.getEndAt`). 종료가 없을 때만 `runTime`을 쓴다.
  * 날짜는 KST로 읽는다(`api/shared/date.ts` — 실행 환경 시간대를 쓰지 않는다).
  */
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
 export type EventSchedule = {
   /** `2026.10.17 (토)` */
@@ -28,11 +26,12 @@ export type EventSchedule = {
 
 /** `'2026.10.17 19:30'` → `{ date: '2026.10.17 (토)', time: '19:30' }` */
 function splitKst(value: string) {
-  const at = parseKstDateTime(value);
-  const [day, time] = formatKstDateTime(at).split(' ') as [string, string];
-  const [y, m, d] = day.split('.').map(Number) as [number, number, number];
-  const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
-  return { at, date: `${day} (${weekday})`, time };
+  // 요일·KST 계산은 `date.ts`만 한다(코드 패턴 점검 A19)
+  return {
+    at: parseKstDateTime(value),
+    date: `${formatKstDotDate(value)} (${kstParts(value).weekday})`,
+    time: formatKstTime(value),
+  };
 }
 
 export function eventSchedule(

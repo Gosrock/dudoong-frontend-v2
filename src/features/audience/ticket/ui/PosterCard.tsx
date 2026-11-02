@@ -1,7 +1,6 @@
 'use client';
 
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import { useState } from 'react';
 
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 
@@ -46,14 +45,10 @@ export function PosterCard({
 }
 
 function Poster({ src }: { src: string | null }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return null;
+  if (!src) return null;
   return (
     // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 카드 폭 `min(294px, 75vw)`(TicketTab.css)
     <UploadedImage
-      ref={(img) => {
-        if (img && img.complete && img.naturalWidth === 0) setFailed(true);
-      }}
       className={s.posterImage}
       src={src}
       alt=""
@@ -61,7 +56,6 @@ function Poster({ src }: { src: string | null }) {
       height={416}
       sizes="(min-width: 392px) 294px, 75vw"
       decoding="async"
-      onError={() => setFailed(true)}
     />
   );
 }

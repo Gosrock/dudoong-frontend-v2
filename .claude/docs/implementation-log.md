@@ -2650,3 +2650,34 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **ego-browser 확인(2026-11-02, dev:mock)**: 홈 카드 가격 줄 · 체크아웃 주문 확인 모달 · 주문 완료 입금 안내(390) · 주문상세 토스 버튼(390). QR 체크인은 카메라 권한 창이 떠 브라우저 제어가 사용자에게 넘어가 보지 못했다 — QA QR-10(카메라 거부 상태)으로 확인.
 
 **문서**: api-contract(§1 메서드 의미 중복 판정 · GP-1/2 카드 값 · 검색 · T-1 · PQ-2b) · backend-questions(B23~B27 답 · 결정, B24 고정, B31 닫음, B28~B33 "전달함 — Backend #928") · error-codes(머리 · `Redisson_500_1` · `Order_400_26`) · cutover-runbook §2(운영 2.5.6) · design-requests Q97~Q99(+ Q16 · Q63 · Q74 칸) · legal-copy A-6 위치 칸 · progress.
+
+## 코드 패턴 정리 ③ 관객 화면 옮기기(2026-11-03, `pattern-audience`)
+
+**근거**: [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) 묶음 ③(A1 · A3 · A4 · A6 · A7 · A10~A13 · A17~A20 · A23 · A34~A39) — A번호별 결과는 그 문서 "③ 결과". #126 공용 부품을 쓰기만 했다(`src/ui` · `src/api` 수정 없음). 폼 방식은 바꾸지 않았다(⑥ 몫).
+
+**사용자에게 보이는 변화**(근거 — Figma Ready 원문 또는 공용 규칙)
+
+| 화면 | 전 | 후 | 근거 |
+|---|---|---|---|
+| 주문내역 카드 포스터 배지 | 당일 `D-DAY` · 지난 공연 `공연종료` | `D-day` · `공연 종료` | design-system §3 Concert state chip(`dday.ts`, A4) |
+| 관심 호스트 대표 공연 배지 | 당일 `D-DAY` | `D-day` | 같음 |
+| 티켓탭 상태 칩 | `승인 대기` · `승인 거절` | `승인대기` · `승인거절` | 티켓탭 GUI `908:3276`(Ready) 칩 글자(A38) |
+| 주문상세 티켓상태 | `입장완료` | `입장 완료` | GUI `908:3276` "입장 완료 티켓" · 티켓탭 표(A38) |
+| 주문상세 결제방식 | `직접계좌이체` | `계좌이체` | 체크아웃 GUI `564:4156`(Ready) 결제방식 버튼(A38) |
+| 주문상세 결제정보 안내(승인 대기) | 입금자명은 닉네임과 동일하게 **입력해주세요** | 입금자명은 닉네임과 동일하게 **해주세요** | 체크아웃 GUI `564:4156` 원문(A17) |
+| 선물 랜딩 거절 · 취소/회수 확인 | 실패해도 닫힘 · PC도 바텀시트 | 표에 없는 실패(토스트)면 **열린 채**, 이미 처리됨(표의 코드)은 닫고 상태 화면 · PC(≥1024)는 가운데 모달(`ResponsiveOverlay`) | 확인 창 계약(patterns §6, A1) |
+| 불러오지 못함 줄(주문 완료 · 선물 랜딩 · 공연 상세 티켓 목록 · 아카이빙 · 관심 호스트 · 주문상세) | 화면마다 글자색 `textSecondary`/`textSecondaryLabel` · 버튼 md/sm | `InlineError` 하나(`textSecondaryLabel` · secondary sm) | A7 |
+| 체크아웃 금액 | `18,000 원` | 그대로 | GUI `564:4156` · `567:9468` 원문이 띄어 씀(A3) |
+
+**Claude 판단(🤖 2026-11-03)**
+- 확인 창 결과 `true`에 "표의 코드라 다시 읽은 상태가 답이 된 경우"도 넣었다 — 선물 랜딩은 400 이미 처리됨 → 다시 읽은 상태 화면이 바뀌므로 창을 열어 두면 바뀐 화면을 가린다(patterns §11). `false`는 표에 없는 실패만.
+- 실패 문구를 시트 안에 보이는 네 곳(티켓탭 선물 취소 · 반환, 탈퇴, 무료 주문 취소)은 `openConfirm`으로 옮기지 않았다 — `content`가 열 때 고정이라 훅 상태를 못 받는다. `src/ui`를 고치지 않는다는 범위 안에서 문구를 토스트로 바꾸는 것보다 지금 동작을 두는 쪽을 골랐다.
+- 선물 확인 창을 `variant: 'responsive'`로 — 모바일은 그대로 바텀시트, PC는 모달(관객 다른 확인 창과 같다).
+- 관객 공용 자리를 `features/audience/routes.ts` · `event-labels.ts`(피처 폴더 밖 audience 바로 아래), 톤 색 표는 `ticket/ui/state-tone.ts`(mypage가 import — 주문상세가 이미 `checkout/ui/DepositGuide`를 import하는 것과 같은 방식). ⑤에서 자리를 다시 정할 수 있다.
+- `UPLOAD_ERROR_MESSAGE`는 directory-structure의 `features/shared/image-upload/`에 문구표만 — 훅(`useImageUpload`)은 쓰는 곳이 관객 하나라 만들지 않았다.
+
+**테스트**: 단위 — 문구가 바뀐 단언만 고침(`D-DAY` → `D-day` 1 · 티켓 상태 라벨 2), `shareKakaoOrCopy` 2개 추가. QA 기대값 — `tickets`(승인대기 칩) · `mypage`(계좌이체).
+
+**검사**: typecheck · 바꾼 파일 lint · vitest(audience · kakao-share · checkin-result 675+) 통과. e2e(checkout · event-detail · tickets · gift-landing · mypage · check-in · a11y · a11y-keyboard) 218 passed / 0 failed. QA checkout 31 · event-detail 18 · ticket-select 13 · tickets 20 · gift 14 · mypage 33 · self-checkin 14 · integration 8 — 모두 통과.
+
+**ego-browser 확인(2026-11-03, dev:mock)**: 주문내역 390(배지 `D-18` · 금액 `6,000원` · 무료) · 티켓탭 390(칩 `승인대기 2`) · 주문상세(결제방식 `계좌이체` · 티켓상태 `입장 완료` · 금액 블록) · 선물 랜딩 거절 확인 390(바텀시트 [아니오] [예]) · 1440(가운데 모달) → [예] → "선물 거절 완료".

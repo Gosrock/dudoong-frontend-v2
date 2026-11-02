@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { kakaoFeedTemplate } from './feed-template';
-import { type KakaoSdk, resetKakaoSdkForTest, shareKakaoFeed } from './kakao-sdk';
+import { type KakaoSdk, resetKakaoSdkForTest, shareKakaoFeed, shareKakaoOrCopy } from './kakao-sdk';
 
 const template = kakaoFeedTemplate({
   title: '공연',
@@ -98,5 +98,22 @@ describe('카카오 공유 SDK 래퍼', () => {
     expect(lines.some((l) => l.includes('kakao_share.failed'))).toBe(true);
     expect(lines.join('\n')).not.toContain('SECRET-TOKEN');
     warn.mockRestore();
+  });
+});
+
+describe('shareKakaoOrCopy — 실패하면 링크 복사(patterns §14)', () => {
+  it('공유창이 열리면 복사하지 않는다', async () => {
+    window.Kakao = fakeSdk();
+    const copy = vi.fn(async () => {});
+    await shareKakaoOrCopy(template, copy);
+    expect(copy).not.toHaveBeenCalled();
+  });
+
+  it('앱 키가 없어 공유하지 못하면 복사한다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_KAKAO_JS_KEY', '');
+    window.Kakao = fakeSdk();
+    const copy = vi.fn(async () => {});
+    await shareKakaoOrCopy(template, copy);
+    expect(copy).toHaveBeenCalledTimes(1);
   });
 });

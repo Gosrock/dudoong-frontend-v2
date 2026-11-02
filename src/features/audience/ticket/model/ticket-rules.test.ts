@@ -25,8 +25,8 @@ import {
 
 describe('티켓 state 11값 → 표시', () => {
   it.each([
-    ['PENDING_APPROVE', '승인 대기', 'waiting'],
-    ['REFUSED', '승인 거절', 'negative'],
+    ['PENDING_APPROVE', '승인대기', 'waiting'],
+    ['REFUSED', '승인거절', 'negative'],
     ['APPROVED', '승인완료', 'positive'],
     ['GIFT_PENDING', '선물 대기중', 'gift'],
     ['GIFT_EXPIRED', '선물 만료', 'negative'],

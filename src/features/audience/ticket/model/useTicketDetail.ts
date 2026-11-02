@@ -5,9 +5,9 @@ import { useEffect, useRef } from 'react';
 
 import { isNotFound, isSessionLost } from '@/api/errors';
 import { sentGiftTicketQuery } from '@/api/gift/queries';
-import { myTicketQuery, myTicketsQuery, newApprovedTicketsQuery } from '@/api/my-ticket/queries';
+import { myTicketQuery, myTicketsQuery } from '@/api/my-ticket/queries';
 import type { MyTicketDetail } from '@/api/my-ticket/schema';
-import { NOTIFICATIONS_KEY } from '@/features/audience/gift/model/gift-cache';
+import { orderHref } from '@/features/audience/routes';
 
 import {
   type EntryQr,
@@ -16,7 +16,7 @@ import {
   ticketStateView,
   type TicketTarget,
 } from './my-ticket-state';
-import { orderDetailHref } from './ticket-groups';
+import { useMarkTicketViewed } from './useMarkTicketViewed';
 
 export type TicketDetailState =
   | { status: 'idle' }
@@ -45,8 +45,7 @@ const emptyKey = '';
 /**
  * 카드를 눌러 연 티켓 상세(plan P8). `target`이 null이면 아무것도 부르지 않는다 — **열 때만** T-2(또는 선물 완료면 GG-7a)를 부른다.
  *
- * - 처음 받으면 G11/T-3과 알림(GN-2)을 한 번 무효화한다 — 서버가 T-2·GG-7a 응답 전에 그 주문의 승인 알림을 읽음 처리한다(#888,
- *   응답 직후 T-3 `hasNew: false`라 기다리거나 다시 읽지 않는다. 드물게 읽음 처리가 실패해도 T-2는 200이고 바는 다음에 열 때까지 남는다)
+ * - 처음 받으면 G11/T-3과 알림(GN-2)을 한 번 무효화한다(`useMarkTicketViewed` — 읽음 동기화)
  * - 404(`IssuedTicket_404_1`·`Gift_404_1`)면 티켓탭 목록을 다시 읽고 `gone` — 선물로 넘어갔거나 uuid가 바뀌었다
  * - 404가 아닌 첫 실패는 경계(`<AsyncBoundary>`)로 던진다
  * - QR 갱신: `staleTime` 0이라 상세를 다시 열거나 창에 돌아오면 다시 읽는다. 선물 수락·반환 뒤에는 티켓 쿼리 전체가 무효화된다(`gift-cache.ts`)
@@ -74,14 +73,8 @@ export function useTicketDetail(target: TicketTarget | null): TicketDetailState 
         : `g:${target.giftId}`;
   const gone = q.error !== null && isNotFound(q.error) && q.data === undefined;
 
-  // 처음 받은 상세마다 공지 바·알림 무효화(한 번)
-  const viewed = useRef<string | null>(null);
-  useEffect(() => {
-    if (!key || !q.isSuccess || viewed.current === key) return;
-    viewed.current = key;
-    void queryClient.invalidateQueries({ queryKey: newApprovedTicketsQuery().queryKey });
-    void queryClient.invalidateQueries({ queryKey: [...NOTIFICATIONS_KEY] });
-  }, [key, q.isSuccess, queryClient]);
+  // 처음 받은 상세마다 공지 바·알림 무효화(한 번) — 읽음 동기화
+  useMarkTicketViewed(key, q.isSuccess);
 
   // 404 → 목록 다시 읽기(한 번)
   const reloaded = useRef<string | null>(null);
@@ -109,6 +102,6 @@ export function toDetailView(detail: MyTicketDetail): TicketDetailView {
       pending && detail.gift
         ? { giftId: detail.gift.giftId, linkPath: detail.gift.linkPath, memo: detail.gift.memo }
         : null,
-    orderHref: detail.orderUuid ? orderDetailHref(detail.orderUuid) : null,
+    orderHref: detail.orderUuid ? orderHref(detail.orderUuid) : null,
   };
 }

@@ -5,9 +5,10 @@ import { type ReactNode, useState } from 'react';
 
 import { formatKstDotDateWeekdayTime } from '@/api/shared/date';
 import { LoginRequiredLink } from '@/features/shared/auth/LoginRequiredLink';
-import { BottomSheet } from '@/ui/components/BottomSheet/BottomSheet';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 import { Skeleton, SkeletonText } from '@/ui/components/Skeleton/Skeleton';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
@@ -34,8 +35,6 @@ type Landing = ReturnType<typeof useGiftLanding>;
 export function GiftLandingView({ giftToken }: { giftToken: string }) {
   const landing = useGiftLanding(giftToken);
   const { state } = landing;
-  /** 열린 확인 시트 */
-  const [asked, setAsked] = useState<'reject' | 'cancel' | null>(null);
   /** 이 화면에서 거절·취소를 확인했는지 — 다시 읽은 상태가 REJECTED·CANCELED이고 에러가 없으면 "완료" 화면으로 */
   const [did, setDid] = useState<'reject' | 'cancel' | null>(null);
 
@@ -45,13 +44,11 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
   if (state.status === 'error') {
     return (
       <main className={s.page}>
-        <Flex direction="column" align="center" gap={3} paddingY={8}>
-          <Txt typography="bodyMd" color={colors.textSecondary} align="center">
-            <span role="alert">불러오지 못했어요. 잠시 후 다시 시도해 주세요.</span>
-          </Txt>
-          <Button variant="secondary" size="md" onClick={state.retry}>
-            다시 시도
-          </Button>
+        <Flex paddingY={2} justify="center">
+          <InlineError
+            message="불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+            onRetry={state.retry}
+          />
         </Flex>
       </main>
     );
@@ -121,7 +118,21 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
                 size="lg"
                 fullWidth
                 disabled={landing.receiveMode !== 'enabled'}
-                onClick={() => setAsked('reject')}
+                onClick={() =>
+                  // 거절 확인 — GUI `939:26858`(시트 `939:26914`) "선물을 거절하시겠습니까?" [아니오] [예]
+                  // FIGMA-CUSTOM: 거절 확인 시트(gui 939:26914 "Frame 1707480354") 커스텀 → DS 확인 창(EasyOverlay responsive — 모바일 BottomSheet). Figma 코멘트 2026-11-01
+                  void openConfirm({
+                    variant: 'responsive',
+                    title: '선물을 거절하시겠습니까?',
+                    description: '확인을 누르시면 해당 티켓 선물이 반환됩니다.',
+                    cancelLabel: '아니오',
+                    confirmLabel: '예',
+                    onConfirm: () => {
+                      setDid('reject');
+                      return landing.reject();
+                    },
+                  })
+                }
               >
                 거절하기
               </Button>
@@ -137,15 +148,6 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
             </div>
           </Flex>
         </section>
-        <RejectSheet
-          open={asked === 'reject'}
-          onClose={() => setAsked(null)}
-          pending={landing.pending}
-          onConfirm={async () => {
-            setDid('reject');
-            await landing.reject();
-          }}
-        />
       </main>
     );
   }
@@ -181,7 +183,21 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
                   size="lg"
                   fullWidth
                   disabled={landing.cancelMode !== 'enabled'}
-                  onClick={() => setAsked('cancel')}
+                  onClick={() =>
+                    // 보낸 사람의 취소·회수 확인 — 디자인 없음. 티켓탭 선물 취소 시트(`908:21252`)와 같은 문구,
+                    // [아니요]는 이슈 #106 §1(거절 시트 939:26914 배치)
+                    void openConfirm({
+                      variant: 'responsive',
+                      title: `선물을 ${verb}하시겠습니까?`,
+                      description: `확인을 누르시면 해당 티켓 선물이 ${verb}됩니다.`,
+                      cancelLabel: '아니요',
+                      confirmLabel: `선물 ${verb}하기`,
+                      onConfirm: () => {
+                        setDid('cancel');
+                        return landing.cancelGift();
+                      },
+                    })
+                  }
                 >
                   {`선물 ${verb}`}
                 </Button>
@@ -195,16 +211,6 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
             </div>
           </Flex>
         </section>
-        <CancelSheet
-          open={asked === 'cancel'}
-          onClose={() => setAsked(null)}
-          verb={verb}
-          pending={landing.pending}
-          onConfirm={async () => {
-            setDid('cancel');
-            await landing.cancelGift();
-          }}
-        />
       </main>
     );
   }
@@ -282,14 +288,13 @@ function resultScreen(
 /** 받을 선물의 공연 — 포스터 294 · 공연명(`Title`) · 일시와 티켓 이름(`Body/lg`, 회색) */
 function Summary({ landing, heading = 'h1' }: { landing: Landing; heading?: 'h1' | 'h2' }) {
   const { event, ticket } = landing.summary;
-  const [failed, setFailed] = useState(false);
   const poster = event?.posterImageUrl ?? null;
   const when = event?.startAt ? formatKstDotDateWeekdayTime(event.startAt) : null;
   return (
     <Flex direction="column" align="center" gap={5} fullWidth>
       {/* FIGMA-CUSTOM: 받는 선물 포스터(gui 939:26845 "image 182-1") 커스텀 → 커스텀 GiftLanding.css.ts. DS 후보(design-system §3) */}
       <div className={s.poster}>
-        {poster && !failed && (
+        {poster && (
           // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 폭 `min(294px, 75vw)`(GiftLanding.css)
           <UploadedImage
             className={s.posterImage}
@@ -298,10 +303,6 @@ function Summary({ landing, heading = 'h1' }: { landing: Landing; heading?: 'h1'
             width={294}
             height={416}
             sizes="(min-width: 392px) 294px, 75vw"
-            ref={(img) => {
-              if (img && img.complete && img.naturalWidth === 0) setFailed(true);
-            }}
-            onError={() => setFailed(true)}
           />
         )}
       </div>
@@ -316,87 +317,5 @@ function Summary({ landing, heading = 'h1' }: { landing: Landing; heading?: 'h1'
         </Txt>
       </Flex>
     </Flex>
-  );
-}
-
-/** 거절 확인 — GUI `939:26858`(시트 `939:26914`) "선물을 거절하시겠습니까?" [아니오] [예] */
-function RejectSheet({
-  open,
-  onClose,
-  pending,
-  onConfirm,
-}: {
-  open: boolean;
-  onClose: () => void;
-  pending: boolean;
-  onConfirm: () => Promise<void>;
-}) {
-  // FIGMA-CUSTOM: 거절 확인 시트(gui 939:26914 "Frame 1707480354") 커스텀 → DS BottomSheet. Figma 코멘트 2026-11-01
-  return (
-    <BottomSheet
-      open={open}
-      onOpenChange={(next) => !next && !pending && onClose()}
-      dismissible={!pending}
-      title="선물을 거절하시겠습니까?"
-      description="확인을 누르시면 해당 티켓 선물이 반환됩니다."
-      footer={
-        <div className={s.actions}>
-          <Button variant="secondary" size="lg" fullWidth disabled={pending} onClick={onClose}>
-            아니오
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={pending}
-            onClick={() => void onConfirm().then(onClose)}
-          >
-            예
-          </Button>
-        </div>
-      }
-    />
-  );
-}
-
-/** 보낸 사람의 취소·회수 확인 — 디자인 없음. 티켓탭 선물 취소 시트(`908:21252`)와 같은 문구 */
-function CancelSheet({
-  open,
-  onClose,
-  verb,
-  pending,
-  onConfirm,
-}: {
-  open: boolean;
-  onClose: () => void;
-  verb: string;
-  pending: boolean;
-  onConfirm: () => Promise<void>;
-}) {
-  return (
-    <BottomSheet
-      open={open}
-      onOpenChange={(next) => !next && !pending && onClose()}
-      dismissible={!pending}
-      title={`선물을 ${verb}하시겠습니까?`}
-      description={`확인을 누르시면 해당 티켓 선물이 ${verb}됩니다.`}
-      footer={
-        // 티켓탭 선물 취소 시트와 같이 [아니요]를 더했다(이슈 #106 §1, 거절 시트 939:26914 배치)
-        <div className={s.actions}>
-          <Button variant="secondary" size="lg" fullWidth disabled={pending} onClick={onClose}>
-            아니요
-          </Button>
-          <Button
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={pending}
-            onClick={() => void onConfirm().then(onClose)}
-          >
-            {`선물 ${verb}하기`}
-          </Button>
-        </div>
-      }
-    />
   );
 }

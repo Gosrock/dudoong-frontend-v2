@@ -3,7 +3,7 @@
 import { overlay } from 'overlay-kit';
 
 import type { EventDetail } from '@/api/event/schema';
-import { shareKakaoFeed } from '@/features/shared/kakao-share/model/kakao-sdk';
+import { shareKakaoOrCopy } from '@/features/shared/kakao-share/model/kakao-sdk';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { toast } from '@/ui/components/Toast/Toast';
@@ -22,11 +22,8 @@ async function copyEventUrl(url: string) {
 }
 
 /** 카카오 공유창 — SDK가 실패하면 주소를 복사한다(patterns §14) */
-async function shareKakao(event: EventDetail, url: string) {
-  const result = await shareKakaoFeed(eventShareTemplate(event, url));
-  if (result === 'shared') return;
-  await copyEventUrl(url);
-}
+const shareKakao = (event: EventDetail, url: string) =>
+  shareKakaoOrCopy(eventShareTemplate(event, url), () => copyEventUrl(url));
 
 /** 기본 공유 시트(`navigator.share`)가 있는 브라우저인지 — 시트를 연 뒤(브라우저)에만 부른다 */
 const canNativeShare = () =>

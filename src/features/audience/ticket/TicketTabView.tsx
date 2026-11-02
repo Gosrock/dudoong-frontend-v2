@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { isSessionLost } from '@/api/errors';
+import { DELETED_EVENT } from '@/features/audience/event-labels';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
@@ -183,10 +184,10 @@ function TicketTabContent() {
                       group={g}
                       label={
                         !isActive
-                          ? `${g.group.event?.name ?? '삭제된 공연'} 카드로`
+                          ? `${g.group.event?.name ?? DELETED_EVENT} 카드로`
                           : canOpen(i)
                             ? '입장 QR 보기'
-                            : `${g.group.event?.name ?? '삭제된 공연'} 티켓`
+                            : `${g.group.event?.name ?? DELETED_EVENT} 티켓`
                       }
                       onPress={(el) => {
                         if (!isActive) return scrollTo(i);

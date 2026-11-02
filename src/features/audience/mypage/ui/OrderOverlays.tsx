@@ -197,6 +197,8 @@ function RefundAccountSheet({
  * [주문취소] → 유료(두둥)는 A-9 안내 + 환불 계좌 칸이 같이 있는 시트(유료 취소는 계좌가 있어야 요청된다 — `Order_400_25`),
  * 무료는 A-10 확인 팝업. 성공하면 닫고 A-11 토스트. 실패 안내는 시트 · 팝업 안에 남는다.
  * 노출은 화면이 `canCancel`(`useOrderDetail().cancel.kind === 'cancel'`)로만 정한다.
+ * 확인 창 계약(patterns §6)의 `openConfirm`을 쓰지 않는다 — 실패 문구(이미 처리됨 · 기한 지남 · 환불 계좌 칸 오류)를 시트 안에 보여야 하는데 EasyOverlay `content`는 열 때 고정된
+ * 노드라 훅 상태를 받지 못한다(코드 패턴 점검 A1 — 이유를 적고 그대로). 실패하면 열린 채, 성공하면 닫힘은 같다.
  */
 export function openCancelOrder(orderUuid: string, eventId: number, paid: boolean) {
   overlay.open(({ isOpen, close, unmount }) =>

@@ -5,14 +5,10 @@ import { Icon } from '@/ui/icons/Icon';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
+import { formatPrice } from '@/utils/money';
 
 import { ONE_TICKET_KIND_WARNING, type TicketSelection } from '../model/useTicketSelection';
-import {
-  canListTickets,
-  formatTicketPrice,
-  TicketListFallback,
-  TicketRowContent,
-} from './TicketOptionList';
+import { canListTickets, TicketListFallback, TicketRowContent } from './TicketOptionList';
 import * as s from './TicketSelector.css';
 
 /**
@@ -104,7 +100,7 @@ export function TicketSelector({
               onChange={selection.setQuantity}
               label={`${selected.ticket.name ?? '티켓'} 수량`}
             />
-            <Txt typography="headingSmEmphasized">{formatTicketPrice(selection.amount)}</Txt>
+            <Txt typography="headingSmEmphasized">{formatPrice(selection.amount)}</Txt>
           </Flex>
           {selected.ticket.payType === 'DUDOONG' && <DudoongTicketNotice />}
         </div>

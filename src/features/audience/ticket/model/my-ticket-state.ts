@@ -1,7 +1,8 @@
 import type { MyTicketDetail, MyTicketElement, MyTicketState } from '@/api/my-ticket/schema';
 
 /**
- * 티켓 `state` 11값 + UNKNOWN → 표시(patterns §17). 라벨은 GUI 상태 칩·`455:8958` 배지 문구를 따른다.
+ * 티켓 `state` 11값 + UNKNOWN → 표시(patterns §17). 라벨은 GUI 상태 칩·`455:8958` 배지 문구를 따른다 — 승인대기 · 승인완료 · 승인거절은
+ * 티켓탭 GUI `908:3276`(Ready for dev) 칩 글자 그대로 붙여 쓴다(코드 패턴 점검 A38, 2026-11-02 — 옛 "승인 대기" · "승인 거절").
  * 색은 의미(`tone`)만 정하고 실제 색은 V가 고른다.
  */
 export type TicketTone = 'positive' | 'waiting' | 'gift' | 'muted' | 'negative';
@@ -9,8 +10,8 @@ export type TicketTone = 'positive' | 'waiting' | 'gift' | 'muted' | 'negative';
 export type TicketStateView = { label: string; tone: TicketTone };
 
 export const TICKET_STATE_VIEW: Record<MyTicketState, TicketStateView> = {
-  PENDING_APPROVE: { label: '승인 대기', tone: 'waiting' },
-  REFUSED: { label: '승인 거절', tone: 'negative' },
+  PENDING_APPROVE: { label: '승인대기', tone: 'waiting' },
+  REFUSED: { label: '승인거절', tone: 'negative' },
   APPROVED: { label: '승인완료', tone: 'positive' },
   GIFT_PENDING: { label: '선물 대기중', tone: 'gift' },
   GIFT_EXPIRED: { label: '선물 만료', tone: 'negative' },

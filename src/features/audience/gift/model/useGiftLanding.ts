@@ -4,11 +4,11 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tansta
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 
-import { isNotFound } from '@/api/errors';
+import { getErrorCode, isNotFound } from '@/api/errors';
 import { acceptGiftMutation, rejectGiftMutation } from '@/api/gift/mutations';
 import { giftLandingQuery, giftLandingViewerQuery } from '@/api/gift/queries';
 import type { GiftLanding } from '@/api/gift/schema';
-import { handleError } from '@/api/handle-error';
+import { handleError, handlersFrom } from '@/api/handle-error';
 import { useSession } from '@/features/shared/auth/useSession';
 
 import { refreshAfterGiftChange } from './gift-cache';
@@ -94,13 +94,7 @@ export function useGiftLanding(giftToken: string) {
     [queryClient, giftToken],
   );
   const codes = useMemo(
-    () =>
-      Object.fromEntries(
-        Object.entries(GIFT_ERROR_TABLE.accept).map(([code, outcome]) => [
-          code,
-          () => void onOutcome(outcome),
-        ]),
-      ),
+    () => handlersFrom(GIFT_ERROR_TABLE.accept, (outcome) => void onOutcome(outcome)),
     [onOutcome],
   );
 
@@ -126,15 +120,21 @@ export function useGiftLanding(giftToken: string) {
         ? 'enabled'
         : 'disabled';
 
+  /**
+   * 확인 창 계약(patterns §6)용 결과: `true` = 끝남(성공, 또는 표의 코드라 다시 읽은 상태 화면이 답이 됨) → 창을 닫는다,
+   * `false` = 표에 없는 실패(공용 토스트) → 창을 연 채 다시 누를 수 있게
+   */
   const run = useCallback(
-    async (m: typeof accept | typeof reject, onSuccess?: () => void) => {
-      if (receiveMode !== 'enabled') return;
+    async (m: typeof accept | typeof reject, onSuccess?: () => void): Promise<boolean> => {
+      if (receiveMode !== 'enabled') return false;
       setActionError(null);
       try {
         await m.mutateAsync();
         onSuccess?.();
+        return true;
       } catch (e) {
         handleError(e, codes);
+        return Object.hasOwn(codes, getErrorCode(e) ?? '');
       }
     },
     [receiveMode, codes],
@@ -154,9 +154,9 @@ export function useGiftLanding(giftToken: string) {
         setAccepted(true);
         router.push(TICKETS_HREF);
       }),
-    /** 거절 확인 팝업(`128:1831`)은 V가 열고 확인에서 부른다 */
+    /** 거절 확인(`939:26858`)은 V가 `openConfirm({ onConfirm })`으로 열고 확인에서 부른다 — 결과는 `run` 주석 */
     reject: () => run(reject),
-    /** [선물 취소/회수] — 보낸 사람(`giftId`)의 OWN_LINK·EXPIRED */
+    /** [선물 취소/회수] — 보낸 사람(`giftId`)의 OWN_LINK·EXPIRED. 결과는 `useCancelGift().cancel`과 같다 */
     cancelGift: cancel.cancel,
     cancelMode: (state.status === 'ready' && state.screen.actions.includes('CANCEL_GIFT') && !busy
       ? 'enabled'

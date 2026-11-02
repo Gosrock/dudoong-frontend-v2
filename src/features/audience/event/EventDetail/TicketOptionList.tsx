@@ -1,19 +1,17 @@
 'use client';
 
-import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Divider } from '@/ui/primitives/Divider';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
+import { formatPrice } from '@/utils/money';
 
 import type { TicketView } from '../model/ticket-state';
 import type { TicketSelection } from '../model/useTicketSelection';
 import * as s from './TicketOptionList.css';
-
-export const formatTicketPrice = (price: number) =>
-  price === 0 ? '무료' : `${price.toLocaleString('ko-KR')}원`;
 
 /** 티켓 설명 아래 작은 줄 — `인당 3매 제한 / 호스트 승인 후 확정`(와이어 `640:1957`) */
 export function ticketConditions(t: TicketView['ticket']) {
@@ -54,16 +52,10 @@ export function TicketListFallback({ selection }: { selection: ListStatus }) {
   }
   if (selection.status === 'error') {
     return (
-      <div role="alert">
-        <Flex direction="column" align="center" gap={3} fullWidth>
-          <Txt typography="bodyMd" color={colors.textSecondary}>
-            티켓 정보를 불러오지 못했어요.
-          </Txt>
-          <Button variant="secondary" size="sm" onClick={() => void selection.refetch()}>
-            다시 시도
-          </Button>
-        </Flex>
-      </div>
+      <InlineError
+        message="티켓 정보를 불러오지 못했어요."
+        onRetry={() => void selection.refetch()}
+      />
     );
   }
   if (!canListTickets(selection)) {
@@ -101,7 +93,7 @@ export function TicketRowContent({ view }: { view: TicketView }) {
       </Flex>
       <Flex direction="column" align="flex-end" gap={2} className={s.side}>
         <Txt typography="headingSmEmphasized" color={dim}>
-          {formatTicketPrice(t.price)}
+          {formatPrice(t.price)}
         </Txt>
         {chip ? (
           <Chip>{chip}</Chip>

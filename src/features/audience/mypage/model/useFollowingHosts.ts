@@ -13,9 +13,10 @@ import { unfollowHostMutation } from '@/api/host/mutations';
 import { hostViewerQuery } from '@/api/host/queries';
 import { FOLLOWING_HOSTS_KEY, followingHostsQuery } from '@/api/me/queries';
 import type { FollowingHost, FollowingHostFilter } from '@/api/me/schema';
-import { flattenPages, type Page } from '@/api/shared/page';
+import { flattenPages, infiniteListControls, type Page } from '@/api/shared/page';
+import { eventHref, hostHref } from '@/features/audience/routes';
 
-import { eventHref, FOLLOWING_TABS, hostHref, representativeBadge } from './lists';
+import { FOLLOWING_TABS, representativeBadge } from './lists';
 
 type FollowingPages = InfiniteData<Page<FollowingHost>, number>;
 
@@ -38,7 +39,6 @@ export function useFollowingHosts() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<FollowingHostFilter>('ALL');
   const list = useInfiniteQuery(followingHostsQuery({ status }));
-  const [unfollowing, setUnfollowing] = useState<ReadonlySet<number>>(new Set());
 
   // 캐시 반영은 화면이 사라져도(연달아 해제해도) 해야 하므로 옵션의 onSuccess에 둔다
   const { mutateAsync } = useMutation({
@@ -53,6 +53,10 @@ export function useFollowingHosts() {
       );
     },
   });
+
+  // 행별 요청 중 — 누른 즉시 그 행을 잠가야 해서 useState로 든다. `useMutationState`는 MutationCache 알림이 다음 틱이라
+  // 누른 직후 잠기지 않는다(테스트가 지킨다 — 코드 패턴 점검 A13 확인 결과, 그대로). finally로 풀어 굳지 않는다
+  const [unfollowing, setUnfollowing] = useState<ReadonlySet<number>>(new Set());
 
   const unfollow = useCallback(
     (hostId: number) => {
@@ -94,13 +98,7 @@ export function useFollowingHosts() {
     /** 첫 페이지 상태(`pending` 동안 목록 자리 스켈레톤, `error`면 `retry`) */
     listStatus: list.status,
     empty: list.status === 'success' && hosts.length === 0,
-    hasNextPage: list.hasNextPage,
-    isFetchingNextPage: list.isFetchingNextPage,
-    nextPageError: list.isFetchNextPageError,
-    loadMore: () => {
-      if (list.hasNextPage && !list.isFetching) void list.fetchNextPage({ cancelRefetch: false });
-    },
-    retry: () => void (list.isFetchNextPageError ? list.fetchNextPage() : list.refetch()),
+    ...infiniteListControls(list),
     unfollow,
     isUnfollowing: (hostId: number) => unfollowing.has(hostId),
   };

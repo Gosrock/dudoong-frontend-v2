@@ -76,12 +76,6 @@ export const errorBanner = style({
 export const errorBannerAction = style({ marginTop: vars.space[2] });
 
 /** 총 결제금액 위 선(GUI `567:7924` LINE — 좌우 24 안쪽) */
-export const totalDivider = style({
-  height: 1,
-  margin: `0 ${vars.space[5]}`,
-  background: vars.color.surface.defaultBorder,
-});
-
 export const paymentChannels = style({ padding: `${vars.space[4]} ${vars.space[5]}` });
 
 /** 하단 동의 + CTA(GUI 프레임 맨 아래). 길어도 늘 보이게 붙여 둔다 */
