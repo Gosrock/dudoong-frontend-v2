@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
-import { handleError } from '@/api/handle-error';
+import { handleError, handlersFrom } from '@/api/handle-error';
 import { createOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
@@ -99,11 +99,8 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
   });
 
   const createCodes = {
-    ...Object.fromEntries(
-      Object.entries(OPTION_FIELD_ERRORS).map(([code, { field, message }]) => [
-        code,
-        () => setServerErrors((prev) => ({ ...prev, [field]: message })),
-      ]),
+    ...handlersFrom(OPTION_FIELD_ERRORS, ({ field, message }) =>
+      setServerErrors((prev) => ({ ...prev, [field]: message })),
     ),
     Event_400_17: show('Event_400_17', () => invalidateEventStatus(queryClient, eventId)),
   };

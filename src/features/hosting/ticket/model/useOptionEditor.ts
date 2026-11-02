@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
 
-import { handleError } from '@/api/handle-error';
+import { handleError, handlersFrom } from '@/api/handle-error';
 import { deleteOptionMutation, updateOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
@@ -73,11 +73,8 @@ export function useOptionEditor(eventId: string, optionId: number) {
     void invalidateOptions(queryClient, eventId);
   };
   const codes = {
-    ...Object.fromEntries(
-      Object.entries(OPTION_FIELD_ERRORS).map(([code, { field, message }]) => [
-        code,
-        () => setServerErrors((prev) => ({ ...prev, [field]: message })),
-      ]),
+    ...handlersFrom(OPTION_FIELD_ERRORS, ({ field, message }) =>
+      setServerErrors((prev) => ({ ...prev, [field]: message })),
     ),
     Option_Group_400_5: lockedError,
     Option_Group_400_2: lockedError,
