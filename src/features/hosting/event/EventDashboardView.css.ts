@@ -135,9 +135,6 @@ export const checkRow = style({
   color: vars.color.text.primaryLabel,
   textDecoration: 'none',
   borderRadius: vars.radius[2],
-  selectors: {
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
 });
 
 export const checkLabel = style({

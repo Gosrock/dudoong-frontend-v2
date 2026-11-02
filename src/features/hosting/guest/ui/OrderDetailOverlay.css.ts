@@ -26,9 +26,6 @@ export const backButton = style({
   color: vars.color.text.primary,
   cursor: 'pointer',
   borderRadius: vars.radius[1],
-  selectors: {
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
 });
 
 /** 정보 줄 묶음(줄 사이 8) */
