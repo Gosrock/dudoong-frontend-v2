@@ -2,6 +2,7 @@
 
 import { REFUSE_REASON_TEXT_MAX } from '@/api/order/schema';
 import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -19,7 +20,7 @@ import { ReasonFields } from './ReasonFields';
 export function RefuseStep({ state }: { state: OrderDetailState }) {
   const form = state.refuseForm;
   return (
-    <div className={s.section}>
+    <Flex direction="column" gap={2}>
       <ReasonFields
         label="거절 사유"
         options={REFUSE_REASON_OPTIONS}
@@ -42,7 +43,7 @@ export function RefuseStep({ state }: { state: OrderDetailState }) {
           <span data-testid="refuse-dudoong-notice">{state.refuseConfirm.dudoongNotice}</span>
         </NoticeBox>
       )}
-    </div>
+    </Flex>
   );
 }
 
@@ -53,7 +54,7 @@ export function RefuseStep({ state }: { state: OrderDetailState }) {
 export function CancelStep({ state }: { state: OrderDetailState }) {
   const form = state.cancelForm;
   return (
-    <div className={s.section}>
+    <Flex direction="column" gap={2}>
       <ReasonFields
         label="취소 사유"
         options={CANCEL_REASON_OPTIONS}
@@ -70,6 +71,6 @@ export function CancelStep({ state }: { state: OrderDetailState }) {
           <span data-testid="cancel-dudoong-notice">{state.cancelConfirm.dudoongNotice}</span>
         </NoticeBox>
       )}
-    </div>
+    </Flex>
   );
 }

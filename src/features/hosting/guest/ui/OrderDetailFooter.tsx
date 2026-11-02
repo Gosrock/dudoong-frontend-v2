@@ -2,6 +2,7 @@
 
 import { Button } from '@/ui/components/Button/Button';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -70,14 +71,14 @@ function ReasonFooter({
   onSubmit: () => void;
 }) {
   return (
-    <div className={s.footer}>
+    <Flex gap={2} fullWidth>
       <Button variant="secondary" size="lg" fullWidth onClick={onBack}>
         돌아가기
       </Button>
       <Button size="lg" fullWidth loading={loading} disabled={disabled} onClick={onSubmit}>
         {label}
       </Button>
-    </div>
+    </Flex>
   );
 }
 
@@ -102,13 +103,13 @@ function ActionFooter({
     (a) => a.blockedBy && a.blockedBy !== 'noAccount',
   )?.blockedBy;
   return (
-    <div className={s.footerStack}>
+    <Flex direction="column" gap={5} fullWidth>
       {blockedBy && (
         <Txt as="p" typography="bodyMd" color={colors.textPrimaryLabel} className={s.centerNote}>
           <span data-testid="blocked">{ORDER_ACTION_BLOCK_MESSAGE[blockedBy]}</span>
         </Txt>
       )}
-      <div className={s.footer} role="group" aria-label="주문 처리">
+      <Flex gap={2} fullWidth role="group" aria-label="주문 처리">
         {refuse && (
           <Button
             variant="secondary"
@@ -163,7 +164,7 @@ function ActionFooter({
             환불 완료
           </Button>
         )}
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }

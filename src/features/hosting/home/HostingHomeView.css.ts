@@ -38,13 +38,6 @@ export const page = style({
   '@media': { [media.desktop]: { paddingBottom: vars.space[10] } },
 });
 
-/** 탭 + (검색) + [새 … 만들기] 한 줄 */
-export const tabRow = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.space[2],
-});
-
 export const tabList = style({ flex: 1, minWidth: 0 });
 
 export const iconButton = style({
@@ -86,8 +79,6 @@ export const createAction = style({
     [media.desktop]: { position: 'static', zIndex: 'auto' },
   },
 });
-
-export const listArea = style({ display: 'flex', flexDirection: 'column', gap: vars.space[3] });
 
 export const centered = style({ paddingTop: vars.space[9] });
 

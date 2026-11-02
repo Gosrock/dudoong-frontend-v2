@@ -4,6 +4,7 @@ import type { HostIssuedTicket } from '@/api/issued-ticket/schema';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -73,7 +74,7 @@ export function IssuedTicketDetailOverlay({
         ) : undefined
       }
     >
-      <div data-testid="ticket-detail" className={o.body}>
+      <Flex direction="column" gap={5} data-testid="ticket-detail">
         {list.detailStatus === 'pending' && <ListLoading />}
         {t && (
           <>
@@ -96,7 +97,7 @@ export function IssuedTicketDetailOverlay({
             )}
           </>
         )}
-      </div>
+      </Flex>
     </ResponsiveOverlay>
   );
 }

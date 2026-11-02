@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 
 import type { HostOrderDetail } from '@/api/order/schema';
 import { Chip } from '@/ui/components/Chip/Chip';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 import { formatSignedWon } from '@/utils/money';
@@ -52,12 +53,12 @@ export function Section({
   testId?: string;
 }) {
   return (
-    <section aria-label={title} className={s.section} data-testid={testId}>
+    <Flex as="section" direction="column" gap={2} aria-label={title} data-testid={testId}>
       <Txt as="h3" typography="headingSmEmphasized" className={s.sectionTitle}>
         {title}
       </Txt>
       {children}
-    </section>
+    </Flex>
   );
 }
 
@@ -78,7 +79,7 @@ export function TicketCard({
 }) {
   return (
     <li className={s.card}>
-      <div className={s.cardHead}>
+      <Flex align="center" gap={2}>
         <Txt typography="bodyMd" color={colors.textPrimaryLabel}>
           {name}
         </Txt>
@@ -88,7 +89,7 @@ export function TicketCard({
           </Chip>
         )}
         <span className={s.cardEnd}>{end}</span>
-      </div>
+      </Flex>
       <OptionAnswers answers={answers} />
     </li>
   );

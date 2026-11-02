@@ -6,6 +6,7 @@ import { REFUSE_REASON_TEXT_MAX, type RefuseOrderRequest } from '@/api/order/sch
 import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -17,7 +18,6 @@ import {
   validateRefuse,
 } from '../model/guest-rules';
 import * as s from './OrderBulk.css';
-import * as o from './OrderDetailOverlay.css';
 import { ReasonFields } from './ReasonFields';
 
 // FIGMA-CUSTOM: 일괄 처리 바(gui 1029:5714 "일괄 처리 바" PC 640×62 · 989:910 모바일 하단) 커스텀 → 커스텀 OrderBulk.css.ts. DS 후보(design-system §3)
@@ -95,7 +95,7 @@ export function RefuseOverlay({
       onOpenChange={(v) => !v && close()}
       title={count > 1 ? `${count}건의 거절 사유를 선택해 주세요.` : '거절 사유를 선택해 주세요.'}
       footer={
-        <div className={o.footer}>
+        <Flex gap={2} fullWidth>
           <Button variant="secondary" size="lg" fullWidth onClick={close}>
             돌아가기
           </Button>
@@ -112,10 +112,10 @@ export function RefuseOverlay({
           >
             거절
           </Button>
-        </div>
+        </Flex>
       }
     >
-      <div className={o.section} data-testid="refuse-overlay">
+      <Flex direction="column" gap={2} data-testid="refuse-overlay">
         <ReasonFields
           label="거절 사유"
           options={REFUSE_REASON_OPTIONS}
@@ -132,7 +132,7 @@ export function RefuseOverlay({
             <span data-testid="refuse-dudoong-notice">{REFUSE_CONFIRM.dudoongNotice}</span>
           </NoticeBox>
         )}
-      </div>
+      </Flex>
     </ResponsiveOverlay>
   );
 }

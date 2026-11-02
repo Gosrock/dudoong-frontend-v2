@@ -8,6 +8,7 @@ import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { CountFilterChip } from '@/ui/components/FilterChip/FilterChip';
 import { SearchField } from '@/ui/components/SearchField/SearchField';
 import { Icon } from '@/ui/icons/Icon';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -120,7 +121,7 @@ export function Toolbar({
   hint?: string | null;
 }) {
   return (
-    <div className={s.toolbarWrap}>
+    <Flex direction="column" gap={3}>
       <div className={s.toolbar}>
         {filters}
         {search}
@@ -130,7 +131,7 @@ export function Toolbar({
           <span data-testid="exact-hint">{hint}</span>
         </Txt>
       )}
-    </div>
+    </Flex>
   );
 }
 
@@ -172,7 +173,7 @@ export function NoticeLine({
   tone?: 'danger' | 'info';
 }) {
   return (
-    <div role="alert" className={s.notice}>
+    <Flex align="center" gap={2} role="alert">
       <Txt
         typography="bodyMd"
         color={tone === 'danger' ? colors.textDangerLabel : colors.textSecondaryLabel}
@@ -184,21 +185,21 @@ export function NoticeLine({
           <Icon name="close" size={12} />
         </button>
       )}
-    </div>
+    </Flex>
   );
 }
 
 /** 목록을 불러오지 못했을 때 — 표 안 가운데(GUI `1029:5135` "주문을 불러오지 못했어요." + [다시 시도]) */
 export function ListError({ what, onRetry }: { what: string; onRetry: () => void }) {
   return (
-    <div role="alert" className={s.slot}>
+    <Flex direction="column" align="center" gap={3} role="alert">
       <Txt typography="bodyMd" color={colors.textPrimaryLabel}>
         {what}을 불러오지 못했어요.
       </Txt>
       <Button variant="secondary" size="sm" onClick={onRetry}>
         다시 시도
       </Button>
-    </div>
+    </Flex>
   );
 }
 

@@ -8,6 +8,7 @@ import { Chip } from '@/ui/components/Chip/Chip';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -75,7 +76,7 @@ export function OrderDetailOverlay({
         ) : undefined
       }
     >
-      <div data-testid="order-detail" className={s.body}>
+      <Flex direction="column" gap={5} data-testid="order-detail">
         {state.status === 'pending' && (
           <Txt typography="bodyMd" color={colors.textSecondary}>
             불러오는 중
@@ -94,7 +95,7 @@ export function OrderDetailOverlay({
             </Txt>
           </p>
         )}
-      </div>
+      </Flex>
     </ResponsiveOverlay>
   );
 }
