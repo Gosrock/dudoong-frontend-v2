@@ -219,3 +219,30 @@ export const qrImage = style({ width: 'min(240px, 60vw)' });
 export const qrImageLarge = style({ width: 'min(70vw, 60dvh, 480px)' });
 
 export const qrCaption = style({ maxWidth: 280 });
+
+/* ── 티켓 번호로 입장(PQ-2b — #926) ─────────────────────── */
+
+export const ticketNoBox = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[2],
+  paddingTop: vars.space[4],
+  borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
+});
+
+export const ticketNoForm = style({
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: vars.space[2],
+});
+
+export const ticketNoInput = style({ flex: '1 1 auto', minWidth: 0 });
+
+export const ticketNoResult = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[2],
+  padding: vars.space[4],
+  borderRadius: vars.radius[2],
+  background: vars.color.surface.container,
+});

@@ -203,7 +203,7 @@ export const REFUSE_ERRORS = {
   reasonText: `기타 사유를 1~${REFUSE_REASON_TEXT_MAX}자로 적어 주세요`,
 } as const;
 
-/** 칸 오류. 기타면 문구 필수(trim 후 1~20자 — 서버 `Order_400_18`) */
+/** 칸 오류. 기타면 문구 필수(trim 후 1~100자 — 서버 `Order_400_18`, #921) */
 export function validateRefuse(form: RefuseForm): { reasonType?: string; reasonText?: string } {
   if (form.reasonType === null) return { reasonType: REFUSE_ERRORS.reasonType };
   if (form.reasonType !== 'ETC') return {};

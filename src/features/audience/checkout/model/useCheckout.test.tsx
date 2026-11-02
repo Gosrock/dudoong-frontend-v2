@@ -6,10 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { me } from '@/api/__mocks__/fixtures/me';
 import { CHECKOUT_TICKET } from '@/api/__mocks__/fixtures/order';
-import { orderHandlers, readMockOrder } from '@/api/__mocks__/order.handlers';
+import {
+  mockOrderCount,
+  orderHandlers,
+  readMockOrder,
+  resetOrderStore,
+} from '@/api/__mocks__/order.handlers';
 import { errors, ok } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
+import { ApiError } from '@/api/errors';
 import { meQuery } from '@/api/me/queries';
+import { IDEMPOTENCY_KEY_PATTERN } from '@/api/order/mutations';
 import { checkoutQuery, myOrderQuery } from '@/api/order/queries';
 import { CreateOrderRequestSchema, type MyOrderDetail } from '@/api/order/schema';
 import { errorToast } from '@/test/error-toast';
@@ -17,8 +24,14 @@ import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 import { toast } from '@/ui/components/Toast/Toast';
 
+import { orderTossLink } from '../ui/DepositGuide';
 import type { AnswerValue } from './option-form';
-import { useCheckout, useCheckoutData, type UseCheckoutInput } from './useCheckout';
+import {
+  keepsAttemptKey,
+  useCheckout,
+  useCheckoutData,
+  type UseCheckoutInput,
+} from './useCheckout';
 
 const router = { replace: vi.fn(), push: vi.fn() };
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
@@ -184,12 +197,12 @@ describe('체크아웃 열기 — useCheckoutData', () => {
 });
 
 describe('3분기 — 주문 생성 응답의 상태, 실제 보낸 본문, 완료 이동', () => {
-  it('입금형(두둥): 결제하기 + 입금 확인, 일괄 옵션 본문 → 승인 대기, 응답을 O-3 키에 넣고 완료 주소로 replace', async () => {
+  it('입금형(두둥): 결제하기 + 주문 확인(B23 — 입금 전에 주문), 일괄 옵션 본문 → 승인 대기, 응답을 O-3 키에 넣고 완료 주소로 replace', async () => {
     const r = await openCheckout(CHECKOUT_TICKET.paidWithOptions, 2);
     expect(r.result.current).toMatchObject({
       kind: 'TRANSFER',
       ctaLabel: '결제하기',
-      needsDepositConfirm: true,
+      needsOrderConfirm: true,
     });
     fill(r.result, { same: answers('YES', '  보컬 ') });
     const sent = recordRequests();
@@ -235,9 +248,8 @@ describe('3분기 — 주문 생성 응답의 상태, 실제 보낸 본문, 완�
     expect(r.result.current).toMatchObject({
       kind: 'FREE_APPROVAL',
       ctaLabel: '신청하기',
-      needsDepositConfirm: false,
+      needsOrderConfirm: false,
       account: null,
-      tossLink: null,
       amount: 0,
     });
     fill(r.result, { same: [{ optionId: 702, answer: '드럼' }] });
@@ -320,19 +332,21 @@ describe('계약 — 클라이언트 총액 == 주문 응답 totalAmount(mock은
       expect(order.lines.map((l) => l.quantity)).toEqual(sets.map(() => 1));
   });
 
-  it('토스 송금: 링크 금액 = 화면 총액 = 응답 totalAmount, 본문은 TOSS_TRANSFER', async () => {
+  it('토스 송금: 주문 뒤 링크(B23) 금액 = 화면 총액 = 응답 totalAmount, 본문은 TOSS_TRANSFER', async () => {
     const r = await openCheckout(CHECKOUT_TICKET.paidWithOptions, 2);
     fill(r.result, { same: answers('YES', 'a') });
     act(() => r.result.current.form.setValue('paymentChannel', 'TOSS_TRANSFER'));
-    const link = r.result.current.tossLink!;
-    const amount = new URL(link.replace('supertoss://', 'https://x.test/')).searchParams.get(
-      'amount',
-    );
+    const shown = r.result.current.amount;
     const sent = recordRequests();
     await submitAndWait(r.result);
     const [post] = await posted(sent);
     expect((post?.body as { paymentChannel: string }).paymentChannel).toBe('TOSS_TRANSFER');
-    const order = readMockOrder(created()!)!;
+    const order = r.queryClient.getQueryData<MyOrderDetail>(myOrderQuery(created()!).queryKey)!;
+    const link = orderTossLink(order)!;
+    const amount = new URL(link.replace('supertoss://', 'https://x.test/')).searchParams.get(
+      'amount',
+    );
+    expect(Number(amount)).toBe(shown);
     expect(Number(amount)).toBe(order.payment?.totalAmount);
     expect(order.paymentChannel).toBe('TOSS_TRANSFER');
   });
@@ -450,7 +464,6 @@ describe('에러 분기 — patterns §24 P7 행(handleError)', () => {
     ['Ticket_Item_400_10', '/events/101'],
     ['Ticket_Item_404_1', '/events/101'],
     ['Event_404_1', '/events/101'],
-    ['Order_400_26', '/orders'],
   ] as const)('%s → 안내 토스트 + %s로 replace', async (code, to) => {
     server.use(...orderHandlers.createFails(code));
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
@@ -617,19 +630,110 @@ describe('응답을 받지 못한 주문(이슈 #92-4)', () => {
     ['입금형', CHECKOUT_TICKET.paidNoOptions],
     ['무료 선착순', CHECKOUT_TICKET.freeFcfs],
   ])(
-    '%s — 네트워크 실패면 다시 시도 대신 주문내역 확인 안내(공용 토스트 없음), 주문 목록을 무효화',
+    '%s — 네트워크 실패면 [다시 시도] · 주문내역 안내(공용 토스트 없음), 주문 목록을 무효화',
     async (_, ticket) => {
       server.use(http.post('*/api/v2/me/orders', () => HttpResponse.error()));
       const r = await openCheckout(ticket, 1);
       const invalidate = vi.spyOn(r.queryClient, 'invalidateQueries');
       fill(r.result);
       await submitAndWait(r.result);
-      expect(r.result.current.submitError?.kind).toBe('ORDER_UNCERTAIN');
+      expect(r.result.current.submitError).toMatchObject({
+        kind: 'ORDER_UNCERTAIN',
+        retrySameKey: true,
+      });
       expect(errorToast).not.toHaveBeenCalled();
       expect(router.replace).not.toHaveBeenCalled();
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['me', 'orders', 'infinite'] });
     },
   );
+});
+
+describe('Idempotency-Key(#923) — 시도마다 새 키, 재시도에만 같은 키', () => {
+  /** O-1에 실린 키(기본 처리로 넘긴다) */
+  function recordKeys() {
+    const keys: (string | null)[] = [];
+    server.use(
+      http.post('*/api/v2/me/orders', ({ request }) => {
+        keys.push(request.headers.get('Idempotency-Key'));
+        return undefined;
+      }),
+    );
+    return keys;
+  }
+
+  it('키는 서버 형식(영문·숫자·_·- 8~64자)이고 값은 요청마다 실린다', async () => {
+    const keys = recordKeys();
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    fill(r.result);
+    await submitAndWait(r.result);
+    expect(keys).toHaveLength(1);
+    expect(keys[0]).toMatch(IDEMPOTENCY_KEY_PATTERN);
+    expect(created()).not.toBeNull();
+  });
+
+  it('응답이 끊긴 뒤 다시 보내면 같은 키 — 서버가 앞 주문을 돌려줘 주문이 하나만 생긴다', async () => {
+    // 앞 테스트의 같은 본문 주문이 10초 중복 판정에 걸리지 않게
+    resetOrderStore();
+    server.use(...orderHandlers.createLosesResponseOnce());
+    const keys = recordKeys();
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    fill(r.result);
+    const before = mockOrderCount();
+    await submitAndWait(r.result);
+    expect(r.result.current.submitError?.kind).toBe('ORDER_UNCERTAIN');
+    expect(mockOrderCount()).toBe(before + 1);
+
+    await submitAndWait(r.result);
+    expect(keys).toHaveLength(2);
+    expect(keys[1]).toBe(keys[0]);
+    expect(mockOrderCount()).toBe(before + 1);
+    expect(readMockOrder(created()!)).toBeDefined();
+  });
+
+  it.each(['Order_400_26', 'Redisson_500_1'] as const)(
+    '%s(처리 중)는 이동하지 않고 [다시 시도] 안내 — 다시 보내면 같은 키',
+    async (code) => {
+      server.use(...orderHandlers.createFails(code));
+      const keys = recordKeys();
+      const r = await openCheckout(CHECKOUT_TICKET.freeFcfs, 1);
+      fill(r.result);
+      await submitAndWait(r.result);
+      expect(r.result.current.submitError).toMatchObject({
+        kind: 'DUPLICATE_IN_PROGRESS',
+        retrySameKey: true,
+      });
+      expect(router.replace).not.toHaveBeenCalled();
+      expect(errorToast).not.toHaveBeenCalled();
+
+      server.resetHandlers();
+      const again = recordKeys();
+      await submitAndWait(r.result);
+      expect(again[0]).toBe(keys[0]);
+      expect(created()).not.toBeNull();
+    },
+  );
+
+  it('주문이 생기지 않은 게 확실한 실패(4xx) 뒤의 제출은 새 시도 — 새 키', async () => {
+    server.use(...orderHandlers.createFails('Ticket_Item_400_6'));
+    const keys = recordKeys();
+    const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
+    fill(r.result);
+    await submitAndWait(r.result);
+    server.resetHandlers();
+    const again = recordKeys();
+    await submitAndWait(r.result);
+    expect(again[0]).toMatch(IDEMPOTENCY_KEY_PATTERN);
+    expect(again[0]).not.toBe(keys[0]);
+  });
+
+  it('키를 남길지: 응답 없음 · 5xx · 처리 중만', () => {
+    expect(keepsAttemptKey(new ApiError(0, 'TIMEOUT', ''))).toBe(true);
+    expect(keepsAttemptKey(new ApiError(502, 'BAD_GATEWAY', ''))).toBe(true);
+    expect(keepsAttemptKey(new ApiError(400, 'Order_400_26', ''))).toBe(true);
+    expect(keepsAttemptKey(new ApiError(400, 'Ticket_Item_400_1', ''))).toBe(false);
+    expect(keepsAttemptKey(new ApiError(400, 'BAD_REQUEST', ''))).toBe(false);
+    expect(keepsAttemptKey(new Error('x'))).toBe(false);
+  });
 });
 
 describe('mock 세션', () => {

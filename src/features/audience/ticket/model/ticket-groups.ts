@@ -11,7 +11,11 @@ const KNOWN = new Set<string>(MY_TICKET_STATES);
 /**
  * `counts`(키가 열려 있는 맵) → 배지 목록. 정해진 순서로, 0개는 빼고, 모르는 상태는 UNKNOWN 하나로 합친다.
  */
-export function stateCounts(counts: Record<string, number>): StateCount[] {
+export function stateCounts(
+  counts: Record<string, number>,
+  /** 묶음의 승인형 여부(#924). `false`면 승인완료 배지가 '발급 완료' */
+  approvalRequired?: boolean,
+): StateCount[] {
   const merged = new Map<MyTicketState, number>();
   for (const [key, count] of Object.entries(counts)) {
     if (!Number.isFinite(count) || count <= 0) continue;
@@ -20,7 +24,7 @@ export function stateCounts(counts: Record<string, number>): StateCount[] {
   }
   return TICKET_STATE_ORDER.filter((s) => merged.has(s)).map((state) => ({
     state,
-    ...ticketStateView(state),
+    ...ticketStateView(state, approvalRequired),
     count: merged.get(state)!,
   }));
 }
@@ -44,7 +48,7 @@ export function toTicketGroupView(group: MyTicketGroup): TicketGroupView {
   return {
     group,
     key: group.groupKey,
-    counts: stateCounts(group.counts),
+    counts: stateCounts(group.counts, group.approvalRequired),
     orderHref: group.orderUuid ? orderDetailHref(group.orderUuid) : null,
     orderOnly: group.tickets.length === 0,
     total: group.tickets.length,

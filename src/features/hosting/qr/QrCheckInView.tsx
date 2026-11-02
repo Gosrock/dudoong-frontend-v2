@@ -22,6 +22,7 @@ import { useSelfCheckInQr } from './model/useSelfCheckInQr';
 import * as s from './ui/QrCheckIn.css';
 import { subscribeInjectedScan } from './ui/scan-injection';
 import { ScanResult } from './ui/ScanResult';
+import { TicketNoCheckIn } from './ui/TicketNoCheckIn';
 import { useStageFullscreen } from './ui/useStageFullscreen';
 
 // 카메라는 브라우저에서만 — 서버 렌더에서 MediaDevices·BarcodeDetector를 건드리지 않는다
@@ -184,6 +185,7 @@ function HostScan({ eventId }: { eventId: string }) {
         />
       </div>
       <FullscreenButton onClick={enter} />
+      <TicketNoCheckIn eventId={eventId} />
     </>
   );
 }

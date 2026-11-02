@@ -1,8 +1,14 @@
 import { http, type HttpHandler, HttpResponse } from 'msw';
 
-import { CHECK_IN_TICKET_UUID_MAX } from '../check-in/schema';
-import { checkInStatsOf, checkInTokenOf, hostCheckIn, selfCheckIn } from './fixtures/my-ticket';
-import { hostCheckInGuestTicket } from './guest-store';
+import { CHECK_IN_TICKET_NO_MAX, CHECK_IN_TICKET_UUID_MAX } from '../check-in/schema';
+import {
+  checkInStatsOf,
+  checkInTokenOf,
+  hostCheckIn,
+  selfCheckIn,
+  ticketUuidByNo,
+} from './fixtures/my-ticket';
+import { guestTicketUuidByNo, hostCheckInGuestTicket } from './guest-store';
 import { guard } from './hosting-event.handlers';
 import { errors, fail, ok, readId, requireAuth } from './respond';
 
@@ -46,6 +52,7 @@ const self = http.post('*/api/v2/check-ins/self', async ({ request, cookies }) =
 const STATS_PATH = '*/api/v2/events/:eventId/check-ins/stats';
 const SCAN_PATH = '*/api/v2/events/:eventId/check-ins';
 const QR_PATH = '*/api/v2/events/:eventId/check-in-qr';
+const BY_NO_PATH = '*/api/v2/events/:eventId/check-ins/by-ticket-no';
 
 /** 호스트 스캔이 되는 공연(`validateHostCheckInStatus`) — 등록(OPEN) + 정산중(CALCULATING). 준비중·지난 공연은 `Event_400_27` */
 const isHostCheckInStatus = (status: string) => status === 'OPEN' || status === 'CALCULATING';
@@ -79,6 +86,33 @@ const scan = http.post(SCAN_PATH, async ({ request, cookies, params }) => {
   );
 });
 
+/**
+ * PQ-2b 티켓 번호 체크인(백엔드 #926 `V2CheckInDomainService.checkInByNo`). 본문 `@NotBlank @Size(max = 20)` → 권한 → 공연 상태 →
+ * 번호 정리(앞뒤 공백 · 대문자, 숫자만이면 `T` 붙임) → PQ-2와 같은 판정. 없는 번호 · 다른 공연 번호는 `OTHER_EVENT`
+ */
+const byTicketNo = http.post(BY_NO_PATH, async ({ request, cookies, params }) => {
+  const denied = requireAuth(request, cookies);
+  if (denied) return denied;
+  if (readId(params.eventId) === null) return errors.typeMismatch(request);
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  const raw = body?.ticketNo;
+  if (typeof raw !== 'string' || !raw.trim() || raw.length > CHECK_IN_TICKET_NO_MAX) {
+    return errors.badRequest(request);
+  }
+  const g = guard(request, cookies, params.eventId, 'GUEST');
+  if ('response' in g) return g.response;
+  if (!isHostCheckInStatus(g.event.status)) return checkInError(request, 'Event_400_27');
+  const upper = raw.trim().toUpperCase();
+  const no = /^\d+$/.test(upper) ? `T${upper}` : upper;
+  const eventId = g.event.eventId;
+  const guestUuid = guestTicketUuidByNo(eventId, no);
+  if (guestUuid) return ok(hostCheckInGuestTicket(eventId, guestUuid));
+  const uuid = ticketUuidByNo(no);
+  return ok(
+    uuid ? hostCheckIn(eventId, uuid) : { result: 'OTHER_EVENT', ticket: null, candidates: [] },
+  );
+});
+
 const qr = http.get(QR_PATH, ({ request, cookies, params }) => {
   const g = guard(request, cookies, params.eventId, 'GUEST');
   if ('response' in g) return g.response;
@@ -100,6 +134,11 @@ export const hostCheckInSets = {
   scanServerError: [
     http.post(SCAN_PATH, ({ request }) => errors.serverError(request)),
   ] satisfies HttpHandler[],
+  /** PQ-2b가 언제나 이 코드로 실패 */
+  byTicketNoFails: (code: CheckInErrorCode): HttpHandler[] => [
+    http.post(BY_NO_PATH, ({ request }) => checkInError(request, code)),
+  ],
+  byTicketNoNetworkError: [networkDown(BY_NO_PATH, 'post')] satisfies HttpHandler[],
   /** PQ-2 네트워크 차단 */
   scanNetworkError: [networkDown(SCAN_PATH, 'post')] satisfies HttpHandler[],
   statsServerError: [
@@ -113,7 +152,7 @@ export const hostCheckInSets = {
 
 /** 이름 붙인 세트. `fails(code)` — PQ-5가 언제나 이 코드로 실패 */
 export const checkInHandlers = {
-  default: [self, stats, scan, qr],
+  default: [self, stats, scan, byTicketNo, qr],
   fails: (code: CheckInErrorCode): HttpHandler[] => [
     http.post('*/api/v2/check-ins/self', ({ request }) => checkInError(request, code)),
   ],

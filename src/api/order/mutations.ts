@@ -14,20 +14,37 @@ import {
 
 /**
  * 주문 생성의 시간 제한. 일반 요청(10초)보다 길게 — 스테이징에서 서버가 26초 뒤에 답한 일이 있다(이슈 #92-4).
- * 10초에 끊으면 서버는 계속 처리하는데 화면은 실패로 보여, 다시 누른 주문이 서버의 10초 중복 판정 밖에서 새 주문이 된다.
- * 끊기면(TIMEOUT·NETWORK) 화면은 다시 시도 대신 주문내역 확인을 권한다(`useCheckout` — `ORDER_UNCERTAIN`).
+ * 끊기면(TIMEOUT·NETWORK) 화면은 같은 `Idempotency-Key`로 다시 보내게 한다(`useCheckout` — `ORDER_UNCERTAIN`).
  */
 export const ORDER_CREATE_TIMEOUT_MS = 30_000;
 
+/** `Idempotency-Key` 형식(백엔드 #923 — `^[A-Za-z0-9_-]{8,64}$`, 틀리면 400) */
+export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
+
+/** 주문 시도 하나의 키. UUID(36자, 영문·숫자·`-`)를 그대로 쓴다 */
+export const newIdempotencyKey = () => crypto.randomUUID();
+
+export type CreateOrderInput = {
+  body: CreateOrderRequest;
+  /**
+   * 주문 시도([주문 완료하기] 한 번)마다 새 키, **재시도에만 같은 키**(백엔드 #923). 같은 사용자·티켓·키면 서버가 24시간 동안
+   * 시간·본문과 상관없이 앞 주문(O-3 — 거절·취소된 주문 포함)을 돌려준다. 앞 주문이 FAILED이거나 저장되지 않았으면 새로 만든다.
+   * 운영 2.5.3은 헤더를 무시한다(10초 중복 판정만). 키는 로그에 남기지 않는다
+   */
+  idempotencyKey: string;
+};
+
 /**
- * P11/O-1 주문 생성(로그인). 응답은 G11/O-3과 같은 주문 상세다. 같은 사용자의 같은 요청이 10초 안에 다시 오면
- * 서버가 앞 주문을 돌려준다(`Idempotency-Key` 없음 — 재시도에 실을 요청 키가 없다). 무료 선착순 확정이 실패하면
- * 주문이 아니라 원래 에러가 온다. 캐시 반영·이동은 화면(`useCheckout`)이 한다.
+ * P11/O-1 주문 생성(로그인). 응답은 G11/O-3과 같은 주문 상세다. 무료 선착순 확정이 실패하면 주문이 아니라 원래 에러가 온다.
+ * 캐시 반영·이동은 화면(`useCheckout`)이 한다.
  */
 export const createOrderMutation = () =>
   mutationOptions({
-    mutationFn: (body: CreateOrderRequest) =>
-      api.post('me/orders', MyOrderDetailSchema, body, { timeout: ORDER_CREATE_TIMEOUT_MS }),
+    mutationFn: ({ body, idempotencyKey }: CreateOrderInput) =>
+      api.post('me/orders', MyOrderDetailSchema, body, {
+        timeout: ORDER_CREATE_TIMEOUT_MS,
+        headers: { 'Idempotency-Key': idempotencyKey },
+      }),
   });
 
 /**

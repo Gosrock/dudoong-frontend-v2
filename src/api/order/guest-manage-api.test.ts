@@ -258,7 +258,7 @@ describe('PR-4 거절 · PR-5 승인 후 취소 · PF-2 환불 완료', () => {
     ]).toEqual(['REFUSED', 'AMOUNT_MISMATCH', '결제 금액 오류', 'REQUESTED']);
   });
 
-  it('거절 기타: 문구 trim, 비거나 20자 초과면 Order_400_18 — 주문 조회(404)보다 먼저', async () => {
+  it('거절 기타: 문구 trim, 비거나 100자 초과면(#921) Order_400_18 — 주문 조회(404)보다 먼저', async () => {
     const d = await refuse(GUEST_ORDER.pendingToss, {
       reasonType: 'ETC',
       reasonText: ' 중복 주문 ',
@@ -270,7 +270,7 @@ describe('PR-4 거절 · PR-5 승인 후 취소 · PF-2 환불 완료', () => {
     ]);
     expect(
       await codeOf(
-        refuse(GUEST_ORDER.pendingTransfer, { reasonType: 'ETC', reasonText: 'a'.repeat(21) }),
+        refuse(GUEST_ORDER.pendingTransfer, { reasonType: 'ETC', reasonText: 'a'.repeat(101) }),
       ),
     ).toEqual([400, 'Order_400_18']);
     expect(await codeOf(refuse(GUEST_ORDER.pendingTransfer, {}))).toEqual([400, 'BAD_REQUEST']);

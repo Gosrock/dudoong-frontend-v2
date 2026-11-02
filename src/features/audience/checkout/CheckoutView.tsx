@@ -32,6 +32,7 @@ import { colors } from '@/ui/theme/colors';
 import * as s from './CheckoutView.css';
 import { type CheckoutParams, eventHref } from './model/checkout-params';
 import { firstInvalidTicket } from './model/option-form';
+import { tossTransferLink } from './model/payment';
 import { REFUND_DEADLINE, refundPolicyItems } from './model/refund-policy';
 import { type CheckoutState, useCheckout, useCheckoutData } from './model/useCheckout';
 
@@ -49,7 +50,7 @@ const won = (n: number) => `${n.toLocaleString('ko-KR')} 원`;
 /**
  * 체크아웃(`/events/[eventId]/checkout?ticketItemId=&quantity=`) — GUI 근거(plan P7 V, gui-screens §0):
  * 모든 옵션 동일 `564:4156` · 유료옵션 `567:9316` · 무옵션 `567:9159` · 긴제목 `567:10452` · 개별 옵션 `567:8532` ·
- * 입금 확인 `567:9468`. 서버 기준으로 바꾼 것(plan P7 ①~④): 예매번호·티켓번호 줄 없음, 결제정보에 은행 줄, CTA "결제하기"·"신청하기",
+ * 주문 확인(GUI 입금 확인) `567:9468` — B23으로 문구만 바꿈. 서버 기준으로 바꾼 것(plan P7 ①~④): 예매번호·티켓번호 줄 없음, 결제정보에 은행 줄, CTA "결제하기"·"신청하기",
  * 무료는 결제 블록(결제정보·결제금액·결제방식) 없이.
  */
 export function CheckoutView({
@@ -149,7 +150,7 @@ function CheckoutForm({
   const setTicketOpen = (i: number, open: boolean) =>
     setOpenTickets((prev) => ({ ...prev, [i]: open }));
 
-  // 입금 확인 다이얼로그(두둥만). 뒤로가기가 닫는다(patterns §6) — 요청 중에는 잡아 둔다
+  // 주문 확인 다이얼로그(두둥만). 뒤로가기가 닫는다(patterns §6) — 요청 중에는 잡아 둔다
   const [confirming, setConfirming] = useState(false);
   const { release } = useCloseOnBack(confirming, () => setConfirming(false), {
     hold: c.submitting,
@@ -166,11 +167,11 @@ function CheckoutForm({
   const onCta = async () => {
     if (c.submitting) return;
     if (!(await c.validate())) return focusFirstError();
-    if (!c.needsDepositConfirm) return void c.submit();
+    if (!c.needsOrderConfirm) return void c.submit();
     setConfirming(true);
   };
 
-  const onConfirmDeposit = async () => {
+  const onConfirmOrder = async () => {
     // 다이얼로그가 넣은 기록을 먼저 소비한다 — 성공하면 훅이 완료 주소로 replace하므로 뒤로가기가 체크아웃으로 돌아오지 않는다
     await release();
     await c.submit();
@@ -212,13 +213,23 @@ function CheckoutForm({
           <Txt typography="labelMd" color={colors.textDangerLabel}>
             {c.submitError.message}
           </Txt>
-          {/* 응답을 못 받은 주문 — 다시 내기 전에 주문내역부터(이슈 #92-4). 새 탭이 아니라 이동: 결과를 보고 돌아온다 */}
-          {c.submitError.kind === 'ORDER_UNCERTAIN' && (
-            <div className={s.errorBannerAction}>
+          {/* 주문이 생겼는지 모르는 실패(이슈 #92-4 · #914) — [다시 시도]는 같은 Idempotency-Key로 보내 서버가 앞 주문을 돌려준다(#923).
+              FIGMA-CUSTOM: 디자인 없음 — DS Button 둘(다시 시도 · 주문내역 확인). 🤖 Claude 판단(2026-11-02), design-requests Q98. Figma 코멘트 2026-11-02 */}
+          {c.submitError.retrySameKey && (
+            <Flex gap={2} className={s.errorBannerAction}>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                disabled={c.submitting}
+                onClick={() => void c.submit()}
+              >
+                다시 시도
+              </Button>
               <Link href="/orders" className={button({ variant: 'secondary', size: 'sm' })}>
                 주문내역 확인
               </Link>
-            </div>
+            </Flex>
           )}
         </div>
       )}
@@ -335,15 +346,17 @@ function CheckoutForm({
           }}
           closeOnBack={false}
           title="주문 완료하기"
+          // FIGMA-CUSTOM: GUI 567:9468은 "입금 하셨나요?" + [결제완료](입금 뒤 주문). B23(사용자 결정 2026-11-02)으로 주문을 입금 전에
+          // 먼저 만든다 — 같은 DS Popup에 문구·버튼만 바꿨다. 계좌·금액 안내는 주문 완료 화면. 🤖 Claude 판단, design-requests Q97. Figma 코멘트 2026-11-02
           description={
             <>
-              입금 하셨나요?
+              확인을 누르면 주문이 호스트에게 전달되고 티켓이 잡혀요.
               <br />
-              확인을 누르면 즉시 호스트에게 주문이 전달됩니다.
+              다음 화면에서 안내하는 계좌로 입금해 주세요.
             </>
           }
-          confirmLabel="결제완료"
-          onConfirm={() => void onConfirmDeposit()}
+          confirmLabel="주문 완료하기"
+          onConfirm={() => void onConfirmOrder()}
           loading={c.submitting}
           confirmDisabled={c.agreementFields.dudoongNotice && !noticeConfirmed}
         >
@@ -585,8 +598,10 @@ function AmountInfo({ c }: { c: CheckoutState }) {
 
 function PaymentChannelField({ c }: { c: CheckoutState }) {
   const titleId = useId();
-  // 토스 송금은 링크를 만들 수 있고 은행 코드가 있을 때만(plan P7 L — `bankCode`가 null이면 토스 버튼을 숨긴다, B3)
-  const tossAvailable = c.tossLink !== null && Boolean(c.account?.bankCode);
+  // 토스 송금은 링크를 만들 수 있고 은행 코드가 있을 때만(plan P7 L — `bankCode`가 null이면 토스 버튼을 숨긴다, B3).
+  // 토스 앱 열기 버튼은 주문을 만든 뒤 완료 화면에 있다(B23)
+  const tossAvailable =
+    tossTransferLink(c.account, c.amount) !== null && Boolean(c.account?.bankCode);
   const channels: ('TOSS_TRANSFER' | 'BANK_TRANSFER')[] = tossAvailable
     ? ['TOSS_TRANSFER', 'BANK_TRANSFER']
     : ['BANK_TRANSFER'];
@@ -608,27 +623,12 @@ function PaymentChannelField({ c }: { c: CheckoutState }) {
             />
           )}
         />
-        {tossAvailable && c.paymentChannel === 'TOSS_TRANSFER' && c.tossLink && (
-          <Flex direction="column" gap={2} style={{ marginTop: 12 }}>
-            {/* 디자인 없음 — 토스 앱 열기 버튼(Figma 코멘트 2026-11-01) */}
-            <a
-              href={c.tossLink}
-              data-testid="toss-link"
-              className={button({ variant: 'secondary', size: 'md', fullWidth: true })}
-            >
-              토스 앱에서 송금하기
-            </a>
-            <Txt typography="labelSm" color={colors.textTertiaryLabel}>
-              송금한 뒤 이 화면으로 돌아와 [{c.ctaLabel}]를 눌러 주세요.
-            </Txt>
-          </Flex>
-        )}
       </div>
     </section>
   );
 }
 
-// ─── 입금 확인 다이얼로그 요약 ─────────────────────────────────
+// ─── 주문 확인 다이얼로그 요약 ─────────────────────────────────
 
 function SummaryRow({ label, children }: { label: string; children: ReactNode }) {
   return (

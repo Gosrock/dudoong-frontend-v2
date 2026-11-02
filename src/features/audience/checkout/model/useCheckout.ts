@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
 
-import { isNotFound, isSessionLost } from '@/api/errors';
+import { isApiError, isNotFound, isSessionLost } from '@/api/errors';
 import { handleError } from '@/api/handle-error';
 import { meQuery } from '@/api/me/queries';
-import { createOrderMutation } from '@/api/order/mutations';
+import { createOrderMutation, newIdempotencyKey } from '@/api/order/mutations';
 import { orderTotalAmount } from '@/api/order/price';
 import { checkoutQuery, MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order/queries';
 import type { Checkout } from '@/api/order/schema';
@@ -20,6 +20,7 @@ import { toast } from '@/ui/components/Toast/Toast';
 import {
   CHECKOUT_ERROR_TABLE,
   type CheckoutErrorOutcome,
+  classifyCheckoutError,
   FREE_FCFS_FAILED,
   ORDER_UNCERTAIN,
   UNCERTAIN_ERROR_CODES,
@@ -41,7 +42,7 @@ import {
   unanswerableOption,
 } from './option-form';
 import { orderCreatedHref } from './order-result';
-import { checkoutKind, ctaLabel, needsDepositConfirm, tossTransferLink } from './payment';
+import { checkoutKind, ctaLabel, needsOrderConfirm } from './payment';
 
 // ─── 1단계: 결제 화면 조회 ─────────────────────────────────────
 
@@ -91,7 +92,7 @@ export function useCheckoutData(eventId: number, params: CheckoutParams | null):
 
 // ─── 2단계: 폼 · 금액 · 제출 ───────────────────────────────────
 
-/** 입금 확인 모달을 열기 전에 보는 칸 — 모달 안의 입금 전 확인(`dudoongTicketNoticeConfirmed`)은 빼고 */
+/** 주문 확인 모달을 열기 전에 보는 칸 — 모달 안의 입금 전 확인(`dudoongTicketNoticeConfirmed`)은 빼고 */
 const PRE_CONFIRM_FIELDS = [
   'options',
   'paymentChannel',
@@ -110,11 +111,15 @@ export type UseCheckoutInput = {
 };
 
 /**
- * 체크아웃 한 화면의 상태(plan P7). 오버레이를 열지 않는다 — 입금 확인 모달은 V가 `needsDepositConfirm`이면 열고 확인에서 `submit`을 부른다.
+ * 체크아웃 한 화면의 상태(plan P7). 오버레이를 열지 않는다 — 주문 확인 모달은 V가 `needsOrderConfirm`이면 열고 확인에서 `submit`을 부른다.
+ * 두둥티켓은 **입금 전에 주문을 먼저 만든다**(B23, 사용자 결정 2026-11-02): [주문 완료하기] → O-1(승인 대기 · 재고 잡힘) →
+ * 주문 완료 화면의 계좌·금액 안내 → 은행 앱. 앱이 꺼져도 주문내역(O-3)에서 계좌를 다시 본다.
  *
  * - 폼: RHF + zod(`option-form.ts`). 옵션이 없으면 옵션 칸을 쓰지 않는다(`hasOptions`)
  * - 금액: `orderTotalAmount` 하나에서(화면에서 다시 계산하지 않는다). 토스 링크 금액도 같은 값
- * - 제출: 요청 중·이동 중에는 다시 보내지 않는다(서버도 10초 안 같은 요청은 앞 주문을 돌려준다).
+ * - 제출: 요청 중·이동 중에는 다시 보내지 않는다. 주문 시도마다 `Idempotency-Key`(#923)를 새로 만들고, 주문이 생겼는지 모르는
+ *   실패(응답 없음·5xx·`Order_400_26`)면 키를 남겨 **다음 제출(= 재시도)이 같은 키**를 쓴다 — 서버가 앞 주문을 돌려준다.
+ *   주문이 생기지 않은 게 확실한 실패(4xx 업무 규칙)면 키를 버린다.
  *   성공하면 응답을 G11/O-3 키에 넣고 `/orders/[orderUuid]?created=1`로 `replace`(뒤로가기로 체크아웃에 돌아와 다시 내지 못하게)
  * - 에러: patterns §24 P7 행(`checkout-errors.ts`). `Agreement_400_1`(동의 강제)은 주문 동의 칸을 풀고 폼 상단 안내 — 다시 체크받는다. 재고 계열(`Ticket_Item_400_1`·`Ticket_Item_400_6`·`Order_400_15`)은 GP-5와 O-0을
  *   다시 읽어 상한을 갱신한다. 무료 선착순 확정 실패는 표에 없는 에러로 와도 "다시 시도" 안내(`FREE_FCFS_FAILED`)
@@ -154,7 +159,6 @@ export function useCheckout({
     quantity >= 1
       ? orderTotalAmount(toAmountInput({ options: optionValues }, ticket, quantity))
       : 0;
-  const tossLink = kind === 'TRANSFER' ? tossTransferLink(account, amount) : null;
 
   // ─── 모드 · 수량 ───
   const setMode = useCallback(
@@ -195,6 +199,8 @@ export function useCheckout({
   const [submitError, setSubmitError] = useState<CheckoutErrorOutcome | null>(null);
   const [succeeded, setSucceeded] = useState(false);
   const inflight = useRef(false);
+  /** 지금 주문 시도의 `Idempotency-Key`. 결과를 모르는 실패 뒤에는 남겨 재시도가 같은 키를 쓴다 */
+  const attemptKey = useRef<string | null>(null);
 
   const refetchTickets = useCallback(() => {
     // 공연 상세의 GP-5(마운트돼 있지 않아도 다시 받아 둔다)와 이 화면의 O-0
@@ -244,12 +250,14 @@ export function useCheckout({
       if (inflight.current) return;
       inflight.current = true;
       const body = toOrderBody(values, { eventId, ticket, quantity, depositorName });
+      attemptKey.current ??= newIdempotencyKey();
       try {
-        const order = await mutation.mutateAsync(body);
+        const order = await mutation.mutateAsync({ body, idempotencyKey: attemptKey.current });
         setSucceeded(true);
         router.replace(orderCreatedHref(order.orderUuid));
       } catch (e) {
         inflight.current = false;
+        if (!keepsAttemptKey(e)) attemptKey.current = null;
         // 응답을 못 받았으면 주문내역이 바뀌었을 수 있다 — 다음에 열 때 새로 읽게 한다
         const onUncertain = () => {
           void queryClient.invalidateQueries({ queryKey: MY_ORDERS_INFINITE_KEY });
@@ -289,13 +297,13 @@ export function useCheckout({
     account: kind === 'TRANSFER' ? account : null,
     kind,
     ctaLabel: ctaLabel(kind),
-    /** CTA 뒤 "입금하셨나요?" 확인을 거치는지 */
-    needsDepositConfirm: needsDepositConfirm(kind),
+    /** CTA 뒤 주문 확인 모달(요약 + 두둥 입금 전 확인 → [주문 완료하기])을 거치는지 */
+    needsOrderConfirm: needsOrderConfirm(kind),
     /** RHF 폼(옵션 답·결제 방식·환불 규정 동의·주문 동의). 칸 연결은 V */
     form,
     /**
      * 주문 동의 칸(#840 — 2026-11-01 붙임, 위치는 Q42 답 전 잠정). `hostProvision`: 호스트 제공 동의(`hostProvisionAgreed`) 칸,
-     * `dudoongNotice`: 두둥 입금 전 확인(`dudoongTicketNoticeConfirmed`) 칸 — 두둥티켓만, "입금하셨나요?" 확인 단계에 둔다.
+     * `dudoongNotice`: 두둥 입금 전 확인(`dudoongTicketNoticeConfirmed`) 칸 — 두둥티켓만, 주문 확인 모달에 둔다(입금은 주문 뒤라 "입금 전" 확인이 맞다 — B23).
      * 칸이 있으면 체크 전 제출이 막힌다
      */
     agreementFields: checkoutAgreementFields(ticket),
@@ -309,16 +317,14 @@ export function useCheckout({
     /** 원한 수량(주소·스테퍼)이 상한보다 커서 줄였는지(재고 갱신 뒤 포함) */
     quantityAdjusted: quantity !== wanted,
     setQuantity,
-    /** 화면 총액 = 토스 송금 금액 = 서버 `totalAmount` */
+    /** 화면 총액 = 서버 `totalAmount`(주문 완료 화면의 입금 금액·토스 송금 금액도 그 값) */
     amount,
     paymentChannel,
-    /** 토스 송금 링크(토스 송금을 고를 때 쓴다). 계좌가 불완전하거나 무료면 `null` */
-    tossLink,
     /** 입금자명(닉네임 고정, 읽기 전용) */
     depositorName,
     /**
      * 확인 모달을 열기 전 검증(칸 오류 표시). 통과하면 true. 두둥 입금 전 확인(③)은 그 모달 안에서 받으므로 여기서는 보지 않는다
-     * (모달의 [결제완료]가 체크 전 비활성이고, `submit`이 전체를 다시 검사한다)
+     * (모달의 [주문 완료하기]가 체크 전 비활성이고, `submit`이 전체를 다시 검사한다)
      */
     validate: () => form.trigger(PRE_CONFIRM_FIELDS),
     submit,
@@ -330,3 +336,15 @@ export function useCheckout({
 }
 
 export type CheckoutState = ReturnType<typeof useCheckout>;
+
+/**
+ * 실패 뒤에도 같은 `Idempotency-Key`를 남길지(백엔드 #923 — 재시도에만 같은 키). 주문이 생겼는지 모르는 실패만 남긴다:
+ * 응답을 못 받음(status 0 — TIMEOUT·NETWORK), 5xx(`Redisson_500_1` 락 대기 초과 · 게이트웨이 502/504 — 서버가 처리했을 수 있다),
+ * 표에서 `retrySameKey`인 코드(`Order_400_26` 무료 선착순 확정 중). 그 밖의 4xx는 주문이 생기지 않았으므로 다음 제출은 새 시도다
+ */
+export function keepsAttemptKey(error: unknown): boolean {
+  if (!isApiError(error)) return false;
+  if (error.status === 0 || error.status >= 500) return true;
+  const outcome = classifyCheckoutError(error.code);
+  return outcome?.retrySameKey ?? false;
+}

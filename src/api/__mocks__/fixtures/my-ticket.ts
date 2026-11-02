@@ -37,6 +37,8 @@ type MockOrder = {
   quantity: number;
   /** 아직 읽지 않은 승인 알림이 있는지(T-3) */
   unreadApproved: boolean;
+  /** 승인형 주문(#924). false = 무료 선착순(즉시 발급) */
+  approvalRequired: boolean;
 };
 
 type MockTicket = {
@@ -155,7 +157,10 @@ function seed() {
     },
     order('mock-order-tickets-i', 'R1000105', 'me', 'APPROVED', 103, '일반 예매', 1),
     order('mock-order-other-g', 'R2000101', 'other', 'APPROVED', 101, '일반 예매', 4),
-    order('mock-order-other-h', 'R2000090', 'other', 'APPROVED', 90, '무료 초대', 1),
+    {
+      ...order('mock-order-other-h', 'R2000090', 'other', 'APPROVED', 90, '무료 초대', 1),
+      approvalRequired: false,
+    },
   ];
   const tickets: MockTicket[] = [
     ticket(1, TICKET_UUID.approved, 'mock-order-tickets-a', 'me', 15000, 10000),
@@ -232,6 +237,7 @@ function order(
     ticketName,
     quantity,
     unreadApproved,
+    approvalRequired: true,
   };
 }
 
@@ -410,6 +416,7 @@ function groupOf(
     refuseReason: mine && refused ? o.refuseReason : null,
     event: eventSummary(eventOf(o.eventId)),
     ticketName: tickets[0]?.ticketName ?? o.ticketName,
+    approvalRequired: o.approvalRequired,
     counts,
     tickets,
   };
@@ -752,6 +759,11 @@ export function hostCheckIn(eventId: number, ticketUuid: string): CheckInRespons
     return { result: 'OTHER_EVENT', ticket: null, candidates: [] };
   }
   return enter(t);
+}
+
+/** 티켓 번호(`T${1_000_000 + id}`) → uuid(PQ-2b mock — #926). 없으면 null */
+export function ticketUuidByNo(ticketNo: string): string | null {
+  return store.tickets.find((t) => `T${1_000_000 + t.id}` === ticketNo)?.uuid ?? null;
 }
 
 /** GQ-1(`V2IssuedTicketQuery.stats`) — 발급 = 입장 전 + 입장 완료(취소 제외), 입장률은 소수 첫째 자리 반올림, 발급 0이면 0 */

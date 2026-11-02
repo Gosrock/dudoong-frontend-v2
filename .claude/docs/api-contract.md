@@ -81,7 +81,10 @@
 - **PATCH** 부분 수정: `null`(키 없음) = 변경 안 함. 객체·배열 필드는 통째 교체(PE-4 `place`·`contacts`·`tagIds`, PH-4 `contacts`). P10/T-3에서 "값 없음"은 `clear[]`.
 - **PUT** 전체 교체·upsert: PE-6 섹션, P10/O-5 옵션 지정, P11/O-5 환불 계좌, PH-13 팔로우. 빠진 항목은 지워진다. 본문은 객체로 감싼다(`{sections}`, `{optionIds}`).
 - 같은 전이를 다시 보내면: 부작용 없는 전이는 200(판매 중단·재개, 환불 완료, 알림 읽음, 팔로우), 발급·환불 요청·알림이 따르는 전이는 400(승인·거절·취소·공연 등록·삭제·선물 회수·수락·거절). 400이면 최신 상태를 다시 읽는다.
-- 주문 생성 P11/O-1은 10초 안의 같은 요청에 앞 주문을 돌려준다. `Idempotency-Key`는 없다.
+- **주문 생성 P11/O-1 중복 판정**(Backend #914 답 1 · #923 — 2.5.6 스테이징만, 운영은 컷오버 때):
+  - 헤더 없음: 10초 안의 같은 요청(같은 사용자·티켓·수량·옵션 답·결제 방식·입금자명)에 앞 주문을 돌려준다(2.5.3까지 이것뿐).
+  - 선택 헤더 **`Idempotency-Key`**(영문·숫자·`_`·`-` 8~64자, 틀리면 400 `BAD_REQUEST`): 같은 사용자·같은 티켓·같은 키면 **시간·본문과 상관없이(24시간)** 앞 주문(O-3 — 거절·취소된 주문 포함)을 돌려준다. 키 조회는 판매 조건 검증보다 먼저다. 앞 주문이 FAILED이거나 저장되지 않았으면 새로 만든다. 앞 요청이 처리 중이면 같은 티켓 락에서 최대 10초 기다리고, 못 잡으면 500 `Redisson_500_1`(주문은 생기지 않음 — 같은 키로 다시). 무료 선착순 확정 중이면 `Order_400_26`(잠시 뒤 같은 키로 다시). 중복 반환이면 동의를 다시 기록하지 않는다.
+  - **FE 규칙**: [주문 완료하기] 한 번 = 새 키(`crypto.randomUUID()`), **재시도에만 같은 키**. 주문이 생겼는지 모르는 실패(응답 없음 · 5xx · `Order_400_26`)는 키를 남겨 [다시 시도]가 같은 키로 보내고, 4xx 업무 규칙 실패면 키를 버린다(`useCheckout` `keepsAttemptKey`). 키는 로그에 남기지 않는다.
 
 ### 이미지 업로드
 
@@ -245,6 +248,7 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 | GI-3 | GET `/events/{eventId}/issued-tickets/export` | M+ (#846 전 G+) |
 | GQ-1 | GET `/events/{eventId}/check-ins/stats` | G+ |
 | PQ-2 | POST `/events/{eventId}/check-ins` | G+ |
+| PQ-2b | POST `/events/{eventId}/check-ins/by-ticket-no` (#926 — 2.5.6) | G+ |
 | GQ-4 | GET `/events/{eventId}/check-in-qr` | G+ |
 | PQ-5 | POST `/check-ins/self` | U |
 
@@ -328,7 +332,8 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 - 새 공연은 서버에 섹션이 없다. 기본 4탭(공연소개 · 예매안내 · 세트리스트 · 유의사항)은 **프론트가 그린다**(`DEFAULT_SECTION_TITLES`). 첫 섹션 = 공연소개(v1 본문과 동기화). **기본 제목은 '공연소개'(붙여 씀)로 통일**(2.5.4 스테이징, #909 — 백엔드 `EventSection.DEFAULT_TITLES`도 같음). 서버가 만드는 제목은 섹션 없는 옛 공연의 대체 표시뿐이고, 이미 저장된 '공연 소개' 제목은 그대로 둔다(호스트가 고칠 수 있다 — FE는 저장된 제목을 그대로 그린다).
 - GP-2 목록 항목(`V2EventListItemResponse`)에 **`hostId: Long?`·`updatedAt: "yyyy.MM.dd HH:mm"?`**(2.5.3 — #900). `updatedAt`은 공연 행 기준이라 티켓·태그만 바뀌면 그대로일 수 있다. sitemap의 GP-3 팬아웃을 지울 수 있다(`src/api/server/sitemap-source.ts` — 후속).
 - 준비중·삭제 공연은 사용자 API(GP-3, GP-5, G11/O-0)에서 호스트 멤버여도 404다. 멤버는 호스팅 센터 GE-3으로 본다.
-- 리스트 검색 = 공연명 OR 호스트명 부분일치. 태그는 같은 분류 OR / 분류끼리 AND.
+- **GP-1 홈 · GP-2 목록 항목 카드 가격 값**(#925 — 2.5.6 스테이징만, FE는 optional): `hasTicket`(티켓 판매 공연), `minPrice`(판매 중 티켓 최저가 원 — 판매 중 티켓이 없거나 지난 공연이면 null), `isFree`(판매 중 티켓이 있고 모두 0원), `isSoldOut`(판매 중 티켓이 있고 모두 매진 — GP-5 기준). '판매 중' = 판매 중단 아님 + 판매 기간 안(O-0과 같음), 잔여 = 재고 − 승인 대기. 카드 가격 줄(design-requests Q63 기본안): 매진 → 무료 → `15,000원~` → 티켓 없음 → 없음.
+- 리스트 검색 = 공연명 OR 호스트명 OR **공연장 이름**(#922 — 2.5.6) 부분일치. 태그는 같은 분류 OR / 분류끼리 AND.
 - 상세의 문의처는 공연 문의처, 없으면 호스트 연락처.
 - **비로그인이면 문의처의 `PHONE`·`EMAIL` 값이 가려져 온다**(GP-3·GH-3 `contacts`, #846). 전화 `010-****-5678`(숫자 8자리 이하는 끝 4자리만), 이메일 `ab***@gmail.com`(아이디 2자 이하 `***@…`). 인스타그램·오픈채팅·유튜브·기타는 공개 채널이라 원문(`V2ContactResponse.masked`, `PrivacyMasker` @432cce4). 로그인 사용자에게는 원문이다. FE 대응(A안, 2026-10-25 사용자 결정)은 tech-decisions §4 viewer 표.
 - GH-3(+ 같은 DTO를 쓰는 PH-4 응답)에 **멤버 요약 `members[{name, profileImageUrl, role}]`**(#811): 활성 멤버 중 정상 계정만, 마스터 → 매니저 → 일반·같은 역할은 먼저 들어온 순, 최대 10명, userId·연락처 없음. 비로그인이면 `name`을 `김*수`로 가린다. `memberCount`(활성 멤버 수)는 정지·탈퇴 계정을 빼지 않아 `members.length`와 다를 수 있다(`V2ReadHostHomeUseCase` @432cce4).
@@ -394,6 +399,7 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 ### 체크인 (F8)
 
 - 호스트 스캔(PQ-2) `{ticketUuid}` — **QR 값 = 티켓 uuid**(G11/T-2 `qrValue`). 항상 200 + `result`. 체크인 취소는 없다.
+- **티켓 번호 체크인(PQ-2b, #926 — 2.5.6)** `{ticketNo}`(`@NotBlank @Size(max = 20)`) — 카메라 없는 현장용. 권한(일반 멤버 이상) · 공연 상태(OPEN·정산중, 아니면 `Event_400_27`) · 응답(항상 200 + `result` 5종)이 PQ-2와 같다. 서버가 대소문자 · 앞뒤 공백을 무시하고 숫자만이면 `T`를 붙인다. 없는 번호 · 다른 공연 번호는 `OTHER_EVENT`(티켓 null). **번호는 추측할 수 있다** — 입장 처리 뒤 `ticket.ownerName`을 크게 보여 현장에서 이름을 확인한다(QR 체크인 화면 "티켓 번호로 입장").
 - 호스트 스캔은 OPEN·CALCULATING 공연만(그 밖 400 `Event_400_27`). 셀프 체크인은 OPEN만.
 - 셀프 체크인 QR(GQ-4): 공연별 고정 토큰. 응답 `qrPath = /check-in?token=…`(origin은 프론트가 붙인다).
 - 관객 셀프 체크인(PQ-5) `{token, ticketUuid?}`: 입장 전 티켓이 여러 장이면 `SELECT_TICKET` + `candidates` → 하나를 골라 다시 요청.
@@ -426,7 +432,7 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 
 ### 마이페이지 · 알림 (F10 · F11)
 
-- 내 티켓(G11/T-1): 주문 단위 묶음, 공연 임박순, 페이지 없음. `groupKey`는 내 주문 = 주문 uuid, 받은 티켓 = `ticket:{첫 티켓 번호}`(이때 `orderUuid`가 `null` → [주문상세] 없음).
+- 내 티켓(G11/T-1): 주문 단위 묶음, 공연 임박순, 페이지 없음. 묶음 `approvalRequired`(#924 — 2.5.6, O-3과 같은 값, 받은 티켓은 원 주문 기준) — false(무료 선착순)면 배지 '발급 완료'(Q74), 값이 없으면 '승인완료'. `groupKey`는 내 주문 = 주문 uuid, 받은 티켓 = `ticket:{첫 티켓 번호}`(이때 `orderUuid`가 `null` → [주문상세] 없음).
 - **G11/T-3 `refusedOrderUuids`(백엔드 2.5.4 — 스테이징에만, 운영 2.5.3에는 키가 없다 · #905 §2-2 · #908)**: 안 읽은 거절 알림 중 지금도 거절 상태인 내 주문, 최근 알림 순, 없으면 빈 배열. `hasNew`·`orderUuids`는 그대로(승인만) — 따로 본다. 해제는 그 거절 알림을 읽거나(N-3) 그 주문 상세를 **11/O-3**로 열 때(응답 전에 읽음 처리 — 바로 다음 T-3에서 빠진다). 그래서 거절 공지 바의 [티켓보기]는 O-3 주문 상세로 보낸다. FE 스키마는 키가 없으면 빈 배열(`.optional().default([])`). **'공연이 시작되었습니다!'는 서버 값이 없다** — T-1 공연으로 프론트가 정한다(T-1 `event`에는 종료 시각이 없어 서버가 요청 시점에 계산한 `displayStatus === 'ONGOING'`(시작 ≤ 지금 < 종료)을 쓴다). 공지 바 우선순위·문구는 `ticket-groups.ts` `noticeBar`(design-requests Q55).
 - 공지 바(G11/T-3) 해제는 그 승인 알림을 읽거나 그 주문 티켓을 G11/T-2(보낸 선물이면 GG-7a)로 열 때다. 티켓탭 진입만으로는 해제되지 않는다. **#888(@78b1b6e7)부터 T-2·GG-7a는 읽기 전용 조회가 끝난 뒤 응답 전에 읽음 처리를 끝낸다**(별도 트랜잭션, 3초 제한 — `V2MyTicketUseCase.markApprovedReadOnView`). 그래서 응답 직후 T-3은 `hasNew: false`다 — FE는 T-3을 한 번 무효화할 뿐 기다리거나 다시 읽지 않는다. 읽음 처리가 드물게 실패해도(잠금 대기 초과 등) T-2는 200이고 warn만 남는다 — 바는 다음에 열 때까지 남을 수 있다(B9 — 예전 커밋 뒤 비동기 핸들러 `handleOrderTicketViewed`는 지워졌다).
 - 내 프로필 GM-1·PM-2 응답에 **`marketingAgree`**(boolean, 필수)가 있다(#888 — `V2MeResponse`). 바꾸기는 PM-2 본문 `{"marketingAgree": true|false}` — **값 지정(멱등)**, 생략·`null`은 변경 안 함(`V2UpdateMeRequest`·`V2UserDomainService.updateProfile` → `User.changeMarketingAgree`). v1 반전 API(`PATCH /api/v1/users/me/marketing`)·v1 `GET /api/v1/users/me`로 현재 값을 읽는 우회는 쓰지 않는다(B17). 거래 메일 수신(v1 `receiveMail`)과는 다른 설정.

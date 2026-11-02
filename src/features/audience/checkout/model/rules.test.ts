@@ -13,7 +13,7 @@ import { isCreatedParam, orderCreatedHref, orderResultKind } from './order-resul
 import {
   checkoutKind,
   ctaLabel,
-  needsDepositConfirm,
+  needsOrderConfirm,
   selectablePaymentChannels,
   tossTransferLink,
 } from './payment';
@@ -36,10 +36,10 @@ describe('3분기 · CTA', () => {
       false,
     ],
     ['무료 선착순', { payType: 'FREE', approvalRequired: false }, 'FREE_FCFS', '신청하기', false],
-  ] as const)('%s → %s · %s · 입금 확인 %s', (_, ticket, kind, label, confirm) => {
+  ] as const)('%s → %s · %s · 주문 확인 모달 %s', (_, ticket, kind, label, confirm) => {
     expect(checkoutKind(ticket)).toBe(kind);
     expect(ctaLabel(kind)).toBe(label);
-    expect(needsDepositConfirm(kind)).toBe(confirm);
+    expect(needsOrderConfirm(kind)).toBe(confirm);
   });
 
   it.each([
@@ -154,9 +154,17 @@ describe('주문 생성 에러 분기 — patterns §24 P7 행', () => {
     ['Event_404_1', 'NOT_ON_SALE', false, 'event'],
     ['Order_400_22', 'DEPOSITOR_NAME', false, null],
     ['Order_400_23', 'OPTION_ANSWERS', false, null],
-    ['Order_400_26', 'DUPLICATE_IN_PROGRESS', false, 'orders'],
+    ['Order_400_26', 'DUPLICATE_IN_PROGRESS', false, null],
+    ['Redisson_500_1', 'DUPLICATE_IN_PROGRESS', false, null],
   ])('%s → %s, GP-5 다시 읽기 %s, 이동 %s', (code, kind, refetch, navigate) => {
     expect(classifyCheckoutError(code)).toMatchObject({ kind, refetchTickets: refetch, navigate });
+  });
+
+  it('같은 키로 다시 보내는 것은 주문이 생겼는지 모르는 코드뿐(#923 — 재시도에만 같은 키)', () => {
+    const retry = Object.entries(CHECKOUT_ERROR_TABLE)
+      .filter(([, o]) => o.retrySameKey)
+      .map(([code]) => code);
+    expect(retry.sort()).toEqual(['Order_400_26', 'Redisson_500_1']);
   });
 
   it('입금자명 오류는 프로필 닉네임 확인 안내', () => {

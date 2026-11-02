@@ -200,7 +200,7 @@ scenario(
         await dialog
           .getByRole('checkbox', { name: '(필수) 위 내용을 확인했으며 이에 동의합니다' })
           .click();
-        await dialog.getByRole('button', { name: '결제완료' }).click();
+        await dialog.getByRole('button', { name: '주문 완료하기' }).click();
         await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
         orderUuid = new URL(page.url()).pathname.split('/').at(-1)!;
       },

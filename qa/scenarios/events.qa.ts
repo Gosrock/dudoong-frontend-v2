@@ -42,7 +42,9 @@ scenario(
       async () => {
         await page.goto('/events');
         await expect(cards(page).first()).toBeVisible();
-        await expect(page.getByRole('searchbox', { name: '공연명 또는 호스트명' })).toBeVisible();
+        await expect(
+          page.getByRole('searchbox', { name: '공연명, 호스트, 공연장으로 검색' }),
+        ).toBeVisible();
         await expect(page.getByRole('button', { name: /^태그/ })).toBeVisible();
         await expect(page.getByRole('switch', { name: '지난공연보기' })).not.toBeChecked();
         await expect(page.getByText('공연임박순', { exact: true })).toBeVisible();

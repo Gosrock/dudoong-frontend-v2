@@ -47,6 +47,15 @@ export const Default: Story = {
   },
 };
 
+/** 날짜 줄 아래 가격 줄(Q63 기본안 · 백엔드 #925 — `FIGMA-CUSTOM`) */
+export const WithPrice: Story = {
+  args: { price: '15,000원~' },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByTestId('card-price')).toHaveTextContent('15,000원~');
+  },
+};
+
 /** Figma에 없는 상태 — 포스터가 없으면 빈 상자(design-requests Q26) */
 export const NoPoster: Story = {
   args: { posterUrl: null },

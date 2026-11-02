@@ -138,8 +138,8 @@ describe('거절 사유(PR-4) · 취소 사유(PR-5)', () => {
     [{ reasonType: null, reasonText: '' }, { reasonType: REFUSE_ERRORS.reasonType }],
     [{ reasonType: 'SOLD_OUT', reasonText: '' }, {}],
     [{ reasonType: 'ETC', reasonText: '  ' }, { reasonText: REFUSE_ERRORS.reasonText }],
-    [{ reasonType: 'ETC', reasonText: 'a'.repeat(20) }, {}],
-    [{ reasonType: 'ETC', reasonText: 'a'.repeat(21) }, { reasonText: REFUSE_ERRORS.reasonText }],
+    [{ reasonType: 'ETC', reasonText: 'a'.repeat(100) }, {}],
+    [{ reasonType: 'ETC', reasonText: 'a'.repeat(101) }, { reasonText: REFUSE_ERRORS.reasonText }],
   ] as const)('%o → %o', (form, errors) => {
     expect(validateRefuse(form)).toEqual(errors);
   });

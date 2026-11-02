@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { TagGroup } from '@/api/event/schema';
 
+import { concertCardPrice } from './card-date';
 import {
   clampKeyword,
   EMPTY_FILTER,
@@ -116,5 +117,19 @@ describe('태그 패널', () => {
 
   it('태그가 없으면 빈 패널', () => {
     expect(toTagPanel([], [1])).toEqual({ groups: [], selectedCount: 0 });
+  });
+});
+
+describe('카드 가격 줄(Q63 기본안 · 백엔드 #925)', () => {
+  it.each([
+    [{ isSoldOut: true, isFree: true, minPrice: 0, hasTicket: true }, '매진'],
+    [{ isSoldOut: false, isFree: true, minPrice: 0, hasTicket: true }, '무료'],
+    [{ isSoldOut: false, isFree: false, minPrice: 15000, hasTicket: true }, '15,000원~'],
+    [{ isSoldOut: false, isFree: false, minPrice: 0, hasTicket: true }, '무료~'],
+    [{ isSoldOut: false, isFree: false, minPrice: null, hasTicket: false }, '티켓 없음'],
+    [{ isSoldOut: false, isFree: false, minPrice: null, hasTicket: true }, null],
+    [{}, null],
+  ] as const)('%o → %s', (e, line) => {
+    expect(concertCardPrice(e)).toBe(line);
   });
 });

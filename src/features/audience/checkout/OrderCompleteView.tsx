@@ -19,10 +19,12 @@ import { colors } from '@/ui/theme/colors';
 
 import { ORDER_RESULT_MESSAGE, orderResultKind } from './model/order-result';
 import * as s from './OrderCompleteView.css';
+import { DepositGuide } from './ui/DepositGuide';
 
 /**
  * `/orders/[orderUuid]?created=1` 주문 완료 — GUI `939:27829`(일러스트 + "주문 완료!" + [주문내역] [티켓 페이지로]).
- * 셸 로고 헤더 아래에 그린다(GUI도 로고 헤더). 예매번호·계좌·금액은 다시 보이지 않는다(plan P7 ⑤, Q16 기본안 — 주문상세에서 본다).
+ * 셸 로고 헤더 아래에 그린다(GUI도 로고 헤더). 두둥티켓(입금 대기)은 계좌·금액·[토스 앱에서 송금하기]를 여기서 보인다 —
+ * B23(2026-11-02)으로 주문을 입금 전에 먼저 만들기 때문(예전 Q16 기본안 "주문상세에서만"을 바꿨다). 주문상세에서도 다시 본다.
  * 생성 직후에는 `useCheckout`이 넣어 둔 G11/O-3 캐시로 그리고, 새로고침·하드 리로드에서는 G11/O-3을 다시 읽는다.
  */
 export function OrderCompleteView({ orderUuid }: { orderUuid: string; created?: boolean }) {
@@ -51,6 +53,7 @@ function OrderComplete({ orderUuid }: { orderUuid: string }) {
           </span>
         </Txt>
       </Flex>
+      {kind === 'AWAITING_DEPOSIT_APPROVAL' && <DepositGuide order={order} />}
       <div className={s.actions}>
         <Link
           href="/orders"
