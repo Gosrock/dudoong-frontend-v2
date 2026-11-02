@@ -3,7 +3,11 @@ import type { Page, TestInfo } from '@playwright/test';
 import { setMockSession } from '../../e2e/support/auth';
 import { resetTicketStore as resetMyTicketStore } from '../../src/api/__mocks__/fixtures/my-ticket';
 import { CHECKOUT_TICKET } from '../../src/api/__mocks__/fixtures/order';
-import { GUEST_ORDER } from '../../src/api/__mocks__/guest-store';
+import {
+  GUEST_ORDER,
+  patchGuestOrder,
+  storedGuestOrder,
+} from '../../src/api/__mocks__/guest-store';
 import { resetHostMockState } from '../../src/api/__mocks__/host.handlers';
 import { actAsRole } from '../../src/api/__mocks__/host-store';
 import { resetHostingStore } from '../../src/api/__mocks__/hosting.handlers';
@@ -321,6 +325,48 @@ scenario(
       await expect(detail.getByTestId('ticket-detail-entrance')).toHaveText('입장 완료');
       await expect(detail.getByRole('button', { name: '입장 처리' })).toHaveCount(0);
       await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 3');
+    });
+  },
+);
+
+scenario(
+  'HG-17',
+  '발급된 티켓 탭 — 선물 상태 칩(선물 대기 · 선물 받음), 선물 대기 티켓은 [입장 처리] 대신 안내',
+  {
+    kind: '정상',
+    summary:
+      '선물 대기(수락 전) 티켓은 서버 PQ-2가 GIFT_PENDING으로 입장시키지 않는다 — 행은 입장 전 칩, 상세는 버튼 대신 안내 문구. 선물 받음 티켓은 소유자 줄과 칩, [입장 처리] 그대로. GUI에 자리가 없어 🤖 최소안(Q110).',
+    basis: [
+      '백엔드 V2CheckInDomainService.classify(dev f45882e) — giftPending → GIFT_PENDING',
+      'design-requests Q110(표 티켓 칸 선물 칩 · 상세 소유자 줄)',
+      'integration REG-2(#129 회귀)',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    // 무료 주문(T2000003)의 티켓을 선물 대기로 — 선물 링크를 보낸 뒤 수락 전(관객 흐름은 integration REG-2)
+    const free = storedGuestOrder(GUEST_ORDER.approvedFree)!;
+    patchGuestOrder(GUEST_ORDER.approvedFree, {
+      issuedTickets: free.issuedTickets.map((t) => ({ ...t, giftState: 'PENDING' as const })),
+    });
+    const row = (no: string) => page.getByTestId('ticket-row').filter({ hasText: no });
+    await step('선물 대기 행에 "선물 대기" 칩, [입장 처리] 대신 입장 전 칩', async () => {
+      await page.goto(`${GUESTS}?tab=tickets`);
+      await expect(row('T2000003').getByTestId('ticket-gift')).toHaveText('선물 대기');
+      await expect(row('T2000003').getByRole('button', { name: '입장 처리' })).toHaveCount(0);
+      await expect(row('T2000003').getByTestId('ticket-entrance')).toHaveText('입장 전');
+    });
+    await step('선물 받음 행은 "선물 받음" 칩과 [입장 처리]', async () => {
+      await expect(row('T2000002').getByTestId('ticket-gift')).toHaveText('선물 받음');
+      await expect(row('T2000002').getByRole('button', { name: '입장 처리' })).toBeVisible();
+    });
+    await step('선물 대기 티켓 상세 — 소유자 줄 · 버튼 대신 선물 대기 안내', async () => {
+      await row('T2000003').click();
+      const detail = page.getByRole('dialog');
+      await expect(page.getByTestId('ticket-detail')).toBeVisible();
+      await expect(detail.getByTestId('ticket-gift')).toHaveText('선물 대기');
+      await expect(detail).toContainText('선물 대기 중인 티켓이에요');
+      await expect(detail.getByRole('button', { name: '입장 처리' })).toHaveCount(0);
     });
   },
 );

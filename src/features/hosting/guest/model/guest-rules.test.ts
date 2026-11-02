@@ -4,10 +4,12 @@ import {
   CANCEL_CONFIRM,
   EXACT_MATCH_HINT,
   exactMatchHintOf,
+  GIFT_PENDING_CHECK_IN_MESSAGE,
   guestsHref,
   guestsSearch,
   isDudoongOrder,
   isEventStarted,
+  isGiftPending,
   orderActionsOf,
   parseGuestTab,
   parseOrderParam,
@@ -198,5 +200,14 @@ describe('[환불 완료] 확인 문구(#106 §5)', () => {
     const noAccount = refundConfirmCopy({ buyerName: null, hasAccount: false });
     expect(noAccount.title).toBe('이 주문을 환불 완료로 바꿀까요?');
     expect(noAccount.description).toContain('환불 계좌가 아직 입력되지 않았어요');
+  });
+});
+
+describe('선물 대기 티켓 입장 처리(PQ-2 GIFT_PENDING)', () => {
+  it('선물 대기만 막는다 — 선물 받음 · 선물 없음은 입장 처리할 수 있다', () => {
+    expect(isGiftPending({ giftState: 'PENDING' })).toBe(true);
+    expect(isGiftPending({ giftState: 'ACCEPTED' })).toBe(false);
+    expect(isGiftPending({ giftState: 'NONE' })).toBe(false);
+    expect(GIFT_PENDING_CHECK_IN_MESSAGE).toContain('선물 대기 중인 티켓');
   });
 });
