@@ -22,6 +22,12 @@ export const HOST_ROLE_LABEL: Record<HostRole, string> = {
   UNKNOWN: '알 수 없음',
 };
 
+/**
+ * 멤버 목록에서 역할 글자를 눈으로는 숨기는 역할(와이어: 마스터·매니저만 적고 일반은 비워 둔다 — 화면 읽기 프로그램에는 읽힌다).
+ * 표시용 매핑이라 `can()`이 아니다(patterns §22 D10, 코드 패턴 점검 A42)
+ */
+export const hideRoleLabel = (role: HostRole) => role === 'GUEST';
+
 // ─── 행 메뉴 ─────────────────────────────────────────────────
 
 export type MemberActions = {

@@ -18,6 +18,7 @@ import { type Result, tryCatch } from '@/utils/try-catch';
 
 import { applyMembers, invalidateHostSummary, invalidateMyRoleQueries } from './host-cache';
 import {
+  hideRoleLabel,
   HOST_ROLE_LABEL,
   MEMBER_ACTION_ERROR_MESSAGE,
   memberActionsOf,
@@ -98,6 +99,8 @@ export function useHostMembers(hostId: string) {
       members.map((m) => ({
         ...m,
         roleLabel: HOST_ROLE_LABEL[m.role],
+        /** 역할 글자를 눈으로는 숨긴다(일반 멤버 — 와이어) */
+        roleLabelHidden: hideRoleLabel(m.role),
         /** 나(GM-1 `userId`) — "나" 표시용 */
         isMe: me?.userId === m.userId,
         actions: memberActionsOf(myRole, m),

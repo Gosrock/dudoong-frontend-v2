@@ -16,12 +16,14 @@ export type ChipLook = { label: string; color: ChipColor; theme: ChipTheme };
  * 호스트 카드의 내 역할 배지. 일반 멤버(`GUEST`)는 DS role chip에 없어 grey로 "일반"을 단다(🤖 판단 — 역할을 모든 카드에 보이려고).
  * 모르는 역할(`UNKNOWN`)은 배지 없음.
  */
-export function roleChipOf(role: HostRole): ChipLook | null {
-  if (role === 'MASTER') return { label: HOST_ROLE_LABEL.MASTER, color: 'purple', theme: 'weak' };
-  if (role === 'MANAGER') return { label: HOST_ROLE_LABEL.MANAGER, color: 'cyan', theme: 'weak' };
-  if (role === 'GUEST') return { label: HOST_ROLE_LABEL.GUEST, color: 'grey', theme: 'weak' };
-  return null;
-}
+const ROLE_CHIP: Record<HostRole, ChipLook | null> = {
+  MASTER: { label: HOST_ROLE_LABEL.MASTER, color: 'purple', theme: 'weak' },
+  MANAGER: { label: HOST_ROLE_LABEL.MANAGER, color: 'cyan', theme: 'weak' },
+  GUEST: { label: HOST_ROLE_LABEL.GUEST, color: 'grey', theme: 'weak' },
+  UNKNOWN: null,
+};
+
+export const roleChipOf = (role: HostRole): ChipLook | null => ROLE_CHIP[role];
 
 /** 공연 카드 상태 칩. 모르는 표시 상태는 칩 없음 */
 export function eventChipOf(event: Pick<MyEvent, 'displayStatus' | 'dDay'>): ChipLook | null {
