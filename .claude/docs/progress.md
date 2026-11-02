@@ -13,7 +13,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
 | 코드 패턴 정리 ①문서 + ②공용 부품 | `9yujin/pattern-base` | 2026-11-02 | PR 검토 대기 | 새로 만들기만(호출 쪽은 ③④). 병렬 `staging-qa-105-audience` · `staging-qa-106-host`와 파일 나눔 |
-| 회귀 수정 — 예매자 관리 선물 상태 | `9yujin/fix-guests-gift-state` | 2026-11-03 | PR 검토 대기 | 관제탑 전체 회귀(main `3ea8736`) QA REG-2 실패 2 |
+| 회귀 수정 — 예매자 관리 선물 상태 | `9yujin/fix-guests-gift-state` · #134 | 2026-11-03 | PR 검토 대기 | 관제탑 전체 회귀(main `3ea8736`) QA REG-2 실패 2 |
 
 ## 사용자 대기
 
@@ -52,7 +52,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | # | 워크트리 | Phase | V 선행 | 상태 | 그룹 |
 |---|---|---|---|---|---|
-| 33 | `fix-guests-gift-state` | 회귀 수정 — 예매자 관리 발급된 티켓 선물 상태(#129가 지운 선물 칩 → 표 티켓 칸 · 상세 소유자 줄, 🤖 Q110) + 선물 대기 티켓 [입장 처리] 숨김(서버 PQ-2 `GIFT_PENDING`). QA `integration` REG-2 실패 2 | 32 | PR | G 회귀 수정 |
+| 33 | `fix-guests-gift-state` | 회귀 수정 — 예매자 관리 발급된 티켓 선물 상태(#129가 지운 선물 칩 → 표 티켓 칸 · 상세 소유자 줄, 🤖 Q110) + 선물 대기 티켓 [입장 처리] 숨김(서버 PQ-2 `GIFT_PENDING`). QA `integration` REG-2 실패 2 | 32 | 끝(#134) | G 회귀 수정 |
 | 1 | `p4s-v-shell` | P4s-V 레이아웃 셸 | P4s-L · P2 | 끝(#32) | A 기반 |
 | 1a | `ds-sync-1101` | 디자인 시스템 이슈 #23 · #25 · #26 · #27 · #28 + 이슈 없는 DS 변경(14:26Z — Button 아이콘 슬롯 · Checkbox type · gift filled · Box 모서리) — 별도 DS PR(사용자 결정, P4s-V 중) | P4s-V | 끝(#35) | A 기반 |
 | 1b | `design-36` | 디자인 시스템 이슈 #36 Top app bar spacing 토큰(16:19Z — #35 비교 범위 밖, #35의 아이콘 쪽 패딩 누락분 포함) | 1a | 끝(#37) | A 기반 |
