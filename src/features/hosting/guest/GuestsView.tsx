@@ -83,7 +83,7 @@ function Guests({ eventId }: { eventId: string }) {
         </TabPanel>
       </Tabs>
       {detail.open && (
-        <OrderDetailOverlay key={url.orderUuid} d={detail} onClose={url.closeOrder} />
+        <OrderDetailOverlay key={url.orderUuid} state={detail} onClose={url.closeOrder} />
       )}
     </section>
   );

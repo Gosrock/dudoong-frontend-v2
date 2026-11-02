@@ -263,7 +263,7 @@ describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () =>
     expect(result.current.refunds.rows.map((r) => r.refund.orderUuid)).not.toContain(
       GUEST_ORDER.approved,
     );
-    act(() => result.current.detail.setCancelReason(' 공연 일정 변경 '));
+    act(() => result.current.detail.cancelForm.setReasonText(' 공연 일정 변경 '));
     const sent = recordRequests();
     await act(async () => {
       await result.current.detail.cancel();
@@ -286,14 +286,14 @@ describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () =>
   it('취소 사유를 비우면 본문 없이, 100자를 넘으면 요청하지 않는다', async () => {
     const { result } = setup(GUEST_ORDER.approvedFree);
     await loaded(result);
-    act(() => result.current.detail.setCancelReason('a'.repeat(101)));
-    expect(result.current.detail.cancelReasonError).not.toBeNull();
+    act(() => result.current.detail.cancelForm.setReasonText('a'.repeat(101)));
+    expect(result.current.detail.cancelForm.error).not.toBeNull();
     const sent = recordRequests();
     await act(async () => {
       await result.current.detail.cancel();
     });
     expect(await sent.list()).toEqual([]);
-    act(() => result.current.detail.setCancelReason('  '));
+    act(() => result.current.detail.cancelForm.setReasonText('  '));
     await act(async () => {
       await result.current.detail.cancel();
     });

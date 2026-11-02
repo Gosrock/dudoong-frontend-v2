@@ -37,8 +37,8 @@ import {
   Toolbar,
 } from './ui/GuestParts';
 import * as p from './ui/GuestParts.css';
-import { Line, OptionAnswers, Section } from './ui/OrderDetailOverlay';
 import * as o from './ui/OrderDetailOverlay.css';
+import { Line, OptionAnswers, Section } from './ui/OrderDetailParts';
 
 /** [수동 입장 처리] 확인(#106 §5 — 입장 처리는 되돌릴 API가 없다, B37). GUI는 확인 없이 토스트(`1030:8448`) — 🤖 확인 유지 */
 const checkInConfirm = (ownerName: string | null) => ({

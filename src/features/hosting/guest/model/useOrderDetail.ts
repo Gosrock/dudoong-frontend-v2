@@ -274,13 +274,16 @@ export function useOrderDetail(
       );
     },
 
-    cancelReason,
-    setCancelReason: (v: string) => setCancelReasonState(v),
-    /** 고른 취소 사유(GUI 라디오). 기타면 `cancelReason` 문구를 보낸다 */
-    cancelReasonType,
-    setCancelReasonType,
-    cancelReasonMax: CANCEL_REASON_MAX,
-    cancelReasonError: cancelError,
+    /** 승인 후 취소 사유 칸(`refuseForm`과 같은 모양). 고른 사유가 기타면 `reasonText` 문구를 보낸다 */
+    cancelForm: {
+      /** 고른 취소 사유(GUI 라디오) */
+      reasonType: cancelReasonType,
+      setReasonType: setCancelReasonType,
+      reasonText: cancelReason,
+      setReasonText: (v: string) => setCancelReasonState(v),
+      max: CANCEL_REASON_MAX,
+      error: cancelError,
+    },
     /** 취소 확인 문구(두둥이면 C-4 줄) */
     cancelConfirm: {
       ...CANCEL_CONFIRM,
@@ -300,3 +303,5 @@ export function useOrderDetail(
       run('completeRefund', (uuid) => tryCatch(refundM.mutateAsync(uuid)), refundCodes),
   };
 }
+
+export type OrderDetailState = ReturnType<typeof useOrderDetail>;
