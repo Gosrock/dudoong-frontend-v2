@@ -15,6 +15,13 @@ import { meQuery } from '@/api/me/queries';
  * 같은 값을 보여 주는 다른 쿼리만 무효화한다.
  */
 
+/** PH-1(호스트 만들기) 뒤 — 공연준비 홈 호스트 탭(GH-1)과 햄버거 호스트 줄(GM-1). 화면이 사라져도 하도록 mutation 옵션에서 부른다 */
+export const invalidateAfterCreateHost = (queryClient: QueryClient) =>
+  Promise.all([
+    queryClient.invalidateQueries({ queryKey: MY_HOSTS_KEY }),
+    queryClient.invalidateQueries({ queryKey: meQuery().queryKey, exact: true }),
+  ]);
+
 /** 멤버 변경 4종(PH-7 · PH-10 · DH-11 · PH-12)의 응답 = 변경 뒤 멤버 전체 목록 → GH-6 키에 그대로 */
 export function applyMembers(queryClient: QueryClient, hostId: string, members: HostMember[]) {
   queryClient.setQueryData(hostMembersQuery(hostId).queryKey, members);

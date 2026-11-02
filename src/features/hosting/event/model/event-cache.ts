@@ -16,7 +16,8 @@ import { MY_HOSTS_KEY } from '@/api/host/queries';
  * 무효화는 모두 정확한 키(`exact`) 또는 목록 접두 키 — GE-3 키 아래의 체크리스트·편집용 섹션을 덩달아 다시 읽지 않게.
  */
 
-const invalidateExact = (qc: QueryClient, queryKey: readonly unknown[]) =>
+/** 정확한 키 하나만 무효화(아래 키를 덩달아 다시 읽지 않게) — 호스팅 cache 파일이 같이 쓴다(코드 패턴 점검 A33) */
+export const invalidateExact = (qc: QueryClient, queryKey: readonly unknown[]) =>
   qc.invalidateQueries({ queryKey, exact: true });
 
 /**
