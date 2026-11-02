@@ -88,7 +88,7 @@ describe('크리티컬 패스: 상세 → 선택 → 체크아웃 → 주문 →
       co.result.current.form.setValue('hostProvisionAgreed', true);
       co.result.current.form.setValue('dudoongTicketNoticeConfirmed', true);
     });
-    await act(() => co.result.current.submit());
+    await act(() => co.result.current.submission.submit());
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const href = String(router.replace.mock.calls[0]![0]);
     const orderUuid = /\/orders\/([^?]+)\?created=1$/.exec(href)![1]!;
@@ -151,7 +151,7 @@ describe('크리티컬 패스: 상세 → 선택 → 체크아웃 → 주문 →
       co.result.current.form.setValue('hostProvisionAgreed', true);
       co.result.current.form.setValue('dudoongTicketNoticeConfirmed', true);
     });
-    await act(() => co.result.current.submit());
+    await act(() => co.result.current.submission.submit());
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const orderUuid = /\/orders\/([^?]+)\?/.exec(String(router.replace.mock.calls[0]![0]))![1]!;
 

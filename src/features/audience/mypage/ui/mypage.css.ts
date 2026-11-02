@@ -55,13 +55,6 @@ export const row = style({
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
 });
 
-/** 섹션 사이 회색 띠(체크아웃과 같은 섹션 간격) */
-export const sectionGap = style({
-  height: vars.space[4],
-  background: vars.color.surface.container,
-  flexShrink: 0,
-});
-
 /** 안내 상자(거절 사유 · 환불 계좌 유도 · 취소 안내) */
 export const notice = style({
   display: 'flex',

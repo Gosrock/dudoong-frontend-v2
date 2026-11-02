@@ -107,7 +107,7 @@ function fill(
 }
 
 async function submitAndWait(result: Hook) {
-  await act(() => result.current.submit());
+  await act(() => result.current.submission.submit());
 }
 
 const posted = async (sent: ReturnType<typeof recordRequests>) =>
@@ -240,7 +240,7 @@ describe('3분기 — 주문 생성 응답의 상태, 실제 보낸 본문, 완�
     // 계약: 화면 총액 == 응답 totalAmount
     expect(r.result.current.amount).toBe(50_000);
     expect(order.payment?.totalAmount).toBe(r.result.current.amount);
-    expect(r.result.current.submitting).toBe(true);
+    expect(r.result.current.submission.pending).toBe(true);
   });
 
   it('무료 승인형: 신청하기, FREE + 입금자명 없음 → 승인 대기, 결제 정보 없음', async () => {
@@ -273,7 +273,7 @@ describe('3분기 — 주문 생성 응답의 상태, 실제 보낸 본문, 완�
   it('무료 선착순: 신청하기 → 즉시 발급(APPROVED, 발급 티켓 = 수량)', async () => {
     const r = await openCheckout(CHECKOUT_TICKET.freeFcfs, 2);
     expect(r.result.current.kind).toBe('FREE_FCFS');
-    expect(r.result.current.hasOptions).toBe(false);
+    expect(r.result.current.options.has).toBe(false);
     fill(r.result);
     await submitAndWait(r.result);
     const order = r.queryClient.getQueryData<MyOrderDetail>(myOrderQuery(created()!).queryKey)!;
@@ -359,12 +359,12 @@ describe('제출 — 중복 방지 · 검증', () => {
     const sent = recordRequests();
     await act(async () => {
       await Promise.all([
-        r.result.current.submit(),
-        r.result.current.submit(),
-        r.result.current.submit(),
+        r.result.current.submission.submit(),
+        r.result.current.submission.submit(),
+        r.result.current.submission.submit(),
       ]);
     });
-    await act(() => r.result.current.submit());
+    await act(() => r.result.current.submission.submit());
     expect(await posted(sent)).toHaveLength(1);
     expect(router.replace).toHaveBeenCalledTimes(1);
   });
@@ -372,7 +372,7 @@ describe('제출 — 중복 방지 · 검증', () => {
   it('검증 실패(옵션 미응답·미동의)면 요청을 보내지 않고 칸 오류', async () => {
     const r = await openCheckout(CHECKOUT_TICKET.paidWithOptions, 1);
     const sent = recordRequests();
-    expect(await act(() => r.result.current.validate())).toBe(false);
+    expect(await act(() => r.result.current.submission.validate())).toBe(false);
     await submitAndWait(r.result);
     expect(await posted(sent)).toEqual([]);
     const { getFieldState } = r.result.current.form;
@@ -387,7 +387,7 @@ describe('제출 — 중복 방지 · 검증', () => {
     const sent = recordRequests();
     await submitAndWait(r.result);
     expect(await posted(sent)).toEqual([]);
-    expect(r.result.current.submitError?.kind).toBe('DEPOSITOR_NAME');
+    expect(r.result.current.submission.error?.kind).toBe('DEPOSITOR_NAME');
   });
 
   it('주소 수량이 상한보다 크면 상한으로(잔여 3)', async () => {
@@ -398,7 +398,7 @@ describe('제출 — 중복 방지 · 검증', () => {
   it('티켓별 모드: 같은 답이면 공통으로 합치고, 다르면 고르게 한다', async () => {
     const r = await openCheckout(CHECKOUT_TICKET.paidWithOptions, 2);
     fill(r.result, { same: answers('YES', 'x') });
-    act(() => void r.result.current.setMode('individual'));
+    act(() => void r.result.current.options.setMode('individual'));
     expect(r.result.current.form.getValues('options.tickets')).toEqual([
       answers('YES', 'x'),
       answers('YES', 'x'),
@@ -406,12 +406,12 @@ describe('제출 — 중복 방지 · 검증', () => {
     act(() => r.result.current.form.setValue('options.tickets.1.0.answer', 'NO'));
     let outcome = '';
     act(() => {
-      outcome = r.result.current.setMode('same');
+      outcome = r.result.current.options.setMode('same');
     });
     expect(outcome).toBe('needsChoice');
-    expect(r.result.current.mode).toBe('individual');
-    act(() => void r.result.current.setMode('same', 1));
-    expect(r.result.current.mode).toBe('same');
+    expect(r.result.current.options.mode).toBe('individual');
+    act(() => void r.result.current.options.setMode('same', 1));
+    expect(r.result.current.options.mode).toBe('same');
     expect(r.result.current.form.getValues('options.same')).toEqual(answers('NO', 'x'));
   });
 });
@@ -425,8 +425,8 @@ describe('에러 분기 — patterns §24 P7 행(handleError)', () => {
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
     await submitAndWait(r.result);
-    expect(r.result.current.submitError?.kind).toBe(kind);
-    expect(r.result.current.submitting).toBe(false);
+    expect(r.result.current.submission.error?.kind).toBe(kind);
+    expect(r.result.current.submission.pending).toBe(false);
     expect(errorToast).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
   });
@@ -445,7 +445,7 @@ describe('에러 분기 — patterns §24 P7 행(handleError)', () => {
     const sent = recordRequests();
     await submitAndWait(r.result);
 
-    expect(r.result.current.submitError?.kind).toBe(kind);
+    expect(r.result.current.submission.error?.kind).toBe(kind);
     await waitFor(() => expect(r.result.current.maxQuantity).toBe(1));
     expect(r.result.current.quantity).toBe(1);
     expect(await sent.lines()).toEqual(
@@ -479,7 +479,7 @@ describe('에러 분기 — patterns §24 P7 행(handleError)', () => {
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
     await submitAndWait(r.result);
-    expect(r.result.current.submitError).toBeNull();
+    expect(r.result.current.submission.error).toBeNull();
     expect(errorToast).toHaveBeenCalledWith(expect.any(String), 'mutation:Order_400_21');
     // 실패 뒤에는 다시 낼 수 있다
     server.resetHandlers();
@@ -523,12 +523,12 @@ describe('동의 칸(#840 — 2026-11-01 붙임) — 체크 전 제출 불가, �
     fill(r.result, { dudoongNotice: false });
     let valid = false;
     await act(async () => {
-      valid = await r.result.current.validate();
+      valid = await r.result.current.submission.validate();
     });
     expect(valid).toBe(true);
     fill(r.result, { hostProvision: false, dudoongNotice: false });
     await act(async () => {
-      valid = await r.result.current.validate();
+      valid = await r.result.current.submission.validate();
     });
     expect(valid).toBe(false);
   });
@@ -577,7 +577,7 @@ describe('동의 칸(#840 — 2026-11-01 붙임) — 체크 전 제출 불가, �
     fill(r.result);
     await submitAndWait(r.result);
     expect(created()).toBeNull();
-    expect(r.result.current.submitError?.kind).toBe('AGREEMENT');
+    expect(r.result.current.submission.error?.kind).toBe('AGREEMENT');
     expect(r.result.current.form.getValues()).toMatchObject({
       hostProvisionAgreed: false,
       dudoongTicketNoticeConfirmed: false,
@@ -596,7 +596,7 @@ describe('무료 선착순 확정 실패 — 주문이 아니라 에러', () => 
     const r = await openCheckout(CHECKOUT_TICKET.freeFcfs, 1);
     fill(r.result);
     await submitAndWait(r.result);
-    expect(r.result.current.submitError?.kind).toBe('STOCK');
+    expect(r.result.current.submission.error?.kind).toBe('STOCK');
     expect(router.replace).not.toHaveBeenCalled();
   });
 
@@ -605,7 +605,7 @@ describe('무료 선착순 확정 실패 — 주문이 아니라 에러', () => 
     const r = await openCheckout(CHECKOUT_TICKET.freeFcfs, 1);
     fill(r.result);
     await submitAndWait(r.result);
-    expect(r.result.current.submitError?.kind).toBe('FREE_FCFS_FAILED');
+    expect(r.result.current.submission.error?.kind).toBe('FREE_FCFS_FAILED');
     expect(errorToast).not.toHaveBeenCalled();
 
     server.resetHandlers();
@@ -620,7 +620,7 @@ describe('무료 선착순 확정 실패 — 주문이 아니라 에러', () => 
     const r = await openCheckout(CHECKOUT_TICKET.paidNoOptions, 1);
     fill(r.result);
     await submitAndWait(r.result);
-    expect(r.result.current.submitError).toBeNull();
+    expect(r.result.current.submission.error).toBeNull();
     expect(errorToast).toHaveBeenCalled();
   });
 });
@@ -637,7 +637,7 @@ describe('응답을 받지 못한 주문(이슈 #92-4)', () => {
       const invalidate = vi.spyOn(r.queryClient, 'invalidateQueries');
       fill(r.result);
       await submitAndWait(r.result);
-      expect(r.result.current.submitError).toMatchObject({
+      expect(r.result.current.submission.error).toMatchObject({
         kind: 'ORDER_UNCERTAIN',
         retrySameKey: true,
       });
@@ -680,7 +680,7 @@ describe('Idempotency-Key(#923) — 시도마다 새 키, 재시도에만 같은
     fill(r.result);
     const before = mockOrderCount();
     await submitAndWait(r.result);
-    expect(r.result.current.submitError?.kind).toBe('ORDER_UNCERTAIN');
+    expect(r.result.current.submission.error?.kind).toBe('ORDER_UNCERTAIN');
     expect(mockOrderCount()).toBe(before + 1);
 
     await submitAndWait(r.result);
@@ -698,7 +698,7 @@ describe('Idempotency-Key(#923) — 시도마다 새 키, 재시도에만 같은
       const r = await openCheckout(CHECKOUT_TICKET.freeFcfs, 1);
       fill(r.result);
       await submitAndWait(r.result);
-      expect(r.result.current.submitError).toMatchObject({
+      expect(r.result.current.submission.error).toMatchObject({
         kind: 'DUPLICATE_IN_PROGRESS',
         retrySameKey: true,
       });

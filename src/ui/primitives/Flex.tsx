@@ -1,4 +1,4 @@
-import type { CSSProperties, ElementType, ReactNode } from 'react';
+import type { AriaAttributes, CSSProperties, ElementType, ReactNode } from 'react';
 
 import { sprinkles } from '../theme/sprinkles.css';
 import type { FlexAlign, FlexDirection, FlexJustify, Responsive, SpaceKey } from '../theme/types';
@@ -18,7 +18,11 @@ export type FlexProps = {
   className?: string;
   style?: CSSProperties;
   children?: ReactNode;
-};
+  /** 시맨틱 태그(`as="section"` 등)에 붙일 이름 · 역할 — 감싸는 요소를 하나 더 두지 않게 */
+  id?: string;
+  role?: string;
+  'data-testid'?: string;
+} & Pick<AriaAttributes, 'aria-label' | 'aria-labelledby' | 'aria-describedby' | 'aria-live'>;
 
 /** `div` + `display: flex` 대신 쓴다(patterns §3). 훅·상태가 없어 서버 컴포넌트에서도 쓴다. */
 export function Flex({
@@ -35,6 +39,7 @@ export function Flex({
   className,
   style,
   children,
+  ...rest
 }: FlexProps) {
   const cls = sprinkles({
     display: 'flex',
@@ -49,7 +54,7 @@ export function Flex({
     width: fullWidth ? '100%' : undefined,
   });
   return (
-    <Tag className={className ? `${cls} ${className}` : cls} style={style}>
+    <Tag className={className ? `${cls} ${className}` : cls} style={style} {...rest}>
       {children}
     </Tag>
   );

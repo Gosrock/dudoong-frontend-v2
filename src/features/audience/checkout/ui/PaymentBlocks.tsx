@@ -4,10 +4,9 @@ import type { ReactNode } from 'react';
 
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { toast } from '@/ui/components/Toast/Toast';
+import { Divider } from '@/ui/primitives/Divider';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
-
-import * as s from './PaymentBlocks.css';
 
 /**
  * 체크아웃과 주문상세가 같이 쓰는 결제정보 · 결제금액 행(코드 패턴 점검 A17, 2026-11-02).
@@ -83,7 +82,7 @@ export function AmountRows({
       <InfoRow hierarchy="first" label="결제금액" />
       <InfoRow label="티켓금액" value={format.ticket(ticketAmount)} />
       <InfoRow label="옵션금액" value={format.option(optionAmount)} />
-      <div className={s.totalDivider} />
+      <Divider inset={5} />
       <InfoRow
         label={
           <Txt typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
