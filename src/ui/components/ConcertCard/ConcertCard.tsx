@@ -15,6 +15,11 @@ export type ConcertCardProps = {
   title: string;
   /** 표시용 일시(예: `2026.01.01 수요일 (18:00)`). 없으면 줄을 비운다 */
   date?: string | null;
+  /**
+   * 날짜 줄 아래 가격 줄(예: `15,000원~` · `무료` · `매진` · `티켓 없음`). 없으면 그리지 않는다.
+   * FIGMA-CUSTOM: DS ConcertCard(`759:22415`)에 가격 줄이 없다 — design-requests Q63 기본안. 🤖 Claude 판단(2026-11-02)
+   */
+  price?: string | null;
   /** 서버 포스터 주소. 없거나 못 읽으면 빈 상자(design-requests Q26 — 기본 이미지 자산 없음) */
   posterUrl?: string | null;
   /** 포스터 왼쪽 위에 얹는 상태 표시(보통 `Chip` — 호스트 홈 "준비중"·"D-15", 와이어 `503:30867`). 없으면 그리지 않는다 */
@@ -27,7 +32,15 @@ export type ConcertCardProps = {
  * 누른 뒤 응답을 기다리는 동안 날짜 줄 끝에 이동 표시(`LinkProgress`)가 나온다 — `(public)`에는 `loading.tsx`가 없다(patterns §6).
  * 제목은 2줄 말줄임(컴포넌트 설정), 날짜는 말줄임 없음.
  */
-export function ConcertCard({ href, title, date, posterUrl, badge, className }: ConcertCardProps) {
+export function ConcertCard({
+  href,
+  title,
+  date,
+  price,
+  posterUrl,
+  badge,
+  className,
+}: ConcertCardProps) {
   return (
     <Link href={href} className={className ? `${s.root} ${className}` : s.root}>
       <span className={s.posterWrap}>
@@ -41,6 +54,11 @@ export function ConcertCard({ href, title, date, posterUrl, badge, className }: 
           </Txt>
           <LinkProgress size="sm" />
         </span>
+        {price ? (
+          <Txt typography="labelMdEmphasized" color={colors.textPrimaryLabel}>
+            <span data-testid="card-price">{price}</span>
+          </Txt>
+        ) : null}
         <Txt typography="headingMd2Emphasized" lines={2} className={s.title}>
           {title}
         </Txt>

@@ -467,11 +467,10 @@ export type RefundElement = z.infer<typeof RefundElementSchema>;
 export const RefundPageSchema = pageSchema(RefundElementSchema);
 
 /**
- * 거절 기타 사유(trim 후 1~20자, `V2OrderDomainService.REFUSE_REASON_MAX_LENGTH`) · 승인 후 취소 사유(100자).
- * 백엔드 #921이 거절 사유를 100자로 올린다 — **배포 확인 뒤**(backend-questions B31) `REFUSE_REASON_TEXT_MAX`만 100으로.
- * 배포 전 서버에 100자를 보내면 400 `Order_400_18`이다(스테이징 QA #106 운영자 결정 ⑤)
+ * 거절 기타 사유(trim 후 1~100자, `V2OrderDomainService.REFUSE_REASON_MAX_LENGTH`) · 승인 후 취소 사유(100자).
+ * 백엔드 #921(20 → 100자)이 2.5.6에 들었다(Deploy#100, 스테이징 — B31 닫음). 운영 2.5.3은 20자라 컷오버 때 같이 올린다(cutover-runbook)
  */
-export const REFUSE_REASON_TEXT_MAX = 20;
+export const REFUSE_REASON_TEXT_MAX = 100;
 export const HOST_CANCEL_REASON_MAX = 100;
 
 /**

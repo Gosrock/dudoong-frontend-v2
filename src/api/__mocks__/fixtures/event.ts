@@ -400,6 +400,23 @@ export const toDetail = (e: MockEvent): EventDetail => ({
   displayStatus: e.displayStatus,
 });
 
+/**
+ * 카드 가격 줄 값(백엔드 #925 `V2EventCardTicketSummaryMapper`). 판매 중 = 판매 중단 아님 + 판매 기간 안(mock은 구매 가능 또는 매진).
+ * 지난 공연은 `minPrice` null · `isFree`/`isSoldOut` false
+ */
+export function cardTicketSummary(e: MockEvent) {
+  const past = e.displayStatus === 'PAST';
+  const onSale = past
+    ? []
+    : e.ticketItems.filter((t) => !t.isSuspended && (t.isPurchasable || t.isSoldOut));
+  return {
+    hasTicket: e.ticketItems.length > 0,
+    minPrice: onSale.length > 0 ? Math.min(...onSale.map((t) => t.price)) : null,
+    isFree: onSale.length > 0 && onSale.every((t) => t.price === 0),
+    isSoldOut: onSale.length > 0 && onSale.every((t) => t.isSoldOut),
+  };
+}
+
 export const toListItem = (e: MockEvent): EventListItem => ({
   eventId: e.eventId,
   name: e.name,
@@ -410,6 +427,7 @@ export const toListItem = (e: MockEvent): EventListItem => ({
   hostName: e.host.name,
   tags: e.tags,
   displayStatus: e.displayStatus,
+  ...cardTicketSummary(e),
 });
 
 export const toHomeEvent = (e: MockEvent): HomeEvent => ({
@@ -420,6 +438,7 @@ export const toHomeEvent = (e: MockEvent): HomeEvent => ({
   placeName: e.place?.name ?? null,
   hostName: e.host.name,
   displayStatus: e.displayStatus,
+  ...cardTicketSummary(e),
 });
 
 /** GP-1: 종료 전 OPEN 공연, 진행 중이 앞, 시작 임박순, 최대 10개 */

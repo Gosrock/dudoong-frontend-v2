@@ -65,7 +65,17 @@ export const HomeEventSchema = z.object({
   placeName: z.string().nullable(),
   hostName: z.string().nullable(),
   /** UPCOMING(시작 전) / ONGOING(진행 중) */
-  displayStatus: EventDisplayStatusSchema,
+  displayStatus: EventDisplayStatusSchema /**
+   * 카드 가격 줄 값(백엔드 #925 — 2.5.6, 스테이징만). 운영 2.5.3 응답에는 없어 optional — 없으면 가격 줄을 그리지 않는다.
+   * '판매 중' = 판매 중단 아님 + 판매 기간 안(O-0과 같은 기준), 잔여 = 재고 − 승인 대기
+   */,
+  hasTicket: z.boolean().optional(),
+  /** 판매 중 티켓의 최저가(원). 판매 중 티켓이 없거나 지난 공연이면 null */
+  minPrice: z.number().int().nullable().optional(),
+  /** 판매 중 티켓이 있고 모두 0원 */
+  isFree: z.boolean().optional(),
+  /** 판매 중 티켓이 있고 모두 매진(GP-5 `isSoldOut`과 같은 기준) */
+  isSoldOut: z.boolean().optional(),
 });
 /** 종료 전 OPEN 공연, 시작 임박순(진행 중이 앞) 최대 10개 */
 export const HomeSchema = z.object({ events: z.array(HomeEventSchema) });
@@ -84,7 +94,17 @@ export const EventListItemSchema = z.object({
   hostName: z.string().nullable(),
   tags: z.array(TagSchema),
   /** UPCOMING / ONGOING / PAST(종료·정산중·지난공연) */
-  displayStatus: EventDisplayStatusSchema,
+  displayStatus: EventDisplayStatusSchema /**
+   * 카드 가격 줄 값(백엔드 #925 — 2.5.6, 스테이징만). 운영 2.5.3 응답에는 없어 optional — 없으면 가격 줄을 그리지 않는다.
+   * '판매 중' = 판매 중단 아님 + 판매 기간 안(O-0과 같은 기준), 잔여 = 재고 − 승인 대기
+   */,
+  hasTicket: z.boolean().optional(),
+  /** 판매 중 티켓의 최저가(원). 판매 중 티켓이 없거나 지난 공연이면 null */
+  minPrice: z.number().int().nullable().optional(),
+  /** 판매 중 티켓이 있고 모두 0원 */
+  isFree: z.boolean().optional(),
+  /** 판매 중 티켓이 있고 모두 매진(GP-5 `isSoldOut`과 같은 기준) */
+  isSoldOut: z.boolean().optional(),
 });
 export const EventListPageSchema = pageSchema(EventListItemSchema);
 export type EventListItem = z.infer<typeof EventListItemSchema>;

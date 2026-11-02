@@ -19,7 +19,7 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './EventListView.css';
-import { concertCardDate, UNNAMED_EVENT } from './model/card-date';
+import { concertCardDate, concertCardPrice, UNNAMED_EVENT } from './model/card-date';
 import { useEventList } from './model/useEventList';
 import { ScrollTopButton } from './ui/ScrollTopButton';
 import { TagPanel } from './ui/TagPanel';
@@ -54,8 +54,9 @@ export function EventListView() {
         }}
       >
         <SearchField
-          aria-label="공연명 또는 호스트명"
-          placeholder="검색어를 입력해주세요"
+          // 서버 검색은 공연명 · 호스트 · 공연장 이름(백엔드 #922 — 2.5.6, B31)
+          aria-label="공연명, 호스트, 공연장으로 검색"
+          placeholder="공연명, 호스트, 공연장으로 검색"
           enterKeyHint="search"
           value={l.keywordInput}
           onChange={(e) => l.setKeywordInput(e.target.value)}
@@ -137,6 +138,7 @@ export function EventListView() {
                   href={`/events/${e.eventId}`}
                   title={e.name ?? UNNAMED_EVENT}
                   date={concertCardDate(e.startAt)}
+                  price={concertCardPrice(e)}
                   posterUrl={e.posterImageUrl}
                 />
               </li>
