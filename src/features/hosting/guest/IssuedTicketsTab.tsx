@@ -8,8 +8,10 @@ import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { toast } from '@/ui/components/Toast/Toast';
 
 import * as s from './GuestsView.css';
+import { isGiftPending } from './model/guest-rules';
 import { useIssuedTicketList } from './model/useIssuedTicketList';
 import { DetailCell } from './ui/DetailCell';
+import { NameWithGift } from './ui/GiftChip';
 import { dateTimeText, entranceChipOf, text } from './ui/guest-labels';
 import {
   Empty,
@@ -57,7 +59,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   };
 
   const columns = nowrapColumns<HostIssuedTicket>([
-    // 모바일은 주문자 · 티켓 · 체크인(`1003:3143`), PC는 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인(`1030:8054`)
+    // 모바일은 주문자 · 티켓 · 체크인(`1003:3143`), PC는 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인(`1030:8054`).
     { id: 'buyerMobile', header: '주문자', display: 'mobile', cell: (r) => text(r.buyerName) },
     {
       id: 'no',
@@ -66,7 +68,12 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
       width: 128,
       cell: (r) => text(r.issuedTicketNo),
     },
-    { id: 'name', header: '티켓', cell: (r) => text(r.ticketName) },
+    // 티켓 이름 옆 선물 칩은 GUI에 없다(🤖 Q110 — 모바일 · PC가 같이 쓰는 칸이라 DOM에 한 번만)
+    {
+      id: 'name',
+      header: '티켓',
+      cell: (r) => <NameWithGift name={text(r.ticketName)} giftState={r.giftState} />,
+    },
     {
       id: 'buyer',
       header: '주문자',
@@ -93,7 +100,8 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
       header: '체크인',
       width: 152,
       cell: (r) => {
-        if (r.entrance === 'BEFORE' && canCheckIn && r.ticketUuid) {
+        // 선물 대기 티켓은 서버가 입장시키지 않는다(GIFT_PENDING) — 버튼 대신 입장 전 칩, 이유는 상세에서
+        if (r.entrance === 'BEFORE' && canCheckIn && r.ticketUuid && !isGiftPending(r)) {
           return (
             <StopRowClick>
               <Button

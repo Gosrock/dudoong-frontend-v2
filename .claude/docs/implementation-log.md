@@ -2832,3 +2832,23 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest `src/features/hosting` 34파일 664개 통과. e2e(CSS 고친 빌드) a11y 전체 · hosting-ticket · hosting-event · hosting-host · hosting 245 통과, a11y-keyboard · host-home · shell 34 통과. main(#132) 합친 뒤 다시: e2e a11y · hosting-ticket · hosting-event · hosting-host · hosting · shell 259 통과, QA hosting-event 20 · hosting-ticket 30 · host-settings 28 · hosting-home 18 — 실패 0.
 
 **ego-browser 확인(2026-11-03, 운영 빌드 + 가짜 백엔드 4279 — 이 워크트리의 `dev:mock`은 "로그인 확인 중"에서 넘어가지 않아 e2e와 같은 `pnpm start`로 띄움)**: 호스트 설정 390 · 948(이름 지우고 [저장] → 칸 오류, 고치면 사라짐 · 연락처 줄 추가 → 둘째 줄 ✕ → 남은 줄 값 그대로 · 뒤로가기 → "저장하지 않고 나갈까요?" 확인 창), 멤버 초대 948(`nobody@example.com` → 그 줄에 `HOST_400_13` 사유, 고치면 지움, 바른 이메일 → "멤버를 초대했어요"), 새 티켓 320 · 390(가로 넘침 없음 · 수량 칸 136, 무료 티켓 만들기 → 목록으로), 공연 140 기본 정보 948 · 1440(티켓 있는 공연에서 "티켓 없음" 저장 → 그 칸에 `Event_400_25`, 되돌리면 사라짐), 티켓 수정 1440(두 열 · 수량 칸 88 · 잠김 안내). 발견: 티켓 폼 320 넘침(위 — 고침).
+
+## 회귀 수정 — 예매자 관리 발급된 티켓 선물 상태(2026-11-03, `fix-guests-gift-state`)
+
+근거: 관제탑 전체 회귀(main `3ea8736`) `pnpm qa all` 실패 2 — `integration` REG-2(mobile · desktop) "예매자 관리 발급된 티켓 탭 — 같은 두 장(입장 · 선물 대기)"에서 `ticket-gift`가 없음. **원인**: #129(P13a-V GUI 반영)가 발급된 티켓 표를 GUI(`1030:8054`)대로 바꾸며 소유자 칸 선물 칩(`Owner` — `GIFT_STATE_LABEL`)을 지웠다. #129 PR · 이 로그에 결정으로 적혀 있지 않아 의도 아님으로 봄. 그래서 호스트가 선물 대기 · 선물 받음 티켓을 볼 방법이 없었고, 선물 대기 티켓 행에 [입장 처리]가 그대로 보였다.
+
+**서버 확인**(백엔드 `Gosrock/DuDoong-Backend` dev `f45882e`): `V2CheckInDomainService.classify` — 취소 · 이미 입장이 아니고 `giftPending`이면 `GIFT_PENDING`(**입장 안 함**, 200 + `result`). 호스트 QR 스캔(PQ-2, 수동 입장 처리도 같은 API) · 셀프 체크인(PQ-5, 후보에서도 뺌) 같은 규칙(#719). 선물 받음(`ACCEPTED`)은 uuid가 바뀐 받은 사람 티켓이라 입장 가능.
+
+**바꾼 것**
+
+- `ui/GiftChip.tsx`(새) — `GiftChip`(DS `Chip` round · violet border, `data-testid="ticket-gift"`) · `NameWithGift`. `FIGMA-CUSTOM:` 주석.
+- 표: "티켓" 칸에 티켓 이름 + 선물 칩. 모바일 · PC가 같이 쓰는 칸이라 DOM에 한 번만(주문자 칸은 모바일 · PC 칸이 따로 있어 두 번 그려져 strict 단언이 깨짐 — 처음 시도에서 확인). 선물 대기 + 입장 전 행은 [입장 처리] 대신 "입장 전" 칩.
+- 티켓 상세: 선물이 있을 때만 "소유자" 줄(이름 + 칩), 선물 대기면 하단 버튼 대신 안내 문구(공연 상태 안내 `blockMessage`와 같은 자리 · 모양, 공연 상태 안내가 먼저).
+- `model/guest-rules.ts` — `isGiftPending` · `GIFT_PENDING_CHECK_IN_MESSAGE`(QR 스캔 결과 host `GIFT_PENDING` 문구와 같은 말) + 테스트.
+- QA `hosting-guests` HG-17(새) — 선물 대기 칩 · 버튼 없음 · 상세 안내, 선물 받음 칩 + [입장 처리]. REG-2 단언은 그대로.
+
+**🤖 판단**: GUI Ready 노드에 자리가 없어 최소안(design-requests Q110). 칩 색은 결제 칩(violet weak)과 구분해 violet border(옛 `Owner`도 violet border). 되돌리려면 `GiftChip` 쓰는 두 곳만 빼면 된다(입장 처리 숨김은 서버 규칙이라 남긴다). Figma 코멘트(디자인 없음): `1030:8098` 발급 티켓 표 · `1030:9120` 티켓 정보.
+
+**검사**: typecheck · 바꾼 파일 lint 통과, vitest related 5파일 87개 통과. QA `hosting-guests` 31 · `integration` 8 — 실패 0(REG-2 원래 단언 통과). e2e `hosting-guests` · `a11y` 125 통과 · 실패 0.
+
+**ego-browser 확인(2026-11-03, dev:mock 3081 — `localhost`로 열어 로그인 확인 넘어감)**: 관객 체크아웃 → 호스트 승인 → 관객 [선물하기]로 선물 대기 티켓 T1009001을 만든 뒤 예매자 관리 발급된 티켓 1440 · 390(선물 대기 · 선물 받음 칩, 선물 대기 행은 "입장 전" 칩), 티켓 상세 1440 · 390(소유자 줄 + 칩, 하단 안내 문구, 버튼 없음). 발견 없음(390 시트 하단 문구는 두 줄로 줄바꿈).

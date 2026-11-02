@@ -8,7 +8,9 @@ import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
+import { GIFT_PENDING_CHECK_IN_MESSAGE, isGiftPending } from '../model/guest-rules';
 import type { IssuedTicketListState } from '../model/useIssuedTicketList';
+import { NameWithGift } from './GiftChip';
 import { dateTimeText, entranceChipOf, PAY_TYPE_CHIP_LABEL, text } from './guest-labels';
 import { ListLoading } from './GuestParts';
 import * as o from './OrderDetailOverlay.css';
@@ -16,7 +18,8 @@ import { Line, OptionAnswers, Section } from './OrderDetailParts';
 
 /**
  * 발급 티켓 상세(GI-3) — GUI 입장 전 `1030:8955` · 입장 완료 `1030:9136`. 제목(티켓 번호 + 입장 · 결제 칩) · 티켓 정보 · 옵션 응답,
- * 하단 [입장 처리](입장 전 + 일반 멤버 이상, 공연이 OPEN·정산중이 아니면 안내 문구)
+ * 하단 [입장 처리](입장 전 + 일반 멤버 이상, 공연이 OPEN·정산중이 아니거나 선물 대기 티켓이면 안내 문구).
+ * 소유자 줄(선물이 있을 때만)은 GUI에 없다 — 🤖 Q110
  */
 export function IssuedTicketDetailOverlay({
   list,
@@ -28,6 +31,9 @@ export function IssuedTicketDetailOverlay({
   const t = list.detail;
   const entranceChip = t ? entranceChipOf(t.ticket.entrance, 'border') : null;
   const payType = t ? PAY_TYPE_CHIP_LABEL[t.ticket.payType ?? 'UNKNOWN'] : null;
+  const blockMessage =
+    list.checkIn.blockMessage ??
+    (t && isGiftPending(t.ticket) ? GIFT_PENDING_CHECK_IN_MESSAGE : null);
   return (
     <ResponsiveOverlay
       open={list.selectedTicketUuid !== null}
@@ -52,14 +58,14 @@ export function IssuedTicketDetailOverlay({
       description={t ? text(t.ticket.ticketName) : undefined}
       footer={
         t && t.ticket.entrance === 'BEFORE' && t.ticket.ticketUuid && list.checkIn.can ? (
-          list.checkIn.blockMessage ? (
+          blockMessage ? (
             <Txt
               as="p"
               typography="bodyMd"
               color={colors.textPrimaryLabel}
               className={o.centerNote}
             >
-              {list.checkIn.blockMessage}
+              {blockMessage}
             </Txt>
           ) : (
             <Button
@@ -81,6 +87,11 @@ export function IssuedTicketDetailOverlay({
             <Section title="티켓 정보">
               <dl className={o.lines}>
                 <Line label="주문자">{text(t.ticket.buyerName)}</Line>
+                {t.ticket.giftState !== 'NONE' && t.ticket.giftState !== 'UNKNOWN' && (
+                  <Line label="소유자">
+                    <NameWithGift name={text(t.ticket.ownerName)} giftState={t.ticket.giftState} />
+                  </Line>
+                )}
                 <Line label="주문 번호">{text(t.ticket.orderNo)}</Line>
                 <Line label="발급 일시">{dateTimeText(t.ticket.issuedAt)}</Line>
                 {t.ticket.entrance === 'DONE' && (
