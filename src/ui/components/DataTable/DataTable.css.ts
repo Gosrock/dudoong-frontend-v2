@@ -23,15 +23,6 @@ export const table = style({
   background: vars.color.background.normal,
 });
 
-export const caption = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-});
-
 // 모바일(`984:360` "주문 표 머리글_모바일"): 칸 사이 8 · 왼쪽 12 · 오른쪽 8, 머리글 40h. PC(`1026:4527`): 칸 사이 16 · 양 끝 16, 머리글 44h.
 // 양 끝 칸은 폭마다 다를 수 있어(`display`로 숨는 칸) DataTable이 `edge`로 표시한다
 const cellPadding = {

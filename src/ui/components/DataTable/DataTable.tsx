@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import {
   type ColumnDef,
   createColumnHelper,
@@ -181,7 +182,9 @@ export function DataTable<T extends RowData>({
     <div>
       <div className={s.scroller}>
         <table className={s.table}>
-          <caption className={s.caption}>{caption}</caption>
+          <VisuallyHidden asChild>
+            <caption>{caption}</caption>
+          </VisuallyHidden>
           <thead>
             {table.getHeaderGroups().map((group) => (
               <tr key={group.id}>
