@@ -5,7 +5,8 @@ import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import type { TicketItemManage } from '@/api/ticket-item/schema';
-import { invalidateExact } from '@/features/hosting/event/model/event-cache';
+
+import { invalidateExact } from './event-cache';
 
 /**
  * 티켓·옵션 변경 뒤 캐시 반영(plan P12, patterns §11 "변경 응답으로 캐시를 바로 채운다"). 무효화는 모두 정확한 키(`exact`).

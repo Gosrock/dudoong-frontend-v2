@@ -7,10 +7,9 @@ import { deleteEventMutation } from '@/api/event/mutations';
 import { MY_EVENTS_KEY } from '@/api/event/queries';
 import type { EventStatus } from '@/api/event/schema';
 import { handleError } from '@/api/handle-error';
+import { applyDeleted } from '@/features/hosting/shared/model/event-cache';
+import { canDeleteEvent } from '@/features/hosting/shared/model/event-scope';
 import type { ActorRole } from '@/features/shared/permission/model/can';
-
-import { applyDeleted } from './event-cache';
-import { canDeleteEvent } from './event-scope';
 
 /** 화면이 처리하는 DE-9 코드 */
 export const DELETE_EVENT_ERROR_MESSAGE = {

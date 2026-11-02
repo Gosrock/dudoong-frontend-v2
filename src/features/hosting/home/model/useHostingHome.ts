@@ -9,7 +9,7 @@ import { myEventsQuery } from '@/api/event/queries';
 import { myHostsQuery } from '@/api/host/queries';
 import { infiniteListControls } from '@/api/shared/page';
 import { flattenPages } from '@/api/shared/page';
-import { canDeleteEvent } from '@/features/hosting/event/model/event-scope';
+import { canDeleteEvent } from '@/features/hosting/shared/model/event-scope';
 
 import {
   clampHostingKeyword,

@@ -5,7 +5,13 @@ import { useEffect, useId, useRef } from 'react';
 
 import { EVENT_CONTACT_VALUE_MAX, EVENT_NAME_MAX, EVENT_TAGS_MAX } from '@/api/event/schema';
 import type { HostContactType } from '@/api/host/schema';
-import { contactPlaceholder } from '@/features/hosting/host/model/host-fields';
+import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import {
+  EditorBottomBar,
+  FieldError,
+  FormSection,
+  useLeaveGuard,
+} from '@/features/hosting/shared/ui/EditorParts';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
@@ -24,7 +30,6 @@ import { colors } from '@/ui/theme/colors';
 
 import * as s from './EventInfoView.css';
 import { useEventBasicInfo } from './model/useEventBasicInfo';
-import { EditorBottomBar, FieldError, FormSection, useLeaveGuard } from './ui/EditorParts';
 import { KakaoMapPreview, openAddressSearch } from './ui/PlaceParts';
 
 type Form = ReturnType<typeof useEventBasicInfo>;

@@ -1,5 +1,6 @@
 import type { MyEvent } from '@/api/event/schema';
 import type { MyHost } from '@/api/host/schema';
+import { HOSTING_TAB_PARAM } from '@/features/hosting/shared/routes';
 
 /**
  * 공연준비 홈(`/hosting`, plan P10a) 규칙 — 탭 · 검색어 · 빈 상태 · 카드 이동 주소.
@@ -13,8 +14,6 @@ export const HOSTING_HOME_TABS = [
 ] as const;
 export type HostingHomeTab = (typeof HOSTING_HOME_TABS)[number]['key'];
 
-/** 탭을 남기는 주소 쿼리. 기본 탭(공연)은 주소에 쓰지 않는다 */
-export const HOSTING_TAB_PARAM = 'tab';
 const DEFAULT_TAB: HostingHomeTab = 'events';
 
 /** 주소 쿼리 → 탭. 모르는 값·없음은 기본 탭(공연) */
@@ -30,9 +29,6 @@ export function hostingHomeSearch(tab: HostingHomeTab, currentSearch: string): s
   const next = params.toString();
   return next ? `?${next}` : '';
 }
-
-/** 호스트 탭 주소 — 호스트를 만든 뒤 여기로 돌아온다(design-requests Q19 기본안) */
-export const HOSTING_HOME_HOSTS_HREF = `/hosting?${HOSTING_TAB_PARAM}=hosts`;
 
 /** GH-1·GE-1 `keyword` 상한(api-contract §1 — 51자는 400). 입력에서 막는다 */
 export const HOSTING_KEYWORD_MAX = 50;

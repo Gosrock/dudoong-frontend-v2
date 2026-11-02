@@ -7,7 +7,10 @@ import {
   type UpdateEventBasicRequest,
 } from '@/api/event/schema';
 import type { HostContactType } from '@/api/host/schema';
-import { contactInputsOf, type HostContactInput } from '@/features/hosting/host/model/host-fields';
+import {
+  contactInputsOf,
+  type HostContactInput,
+} from '@/features/hosting/shared/model/host-fields';
 
 import {
   emptyPlace,

@@ -3,14 +3,13 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { checkInQrQuery } from '@/api/check-in/queries';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
-
 import {
   SELF_CHECK_IN_BLOCK_MESSAGE,
   SELF_CHECK_IN_ENDED_HINT,
   selfCheckInBlockOf,
   selfCheckInUrl,
-} from './qr-check-in-rules';
+} from '@/features/hosting/shared/model/qr-check-in-rules';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 
 const browserOrigin = () => (typeof window === 'undefined' ? '' : window.location.origin);
 

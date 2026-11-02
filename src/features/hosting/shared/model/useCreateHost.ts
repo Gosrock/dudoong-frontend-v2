@@ -7,7 +7,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { handleError } from '@/api/handle-error';
 import { createHostMutation } from '@/api/host/mutations';
 import type { HostContactType } from '@/api/host/schema';
-import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/home/model/hosting-home';
+import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/shared/routes';
 import { toast } from '@/ui/components/Toast/Toast';
 import { tryCatch } from '@/utils/try-catch';
 

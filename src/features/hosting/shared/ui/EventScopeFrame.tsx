@@ -4,8 +4,8 @@ import type { ReactNode } from 'react';
 
 import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 
+import { EVENT_SCOPE_ATTR } from './event-scope-attrs';
 import * as s from './EventScopeFrame.css';
-import { EVENT_SCOPE_ATTR } from './HostingShell.css';
 
 /**
  * 공연 스코프 틀(plan P4s V — 3단 슬롯만). `[data-event-scope]`를 달아 호스팅 셸이 본문 폭 제한을 푼다.

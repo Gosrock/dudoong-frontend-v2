@@ -4,7 +4,8 @@ import { useState } from 'react';
 
 import { OPTION_DESCRIPTION_MAX, OPTION_NAME_MAX } from '@/api/option/schema';
 import type { TicketOptionType } from '@/api/ticket-item/schema';
-import { FieldError, FormSection } from '@/features/hosting/event/ui/EditorParts';
+import { FieldError, FormSection } from '@/features/hosting/shared/ui/EditorParts';
+import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
@@ -21,7 +22,7 @@ import type { OptionFormErrors, OptionFormValues } from '../model/option-form';
 import { useOptionEditor } from '../model/useOptionEditor';
 import { useTicketOptions } from '../model/useTicketOptions';
 import * as s from './OptionSheets.css';
-import { NoticeBox, OptionChips, ToggleSection } from './TicketParts';
+import { OptionChips, ToggleSection } from './TicketParts';
 import { dimmed as partsDimmed } from './TicketParts.css';
 
 /** 옵션 추가·수정 완료 토스트(GUI `940:12677` · `940:12844`) */

@@ -9,7 +9,11 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 const elements = [
   { type: 'app', pattern: 'src/app/**' },
   { type: 'audience', pattern: 'src/features/audience/**' },
-  { type: 'hosting', pattern: 'src/features/hosting/**' },
+  // 호스팅 피처(event · host · home · ticket · guest · qr · shell)끼리는 import하지 않는다 — 같이 쓰는 것은 hosting/shared,
+  // 접근 판정은 hosting/access(코드 패턴 점검 A14). 위에서부터 먼저 맞는 요소가 이긴다
+  { type: 'hosting-shared', pattern: 'src/features/hosting/shared/**' },
+  { type: 'hosting-access', pattern: 'src/features/hosting/access/**' },
+  { type: 'hosting', pattern: 'src/features/hosting/*/**', capture: ['feature'] },
   { type: 'shared-feature', pattern: 'src/features/shared/**' },
   { type: 'ui', pattern: 'src/ui/**' },
   { type: 'api-server', pattern: 'src/api/server/**' },
@@ -55,6 +59,8 @@ export default defineConfig([
                       anyOf: [
                         'audience',
                         'hosting',
+                        'hosting-shared',
+                        'hosting-access',
                         'shared-feature',
                         'ui',
                         'api',
@@ -79,10 +85,51 @@ export default defineConfig([
             },
             {
               from: { element: { type: 'hosting' } },
+              allow: [
+                // 같은 피처 안
+                {
+                  to: {
+                    element: {
+                      type: 'hosting',
+                      captured: { feature: '{{ from.element.captured.feature }}' },
+                    },
+                  },
+                },
+                {
+                  to: {
+                    element: {
+                      types: {
+                        anyOf: [
+                          'hosting-shared',
+                          'hosting-access',
+                          'shared-feature',
+                          'ui',
+                          'api',
+                          'utils',
+                          'env',
+                        ],
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              from: { element: { types: { anyOf: ['hosting-shared', 'hosting-access'] } } },
               allow: {
                 to: {
                   element: {
-                    types: { anyOf: ['hosting', 'shared-feature', 'ui', 'api', 'utils', 'env'] },
+                    types: {
+                      anyOf: [
+                        'hosting-shared',
+                        'hosting-access',
+                        'shared-feature',
+                        'ui',
+                        'api',
+                        'utils',
+                        'env',
+                      ],
+                    },
                   },
                 },
               },
@@ -129,7 +176,18 @@ export default defineConfig([
               // 어느 계층의 테스트 파일이든 헬퍼를 쓴다. 테스트가 아닌 파일은 no-restricted-imports가 막는다
               from: {
                 element: {
-                  types: { anyOf: ['app', 'audience', 'hosting', 'shared-feature', 'ui', 'api'] },
+                  types: {
+                    anyOf: [
+                      'app',
+                      'audience',
+                      'hosting',
+                      'hosting-shared',
+                      'hosting-access',
+                      'shared-feature',
+                      'ui',
+                      'api',
+                    ],
+                  },
                 },
               },
               allow: { to: { element: { types: { anyOf: ['test-support'] } } } },

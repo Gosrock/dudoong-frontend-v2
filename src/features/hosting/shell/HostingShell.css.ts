@@ -1,16 +1,11 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { EVENT_SCOPE_ATTR } from '@/features/hosting/shared/ui/event-scope-attrs';
 import { activeMarker } from '@/features/shared/shell/activity-marker';
 import { fixedBar, shellBarSpaceVars } from '@/features/shared/shell/shell.css';
 import { container } from '@/ui/primitives/layout.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
-
-/**
- * 공연 스코프 표시 — `EventScopeFrame`이 단다. 있으면 본문의 폭 제한·여백을 푼다(3단은 화면 끝까지).
- * 판정은 `activeMarker`로 — 숨은 Activity(이동 전 공연 화면)의 표시는 빼고 본다(fix-qa-1101, patterns §6)
- */
-export const EVENT_SCOPE_ATTR = 'data-event-scope';
 
 /**
  * 화면 높이를 채우는 세로 flex. 본문(`body`)이 남은 높이를 `flex`로 채운다 — `calc(100dvh - 바 높이)`처럼 빼지 않는다

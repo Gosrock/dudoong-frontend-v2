@@ -5,7 +5,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { exportOrdersMutation } from '@/api/order/mutations';
 import { hostOrdersQuery } from '@/api/order/queries';
 import type { HostOrderStatusFilter, OrderSearchType } from '@/api/order/schema';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 
 import { exactMatchHintOf, ORDER_SEARCH_TYPE_OPTIONS, ORDER_STATUS_TABS } from './guest-rules';
 import { useGuestExport } from './useGuestExport';

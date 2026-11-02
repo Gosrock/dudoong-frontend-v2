@@ -12,7 +12,8 @@ import {
 } from '@/api/host/schema';
 import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
-import { EditorBottomBar, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
+import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import { EditorBottomBar, useLeaveGuard } from '@/features/hosting/shared/ui/EditorParts';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
 import { Button } from '@/ui/components/Button/Button';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
@@ -29,7 +30,6 @@ import { colors } from '@/ui/theme/colors';
 
 import * as c from './CreateHostView.css';
 import * as s from './HostManage.css';
-import { contactPlaceholder } from './model/host-fields';
 import { HOST_IMAGE_SLOTS, type HostImageSlot } from './model/host-settings-form';
 import { useHostSettings } from './model/useHostSettings';
 

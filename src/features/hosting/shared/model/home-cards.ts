@@ -2,8 +2,9 @@ import type { MyEvent } from '@/api/event/schema';
 import type { HostRole } from '@/api/shared/common-schema';
 import { formatKstKoreanDate, formatKstTime } from '@/api/shared/date';
 import { formatDday } from '@/api/shared/dday';
-import { HOST_ROLE_LABEL } from '@/features/hosting/host/model/member-rules';
 import { type ChipColor, type ChipTheme } from '@/ui/components/Chip/Chip';
+
+import { HOST_ROLE_LABEL } from './host-role';
 
 /**
  * 공연준비 홈 카드의 표시값(plan P10a V). 칩 색은 design-system §3 "옛 Tag → tag_v2" 표 그대로 —

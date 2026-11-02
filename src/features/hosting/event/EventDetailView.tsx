@@ -5,6 +5,11 @@ import { useEffect, useId, useState } from 'react';
 
 import { EVENT_SECTION_TITLE_MAX } from '@/api/event/schema';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
+import {
+  EditorBottomBar,
+  FieldError,
+  useLeaveGuard,
+} from '@/features/hosting/shared/ui/EditorParts';
 import { sanitizeSectionHtml } from '@/features/shared/section-viewer/model/sanitize-section-html';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
@@ -21,7 +26,6 @@ import { colors } from '@/ui/theme/colors';
 import * as s from './EventDetailView.css';
 import { REGISTERED_SAVED_DESCRIPTION, REGISTERED_SAVED_TITLE } from './EventInfoView';
 import { useEventSections } from './model/useEventSections';
-import { EditorBottomBar, FieldError, useLeaveGuard } from './ui/EditorParts';
 import { SectionEditor } from './ui/SectionEditor';
 
 type Form = ReturnType<typeof useEventSections>;

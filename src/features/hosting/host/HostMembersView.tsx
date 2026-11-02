@@ -6,6 +6,7 @@ import { overlay } from 'overlay-kit';
 import type { AssignableHostRole } from '@/api/host/schema';
 import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
+import { HOST_ROLE_LABEL } from '@/features/hosting/shared/model/host-role';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
@@ -24,7 +25,7 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './HostManage.css';
-import { HOST_ROLE_LABEL, type PermissionGuideRow } from './model/member-rules';
+import { type PermissionGuideRow } from './model/member-rules';
 import { type MemberActionResult, useHostMembers } from './model/useHostMembers';
 import { useInviteMembers } from './model/useInviteMembers';
 

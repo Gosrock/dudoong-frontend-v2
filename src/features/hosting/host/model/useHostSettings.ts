@@ -9,10 +9,7 @@ import { hostMembersQuery, hostViewerQuery } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
 import { uploadImage } from '@/api/upload';
 import { hostingAccessOfRole } from '@/features/hosting/access/model/hosting-access';
-import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
-import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
-
-import { applyUpdatedHost } from './host-cache';
+import { applyUpdatedHost } from '@/features/hosting/shared/model/host-cache';
 import {
   canAddContact,
   canRemoveContact,
@@ -21,7 +18,10 @@ import {
   withContactType,
   withContactValue,
   withoutContact,
-} from './host-fields';
+} from '@/features/hosting/shared/model/host-fields';
+import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
+import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
+
 import {
   hasHostSettingsErrors,
   HOST_IMAGE_SLOTS,

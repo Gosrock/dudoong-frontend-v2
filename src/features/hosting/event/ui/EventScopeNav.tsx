@@ -9,7 +9,9 @@ import { Suspense } from 'react';
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { myEventsQuery } from '@/api/event/queries';
 import { formatDday } from '@/api/shared/dday';
-import { eventChipOf, UNNAMED_EVENT } from '@/features/hosting/home/model/home-cards';
+import type { EventMenuKey } from '@/features/hosting/shared/model/event-scope';
+import { eventChipOf, UNNAMED_EVENT } from '@/features/hosting/shared/model/home-cards';
+import type { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
 import { ShellBell } from '@/features/shared/shell/ShellParts';
 import { BottomSheet } from '@/ui/components/BottomSheet/BottomSheet';
@@ -28,8 +30,6 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import { newBadgeCountOf } from '../model/dashboard-stats';
-import type { EventMenuKey } from '../model/event-scope';
-import type { useEventScope } from '../model/useEventScope';
 import * as s from './EventScopeNav.css';
 
 type Scope = ReturnType<typeof useEventScope>;

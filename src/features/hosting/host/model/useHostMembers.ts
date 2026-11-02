@@ -13,13 +13,17 @@ import { hostMembersQuery, hostViewerQuery } from '@/api/host/queries';
 import type { AssignableHostRole } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
 import { hostingAccessOfRole } from '@/features/hosting/access/model/hosting-access';
+import {
+  applyMembers,
+  invalidateHostSummary,
+  invalidateMyRoleQueries,
+} from '@/features/hosting/shared/model/host-cache';
+import { HOST_ROLE_LABEL } from '@/features/hosting/shared/model/host-role';
 import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 import { type Result, tryCatch } from '@/utils/try-catch';
 
-import { applyMembers, invalidateHostSummary, invalidateMyRoleQueries } from './host-cache';
 import {
   hideRoleLabel,
-  HOST_ROLE_LABEL,
   MEMBER_ACTION_ERROR_MESSAGE,
   memberActionsOf,
   PERMISSION_GUIDE,

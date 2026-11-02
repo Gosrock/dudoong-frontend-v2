@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { hosts } from '@/api/__mocks__/fixtures/host';
 import { UpdateHostRequestSchema } from '@/api/host/schema';
+import { contactInputsOf } from '@/features/hosting/shared/model/host-fields';
 
-import { contactInputsOf } from './host-fields';
 import {
   changedHostFields,
   type HostSettingsValues,
