@@ -8,6 +8,7 @@ import type { ComponentPropsWithRef, MouseEvent, ReactNode } from 'react';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { Drawer } from '@/ui/components/Drawer/Drawer';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Tooltip } from '@/ui/components/Tooltip/Tooltip';
 import { Icon } from '@/ui/icons/Icon';
 import { Divider } from '@/ui/primitives/Divider';
@@ -65,16 +66,7 @@ export function ShellDrawerContent({
   );
 
   if (state.status === 'error') {
-    return (
-      <Flex direction="column" align="flex-start" gap={3}>
-        <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-          메뉴를 불러오지 못했어요.
-        </Txt>
-        <Button variant="secondary" size="sm" onClick={state.retry}>
-          다시 시도
-        </Button>
-      </Flex>
-    );
+    return <InlineError message="메뉴를 불러오지 못했어요." onRetry={state.retry} />;
   }
   if (state.status === 'pending') return <DrawerPending />;
 
