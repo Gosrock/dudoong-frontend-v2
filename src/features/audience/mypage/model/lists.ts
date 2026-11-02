@@ -1,4 +1,6 @@
 import type { ArchiveEvent, FollowingHostFilter, RepresentativeEvent } from '@/api/me/schema';
+import { eventTimingLabel } from '@/api/shared/dday';
+import { orderHref } from '@/features/audience/routes';
 
 /**
  * 관심 호스트(GM-4) 필터 탭. 서버 `status` 3값을 그대로 쓴다 — 라벨은 design-requests 기본안("전체 / 공연 예정 / 지난 공연만").
@@ -10,24 +12,10 @@ export const FOLLOWING_TABS: readonly { status: FollowingHostFilter; label: stri
   { status: 'ENDED', label: '지난 공연만' },
 ];
 
-/** 대표 공연 배지: 예정 D-n(당일 D-DAY) · 공연 중 · 공연 종료. 대표 공연이 없거나 모르는 상태면 null */
+/** 대표 공연 배지: 예정 D-n(당일 "D-day") · 공연 중 · 공연 종료 — 공용 `eventTimingLabel`(A4). 대표 공연이 없거나 모르는 상태면 null */
 export function representativeBadge(event: RepresentativeEvent | null): string | null {
-  if (!event) return null;
-  switch (event.displayStatus) {
-    case 'UPCOMING':
-      return event.dDay === null ? null : event.dDay === 0 ? 'D-DAY' : `D-${event.dDay}`;
-    case 'ONGOING':
-      return '공연 중';
-    case 'PAST':
-      return '공연 종료';
-    default:
-      return null;
-  }
+  return event ? eventTimingLabel(event) : null;
 }
-
-export const hostHref = (hostId: number) => `/hosts/${hostId}`;
-export const eventHref = (eventId: number) => `/events/${eventId}`;
-export const orderHref = (orderUuid: string) => `/orders/${encodeURIComponent(orderUuid)}`;
 
 /**
  * 아카이빙 공연 → 주문상세 주소. `orderUuid`가 null이면(선물받은 티켓으로만 입장) 주문상세로 가지 않는다(plan P9 완료 기준).

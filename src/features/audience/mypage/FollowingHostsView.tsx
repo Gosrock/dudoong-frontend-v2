@@ -3,11 +3,12 @@
 import Link from 'next/link';
 
 import type { FollowingHostFilter } from '@/api/me/schema';
+import { UNNAMED_EVENT } from '@/features/audience/event-labels';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
-import { Button } from '@/ui/components/Button/Button';
 import { Chip, type ChipColor } from '@/ui/components/Chip/Chip';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Icon } from '@/ui/icons/Icon';
@@ -53,18 +54,7 @@ export function FollowingHostsView() {
           </Flex>
         </div>
       )}
-      {f.listStatus === 'error' && (
-        <div role="alert" className={s.stateBox}>
-          <Flex direction="column" align="center" gap={3}>
-            <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-              불러오지 못했어요.
-            </Txt>
-            <Button variant="secondary" size="sm" onClick={f.retry}>
-              다시 시도
-            </Button>
-          </Flex>
-        </div>
-      )}
+      {f.listStatus === 'error' && <InlineError className={s.stateBox} onRetry={f.retry} />}
       {f.empty && (
         <div className={s.stateBox}>
           {/* 빈 상태는 와이어에 없다(Tomato 10-24 "빈 상태 만들기" 미해결) — DS EmptyState로(Figma 코멘트 — 디자인 없음) */}
@@ -94,7 +84,7 @@ export function FollowingHostsView() {
                 <Flex align="center" gap={2}>
                   <Link href={h.eventHref} className={`${s.plainLink} ${s.grow}`}>
                     <Txt typography="bodyMd" color={colors.textSecondaryLabel} lines={1}>
-                      {h.representativeEvent.name ?? '이름 없는 공연'}
+                      {h.representativeEvent.name ?? UNNAMED_EVENT}
                     </Txt>
                   </Link>
                   {h.badge && (

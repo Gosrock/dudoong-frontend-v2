@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { isSessionLost } from '@/api/errors';
+import { DELETED_EVENT, UNNAMED_EVENT } from '@/features/audience/event-labels';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
@@ -11,15 +12,16 @@ import { Icon } from '@/ui/icons/Icon';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
+import { formatPrice } from '@/utils/money';
 
-import { orderDateLabel, orderPosterBadge, wonLabel } from './model/order-card';
+import { orderDateLabel, orderPosterBadge } from './model/order-card';
 import { useMyOrders } from './model/useMyOrders';
 import * as s from './ui/mypage.css';
 import { OrderPoster, OrderStatusChips } from './ui/OrderParts';
 
 /**
  * `/orders` 주문내역(P9-V, 와이어 근거 — 모바일 `128:2772` · PC `668:5085`). GUI `331:11519`은 Ready가 아니라 모양을 가져오지 않는다.
- * 카드: 주문 날짜 + [상세내역 ›] / 포스터(D-n · 공연종료) · 공연 이름 · 티켓 · 수량 · 금액 · 상태 칩. 카드 전체가 주문상세 링크.
+ * 카드: 주문 날짜 + [상세내역 ›] / 포스터(D-n · 공연 종료) · 공연 이름 · 티켓 · 수량 · 금액 · 상태 칩. 카드 전체가 주문상세 링크.
  * 와이어의 "전체 상태 ⌄" 필터는 선택지가 없어(Q36) 고정 라벨 "최근주문순"만 둔다. 무한 목록 하단은 공용 `LoadMoreSentinel`.
  */
 export function OrdersView() {
@@ -80,7 +82,7 @@ function OrderList() {
                 />
                 <Flex direction="column" gap={1} className={s.grow}>
                   <Txt typography="headingSmEmphasized" lines={2}>
-                    {o.event ? (o.event.name ?? '이름 없는 공연') : '삭제된 공연'}
+                    {o.event ? (o.event.name ?? UNNAMED_EVENT) : DELETED_EVENT}
                   </Txt>
                   <Txt typography="bodyMd" color={colors.textTertiaryLabel} lines={1}>
                     티켓 : {o.ticketName ?? '—'}
@@ -89,7 +91,7 @@ function OrderList() {
                     수량 : {o.quantity}매
                   </Txt>
                   <Flex justify="space-between" align="center" wrap gap={2}>
-                    <Txt typography="labelLgEmphasized">{wonLabel(o.totalAmount)}</Txt>
+                    <Txt typography="labelLgEmphasized">{formatPrice(o.totalAmount)}</Txt>
                     <OrderStatusChips view={o.statusView} />
                   </Flex>
                 </Flex>

@@ -120,8 +120,8 @@ const allStateMocks = [
 ];
 
 const CHIP: Record<MyTicketState, string> = {
-  PENDING_APPROVE: '승인 대기 2',
-  REFUSED: '승인 거절 2',
+  PENDING_APPROVE: '승인대기 2',
+  REFUSED: '승인거절 2',
   APPROVED: '승인완료',
   GIFT_PENDING: '선물 대기중',
   GIFT_EXPIRED: '선물 만료',
@@ -230,18 +230,18 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI 908:10027 · 939:25698(#30 승인대기 칩). 첫 묶음은 승인 대기 주문(티켓 없음)이라 칩 "승인 대기 2"만. #29 — "공연임박순" 라벨과 유료옵션 금액 표시가 없다.',
+      'GUI 908:10027 · 939:25698(#30 승인대기 칩). 첫 묶음은 승인 대기 주문(티켓 없음)이라 칩 "승인대기 2"만. #29 — "공연임박순" 라벨과 유료옵션 금액 표시가 없다.',
     basis: ['GUI 908:10027 · 939:25698', 'issue #29 · #30', 'plan P8 V 범위 "공지 바"'],
   },
   async ({ page, step }) => {
     resetTicketStore();
     await setMockSession(page, 'loggedIn');
     await page.goto(TAB);
-    await step('NEW 공지 바와 첫 카드(승인 대기 2)가 보인다', async () => {
+    await step('NEW 공지 바와 첫 카드(승인대기 2)가 보인다', async () => {
       await expect(page.getByRole('status')).toContainText('NEW 티켓 주문이 승인되었습니다!');
       const first = page.getByTestId('ticket-group').first();
       await expect(first).toHaveAttribute('data-active', 'true');
-      await expect(first.getByRole('listitem')).toHaveText(['승인 대기 2']);
+      await expect(first.getByRole('listitem')).toHaveText(['승인대기 2']);
       await expect(
         page.getByTestId('ticket-info').getByRole('link', { name: '주문상세' }),
       ).toBeVisible();

@@ -156,6 +156,11 @@ export function TicketGiftButton({
   );
 }
 
+/**
+ * 선물 취소·회수 · 반환 확인 시트. 확인 창 계약(patterns §6)의 `openConfirm`을 쓰지 않는다 — 실패 문구(이미 수락됨 · 티켓이 바뀜)를
+ * 시트 안에 보여야 하는데 EasyOverlay `content`는 열 때 고정된 노드라 훅 상태를 받지 못하고, 취소 시트는 [선물 링크 다시 보기]로
+ * 같은 화면의 다른 단계로 넘어간다(코드 패턴 점검 A1 — 이유를 적고 그대로). 실패하면 열린 채, 성공하면 닫힘은 같다.
+ */
 function CancelGiftSheet({
   open,
   onClose,

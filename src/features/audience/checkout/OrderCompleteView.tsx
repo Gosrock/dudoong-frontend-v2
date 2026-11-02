@@ -9,8 +9,8 @@ import {
   AsyncBoundary,
   type ErrorFallbackProps,
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
-import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Flex } from '@/ui/primitives/Flex';
@@ -77,13 +77,8 @@ function Rejected({ error, reset }: ErrorFallbackProps) {
     return <NotFoundView title="주문을 찾을 수 없어요" href="/orders" actionLabel="주문내역" />;
   }
   return (
-    <Flex direction="column" align="center" gap={3} paddingY={8} paddingX={5}>
-      <Txt typography="bodyMd" color={colors.textSecondary} align="center">
-        <span role="alert">불러오지 못했어요. 잠시 후 다시 시도해 주세요.</span>
-      </Txt>
-      <Button variant="secondary" size="md" onClick={reset}>
-        다시 시도
-      </Button>
+    <Flex paddingX={5} paddingY={2} justify="center">
+      <InlineError message="불러오지 못했어요. 잠시 후 다시 시도해 주세요." onRetry={reset} />
     </Flex>
   );
 }

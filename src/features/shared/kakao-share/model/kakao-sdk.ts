@@ -73,3 +73,15 @@ export async function shareKakaoFeed(template: KakaoFeedTemplate): Promise<Kakao
 export function resetKakaoSdkForTest() {
   loading = null;
 }
+
+/**
+ * 카카오 공유창을 열고, SDK가 실패하면(키 없음 · 로드 실패 · 차단) 링크 복사로 대신한다(patterns §14 — 코드 패턴 점검 A39).
+ * 복사와 그 안내(토스트)는 부르는 쪽이 `copy`로 넘긴다 — 화면마다 문구가 다르다(공연 주소 · 선물 링크).
+ */
+export async function shareKakaoOrCopy(
+  template: KakaoFeedTemplate,
+  copy: () => Promise<void>,
+): Promise<void> {
+  if ((await shareKakaoFeed(template)) === 'shared') return;
+  await copy();
+}

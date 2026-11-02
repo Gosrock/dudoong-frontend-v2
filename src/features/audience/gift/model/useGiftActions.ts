@@ -3,13 +3,14 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
 
+import { getErrorCode } from '@/api/errors';
 import {
   cancelGiftMutation,
   changeGiftMemoMutation,
   createGiftMutation,
   returnGiftMutation,
 } from '@/api/gift/mutations';
-import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
+import { type ErrorCodeHandlers, handleError, handlersFrom } from '@/api/handle-error';
 import { myTicketQuery, myTicketsQuery } from '@/api/my-ticket/queries';
 
 import { refreshAfterGiftChange } from './gift-cache';
@@ -35,17 +36,12 @@ function useGiftCodes(
   const { ticketUuid, giftToken } = ctx;
   return useMemo(
     () =>
-      Object.fromEntries(
-        Object.entries(GIFT_ERROR_TABLE[action]).map(([code, outcome]) => [
-          code,
-          () => {
-            void (async () => {
-              await refetchForGift(queryClient, outcome.refetch, { ticketUuid, giftToken });
-              await onOutcome(outcome, code);
-            })();
-          },
-        ]),
-      ),
+      handlersFrom(GIFT_ERROR_TABLE[action], (outcome, code) => {
+        void (async () => {
+          await refetchForGift(queryClient, outcome.refetch, { ticketUuid, giftToken });
+          await onOutcome(outcome, code);
+        })();
+      }),
     [action, queryClient, ticketUuid, giftToken, onOutcome],
   );
 }
@@ -224,11 +220,12 @@ export function useGiftLink(input: UseGiftLinkInput) {
 /**
  * [선물 취소]·[선물 회수] → DG-2(보낸 사람). 티켓탭(선물 대기·만료 티켓)과 랜딩(`OWN_LINK`·`EXPIRED` + `giftId`)이 같이 쓴다.
  * 성공하면 티켓·선물·알림 쿼리를 무효화한다. `Gift_400_3`(이미 수락됨 등) → 연 곳(T-2 또는 GG-3)을 다시 읽는다.
+ * `cancel()`은 확인 창 계약(patterns §6)용으로 `true`(성공 또는 표의 코드 — 다시 읽은 상태가 답) / `false`(표에 없는 실패 — 공용 토스트)를 돌려준다.
+ * `done`은 mutation `isSuccess`(코드 패턴 점검 A34)
  */
 export function useCancelGift(giftId: number | null, ctx: GiftRefetchContext = {}) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<GiftActionError | null>(null);
-  const [done, setDone] = useState(false);
   const onOutcome = useCallback((outcome: GiftErrorOutcome) => {
     setError({ message: outcome.message });
   }, []);
@@ -239,14 +236,16 @@ export function useCancelGift(giftId: number | null, ctx: GiftRefetchContext = {
     onSuccess: () => refreshAfterGiftChange(queryClient),
   });
 
-  const cancel = useCallback(async () => {
-    if (giftId === null || mutation.isPending || done) return;
+  const done = mutation.isSuccess;
+  const cancel = useCallback(async (): Promise<boolean> => {
+    if (giftId === null || mutation.isPending || done) return false;
     setError(null);
     try {
       await mutation.mutateAsync();
-      setDone(true);
+      return true;
     } catch (e) {
       handleError(e, codes);
+      return Object.hasOwn(codes, getErrorCode(e) ?? '');
     }
   }, [giftId, mutation, done, codes]);
 
@@ -274,7 +273,8 @@ export function useReturnGift(ticketUuid: string) {
 
   const mutation = useMutation({
     ...returnGiftMutation(ticketUuid),
-    // done(상세 닫기)을 옛 uuid T-2 제거보다 먼저 알려야 상세가 지운 쿼리를 다시 읽지 않는다 — 그래서 옵션에 둔다
+    // done(상세 닫기)을 옛 uuid T-2 제거보다 먼저 알려야 상세가 지운 쿼리를 다시 읽지 않는다 — 그래서 옵션에 둔다.
+    // mutation `isSuccess`는 onSuccess가 끝난 뒤(제거 뒤)에야 true라 쓰지 않는다(코드 패턴 점검 A34 — 의도 확인, 그대로)
     onSuccess: async () => {
       setDone(true);
       await refreshAfterGiftChange(queryClient, { staleTicketUuid: ticketUuid });

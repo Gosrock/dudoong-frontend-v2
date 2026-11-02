@@ -37,6 +37,35 @@
 
 **동작이 바뀐 것**: 공연준비 홈 공연 삭제 확인(`HostingHomeView`의 `onConfirm: () => del.deleteEvent(event)`)은 지금까지 실패(`false`)해도 닫혔고, 이제 열린 채 남는다(A1 계약 그대로). 그 밖의 기존 호출은 `undefined`로 resolve하거나 throw해 결과가 같다.
 
+### ③ 결과(`28 pattern-audience`)
+
+`features/audience/{checkout,event,ticket,gift,mypage,checkin}` · `shared/{kakao-share,checkin-result}`. 공용 부품은 쓰기만 했고, 새로 둔 것은 아래 표 "새 파일" — 모두 features 안(`src/ui`·`src/api` 수정 없음).
+
+| ID | 결과 | 한 것 · 이유 |
+|---|---|---|
+| A1 | **일부** | 선물 랜딩 거절 · 보낸 사람 취소/회수 → `openConfirm({ variant: 'responsive', onConfirm })`. 훅(`useGiftLanding.reject` · `useCancelGift.cancel`)이 `Promise<boolean>` — `true` = 성공 또는 표의 코드(다시 읽은 상태 화면이 답)라 닫힘, `false` = 표에 없는 실패(공용 토스트)라 열린 채. **그대로 둔 넷**(이유 주석): 티켓탭 선물 취소/회수 · 반환 시트, 탈퇴 팝업, 무료 주문 취소 팝업 — 실패 문구를 시트 안에 보여야 하는데 EasyOverlay `content`는 열 때 고정된 노드라 훅 상태를 받지 못한다(취소 시트는 [선물 링크 다시 보기]로 다른 단계로도 넘어간다). 유료 취소 시트는 폼이라 확인 창이 아니다 |
+| A3 | 끝 | `formatPrice`(주문 카드 · 주문상세 · 티켓 목록 · 티켓 선택 합계) · `formatWon`(옵션 추가금 · 주문상세 옵션금액). `wonLabel` · `formatTicketPrice` 지움. **체크아웃은 `1,000 원` 그대로** — GUI `564:4156` · `567:9468`(Ready) 원문이 `18,000 원`(옵션 추가금만 `(+1,000원)`) → `${formatCount(n)} 원` + 근거 주석 |
+| A4 | 끝 | 주문 카드 배지 → `ddayOf` + `eventTimingLabel`, 관심 호스트 대표 공연 → `eventTimingLabel`. `D-DAY` → `D-day`, "공연종료" → "공연 종료" |
+| A6 | 끝 | 포스터 5곳(아카이빙 · 주문 카드 · 티켓 카드 · 공연 상세 · 선물 랜딩)의 `failed` 상태 · `naturalWidth` ref · `onError` 지움 — `UploadedImage`가 같은 처리를 하고(호출 쪽 ref가 그 ref를 덮고 있었다) 주소가 바뀌면 다시 시도한다 |
+| A7 | 끝 | `InlineError`로 6곳(아카이빙 · 관심 호스트 · 주문 완료 · 주문상세 경계 · 선물 랜딩 · 공연 상세 티켓 목록). 문구는 그대로 |
+| A10 | 끝(관객) | `features/shared/image-upload/upload-errors.ts` `UPLOAD_ERROR_MESSAGE`(directory-structure 자리) — 프로필이 `handlersFrom`으로 씀. 호스팅 세 벌은 ④가 옮긴다. `useImageUpload` 훅은 만들지 않았다(관객은 프로필 하나라 묶을 것이 없다) |
+| A11 | 끝 | `infiniteListControls` — 주문내역 · 아카이빙 · 관심 호스트. 아카이빙은 직접 짠 중복 제거 대신 `flattenPages`(`events` 페이지만 꺼내서) |
+| A12 | 끝 | `gift-cache`가 `GIFTS_KEY` · `NOTIFICATIONS_KEY`(api) — gift의 사본 상수 지움, ticket도 api에서 import |
+| A13 | **건너뜀** | 관심 호스트 행별 pending을 `useMutationState`로 바꾸면 MutationCache 알림이 다음 틱이라 누른 직후 잠기지 않는다(기존 테스트 `isUnfollowing` 즉시 true가 실패). 지금 코드는 finally가 있어 굳지 않는다 — 주석으로 남김 |
+| A17 | 끝 | `checkout/ui/PaymentBlocks` — `DepositAccountRows`(입금은행 · 결제계좌[복사] · 예금주) · `AmountRows` · `DEPOSITOR_NOTICE`. 안내 문구는 GUI `564:4156` "입금자명은 닉네임과 동일하게 해주세요"로 하나(주문상세 "…입력해주세요"를 맞춤 — 약관 근거 문구 아님). 금액 글자는 화면이 넘긴다(체크아웃 GUI 띄어쓰기) |
+| A18 | 끝(관객) | `ticket/ui/state-tone.ts` `STATE_TONE_COLOR` — 티켓 칩 · 주문 칩 · 주문상세 티켓상태 칩. `shared/checkin-result/ui/checkin-tone.ts` `CHECKIN_TONE` — 셀프 체크인. 호스팅 `ScanResult`는 ④가 옮긴다 |
+| A19 | 끝 | `event-schedule` 요일 배열 → `kstParts` · `formatKstDotDate` · `formatKstTime`, `event-json-ld` KST 오프셋 → `toKstIso`, 프로필 `kstDate` → `formatKstDateTime().slice(0, 10)`(A19 원문 그대로). 주문 카드 KST 계산은 A4의 `ddayOf`로 없어짐. `week-calendar`는 영문 요일(`SUN`…) 칸이라 그대로 |
+| A20 | 끝 | `TicketSheet`가 `useCloseOnBack`을 직접 맡고(BottomSheet `closeOnBack={false}`) [티켓 구매하기]에서 `release()` 뒤 `onBuy` — 공연 상세의 `history.state.ddOverlay` 읽기 · popstate 대기 · `setTimeout(1000)` 지움 |
+| A23 | 끝 | `handlersFrom` — `useGiftCodes` · `useGiftLanding` · `useOrderCodes` · `useCheckout` · 프로필 업로드 |
+| A34 | 끝(셋) · 건너뜀(하나) | `useCancelGift.done` · `useRefundAccount.saved` · `useCheckout` 성공 → mutation `isSuccess`. `useReturnGift`는 그대로 — `done`을 옛 uuid T-2 제거보다 **먼저** 알려야 해서 `onSuccess`에서 `setDone`(isSuccess는 onSuccess가 끝난 뒤라 늦다, 주석) |
+| A35 | 끝 | `useMarkTicketViewed(key, loaded)` — 조회 훅 `useTicketDetail` 안의 공지 바 · 알림 무효화를 이름 있는 훅으로 |
+| A36 | 끝(관객 화면) | `features/audience/routes.ts`(`eventHref` · `hostHref` · `orderHref`) — 두 벌 `eventHref` · `orderHref`/`orderDetailHref` 하나로, 주문상세 · 공연 상세의 직접 쓴 주소 4곳. 공연홈 2곳(④) · `fs/notification` · `fs/host-home` · `fs/shell`(⑤)은 범위 밖 |
+| A37 | 끝(관객 화면) | `features/audience/event-labels.ts` `UNNAMED_EVENT` · `DELETED_EVENT` — 직접 쓴 7곳. 공연 상세 "두둥 공연"(공유 · OG 제목)은 밖으로 나가는 문구라 따로 둔다. 공연홈 `card-date`의 상수는 ④ |
+| A38 | 끝(Figma로 정할 수 있는 것) | 티켓 칩 "승인 대기" · "승인 거절" → "승인대기" · "승인거절"(GUI `908:3276` 칩 글자), 주문상세 티켓상태 "입장완료" → "입장 완료"(같은 GUI "입장 완료 티켓" · 티켓탭 표), 결제방식 "직접계좌이체" → "계좌이체"(GUI `564:4156`). 선물 대기("선물 대기중" vs "선물중")는 그대로 — GUI에 "선물중인 티켓"과 "'선물 대기' 상태"가 같이 있어 근거가 갈린다 |
+| A39 | 끝 | `shareKakaoOrCopy(template, copy)`(`fs/kakao-share`) — 공연 공유 · 선물 링크 공유. 단위 테스트 2개 |
+
+**새 파일**: `checkout/ui/PaymentBlocks.tsx`(+css) · `ticket/ui/state-tone.ts` · `ticket/model/useMarkTicketViewed.ts` · `audience/routes.ts` · `audience/event-labels.ts` · `shared/image-upload/upload-errors.ts` · `shared/checkin-result/ui/checkin-tone.ts`. ④ · ⑤가 쓸 수 있게 둔 것: `UPLOAD_ERROR_MESSAGE`(호스팅 업로드 세 벌) · `CHECKIN_TONE`(`ScanResult`) · `UNNAMED_EVENT`(공연홈 · 호스팅 홈 — 호스팅은 audience를 import하지 못하므로 ⑤에서 공용 자리로).
+
 ---
 
 # 리포트 원문

@@ -2,13 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { seededOrders } from '@/api/__mocks__/fixtures/order';
 import { ORDER_ERROR_REASONS } from '@/api/__mocks__/order.handlers';
+import { eventHref } from '@/features/audience/routes';
 
 import {
   CHECKOUT_ERROR_TABLE,
   type CheckoutErrorKind,
   classifyCheckoutError,
 } from './checkout-errors';
-import { checkoutHref, eventHref, parseCheckoutParams } from './checkout-params';
+import { checkoutHref, parseCheckoutParams } from './checkout-params';
 import { isCreatedParam, orderCreatedHref, orderResultKind } from './order-result';
 import {
   checkoutKind,

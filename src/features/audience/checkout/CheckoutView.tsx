@@ -10,6 +10,7 @@ import { isSessionLost } from '@/api/errors';
 import { eventDetailQuery } from '@/api/event/queries';
 import type { Checkout, PaymentChannel } from '@/api/order/schema';
 import { formatKstDotDateTimeWeekday } from '@/api/shared/date';
+import { eventHref } from '@/features/audience/routes';
 import { AudienceSubHeader } from '@/features/audience/shell/AudienceSubHeader';
 import { Accordion } from '@/ui/components/Accordion/Accordion';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
@@ -28,13 +29,15 @@ import { useCloseOnBack } from '@/ui/hooks/useCloseOnBack';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
+import { formatCount, formatWon } from '@/utils/money';
 
 import * as s from './CheckoutView.css';
-import { type CheckoutParams, eventHref } from './model/checkout-params';
+import type { CheckoutParams } from './model/checkout-params';
 import { firstInvalidTicket } from './model/option-form';
 import { tossTransferLink } from './model/payment';
 import { REFUND_DEADLINE, refundPolicyItems } from './model/refund-policy';
 import { type CheckoutState, useCheckout, useCheckoutData } from './model/useCheckout';
+import { AmountRows, DepositAccountRows, DEPOSITOR_NOTICE } from './ui/PaymentBlocks';
 
 /** 결제 방식 버튼 글자 — GUI `564:4156` "토스간편송금"·"계좌이체" */
 const CHANNEL_LABEL: Record<'BANK_TRANSFER' | 'TOSS_TRANSFER', string> = {
@@ -45,7 +48,8 @@ const CHANNEL_LABEL: Record<'BANK_TRANSFER' | 'TOSS_TRANSFER', string> = {
 /** 동의 줄 — GUI `564:4156` 글자 그대로 */
 const AGREE_LABEL = '주문내용과 환불/취소 규정을 확인하였으며 이에 동의합니다.';
 
-const won = (n: number) => `${n.toLocaleString('ko-KR')} 원`;
+/** 금액 — GUI `564:4156`·`567:9468`(Ready for dev) 글자 그대로 숫자와 "원"을 띄어 쓴다(`18,000 원`). 다른 화면은 `formatWon`(붙여 씀) */
+const won = (n: number) => `${formatCount(n)} 원`;
 
 /**
  * 체크아웃(`/events/[eventId]/checkout?ticketItemId=&quantity=`) — GUI 근거(plan P7 V, gui-screens §0):
@@ -539,10 +543,9 @@ const copyToast = {
 };
 
 function PaymentInfo({ c }: { c: CheckoutState }) {
-  const account = c.account;
   return (
     <section aria-label="결제정보">
-      <InfoRow hierarchy="first" label="결제정보" value="입금자명은 닉네임과 동일하게 해주세요" />
+      <InfoRow hierarchy="first" label="결제정보" value={DEPOSITOR_NOTICE} />
       {/* 서비스 운영자 결정(이슈 #106 §4, 2026-11-01) — 닉네임 = 입금자명은 의도. 다르면 닉네임을 바꾸도록 안내 + 마이페이지 링크.
           마이페이지는 새 탭 — 고른 옵션을 잃지 않게. 바꾼 뒤 이 화면을 새로 고치면 새 닉네임이 입금자명이 된다 */}
       <div className={s.depositorHint}>
@@ -554,14 +557,7 @@ function PaymentInfo({ c }: { c: CheckoutState }) {
         </Txt>
       </div>
       <InfoRow label="입금자명" value={c.depositorName ?? '—'} />
-      {/* plan P7 ② — GUI는 계좌·예금주만. 토스 송금·입금에 은행이 필요해 은행 줄을 더한다 */}
-      <InfoRow label="입금은행" value={account?.bankName ?? '—'} />
-      {account?.accountNumber ? (
-        <InfoRow label="결제계좌" account={{ number: account.accountNumber, ...copyToast }} />
-      ) : (
-        <InfoRow label="결제계좌" value="—" />
-      )}
-      <InfoRow label="예금주" value={account?.accountHolder ?? '—'} />
+      <DepositAccountRows account={c.account} toastId="checkout:copy" />
     </section>
   );
 }
@@ -572,27 +568,18 @@ function amounts(c: CheckoutState) {
   return { ticketAmount, optionAmount: Math.max(0, c.amount - ticketAmount), total: c.amount };
 }
 
+const WON_FORMAT = { ticket: won, option: won, total: won };
+
 function AmountInfo({ c }: { c: CheckoutState }) {
   const { ticketAmount, optionAmount, total } = amounts(c);
   return (
-    <section aria-label="결제금액">
-      <InfoRow hierarchy="first" label="결제금액" />
-      <InfoRow label="티켓금액" value={won(ticketAmount)} />
-      <InfoRow label="옵션금액" value={won(optionAmount)} />
-      <div className={s.totalDivider} />
-      <InfoRow
-        label={
-          <Txt typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
-            총 결제금액
-          </Txt>
-        }
-        value={
-          <Txt typography="headingSmEmphasized" color={colors.textBrandLabel}>
-            <span data-testid="checkout-amount">{won(total)}</span>
-          </Txt>
-        }
-      />
-    </section>
+    <AmountRows
+      ticketAmount={ticketAmount}
+      optionAmount={optionAmount}
+      total={total}
+      format={WON_FORMAT}
+      totalTestId="checkout-amount"
+    />
   );
 }
 
@@ -714,7 +701,7 @@ function OptionFields({
                 <span id={titleId}>{optionName}</span>
                 {option.type === 'YES_NO' && option.yesAdditionalPrice ? (
                   <Txt typography="labelLgEmphasized" color={colors.textBrandLabel}>
-                    {` (+${option.yesAdditionalPrice.toLocaleString('ko-KR')}원)`}
+                    {` (+${formatWon(option.yesAdditionalPrice)})`}
                   </Txt>
                 ) : null}
               </Txt>

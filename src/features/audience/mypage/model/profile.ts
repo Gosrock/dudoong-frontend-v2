@@ -1,5 +1,6 @@
 import { NICKNAME_MAX, NICKNAME_MIN, NOT_BLANK } from '@/api/me/schema';
-import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED } from '@/api/upload';
+import { formatKstDateTime } from '@/api/shared/date';
+import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 
 /**
  * 프로필 편집 규칙(GM-1 · PM-2 · PM-3, plan P9). 닉네임은 2~7자(v1 `ChangeNameRequest`와 같다). 앞뒤 공백은 지우고 보낸다 —
@@ -16,29 +17,19 @@ export function nicknameError(raw: string): string | null {
   return null;
 }
 
-/** 화면이 처리하는 프로필 코드(patterns §24 P9). 업로드 실패 둘은 `src/api/upload.ts`가 만드는 코드 */
+/** 화면이 처리하는 프로필 코드(patterns §24 P9). 업로드 실패 둘은 공용 문구표(`UPLOAD_ERROR_MESSAGE`, A10) */
 export const PROFILE_ERROR_MESSAGE = {
   /** 닉네임 공백만 — 칸 오류. 400 `BAD_REQUEST`(PM-2 본문 검증 — 이름만 보낼 때)도 같은 칸 오류로 본다 */
   USER_400_4: '닉네임은 공백만으로 지을 수 없어요',
   /** 본인에게 발급한 이미지 key가 아님 — PM-3 발급부터 다시(`retry`) */
   USER_400_5: '이미지를 다시 올려 주세요',
-  [UPLOAD_INVALID_EXTENSION]: 'JPG·PNG 이미지만 올릴 수 있어요',
-  [UPLOAD_PUT_FAILED]: '이미지를 올리지 못했어요. 다시 시도해 주세요',
+  ...UPLOAD_ERROR_MESSAGE,
 } as const;
 
 // ─── 마케팅 수신 설정(legal-copy B-6·B-7, v1-additions E-1) ───
 
 /** 처리 일자(KST `YYYY.MM.DD`) — 정보통신망법 제50조⑧ 처리 결과 통지의 "일자" */
-export function kstDate(at: Date): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(at);
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
-  return `${part('year')}.${part('month')}.${part('day')}`;
-}
+export const kstDate = (at: Date): string => formatKstDateTime(at).slice(0, 10);
 
 /** 바꾼 뒤 처리 결과 통지(legal-copy B-7 — v1 운영 문구: 전송자·일자·처리 내용) */
 export const marketingResultMessage = (agree: boolean, at: Date) =>

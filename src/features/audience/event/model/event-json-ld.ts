@@ -1,5 +1,5 @@
 import type { EventDetail } from '@/api/event/schema';
-import { parseKstDateTime } from '@/api/shared/date';
+import { formatKstDateTime, parseKstDateTime, toKstIso } from '@/api/shared/date';
 
 import { eventSchedule } from './event-schedule';
 import { eventSummary, eventTitle } from './event-summary';
@@ -14,17 +14,11 @@ import { eventSummary, eventTitle } from './event-summary';
  * - `organizer`: 호스트 이름과 호스트 홈 주소. `eventStatus`는 언제나 예정(취소·연기 상태가 공개 응답에 없다 — 삭제 공연은 404).
  */
 
-const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+/** `'2026.10.17 19:30'`(KST) → `'2026-10-17T19:30:00+09:00'` — 공용 `toKstIso`(코드 패턴 점검 A19) */
+export const kstToIso = toKstIso;
 
-/** `'2026.10.17 19:30'`(KST) → `'2026-10-17T19:30:00+09:00'` */
-export function kstToIso(value: string): string {
-  return toIso(parseKstDateTime(value));
-}
-
-function toIso(at: Date): string {
-  // KST 벽시계 값을 UTC 메서드로 읽는다(실행 환경 시간대를 쓰지 않는다 — api/shared/date.ts)
-  return `${new Date(at.getTime() + KST_OFFSET_MS).toISOString().slice(0, 19)}+09:00`;
-}
+/** 계산한 시각(시작 + 러닝타임) → ISO. 초는 늘 0(분 단위 값끼리 더한다) */
+const toIso = (at: Date) => toKstIso(formatKstDateTime(at));
 
 const trimmed = (value: string | null | undefined) => value?.trim() || null;
 

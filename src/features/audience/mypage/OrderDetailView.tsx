@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { isNotFound, isSessionLost } from '@/api/errors';
 import type { MyOrderDetail } from '@/api/order/schema';
 import { orderTossLink, TossTransferButton } from '@/features/audience/checkout/ui/DepositGuide';
+import {
+  AmountRows,
+  DepositAccountRows,
+  DEPOSITOR_NOTICE,
+} from '@/features/audience/checkout/ui/PaymentBlocks';
+import { UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { eventHref } from '@/features/audience/routes';
+import { STATE_TONE_COLOR } from '@/features/audience/ticket/ui/state-tone';
 import { Accordion } from '@/ui/components/Accordion/Accordion';
 import {
   AsyncBoundary,
@@ -12,21 +20,21 @@ import {
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
-import { Chip, type ChipColor, formatOptionAmount } from '@/ui/components/Chip/Chip';
+import { Chip, formatOptionAmount } from '@/ui/components/Chip/Chip';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
-import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
+import { formatPrice, formatWon } from '@/utils/money';
 
 import {
   issuedTicketStateLabel,
   orderPosterBadge,
   PAYMENT_CHANNEL_LABEL,
   REFUSE_REASON_DESCRIPTION,
-  wonLabel,
 } from './model/order-card';
 import { useOrderDetail } from './model/useOrderDetail';
 import * as s from './ui/mypage.css';
@@ -34,14 +42,6 @@ import { openCancelOrder, openHostInquiry, openRefundAccountSheet } from './ui/O
 import { OrderPoster, OrderStatusChips } from './ui/OrderParts';
 
 type Detail = ReturnType<typeof useOrderDetail>;
-
-const TICKET_TONE_COLOR: Record<ReturnType<typeof issuedTicketStateLabel>['tone'], ChipColor> = {
-  positive: 'green',
-  waiting: 'cyan',
-  negative: 'red',
-  gift: 'purple',
-  muted: 'grey',
-};
 
 /**
  * `/orders/[orderUuid]` 주문상세(P9-V, 와이어 근거 — 모바일 승인대기 `128:2263` · 승인완료/선물 `498:703` · 거절 3종
@@ -174,9 +174,9 @@ function Summary({ d }: { d: Detail }) {
         />
         <Flex direction="column" gap={1} className={s.grow}>
           {order.event ? (
-            <Link href={`/events/${order.event.eventId}`} className={s.plainLink}>
+            <Link href={eventHref(order.event.eventId)} className={s.plainLink}>
               <Txt typography="headingSmEmphasized" lines={2}>
-                {order.event.name ?? '이름 없는 공연'}
+                {order.event.name ?? UNNAMED_EVENT}
               </Txt>
             </Link>
           ) : (
@@ -198,7 +198,7 @@ function Summary({ d }: { d: Detail }) {
             수량 : {order.quantity}매
           </Txt>
           <Flex justify="space-between" align="center" wrap gap={2}>
-            <Txt typography="labelLgEmphasized">{wonLabel(order.payment?.totalAmount ?? 0)}</Txt>
+            <Txt typography="labelLgEmphasized">{formatPrice(order.payment?.totalAmount ?? 0)}</Txt>
             <OrderStatusChips view={d.statusView} />
           </Flex>
         </Flex>
@@ -348,7 +348,7 @@ function Tickets({ d }: { d: Detail }) {
                     <Chip
                       size="sm"
                       shape="square"
-                      color={TICKET_TONE_COLOR[state.tone]}
+                      color={STATE_TONE_COLOR[state.tone]}
                       theme="weak"
                     >
                       {state.label}
@@ -417,12 +417,6 @@ function OptionAnswers({ answers }: { answers: readonly Answer[] }) {
   );
 }
 
-const copyToast = {
-  onCopied: () => toast('계좌번호를 복사했어요', { id: 'order:copy' }),
-  onCopyError: () =>
-    toast('복사하지 못했어요. 계좌번호를 직접 입력해 주세요', { id: 'order:copy' }),
-};
-
 /** 결제정보(와이어 `128:2263` — 결제방식 · 입금자명 · 결제계좌[복사] · 예금주). 입금 계좌는 두둥티켓만 온다 */
 function PaymentInfo({ order }: { order: MyOrderDetail }) {
   const account = order.payment?.account ?? null;
@@ -433,8 +427,9 @@ function PaymentInfo({ order }: { order: MyOrderDetail }) {
         label="결제정보"
         value={
           order.status === 'PENDING_APPROVE' ? (
+            // 문구는 체크아웃 GUI 원문(`DEPOSITOR_NOTICE`, A17) — 와이어의 "…동일하게 입력해주세요"에서 맞췄다
             <Txt typography="labelSm" color={colors.textDangerLabel}>
-              입금자명은 닉네임과 동일하게 입력해주세요
+              {DEPOSITOR_NOTICE}
             </Txt>
           ) : undefined
         }
@@ -444,17 +439,7 @@ function PaymentInfo({ order }: { order: MyOrderDetail }) {
         value={order.paymentChannel ? (PAYMENT_CHANNEL_LABEL[order.paymentChannel] ?? '—') : '—'}
       />
       <InfoRow label="입금자명" value={order.depositorName ?? '—'} />
-      {account && (
-        <>
-          <InfoRow label="입금은행" value={account.bankName ?? '—'} />
-          {account.accountNumber ? (
-            <InfoRow label="결제계좌" account={{ number: account.accountNumber, ...copyToast }} />
-          ) : (
-            <InfoRow label="결제계좌" value="—" />
-          )}
-          <InfoRow label="예금주" value={account.accountHolder ?? '—'} />
-        </>
-      )}
+      {account && <DepositAccountRows account={account} toastId="order:copy" />}
       {/* B23 — 주문을 입금 전에 만들므로 앱이 꺼진 뒤에도 여기서 송금을 이어 간다(승인 대기 + 토스 송금만) */}
       {order.status === 'PENDING_APPROVE' && orderTossLink(order) && (
         <div className={s.tossTransfer}>
@@ -465,27 +450,19 @@ function PaymentInfo({ order }: { order: MyOrderDetail }) {
   );
 }
 
+/** 금액 — 무료는 "무료"(티켓 · 총액), 옵션금액은 0이어도 "0원" */
+const ORDER_AMOUNT_FORMAT = { ticket: formatPrice, option: formatWon, total: formatPrice };
+
 function AmountInfo({ d }: { d: Detail }) {
   if (!d.amounts) return null;
   return (
-    <section aria-label="결제금액">
-      <InfoRow hierarchy="first" label="결제금액" />
-      <InfoRow label="티켓금액" value={wonLabel(d.amounts.ticketAmount)} />
-      <InfoRow label="옵션금액" value={`${d.amounts.optionAmount.toLocaleString('ko-KR')}원`} />
-      <div className={s.divider} />
-      <InfoRow
-        label={
-          <Txt typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
-            총 결제금액
-          </Txt>
-        }
-        value={
-          <Txt typography="headingSmEmphasized" color={colors.textBrandLabel}>
-            <span data-testid="order-amount">{wonLabel(d.amounts.totalAmount)}</span>
-          </Txt>
-        }
-      />
-    </section>
+    <AmountRows
+      ticketAmount={d.amounts.ticketAmount}
+      optionAmount={d.amounts.optionAmount}
+      total={d.amounts.totalAmount}
+      format={ORDER_AMOUNT_FORMAT}
+      totalTestId="order-amount"
+    />
   );
 }
 
@@ -506,7 +483,7 @@ function CancelNotice({ d }: { d: Detail }) {
             환불 방법 : 예매취소 후 호스트에게 연락해 환불받을 계좌를 알려주세요. 호스트는 지체 없이
             환불해야 하며, 연락처는{' '}
             {eventId !== null ? (
-              <Link href={`/events/${eventId}`}>공연 상세 페이지</Link>
+              <Link href={eventHref(eventId)}>공연 상세 페이지</Link>
             ) : (
               '공연 상세 페이지'
             )}
@@ -554,15 +531,10 @@ function Rejected({ error, reset }: ErrorFallbackProps) {
     return <NotFoundView title="주문을 찾을 수 없어요" href="/orders" actionLabel="주문내역" />;
   }
   return (
-    <div role="alert" className={s.stateBox}>
-      <Flex direction="column" align="center" gap={3}>
-        <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-          불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-        </Txt>
-        <Button variant="secondary" size="sm" onClick={reset}>
-          다시 시도
-        </Button>
-      </Flex>
-    </div>
+    <InlineError
+      className={s.stateBox}
+      message="불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+      onRetry={reset}
+    />
   );
 }

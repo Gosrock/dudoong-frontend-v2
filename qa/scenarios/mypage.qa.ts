@@ -261,7 +261,7 @@ scenario(
         await page.goto(href!);
         await expect(page.getByRole('button', { name: '주문취소' })).toBeVisible();
         await expect(page.getByRole('region', { name: '예매정보' })).not.toContainText('티켓번호');
-        await expect(page.getByRole('region', { name: '결제정보' })).toContainText('직접계좌이체');
+        await expect(page.getByRole('region', { name: '결제정보' })).toContainText('계좌이체');
         await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
       },
     );

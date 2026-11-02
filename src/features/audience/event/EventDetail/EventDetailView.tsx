@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useId, useLayoutEffect, useState } from 'react';
 
 import type { EventDetail } from '@/api/event/schema';
+import { hostHref } from '@/features/audience/routes';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
@@ -62,29 +63,13 @@ export function EventDetailView({ eventId }: { eventId: string }) {
   useLayoutEffect(() => () => setSheet('closed'), []);
   const { checkoutHref } = tickets;
   const buyFromCard = () => checkoutHref && router.push(checkoutHref);
-  // 시트에서 살 때는 시트를 닫아 그 기록 항목을 먼저 소비하고(BottomSheet가 history.back) 그 뒤에 push한다 — 기록이
+  // 시트에서 살 때 — 시트가 자기 기록 항목을 `release()`로 먼저 소비한 뒤 부른다(TicketSheet). 그 뒤 닫고 push하면 기록이
   // [상세, 체크아웃]이 된다. 시트를 연 채 replace하면 Next가 화면 상태를 보존해 뒤로가기로 돌아왔을 때 시트가 열린 채
   // 남고, 그 시트에는 닫을 기록 항목이 없다(patterns §6 "오버레이 안 이동은 replace"와 같은 결과를 이 순서로 낸다)
   const buyFromSheet = () => {
     if (!checkoutHref) return;
-    const href = checkoutHref;
-    const overlayOnTop = Boolean(
-      (window.history.state as { ddOverlay?: unknown } | null)?.ddOverlay,
-    );
     setSheetOpen(false);
-    if (!overlayOnTop) {
-      router.push(href);
-      return;
-    }
-    let done = false;
-    const go = () => {
-      if (done) return;
-      done = true;
-      window.removeEventListener('popstate', go);
-      router.push(href);
-    };
-    window.addEventListener('popstate', go);
-    setTimeout(go, 1000); // popstate가 오지 않아도 멈추지 않게
+    router.push(checkoutHref);
   };
 
   return (
@@ -120,7 +105,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
                     ))}
                   </Flex>
                 )}
-                <Link href={`/hosts/${event.host.hostId}`} className={s.iconRow}>
+                <Link href={hostHref(event.host.hostId)} className={s.iconRow}>
                   <span className={s.iconRowIcon}>
                     <Icon name="music" />
                   </span>
@@ -169,7 +154,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
                   label="호스트"
                   value={
                     <span className={s.hostValue}>
-                      <Link href={`/hosts/${event.host.hostId}`} className={s.textLink}>
+                      <Link href={hostHref(event.host.hostId)} className={s.textLink}>
                         <Txt typography="bodyLg">{event.host.name ?? '호스트'}</Txt>
                       </Link>
                       {/* PC 문의 입구는 와이어에 없다(PC 연락처 모달 666:14989만) — 호스트 옆에 둔다(디자인 없음 코멘트 2026-11-01) */}
@@ -319,15 +304,10 @@ function PlaceAddress({ place }: { place: NonNullable<EventDetail['place']> }) {
 
 /** 포스터. 없거나 못 불러오면 빈 상자(기본 이미지 자산 없음 — design-requests Q26) */
 function EventPoster({ src, alt }: { src: string | null; alt: string }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return null;
+  if (!src) return null;
   return (
     // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 모바일은 화면 폭, PC는 282
     <UploadedImage
-      // 서버 HTML의 이미지는 하이드레이션 전에 실패할 수 있어 onError를 놓친다 — 붙을 때 한 번 더 본다
-      ref={(img) => {
-        if (img && img.complete && img.naturalWidth === 0) setFailed(true);
-      }}
       className={s.poster}
       src={src}
       alt={alt}
@@ -338,7 +318,6 @@ function EventPoster({ src, alt }: { src: string | null; alt: string }) {
       // 설치본 image.md가 `loading="eager"`·`fetchPriority="high"`를 권한다
       loading="eager"
       fetchPriority="high"
-      onError={() => setFailed(true)}
     />
   );
 }

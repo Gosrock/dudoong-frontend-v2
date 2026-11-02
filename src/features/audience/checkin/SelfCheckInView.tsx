@@ -8,6 +8,7 @@ import type {
   CheckInResultView,
   CheckInTone,
 } from '@/features/shared/checkin-result/model/checkin-result';
+import { CHECKIN_TONE } from '@/features/shared/checkin-result/ui/checkin-tone';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
@@ -24,13 +25,6 @@ import { colors } from '@/ui/theme/colors';
 import type { SelfCheckInErrorView } from './model/self-check-in-errors';
 import { useSelfCheckIn } from './model/useSelfCheckIn';
 import * as s from './ui/SelfCheckIn.css';
-
-/** 결과 톤 → DS 아이콘 · 상태 색(호스트 스캔 결과 `ScanResult`와 같은 짝) */
-const TONE = {
-  success: { icon: 'circle-check', color: colors.statusSuccess },
-  warning: { icon: 'circle-request', color: colors.statusWarning },
-  error: { icon: 'circle-reject', color: colors.statusError },
-} as const satisfies Record<CheckInTone, { icon: string; color: string }>;
 
 /**
  * 셀프 체크인(`/check-in?token=…`, P8c-V) — 디자인 없음(GUI·와이어에 관객 쪽 화면이 없다. 와이어 `424:11976`의
@@ -189,7 +183,7 @@ function Ready({ onStart }: { onStart: () => void }) {
 }
 
 function ToneIcon({ tone }: { tone: CheckInTone }) {
-  const t = TONE[tone];
+  const t = CHECKIN_TONE[tone];
   return <Icon name={t.icon} variant="filled" className={s.toneIcon} style={{ color: t.color }} />;
 }
 
