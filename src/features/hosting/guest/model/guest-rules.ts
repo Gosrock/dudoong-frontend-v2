@@ -76,7 +76,7 @@ export const ORDER_STATUS_TABS = [
   { key: 'PENDING_APPROVE', label: '승인 대기', count: 'pendingApprove' },
   { key: 'APPROVED', label: '승인 완료', count: 'approved' },
   { key: 'REFUSED', label: '승인 거절', count: 'refused' },
-  { key: 'CANCELED', label: '취소', count: 'canceled' },
+  { key: 'CANCELED', label: '주문 취소', count: 'canceled' },
 ] as const satisfies readonly {
   key: HostOrderStatusFilter;
   label: string;
@@ -107,10 +107,10 @@ export const REFUND_FILTER_OPTIONS = [
 ] as const satisfies readonly { key: RefundStatusFilter; label: string }[];
 
 /**
- * 일반 멤버의 연락처·입금자명 검색은 완전 일치만 된다(#846 — 가린 값을 부분 일치로 복원하지 못하게). 그 검색 칸의 안내 문구(잠정).
+ * 일반 멤버의 연락처·입금자명 검색은 완전 일치만 된다(#846 — 가린 값을 부분 일치로 복원하지 못하게). 그 검색 칸의 안내 문구(GUI `1029:4569`).
  * 이름 검색·매니저 이상은 안내 없음
  */
-export const EXACT_MATCH_HINT = '연락처·입금자명은 전체를 정확히 입력해야 찾을 수 있어요';
+export const EXACT_MATCH_HINT = '연락처, 입금자명은 전체를 정확히 입력해야 찾을 수 있어요.';
 export function exactMatchHintOf(
   role: ActorRole | null | undefined,
   searchType: OrderSearchType | IssuedTicketSearchType,
@@ -131,7 +131,7 @@ export const isEventStarted = (e: EventForActions) =>
   e.displayStatus !== 'UPCOMING' && e.displayStatus !== 'PREPARING';
 
 export type OrderActionKey = 'approve' | 'refuse' | 'cancel' | 'completeRefund';
-export type OrderActionBlock = 'started' | 'notOpen';
+export type OrderActionBlock = 'started' | 'notOpen' | 'ticketUsed' | 'noAccount';
 export type OrderAction = {
   key: OrderActionKey;
   label: string;
@@ -149,6 +149,8 @@ export const ORDER_ACTION_LABEL: Record<OrderActionKey, string> = {
 export const ORDER_ACTION_BLOCK_MESSAGE: Record<OrderActionBlock, string> = {
   started: '공연이 시작되어 처리할 수 없어요',
   notOpen: '판매 중인 공연이 아니어서 처리할 수 없어요',
+  ticketUsed: '입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요.',
+  noAccount: '예매자가 아직 환불 계좌를 입력하지 않았어요.',
 };
 
 /**
@@ -223,6 +225,58 @@ export function toRefuseBody(
 }
 
 export const CANCEL_REASON_MAX = HOST_CANCEL_REASON_MAX;
+
+/**
+ * 승인 후 취소 사유 고르기(GUI `1029:7509` "주문 취소 사유를 선택해 주세요." — 라디오 4개, 2026-11-01). 서버(PR-5)는 사유 문구 하나만
+ * 받으므로 고른 항목의 글자를 그대로 보내고, 기타면 입력한 문구를 보낸다(API 그대로 — 🤖 Claude 판단 p13a-gui-guests)
+ */
+export const CANCEL_REASON_OPTIONS = [
+  { key: 'BUYER_REQUEST', label: '예매자 요청' },
+  { key: 'SCHEDULE_CHANGED', label: '공연 일정 변경' },
+  { key: 'DUPLICATE', label: '중복 주문' },
+  { key: 'ETC', label: '기타' },
+] as const;
+export type CancelReasonKey = (typeof CANCEL_REASON_OPTIONS)[number]['key'];
+
+/** 고른 취소 사유 → 보낼 문구(기타면 입력값, 고르지 않았으면 입력값 — 예전 자유 입력과 같다) */
+export function cancelReasonTextOf(type: CancelReasonKey | null, text: string): string {
+  if (type === null || type === 'ETC') return text;
+  return CANCEL_REASON_OPTIONS.find((o) => o.key === type)!.label;
+}
+
+/**
+ * 승인 후 취소를 막는 발급 티켓(GUI `1029:7706` "취소 불가" — #112, 2026-11-01): 입장했거나 선물한 티켓이 있으면 취소할 수 없다.
+ * 서버(PR-5 `validCanCancel`)는 이 검사를 하지 않는다 — 화면 규칙(L 변경 p13a-gui-guests). GR-2 발급 티켓에는 선물 상태가 없어
+ * 지금은 입장(`DONE`)만 본다(선물 — backend-questions B35)
+ */
+export const CANCEL_BLOCKED_MESSAGE = ORDER_ACTION_BLOCK_MESSAGE.ticketUsed;
+export const hasCancelBlockingTicket = (issuedTickets: readonly { entrance: string }[]) =>
+  issuedTickets.some((t) => t.entrance === 'DONE');
+
+/**
+ * 환불 탭·상세의 환불 상태 칩(GUI `1031:9189` — 환불 요청 보라 · 계좌 입력 전 회색 테두리 · 환불 완료 초록).
+ * 계좌 입력 전 = 환불 요청인데 구매자가 계좌를 아직 넣지 않음(매니저만 계좌를 보므로 일반 멤버에게는 '환불 요청')
+ */
+export type RefundRowState = 'REQUESTED' | 'NO_ACCOUNT' | 'COMPLETED' | null;
+export function refundRowStateOf(
+  r: { refundStatus: string; refundAccount: unknown },
+  canSeeAccount: boolean,
+): RefundRowState {
+  if (r.refundStatus === 'COMPLETED') return 'COMPLETED';
+  if (r.refundStatus !== 'REQUESTED') return null;
+  return canSeeAccount && r.refundAccount === null ? 'NO_ACCOUNT' : 'REQUESTED';
+}
+
+/** [환불 완료]를 막는 안내 — 계좌가 없으면 누를 수 없다(GUI `1029:8117` "계좌 입력 전", Q96 답) */
+export const REFUND_NO_ACCOUNT_MESSAGE = ORDER_ACTION_BLOCK_MESSAGE.noAccount;
+
+/**
+ * 거절 사유 "입금 미확인" 안내(GUI `1029:7114`). 서버는 사유와 관계없이 결제 금액이 있으면 환불 요청을 만든다(PR-4 `refuseByHost(
+ * refundRequested = isPaid)`) — 안내가 사실이 될 때(backend-questions B35)까지 보이지 않는다
+ */
+export const REFUSE_DEPOSIT_UNCONFIRMED_NOTE =
+  '입금 미확인으로 거절하면 환불 요청이 생기지 않아요.';
+export const REFUSE_DEPOSIT_UNCONFIRMED_SKIPS_REFUND = false;
 export const CANCEL_REASON_ERROR = `취소 사유는 ${HOST_CANCEL_REASON_MAX}자까지 적을 수 있어요`;
 
 /** PR-5 본문 — 사유는 선택(trim 후 비면 본문 없이) */

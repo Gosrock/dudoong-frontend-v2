@@ -15,8 +15,9 @@ import { envelope, expect, scenario } from '../scenario';
  * P13a-V 등록 후 대시보드 · 예매자 관리(plan P13a 완료 기준 V).
  * - 대시보드 등록 후 — **GUI** Ready `669:2787`(모바일) · `680:672`(1133) · `669:2972`(1280) · `712:1646`(1440) · `669:2350`(1920) ·
  *   `745:32726`(1440 판매 0). PC 캡처는 Figma 프레임 폭으로 찍는다(HG-3).
- * - 예매자 관리 — **와이어** `424:11710`(주문) · `424:12014`(발급된 티켓) · `503:27255`(주문 상세) · `503:27502`(티켓 상세) ·
- *   `108:4850`·`108:5023`(거절 사유). 환불 탭 · 승인 후 취소 · 환불 계좌는 디자인 없음(DS로만).
+ * - 예매자 관리 — **GUI** Ready(2026-11-01, #110~#125): 주문 `980:24267`(1440) · `980:24474`(모바일) · 상태 `1029:4569`·`1029:4849`·
+ *   `1029:5135` · 여러 개 선택 `1029:5422`·`989:693` · 주문 상세 `1029:6719`·`1029:7309`·`1029:7706`·`1029:6920`·`1029:7509`·`1029:7907`·
+ *   `1029:8117`·`1029:8733` · 발급된 티켓 `1030:8054`·`1030:8955` · 환불 `1031:9189`·`1031:9567`·`1031:9948`. PC 캡처는 1440.
  *
  * 범주 검토
  * - 크롤러: 해당 없음 — 호스팅 센터(로그인 게이트 안, 서버 조회 없음)
@@ -155,10 +156,10 @@ scenario(
   {
     kind: '정상',
     summary:
-      '와이어 표(주문 번호 · 주문자 · 티켓 수 · 금액 · 일시 · 상태 · 환불 여부 · 상세보기). 매니저는 환불 계좌 은행 · 번호 · 예금주 · 계좌 수정일을 본다.',
+      'GUI 표(PC 주문 번호 · 주문자 · 티켓 수 · 결제 금액 · 주문 일시 · 상태 ›, 모바일 주문자 · 티켓 수 · 상태 ›). 승인 대기 행은 체크박스 + [거절][승인]. 매니저는 환불 정보(은행 · 계좌번호 · 예금주 · 수정일)를 본다.',
     basis: [
       'plan P13a 완료 기준 V(환불 계좌 updatedAt)',
-      '와이어 424:11710 · 503:27255',
+      'GUI 980:24267 · 980:24474 · 1029:8522',
       'patterns §6 ?order=',
     ],
   },
@@ -202,12 +203,8 @@ scenario(
   {
     kind: '정상',
     summary:
-      '[거절] → 사유 4종 라디오(와이어 108:4850), 기타는 100자 입력(#921), 두둥 주문이면 legal-copy C-3 줄. [거절하기] → 승인 거절.',
-    basis: [
-      'plan P13a L(거절 PR-4 사유 4종)',
-      '와이어 108:4850 · 108:5023',
-      'legal-copy C-2 · C-3',
-    ],
+      '[거절] → ‹ 거절 사유를 선택해 주세요. — 사유 4종 라디오(GUI 1029:6920), 기타는 100자 입력(#921), 두둥 주문이면 legal-copy C-3 노란 안내. [거절] → 승인 거절.',
+    basis: ['plan P13a L(거절 PR-4 사유 4종)', 'GUI 1029:6920 · 1029:7114', 'legal-copy C-3'],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -216,12 +213,12 @@ scenario(
       await detail(page).getByRole('button', { name: '거절', exact: true }).click();
       await expect(detail(page).getByRole('radiogroup', { name: '거절 사유' })).toBeVisible();
       await expect(detail(page).getByTestId('refuse-dudoong-notice')).toBeVisible();
-      await expect(detail(page).getByRole('button', { name: '거절하기' })).toBeDisabled();
+      await expect(detail(page).getByRole('button', { name: '거절', exact: true })).toBeDisabled();
     });
-    await step('기타 - 직접 입력에 문구를 쓰고 [거절하기]를 누르면 승인 거절이 된다', async () => {
+    await step('기타 - 직접 입력에 문구를 쓰고 [거절]을 누르면 승인 거절이 된다', async () => {
       await detail(page).getByRole('radio', { name: '기타 - 직접 입력' }).click();
       await detail(page).getByLabel('기타 사유').fill('중복 주문');
-      await detail(page).getByRole('button', { name: '거절하기' }).click();
+      await detail(page).getByRole('button', { name: '거절', exact: true }).click();
       await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 거절');
       await expect(detail(page)).toContainText('중복 주문');
     });
@@ -234,8 +231,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      '승인 대기 주문 [승인] → 발급 티켓이 보인다. 승인 완료 주문 [주문 취소] → 사유 입력 → 주문 취소, 유료면 환불 탭에 환불 요청.',
-    basis: ['plan P13a 완료 기준 L(승인 후 취소 → 환불 탭 REQUESTED)', 'legal-copy C-4'],
+      '승인 대기 주문 [승인] → 발급 티켓이 보인다. 승인 완료 주문 [주문 취소] → ‹ 주문 취소 사유(라디오 4개, GUI 1029:7509) → 주문 취소, 유료면 환불 탭에 환불 요청.',
+    basis: [
+      'plan P13a 완료 기준 L(승인 후 취소 → 환불 탭 REQUESTED)',
+      'GUI 1029:7309 · 1029:7509 · 1029:8522',
+      'legal-copy C-4',
+    ],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -245,13 +246,14 @@ scenario(
       await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 완료');
       await expect(detail(page).getByRole('region', { name: '발급 티켓' })).toBeVisible();
     });
-    await step('[주문 취소]를 누르면 사유 칸과 직접 환불 안내가 보인다', async () => {
+    await step('[주문 취소]를 누르면 사유 라디오와 직접 환불 안내가 보인다', async () => {
       await detail(page).getByRole('button', { name: '주문 취소' }).click();
-      await expect(detail(page).getByLabel('취소 사유(선택)')).toBeVisible();
+      await expect(detail(page).getByRole('radiogroup', { name: '취소 사유' })).toBeVisible();
       await expect(detail(page).getByTestId('cancel-dudoong-notice')).toBeVisible();
+      await expect(detail(page).getByRole('button', { name: '주문 취소' })).toBeDisabled();
     });
-    await step('사유를 쓰고 [주문 취소]를 누르면 주문 취소 · 환불 요청이 된다', async () => {
-      await detail(page).getByLabel('취소 사유(선택)').fill('공연 일정 변경');
+    await step('사유를 고르고 [주문 취소]를 누르면 주문 취소 · 환불 요청이 된다', async () => {
+      await detail(page).getByRole('radio', { name: '공연 일정 변경' }).click();
       await detail(page).getByRole('button', { name: '주문 취소' }).click();
       await expect(detail(page).getByTestId('detail-status')).toHaveText('주문 취소');
       await expect(detail(page).getByTestId('detail-refund-status')).toHaveText('환불 요청');
@@ -266,12 +268,15 @@ scenario(
 
 scenario(
   'HG-7',
-  '발급된 티켓 탭 — 소유자(ownerName) · 선물 상태(giftState) · 체크인, 티켓 상세',
+  '발급된 티켓 탭 — 입장 칩 · 행 [입장 처리], 티켓 상세(티켓 정보 · 옵션 응답 · [입장 처리])',
   {
     kind: '정상',
     summary:
-      '와이어 표(티켓 번호 · 종류 칩 · 이름 · 주문자 · 주문 번호 · 발급 일시 · 체크인) + 소유자 칸(선물 받은 티켓은 받은 사람 + "선물 받음"). 행 → 티켓 상세(연락처 · 옵션 응답).',
-    basis: ['plan P13a 완료 기준 V(ownerName · giftState)', '와이어 424:12014 · 503:27502'],
+      'GUI 표(PC 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인 ›, 모바일 주문자 · 티켓 · 체크인 ›). 입장 전은 [입장 처리](확인 → "입장 처리했어요."), 입장 완료는 초록 칩. 행 → 티켓 상세.',
+    basis: [
+      'GUI 1030:8054 · 1030:8448 · 1030:8955 · 1030:9136',
+      '#106 §5 수동 입장(B37 입장 취소 API 없음)',
+    ],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -279,64 +284,95 @@ scenario(
       await page.goto(`${GUESTS}?tab=tickets`);
       await expect(page.getByTestId('ticket-row')).toHaveCount(3);
       await expect(page.getByTestId('entrance-ALL')).toHaveText('전체 3');
-    });
-    await step('선물 받은 티켓은 소유자가 받은 사람이고 "선물 받음"이 붙는다', async () => {
-      const gifted = page
-        .getByTestId('ticket-row')
-        .filter({ has: page.getByTestId('ticket-gift') });
-      await expect(gifted.getByTestId('ticket-gift')).toHaveText('선물 받음');
-      await expect(gifted.getByTestId('ticket-owner')).not.toHaveText('박지훈');
-    });
-    await step('티켓 행을 누르면 티켓 상세가 열린다', async () => {
-      await page.getByTestId('ticket-row').first().click();
-      await expect(page.getByTestId('ticket-detail')).toBeVisible();
-      await expect(page.getByRole('dialog')).toContainText('티켓 번호 -');
+      await expect(page.getByTestId('ticket-entrance')).toHaveText('입장 완료');
     });
     await step(
-      '입장 전 티켓은 [수동 입장 처리] → 확인하면 입장 완료(QR이 안 읽힐 때 — #106 §5)',
+      '입장 전 행의 [입장 처리] → 확인하면 "입장 처리했어요."와 입장 완료 칩',
       async () => {
-        const detail = page.getByRole('dialog');
-        await expect(detail).toContainText('입장 전');
-        await detail.getByRole('button', { name: '수동 입장 처리' }).click();
+        const row = page.getByTestId('ticket-row').filter({ hasText: 'T2000002' });
+        await row.getByRole('button', { name: '입장 처리' }).click();
         const confirm = page.getByRole('alertdialog', { name: /입장 처리할까요/ });
         await expect(confirm).toContainText('되돌릴 수 없어요');
         await confirm.getByRole('button', { name: '입장 처리' }).click();
-        await expect(detail).not.toContainText('입장 전');
-        await expect(detail.getByRole('button', { name: '수동 입장 처리' })).toHaveCount(0);
+        await expect(page.getByText('입장 처리했어요.')).toBeVisible();
+        await expect(row.getByTestId('ticket-entrance')).toHaveText('입장 완료');
         await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 2');
       },
     );
+    await step(
+      '입장 전 티켓 행을 누르면 티켓 상세(티켓 정보 · 옵션 응답 · [입장 처리])',
+      async () => {
+        await page.getByTestId('ticket-row').filter({ hasText: 'T2000003' }).click();
+        const detail = page.getByRole('dialog');
+        await expect(page.getByTestId('ticket-detail')).toBeVisible();
+        await expect(detail).toContainText('T2000003');
+        await expect(detail.getByTestId('ticket-detail-entrance')).toHaveText('입장 전');
+        await expect(detail.getByRole('region', { name: '티켓 정보' })).toBeVisible();
+        await expect(detail.getByRole('button', { name: '입장 처리' })).toBeVisible();
+      },
+    );
+    await step('상세의 [입장 처리] → 확인하면 입장 완료로 바뀌고 버튼이 사라진다', async () => {
+      const detail = page.getByRole('dialog');
+      await detail.getByRole('button', { name: '입장 처리' }).click();
+      await page
+        .getByRole('alertdialog', { name: /입장 처리할까요/ })
+        .getByRole('button', { name: '입장 처리' })
+        .click();
+      await expect(detail.getByTestId('ticket-detail-entrance')).toHaveText('입장 완료');
+      await expect(detail.getByRole('button', { name: '입장 처리' })).toHaveCount(0);
+      await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 3');
+    });
   },
 );
 
 scenario(
   'HG-8',
-  '환불 탭 — 환불 계좌 · 계좌 수정일, [환불 완료]',
+  '환불 탭 — 노란 안내 · 상태 칩(환불 요청 · 계좌 입력 전 · 환불 완료) → 상세에서 [환불 완료]',
   {
     kind: '정상',
     summary:
-      '디자인 없음(Q32 — 별도 탭). 매니저는 계좌와 수정일(updatedAt)을 보고, 환불 요청 행의 [환불 완료]로 완료한다.',
-    basis: ['plan P13a L(환불 탭 GF-1 · PF-2)', 'plan P13a 완료 기준 V(환불 계좌 updatedAt)'],
+      'GUI 1031:9189 — 안내 "예매자 계좌로 직접 보낸 뒤 [환불 완료]를 눌러주세요", 행을 누르면 주문 상세(환불 정보 · 계좌 없으면 버튼 비활성), [환불 완료] → 확인 → "환불 완료로 표시했어요.". 검색 · 칩 숫자 · 엑셀은 API가 없어 없다(B36).',
+    basis: [
+      'GUI 1031:9189 · 1031:9567 · 1029:8117 · 1029:8733',
+      'plan P13a L(환불 탭 GF-1 · PF-2)',
+    ],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
-    await step('환불 탭에 환불 4건과 계좌 수정일이 보인다', async () => {
+    await step('환불 탭에 안내와 환불 4건, 상태 칩이 보인다', async () => {
       await page.goto(`${GUESTS}?tab=refunds`);
+      await expect(
+        page.getByText('예매자 계좌로 직접 보낸 뒤 [환불 완료]를 눌러주세요'),
+      ).toBeVisible();
       await expect(page.getByTestId('refund-row')).toHaveCount(4);
-      await expect(page.getByTestId('refund-account-updated').first()).toContainText('구매자 입력');
+      await expect(
+        page.getByTestId('refund-row').filter({ hasText: '한도윤' }).getByTestId('refund-status'),
+      ).toHaveText('계좌 입력 전');
+    });
+    await step('계좌 입력 전 주문 상세는 안내 문구와 비활성 [환불 완료]', async () => {
+      await page.getByTestId('refund-row').filter({ hasText: '한도윤' }).click();
+      await expect(detail(page).getByTestId('refund-no-account')).toHaveText(
+        '예매자가 아직 환불 계좌를 입력하지 않았어요.',
+      );
+      await expect(detail(page).getByRole('button', { name: '환불 완료' })).toBeDisabled();
+      await page.goBack();
+      await expect(detail(page)).toHaveCount(0);
     });
     await step(
-      '[환불 완료]를 누르면 확인 팝업이 뜨고, 확인하면 그 행이 환불 완료가 된다',
+      '환불 요청 주문 상세의 [환불 완료] → 확인하면 환불 완료 · 환불 완료일, 행도 환불 완료',
       async () => {
-        const row = page.getByTestId('refund-row').filter({ hasText: '윤나리' });
-        await row.getByRole('button', { name: '환불 완료' }).click();
-        // 되돌릴 수 없는 처리 — 확인 팝업(#106 §5)
+        await page.getByTestId('refund-row').filter({ hasText: '윤나리' }).click();
+        await detail(page).getByRole('button', { name: '환불 완료' }).click();
         const dialog = page.getByRole('alertdialog', { name: /환불 완료로 바꿀까요/ });
         await expect(dialog).toContainText('되돌릴 수 없어요');
         await dialog.getByRole('button', { name: '환불 완료' }).click();
-        await expect(page.getByText('환불 완료로 바꿨어요')).toBeVisible();
-        await expect(row.getByTestId('refund-status')).toHaveText('환불 완료');
-        await expect(row.getByRole('button', { name: '환불 완료' })).toHaveCount(0);
+        await expect(page.getByText('환불 완료로 표시했어요.')).toBeVisible();
+        await expect(detail(page).getByTestId('detail-refund-status')).toHaveText('환불 완료');
+        await expect(detail(page).getByTestId('refund-completed-at')).not.toHaveText('—');
+        await page.goBack();
+        await expect(
+          page.getByTestId('refund-row').filter({ hasText: '윤나리' }).getByTestId('refund-status'),
+        ).toHaveText('환불 완료');
       },
     );
   },
@@ -354,26 +390,22 @@ scenario(
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
     actAsRole(11, 'GUEST');
-    await step('일반 멤버로 열면 엑셀 버튼이 없고 연락처가 가려져 있다', async () => {
+    await step('일반 멤버로 열면 엑셀 버튼 · 체크박스 · 행 [승인]이 없다', async () => {
       await page.goto(GUESTS);
       await expect(page.getByTestId('order-row')).toHaveCount(9);
       await expect(page.getByRole('button', { name: '주문 엑셀로 다운로드' })).toHaveCount(0);
-      await expect(
-        page
-          .getByTestId('order-row')
-          .filter({ hasText: '이서연' })
-          .first()
-          .getByTestId('order-phone'),
-      ).toHaveText('010-****-7890');
+      await expect(page.getByRole('checkbox', { name: /주문 선택/ })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '승인', exact: true })).toHaveCount(0);
     });
     await step('검색 기준을 연락처로 바꾸면 완전 일치 안내가 보인다', async () => {
       await page.getByRole('combobox', { name: '검색 기준' }).click();
       await page.getByRole('option', { name: '연락처' }).click();
       await expect(page.getByTestId('exact-hint')).toBeVisible();
     });
-    await step('승인 대기 주문 상세에 처리 버튼이 없다', async () => {
+    await step('승인 대기 주문 상세에 가린 연락처 · 처리 버튼 없음', async () => {
       await page.goto(`${GUESTS}?order=${GUEST_ORDER.pendingTransfer}`);
       await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 대기');
+      await expect(detail(page).getByTestId('detail-phone')).toHaveText('010-****-6789');
       await expect(detail(page).getByRole('button', { name: '승인' })).toHaveCount(0);
     });
   },
@@ -384,8 +416,9 @@ scenario(
   '매니저 — [엑셀로 다운로드]가 지금 필터의 xlsx를 내려받는다',
   {
     kind: '권한',
-    summary: '와이어 "엑셀로 다운로드"(검정). 래퍼 없는 xlsx, 파일 이름 orders-101.xlsx.',
-    basis: ['plan P13a 완료 기준 L(엑셀)', '와이어 424:11710'],
+    summary:
+      'GUI "엑셀로 다운로드"(DS Button Secondary small, 페이지 줄 오른쪽). 래퍼 없는 xlsx, 파일 이름 orders-101.xlsx.',
+    basis: ['plan P13a 완료 기준 L(엑셀)', 'GUI 980:24267'],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -405,8 +438,8 @@ scenario(
   {
     kind: '에러',
     summary:
-      '검색 결과가 없으면 표 안에 "검색 결과가 없어요". 목록 실패는 [다시 시도], 없는 ?order=는 닫고 안내(공용 404 아님).',
-    basis: ['patterns §24 P13a(Order_404_1)', 'plan P13a L'],
+      '검색 결과가 없으면 표 안에 "검색 결과가 없어요"(GUI 1029:4849), 목록 실패는 표 안 "주문을 불러오지 못했어요." + [다시 시도](1029:5135) — 엑셀 비활성. 없는 ?order=는 닫고 안내(공용 404 아님).',
+    basis: ['patterns §24 P13a(Order_404_1)', 'plan P13a L', 'GUI 1029:4849 · 1029:5135'],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -415,6 +448,7 @@ scenario(
       await page.getByRole('searchbox', { name: '주문 검색어' }).fill('없는사람');
       await page.getByRole('searchbox', { name: '주문 검색어' }).press('Enter');
       await expect(page.getByTestId('list-empty')).toHaveText('검색 결과가 없어요');
+      await expect(page.getByRole('button', { name: '주문 엑셀로 다운로드' })).toBeDisabled();
     });
     await step('없는 주문 주소로 들어오면 상세가 닫히고 안내가 보인다', async () => {
       await page.goto(`${GUESTS}?order=no-such-order`);
@@ -428,6 +462,91 @@ scenario(
       await page.goto(`${GUESTS}?tab=orders`);
       await expect(page.getByText('주문을 불러오지 못했어요.')).toBeVisible({ timeout: 15_000 });
       await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible();
+    });
+  },
+);
+
+scenario(
+  'HG-14',
+  '여러 개 선택 — 승인 대기 주문을 골라 한 번에 승인',
+  {
+    kind: '정상',
+    summary:
+      '승인 대기 행만 체크박스(머리 칸 = 모두 선택). 고르면 선택 바 "n개 선택 됨" [거절][승인](PC 가운데 떠 있음 · 모바일 하단). 일괄 API가 없어 차례로 부른다(B34) → "n건을 승인했어요.". 행 [거절] → 사유 고르기 → 거절.',
+    basis: [
+      'GUI 1029:5422 · 1029:5720 · 989:693 · 989:916',
+      '#113 · #120',
+      'backend-questions B34',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('승인 대기 2건만 체크박스가 있고, 모두 선택하면 선택 바가 보인다', async () => {
+      await page.goto(GUESTS);
+      await expect(page.getByRole('checkbox', { name: /주문 선택/ })).toHaveCount(2);
+      await page.getByRole('checkbox', { name: '승인 대기 주문 모두 선택' }).click();
+      await expect(page.getByTestId('selection-bar')).toContainText('2개 선택 됨');
+    });
+    await step('선택 바 [승인] → "2건을 승인했어요."와 승인 대기 칩 숫자가 사라진다', async () => {
+      await page.getByTestId('selection-bar').getByRole('button', { name: '승인' }).click();
+      await expect(page.getByText('2건을 승인했어요.')).toBeVisible();
+      await expect(page.getByTestId('status-PENDING_APPROVE')).toHaveText('승인 대기');
+      await expect(page.getByTestId('status-APPROVED')).toHaveText('승인 완료 4');
+      await expect(page.getByTestId('selection-bar')).toHaveCount(0);
+    });
+  },
+);
+
+scenario(
+  'HG-15',
+  '행 [거절] — 사유를 골라 표에서 바로 거절',
+  {
+    kind: '정상',
+    summary:
+      '승인 대기 행의 [거절] → "거절 사유를 선택해 주세요." 오버레이(상세와 같은 라디오) → [거절] → "1건을 거절했어요.", 행이 승인 거절 칩.',
+    basis: ['GUI 980:24267(행 [거절][승인]) · 1029:6920', '#113'],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('행 [거절]을 누르면 거절 사유 오버레이가 열린다', async () => {
+      await page.goto(GUESTS);
+      const row = page.getByTestId('order-row').filter({ hasText: 'R2001001' });
+      await row.getByRole('button', { name: '거절' }).click();
+      await expect(page.getByTestId('refuse-overlay')).toBeVisible();
+    });
+    await step('입금 미확인을 고르고 [거절]하면 그 행이 승인 거절이 된다', async () => {
+      const overlay = page.getByRole('dialog').filter({ has: page.getByTestId('refuse-overlay') });
+      await overlay.getByRole('radio', { name: '입금 미확인' }).click();
+      await overlay.getByRole('button', { name: '거절', exact: true }).click();
+      await expect(page.getByText('1건을 거절했어요.')).toBeVisible();
+      await expect(
+        page.getByTestId('order-row').filter({ hasText: 'R2001001' }).getByTestId('order-status'),
+      ).toHaveText('승인 거절');
+    });
+  },
+);
+
+scenario(
+  'HG-16',
+  '취소 불가 — 입장한 티켓이 있는 승인 완료 주문은 [주문 취소] 비활성 + 안내',
+  {
+    kind: '정상',
+    summary:
+      '발급 티켓 카드(입장 완료 칩) 아래 "입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요." + 비활성 [주문 취소]. 서버는 막지 않는다 — 화면 규칙(입장만 판정, 선물은 B35).',
+    basis: ['GUI 1029:7706 · 1000:1793', '#112', 'backend-questions B35'],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('입장 티켓이 있는 승인 완료 주문 상세를 열면 취소가 막혀 있다', async () => {
+      await page.goto(`${GUESTS}?order=${GUEST_ORDER.approved}`);
+      await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 완료');
+      await expect(detail(page).getByRole('region', { name: '발급 티켓' })).toContainText(
+        '입장 완료',
+      );
+      await expect(detail(page).getByTestId('blocked')).toHaveText(
+        '입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요.',
+      );
+      await expect(detail(page).getByRole('button', { name: '주문 취소' })).toBeDisabled();
     });
   },
 );

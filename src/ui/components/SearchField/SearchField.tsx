@@ -25,8 +25,12 @@ function clearNativeInput(el: HTMLInputElement) {
   el.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
+/** Figma Search Field(`73:19`) 기본 placeholder — 2026-11-01 띄어쓰기 수정(#109) */
+export const SEARCH_FIELD_PLACEHOLDER = '검색어를 입력해 주세요';
+
 /**
  * Figma Search Field(`73:19`). `type="search"`, 오른쪽 검색 아이콘, 값이 있으면 지우기 버튼.
+ * placeholder를 주지 않으면 Figma 기본 문구(`SEARCH_FIELD_PLACEHOLDER`).
  * 제어형(value/onChange)·비제어(register) 모두 된다. 접근성 이름은 `aria-label`로 준다.
  */
 export function SearchField({
@@ -38,6 +42,7 @@ export function SearchField({
   onChange,
   onClear,
   clearLabel = '검색어 지우기',
+  placeholder = SEARCH_FIELD_PLACEHOLDER,
   ...rest
 }: SearchFieldProps) {
   const innerRef = useRef<HTMLInputElement>(null);
@@ -56,6 +61,7 @@ export function SearchField({
         disabled={disabled}
         value={value}
         defaultValue={defaultValue}
+        placeholder={placeholder}
         onChange={(e) => {
           setCurrent(e.currentTarget.value);
           onChange?.(e);

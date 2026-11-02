@@ -35,6 +35,14 @@ import { useOrderList } from './useOrderList';
 import { useRefundList } from './useRefundList';
 
 let restore: () => void;
+/** 입장한 티켓이 있으면 승인 후 취소가 막힌다(GUI `1029:7706`, L 변경 p13a-gui-guests) — 취소 흐름 테스트는 입장 전으로 바꿔 둔다 */
+function notEntered(orderUuid: string) {
+  const o = storedGuestOrder(orderUuid)!;
+  patchGuestOrder(orderUuid, {
+    issuedTickets: o.issuedTickets.map((t) => ({ ...t, entrance: 'BEFORE', enteredAt: null })),
+  });
+}
+
 beforeEach(() => {
   resetHostMockState();
   resetHostingStore();
@@ -233,6 +241,7 @@ describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () =>
   });
 
   it('시작 후 거절·취소에 Order_400_9가 오면 GR-2 다시 읽기(경합)', async () => {
+    notEntered(GUEST_ORDER.approved);
     const { result } = setup(GUEST_ORDER.approved);
     await loaded(result);
     startEvent();
@@ -247,6 +256,7 @@ describe('거절(PR-4) · 승인 후 취소(PR-5) · 환불 완료(PF-2)', () =>
   });
 
   it('승인 후 취소(사유 선택) → 발급 티켓 취소, 유료면 환불 탭에 REQUESTED로 나타난다', async () => {
+    notEntered(GUEST_ORDER.approved);
     const { result } = setup(GUEST_ORDER.approved);
     await loaded(result);
     await waitFor(() => expect(result.current.refunds.status).toBe('success'));

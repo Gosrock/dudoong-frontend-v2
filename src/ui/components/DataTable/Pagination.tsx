@@ -47,7 +47,7 @@ export function Pagination({
               <button
                 type="button"
                 className={s.pageButton}
-                aria-label={`${item + 1}페이지`}
+                aria-label={`${item + 1} 페이지`}
                 aria-current={item === pageIndex ? 'page' : undefined}
                 onClick={() => go(item)}
               >

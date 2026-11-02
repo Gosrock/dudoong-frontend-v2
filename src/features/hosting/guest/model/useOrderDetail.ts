@@ -24,7 +24,10 @@ import {
   CANCEL_CONFIRM,
   CANCEL_REASON_ERROR,
   CANCEL_REASON_MAX,
+  type CancelReasonKey,
+  cancelReasonTextOf,
   DETAIL_MISSING_MESSAGE,
+  hasCancelBlockingTicket,
   isDudoongOrder,
   ORDER_ACTION_BLOCK_MESSAGE,
   type OrderActionKey,
@@ -73,6 +76,7 @@ export function useOrderDetail(
   const [refuseAttempted, setRefuseAttempted] = useState(false);
   const [refuseServerError, setRefuseServerError] = useState<string | null>(null);
   const [cancelReason, setCancelReasonState] = useState('');
+  const [cancelReasonType, setCancelReasonType] = useState<CancelReasonKey | null>(null);
 
   // 다른 주문을 열면 폼·안내를 비운다(렌더 중 이전 값 비교 — 이펙트를 쓰지 않는다)
   const [seenUuid, setSeenUuid] = useState(orderUuid);
@@ -83,6 +87,7 @@ export function useOrderDetail(
     setRefuseAttempted(false);
     setRefuseServerError(null);
     setCancelReasonState('');
+    setCancelReasonType(null);
   }
 
   const missing = useCallback(() => {
@@ -172,10 +177,23 @@ export function useOrderDetail(
     },
   });
 
-  const actions = useMemo(
-    () => (detail ? orderActionsOf(detail.order, { ...scope.event, myRole: scope.role }) : []),
-    [detail, scope.event, scope.role],
-  );
+  const canSeeRefundAccount = can(scope.role, 'viewRefundAccount');
+  /**
+   * 처리 버튼. GUI(2026-11-01)가 더한 화면 규칙 둘(L 변경 p13a-gui-guests): 입장한 티켓이 있으면 승인 후 취소 비활성(`ticketUsed` —
+   * 서버는 막지 않는다, B35), 매니저가 보는 환불 계좌가 없으면 [환불 완료] 비활성(`noAccount` — Q96 답)
+   */
+  const actions = useMemo(() => {
+    if (!detail) return [];
+    return orderActionsOf(detail.order, { ...scope.event, myRole: scope.role }).map((a) => {
+      if (a.key === 'cancel' && a.enabled && hasCancelBlockingTicket(detail.issuedTickets)) {
+        return { ...a, enabled: false, blockedBy: 'ticketUsed' as const };
+      }
+      if (a.key === 'completeRefund' && canSeeRefundAccount && detail.refundAccount === null) {
+        return { ...a, enabled: false, blockedBy: 'noAccount' as const };
+      }
+      return a;
+    });
+  }, [detail, scope.event, scope.role, canSeeRefundAccount]);
 
   const run = useCallback(
     async (
@@ -198,7 +216,8 @@ export function useOrderDetail(
   );
 
   const refuseErrors = refuseAttempted ? validateRefuse(refuse) : {};
-  const cancelError = cancelReason.trim().length > CANCEL_REASON_MAX ? CANCEL_REASON_ERROR : null;
+  const cancelText = cancelReasonTextOf(cancelReasonType, cancelReason);
+  const cancelError = cancelText.trim().length > CANCEL_REASON_MAX ? CANCEL_REASON_ERROR : null;
   const dudoong = detail ? isDudoongOrder(detail.order) : false;
   const blocked = actions.find((a) => a.blockedBy !== null)?.blockedBy ?? null;
 
@@ -214,7 +233,7 @@ export function useOrderDetail(
     /** 버튼이 막힌 이유 문구(공연 시작 후 등) */
     blockedMessage: blocked ? ORDER_ACTION_BLOCK_MESSAGE[blocked] : null,
     /** 환불 계좌 전체 보기(매니저 이상 — 일반 멤버에게는 서버가 null을 준다) */
-    canSeeRefundAccount: can(scope.role, 'viewRefundAccount'),
+    canSeeRefundAccount,
     pending,
     actionError,
     dismissActionError: () => setActionError(null),
@@ -261,6 +280,9 @@ export function useOrderDetail(
 
     cancelReason,
     setCancelReason: (v: string) => setCancelReasonState(v),
+    /** 고른 취소 사유(GUI 라디오). 기타면 `cancelReason` 문구를 보낸다 */
+    cancelReasonType,
+    setCancelReasonType,
     cancelReasonMax: CANCEL_REASON_MAX,
     cancelReasonError: cancelError,
     /** 취소 확인 문구(두둥이면 C-4 줄) */
@@ -270,7 +292,7 @@ export function useOrderDetail(
     },
     cancel: async () => {
       if (cancelError) return false;
-      const body = toCancelBody(cancelReason);
+      const body = toCancelBody(cancelText);
       return run(
         'cancel',
         (uuid) => tryCatch(cancelM.mutateAsync({ orderUuid: uuid, body })),

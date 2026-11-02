@@ -1,9 +1,14 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 
+import { media } from '../../theme/breakpoints';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
-/** Figma에 표가 없다(design-system §3 "여전히 없는 것") — list·Filter Chip과 같은 선·글자 토큰으로 맞췄다 */
+/**
+ * Figma에 DS 표 컴포넌트가 없다(design-system §3 "여전히 없는 것"). 모양은 GUI 예매자 관리 표(`1026:4526` "주문 표" — 직접 그린 상자,
+ * 2026-11-01 Ready)를 따른다: 테두리 `surface/default-border` · 모서리 8, 머리글 44h `surface/container` 배경 · `Label/sm`
+ * `text/secondary-label`, 행 56h · `Body/md`, 칸 사이 16 · 양 끝 16
+ */
 export const scroller = style({
   width: '100%',
   overflowX: 'auto',
@@ -26,27 +31,59 @@ export const caption = style({
   whiteSpace: 'nowrap',
 });
 
+// 모바일(`984:360` "주문 표 머리글_모바일"): 칸 사이 8 · 왼쪽 12 · 오른쪽 8, 머리글 40h. PC(`1026:4527`): 칸 사이 16 · 양 끝 16, 머리글 44h.
+// 양 끝 칸은 폭마다 다를 수 있어(`display`로 숨는 칸) DataTable이 `edge`로 표시한다
+const cellPadding = {
+  padding: `0 ${vars.space[1]}`,
+  '@media': { [media.desktop]: { padding: `0 ${vars.space[2]}` } },
+} as const;
+
 export const th = style([
-  typography.labelMdEmphasized,
+  typography.labelSm,
+  cellPadding,
   {
-    padding: `${vars.space[3]} ${vars.space[4]}`,
+    height: 40,
     background: vars.color.surface.container,
     borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
     color: vars.color.text.secondaryLabel,
     whiteSpace: 'nowrap',
+    '@media': { [media.desktop]: { height: 44 } },
   },
 ]);
 
 export const td = style([
   typography.bodyMd,
+  cellPadding,
   {
-    padding: `${vars.space[3]} ${vars.space[4]}`,
+    height: 56,
     borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
     color: vars.color.text.primaryLabel,
     verticalAlign: 'middle',
     selectors: { 'tr:last-child > &': { borderBottom: 'none' } },
   },
 ]);
+
+/** 칸을 폭 하나에서만 보인다(서버·클라이언트 같은 DOM — 무엇이 보일지는 CSS, patterns §1) */
+export const display = styleVariants({
+  all: {},
+  desktop: { display: 'none', '@media': { [media.desktop]: { display: 'table-cell' } } },
+  mobile: { '@media': { [media.desktop]: { display: 'none' } } },
+});
+
+/** 그 폭에서 보이는 첫 칸 · 끝 칸 */
+export const edge = styleVariants({
+  startMobile: {
+    '@media': { 'screen and (max-width: 1023.98px)': { paddingLeft: vars.space[3] } },
+  },
+  endMobile: { '@media': { 'screen and (max-width: 1023.98px)': { paddingRight: vars.space[2] } } },
+  startDesktop: { '@media': { [media.desktop]: { paddingLeft: vars.space[4] } } },
+  endDesktop: { '@media': { [media.desktop]: { paddingRight: vars.space[4] } } },
+});
+
+/** `width`는 PC에서만(모바일 표는 좁아 칸이 내용 폭) — 값은 `--dt-col-width` */
+export const desktopWidth = style({
+  '@media': { [media.desktop]: { width: 'var(--dt-col-width)' } },
+});
 
 export const align = styleVariants({
   left: { textAlign: 'left' },
@@ -56,6 +93,7 @@ export const align = styleVariants({
 
 export const row = style({
   selectors: {
+    '&[data-selected="true"]': { background: vars.color.surface.container },
     '&[data-clickable="true"]': { cursor: 'pointer' },
     '&[data-clickable="true"]:hover': { background: vars.color.surface.container },
     '&[data-clickable="true"]:focus-visible': {
@@ -65,15 +103,34 @@ export const row = style({
   },
 });
 
-/** 빈 상태·로딩 슬롯 칸 */
-export const slotCell = style({ padding: vars.space[6], textAlign: 'center' });
+/** 빈 상태·로딩·실패 슬롯 칸 — GUI 빈 표 320h(`1029:4849` 결과 없음 · `1029:5135` 불러오기 실패) */
+export const slotCell = style({ height: 320, padding: vars.space[6], textAlign: 'center' });
+
+/** 표 아래 줄 — 페이지 번호는 가운데, `footerEnd`(엑셀 등)는 오른쪽 끝(GUI `< 1 >` · [엑셀로 다운로드]) */
+export const footer = style({
+  position: 'relative',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 32,
+  marginTop: vars.space[4],
+});
+
+export const footerPages = style({ display: 'flex', justifyContent: 'center' });
+
+export const footerEnd = style({
+  position: 'absolute',
+  right: 0,
+  top: '50%',
+  transform: 'translateY(-50%)',
+});
 
 export const pagination = style({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
   gap: vars.space[1],
-  marginTop: vars.space[4],
+  margin: 0,
   padding: 0,
   listStyle: 'none',
 });
@@ -97,10 +154,8 @@ export const pageButton = style([
       '&:hover:not(:disabled)': { background: vars.color.surface.container },
       '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 0 },
       '&:disabled': { cursor: 'not-allowed', color: vars.color.interaction.disabledText },
-      '&[aria-current="page"]': {
-        background: vars.color.text.primary,
-        color: vars.color.text.inverse,
-      },
+      // GUI 예매자 관리 페이지 줄(`< 1 >`) — 지금 페이지는 배경 없이 진한 글자
+      '&[aria-current="page"]': { color: vars.color.text.primaryLabel },
     },
   },
 ]);
