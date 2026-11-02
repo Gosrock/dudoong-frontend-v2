@@ -276,3 +276,8 @@ export const filterBar = style({
 });
 
 export const filterDropdown = style({ width: 160 });
+
+/** 주문상세 결제정보 아래 [토스 앱에서 송금하기](B23) — 행 좌우 여백에 맞춘다 */
+export const tossTransfer = style({
+  padding: `${vars.space[2]} ${vars.space[5]} ${vars.space[3]}`,
+});

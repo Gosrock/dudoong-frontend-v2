@@ -1,4 +1,4 @@
-import { http, type HttpHandler } from 'msw';
+import { http, type HttpHandler, HttpResponse } from 'msw';
 
 import {
   MY_ORDER_STATUS_FILTERS,
@@ -56,6 +56,8 @@ export const ORDER_ERROR_REASONS = {
   Order_400_22: [400, '입금자명은 1~20자로 입력해 주세요.'],
   Order_400_23: [400, '옵션 답변이 올바르지 않습니다.'],
   Order_400_26: [400, '같은 주문을 처리하고 있습니다. 잠시 후 주문내역을 확인해 주세요.'],
+  // 같은 티켓 락을 10초 안에 못 잡음(#923 — 주문은 생기지 않는다, 같은 키로 다시)
+  Redisson_500_1: [500, 'can not get redisson lock'],
   Order_404_1: [404, '주문을 찾을 수 없습니다.'],
   // 동의 강제(#840 — `agreementEnforced`). 문구는 respond.ts `agreementRequired`와 같다
   Agreement_400_1: [400, '필수 동의 또는 확인이 필요합니다.'],
@@ -88,7 +90,14 @@ export function resetOrderStore() {
   orders.clear();
   for (const [uuid, order] of seedEntries()) orders.set(uuid, order);
   recent.length = 0;
+  idempotency.clear();
 }
+/**
+ * `Idempotency-Key` → 만든 주문(백엔드 #923 — `v2OrderIdem:{userId}:{ticketItemId}:{key}` 24시간). mock은 사용자가 하나라
+ * `ticketItemId:key`로 둔다. 주문을 만든 요청만 저장한다(실패한 요청의 키는 다음 요청이 새로 만든다)
+ */
+const idempotency = new Map<string, string>();
+const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 /** 중복 요청 판정(같은 본문, 10초) */
 const recent: { key: string; at: number; orderUuid: string }[] = [];
 const DUPLICATE_WINDOW_MS = 10_000;
@@ -150,6 +159,15 @@ async function createOrder(request: Request) {
   ) {
     return errors.badRequest(request);
   }
+
+  // Idempotency-Key(#923) — 형식이 틀리면 400, 같은 티켓·키의 앞 주문이 있으면 판매 조건 검증보다 먼저 그 주문(거절·취소 포함)
+  const idemKey = request.headers.get('Idempotency-Key');
+  if (idemKey !== null && !IDEMPOTENCY_KEY_PATTERN.test(idemKey)) {
+    return errors.badRequest(request);
+  }
+  const idemSlot = idemKey === null ? null : `${ticketItemId}:${idemKey}`;
+  const previous = idemSlot === null ? undefined : orders.get(idempotency.get(idemSlot) ?? '');
+  if (previous) return ok(previous);
 
   const { event, ticket } = findCheckoutTicket(eventId, ticketItemId);
   if (!event) return orderError(request, 'Event_404_1');
@@ -226,6 +244,7 @@ async function createOrder(request: Request) {
   });
   orders.set(order.orderUuid, order);
   recent.push({ key, at: now, orderUuid: order.orderUuid });
+  if (idemSlot !== null) idempotency.set(idemSlot, order.orderUuid);
   // 호스트 예매자 관리(P13a)가 같은 주문을 본다
   registerAudienceOrder(order);
   return ok(order);
@@ -511,6 +530,25 @@ const createFails = (code: OrderErrorCode): HttpHandler[] => [
   http.post('*/api/v2/me/orders', ({ request }) => orderError(request, code)),
 ];
 
+/**
+ * 서버는 주문을 만들었는데 응답이 끊긴다(이슈 #92-4 — 타임아웃·네트워크). 첫 요청만 그렇고 그 뒤는 기본 처리.
+ * 같은 `Idempotency-Key`로 다시 보내면 그 주문이 돌아온다(#923) — 중복 주문이 생기지 않는다
+ */
+const createLosesResponseOnce = (): HttpHandler[] => {
+  let lost = false;
+  return [
+    http.post('*/api/v2/me/orders', async ({ request }) => {
+      if (lost) return undefined;
+      lost = true;
+      await createOrder(request.clone());
+      return HttpResponse.error();
+    }),
+  ];
+};
+
+/** 이 mock이 `Idempotency-Key`로 기억하는 주문 수(테스트 — 중복이 생기지 않았는지) */
+export const mockOrderCount = () => orders.size;
+
 /** 무료 선착순 확정 실패 — 주문이 아니라 원래 에러(재고)가 온다(`V2CreateOrderUseCase`). 다른 티켓은 기본 처리로 넘긴다 */
 const freeFcfsConfirmFails: HttpHandler[] = [
   http.post('*/api/v2/me/orders', async ({ request }) => {
@@ -590,6 +628,7 @@ export const orderHandlers = {
     ),
   ],
   createFails,
+  createLosesResponseOnce,
   freeFcfsConfirmFails,
   agreementEnforced,
   checkoutWith: (patch: Partial<PublicTicketItem>): HttpHandler[] => [
