@@ -17,7 +17,7 @@ import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
-import { useHostMembers } from './useHostMembers';
+import { type MemberActionResult, useHostMembers } from './useHostMembers';
 import { useInviteMembers } from './useInviteMembers';
 
 let restore: () => void;
@@ -170,7 +170,7 @@ describe('멤버 변경 — 응답(멤버 전체 목록)으로 캐시 갱신', (
     const sent = recordRequests();
     const { result } = setup();
     await loaded(result);
-    let ok: boolean | undefined;
+    let ok: MemberActionResult | undefined;
     await act(async () => {
       ok = await result.current.changeRole(1, 'GUEST');
     });

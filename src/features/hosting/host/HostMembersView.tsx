@@ -25,7 +25,7 @@ import { colors } from '@/ui/theme/colors';
 
 import * as s from './HostManage.css';
 import { HOST_ROLE_LABEL, type PermissionGuideRow } from './model/member-rules';
-import { useHostMembers } from './model/useHostMembers';
+import { type MemberActionResult, useHostMembers } from './model/useHostMembers';
 import { useInviteMembers } from './model/useInviteMembers';
 
 type Members = ReturnType<typeof useHostMembers>;
@@ -113,6 +113,16 @@ function HostMembers({ hostId }: { hostId: string }) {
   );
 }
 
+/**
+ * 확인 창 계약(patterns §6) — 실패(`false`)면 열린 채. 성공이면 토스트와 함께 닫히고, 이미 없는 멤버(`'missing'` — HOST_404_2)는
+ * 다시 읽은 목록과 목록 위 안내가 답이라 토스트 없이 닫힌다(묶음 ③ 선물 랜딩과 같은 규칙). 그 밖 안내는 훅이 한다(공용 토스트)
+ */
+async function confirmed(action: Promise<MemberActionResult>, doneMessage: string) {
+  const result = await action;
+  if (result === true) toast(doneMessage);
+  return result !== false;
+}
+
 function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
   const name = member.name ?? '이름 없음';
   const { changeRoleTo, remove, transfer } = member.actions;
@@ -129,9 +139,8 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         </div>
       ),
       confirmLabel: '변경하기',
-      // 확인 창 계약(patterns §6): 실패(`false`)면 열린 채. 안내는 훅이 한다(HOST_404_2는 목록 위 안내, 그 밖은 공용 토스트)
-      onConfirm: () => m.changeRole(member.userId, to),
-    }).then((done) => done && toast('멤버의 권한을 변경하였습니다.'));
+      onConfirm: () => confirmed(m.changeRole(member.userId, to), '멤버의 권한을 변경하였습니다.'),
+    });
   };
 
   const transferMaster = () => {
@@ -145,8 +154,8 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         </Txt>
       ),
       confirmLabel: '양도하기',
-      onConfirm: () => m.transferMaster(member.userId),
-    }).then((done) => done && toast('마스터 권한을 양도하였습니다.'));
+      onConfirm: () => confirmed(m.transferMaster(member.userId), '마스터 권한을 양도하였습니다.'),
+    });
   };
 
   const removeMember = () => {
@@ -155,8 +164,8 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
       title: `${name}님을 멤버에서 삭제할까요?`,
       description: '삭제하면 이 호스트의 공연을 관리할 수 없어요.',
       confirmLabel: '삭제하기',
-      onConfirm: () => m.remove(member.userId),
-    }).then((done) => done && toast('멤버를 삭제했어요'));
+      onConfirm: () => confirmed(m.remove(member.userId), '멤버를 삭제했어요'),
+    });
   };
 
   const items: DropdownMenuItem[] = [
