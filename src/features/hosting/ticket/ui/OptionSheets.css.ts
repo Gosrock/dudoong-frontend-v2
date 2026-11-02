@@ -1,19 +1,22 @@
 import { style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** 시트 본문 — 칸 묶음 사이 24(GUI `932:1567` 간격 24) */
 export const body = style({ display: 'flex', flexDirection: 'column', gap: vars.space[5] });
 
 /** 옵션 고르기 목록 — 항목 사이 8 */
-export const pickList = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const pickList = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[2],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 /**
  * 옵션 고르기 항목 — GUI 로컬 컴포넌트 `옵션 선택 항목`(`931:1323`): 342×72 · 패딩 12 16 · 간격 12 · 모서리 8 ·
