@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -7,15 +8,17 @@ import { vars } from '@/ui/theme/tokens.css';
  * 토큰만으로 단순하게: 고른 줄은 회색 바탕(와이어 PC), 경고는 경고 연한 바탕, 고른 티켓 줄은 위 구분선.
  */
 
-export const list = style({
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  width: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[1],
-});
+export const list = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    margin: 0,
+    padding: 0,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[1],
+  },
+]);
 
 export const row = style({
   display: 'flex',
@@ -68,11 +71,13 @@ export const iconButton = style({
 });
 
 /** 두둥 티켓 안내(legal-copy A-4) — 회색 글 3줄 */
-export const notice = style({
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[1],
-});
+export const notice = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    margin: 0,
+    padding: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[1],
+  },
+]);

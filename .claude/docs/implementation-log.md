@@ -2783,3 +2783,25 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: lint 전체 · typecheck 통과. vitest 134파일 2532개 · 스토리 62파일 253개 통과(관객 · 공용 묶음에서 한 번 1건 흔들림 → 재실행 3번 통과). e2e 전체 587 통과 · 39 건너뜀 · 실패 0. QA shell 18 · hosting-event 20 · hosting-ticket 30 · host-settings 28 · mypage 33 · tickets 20 — 실패 0.
 
 **ego-browser 확인(2026-11-03, dev:mock 3078)**: 공연준비 홈 1440 · 공연 대시보드 1440(사이드바 · 3단 · 일정 패널) · 새 티켓 390(공연 헤더 숨고 ← 제목 헤더만 — 옮긴 숨김 스타일 · 필수 `*`) · 티켓 목록 390(`NoticeBox` "티켓 옵션이란?") · 마이페이지 390(연필 배지 · 화면별 css) · 셸 드로어 390(프로필 편집 숨김 글자) · 주문내역 1440(툴바 · 카드 · 포스터 칩). 발견 없음.
+
+## 코드 패턴 정리 ⑥-views 큰 화면 파일 나누기(2026-11-03, `pattern-split-views`)
+
+**근거**: [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) "⑥-views 결과"(A24 · A25 · A27 · A28 · A46 + ⑤에서 넘긴 `src/ui` sr-only) · progress "다음 순서" 31b. 병렬 `31a pattern-split-forms`(호스팅 폼 RHF 전환)와 파일을 나눴다 — 이 세션은 `src/ui` · `audience` · `hosting/{guest,home,qr,shell,access}` · `shared`. **동작 그대로**.
+
+**바꾼 것**
+
+- A24 — 체크아웃(750 → 106 + 조각 5) · 주문상세(541 → 120 + 조각 5) · 호스팅 주문 상세 오버레이(561 → 150 + 조각 4) · 예매자 관리 탭(`GuestTabs` 385 → `IssuedTicketsTab` · `RefundsTab` + 발급 티켓 상세, `OrdersTab` 분리). 섹션 단위로 자르고 하위 prop `d` · `o` → `detail` · `state`.
+- A25 — `useCheckout` `options` · `submission`, 예매자 목록 훅 `search` · `pagination` · `excel` · `checkIn`, 호스팅 `useOrderDetail` `cancelForm`. 테스트는 접근 경로만(단언 그대로).
+- A27 — `Divider` `variant="section"` · `inset`(DS 파일에 Divider 컴포넌트 없음 — GUI 섹션 간격 · 총액 위 선 근거). 섹션 띠 15곳 · 선 4곳. 스토리 `Foundation/Primitives` → `DividerVariants`.
+- A28 — flex 전용 클래스 13개(guest · home · qr) + 나눈 체크아웃 조각 5개 → `Flex`. `Flex`가 `aria-label` · `role` · `id` · `data-testid`를 받는다.
+- A46 — `listStyle: 'none'` 22곳 → `sprinkles({ listStyle: 'none' })`, 토큰 2곳, `'use client'` 3.
+- ⑤ 넘김 — `FilterChip` · `DataTable` caption → `VisuallyHidden`.
+- 문서 — patterns §3(Divider 변형 · Flex 이름 속성 · 목록 리셋), directory-structure(guest 파일).
+
+**사용자에게 보이는 변화**: 없음 — 같은 DOM 모양(섹션 띠 `div` → `hr aria-hidden`, 선 `div` → `hr`)과 같은 값. 캡처 차이는 아래 검사 줄.
+
+**🤖 판단**: 전역 `ul, ol` 리셋 대신 sprinkles 속성(표식을 보이는 목록이 있다). 1px 테두리(행 · 상자 · 바)는 Divider로 옮기지 않는다 — 요소 자신의 모양이다. 섹션 띠 `hr`은 꾸밈이라 `aria-hidden`(전에도 이름 없는 `div`), 1px 선은 `hr`(separator)로 남긴다.
+
+**검사**: typecheck · lint 통과. vitest 관련 묶음(audience · shared · ui · hosting guest/home/qr · 크리티컬 패스) 통과, 스토리 62파일 254개 통과. e2e 전체 587 통과 · 39 건너뜀 · 실패 0. QA checkout 31 · mypage 33 · hosting-guests 29 · tickets 20 · shell 18 — 실패 0.
+
+**ego-browser 확인(2026-11-03, dev:mock 3080)**: 체크아웃 390(섹션 띠 · 옵션 사이 선 · 총액 위 inset 선 · 결제방식 · 동의) · 1440, 주문 확인 팝업(요약 선 2 · ③ 동의 목록 번호), 주문상세 390(섹션 띠 · 예매정보 · 결제 · 예매취소 안내 · 하단 버튼) · 1440, 예매자 관리 1440(주문 탭) · 390(발급된 티켓 탭), 호스팅 주문 상세 오버레이 1440(정보 줄 · 티켓 카드 · [거절][승인]). 발견 없음.

@@ -1,6 +1,7 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 
 import { media } from '../../theme/breakpoints';
+import { sprinkles } from '../../theme/sprinkles.css';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
@@ -20,15 +21,6 @@ export const table = style({
   width: '100%',
   borderCollapse: 'collapse',
   background: vars.color.background.normal,
-});
-
-export const caption = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
 });
 
 // 모바일(`984:360` "주문 표 머리글_모바일"): 칸 사이 8 · 왼쪽 12 · 오른쪽 8, 머리글 40h. PC(`1026:4527`): 칸 사이 16 · 양 끝 16, 머리글 44h.
@@ -125,15 +117,17 @@ export const footerEnd = style({
   transform: 'translateY(-50%)',
 });
 
-export const pagination = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: vars.space[1],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const pagination = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: vars.space[1],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 export const pageButton = style([
   typography.labelMd,

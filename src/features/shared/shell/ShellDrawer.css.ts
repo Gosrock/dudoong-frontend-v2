@@ -1,5 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** 와이어 수준 — 배치만 토큰으로(design-workflow §3). 모양(색 강조·그림자·장식)은 더하지 않는다 */
@@ -56,20 +57,22 @@ export const profileText = style({
   minWidth: 0,
 });
 
-export const list = style({ margin: 0, padding: 0, listStyle: 'none' });
+export const list = style([sprinkles({ listStyle: 'none' }), { margin: 0, padding: 0 }]);
 
 export const empty = style({ margin: 0 });
 
 /** 호스트 아바타 줄 — 가로로 넘치면 스크롤(와이어 `128:2875`) */
-export const hostRow = style({
-  display: 'flex',
-  gap: vars.space[4],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-  overflowX: 'auto',
-  scrollbarWidth: 'none',
-});
+export const hostRow = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    gap: vars.space[4],
+    margin: 0,
+    padding: 0,
+    overflowX: 'auto',
+    scrollbarWidth: 'none',
+  },
+]);
 
 export const host = style({
   ...reset,

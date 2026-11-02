@@ -77,13 +77,6 @@ export const fill = style({
   background: vars.color.brand.primary,
 });
 
-export const statsError = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: vars.space[2],
-});
-
 /* ── 스캔·QR 자리 ─────────────────────────────────── */
 
 export const panel = style({ display: 'flex', flexDirection: 'column', gap: vars.space[3] });
@@ -131,8 +124,6 @@ export const closeFullscreen = style({
   left: vars.space[3],
   zIndex: 2,
 });
-
-export const fullscreenRow = style({ display: 'flex', justifyContent: 'flex-end' });
 
 /* ── 카메라 ───────────────────────────────────────── */
 

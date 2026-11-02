@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -7,14 +8,16 @@ import { vars } from '@/ui/theme/tokens.css';
  * 와이어 수준(design-workflow §3): 배경 `surface/container`, 모서리 16(DS Card list `Space/4`와 같은 값), 안쪽 16, 간격 16.
  * 카드 전체를 누르면 이동한다 — 제목 링크의 `::after`가 카드를 덮는다(⋮ 버튼은 그 위).
  */
-export const list = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[3],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const list = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[3],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 export const card = style({
   position: 'relative',

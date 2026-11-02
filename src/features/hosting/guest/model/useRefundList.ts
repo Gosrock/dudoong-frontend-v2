@@ -86,10 +86,12 @@ export function useRefundList(eventId: string) {
     setStatus,
     rows,
     empty: query.status === 'success' && rows.length === 0,
-    page,
-    totalPages: query.data?.totalPages ?? null,
-    hasNext: query.data?.hasNext ?? false,
-    setPage,
+    pagination: {
+      page,
+      totalPages: query.data?.totalPages ?? null,
+      hasNext: query.data?.hasNext ?? false,
+      setPage,
+    },
     /** 환불 계좌 전체 보기(매니저 이상) */
     canSeeRefundAccount: can(scope.role, 'viewRefundAccount'),
     complete,

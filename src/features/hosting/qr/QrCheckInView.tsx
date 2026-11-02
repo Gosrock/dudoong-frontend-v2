@@ -113,14 +113,14 @@ function CheckInStats({ eventId }: { eventId: string }) {
           </span>
         </Flex>
         {stats.status === 'error' && (
-          <div role="alert" className={s.statsError}>
+          <Flex align="center" justify="space-between" gap={2} role="alert">
             <Txt typography="bodyMd" color={colors.textDangerLabel}>
               통계를 불러오지 못했어요
             </Txt>
             <Button variant="secondary" size="sm" onClick={stats.retry}>
               통계 다시 시도
             </Button>
-          </div>
+          </Flex>
         )}
       </Flex>
     </section>
@@ -253,11 +253,11 @@ function AudienceScan({ eventId }: { eventId: string }) {
 
 function FullscreenButton({ onClick }: { onClick: () => void }) {
   return (
-    <div className={s.fullscreenRow}>
+    <Flex justify="flex-end">
       <Button variant="dark" size="md" onClick={onClick}>
         전체화면 전환
       </Button>
-    </div>
+    </Flex>
   );
 }
 

@@ -1,12 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
-
-/** 주문 상세 본문 — 섹션 사이 24(GUI `1029:6888` 간격 24) */
-export const body = style({ display: 'flex', flexDirection: 'column', gap: vars.space[5] });
-
-/** 섹션 — 제목 + 내용(간격 8) */
-export const section = style({ display: 'flex', flexDirection: 'column', gap: vars.space[2] });
 
 export const sectionTitle = style({ margin: 0 });
 
@@ -58,14 +53,16 @@ export const lineValue = style({
 });
 
 /** 티켓 카드 목록(간격 8) */
-export const cards = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const cards = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[2],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 /** 티켓 카드(GUI `1029:6909` — 테두리 `surface/default-border` · 모서리 8 · 안쪽 12 · 간격 8) */
 export const card = style({
@@ -77,8 +74,6 @@ export const card = style({
   borderRadius: vars.radius[2],
   background: vars.color.background.normal,
 });
-
-export const cardHead = style({ display: 'flex', alignItems: 'center', gap: vars.space[2] });
 
 export const cardEnd = style({ marginLeft: 'auto', display: 'inline-flex' });
 
@@ -102,19 +97,6 @@ export const alert = style({ margin: 0 });
 
 /** 버튼 위 가운데 안내(GUI `1029:7706` "입장했거나 선물한 티켓이 있어 …") */
 export const centerNote = style({ margin: 0, textAlign: 'center' });
-
-/** 하단 버튼 — 같은 폭(간격 8) */
-export const footer = style({ display: 'flex', gap: vars.space[2], width: '100%' });
-
-export const footerStack = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[5],
-  width: '100%',
-});
-
-/** 사유 라디오 묶음 + 기타 입력 */
-export const reasonBlock = style({ display: 'flex', flexDirection: 'column', gap: vars.space[3] });
 
 /** 사유 라디오 — 세로(간격 12, GUI 라디오 줄 32 간격) */
 export const reasons = style({

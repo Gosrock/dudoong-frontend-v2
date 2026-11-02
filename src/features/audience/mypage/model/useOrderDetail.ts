@@ -62,6 +62,8 @@ export function useOrderDetail(orderUuid: string) {
   );
 }
 
+export type OrderDetailState = ReturnType<typeof useOrderDetail>;
+
 /** 표(`order-errors.ts`)의 코드 → `handleError` 표. 다시 읽기가 있으면 O-3을 새로 받은 뒤 안내를 정한다 */
 function useOrderCodes(
   orderUuid: string,

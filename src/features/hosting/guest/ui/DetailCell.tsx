@@ -1,3 +1,5 @@
+'use client';
+
 import { Icon } from '@/ui/icons/Icon';
 
 import * as s from './GuestParts.css';

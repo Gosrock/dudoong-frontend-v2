@@ -140,7 +140,7 @@ export function MyPageView() {
         </form>
       </section>
 
-      <div className={s.sectionGap} />
+      <Divider variant="section" />
 
       <nav aria-label="마이페이지 메뉴">
         <ul className={s.list}>
