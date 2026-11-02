@@ -1,6 +1,7 @@
 'use client';
 
 import type { CheckInTone } from '@/features/shared/checkin-result/model/checkin-result';
+import { CHECKIN_TONE } from '@/features/shared/checkin-result/ui/checkin-tone';
 import { Button } from '@/ui/components/Button/Button';
 import { Spinner } from '@/ui/components/Loader/Loader';
 import { Icon } from '@/ui/icons/Icon';
@@ -10,12 +11,6 @@ import { colors } from '@/ui/theme/colors';
 
 import type { HostScanState } from '../model/useHostScan';
 import * as s from './QrCheckIn.css';
-
-const TONE = {
-  success: { icon: 'circle-check', color: colors.statusSuccess },
-  warning: { icon: 'circle-request', color: colors.statusWarning },
-  error: { icon: 'circle-reject', color: colors.statusError },
-} as const satisfies Record<CheckInTone, { icon: string; color: string }>;
 
 /** 티켓 QR이 아님 — 라이브러리가 아닌 화면 문구(P13b-L 잠정) */
 const INVALID_QR = '티켓 QR이 아니에요';
@@ -143,7 +138,7 @@ function Card({
   onRetry?: () => void;
   children?: React.ReactNode;
 }) {
-  const t = TONE[tone];
+  const t = CHECKIN_TONE[tone];
   return (
     <div className={s.resultCard} data-tone={tone} role={alert ? 'alert' : undefined}>
       <Flex align="flex-start" gap={2}>

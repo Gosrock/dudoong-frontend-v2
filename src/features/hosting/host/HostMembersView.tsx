@@ -3,16 +3,11 @@
 import Link from 'next/link';
 import { overlay } from 'overlay-kit';
 
-import { isSessionLost } from '@/api/errors';
 import type { AssignableHostRole } from '@/api/host/schema';
-import {
-  HostingAccessRejected,
-  HostingForbidden,
-  HostingNotFound,
-} from '@/features/hosting/access/HostingAccessRejected';
+import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
 import type { ActorRole } from '@/features/shared/permission/model/can';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { DataTable } from '@/ui/components/DataTable/DataTable';
@@ -47,9 +42,9 @@ export function HostMembersView({ hostId }: { hostId: string }) {
   const id = parseHostIdParam(hostId);
   if (id === null) return <HostingNotFound />;
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
+    <HostingBoundary resetKeys={[id]}>
       <HostMembers hostId={id} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 

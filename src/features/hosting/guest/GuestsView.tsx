@@ -2,10 +2,8 @@
 
 import { type ReactNode, useState } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import type { HostOrderElement } from '@/api/order/schema';
-import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { Chip } from '@/ui/components/Chip/Chip';
@@ -46,9 +44,9 @@ import { OrderDetailOverlay } from './ui/OrderDetailOverlay';
  */
 export function GuestsView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
+    <HostingBoundary resetKeys={[eventId]}>
       <Guests eventId={eventId} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 

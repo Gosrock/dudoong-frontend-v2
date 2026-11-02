@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useId } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import {
   HOST_CONTACT_VALUE_MAX,
   HOST_INTRODUCE_MAX,
@@ -11,14 +10,10 @@ import {
   HOST_PHONE_VALUE_MAX,
   type HostContactType,
 } from '@/api/host/schema';
-import {
-  HostingAccessRejected,
-  HostingForbidden,
-  HostingNotFound,
-} from '@/features/hosting/access/HostingAccessRejected';
+import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { EditorBottomBar, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { DropZone } from '@/ui/components/DropZone/DropZone';
@@ -55,9 +50,9 @@ export function HostSettingsView({ hostId }: { hostId: string }) {
   const id = parseHostIdParam(hostId);
   if (id === null) return <HostingNotFound />;
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
+    <HostingBoundary resetKeys={[id]}>
       <HostSettings hostId={id} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 

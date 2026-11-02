@@ -4,15 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import { TICKET_DESCRIPTION_MAX, TICKET_NAME_MAX } from '@/api/ticket-item/schema';
-import {
-  HostingAccessRejected,
-  HostingNotFound,
-} from '@/features/hosting/access/HostingAccessRejected';
+import { HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { FieldError, FormSection, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
 import { EVENT_SCOPE_ATTR } from '@/features/hosting/shell/HostingShell.css';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
@@ -54,13 +50,9 @@ export function TicketFormView({
   const id = ticketItemId === undefined ? null : parseTicketItemIdParam(ticketItemId);
   if (ticketItemId !== undefined && id === null) return <HostingNotFound />;
   return (
-    <AsyncBoundary
-      holdOn={isSessionLost}
-      rejected={HostingAccessRejected}
-      resetKeys={[eventId, id]}
-    >
+    <HostingBoundary resetKeys={[eventId, id]}>
       <TicketForm key={bfcacheId} eventId={eventId} ticketItemId={id} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 

@@ -3,9 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { isSessionLost } from '@/api/errors';
-import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { button } from '@/ui/components/Button/Button.css';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { Fab } from '@/ui/components/Fab/Fab';
@@ -29,9 +27,9 @@ import * as parts from './ui/TicketParts.css';
  */
 export function TicketListView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
+    <HostingBoundary resetKeys={[eventId]}>
       <TicketList eventId={eventId} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 

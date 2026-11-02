@@ -3,12 +3,10 @@
 import { overlay } from 'overlay-kit';
 import { useEffect, useId, useState } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import { EVENT_SECTION_TITLE_MAX } from '@/api/event/schema';
-import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { sanitizeSectionHtml } from '@/features/shared/section-viewer/model/sanitize-section-html';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { NumberingButton } from '@/ui/components/Counter/Counter';
@@ -35,9 +33,9 @@ type Form = ReturnType<typeof useEventSections>;
  */
 export function EventDetailView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
+    <HostingBoundary resetKeys={[eventId]}>
       <EventDetail eventId={eventId} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 

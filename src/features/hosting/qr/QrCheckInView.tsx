@@ -3,9 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
-import { isSessionLost } from '@/api/errors';
-import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { Spinner } from '@/ui/components/Loader/Loader';
@@ -44,9 +42,9 @@ const SELF_CHECK_IN_CAPTION = 'QR 코드를 스캔하면 입장이 완료됩니�
  */
 export function QrCheckInView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
+    <HostingBoundary resetKeys={[eventId]}>
       <QrCheckIn eventId={eventId} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
