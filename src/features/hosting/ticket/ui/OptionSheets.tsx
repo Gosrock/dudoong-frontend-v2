@@ -63,50 +63,50 @@ export function AddOptionsOverlay({
   open: boolean;
   onClose: () => void;
 }) {
-  const o = useTicketOptions(eventId, ticketItemId);
+  const options = useTicketOptions(eventId, ticketItemId);
   const [view, setView] = useState<'pick' | 'create'>('pick');
   const [picked, setPicked] = useState<number[]>([]);
   // 붙이기·만들기 중(훅의 mutation `isPending` — throw해도 굳지 않는다, 코드 패턴 점검 A13)
-  const busy = o.pending;
+  const busy = options.pending;
 
   const finish = () => {
     setPicked([]);
     setView('pick');
-    o.resetForm();
-    o.dismissError();
+    options.resetForm();
+    options.dismissError();
     onClose();
   };
   const requestClose = async () => {
     if (busy) return;
-    if (view === 'create' && o.dirty && !(await confirmDiscard('create'))) return;
+    if (view === 'create' && options.dirty && !(await confirmDiscard('create'))) return;
     finish();
   };
 
-  const attachedIds = new Set(o.attached.map((a) => a.optionId));
-  const full = picked.length >= o.remainingSlots;
+  const attachedIds = new Set(options.attached.map((a) => a.optionId));
+  const full = picked.length >= options.remainingSlots;
   const toggle = (id: number) =>
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const addPicked = async () => {
-    if (await o.attachMany(picked)) {
+    if (await options.attachMany(picked)) {
       toast(ADDED);
       finish();
     }
   };
   const create = async () => {
-    if ((await o.createAndAttach()) === 'attached') {
+    if ((await options.createAndAttach()) === 'attached') {
       toast(ADDED);
       finish();
     }
   };
 
-  const createErrors = o.attempted ? o.errors : {};
+  const createErrors = options.attempted ? options.errors : {};
   const shownErrors: OptionFormErrors = {
     name: createErrors.name,
-    description: o.serverErrors.description ?? createErrors.description,
-    yesAdditionalPrice: o.serverErrors.yesAdditionalPrice ?? createErrors.yesAdditionalPrice,
+    description: options.serverErrors.description ?? createErrors.description,
+    yesAdditionalPrice: options.serverErrors.yesAdditionalPrice ?? createErrors.yesAdditionalPrice,
   };
-  const freeTicket = o.ticket?.payType === 'FREE';
+  const freeTicket = options.ticket?.payType === 'FREE';
 
   return (
     <ResponsiveOverlay
@@ -135,7 +135,7 @@ export function AddOptionsOverlay({
           <Button
             size="lg"
             fullWidth
-            disabled={picked.length === 0 || !o.canChange}
+            disabled={picked.length === 0 || !options.canChange}
             loading={busy}
             onClick={() => void addPicked()}
           >
@@ -145,7 +145,7 @@ export function AddOptionsOverlay({
           <Button
             size="lg"
             fullWidth
-            disabled={!o.canChange || !o.canAttachMore}
+            disabled={!options.canChange || !options.canAttachMore}
             loading={busy}
             onClick={() => void create()}
           >
@@ -154,15 +154,15 @@ export function AddOptionsOverlay({
         )
       }
     >
-      {o.error && (
+      {options.error && (
         <p role="alert">
           <Txt typography="bodyMd" color={colors.textDangerLabel}>
-            {o.error}
+            {options.error}
           </Txt>
-          {o.partial && (
+          {options.partial && (
             <>
               {' '}
-              <Button variant="secondary" size="sm" onClick={() => void o.retryAttach()}>
+              <Button variant="secondary" size="sm" onClick={() => void options.retryAttach()}>
                 다시 붙이기
               </Button>
             </>
@@ -171,11 +171,15 @@ export function AddOptionsOverlay({
       )}
       {view === 'pick' ? (
         <div className={s.body} data-testid="option-pick">
-          {o.poolStatus === 'error' ? (
-            <InlineError layout="row" message="옵션을 불러오지 못했어요" onRetry={o.retryPool} />
+          {options.poolStatus === 'error' ? (
+            <InlineError
+              layout="row"
+              message="옵션을 불러오지 못했어요"
+              onRetry={options.retryPool}
+            />
           ) : (
             <ul className={s.pickList} aria-label="옵션 목록">
-              {o.attached.map((a) => (
+              {options.attached.map((a) => (
                 <PickItem
                   key={a.optionId}
                   name={a.name ?? '이름 없는 옵션'}
@@ -185,7 +189,7 @@ export function AddOptionsOverlay({
                   attached
                 />
               ))}
-              {o.attachable
+              {options.attachable
                 .filter((p) => !attachedIds.has(p.optionId))
                 .map((p) => {
                   const checked = picked.includes(p.optionId);
@@ -196,7 +200,7 @@ export function AddOptionsOverlay({
                       type={p.type}
                       yesAdditionalPrice={p.yesAdditionalPrice}
                       checked={checked}
-                      disabled={!o.canChange || (!checked && full)}
+                      disabled={!options.canChange || (!checked && full)}
                       onToggle={() => toggle(p.optionId)}
                     />
                   );
@@ -207,7 +211,7 @@ export function AddOptionsOverlay({
             variant="secondary"
             fullWidth
             icon={<Icon name="add" />}
-            disabled={!o.canChange || !o.canAttachMore}
+            disabled={!options.canChange || !options.canAttachMore}
             onClick={() => setView('create')}
           >
             새 옵션 직접 만들기
@@ -223,12 +227,12 @@ export function AddOptionsOverlay({
           }}
         >
           <OptionFields
-            values={o.values}
+            values={options.values}
             errors={shownErrors}
-            setName={o.setName}
-            setDescription={o.setDescription}
-            setType={o.setType}
-            setPrice={o.setYesAdditionalPrice}
+            setName={options.setName}
+            setDescription={options.setDescription}
+            setType={options.setType}
+            setPrice={options.setYesAdditionalPrice}
             priceDisabled={freeTicket}
           />
         </form>
@@ -421,33 +425,33 @@ export function OptionDetailOverlay({
   /** 이 카드에서 [수정]을 보일지(판매 종료 티켓이면 false — GUI `943:2398`) */
   allowEdit: boolean;
 }) {
-  const e = useOptionEditor(eventId, optionId);
+  const editor = useOptionEditor(eventId, optionId);
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
   const finish = () => {
-    e.reset();
+    editor.reset();
     setMode('view');
     onClose();
   };
   const requestClose = async () => {
-    if (e.busy) return;
-    if (mode === 'edit' && e.dirty && !(await confirmDiscard('edit'))) return;
+    if (editor.busy) return;
+    if (mode === 'edit' && editor.dirty && !(await confirmDiscard('edit'))) return;
     finish();
   };
   const save = async () => {
-    if (await e.save()) {
+    if (await editor.save()) {
       toast(EDITED);
       finish();
     }
   };
   const remove = async () => {
-    const name = e.option?.name ?? '';
+    const name = editor.option?.name ?? '';
     // 확인 창 계약(patterns §6): 실패(`false`)면 열린 채
     const done = await openConfirm({
       title: `[${name}] 옵션을 삭제할까요?`,
       description: '이 옵션이 붙은 모든 티켓에서 빠지고, 삭제한 옵션은 되돌릴 수 없어요.',
       confirmLabel: '삭제',
-      onConfirm: () => e.remove(),
+      onConfirm: () => editor.remove(),
     });
     if (done) {
       toast('옵션을 삭제했어요.');
@@ -456,10 +460,12 @@ export function OptionDetailOverlay({
   };
 
   const shown: OptionFormErrors = {
-    name: e.attempted ? e.errors.name : undefined,
-    description: e.serverErrors.description ?? (e.attempted ? e.errors.description : undefined),
+    name: editor.attempted ? editor.errors.name : undefined,
+    description:
+      editor.serverErrors.description ?? (editor.attempted ? editor.errors.description : undefined),
     yesAdditionalPrice:
-      e.serverErrors.yesAdditionalPrice ?? (e.attempted ? e.errors.yesAdditionalPrice : undefined),
+      editor.serverErrors.yesAdditionalPrice ??
+      (editor.attempted ? editor.errors.yesAdditionalPrice : undefined),
   };
   const editing = mode === 'edit';
 
@@ -474,8 +480,8 @@ export function OptionDetailOverlay({
           <Button
             size="lg"
             fullWidth
-            disabled={!e.canSave}
-            loading={e.busy}
+            disabled={!editor.canSave}
+            loading={editor.busy}
             onClick={() => void save()}
           >
             저장
@@ -483,13 +489,13 @@ export function OptionDetailOverlay({
         ) : undefined
       }
     >
-      {e.missing ? (
+      {editor.missing ? (
         <Txt as="p" typography="bodyMd" color={colors.textSecondaryLabel}>
           옵션을 찾을 수 없어요
         </Txt>
-      ) : e.values ? (
+      ) : editor.values ? (
         <div className={s.body} data-testid="option-detail">
-          {!editing && e.canEdit && allowEdit && (
+          {!editing && editor.canEdit && allowEdit && (
             <div className={s.detailTop}>
               <Button
                 variant="secondary"
@@ -501,15 +507,15 @@ export function OptionDetailOverlay({
               </Button>
             </div>
           )}
-          {editing && e.priceLocked && (
+          {editing && editor.priceLocked && (
             <NoticeBox icon="important">
               판매가 시작돼서 옵션 이름과 설명만 바꿀 수 있어요.
             </NoticeBox>
           )}
-          {e.error && (
+          {editor.error && (
             <p role="alert">
               <Txt typography="bodyMd" color={colors.textDangerLabel}>
-                {e.error}
+                {editor.error}
               </Txt>
             </p>
           )}
@@ -523,19 +529,24 @@ export function OptionDetailOverlay({
           >
             <OptionFields
               key={mode}
-              values={e.values}
+              values={editor.values}
               errors={editing ? shown : {}}
               readOnly={!editing}
-              typeOverride={e.type}
-              setName={editing ? e.setName : undefined}
-              setDescription={editing ? e.setDescription : undefined}
-              setPrice={editing && !e.priceLocked ? e.setYesAdditionalPrice : undefined}
-              dimLocked={editing && e.priceLocked}
+              typeOverride={editor.type}
+              setName={editing ? editor.setName : undefined}
+              setDescription={editing ? editor.setDescription : undefined}
+              setPrice={editing && !editor.priceLocked ? editor.setYesAdditionalPrice : undefined}
+              dimLocked={editing && editor.priceLocked}
             />
           </form>
-          {!editing && e.canDelete && allowEdit && (
+          {!editing && editor.canDelete && allowEdit && (
             <div className={s.deleteRow}>
-              <Button variant="secondary" size="sm" disabled={e.busy} onClick={() => void remove()}>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={editor.busy}
+                onClick={() => void remove()}
+              >
                 옵션 삭제
               </Button>
             </div>

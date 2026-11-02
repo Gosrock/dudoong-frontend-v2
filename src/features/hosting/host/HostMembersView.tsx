@@ -49,8 +49,8 @@ export function HostMembersView({ hostId }: { hostId: string }) {
 }
 
 function HostMembers({ hostId }: { hostId: string }) {
-  const m = useHostMembers(hostId);
-  if (m.access === 'forbidden') return <HostingForbidden />;
+  const members = useHostMembers(hostId);
+  if (members.access === 'forbidden') return <HostingForbidden />;
 
   const openGuide = () =>
     overlay.open(({ isOpen, close, unmount }) => (
@@ -58,7 +58,7 @@ function HostMembers({ hostId }: { hostId: string }) {
         open={isOpen}
         onClose={close}
         onExited={unmount}
-        guide={m.permissionGuide}
+        guide={members.permissionGuide}
       />
     ));
   const openInvite = () =>
@@ -68,7 +68,7 @@ function HostMembers({ hostId }: { hostId: string }) {
         onClose={close}
         onExited={unmount}
         hostId={hostId}
-        myRole={m.myRole}
+        myRole={members.myRole}
       />
     ));
 
@@ -86,20 +86,20 @@ function HostMembers({ hostId }: { hostId: string }) {
           멤버 권한이란?
         </Button>
         <Spacing size={3} />
-        {m.actionError && (
+        {members.actionError && (
           <p role="alert" className={s.note}>
             <Txt typography="bodySm" color={colors.textDangerLabel}>
-              {m.actionError}
+              {members.actionError}
             </Txt>
           </p>
         )}
         <ul aria-label="멤버 목록" className={s.memberList}>
-          {m.members.map((member) => (
-            <MemberItem key={member.userId} member={member} m={m} />
+          {members.members.map((member) => (
+            <MemberItem key={member.userId} member={member} m={members} />
           ))}
         </ul>
       </div>
-      {m.canInvite && (
+      {members.canInvite && (
         <Button
           variant="dark"
           className={s.inviteButton}
@@ -270,17 +270,20 @@ function InviteModal({
   hostId: string;
   myRole: ActorRole | null;
 }) {
-  const f = useInviteMembers(hostId, myRole);
-  const row = f.rows[0]!;
-  const error = f.serverErrors[0] ?? (f.attempted ? f.errors[0] : null) ?? f.formError;
+  const inviteForm = useInviteMembers(hostId, myRole);
+  const row = inviteForm.rows[0]!;
+  const error =
+    inviteForm.serverErrors[0] ??
+    (inviteForm.attempted ? inviteForm.errors[0] : null) ??
+    inviteForm.formError;
   const formId = 'host-invite-form';
 
   return (
     <Modal
       open={open}
-      onOpenChange={(o) => !o && !f.submitting && onClose()}
+      onOpenChange={(o) => !o && !inviteForm.submitting && onClose()}
       onExited={onExited}
-      dismissible={!f.submitting}
+      dismissible={!inviteForm.submitting}
       title="멤버 초대하기"
       description="초대하면 바로 멤버로 추가됩니다."
       footer={
@@ -290,7 +293,7 @@ function InviteModal({
           size="lg"
           fullWidth
           disabled={!row.email.trim()}
-          loading={f.submitting}
+          loading={inviteForm.submitting}
         >
           초대하기
         </Button>
@@ -303,7 +306,7 @@ function InviteModal({
         className={s.inviteForm}
         onSubmit={(e) => {
           e.preventDefault();
-          void f.submit().then((ok) => {
+          void inviteForm.submit().then((ok) => {
             if (!ok) return;
             onClose();
             toast('멤버를 초대했어요');
@@ -318,16 +321,19 @@ function InviteModal({
             placeholder="dudoong@email.com"
             showCount={false}
             value={row.email}
-            onChange={(e) => f.setEmail(0, e.target.value)}
+            onChange={(e) => inviteForm.setEmail(0, e.target.value)}
             error={error ?? undefined}
           />
           <Dropdown
             className={s.inviteRole}
             aria-label="역할"
-            options={f.roleOptions.map((role) => ({ value: role, label: HOST_ROLE_LABEL[role] }))}
+            options={inviteForm.roleOptions.map((role) => ({
+              value: role,
+              label: HOST_ROLE_LABEL[role],
+            }))}
             value={row.role}
-            disabled={f.roleOptions.length < 2}
-            onValueChange={(v) => v && f.setRole(0, v as AssignableHostRole)}
+            disabled={inviteForm.roleOptions.length < 2}
+            onValueChange={(v) => v && inviteForm.setRole(0, v as AssignableHostRole)}
           />
         </div>
       </form>

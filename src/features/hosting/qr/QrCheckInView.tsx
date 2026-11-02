@@ -74,8 +74,8 @@ function QrCheckIn({ eventId }: { eventId: string }) {
 }
 
 function CheckInStats({ eventId }: { eventId: string }) {
-  const st = useCheckInStats(eventId);
-  const v = st.stats;
+  const stats = useCheckInStats(eventId);
+  const v = stats.stats;
   const num = (n: number | undefined) => (n === undefined ? '–' : formatCount(n));
   const ratio = v && v.issuedCount > 0 ? Math.min(v.enteredCount / v.issuedCount, 1) : 0;
   return (
@@ -101,7 +101,7 @@ function CheckInStats({ eventId }: { eventId: string }) {
           <div className={s.fill} style={{ width: `${ratio * 100}%` }} />
         </div>
         <Flex justify="flex-end" align="center" gap={2}>
-          {st.refreshFailed && (
+          {stats.refreshFailed && (
             <span data-testid="checkin-stats-stale">
               <Txt typography="labelMd" color={colors.textSecondary}>
                 통계를 새로 고치지 못했어요 ·
@@ -112,12 +112,12 @@ function CheckInStats({ eventId }: { eventId: string }) {
             <Txt typography="bodyMd">{v ? `${v.entranceRate}% 입장 완료` : '\u00a0'}</Txt>
           </span>
         </Flex>
-        {st.status === 'error' && (
+        {stats.status === 'error' && (
           <div role="alert" className={s.statsError}>
             <Txt typography="bodyMd" color={colors.textDangerLabel}>
               통계를 불러오지 못했어요
             </Txt>
-            <Button variant="secondary" size="sm" onClick={st.retry}>
+            <Button variant="secondary" size="sm" onClick={stats.retry}>
               통계 다시 시도
             </Button>
           </div>
@@ -145,11 +145,11 @@ function StatBox({ label, value, testId }: { label: string; value: string; testI
 }
 
 function HostScan({ eventId }: { eventId: string }) {
-  const h = useHostScan(eventId);
+  const scan = useHostScan(eventId);
   const { ref: stageRef, open: full, enter, close } = useStageFullscreen();
-  const { submitScan } = h;
+  const { submitScan } = scan;
   const [cameraProblem, setCameraProblem] = useState(false);
-  const blocked = h.blockMessage !== null;
+  const blocked = scan.blockMessage !== null;
 
   // 판독 값 주입(카메라 없는 테스트) — 카메라와 같은 길로 submitScan
   useEffect(() => {
@@ -157,11 +157,11 @@ function HostScan({ eventId }: { eventId: string }) {
     return subscribeInjectedScan((value) => void submitScan(value));
   }, [blocked, submitScan]);
 
-  if (h.blockMessage) {
+  if (scan.blockMessage) {
     return (
       <div className={s.stage}>
         <div role="status" data-testid="host-scan-blocked">
-          <EmptyState description={h.blockMessage} />
+          <EmptyState description={scan.blockMessage} />
         </div>
       </div>
     );
@@ -177,9 +177,9 @@ function HostScan({ eventId }: { eventId: string }) {
         {full && <CloseFullscreen onClick={close} />}
         <CameraScanner onScan={submitScan} onProblemChange={setCameraProblem} />
         <ScanResult
-          state={h.state}
-          onRetry={h.retry}
-          onNext={h.reset}
+          state={scan.state}
+          onRetry={scan.retry}
+          onNext={scan.reset}
           cameraReady={!cameraProblem}
         />
       </div>
@@ -190,45 +190,45 @@ function HostScan({ eventId }: { eventId: string }) {
 }
 
 function AudienceScan({ eventId }: { eventId: string }) {
-  const q = useSelfCheckInQr(eventId);
+  const selfQr = useSelfCheckInQr(eventId);
   const { ref: stageRef, open: full, enter, close } = useStageFullscreen();
   return (
     <>
       <section
         ref={stageRef}
         aria-label="셀프 체크인 QR"
-        data-status={q.status}
+        data-status={selfQr.status}
         data-fullscreen={full || undefined}
         className={full ? `${s.stageFullscreen} ${s.stageLight}` : s.stage}
       >
         {full && <CloseFullscreen onClick={close} />}
-        {q.status === 'blocked' && (
+        {selfQr.status === 'blocked' && (
           <div role="status">
             <EmptyState
-              title={<span data-testid="self-check-in-guidance">{q.guidance}</span>}
-              description={q.hint}
+              title={<span data-testid="self-check-in-guidance">{selfQr.guidance}</span>}
+              description={selfQr.hint}
             />
           </div>
         )}
-        {q.status === 'pending' && <Spinner size="md" label="QR을 불러오는 중" />}
-        {q.status === 'error' && (
+        {selfQr.status === 'pending' && <Spinner size="md" label="QR을 불러오는 중" />}
+        {selfQr.status === 'error' && (
           <div role="alert">
             <EmptyState
               description="QR을 불러오지 못했어요"
               action={
-                <Button variant="secondary" size="md" onClick={q.retry}>
+                <Button variant="secondary" size="md" onClick={selfQr.retry}>
                   QR 다시 시도
                 </Button>
               }
             />
           </div>
         )}
-        {q.qrUrl && (
+        {selfQr.qrUrl && (
           <Flex direction="column" align="center" gap={5}>
             <div className={s.qrCard}>
               <div className={full ? s.qrImageLarge : s.qrImage}>
                 <QrCode
-                  value={q.qrUrl}
+                  value={selfQr.qrUrl}
                   size={480}
                   label="셀프 체크인 QR"
                   data-testid="self-check-in-qr"
@@ -246,7 +246,7 @@ function AudienceScan({ eventId }: { eventId: string }) {
           </Flex>
         )}
       </section>
-      {q.status === 'ready' && <FullscreenButton onClick={enter} />}
+      {selfQr.status === 'ready' && <FullscreenButton onClick={enter} />}
     </>
   );
 }

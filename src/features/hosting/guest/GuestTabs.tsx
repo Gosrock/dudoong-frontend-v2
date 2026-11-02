@@ -53,9 +53,9 @@ const checkInConfirm = (ownerName: string | null) => ({
  * 입장 취소(`1030:9318`)는 API가 없어 그리지 않는다(backend-questions B37). 검색 기준 "주문 번호 · 입금자명 · 티켓 번호"도 API가 없다(B36)
  */
 export function IssuedTicketsTab({ eventId }: { eventId: string }) {
-  const l = useIssuedTicketList(eventId);
-  const t = l.detail;
-  const canCheckIn = l.canManualCheckIn && l.checkInBlockMessage === null;
+  const list = useIssuedTicketList(eventId);
+  const t = list.detail;
+  const canCheckIn = list.canManualCheckIn && list.checkInBlockMessage === null;
 
   const checkIn = async (ticket: Pick<HostIssuedTicket, 'ticketUuid' | 'ownerName'>) => {
     const uuid = ticket.ticketUuid;
@@ -64,7 +64,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
     await openConfirm({
       ...checkInConfirm(ticket.ownerName),
       onConfirm: async () => {
-        const result = await l.manualCheckIn(uuid);
+        const result = await list.manualCheckIn(uuid);
         if (result?.kind !== 'result') return false;
         toast(result.tone === 'success' ? '입장 처리했어요.' : result.title);
         return true;
@@ -119,7 +119,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
               <Button
                 variant="secondary"
                 size="sm"
-                loading={l.checkingIn}
+                loading={list.checkingIn}
                 onClick={() => void checkIn(r)}
               >
                 입장 처리
@@ -143,8 +143,8 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
     },
   ]);
 
-  const failed = l.status === 'error';
-  const empty = l.status === 'success' && l.rows.length === 0;
+  const failed = list.status === 'error';
+  const empty = list.status === 'success' && list.rows.length === 0;
   const entranceChip = t ? entranceChipOf(t.ticket.entrance, 'border') : null;
   const payType = t ? PAY_TYPE_CHIP_LABEL[t.ticket.payType ?? 'UNKNOWN'] : null;
 
@@ -154,63 +154,65 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
         filters={
           <FilterRow
             label="입장 상태"
-            options={l.entranceFilters}
-            onSelect={l.setEntrance}
+            options={list.entranceFilters}
+            onSelect={list.setEntrance}
             testIdPrefix="entrance"
           />
         }
         search={
           <SearchBar
             label="티켓 검색어"
-            types={l.searchTypes}
-            type={l.searchType}
-            onTypeChange={l.setSearchType}
-            keyword={l.keywordInput}
-            onKeywordChange={l.setKeywordInput}
-            keywordMax={l.keywordMax}
-            onSubmit={l.submitSearch}
+            types={list.searchTypes}
+            type={list.searchType}
+            onTypeChange={list.setSearchType}
+            keyword={list.keywordInput}
+            onKeywordChange={list.setKeywordInput}
+            keywordMax={list.keywordMax}
+            onSubmit={list.submitSearch}
           />
         }
-        hint={l.exactMatchHint}
+        hint={list.exactMatchHint}
       />
-      {l.exportError && <NoticeLine onDismiss={l.dismissExportError}>{l.exportError}</NoticeLine>}
-      {l.missingNotice && (
-        <NoticeLine onDismiss={l.dismissMissingNotice}>{l.missingNotice}</NoticeLine>
+      {list.exportError && (
+        <NoticeLine onDismiss={list.dismissExportError}>{list.exportError}</NoticeLine>
+      )}
+      {list.missingNotice && (
+        <NoticeLine onDismiss={list.dismissMissingNotice}>{list.missingNotice}</NoticeLine>
       )}
       <DataTable
         caption="발급 티켓 목록"
         columns={columns}
-        data={failed ? [] : l.rows}
+        data={failed ? [] : list.rows}
         getRowId={(r, i) => r.ticketUuid ?? r.issuedTicketNo ?? String(i)}
         rowTestId="ticket-row"
-        onRowClick={(r) => r.ticketUuid && l.openTicket(r.ticketUuid)}
+        onRowClick={(r) => r.ticketUuid && list.openTicket(r.ticketUuid)}
         getRowLabel={(r) => `티켓 ${text(r.issuedTicketNo)} ${text(r.buyerName)} 상세`}
-        pageIndex={l.page}
-        pageCount={l.totalPages ?? 1}
-        onPageChange={l.setPage}
+        pageIndex={list.page}
+        pageCount={list.totalPages ?? 1}
+        onPageChange={list.setPage}
         alwaysShowPagination
-        loading={l.status === 'pending' ? <ListLoading /> : undefined}
+        loading={list.status === 'pending' ? <ListLoading /> : undefined}
         empty={
           failed ? (
-            <ListError what="티켓" onRetry={l.retry} />
+            <ListError what="티켓" onRetry={list.retry} />
           ) : (
-            <Empty>{l.appliedKeyword ? '검색 결과가 없어요' : '발급된 티켓이 없어요'}</Empty>
+            <Empty>{list.appliedKeyword ? '검색 결과가 없어요' : '발급된 티켓이 없어요'}</Empty>
           )
         }
         footerEnd={
-          l.canExport ? (
+          list.canExport ? (
             <ExportButton
               label="티켓 엑셀로 다운로드"
-              exporting={l.exporting}
+              exporting={list.exporting}
               disabled={failed || empty}
-              onExport={() => void l.exportExcel()}
+              onExport={() => void list.exportExcel()}
             />
           ) : undefined
         }
       />
       <ResponsiveOverlay
-        open={l.selectedTicketUuid !== null}
-        onOpenChange={(open) => !open && l.closeTicket()}
+        open={list.selectedTicketUuid !== null}
+        onOpenChange={(open) => !open && list.closeTicket()}
         title={
           t && entranceChip ? (
             <span className={o.titleRow}>
@@ -230,21 +232,21 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
         }
         description={t ? text(t.ticket.ticketName) : undefined}
         footer={
-          t && t.ticket.entrance === 'BEFORE' && t.ticket.ticketUuid && l.canManualCheckIn ? (
-            l.checkInBlockMessage ? (
+          t && t.ticket.entrance === 'BEFORE' && t.ticket.ticketUuid && list.canManualCheckIn ? (
+            list.checkInBlockMessage ? (
               <Txt
                 as="p"
                 typography="bodyMd"
                 color={colors.textPrimaryLabel}
                 className={o.centerNote}
               >
-                {l.checkInBlockMessage}
+                {list.checkInBlockMessage}
               </Txt>
             ) : (
               <Button
                 size="lg"
                 fullWidth
-                loading={l.checkingIn}
+                loading={list.checkingIn}
                 onClick={() => void checkIn(t.ticket)}
               >
                 입장 처리
@@ -254,7 +256,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
         }
       >
         <div data-testid="ticket-detail" className={o.body}>
-          {l.detailStatus === 'pending' && <ListLoading />}
+          {list.detailStatus === 'pending' && <ListLoading />}
           {t && (
             <>
               <Section title="티켓 정보">
@@ -294,7 +296,7 @@ export function RefundsTab({
   eventId: string;
   onOpen: (uuid: string) => void;
 }) {
-  const l = useRefundList(eventId);
+  const list = useRefundList(eventId);
   const columns = nowrapColumns<{ refund: RefundElement }>([
     {
       id: 'orderNo',
@@ -322,7 +324,7 @@ export function RefundsTab({
       header: '상태',
       width: 152,
       cell: ({ refund: r }) => {
-        const state = refundRowStateOf(r, l.canSeeRefundAccount);
+        const state = refundRowStateOf(r, list.canSeeRefundAccount);
         if (!state) return '—';
         const chip = REFUND_STATE_CHIP[state];
         return (
@@ -340,7 +342,7 @@ export function RefundsTab({
     },
   ]);
 
-  const failed = l.status === 'error';
+  const failed = list.status === 'error';
   return (
     <div className={s.tab}>
       <NoticeBox icon="important">예매자 계좌로 직접 보낸 뒤 [환불 완료]를 눌러주세요</NoticeBox>
@@ -348,29 +350,31 @@ export function RefundsTab({
         filters={
           <FilterRow
             label="환불 상태"
-            options={l.filters.map((f) => ({ ...f, count: null }))}
-            onSelect={l.setStatus}
+            options={list.filters.map((f) => ({ ...f, count: null }))}
+            onSelect={list.setStatus}
             testIdPrefix="refund-filter"
           />
         }
       />
-      {l.actionError && <NoticeLine onDismiss={l.dismissActionError}>{l.actionError}</NoticeLine>}
+      {list.actionError && (
+        <NoticeLine onDismiss={list.dismissActionError}>{list.actionError}</NoticeLine>
+      )}
       <DataTable
         caption="환불 목록"
         columns={columns}
-        data={failed ? [] : l.rows}
+        data={failed ? [] : list.rows}
         getRowId={({ refund: r }, i) => r.orderUuid ?? r.orderNo ?? String(i)}
         rowTestId="refund-row"
         onRowClick={({ refund: r }) => r.orderUuid && onOpen(r.orderUuid)}
         getRowLabel={({ refund: r }) => `${text(r.orderNo)} ${text(r.buyerName)} 주문 상세`}
-        pageIndex={l.page}
-        pageCount={l.totalPages ?? 1}
-        onPageChange={l.setPage}
+        pageIndex={list.page}
+        pageCount={list.totalPages ?? 1}
+        onPageChange={list.setPage}
         alwaysShowPagination
-        loading={l.status === 'pending' ? <ListLoading /> : undefined}
+        loading={list.status === 'pending' ? <ListLoading /> : undefined}
         empty={
           failed ? (
-            <ListError what="환불 목록" onRetry={l.retry} />
+            <ListError what="환불 목록" onRetry={list.retry} />
           ) : (
             <Empty>환불할 주문이 없어요.</Empty>
           )

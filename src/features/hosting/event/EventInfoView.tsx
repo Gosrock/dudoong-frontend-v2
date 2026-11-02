@@ -40,12 +40,12 @@ export const REGISTERED_SAVED_DESCRIPTION =
  * 하단 고정 바 [미리보기][저장하기]. 주소는 Daum 우편번호 창 → 카카오 Geocoder 좌표 → 지도 미리보기(카카오맵 SDK).
  */
 export function EventInfoView({ eventId }: { eventId: string }) {
-  const f = useEventBasicInfo(eventId);
+  const form = useEventBasicInfo(eventId);
   const formId = useId();
-  const readOnly = !f.canEdit;
-  useLeaveGuard(f.canEdit && f.dirty);
-  useSavedNotice(f);
-  const show = (error: string | null | undefined) => (f.attempted && error ? error : undefined);
+  const readOnly = !form.canEdit;
+  useLeaveGuard(form.canEdit && form.dirty);
+  useSavedNotice(form);
+  const show = (error: string | null | undefined) => (form.attempted && error ? error : undefined);
 
   return (
     <section aria-labelledby="info-title" className={s.page}>
@@ -53,10 +53,10 @@ export function EventInfoView({ eventId }: { eventId: string }) {
         <h1 id="info-title" className={s.desktopTitle}>
           <Txt typography="headingLgEmphasized">기본 정보</Txt>
         </h1>
-        {f.formError && (
+        {form.formError && (
           <p role="alert">
             <Txt typography="bodyMd" color={colors.textDangerLabel}>
-              {f.formError}
+              {form.formError}
             </Txt>
           </p>
         )}
@@ -66,10 +66,10 @@ export function EventInfoView({ eventId }: { eventId: string }) {
           className={s.columns}
           onSubmit={(e) => {
             e.preventDefault();
-            void f.save();
+            void form.save();
           }}
         >
-          <PosterSection f={f} readOnly={readOnly} />
+          <PosterSection f={form} readOnly={readOnly} />
           <div className={s.fields}>
             <FormSection title="공연 이름" required>
               <Input
@@ -77,10 +77,10 @@ export function EventInfoView({ eventId }: { eventId: string }) {
                 placeholder={`최대 ${EVENT_NAME_MAX}자까지 쓸 수 있어요.`}
                 maxLength={EVENT_NAME_MAX}
                 showCount={false}
-                value={f.values.name}
+                value={form.values.name}
                 readOnly={readOnly}
-                onChange={(e) => f.setName(e.target.value)}
-                error={show(f.errors.name)}
+                onChange={(e) => form.setName(e.target.value)}
+                error={show(form.errors.name)}
               />
             </FormSection>
 
@@ -90,18 +90,18 @@ export function EventInfoView({ eventId }: { eventId: string }) {
                   aria-label="날짜"
                   className={s.date}
                   placeholder="날짜 선택"
-                  value={f.values.schedule.date}
+                  value={form.values.schedule.date}
                   readOnly={readOnly}
-                  onChange={(e) => f.setSchedule({ date: e.target.value })}
+                  onChange={(e) => form.setSchedule({ date: e.target.value })}
                 />
                 <div className={s.times}>
                   <TimePicker
                     aria-label="시작 시각"
                     className={s.time}
                     placeholder="시작 시간"
-                    value={f.values.schedule.startTime}
+                    value={form.values.schedule.startTime}
                     readOnly={readOnly}
-                    onChange={(e) => f.setSchedule({ startTime: e.target.value })}
+                    onChange={(e) => form.setSchedule({ startTime: e.target.value })}
                   />
                   <Txt typography="bodyLg" aria-hidden>
                     ~
@@ -110,23 +110,23 @@ export function EventInfoView({ eventId }: { eventId: string }) {
                     aria-label="종료 시각"
                     className={s.time}
                     placeholder="종료 시간"
-                    value={f.values.schedule.endTime}
+                    value={form.values.schedule.endTime}
                     readOnly={readOnly}
-                    onChange={(e) => f.setSchedule({ endTime: e.target.value })}
+                    onChange={(e) => form.setSchedule({ endTime: e.target.value })}
                   />
                 </div>
               </div>
-              {f.scheduleRange?.overnight && (
+              {form.scheduleRange?.overnight && (
                 <p data-testid="overnight" className={s.note}>
                   <Txt typography="bodySm" color={colors.textSecondaryLabel}>
                     종료 시각이 시작보다 빨라 다음 날 끝나는 공연으로 저장돼요.
                   </Txt>
                 </p>
               )}
-              <FieldError>{show(f.errors.schedule) ?? f.serverErrors.schedule}</FieldError>
+              <FieldError>{show(form.errors.schedule) ?? form.serverErrors.schedule}</FieldError>
             </FormSection>
 
-            <PlaceSection f={f} readOnly={readOnly} />
+            <PlaceSection f={form} readOnly={readOnly} />
 
             <FormSection
               title="티켓 여부"
@@ -138,24 +138,24 @@ export function EventInfoView({ eventId }: { eventId: string }) {
               <RadioGroup
                 aria-label="티켓 여부"
                 className={s.radios}
-                value={f.values.hasTicket ? 'yes' : 'no'}
-                disabled={readOnly || f.hasTicketLocked}
-                onValueChange={(v) => f.setHasTicket(v === 'yes')}
+                value={form.values.hasTicket ? 'yes' : 'no'}
+                disabled={readOnly || form.hasTicketLocked}
+                onValueChange={(v) => form.setHasTicket(v === 'yes')}
               >
                 <Radio value="yes" label="티켓 있음" />
                 <Radio value="no" label="티켓 없음" />
               </RadioGroup>
-              {f.hasTicketLocked && (
+              {form.hasTicketLocked && (
                 <p data-testid="has-ticket-locked" className={s.note}>
                   <Txt typography="bodySm" color={colors.textSecondaryLabel}>
                     등록 후에는 바꿀 수 없어요
                   </Txt>
                 </p>
               )}
-              <FieldError>{f.serverErrors.hasTicket}</FieldError>
+              <FieldError>{form.serverErrors.hasTicket}</FieldError>
             </FormSection>
 
-            <ContactsSection f={f} readOnly={readOnly} show={show} />
+            <ContactsSection f={form} readOnly={readOnly} show={show} />
 
             <FormSection
               title="태그"
@@ -167,40 +167,40 @@ export function EventInfoView({ eventId }: { eventId: string }) {
                 columns={4}
                 max={EVENT_TAGS_MAX}
                 disabled={readOnly}
-                options={f.tagGroups.flatMap((g) =>
+                options={form.tagGroups.flatMap((g) =>
                   g.tags.map((t) => ({ value: String(t.tagId), label: t.name })),
                 )}
-                value={f.values.tagIds.map(String)}
+                value={form.values.tagIds.map(String)}
                 onChange={(next) => {
-                  const now = new Set(f.values.tagIds.map(String));
+                  const now = new Set(form.values.tagIds.map(String));
                   const changed =
                     next.find((v) => !now.has(v)) ??
                     [...now].find((v) => !next.includes(v)) ??
                     null;
-                  if (changed !== null) f.toggleTag(Number(changed));
+                  if (changed !== null) form.toggleTag(Number(changed));
                 }}
               />
-              <FieldError>{f.serverErrors.tags}</FieldError>
+              <FieldError>{form.serverErrors.tags}</FieldError>
             </FormSection>
           </div>
         </form>
       </div>
-      {f.canEdit && (
+      {form.canEdit && (
         <EditorBottomBar
           formId={formId}
-          canPreview={f.canPreview}
-          onPreview={() => openInfoPreview(f)}
-          canSave={f.canSave}
-          saving={f.saving}
+          canPreview={form.canPreview}
+          onPreview={() => openInfoPreview(form)}
+          canSave={form.canSave}
+          saving={form.saving}
         />
       )}
       <Popup
-        open={f.savedNotice === 'registeredChanged'}
-        onOpenChange={(o) => !o && f.dismissSavedNotice()}
+        open={form.savedNotice === 'registeredChanged'}
+        onOpenChange={(o) => !o && form.dismissSavedNotice()}
         title={REGISTERED_SAVED_TITLE}
         description={REGISTERED_SAVED_DESCRIPTION}
         cancelLabel={null}
-        onConfirm={f.dismissSavedNotice}
+        onConfirm={form.dismissSavedNotice}
       />
     </section>
   );

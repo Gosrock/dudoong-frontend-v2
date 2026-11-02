@@ -37,9 +37,9 @@ export const HOST_EVENTS_EMPTY = '두둥! 등록한 공연이 없습니다.';
  * 공개 값(GH-3)은 서버에서 받은 것을 바로 그리고, 사용자별 값(♡·관리·멤버)과 공연 목록은 하이드레이션 뒤 브라우저에서 읽는다.
  */
 export function HostHomeView({ hostId }: { hostId: string }) {
-  const h = useHostHome(hostId);
-  const { follow, host } = h;
-  const manage = h.manage.status === 'ready' ? h.manage.actions : [];
+  const home = useHostHome(hostId);
+  const { follow, host } = home;
+  const manage = home.manage.status === 'ready' ? home.manage.actions : [];
   const hrefOf = (key: HostManageKey) => manage.find((a) => a.key === key)?.href;
   const settingsHref = hrefOf('settings');
   const newEventHref = hrefOf('newEvent');
@@ -115,16 +115,16 @@ export function HostHomeView({ hostId }: { hostId: string }) {
             <Icon name="people" className={s.metaIcon} />
             <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
               <span className={s.srOnly}>멤버 </span>
-              {h.memberCount}
+              {home.memberCount}
               <span className={s.srOnly}>명</span>
             </Txt>
           </span>
-          {h.createdOn && (
+          {home.createdOn && (
             <span className={s.metaItem}>
               <Icon name="calendar" className={s.metaIcon} />
               <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
                 <span className={s.srOnly}>개설일 </span>
-                {h.createdOn}
+                {home.createdOn}
               </Txt>
             </span>
           )}
@@ -136,13 +136,13 @@ export function HostHomeView({ hostId }: { hostId: string }) {
           </Txt>
         )}
 
-        {h.contacts.items.length > 0 && (
+        {home.contacts.items.length > 0 && (
           <ul
             className={s.contacts}
             aria-label="연락처"
-            aria-busy={h.contacts.status === 'pending' || undefined}
+            aria-busy={home.contacts.status === 'pending' || undefined}
           >
-            {h.contacts.items.map((c, i) => (
+            {home.contacts.items.map((c, i) => (
               <li key={`${c.type}-${i}`}>
                 <button
                   type="button"
@@ -157,16 +157,16 @@ export function HostHomeView({ hostId }: { hostId: string }) {
           </ul>
         )}
 
-        {h.viewerStatus === 'error' && (
+        {home.viewerStatus === 'error' && (
           <InlineError
             layout="row"
             message="내 관심·권한 정보를 불러오지 못했어요."
-            onRetry={h.retryViewer}
+            onRetry={home.retryViewer}
           />
         )}
       </section>
 
-      {h.members && (
+      {home.members && (
         <section className={s.section} aria-labelledby="host-members-title">
           <ListHeader
             title={
@@ -181,7 +181,7 @@ export function HostHomeView({ hostId }: { hostId: string }) {
             }
           />
           <ul className={s.scroller} aria-label="멤버">
-            {h.members.map((m) => (
+            {home.members.map((m) => (
               <li key={m.userId} className={s.member}>
                 <Avatar size={52} src={m.profileImageUrl} />
                 <Txt typography="labelSm" lines={1} align="center">
@@ -196,10 +196,10 @@ export function HostHomeView({ hostId }: { hostId: string }) {
       <section
         className={s.section}
         aria-labelledby="host-events-title"
-        aria-busy={h.events.status === 'pending' || undefined}
+        aria-busy={home.events.status === 'pending' || undefined}
       >
         <ListHeader title={<span id="host-events-title">공연 리스트</span>} />
-        <HostEvents events={h.events} />
+        <HostEvents events={home.events} />
       </section>
     </Container>
   );

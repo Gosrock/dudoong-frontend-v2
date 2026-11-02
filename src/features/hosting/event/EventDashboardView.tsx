@@ -45,20 +45,26 @@ type Dashboard = ReturnType<typeof useEventDashboard>;
  * 유의사항 + PC 우측 `일정 패널`(주간 줄 · 단계 타임라인).
  */
 export function EventDashboardView({ eventId }: { eventId: string }) {
-  const d = useEventDashboard(eventId);
+  const dashboard = useEventDashboard(eventId);
   const content = (
     <section aria-labelledby="dashboard-title" className={s.page}>
       <VisuallyHidden asChild>
         <h1 id="dashboard-title">대시보드</h1>
       </VisuallyHidden>
-      <DashboardNotices d={d} />
-      <EventHead event={d.event} eventId={eventId} />
-      {d.mode === 'registered' ? <RegisteredSection d={d} /> : <ChecklistSection d={d} />}
+      <DashboardNotices d={dashboard} />
+      <EventHead event={dashboard.event} eventId={eventId} />
+      {dashboard.mode === 'registered' ? (
+        <RegisteredSection d={dashboard} />
+      ) : (
+        <ChecklistSection d={dashboard} />
+      )}
     </section>
   );
   // 등록 후만 우측 일정 패널(P4s-V 슬롯 · 본문 P13a-V — DS `일정 패널`)
-  return d.mode === 'registered' ? (
-    <EventPanelLayout panel={d.stats ? <SchedulePanel timeline={d.stats.timeline} /> : null}>
+  return dashboard.mode === 'registered' ? (
+    <EventPanelLayout
+      panel={dashboard.stats ? <SchedulePanel timeline={dashboard.stats.timeline} /> : null}
+    >
       {content}
     </EventPanelLayout>
   ) : (

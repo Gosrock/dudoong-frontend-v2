@@ -25,11 +25,11 @@ const TONE_ICON = {
  * 번호는 QR과 달리 추측할 수 있어(서버 요청) 입장 처리 뒤 **관객 이름(`ownerName`)을 크게** 보이고 확인을 부탁한다.
  */
 export function TicketNoCheckIn({ eventId }: { eventId: string }) {
-  const t = useTicketNoCheckIn(eventId);
+  const ticketNo = useTicketNoCheckIn(eventId);
   const [value, setValue] = useState('');
   const titleId = useId();
-  if (t.blocked) return null;
-  const st = t.state;
+  if (ticketNo.blocked) return null;
+  const st = ticketNo.state;
   return (
     <section aria-labelledby={titleId} className={s.ticketNoBox} data-testid="ticket-no-check-in">
       <Txt as="h2" typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
@@ -39,7 +39,7 @@ export function TicketNoCheckIn({ eventId }: { eventId: string }) {
         className={s.ticketNoForm}
         onSubmit={(e) => {
           e.preventDefault();
-          if (t.submit(value)) setValue('');
+          if (ticketNo.submit(value)) setValue('');
         }}
         noValidate
       >
@@ -57,14 +57,14 @@ export function TicketNoCheckIn({ eventId }: { eventId: string }) {
           error={st.status === 'invalid' ? st.message : undefined}
           className={s.ticketNoInput}
         />
-        <Button type="submit" variant="primary" size="md" loading={t.checking}>
+        <Button type="submit" variant="primary" size="md" loading={ticketNo.checking}>
           입장 처리
         </Button>
       </form>
       <Txt typography="labelSm" color={colors.textTertiaryLabel}>
         카메라를 쓸 수 없을 때 관객 티켓의 번호를 입력해요. 숫자만 입력해도 돼요.
       </Txt>
-      <TicketNoResult state={st} onRetry={t.retry} />
+      <TicketNoResult state={st} onRetry={ticketNo.retry} />
     </section>
   );
 }

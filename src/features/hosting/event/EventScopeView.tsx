@@ -32,11 +32,11 @@ export function EventScopeView({ eventId, children }: { eventId: string; childre
 }
 
 function EventScope({ eventId, children }: { eventId: string; children: ReactNode }) {
-  const s = useEventScope(eventId);
+  const scope = useEventScope(eventId);
   return (
-    <EventScopeFrame sidebar={<EventSidebar scope={s} />}>
-      <EventMobileHeader scope={s} />
-      {s.readOnlyMessage && <ReadOnlyNotice message={s.readOnlyMessage} />}
+    <EventScopeFrame sidebar={<EventSidebar scope={scope} />}>
+      <EventMobileHeader scope={scope} />
+      {scope.readOnlyMessage && <ReadOnlyNotice message={scope.readOnlyMessage} />}
       <main>
         <HostingBoundary resetKeys={[eventId]}>{children}</HostingBoundary>
       </main>

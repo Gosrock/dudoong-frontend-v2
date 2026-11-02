@@ -56,15 +56,15 @@ const CREATE = {
  * - PC(1024~): 제목 "{닉네임}님의 공연 준비 홈" + 같은 탭 줄 오른쪽에 같은 [+ 새 … 만들기](같은 DOM, CSS로 자리만 바꾼다)
  */
 export function HostingHomeView() {
-  const h = useHostingHome();
+  const home = useHostingHome();
   const me = useQuery(meQuery());
   const del = useDeleteEvent();
   const [searchOpen, setSearchOpen] = useState(false);
-  const list: ListLike = h.tab === 'hosts' ? h.hosts : h.events;
-  const create = CREATE[h.tab];
+  const list: ListLike = home.tab === 'hosts' ? home.hosts : home.events;
+  const create = CREATE[home.tab];
 
   const closeSearch = () => {
-    h.setKeywordInput('');
+    home.setKeywordInput('');
     setSearchOpen(false);
   };
 
@@ -92,7 +92,7 @@ export function HostingHomeView() {
           className={s.searchRow}
           onSubmit={(e) => {
             e.preventDefault();
-            h.submitKeyword();
+            home.submitKeyword();
           }}
         >
           <button
@@ -106,18 +106,18 @@ export function HostingHomeView() {
           <SearchField
             className={s.searchField}
             aria-label="검색"
-            placeholder={h.tab === 'hosts' ? '내 호스트 검색' : '내 공연 검색'}
+            placeholder={home.tab === 'hosts' ? '내 호스트 검색' : '내 공연 검색'}
             autoFocus
-            value={h.keywordInput}
-            onChange={(e) => h.setKeywordInput(e.target.value)}
+            value={home.keywordInput}
+            onChange={(e) => home.setKeywordInput(e.target.value)}
           />
         </form>
       )}
 
-      <Tabs value={h.tab} onValueChange={(v) => h.setTab(v as HostingHomeTab)}>
+      <Tabs value={home.tab} onValueChange={(v) => home.setTab(v as HostingHomeTab)}>
         <div className={s.tabRow}>
           <TabList aria-label="공연준비 홈 탭" className={s.tabList}>
-            {h.tabs.map((t) => (
+            {home.tabs.map((t) => (
               <Tab key={t.key} value={t.key}>
                 {t.label}
               </Tab>
@@ -146,9 +146,9 @@ export function HostingHomeView() {
 
         <TabPanel value="events" className={s.panel}>
           <ListArea
-            list={h.events}
+            list={home.events}
             empty={
-              h.events.emptyKind === 'search' ? (
+              home.events.emptyKind === 'search' ? (
                 <Empty description={EVENTS_SEARCH_EMPTY_TITLE} />
               ) : (
                 <Empty
@@ -159,7 +159,7 @@ export function HostingHomeView() {
             }
           >
             <ul className={cards.list} aria-label="내 공연">
-              {h.events.items.map((event) => (
+              {home.events.items.map((event) => (
                 <MyEventCard
                   key={event.eventId}
                   event={event}
@@ -180,9 +180,9 @@ export function HostingHomeView() {
 
         <TabPanel value="hosts" className={s.panel}>
           <ListArea
-            list={h.hosts}
+            list={home.hosts}
             empty={
-              h.hosts.emptyKind === 'search' ? (
+              home.hosts.emptyKind === 'search' ? (
                 <Empty description={HOSTS_SEARCH_EMPTY_TITLE} />
               ) : (
                 <Empty
@@ -193,7 +193,7 @@ export function HostingHomeView() {
             }
           >
             <ul className={cards.list} aria-label="내 호스트">
-              {h.hosts.items.map((host) => (
+              {home.hosts.items.map((host) => (
                 <MyHostCard key={host.hostId} host={host} />
               ))}
             </ul>

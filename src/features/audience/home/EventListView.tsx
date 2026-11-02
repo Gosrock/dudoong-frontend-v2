@@ -33,9 +33,9 @@ const SKELETON_COUNT = 6;
  * 상태는 L 훅(`useEventList`)이 주소와 맞춘다. 헤더의 검색 아이콘은 숨긴다(`NO_SEARCH_ATTR`).
  */
 export function EventListView() {
-  const l = useEventList();
+  const list = useEventList();
   const pastLabelId = useId();
-  const { events } = l;
+  const { events } = list;
   // 이동 뒤 숨은 Activity로 남아도 다른 화면의 검색 아이콘을 숨기지 않게(fix-qa-1101)
   const markerRef = useActivityMarker<HTMLElement>();
   return (
@@ -50,7 +50,7 @@ export function EventListView() {
         className={s.search}
         onSubmit={(e) => {
           e.preventDefault();
-          l.submitKeyword();
+          list.submitKeyword();
         }}
       >
         <SearchField
@@ -58,9 +58,9 @@ export function EventListView() {
           aria-label="공연명, 호스트, 공연장으로 검색"
           placeholder="공연명, 호스트, 공연장으로 검색"
           enterKeyHint="search"
-          value={l.keywordInput}
-          onChange={(e) => l.setKeywordInput(e.target.value)}
-          onClear={l.submitKeyword}
+          value={list.keywordInput}
+          onChange={(e) => list.setKeywordInput(e.target.value)}
+          onClear={list.submitKeyword}
         />
       </form>
 
@@ -68,11 +68,11 @@ export function EventListView() {
         <div className={s.filtersStart}>
           {/* FIGMA-CUSTOM: 태그 패널 상자(gui 759:12049 "Frame 1707480347" 흰 판 · 테두리 · 모서리 8) 커스텀 → DS Popover. Figma 코멘트 2026-11-01 */}
           <Popover
-            trigger={<FilterChip label="태그" count={l.tags.selectedCount} />}
+            trigger={<FilterChip label="태그" count={list.tags.selectedCount} />}
             label="태그 고르기"
             align="start"
           >
-            <TagPanel tags={l.tags} onToggle={l.toggleTag} onReset={l.resetTags} />
+            <TagPanel tags={list.tags} onToggle={list.toggleTag} onReset={list.resetTags} />
           </Popover>
           <span className={s.pastToggle}>
             <Txt typography="labelSm" color={colors.textPrimary}>
@@ -80,8 +80,8 @@ export function EventListView() {
             </Txt>
             <Toggle
               aria-labelledby={pastLabelId}
-              checked={l.filter.includePast}
-              onCheckedChange={l.setIncludePast}
+              checked={list.filter.includePast}
+              onCheckedChange={list.setIncludePast}
             />
           </span>
         </div>
@@ -121,8 +121,8 @@ export function EventListView() {
               description="조건에 맞는 공연이 없어요."
               action={
                 // 결과 없음 다음 행동(#106 §3) — 목록 상태는 디자인 없음(DS로만). 추천(태그·다가오는 공연)은 design-requests Q91
-                l.hasConditions ? (
-                  <Button variant="secondary" size="sm" onClick={l.clearConditions}>
+                list.hasConditions ? (
+                  <Button variant="secondary" size="sm" onClick={list.clearConditions}>
                     검색 조건 지우기
                   </Button>
                 ) : undefined
