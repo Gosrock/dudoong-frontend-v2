@@ -761,6 +761,11 @@ export function hostCheckIn(eventId: number, ticketUuid: string): CheckInRespons
   return enter(t);
 }
 
+/** 티켓 번호(`T${1_000_000 + id}`) → uuid(PQ-2b mock — #926). 없으면 null */
+export function ticketUuidByNo(ticketNo: string): string | null {
+  return store.tickets.find((t) => `T${1_000_000 + t.id}` === ticketNo)?.uuid ?? null;
+}
+
 /** GQ-1(`V2IssuedTicketQuery.stats`) — 발급 = 입장 전 + 입장 완료(취소 제외), 입장률은 소수 첫째 자리 반올림, 발급 0이면 0 */
 export function checkInStatsOf(eventId: number): CheckInStats {
   const valid = store.tickets.filter(
