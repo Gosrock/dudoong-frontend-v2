@@ -129,6 +129,14 @@ describe('묶음 카드', () => {
     ).toEqual(['승인완료 2', '선물 대기중 1', '상태 확인 필요 3']);
   });
 
+  it('즉시 발급 묶음(approvalRequired=false — #924)은 승인완료 대신 발급 완료, 값이 없으면 승인완료(운영 2.5.3)', () => {
+    const labels = (approvalRequired?: boolean) =>
+      stateCounts({ APPROVED: 1, ENTERED: 1 }, approvalRequired).map((c) => c.label);
+    expect(labels(false)).toEqual(['발급 완료', '입장 완료']);
+    expect(labels(true)).toEqual(['승인완료', '입장 완료']);
+    expect(labels(undefined)).toEqual(['승인완료', '입장 완료']);
+  });
+
   const group = {
     groupKey: 'ticket:T1000011',
     orderUuid: null,
