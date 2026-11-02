@@ -45,7 +45,7 @@ export function TossTransferButton({ order }: { order: MyOrderDetail }) {
 /**
  * 입금 안내(B23 — 사용자 결정 2026-11-02: 주문을 입금 전에 먼저 만들고, 완료 화면에서 계좌·금액을 보인다).
  * FIGMA-CUSTOM: 주문 완료 GUI `939:27829`에는 계좌 자리가 없다(Q16 기본안은 "주문상세에서") — 흐름이 바뀌어 DS InfoRow 묶음으로
- * 최소안. 🤖 Claude 판단(2026-11-02), design-requests Q97. 입금 기한·자동 취소는 서버에 없다(출시 뒤 — Backend #914 답 2)
+ * 최소안. 🤖 Claude 판단(2026-11-02), design-requests Q97. Figma 코멘트 2026-11-02. 입금 기한·자동 취소는 서버에 없다(출시 뒤 — Backend #914 답 2)
  */
 export function DepositGuide({ order }: { order: MyOrderDetail }) {
   const account = order.payment?.account ?? null;

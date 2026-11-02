@@ -21,7 +21,7 @@ const TONE_ICON = {
 
 /**
  * 티켓 번호로 입장 처리(PQ-2b — 백엔드 #926, 이슈 #93 §5). [호스트가 QR 스캔] 카메라 아래에 둔다.
- * FIGMA-CUSTOM: 디자인 없음 — DS Input + Button, 결과는 QR 스캔 결과 카드와 같은 모양. 🤖 Claude 판단(2026-11-02), design-requests Q99.
+ * FIGMA-CUSTOM: 디자인 없음 — DS Input + Button, 결과는 QR 스캔 결과 카드와 같은 모양. 🤖 Claude 판단(2026-11-02), design-requests Q99. Figma 코멘트 2026-11-02(wire 424:11941).
  * 번호는 QR과 달리 추측할 수 있어(서버 요청) 입장 처리 뒤 **관객 이름(`ownerName`)을 크게** 보이고 확인을 부탁한다.
  */
 export function TicketNoCheckIn({ eventId }: { eventId: string }) {

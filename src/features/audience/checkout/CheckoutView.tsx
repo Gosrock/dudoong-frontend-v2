@@ -214,7 +214,7 @@ function CheckoutForm({
             {c.submitError.message}
           </Txt>
           {/* 주문이 생겼는지 모르는 실패(이슈 #92-4 · #914) — [다시 시도]는 같은 Idempotency-Key로 보내 서버가 앞 주문을 돌려준다(#923).
-              FIGMA-CUSTOM: 디자인 없음 — DS Button 둘(다시 시도 · 주문내역 확인). 🤖 Claude 판단(2026-11-02), design-requests Q98 */}
+              FIGMA-CUSTOM: 디자인 없음 — DS Button 둘(다시 시도 · 주문내역 확인). 🤖 Claude 판단(2026-11-02), design-requests Q98. Figma 코멘트 2026-11-02 */}
           {c.submitError.retrySameKey && (
             <Flex gap={2} className={s.errorBannerAction}>
               <Button
@@ -347,7 +347,7 @@ function CheckoutForm({
           closeOnBack={false}
           title="주문 완료하기"
           // FIGMA-CUSTOM: GUI 567:9468은 "입금 하셨나요?" + [결제완료](입금 뒤 주문). B23(사용자 결정 2026-11-02)으로 주문을 입금 전에
-          // 먼저 만든다 — 같은 DS Popup에 문구·버튼만 바꿨다. 계좌·금액 안내는 주문 완료 화면. 🤖 Claude 판단, design-requests Q97
+          // 먼저 만든다 — 같은 DS Popup에 문구·버튼만 바꿨다. 계좌·금액 안내는 주문 완료 화면. 🤖 Claude 판단, design-requests Q97. Figma 코멘트 2026-11-02
           description={
             <>
               확인을 누르면 주문이 호스트에게 전달되고 티켓이 잡혀요.

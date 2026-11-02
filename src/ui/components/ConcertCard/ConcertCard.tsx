@@ -17,7 +17,7 @@ export type ConcertCardProps = {
   date?: string | null;
   /**
    * 날짜 줄 아래 가격 줄(예: `15,000원~` · `무료` · `매진` · `티켓 없음`). 없으면 그리지 않는다.
-   * FIGMA-CUSTOM: DS ConcertCard(`759:22415`)에 가격 줄이 없다 — design-requests Q63 기본안. 🤖 Claude 판단(2026-11-02)
+   * FIGMA-CUSTOM: DS ConcertCard(`759:22415`)에 가격 줄이 없다 — design-requests Q63 기본안. 🤖 Claude 판단(2026-11-02). Figma 코멘트 2026-11-02
    */
   price?: string | null;
   /** 서버 포스터 주소. 없거나 못 읽으면 빈 상자(design-requests Q26 — 기본 이미지 자산 없음) */
