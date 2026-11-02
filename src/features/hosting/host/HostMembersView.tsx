@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
 import { overlay } from 'overlay-kit';
 
@@ -192,7 +193,7 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         {/* 와이어는 마스터·매니저만 역할을 적고 일반은 비워 둔다. 화면 읽기 프로그램에는 "일반"도 읽힌다 */}
         <span data-testid="member-role" data-role={member.role}>
           {member.roleLabelHidden ? (
-            <span className={s.visuallyHidden}>{member.roleLabel}</span>
+            <VisuallyHidden>{member.roleLabel}</VisuallyHidden>
           ) : (
             <Txt typography="bodySm" color={colors.textSecondaryLabel}>
               {member.roleLabel}

@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 
@@ -114,16 +115,16 @@ export function HostHomeView({ hostId }: { hostId: string }) {
           <span className={s.metaItem}>
             <Icon name="people" className={s.metaIcon} />
             <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-              <span className={s.srOnly}>멤버 </span>
+              <VisuallyHidden>멤버 </VisuallyHidden>
               {home.memberCount}
-              <span className={s.srOnly}>명</span>
+              <VisuallyHidden>명</VisuallyHidden>
             </Txt>
           </span>
           {home.createdOn && (
             <span className={s.metaItem}>
               <Icon name="calendar" className={s.metaIcon} />
               <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-                <span className={s.srOnly}>개설일 </span>
+                <VisuallyHidden>개설일 </VisuallyHidden>
                 {home.createdOn}
               </Txt>
             </span>

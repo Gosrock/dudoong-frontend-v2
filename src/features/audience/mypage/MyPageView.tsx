@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
 import { type FormEvent, useState } from 'react';
 
@@ -54,18 +55,19 @@ export function MyPageView() {
             {/* 연필 배지 = 사진 고르기(와이어 `128:2875`). 파일 칸은 숨기고 label로 연다 */}
             <label className={s.editBadge} aria-disabled={image.pending || undefined}>
               <Icon name="edit" className={s.editIcon} />
-              <span className={s.visuallyHidden}>프로필 이미지 바꾸기</span>
-              <input
-                type="file"
-                accept="image/jpeg,image/png"
-                className={s.visuallyHidden}
-                disabled={image.pending}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file) void image.change(file);
-                }}
-              />
+              <VisuallyHidden>프로필 이미지 바꾸기</VisuallyHidden>
+              <VisuallyHidden asChild>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  disabled={image.pending}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) void image.change(file);
+                  }}
+                />
+              </VisuallyHidden>
             </label>
           </span>
           <Flex direction="column" gap={1} className={s.grow}>

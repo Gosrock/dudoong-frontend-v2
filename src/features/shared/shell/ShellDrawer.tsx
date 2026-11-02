@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
 import { overlay } from 'overlay-kit';
 import type { ComponentPropsWithRef, MouseEvent, ReactNode } from 'react';
@@ -100,7 +101,7 @@ export function ShellDrawerContent({
                   {menu.profile.email}
                 </Txt>
               </span>
-              <span className={s.visuallyHidden}>{menu.profile.edit.label}</span>
+              <VisuallyHidden>{menu.profile.edit.label}</VisuallyHidden>
             </>,
             s.profile,
           )

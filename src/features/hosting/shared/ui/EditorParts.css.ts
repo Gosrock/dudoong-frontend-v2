@@ -15,15 +15,6 @@ export const preLine = style({ whiteSpace: 'pre-line' });
 
 export const fieldError = style({ margin: 0 });
 
-export const visuallyHidden = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-});
-
 /** 하단 고정 바 — 화면(가운데 영역) 아래에 붙는다. 모바일 위아래 36(→ 32) · 좌우 24, PC 24 · 위 테두리 */
 export const bottomBar = style({
   position: 'sticky',

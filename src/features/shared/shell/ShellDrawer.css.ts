@@ -86,13 +86,4 @@ export const moreCircle = style({
   border: `1px solid ${vars.color.surface.defaultBorder}`,
 });
 
-export const visuallyHidden = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-});
-
 globalStyle(`${row} > svg, ${shortcut} > svg`, { flexShrink: 0 });

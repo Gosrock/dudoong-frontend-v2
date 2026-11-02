@@ -1,5 +1,7 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
+
 import { STATE_TONE_COLOR } from '@/features/audience/ticket/ui/state-tone';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
@@ -16,7 +18,7 @@ export function OrderStatusChips({ view }: { view: OrderStatusView }) {
       </Chip>
       {view.refund && (
         <Chip size="sm" shape="square" color="grey" theme="weak">
-          <span className={s.visuallyHidden}> · </span>
+          <VisuallyHidden> · </VisuallyHidden>
           {view.refund}
         </Chip>
       )}

@@ -215,15 +215,6 @@ export const chipRow = style({ display: 'inline-flex', flexWrap: 'wrap', gap: va
 
 export const editIcon = style({ width: 16, height: 16 });
 
-export const visuallyHidden = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-});
-
 export const tabsBar = style({ padding: `0 ${vars.space[5]}` });
 
 export const stateBox = style({ padding: `${vars.space[7]} ${vars.space[5]}` });

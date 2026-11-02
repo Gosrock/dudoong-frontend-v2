@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect } from 'react';
 
@@ -38,7 +39,7 @@ export function FormSection({
           {required && (
             <Txt color={colors.textDangerLabel} typography="headingMd2Emphasized">
               <span aria-hidden>*</span>
-              <span className={s.visuallyHidden}> (필수)</span>
+              <VisuallyHidden> (필수)</VisuallyHidden>
             </Txt>
           )}
         </Txt>
