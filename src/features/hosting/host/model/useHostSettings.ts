@@ -1,7 +1,8 @@
 'use client';
 
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { handleError, handlersFrom } from '@/api/handle-error';
 import { updateHostMutation } from '@/api/host/mutations';
@@ -13,12 +14,16 @@ import { applyUpdatedHost } from '@/features/hosting/shared/model/host-cache';
 import {
   canAddContact,
   canRemoveContact,
+  emptyContact,
   HOST_CONTACT_OPTIONS,
-  withAddedContact,
-  withContactType,
-  withContactValue,
-  withoutContact,
 } from '@/features/hosting/shared/model/host-fields';
+import {
+  dirtyKeysOf,
+  EDIT_FORM_OPTIONS,
+  resolverFrom,
+  serverErrorOf,
+  useClearServerErrors,
+} from '@/features/hosting/shared/model/rhf-form';
 import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 
@@ -34,6 +39,9 @@ import {
   validateHostSettings,
 } from './host-settings-form';
 
+/** 서버 칸 → 그 칸을 이루는 값(고치면 서버 오류를 지운다) */
+const SERVER_FIELDS = { contacts: ['contacts'] } as const;
+
 const noImageErrors = (): Record<HostImageSlot, string | null> => ({ PROFILE: null, COVER: null });
 
 /**
@@ -45,12 +53,13 @@ const noImageErrors = (): Record<HostImageSlot, string | null> => ({ PROFILE: nu
  *   GH-6이 성공했는데 `myRole`이 null이면 멤버가 아닌 SUPER_ADMIN이라 매니저처럼 편집할 수 있다(`superAdminOrRole`, 사용자 결정
  *   2026-10-31). 모르는 역할은 `access: 'forbidden'`(P10a `hostingAccessOfRole`). 없는 호스트는 404 → 경계.
  *   일반 멤버는 읽기 전용(`canEdit: false` — patterns §22 "일반 멤버 = 읽기 전용", 저장하지 않는다)
- * - 폼은 처음 받은 값으로 한 번만 채운다 — 다시 온 조회가 편집 중인 값을 덮지 않는다(patterns §4-4). 저장이 끝나면 응답이 새 기준이다
- * - 저장: 바뀐 필드만 PH-4(patterns §23). 바뀐 것이 없거나 칸 오류가 있으면 요청하지 않는다. 성공하면 응답을 viewer 키에 넣고
+ * - 폼: RHF(patterns §23 — 연락처 반복 · 이미지 2칸). 처음 받은 값을 `defaultValues`로 한 번만 채운다 — 다시 온 조회가 편집 중인 값을
+ *   덮지 않는다(patterns §4-4). 저장이 끝나면 `reset(응답)`이 새 기준이다. 검증은 `validateHostSettings`를 resolver로(`rhf-form.ts`)
+ * - 저장: 바뀐 필드만 PH-4(patterns §23 — `dirtyFields` → 공백 비교). 바뀐 것이 없거나 칸 오류가 있으면 요청하지 않는다. 성공하면 응답을 viewer 키에 넣고
  *   공개 GH-3·GH-1·GE-1·GM-1을 무효화한다(`applyUpdatedHost`)
  * - 이미지: `images.PROFILE|COVER.change(file)` = PH-15 발급 → S3 PUT(`src/api/upload.ts`) → 폼 값에 `key`(저장 때 PH-4로).
  *   `reset()`은 기본 이미지(`''`), `retry()`는 마지막 파일로 발급부터 다시. 확장자·S3 실패는 그 자리 오류, 429 등은 공용 토스트(handleError)
- * - 에러(patterns §24 P10b): `HOST_400_16` → 연락처 영역 오류(연락처를 고치면 지운다), `HOST_400_17` → 올린 이미지를 버리고
+ * - 에러(patterns §24 P10b): `HOST_400_16` → 연락처 영역 오류(`setError('root.contacts')` — 연락처를 고치면 지운다), `HOST_400_17` → 올린 이미지를 버리고
  *   그 자리 오류("다시 올려 주세요" — 업로드 처음부터). 그 밖은 공용 토스트(handleError)
  */
 export function useHostSettings(hostId: string) {
@@ -63,16 +72,24 @@ export function useHostSettings(hostId: string) {
   const access = hostingAccessOfRole(role);
   const canEdit = can(role, 'editHost');
 
-  const [base, setBase] = useState<HostSettingsValues>(() => hostSettingsValuesOf(host));
-  const [values, setValues] = useState<HostSettingsValues>(base);
-  const [attempted, setAttempted] = useState(false);
-  const [contactsServerError, setContactsServerError] = useState<string | null>(null);
+  const form = useForm<HostSettingsValues>({
+    ...EDIT_FORM_OPTIONS,
+    defaultValues: hostSettingsValuesOf(host),
+    resolver: resolverFrom((v) => validateHostSettings(base, v, dirtyKeys)),
+  });
+  const contactRows = useFieldArray({ control: form.control, name: 'contacts' });
+  const values = useWatch({ control: form.control }) as HostSettingsValues;
+  const { defaultValues, dirtyFields, isDirty, isSubmitted, errors: formErrors } = form.formState;
+  const base = defaultValues as HostSettingsValues;
+  const dirtyKeys = dirtyKeysOf(dirtyFields);
+  useClearServerErrors(form, SERVER_FIELDS);
+
   const [imageErrors, setImageErrors] = useState(noImageErrors);
   const lastFiles = useRef<Partial<Record<HostImageSlot, File>>>({});
   const inflight = useRef(false);
 
-  const errors = useMemo(() => validateHostSettings(base, values), [base, values]);
-  const dirty = useMemo(() => isHostSettingsDirty(base, values), [base, values]);
+  const errors = validateHostSettings(base, values, dirtyKeys);
+  const dirty = isDirty && isHostSettingsDirty(base, values, dirtyKeys);
 
   // ─── 이미지(발급 → S3, 저장은 PH-4) ───
   const imageMutation = useMutation({
@@ -89,10 +106,11 @@ export function useHostSettings(hostId: string) {
       setImageErrors((prev) => ({ ...prev, [slot]: null }));
       try {
         const uploaded = await imageMutation.mutateAsync({ slot, file });
-        setValues((v) => ({
-          ...v,
-          images: { ...v.images, [slot]: { url: uploaded.url, key: uploaded.key } },
-        }));
+        form.setValue(
+          `images.${slot}`,
+          { url: uploaded.url, key: uploaded.key },
+          { shouldDirty: true },
+        );
       } catch (e) {
         // 그 자리의 업로드 오류(공용 문구 — A10). 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
         handleError(
@@ -103,15 +121,15 @@ export function useHostSettings(hostId: string) {
         );
       }
     },
-    [canEdit, imageMutation],
+    [canEdit, form, imageMutation],
   );
   const resetImage = useCallback(
     (slot: HostImageSlot) => {
       if (!canEdit || imageMutation.isPending) return;
       setImageErrors((prev) => ({ ...prev, [slot]: null }));
-      setValues((v) => ({ ...v, images: { ...v.images, [slot]: { url: null, key: '' } } }));
+      form.setValue(`images.${slot}`, { url: null, key: '' }, { shouldDirty: true });
     },
-    [canEdit, imageMutation.isPending],
+    [canEdit, form, imageMutation.isPending],
   );
 
   const retryImage = useCallback(
@@ -130,72 +148,51 @@ export function useHostSettings(hostId: string) {
   });
 
   /** 저장했으면 `true`. 읽기 전용·바뀐 것 없음·칸 오류·업로드 중·저장 중이면 요청하지 않고 `false` */
-  const save = useCallback(async () => {
-    setAttempted(true);
-    if (!canEdit || !dirty || hasHostSettingsErrors(errors)) return false;
-    if (imageMutation.isPending || inflight.current) return false;
-    inflight.current = true;
-    setContactsServerError(null);
-    const body = toUpdateHostBody(base, values);
-    try {
-      const updated = await saveMutation.mutateAsync(body);
-      inflight.current = false;
-      const next = hostSettingsValuesOf(updated);
-      setBase(next);
-      setValues(next);
-      setAttempted(false);
-      setImageErrors(noImageErrors());
-      lastFiles.current = {};
-      return true;
-    } catch (e) {
-      inflight.current = false;
-      // 표에 없는 실패는 공용 토스트
-      handleError(e, {
-        HOST_400_16: () => setContactsServerError(HOST_SETTINGS_ERROR_MESSAGE.HOST_400_16),
-        // HOST_400_17 — 어느 자리의 key인지 서버가 말하지 않는다. 이번에 새로 올려 보낸 자리를 모두 버리고(지운 자리 `''`는 남긴다)
-        // 그 자리에 "다시 올려 주세요"
-        HOST_400_17: () => {
-          const failed = HOST_IMAGE_SLOTS.filter((slot) =>
-            Boolean(slot === 'PROFILE' ? body.profileImageKey : body.coverImageKey),
-          );
-          setValues((v) => {
-            const images = { ...v.images };
-            for (const slot of failed) images[slot] = { url: base.images[slot].url };
-            return { ...v, images };
-          });
-          setImageErrors((prev) => {
-            const next = { ...prev };
-            for (const slot of failed) next[slot] = HOST_SETTINGS_ERROR_MESSAGE.HOST_400_17;
-            return next;
-          });
-        },
-      });
-      return false;
-    }
-  }, [base, canEdit, dirty, errors, imageMutation.isPending, saveMutation, values]);
-
-  // ─── 칸 ───
-  const setName = useCallback((name: string) => setValues((v) => ({ ...v, name })), []);
-  const setIntroduce = useCallback(
-    (introduce: string) => setValues((v) => ({ ...v, introduce })),
-    [],
-  );
-  const setContactType = useCallback((index: number, type: HostContactType) => {
-    setContactsServerError(null);
-    setValues((v) => ({ ...v, contacts: withContactType(v.contacts, index, type) }));
-  }, []);
-  const setContactValue = useCallback((index: number, value: string) => {
-    setContactsServerError(null);
-    setValues((v) => ({ ...v, contacts: withContactValue(v.contacts, index, value) }));
-  }, []);
-  const addContact = useCallback(() => {
-    setContactsServerError(null);
-    setValues((v) => ({ ...v, contacts: withAddedContact(v.contacts) }));
-  }, []);
-  const removeContact = useCallback((index: number) => {
-    setContactsServerError(null);
-    setValues((v) => ({ ...v, contacts: withoutContact(v.contacts, index) }));
-  }, []);
+  const save = async () => {
+    const saved = await form.handleSubmit(async (valid) => {
+      if (!canEdit || !dirty) return;
+      if (imageMutation.isPending || inflight.current) return;
+      inflight.current = true;
+      const body = toUpdateHostBody(base, valid, dirtyKeys);
+      try {
+        const updated = await saveMutation.mutateAsync(body);
+        inflight.current = false;
+        return updated;
+      } catch (e) {
+        inflight.current = false;
+        // 표에 없는 실패는 공용 토스트
+        handleError(e, {
+          HOST_400_16: () =>
+            form.setError('root.contacts', { message: HOST_SETTINGS_ERROR_MESSAGE.HOST_400_16 }),
+          // HOST_400_17 — 어느 자리의 key인지 서버가 말하지 않는다. 이번에 새로 올려 보낸 자리를 모두 버리고(지운 자리 `''`는 남긴다)
+          // 그 자리에 "다시 올려 주세요"
+          HOST_400_17: () => {
+            const failed = HOST_IMAGE_SLOTS.filter((slot) =>
+              Boolean(slot === 'PROFILE' ? body.profileImageKey : body.coverImageKey),
+            );
+            for (const slot of failed) {
+              form.setValue(
+                `images.${slot}`,
+                { url: base.images[slot].url },
+                { shouldDirty: true },
+              );
+            }
+            setImageErrors((prev) => {
+              const next = { ...prev };
+              for (const slot of failed) next[slot] = HOST_SETTINGS_ERROR_MESSAGE.HOST_400_17;
+              return next;
+            });
+          },
+        });
+      }
+    })();
+    if (!saved) return false;
+    // `handleSubmit`이 끝난 뒤에 새 기준으로 — 그래야 `isSubmitted`(칸 오류 표시)도 풀린다
+    form.reset(hostSettingsValuesOf(saved));
+    setImageErrors(noImageErrors());
+    lastFiles.current = {};
+    return true;
+  };
 
   const image = (slot: HostImageSlot) => ({
     /** 미리보기 주소(저장 전에는 올린 이미지, 기본 이미지면 null) */
@@ -217,26 +214,36 @@ export function useHostSettings(hostId: string) {
     access,
     /** 매니저 이상만 저장한다. 일반 멤버는 읽기 전용 */
     canEdit,
+    /** RHF 폼 — 이름·소개·연락처 값은 `register`(V) */
+    form,
+    /** 지금 값 */
     values,
-    setName,
-    setIntroduce,
-    setContactType,
-    setContactValue,
-    addContact,
-    removeContact,
-    canAddContact: canEdit && canAddContact(values.contacts),
-    canRemoveContact: canEdit && canRemoveContact(values.contacts),
-    /** 연락처 유형 6종(라벨·placeholder) — 호스트 만들기와 같다 */
-    contactOptions: HOST_CONTACT_OPTIONS,
+    contacts: {
+      /** 줄 키(`id`) — 값은 `values.contacts` */
+      rows: contactRows.fields,
+      /** 유형 고르기(드롭다운 — `register`가 닿지 않는 Radix 칸) */
+      setType: (index: number, type: HostContactType) =>
+        form.setValue(`contacts.${index}.type`, type, { shouldDirty: true }),
+      add: () => {
+        if (canAddContact(form.getValues('contacts'))) contactRows.append(emptyContact());
+      },
+      remove: (index: number) => {
+        if (canRemoveContact(form.getValues('contacts'))) contactRows.remove(index);
+      },
+      canAdd: canEdit && canAddContact(values.contacts),
+      canRemove: canEdit && canRemoveContact(values.contacts),
+      /** 연락처 유형 6종(라벨·placeholder) — 호스트 만들기와 같다 */
+      options: HOST_CONTACT_OPTIONS,
+      /** 서버 `HOST_400_16`(어느 줄인지 모른다). 연락처를 고치면 지운다 */
+      serverError: serverErrorOf(formErrors, 'contacts'),
+    },
     images: { PROFILE: image('PROFILE'), COVER: image('COVER') },
     /** 바뀐 칸의 오류 */
     errors,
-    /** [저장]을 한 번이라도 눌렀는지 — 칸 오류를 보일 시점의 기준 */
-    attempted,
-    /** 저장하지 않은 변경이 있는지(이탈 확인은 V) */
+    /** [저장]을 한 번이라도 눌렀는지(`formState.isSubmitted`) — 칸 오류를 보일 시점의 기준 */
+    attempted: isSubmitted,
+    /** 저장하지 않은 변경이 있는지(`formState.isDirty` + 공백만 바꾼 칸 거름 — 이탈 확인은 V) */
     dirty,
-    /** 서버 `HOST_400_16`(어느 줄인지 모른다). 연락처를 고치면 지운다 */
-    contactsServerError,
     saving: saveMutation.isPending,
     /** 저장할 수 있는 상태(버튼 활성 기준) */
     canSave:

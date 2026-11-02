@@ -63,26 +63,8 @@ export const backButton = style({
   cursor: 'pointer',
 });
 
-/** 칸 묶음: 제목 + 안내 + 칸(간격 10 → 8) */
-export const field = style({ display: 'flex', flexDirection: 'column', gap: vars.space[2] });
-
-/** 제목 줄 + 오른쪽 토글 */
-export const toggleRow = style({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: vars.space[4],
-});
-
-export const radios = style({ display: 'flex', gap: vars.space[7] });
+/** DS 컴포넌트에 붙는 클래스는 `'&&'`로 세기를 올린다 — CSS 청크 순서와 상관없이 DS 기본값을 덮게(`ContactRows` · 옵션 칸) */
+export const radios = style({ selectors: { '&&': { display: 'flex', gap: vars.space[7] } } });
 
 /** 금액 칸 195(GUI `943:2265`) */
-export const price = style({ maxWidth: 195 });
-
-/** 상세 머리 줄 [수정] (`943:2390`) */
-export const detailTop = style({ display: 'flex', justifyContent: 'flex-start' });
-
-export const muted = style({ opacity: 0.5 });
-
-/** 상세 하단 [옵션 삭제] — 디자인 없음(plan P12 기본안) */
-export const deleteRow = style({ display: 'flex', justifyContent: 'center' });
+export const price = style({ selectors: { '&&': { maxWidth: 195 } } });

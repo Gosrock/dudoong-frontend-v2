@@ -62,8 +62,8 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
       '세트리스트',
       '유의사항',
     ]);
-    expect(result.current.dirty).toBe(false);
-    expect(result.current.canSave).toBe(false);
+    expect(result.current.status.dirty).toBe(false);
+    expect(result.current.status.canSave).toBe(false);
     expect((await sent.list()).find((r) => r.path.endsWith('/sections'))).toMatchObject({
       credentials: 'include',
     });
@@ -74,7 +74,7 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
     await loaded(result);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     const first = result.current.sections[0]!.key;
-    act(() => result.current.setContent(first, '<p>신입 환영 공연이에요</p>'));
+    act(() => result.current.tabs.setContent(first, '<p>신입 환영 공연이에요</p>'));
     const sent = recordRequests();
     expect(await save(result)).toBe(true);
     const [put] = await writes(sent);
@@ -98,8 +98,8 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
         eventSectionsQuery('140').queryKey,
       ]),
     );
-    expect(result.current.dirty).toBe(false);
-    expect(result.current.savedNotice).toBe('saved');
+    expect(result.current.status.dirty).toBe(false);
+    expect(result.current.savedNotice.kind).toBe('saved');
   });
 
   it('뺀 섹션은 본문에 없다(서버에서 지워진다) — 등록된 공연이면 registeredChanged, 관객 GE-5에 바로 반영', async () => {
@@ -107,12 +107,12 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
     await loaded(result);
     expect(result.current.sections).toHaveLength(4);
     const [, setlist] = [result.current.sections[0]!, result.current.sections[2]!];
-    act(() => result.current.removeSection(setlist.key));
+    act(() => result.current.tabs.remove(setlist.key));
     const sent = recordRequests();
     await save(result);
     const body = (await writes(sent))[0]!.body as { sections: { title: string }[] };
     expect(body.sections.map((s) => s.title)).toEqual(['공연 소개', '예매안내', '유의사항']);
-    expect(result.current.savedNotice).toBe('registeredChanged');
+    expect(result.current.savedNotice.kind).toBe('registeredChanged');
     const pub = await queryClient.fetchQuery(eventSectionsQuery('101'));
     expect(pub.map((s) => s.title)).toEqual(['공연 소개', '예매안내', '유의사항']);
   });
@@ -120,10 +120,10 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
   it('1~10개: 10개면 더하지 않고 1개면 빼지 않는다, 빈 제목은 칸 오류로 요청하지 않는다', async () => {
     const { result } = setup('140');
     await loaded(result);
-    for (let i = 0; i < 7; i += 1) act(() => result.current.addSection());
+    for (let i = 0; i < 7; i += 1) act(() => result.current.tabs.add());
     expect(result.current.sections).toHaveLength(10);
-    expect(result.current.canAddSection).toBe(false);
-    act(() => result.current.addSection());
+    expect(result.current.tabs.canAdd).toBe(false);
+    act(() => result.current.tabs.add());
     expect(result.current.sections).toHaveLength(10);
     const sent = recordRequests();
     expect(await save(result)).toBe(false);
@@ -138,7 +138,7 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
     const sent = recordRequests();
     let url: string | null = null;
     await act(async () => {
-      url = await result.current.uploadSectionImage(
+      url = await result.current.image.upload(
         new File([new Uint8Array([1])], 'a.jpg', { type: 'image/jpeg' }),
       );
     });
@@ -155,13 +155,11 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
     await loaded(result);
     expect(result.current.canEdit).toBe(false);
     const key = result.current.sections[0]!.key;
-    act(() => result.current.setTitle(key, '바꿈'));
+    act(() => result.current.tabs.setTitle(key, '바꿈'));
     expect(result.current.sections[0]!.title).toBe('공연 소개');
-    expect(result.current.canAddSection).toBe(false);
+    expect(result.current.tabs.canAdd).toBe(false);
     const sent = recordRequests();
-    await act(() =>
-      result.current.uploadSectionImage(new File([], 'a.png', { type: 'image/png' })),
-    );
+    await act(() => result.current.image.upload(new File([], 'a.png', { type: 'image/png' })));
     expect(await sent.list()).toEqual([]);
   });
 
@@ -169,7 +167,7 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
     server.use(...hostingEventSets.sectionsFails(140, 'Event_400_21'));
     const { result } = setup('140');
     await loaded(result);
-    act(() => result.current.setContent(result.current.sections[0]!.key, '<p>x</p>'));
+    act(() => result.current.tabs.setContent(result.current.sections[0]!.key, '<p>x</p>'));
     expect(await save(result)).toBe(false);
     expect(result.current.formError).toBe(
       '섹션 형식을 확인해 주세요(1~10개, 탭 이름 20자, 본문 20,000자)',

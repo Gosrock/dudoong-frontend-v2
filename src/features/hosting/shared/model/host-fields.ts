@@ -37,6 +37,10 @@ export const HOST_CONTACT_OPTIONS: readonly {
 export const contactPlaceholder = (type: HostContactType | null) =>
   HOST_CONTACT_OPTIONS.find((o) => o.type === type)?.placeholder ?? null;
 
+/** 호스트 연락처 값 칸의 글자 수 상한(전화 15 · 그 밖 200) */
+export const hostContactMaxLength = (type: HostContactType | null) =>
+  type === 'PHONE' ? HOST_PHONE_VALUE_MAX : HOST_CONTACT_VALUE_MAX;
+
 /** 연락처 한 줄. 유형을 고르기 전에는 `type: null` */
 export type HostContactInput = { type: HostContactType | null; value: string };
 
@@ -56,28 +60,6 @@ export const canAddContact = (contacts: readonly HostContactInput[]) =>
   contacts.length < HOST_CONTACTS_MAX;
 export const canRemoveContact = (contacts: readonly HostContactInput[]) =>
   contacts.length > HOST_CONTACTS_MIN;
-
-// ─── 줄 바꾸기(훅의 setState 안에서 쓴다) ────────────────────
-
-export const withContactType = (
-  contacts: readonly HostContactInput[],
-  index: number,
-  type: HostContactType,
-) => contacts.map((c, i) => (i === index ? { ...c, type } : c));
-
-export const withContactValue = (
-  contacts: readonly HostContactInput[],
-  index: number,
-  value: string,
-) => contacts.map((c, i) => (i === index ? { ...c, value } : c));
-
-/** 10줄이면 그대로 */
-export const withAddedContact = (contacts: readonly HostContactInput[]) =>
-  canAddContact(contacts) ? [...contacts, emptyContact()] : [...contacts];
-
-/** 1줄이면 그대로 */
-export const withoutContact = (contacts: readonly HostContactInput[], index: number) =>
-  canRemoveContact(contacts) ? contacts.filter((_, i) => i !== index) : [...contacts];
 
 // ─── 칸 오류 ─────────────────────────────────────────────────
 

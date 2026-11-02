@@ -14,6 +14,7 @@ import { hostDetailQuery, hostViewerQuery, MY_HOSTS_KEY } from '@/api/host/queri
 import { UpdateHostRequestSchema } from '@/api/host/schema';
 import { meQuery } from '@/api/me/queries';
 import { hostingAccessOfError } from '@/features/hosting/access/model/hosting-access';
+import { typeInto } from '@/features/hosting/shared/model/rhf-test';
 import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
@@ -110,7 +111,7 @@ describe('호스트 설정 — 접근(비멤버 403 · 일반 멤버 읽기 전�
     await loaded(result);
     expect(result.current.access).toBe('ok');
     expect(result.current.canEdit).toBe(false);
-    act(() => result.current.setName('바꾼 이름'));
+    typeInto(result.current.form, 'name', '바꾼 이름');
     expect(result.current.canSave).toBe(false);
     let saved: boolean | undefined;
     await act(async () => {
@@ -142,12 +143,10 @@ describe('호스트 설정 — 저장(PH-4, 바뀐 필드만)', () => {
     const sent = recordRequests();
     const { result, queryClient } = setup();
     await loaded(result);
-    act(() => {
-      result.current.setName(' 고스락 밴드 ');
-      result.current.addContact();
-      result.current.setContactType(3, 'PHONE');
-      result.current.setContactValue(3, '01012345678');
-    });
+    typeInto(result.current.form, 'name', ' 고스락 밴드 ');
+    act(() => result.current.contacts.add());
+    act(() => result.current.contacts.setType(3, 'PHONE'));
+    typeInto(result.current.form, 'contacts.3.value', '01012345678');
     expect(result.current.dirty).toBe(true);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     let saved: boolean | undefined;
@@ -183,7 +182,7 @@ describe('호스트 설정 — 저장(PH-4, 바뀐 필드만)', () => {
     const sent = recordRequests();
     const { result } = setup();
     await loaded(result);
-    act(() => result.current.setIntroduce(''));
+    typeInto(result.current.form, 'introduce', '');
     await act(() => result.current.save());
     expect((await writes(sent))[0]!.body).toEqual({ introduce: '' });
     expect(result.current.host.introduce).toBeNull();
@@ -193,7 +192,7 @@ describe('호스트 설정 — 저장(PH-4, 바뀐 필드만)', () => {
     const sent = recordRequests();
     const { result } = setup();
     await loaded(result);
-    act(() => result.current.setName('  '));
+    typeInto(result.current.form, 'name', '  ');
     await act(() => result.current.save());
     expect(await writes(sent)).toEqual([]);
     expect(result.current.attempted).toBe(true);
@@ -216,19 +215,19 @@ describe('호스트 설정 — 저장(PH-4, 바뀐 필드만)', () => {
     );
     const { result } = setup();
     await loaded(result);
-    act(() => result.current.setContactValue(0, '@changed'));
+    typeInto(result.current.form, 'contacts.0.value', '@changed');
     await act(() => result.current.save());
-    expect(result.current.contactsServerError).toBe('연락처 형식을 확인해 주세요');
+    expect(result.current.contacts.serverError).toBe('연락처 형식을 확인해 주세요');
     expect(errorToast).not.toHaveBeenCalled();
-    act(() => result.current.setContactValue(0, '@changed2'));
-    expect(result.current.contactsServerError).toBeNull();
+    typeInto(result.current.form, 'contacts.0.value', '@changed2');
+    expect(result.current.contacts.serverError).toBeNull();
   });
 
   it('표에 없는 실패(5xx)는 공용 토스트로 간다', async () => {
     server.use(http.patch('*/api/v2/hosts/11', ({ request }) => errors.serverError(request)));
     const { result } = setup();
     await loaded(result);
-    act(() => result.current.setName('새 이름'));
+    typeInto(result.current.form, 'name', '새 이름');
     await act(() => result.current.save());
     expect(errorToast).toHaveBeenCalledWith(
       '서버 오류. 관리자에게 문의 부탁드립니다.',
@@ -325,7 +324,7 @@ describe('호스트 이미지 — PH-15 발급 → S3 PUT → PH-4', () => {
     await loaded(result);
     const before = result.current.images.PROFILE.url;
     await act(() => result.current.images.PROFILE.change(png()));
-    act(() => result.current.setName('새 이름'));
+    typeInto(result.current.form, 'name', '새 이름');
     await act(() => result.current.save());
     expect(result.current.images.PROFILE).toMatchObject({
       url: before,

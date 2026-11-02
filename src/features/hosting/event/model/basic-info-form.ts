@@ -11,6 +11,7 @@ import {
   contactInputsOf,
   type HostContactInput,
 } from '@/features/hosting/shared/model/host-fields';
+import { ALL_DIRTY } from '@/features/hosting/shared/model/rhf-form';
 
 import {
   emptyPlace,
@@ -130,8 +131,9 @@ export function validateBasicInfo(
   base: BasicInfoValues,
   values: BasicInfoValues,
   { registered, now }: { registered: boolean; now: Date },
+  dirty?: ReadonlySet<string>,
 ): BasicInfoErrors {
-  const changed = changedBasicFields(base, values);
+  const changed = changedBasicFields(base, values, dirty);
   return {
     name: changed.name ? nameError(values.name) : null,
     schedule: changed.schedule
@@ -155,21 +157,33 @@ export const hasBasicInfoErrors = (e: BasicInfoErrors) =>
 
 // ─── 바뀐 필드 ───────────────────────────────────────────────
 
-export function changedBasicFields(base: BasicInfoValues, values: BasicInfoValues) {
+/**
+ * 바뀐 필드. `dirty`(RHF `dirtyFields`의 맨 위 칸 — `dirtyKeysOf`)가 1차, 값 비교가 2차(빈 문의처 줄 · 태그 순서 · 같은 일정 거르기).
+ * `dirty`를 주지 않으면 모든 칸을 값으로만 비교한다
+ */
+export function changedBasicFields(
+  base: BasicInfoValues,
+  values: BasicInfoValues,
+  dirty: ReadonlySet<string> = ALL_DIRTY,
+) {
   return {
-    poster: values.poster.key !== undefined,
-    name: base.name !== values.name,
-    schedule: !isSameSchedule(base.schedule, values.schedule),
+    poster: dirty.has('poster') && values.poster.key !== undefined,
+    name: dirty.has('name') && base.name !== values.name,
+    schedule: dirty.has('schedule') && !isSameSchedule(base.schedule, values.schedule),
     // 장소 칸을 모두 비우면 보낼 수 없다(서버는 장소를 지우는 수정을 받지 않는다) — 바뀌지 않은 것으로 본다
-    place: !isSamePlace(base.place, values.place) && !isPlaceEmpty(values.place),
-    contacts: !sameContacts(base.contacts, values.contacts),
-    tagIds: !sameTags(base.tagIds, values.tagIds),
-    hasTicket: base.hasTicket !== values.hasTicket,
+    place:
+      dirty.has('place') && !isSamePlace(base.place, values.place) && !isPlaceEmpty(values.place),
+    contacts: dirty.has('contacts') && !sameContacts(base.contacts, values.contacts),
+    tagIds: dirty.has('tagIds') && !sameTags(base.tagIds, values.tagIds),
+    hasTicket: dirty.has('hasTicket') && base.hasTicket !== values.hasTicket,
   };
 }
 
-export const isBasicInfoDirty = (base: BasicInfoValues, values: BasicInfoValues) =>
-  Object.values(changedBasicFields(base, values)).some(Boolean);
+export const isBasicInfoDirty = (
+  base: BasicInfoValues,
+  values: BasicInfoValues,
+  dirty?: ReadonlySet<string>,
+) => Object.values(changedBasicFields(base, values, dirty)).some(Boolean);
 
 /**
  * 보내는 본문(PE-4) — 바뀐 필드만. 장소를 고치면 상세주소까지 통째로(`toPlaceRequest`), 문의처·태그는 전체.
@@ -178,8 +192,9 @@ export const isBasicInfoDirty = (base: BasicInfoValues, values: BasicInfoValues)
 export function toUpdateEventBasicBody(
   base: BasicInfoValues,
   values: BasicInfoValues,
+  dirty?: ReadonlySet<string>,
 ): UpdateEventBasicRequest {
-  const changed = changedBasicFields(base, values);
+  const changed = changedBasicFields(base, values, dirty);
   const body: UpdateEventBasicRequest = {};
   if (changed.poster) body.posterImageKey = values.poster.key;
   if (changed.name) body.name = values.name.trim();

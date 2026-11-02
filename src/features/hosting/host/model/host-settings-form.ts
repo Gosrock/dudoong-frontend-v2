@@ -8,6 +8,7 @@ import {
   nameError,
   toContactsBody,
 } from '@/features/hosting/shared/model/host-fields';
+import { ALL_DIRTY } from '@/features/hosting/shared/model/rhf-form';
 
 /**
  * 호스트 설정(`/hosting/hosts/[hostId]/settings`, PH-4 · PH-15, plan P10b) 폼. 칸 규칙은 호스트 만들기와 같다(`host-fields.ts`).
@@ -47,19 +48,29 @@ const sameContacts = (a: readonly HostContactInput[], b: readonly HostContactInp
   a.length === b.length &&
   a.every((c, i) => c.type === b[i]!.type && c.value.trim() === b[i]!.value.trim());
 
-/** 바뀐 필드. 이름·소개는 앞뒤 공백을 지운 값으로 비교한다 */
-export function changedHostFields(base: HostSettingsValues, values: HostSettingsValues) {
+/**
+ * 바뀐 필드. `dirty`(RHF `dirtyFields`의 맨 위 칸 — `dirtyKeysOf`)가 1차, 값 비교가 2차 — 이름·소개는 앞뒤 공백을 지운 값으로 비교한다
+ * (공백만 바꾼 칸은 RHF에서 dirty지만 보내지 않는다). `dirty`를 주지 않으면 모든 칸을 값으로만 비교한다
+ */
+export function changedHostFields(
+  base: HostSettingsValues,
+  values: HostSettingsValues,
+  dirty: ReadonlySet<string> = ALL_DIRTY,
+) {
   return {
-    name: values.name.trim() !== base.name.trim(),
-    introduce: values.introduce.trim() !== base.introduce.trim(),
-    contacts: !sameContacts(base.contacts, values.contacts),
-    profileImage: values.images.PROFILE.key !== undefined,
-    coverImage: values.images.COVER.key !== undefined,
+    name: dirty.has('name') && values.name.trim() !== base.name.trim(),
+    introduce: dirty.has('introduce') && values.introduce.trim() !== base.introduce.trim(),
+    contacts: dirty.has('contacts') && !sameContacts(base.contacts, values.contacts),
+    profileImage: dirty.has('images') && values.images.PROFILE.key !== undefined,
+    coverImage: dirty.has('images') && values.images.COVER.key !== undefined,
   };
 }
 
-export const isHostSettingsDirty = (base: HostSettingsValues, values: HostSettingsValues) =>
-  Object.values(changedHostFields(base, values)).some(Boolean);
+export const isHostSettingsDirty = (
+  base: HostSettingsValues,
+  values: HostSettingsValues,
+  dirty?: ReadonlySet<string>,
+) => Object.values(changedHostFields(base, values, dirty)).some(Boolean);
 
 export type HostSettingsErrors = {
   name: string | null;
@@ -72,8 +83,9 @@ export type HostSettingsErrors = {
 export function validateHostSettings(
   base: HostSettingsValues,
   values: HostSettingsValues,
+  dirty?: ReadonlySet<string>,
 ): HostSettingsErrors {
-  const changed = changedHostFields(base, values);
+  const changed = changedHostFields(base, values, dirty);
   return {
     name: changed.name ? nameError(values.name) : null,
     introduce: changed.introduce ? introduceError(values.introduce) : null,
@@ -92,8 +104,9 @@ export const hasHostSettingsErrors = (errors: HostSettingsErrors) =>
 export function toUpdateHostBody(
   base: HostSettingsValues,
   values: HostSettingsValues,
+  dirty?: ReadonlySet<string>,
 ): UpdateHostRequest {
-  const changed = changedHostFields(base, values);
+  const changed = changedHostFields(base, values, dirty);
   return {
     ...(changed.name && { name: values.name.trim() }),
     ...(changed.introduce && { introduce: values.introduce.trim() }),

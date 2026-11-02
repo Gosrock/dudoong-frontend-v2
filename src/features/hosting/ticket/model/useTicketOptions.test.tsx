@@ -103,8 +103,8 @@ describe('새 옵션 — 만들기(O-2) + 붙이기(O-5) 한 동작', () => {
     const { result } = setupOptions('101', 503);
     await poolLoaded(result);
     act(() => {
-      result.current.setName('응원 문구');
-      result.current.setDescription('짧게 적어 주세요');
+      result.current.newOption.set.name('응원 문구');
+      result.current.newOption.set.description('짧게 적어 주세요');
     });
     const sent = recordRequests();
     let outcome = '';
@@ -121,7 +121,7 @@ describe('새 옵션 — 만들기(O-2) + 붙이기(O-5) 한 동작', () => {
       ['PUT', '/api/v2/events/101/ticket-items/503/options', { optionIds: [8701] }],
     ]);
     await waitFor(() => expect(result.current.attached.map((o) => o.optionId)).toEqual([8701]));
-    expect(result.current.values.name).toBe('');
+    expect(result.current.newOption.values.name).toBe('');
   });
 
   it('붙이기가 실패하면 createdOnly — 옵션은 풀에 남고 partial, retryAttach로 다시 붙인다', async () => {
@@ -129,8 +129,8 @@ describe('새 옵션 — 만들기(O-2) + 붙이기(O-5) 한 동작', () => {
     const { result, queryClient } = setupOptions('101', 503);
     await poolLoaded(result);
     act(() => {
-      result.current.setName('뒤풀이');
-      result.current.setDescription('참석하나요?');
+      result.current.newOption.set.name('뒤풀이');
+      result.current.newOption.set.description('참석하나요?');
     });
     let outcome = '';
     await act(async () => {
@@ -155,10 +155,10 @@ describe('새 옵션 — 만들기(O-2) + 붙이기(O-5) 한 동작', () => {
     const { result } = setupOptions('101', 503);
     await poolLoaded(result);
     act(() => {
-      result.current.setName('a');
-      result.current.setDescription('가'.repeat(51));
+      result.current.newOption.set.name('a');
+      result.current.newOption.set.description('가'.repeat(51));
     });
-    expect(result.current.errors.description).toEqual(expect.any(String));
+    expect(result.current.newOption.errors.description).toEqual(expect.any(String));
     const sent = recordRequests();
     let outcome = '';
     await act(async () => {
@@ -172,12 +172,12 @@ describe('새 옵션 — 만들기(O-2) + 붙이기(O-5) 한 동작', () => {
     const { result } = setupOptions('101', 503);
     await poolLoaded(result);
     act(() => {
-      result.current.setName('뒤풀이');
-      result.current.setDescription('참석?');
-      result.current.setType('YES_NO');
-      result.current.setYesAdditionalPrice('5000');
+      result.current.newOption.set.name('뒤풀이');
+      result.current.newOption.set.description('참석?');
+      result.current.newOption.set.type('YES_NO');
+      result.current.newOption.set.yesAdditionalPrice('5000');
     });
-    expect(result.current.errors.yesAdditionalPrice).toBe(
+    expect(result.current.newOption.errors.yesAdditionalPrice).toBe(
       '무료 티켓에는 추가 금액이 있는 옵션을 붙일 수 없어요',
     );
   });
@@ -186,13 +186,13 @@ describe('새 옵션 — 만들기(O-2) + 붙이기(O-5) 한 동작', () => {
 describe('옵션 상세 — 수정(O-3) · 삭제(O-4)', () => {
   it('잠긴 옵션(701): 추가금 칸 잠금·삭제 없음, 이름만 바꾸면 본문에 이름만(형식 없음)', async () => {
     const { result, queryClient } = setupEditor('101', 701);
-    await waitFor(() => expect(result.current?.values ?? null).not.toBeNull());
+    await waitFor(() => expect(result.current?.fields ?? null).not.toBeNull());
     expect(result.current.type).toBe('YES_NO');
     expect(result.current.priceLocked).toBe(true);
     expect(result.current.canDelete).toBe(false);
-    act(() => result.current.setYesAdditionalPrice('1'));
-    expect(result.current.values?.yesAdditionalPrice).toBe('10000');
-    act(() => result.current.setName('뒤풀이 2차'));
+    act(() => result.current.fields!.set.yesAdditionalPrice('1'));
+    expect(result.current.fields?.values.yesAdditionalPrice).toBe('10000');
+    act(() => result.current.fields!.set.name('뒤풀이 2차'));
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     const sent = recordRequests();
     expect(await act(() => result.current.save())).toBe(true);
@@ -215,7 +215,7 @@ describe('옵션 상세 — 수정(O-3) · 삭제(O-4)', () => {
       {} as never,
     );
     const { result, queryClient } = setupEditor('140', created.optionId);
-    await waitFor(() => expect(result.current?.values ?? null).not.toBeNull());
+    await waitFor(() => expect(result.current?.fields ?? null).not.toBeNull());
     expect(result.current.canDelete).toBe(true);
     const sent = recordRequests();
     expect(await act(() => result.current.remove())).toBe(true);
@@ -233,8 +233,8 @@ describe('옵션 상세 — 수정(O-3) · 삭제(O-4)', () => {
       {} as never,
     );
     const { result, queryClient } = setupEditor('140', created.optionId);
-    await waitFor(() => expect(result.current?.values ?? null).not.toBeNull());
-    act(() => result.current.setYesAdditionalPrice('3000'));
+    await waitFor(() => expect(result.current?.fields ?? null).not.toBeNull());
+    act(() => result.current.fields!.set.yesAdditionalPrice('3000'));
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     expect(await act(() => result.current.save())).toBe(false);
     await waitFor(() => expect(result.current.error).toMatch(/이름·설명만/));

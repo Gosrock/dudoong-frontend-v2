@@ -2,18 +2,12 @@
 
 import Link from 'next/link';
 
-import {
-  HOST_CONTACT_VALUE_MAX,
-  HOST_INTRODUCE_MAX,
-  HOST_NAME_MAX,
-  HOST_PHONE_VALUE_MAX,
-  type HostContactType,
-} from '@/api/host/schema';
-import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import { HOST_INTRODUCE_MAX, HOST_NAME_MAX } from '@/api/host/schema';
+import { hostContactMaxLength } from '@/features/hosting/shared/model/host-fields';
 import { useCreateHost } from '@/features/hosting/shared/model/useCreateHost';
 import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/shared/routes';
+import { ContactRows } from '@/features/hosting/shared/ui/ContactRows';
 import { Button } from '@/ui/components/Button/Button';
-import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { Header } from '@/ui/components/Header/Header';
 import { Input } from '@/ui/components/Input/Input';
 import * as field from '@/ui/components/Input/Input.css';
@@ -31,8 +25,8 @@ import * as s from './CreateHostView.css';
  */
 export function CreateHostView() {
   const form = useCreateHost();
+  const { contacts } = form;
   const show = (error: string | null) => (form.attempted && error ? error : undefined);
-  const options = form.contactOptions.map((o) => ({ value: o.type, label: o.label }));
 
   return (
     <main className={s.page}>
@@ -54,18 +48,16 @@ export function CreateHostView() {
           required
           placeholder={`최대 ${HOST_NAME_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_NAME_MAX}
-          value={form.values.name}
-          onChange={(e) => form.setName(e.target.value)}
           error={show(form.errors.name)}
+          {...form.form.register('name')}
         />
 
         <TextArea
           label="소개글"
           placeholder={`최대 ${HOST_INTRODUCE_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_INTRODUCE_MAX}
-          value={form.values.introduce}
-          onChange={(e) => form.setIntroduce(e.target.value)}
           error={show(form.errors.introduce)}
+          {...form.form.register('introduce')}
         />
 
         <fieldset className={s.contacts}>
@@ -76,50 +68,30 @@ export function CreateHostView() {
             </span>
           </legend>
           <span className={field.helper}>호스트 홈에 보이는 정보예요.</span>
-          {form.values.contacts.map((c, i) => (
-            <div key={i} className={s.contactRow} data-testid="contact-row">
-              <Dropdown
-                className={s.contactType}
-                aria-label={`연락처 유형 ${i + 1}`}
-                placeholder="유형 선택"
-                options={options}
-                value={c.type ?? ''}
-                onValueChange={(v) => v && form.setContactType(i, v as HostContactType)}
-              />
-              <Input
-                className={s.contactValue}
-                aria-label={`연락처 ${i + 1}`}
-                placeholder={contactPlaceholder(c.type) ?? undefined}
-                maxLength={c.type === 'PHONE' ? HOST_PHONE_VALUE_MAX : HOST_CONTACT_VALUE_MAX}
-                showCount={false}
-                value={c.value}
-                onChange={(e) => form.setContactValue(i, e.target.value)}
-                error={show(form.errors.contacts[i] ?? null)}
-              />
-              {form.canRemoveContact && (
-                <button
-                  type="button"
-                  className={s.removeButton}
-                  aria-label={`연락처 ${i + 1} 삭제`}
-                  onClick={() => form.removeContact(i)}
-                >
-                  <Icon name="close" />
-                </button>
-              )}
-            </div>
-          ))}
-          {form.contactsServerError && (
+          <ContactRows
+            noun="연락처"
+            rows={contacts.rows}
+            values={form.values.contacts}
+            register={(i) => form.form.register(`contacts.${i}.value`)}
+            setType={contacts.setType}
+            errorOf={(i) => show(form.errors.contacts[i] ?? null)}
+            maxLengthOf={hostContactMaxLength}
+            canRemove={contacts.canRemove}
+            onRemove={contacts.remove}
+            classes={s.contactClasses}
+          />
+          {contacts.serverError && (
             <span role="alert" className={field.errorText}>
-              {form.contactsServerError}
+              {contacts.serverError}
             </span>
           )}
-          {form.canAddContact && (
+          {contacts.canAdd && (
             <Button
               variant="secondary"
               size="sm"
               className={s.addButton}
               icon={<Icon name="add" />}
-              onClick={form.addContact}
+              onClick={contacts.add}
             >
               연락처 추가
             </Button>

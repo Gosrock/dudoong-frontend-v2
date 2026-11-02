@@ -332,9 +332,8 @@ function InviteModal({
             aria-label="초대할 이메일"
             placeholder="dudoong@email.com"
             showCount={false}
-            value={row.email}
-            onChange={(e) => inviteForm.setEmail(0, e.target.value)}
             error={error ?? undefined}
+            {...inviteForm.form.register('rows.0.email')}
           />
           <Dropdown
             className={s.inviteRole}

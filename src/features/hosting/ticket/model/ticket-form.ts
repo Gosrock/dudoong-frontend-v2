@@ -15,6 +15,7 @@ import {
   type UpdateTicketItemRequest,
 } from '@/api/ticket-item/schema';
 import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
+import { ALL_DIRTY } from '@/features/hosting/shared/model/rhf-form';
 import { formatCount, formatWon } from '@/utils/money';
 
 import { isEditablePayType, isTicketLocked } from './ticket-rules';
@@ -376,57 +377,86 @@ export function toCreateTicketBody(
 
 /**
  * P10/T-3 본문 — 처음 값과 다른 필드만, 비우는 필드는 `clear[]`(같은 필드에 값과 clear를 같이 넣지 않는다). 결제 방식을 바꾸면
- * 가격을 같이(무료 = 0). 계좌는 고쳤을 때만 세 값을 통째로(두둥일 때). 바뀐 것이 없으면 null
+ * 가격을 같이(무료 = 0). 계좌는 고쳤을 때만 세 값을 통째로(두둥일 때). 바뀐 것이 없으면 null.
+ * `dirty`(RHF `dirtyFields`의 맨 위 칸 — `dirtyKeysOf`)가 1차 — 건드리지 않은 칸은 보지 않는다. 그다음 값 비교(공백·정규화)가 2차.
+ * 주지 않으면 모든 칸을 값으로만 비교한다
  */
 export function toUpdateTicketBody(
   base: TicketFormValues,
   values: TicketFormValues,
   agreements: TicketAgreements,
+  dirty: ReadonlySet<string> = ALL_DIRTY,
 ): UpdateTicketItemRequest | null {
+  const touched = (...keys: (keyof TicketFormValues)[]) => keys.some((k) => dirty.has(k));
   const b = normalizeTicketForm(base);
   const v = normalizeTicketForm(values);
   const body: UpdateTicketItemRequest = {};
   const clear: TicketClearableField[] = [];
 
-  const payTypeChanged = b.payType !== v.payType;
+  const payTypeChanged = touched('payType') && b.payType !== v.payType;
   if (payTypeChanged) body.payType = v.payType;
-  if (b.name.trim() !== v.name.trim()) body.name = v.name.trim();
+  if (touched('name') && b.name.trim() !== v.name.trim()) body.name = v.name.trim();
   const description = v.description.trim();
-  if (b.description.trim() !== description) {
+  if (touched('description') && b.description.trim() !== description) {
     if (description) body.description = description;
     else clear.push('DESCRIPTION');
   }
   const price = v.payType === 'DUDOONG' ? Number(v.price.trim()) : 0;
   const basePrice = b.payType === 'DUDOONG' ? Number(b.price.trim()) : 0;
-  if (payTypeChanged || price !== basePrice) body.price = price;
+  if (payTypeChanged || (touched('price', 'payType') && price !== basePrice)) body.price = price;
 
   if (
-    b.unlimited !== v.unlimited ||
-    (!v.unlimited && b.supplyCount.trim() !== v.supplyCount.trim())
+    touched('unlimited', 'supplyCount') &&
+    (b.unlimited !== v.unlimited || (!v.unlimited && b.supplyCount.trim() !== v.supplyCount.trim()))
   ) {
     if (v.unlimited) clear.push('SUPPLY_COUNT');
     else body.supplyCount = Number(v.supplyCount.trim());
   }
-  if (b.isQuantityPublic !== v.isQuantityPublic) body.isQuantityPublic = v.isQuantityPublic;
+  if (touched('isQuantityPublic', 'unlimited') && b.isQuantityPublic !== v.isQuantityPublic) {
+    body.isQuantityPublic = v.isQuantityPublic;
+  }
   if (
-    b.limitPurchase !== v.limitPurchase ||
-    (v.limitPurchase && b.purchaseLimit.trim() !== v.purchaseLimit.trim())
+    touched('limitPurchase', 'purchaseLimit') &&
+    (b.limitPurchase !== v.limitPurchase ||
+      (v.limitPurchase && b.purchaseLimit.trim() !== v.purchaseLimit.trim()))
   ) {
     if (v.limitPurchase) body.purchaseLimit = Number(v.purchaseLimit.trim());
     else clear.push('PURCHASE_LIMIT');
   }
-  if (v.payType === 'FREE' && b.approvalRequired !== v.approvalRequired) {
+  if (
+    v.payType === 'FREE' &&
+    touched('approvalRequired', 'payType') &&
+    b.approvalRequired !== v.approvalRequired
+  ) {
     body.approvalRequired = v.approvalRequired;
   }
-  if (v.payType === 'DUDOONG' && isAccountChanged(b, v)) body.account = accountBody(v);
+  if (
+    v.payType === 'DUDOONG' &&
+    touched('bankCode', 'accountHolder', 'accountNumber', 'payType') &&
+    isAccountChanged(b, v)
+  ) {
+    body.account = accountBody(v);
+  }
 
   const bp = salePeriodOf(b);
   const vp = salePeriodOf(v);
-  for (const [field, key, before, after] of [
-    ['SALE_START_AT', 'saleStartAt', bp.saleStartAt, vp.saleStartAt],
-    ['SALE_END_AT', 'saleEndAt', bp.saleEndAt, vp.saleEndAt],
+  for (const [field, key, before, after, keys] of [
+    [
+      'SALE_START_AT',
+      'saleStartAt',
+      bp.saleStartAt,
+      vp.saleStartAt,
+      ['salePeriod', 'saleStartNow', 'saleStartDate', 'saleStartTime'],
+    ],
+    [
+      'SALE_END_AT',
+      'saleEndAt',
+      bp.saleEndAt,
+      vp.saleEndAt,
+      ['salePeriod', 'saleEndDate', 'saleEndTime'],
+    ],
   ] as const) {
-    if (before === after || after === 'invalid') continue;
+    if (!touched(...keys) || before === after || after === 'invalid') continue;
     if (after === null) clear.push(field);
     else body[key] = after;
   }
@@ -435,9 +465,13 @@ export function toUpdateTicketBody(
   return { ...body, ...refundFields(b, v, agreements) };
 }
 
-/** 바뀐 것이 있는지(수정 폼). 만들기 폼은 늘 true */
-export const isTicketFormDirty = (base: TicketFormValues | null, v: TicketFormValues) =>
-  base === null || toUpdateTicketBody(base, v, { refundObligationAgreed: false }) !== null;
+/** 바뀐 것이 있는지(수정 폼). 만들기 폼은 늘 true. `dirty`는 `toUpdateTicketBody`와 같다 */
+export const isTicketFormDirty = (
+  base: TicketFormValues | null,
+  v: TicketFormValues,
+  dirty?: ReadonlySet<string>,
+) =>
+  base === null || toUpdateTicketBody(base, v, { refundObligationAgreed: false }, dirty) !== null;
 
 // ─── 서버 오류 → 칸 ─────────────────────────────────────────
 

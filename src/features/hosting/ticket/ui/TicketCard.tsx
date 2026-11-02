@@ -14,7 +14,8 @@ import { formatCount, formatWon } from '@/utils/money';
 import type { TicketSaleChip } from '../model/ticket-rules';
 import type { TicketActionResult, TicketCard as Card } from '../model/useTicketList';
 import { useTicketOptions } from '../model/useTicketOptions';
-import { AddOptionsOverlay, OptionDetailOverlay } from './OptionSheets';
+import { AddOptionsOverlay } from './AddOptionsOverlay';
+import { OptionDetailOverlay } from './OptionDetailOverlay';
 import * as s from './TicketCard.css';
 import { OptionRow } from './TicketParts';
 

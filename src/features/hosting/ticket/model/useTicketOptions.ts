@@ -22,15 +22,13 @@ import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { tryCatch } from '@/utils/try-catch';
 
 import {
-  hasOptionFormErrors,
   initialOptionFormValues,
   OPTION_FIELD_ERRORS,
-  type OptionFormField,
-  type OptionFormValues,
   toCreateOptionBody,
   validateOptionForm,
 } from './option-form';
 import { attachableOptionsOf, canAttachMoreOptions, canChangeTicketOptions } from './ticket-rules';
+import { useOptionForm } from './useOptionForm';
 
 /** 붙이기·떼기 오류 문구(patterns §24 P12 — 잠정) */
 export const TICKET_OPTION_ERRORS = {
@@ -54,6 +52,7 @@ export type CreateAndAttachResult = 'attached' | 'createdOnly' | 'failed';
  * - 떼기(`detach`)는 이 티켓에서만 뺀다 — 옵션 자체 삭제(D10/O-4)는 `useOptionEditor.remove`
  * - 잠긴 티켓(`isSold || hasPendingOrders`)은 붙이기·떼기를 하지 않는다(`canChange` false — 서버 `Item_Option_Group_400_2`)
  * - 무료 티켓에는 유료 옵션을 선택지에서 빼고(`attachable`), 새 옵션도 추가금 0만 받는다
+ * - 새 옵션 칸은 RHF(`useOptionForm` — 칸별 서버 에러는 `setError('root.<칸>')`)
  * - 티켓당 10개(`canAttachMore`)
  * - 새 옵션: O-2 성공 → 풀에 넣고 → O-5. O-5가 실패하면 `createAndAttach()`가 `'createdOnly'`, `partial`에 그 옵션 —
  *   `retryAttach()`로 다시 붙인다(만든 옵션은 풀에 남는다, patterns §23). O-2가 실패하면 `'failed'`
@@ -69,15 +68,17 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
 
   const [error, setError] = useState<string | null>(null);
   const [partial, setPartial] = useState<TicketOptionManage | null>(null);
-  const [values, setValues] = useState<OptionFormValues>(initialOptionFormValues);
-  const [attempted, setAttempted] = useState(false);
-  const [serverErrors, setServerErrors] = useState<Partial<Record<OptionFormField, string>>>({});
   const inflight = useRef(false);
 
   const canChange = ticket !== null && canChangeTicketOptions(ticket, scope.canEdit);
   const options = pool.data ?? [];
   const attachable = ticket ? attachableOptionsOf(ticket, options) : [];
   const canAttachMore = ticket !== null && canAttachMoreOptions(ticket);
+  const freeTicket = ticket?.payType === 'FREE';
+  const newOption = useOptionForm((v) => validateOptionForm(v, { freeTicket }), {
+    fields: true,
+    price: true,
+  });
 
   const show = (code: keyof typeof TICKET_OPTION_ERRORS, reload?: () => unknown) => () => {
     setError(TICKET_OPTION_ERRORS[code]);
@@ -100,7 +101,7 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
 
   const createCodes = {
     ...handlersFrom(OPTION_FIELD_ERRORS, ({ field, message }) =>
-      setServerErrors((prev) => ({ ...prev, [field]: message })),
+      newOption.setServerError(field, message),
     ),
     Event_400_17: show('Event_400_17', () => invalidateEventStatus(queryClient, eventId)),
   };
@@ -158,29 +159,26 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     return ok;
   };
 
-  const freeTicket = ticket?.payType === 'FREE';
-  const formErrors = validateOptionForm(values, { freeTicket });
-
   /** 새 옵션 만들기(O-2) + 이 티켓에 붙이기(O-5) — 한 동작 */
   const createAndAttach = async (): Promise<CreateAndAttachResult> => {
-    setAttempted(true);
-    if (!ticket || !canChange || !canAttachMore || hasOptionFormErrors(formErrors)) return 'failed';
-    if (inflight.current) return 'failed';
-    inflight.current = true;
-    setError(null);
-    setPartial(null);
-    const [created, createError] = await tryCatch(
-      createMutation.mutateAsync(toCreateOptionBody(values)),
-    );
-    if (createError) {
-      inflight.current = false;
-      handleError(createError, createCodes);
-      return 'failed';
-    }
-    // 만들었다 — 폼을 비우고 붙인다. 붙이기가 실패해도 옵션은 풀에 남는다
-    setValues(initialOptionFormValues());
-    setAttempted(false);
-    setServerErrors({});
+    const created = await newOption.form.handleSubmit(async (valid) => {
+      if (!ticket || !canChange || !canAttachMore || inflight.current) return;
+      inflight.current = true;
+      setError(null);
+      setPartial(null);
+      const [option, createError] = await tryCatch(
+        createMutation.mutateAsync(toCreateOptionBody(valid)),
+      );
+      if (createError) {
+        inflight.current = false;
+        handleError(createError, createCodes);
+        return;
+      }
+      return option;
+    })();
+    if (!created || !ticket) return 'failed';
+    // 만들었다 — 폼을 비우고(`handleSubmit`이 끝난 뒤라 `isSubmitted`도 풀린다) 붙인다. 붙이기가 실패해도 옵션은 풀에 남는다
+    newOption.form.reset(initialOptionFormValues());
     const [, attachError] = await tryCatch(
       replaceMutation.mutateAsync({
         ticketItemId: ticket.ticketItemId,
@@ -204,14 +202,6 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     return ok;
   };
 
-  const edit = (
-    field: OptionFormField | null,
-    update: (v: OptionFormValues) => OptionFormValues,
-  ) => {
-    if (field) setServerErrors((prev) => ({ ...prev, [field]: undefined }));
-    setValues(update);
-  };
-
   return {
     ticket,
     /** 붙이기·떼기를 할 수 있는지(쓰기 가능 + 잠기지 않은 티켓) */
@@ -229,29 +219,14 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     /** 더 붙일 수 있는 개수(티켓당 10개) */
     remainingSlots: Math.max(0, TICKET_OPTIONS_MAX - attachedIds.length),
     detach,
-    // 새 옵션
-    values,
-    setName: (name: string) => edit('name', (v) => ({ ...v, name })),
-    setDescription: (description: string) => edit('description', (v) => ({ ...v, description })),
-    setType: (type: OptionFormValues['type']) =>
-      edit('yesAdditionalPrice', (v) => ({ ...v, type })),
-    setYesAdditionalPrice: (yesAdditionalPrice: string) =>
-      edit('yesAdditionalPrice', (v) => ({ ...v, yesAdditionalPrice })),
-    errors: formErrors,
-    serverErrors,
-    /** 새 옵션 폼에 입력이 있는지(닫기 확인 — GUI `940:8060`) */
-    dirty:
-      values.name !== '' ||
-      values.description !== '' ||
-      values.type !== 'SUBJECTIVE' ||
-      values.yesAdditionalPrice !== '',
-    /** 새 옵션 폼을 처음 값으로(시트를 닫거나 고르기로 돌아갈 때) */
-    resetForm: () => {
-      setValues(initialOptionFormValues());
-      setAttempted(false);
-      setServerErrors({});
+    /** 새 옵션 칸(값 · 바꾸기 · 칸 오류 · 서버 오류 · attempted) */
+    newOption: {
+      ...newOption.api,
+      /** 입력이 있는지(닫기 확인 — GUI `940:8060`) — `formState.isDirty` */
+      dirty: newOption.isDirty,
+      /** 처음 값으로(시트를 닫거나 고르기로 돌아갈 때) */
+      reset: () => newOption.form.reset(initialOptionFormValues()),
     },
-    attempted,
     createAndAttach,
     /** 만들었지만 붙이지 못한 옵션 */
     partial,

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { hosts } from '@/api/__mocks__/fixtures/host';
 import { UpdateHostRequestSchema } from '@/api/host/schema';
 import { contactInputsOf } from '@/features/hosting/shared/model/host-fields';
+import { editInRhf } from '@/features/hosting/shared/model/rhf-test';
 
 import {
   changedHostFields,
@@ -115,5 +116,34 @@ describe('바뀐 칸만 검증한다', () => {
     expect(validateHostSettings(gosrock, v).contacts).toEqual([
       '전화번호는 15자까지 입력할 수 있어요',
     ]);
+  });
+});
+
+describe('RHF 경로(dirtyFields → 공백 비교) — 같은 입력이면 같은 본문', () => {
+  it.each<[string, Parameters<typeof editInRhf<HostSettingsValues>>[1]]>([
+    ['이름만', { name: ' 고스락 밴드 ' }],
+    ['공백만 바꾼 이름 — RHF는 dirty지만 보내지 않는다', { name: ' 고스락 ' }],
+    ['소개 비우기', { introduce: '' }],
+    ['연락처 값', { 'contacts.1.value': 'https://youtube.com/@new' }],
+    ['연락처 값 공백만', { 'contacts.0.value': '@gosrock_official ' }],
+    [
+      '이미지 올림 + 지움',
+      { 'images.PROFILE': { url: 'u', key: 'k' }, 'images.COVER': { url: null, key: '' } },
+    ],
+    ['이름 + 연락처 유형', { name: '새 이름', 'contacts.2.type': 'ETC' }],
+  ])('%s', (_, patch) => {
+    const { values, dirty } = editInRhf(gosrock, patch);
+    expect(toUpdateHostBody(gosrock, values, dirty)).toEqual(toUpdateHostBody(gosrock, values));
+    expect(isHostSettingsDirty(gosrock, values, dirty)).toBe(isHostSettingsDirty(gosrock, values));
+    expect(validateHostSettings(gosrock, values, dirty)).toEqual(
+      validateHostSettings(gosrock, values),
+    );
+  });
+
+  it('공백만 바꾼 이름: RHF dirtyFields에는 있지만 본문 · 변경 여부에는 없다', () => {
+    const { values, dirty } = editInRhf(gosrock, { name: ' 고스락 ' });
+    expect(dirty.has('name')).toBe(true);
+    expect(toUpdateHostBody(gosrock, values, dirty)).toEqual({});
+    expect(isHostSettingsDirty(gosrock, values, dirty)).toBe(false);
   });
 });

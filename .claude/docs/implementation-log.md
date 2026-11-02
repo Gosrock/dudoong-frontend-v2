@@ -2783,3 +2783,30 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: lint 전체 · typecheck 통과. vitest 134파일 2532개 · 스토리 62파일 253개 통과(관객 · 공용 묶음에서 한 번 1건 흔들림 → 재실행 3번 통과). e2e 전체 587 통과 · 39 건너뜀 · 실패 0. QA shell 18 · hosting-event 20 · hosting-ticket 30 · host-settings 28 · mypage 33 · tickets 20 — 실패 0.
 
 **ego-browser 확인(2026-11-03, dev:mock 3078)**: 공연준비 홈 1440 · 공연 대시보드 1440(사이드바 · 3단 · 일정 패널) · 새 티켓 390(공연 헤더 숨고 ← 제목 헤더만 — 옮긴 숨김 스타일 · 필수 `*`) · 티켓 목록 390(`NoticeBox` "티켓 옵션이란?") · 마이페이지 390(연필 배지 · 화면별 css) · 셸 드로어 390(프로필 편집 숨김 글자) · 주문내역 1440(툴바 · 카드 · 포스터 칩). 발견 없음.
+
+## 코드 패턴 정리 ⑥-forms — 호스팅 복잡한 폼 RHF 전환 · 폼 화면 나누기(2026-11-03, `pattern-split-forms`)
+
+근거: `pattern-audit-2026-11-02.md` "⑥ 결과 — ⑥-forms"(D1 전환 · A9 · A24 · A25 · A28), patterns §23 폼 분류표. 관제탑이 ⑥을 forms ∥ views로 나눴다(🤖 2026-11-03). 범위 `features/hosting/{event,host,ticket,shared}` — `src/ui` 수정 없음.
+
+**바꾼 것**
+
+- 공용 `hosting/shared/model/rhf-form.ts` — `resolverFrom`(순수 검증 → resolver) · `EDIT_FORM_OPTIONS` · `dirtyKeysOf` · `ALL_DIRTY` · `useFieldChange` · `useClearServerErrors` · `serverErrorOf`. 테스트 도우미 `rhf-test.ts`(`typeInto` · `editInRhf`).
+- RHF 전환 7: `useCreateHost` · `useHostSettings` · `useInviteMembers`(직접), `useEventBasicInfo` · `useEventSections`(포크), `useTicketForm` · `useOptionEditor` + 새 옵션 폼(포크 — 공용 하위 훅 `useOptionForm`). `defaultValues` 한 번 · 저장 성공 뒤 `handleSubmit`이 끝나고 `reset(응답)` · 칸별 서버 에러 `setError('root.<칸>')` · `inflight` 그대로 · 이탈 확인 `formState.isDirty && isXDirty`.
+- 순수 함수 `changedX` · `toXBody` · `isXDirty` · `validateX`(호스트 설정 · 기본 정보 · 티켓 · 옵션)가 `dirty`(기본 `ALL_DIRTY`)를 1차로 받는다. "같은 입력 → 같은 본문" 테스트를 RHF 경로(`editInRhf`)로 더함.
+- A24 · A25 — `EventInfoView` 476 → 128줄, `TicketFormView` 472 → 183줄, `OptionSheets` 559줄 → 파일 5개, 연락처 줄 4벌 → `ContactRows`. 훅 반환을 영역별로 묶음(기본 정보 37 → 19키, 티켓 폼 36 → 17키 …).
+- A28(이 범위) — flex 전용 클래스 5개 → `Flex`, 안 쓰던 클래스 5개 · 함수 6개 지움.
+- 회귀 하나를 잡아 고침: 티켓 폼을 나누자 "판매 수량" 칸 폭(136)이 DS `Input` 기본값(100%)에 져서 320 폭에서 2px 넘침(e2e `a11y` 리플로 2건, main은 통과). CSS 청크 `<link>` 순서가 바뀐 탓 — 섹션 css를 따로 두고 DS 칸을 덮는 클래스는 `'&&'`(patterns §3 함정 줄). 기본 정보 · 연락처 줄 · 옵션 칸도 같은 위험이라 함께.
+
+**사용자에게 보이는 변화**
+
+| 화면 | 전 | 후 | 근거 |
+|---|---|---|---|
+| 공연 기본 정보 · 티켓 폼 · 옵션 상세 | 칸에 붙은 서버 오류는 그 칸을 고칠 때까지 남음 | 그 칸을 고치거나 **[저장]을 다시 누르면** 지워짐(같은 이유로 또 실패하면 다시 붙음) | RHF `handleSubmit`이 제출마다 오류를 다시 정한다 — 호스트 설정 · 호스트 만들기는 원래 제출 때 비웠다 |
+
+그 밖 글자 · 모양 · 요청 본문 변화 없음.
+
+**🤖 판단**: 칸 오류 표시는 RHF `formState.errors`가 아니라 같은 순수 함수를 지금 값으로 다시 계산(제출 뒤) — 규칙이 칸끼리 얽혀(바뀐 칸만 검사 · 무제한 ↔ 재고 · 연락처 줄 전체) RHF 칸 단위 재검증으론 옆 칸 오류가 남는다. zod resolver로 바꾸지 않음(규칙이 이미 테스트돼 있다). 티켓 칸은 모두 잠금 · 얽힘이 있어 `register` 대신 훅 동작(`set.*`). 되돌리려면 `rhf-form.ts`의 `EDIT_FORM_OPTIONS`와 화면의 오류 읽기만 바꾸면 된다.
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest `src/features/hosting` 34파일 664개 통과. e2e(CSS 고친 빌드) a11y 전체 · hosting-ticket · hosting-event · hosting-host · hosting 245 통과, a11y-keyboard · host-home · shell 34 통과. QA hosting-event 20 · hosting-ticket 30 · host-settings 18 · hosting-home 28 — 실패 0.
+
+**ego-browser 확인(2026-11-03, 운영 빌드 + 가짜 백엔드 4279 — 이 워크트리의 `dev:mock`은 "로그인 확인 중"에서 넘어가지 않아 e2e와 같은 `pnpm start`로 띄움)**: 호스트 설정 390 · 948(이름 지우고 [저장] → 칸 오류, 고치면 사라짐 · 연락처 줄 추가 → 둘째 줄 ✕ → 남은 줄 값 그대로 · 뒤로가기 → "저장하지 않고 나갈까요?" 확인 창), 멤버 초대 948(`nobody@example.com` → 그 줄에 `HOST_400_13` 사유, 고치면 지움, 바른 이메일 → "멤버를 초대했어요"), 새 티켓 320 · 390(가로 넘침 없음 · 수량 칸 136, 무료 티켓 만들기 → 목록으로), 공연 140 기본 정보 948 · 1440(티켓 있는 공연에서 "티켓 없음" 저장 → 그 칸에 `Event_400_25`, 되돌리면 사라짐), 티켓 수정 1440(두 열 · 수량 칸 88 · 잠김 안내). 발견: 티켓 폼 320 넘침(위 — 고침).

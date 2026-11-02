@@ -81,15 +81,15 @@ describe('기본 정보 — 장소(주소 → 좌표 → 공연장 이름·상�
   it('주소를 고르면 좌표를 얻고, 저장 본문에 장소 4필드 + 상세주소를 모두 채운다 → 체크리스트 ①에 반영', async () => {
     const { result, queryClient } = setup(PREPARING);
     await loaded(result);
-    await act(() => result.current.selectAddress(' 서울 마포구 어울마당로 35 '));
+    await act(() => result.current.place.selectAddress(' 서울 마포구 어울마당로 35 '));
     expect(fakeGeocode).toHaveBeenCalledWith('서울 마포구 어울마당로 35');
     expect(result.current.values.place).toMatchObject({
       address: '서울 마포구 어울마당로 35',
       ...ROLLING_HALL,
     });
     act(() => {
-      result.current.setPlaceName('롤링홀');
-      result.current.setDetailAddress('지하 1층');
+      result.current.edit('place.name', '롤링홀');
+      result.current.edit('place.detailAddress', '지하 1층');
     });
     const sent = recordRequests();
     expect(await save(result)).toBe(true);
@@ -116,18 +116,18 @@ describe('기본 정보 — 장소(주소 → 좌표 → 공연장 이름·상�
       name: '롤링홀',
       detailAddress: '지하 1층',
     });
-    expect(result.current.savedNotice).toBe('saved');
-    expect(result.current.dirty).toBe(false);
+    expect(result.current.savedNotice.kind).toBe('saved');
+    expect(result.current.status.dirty).toBe(false);
   });
 
   it('좌표를 못 얻으면 다른 주소를 고르게 하고 저장하지 않는다', async () => {
     const { result } = setup(PREPARING);
     await loaded(result);
-    await act(() => result.current.selectAddress('없는 주소 1'));
-    expect(result.current.placeLookupError).toBe(
+    await act(() => result.current.place.selectAddress('없는 주소 1'));
+    expect(result.current.place.lookupError).toBe(
       '이 주소의 위치를 찾지 못했어요. 다른 주소를 골라 주세요',
     );
-    act(() => result.current.setPlaceName('어딘가'));
+    act(() => result.current.edit('place.name', '어딘가'));
     const sent = recordRequests();
     expect(await save(result)).toBe(false);
     expect(result.current.errors.place).toBe(
@@ -142,10 +142,10 @@ describe('기본 정보 — 장소(주소 → 좌표 → 공연장 이름·상�
     });
     const { result } = setup(PREPARING, unavailable);
     await loaded(result);
-    await act(() => result.current.selectAddress('서울 마포구 어울마당로 65'));
-    expect(result.current.placeLookupError).toBe(PLACE_ERROR.mapUnavailable);
-    expect(result.current.placeLookupError).not.toBe(PLACE_ERROR.geocode);
-    act(() => result.current.setPlaceName('어딘가'));
+    await act(() => result.current.place.selectAddress('서울 마포구 어울마당로 65'));
+    expect(result.current.place.lookupError).toBe(PLACE_ERROR.mapUnavailable);
+    expect(result.current.place.lookupError).not.toBe(PLACE_ERROR.geocode);
+    act(() => result.current.edit('place.name', '어딘가'));
     const sent = recordRequests();
     expect(await save(result)).toBe(false);
     expect(await writes(sent)).toEqual([]);
@@ -154,7 +154,7 @@ describe('기본 정보 — 장소(주소 → 좌표 → 공연장 이름·상�
   it('장소 수정 시 상세주소만 바꿔도 detailAddress를 포함한 장소 전체를 보낸다', async () => {
     const { result } = setup(OPEN);
     await loaded(result);
-    act(() => result.current.setDetailAddress('2층'));
+    act(() => result.current.edit('place.detailAddress', '2층'));
     const sent = recordRequests();
     await save(result);
     expect((await writes(sent))[0]!.body).toEqual({
@@ -202,7 +202,7 @@ describe('기본 정보 — 포스터 · 저장 · 등록된 공연', () => {
     const { result, queryClient } = setup(OPEN);
     await loaded(result);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-    act(() => result.current.setName('고스락 제37회 정기공연(수정)'));
+    act(() => result.current.edit('name', '고스락 제37회 정기공연(수정)'));
     await save(result);
     const keys = invalidate.mock.calls.map(([f]) => f?.queryKey);
     expect(keys).toEqual(
@@ -222,18 +222,18 @@ describe('기본 정보 — 포스터 · 저장 · 등록된 공연', () => {
     const { result } = setup(OPEN);
     await loaded(result);
     expect(result.current.registered).toBe(true);
-    expect(result.current.hasTicketLocked).toBe(true);
-    act(() => result.current.setHasTicket(false));
+    expect(result.current.hasTicket.locked).toBe(true);
+    act(() => result.current.hasTicket.set(false));
     expect(result.current.values.hasTicket).toBe(true);
-    act(() => result.current.setName('바꾼 이름'));
+    act(() => result.current.edit('name', '바꾼 이름'));
     await save(result);
-    expect(result.current.savedNotice).toBe('registeredChanged');
+    expect(result.current.savedNotice.kind).toBe('registeredChanged');
   });
 
   it('등록된 공연의 시작을 지금 이전으로 바꾸면 칸 오류 — 요청하지 않는다', async () => {
     const { result } = setup(OPEN);
     await loaded(result);
-    act(() => result.current.setSchedule({ date: '2026-10-01' }));
+    act(() => result.current.edit('schedule.date', '2026-10-01'));
     const sent = recordRequests();
     expect(await save(result)).toBe(false);
     expect(result.current.errors.schedule).toBe('시작 시각은 지금 이후로 정해 주세요');
@@ -243,8 +243,11 @@ describe('기본 정보 — 포스터 · 저장 · 등록된 공연', () => {
   it('일정: 날짜 1칸 + 시각 — 종료 ≤ 시작이면 다음 날로 보낸다', async () => {
     const { result } = setup(PREPARING);
     await loaded(result);
-    act(() => result.current.setSchedule({ startTime: '23:00', endTime: '01:00' }));
-    expect(result.current.scheduleRange).toEqual({
+    act(() => {
+      result.current.edit('schedule.startTime', '23:00');
+      result.current.edit('schedule.endTime', '01:00');
+    });
+    expect(result.current.schedule.range).toEqual({
       startAt: '2027.03.20 23:00',
       endAt: '2027.03.21 01:00',
       overnight: true,
@@ -264,8 +267,8 @@ describe('기본 정보 — 읽기 전용', () => {
     const { result } = setup(PREPARING);
     await loaded(result);
     expect(result.current.canEdit).toBe(false);
-    expect(result.current.readOnlyReason).toBe('role');
-    act(() => result.current.setName('바꿈'));
+    expect(result.current.readOnly?.reason).toBe('role');
+    act(() => result.current.edit('name', '바꿈'));
     expect(result.current.values.name).toBe('고스락 신입 환영 공연(준비중)');
     const sent = recordRequests();
     await act(() => result.current.poster.change(png()));
@@ -276,27 +279,27 @@ describe('기본 정보 — 읽기 전용', () => {
   it('지난 공연: 읽기 전용(ended)', async () => {
     const { result } = setup('90');
     await loaded(result);
-    expect(result.current.readOnlyReason).toBe('ended');
-    expect(result.current.readOnlyMessage).toBe('끝난 공연은 수정할 수 없어요');
+    expect(result.current.readOnly?.reason).toBe('ended');
+    expect(result.current.readOnly?.message).toBe('끝난 공연은 수정할 수 없어요');
   });
 });
 
 describe('기본 정보 — 에러 분기(patterns §24 P11)', () => {
   it.each<[EventErrorCode, 'schedule' | 'contacts' | 'tags', (r: Hook) => void]>([
-    ['Event_400_2', 'schedule', (r) => r.current.setSchedule({ endTime: '21:00' })],
-    ['Event_400_24', 'schedule', (r) => r.current.setSchedule({ endTime: '21:00' })],
-    ['Event_400_20', 'contacts', (r) => r.current.setContactValue(0, '@x')],
-    ['Event_400_23', 'tags', (r) => r.current.toggleTag(5)],
+    ['Event_400_2', 'schedule', (r) => r.current.edit('schedule.endTime', '21:00')],
+    ['Event_400_24', 'schedule', (r) => r.current.edit('schedule.endTime', '21:00')],
+    ['Event_400_20', 'contacts', (r) => r.current.edit('contacts.0.value', '@x')],
+    ['Event_400_23', 'tags', (r) => r.current.tags.toggle(5)],
   ])('%s → %s 칸 오류, 토스트 없음 — 그 칸을 고치면 지운다', async (code, field, fix) => {
     server.use(...hostingEventSets.basicFails(140, code));
     const { result } = setup(PREPARING);
     await loaded(result);
     act(() => {
-      result.current.setName('바꾼 이름');
-      result.current.setContactType(0, 'INSTAGRAM');
-      result.current.setContactValue(0, '@gosrock');
-      result.current.toggleTag(1);
-      result.current.setSchedule({ endTime: '20:30' });
+      result.current.edit('name', '바꾼 이름');
+      result.current.contacts.setType(0, 'INSTAGRAM');
+      result.current.edit('contacts.0.value', '@gosrock');
+      result.current.tags.toggle(1);
+      result.current.edit('schedule.endTime', '20:30');
     });
     expect(await save(result)).toBe(false);
     expect(result.current.serverErrors[field]).toBeTruthy();
@@ -309,7 +312,7 @@ describe('기본 정보 — 에러 분기(patterns §24 P11)', () => {
     setStoredValidTicket(140, true);
     const { result } = setup(PREPARING);
     await loaded(result);
-    act(() => result.current.setHasTicket(false));
+    act(() => result.current.hasTicket.set(false));
     expect(await save(result)).toBe(false);
     expect(result.current.serverErrors.hasTicket).toBe(
       '티켓이 있는 공연은 티켓 없음으로 바꿀 수 없어요',
@@ -332,7 +335,7 @@ describe('기본 정보 — 에러 분기(patterns §24 P11)', () => {
     const { result, queryClient } = setup(PREPARING);
     await loaded(result);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-    act(() => result.current.setName('바꿈'));
+    act(() => result.current.edit('name', '바꿈'));
     await save(result);
     expect(result.current.formError).toBe('끝난 공연은 수정할 수 없어요');
     expect(invalidate).toHaveBeenCalledWith({

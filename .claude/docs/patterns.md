@@ -101,6 +101,8 @@
 
 `Txt` · `Flex` · `Spacing`이 갖춰졌으므로 **flex·gap·margin만 하는 원시 `<div className={…}>`는 `Flex`·`Spacing`으로 쓴다**(리뷰에서 지적). 배경·테두리·자손 선택자처럼 고유한 모양을 가진 상자는 `.css.ts` + `div`로 둔다(2026-11-02 패턴 점검 D9 — 일괄로 고치지 않고 새 코드와 ⑥ `pattern-split`에서).
 
+vanilla-extract 함정(⑥-forms, 2026-11-03): **DS 컴포넌트(`Input` · `RadioGroup` · `DatePicker` …)의 폭 · 간격을 덮는 클래스는 `selectors: { '&&': {…} }`로 세기를 올린다.** 같은 세기면 CSS 순서가 이기는데, 화면을 섹션 파일로 나누면 화면 CSS와 DS CSS가 다른 청크가 되고 페이지의 `<link>` 순서는 import 순서를 따르지 않는다(티켓 폼 "판매 수량" 칸이 136 → 199px로 풀려 320 리플로가 깨졌었다 — e2e `a11y.spec.ts` 리플로가 잡는다).
+
 vanilla-extract 함정(회고 2026-11-01): `display`를 지정한 요소는 `&[hidden]{ display: none }`이 따로 필요하다. `selectors`의 자손 선택자(`& svg path`)는 쓸 수 없어 `globalStyle`로 쓴다. `.css.ts`는 함수를 export하지 않는다(빌드 실패). `space[8]`처럼 PC에서 값이 바뀌는 토큰이 있다 — 고정 값이 필요하면 토큰 정의를 보고 고른다.
 
 ---
@@ -665,15 +667,22 @@ useEffect(() => {
   | 환불 계좌 `mypage/model/useOrderDetail` · `refund-account-form.ts` | 간단 | 은행 · 계좌 · 예금주 | 그대로 |
   | 거절 사유 `hosting/guest/model/useOrderDetail` · `guest-rules.ts` `RefuseForm` | 간단 | 사유 고르기 + 글 | 그대로 |
   | 간편 공연 만들기 `useNewEventWizard` · `create-event-form.ts` | 간단 | 이름 · 일정 · 티켓 여부 3칸 | 그대로 |
-  | 공연 기본 정보 `useEventBasicInfo` · `basic-info-form.ts` | 복잡 | 문의처 반복 · 장소·일정·포스터 얽힘 · 칸별 서버 에러 | ⑥ |
-  | 공연 상세 섹션 `useEventSections` · `sections-form.ts` | 복잡 | 섹션 탭 반복 | ⑥ |
-  | 호스트 만들기 `useCreateHost` · `create-host-form.ts` | 복잡 | 연락처 반복 | ⑥ |
-  | 호스트 설정 `useHostSettings` · `host-settings-form.ts` | 복잡 | 연락처 반복 · 이미지 2칸 | ⑥ |
-  | 멤버 초대 `useInviteMembers` | 복잡 | 행 반복 · 행별 서버 에러 | ⑥ |
-  | 티켓 만들기·수정 `useTicketForm` · `ticket-form.ts` | 복잡 | 무제한↔재고 공개 · 결제 방식↔가격 · 판매 기간 얽힘 · 칸별 서버 에러 | ⑥ |
-  | 옵션 만들기·수정 `useOptionEditor` · `hosting/ticket/model/option-form.ts` | 복잡 | 칸별 서버 에러(`OPTION_FIELD_ERRORS`) | ⑥ |
+  | 공연 기본 정보 `useEventBasicInfo` · `basic-info-form.ts` | 복잡 | 문의처 반복 · 장소·일정·포스터 얽힘 · 칸별 서버 에러 | RHF(⑥-forms) |
+  | 공연 상세 섹션 `useEventSections` · `sections-form.ts` | 복잡 | 섹션 탭 반복 || RHF(⑥-forms) |
+  | 호스트 만들기 `useCreateHost` · `create-host-form.ts` | 복잡 | 연락처 반복 || RHF(⑥-forms) |
+  | 호스트 설정 `useHostSettings` · `host-settings-form.ts` | 복잡 | 연락처 반복 · 이미지 2칸 || RHF(⑥-forms) |
+  | 멤버 초대 `useInviteMembers` | 복잡 | 행 반복 · 행별 서버 에러 || RHF(⑥-forms) |
+  | 티켓 만들기·수정 `useTicketForm` · `ticket-form.ts` | 복잡 | 무제한↔재고 공개 · 결제 방식↔가격 · 판매 기간 얽힘 · 칸별 서버 에러 || RHF(⑥-forms) |
+  | 옵션 만들기·수정 `useOptionEditor` · `hosting/ticket/model/option-form.ts` | 복잡 | 칸별 서버 에러(`OPTION_FIELD_ERRORS`) || RHF(⑥-forms) |
 
   리포트는 12개로 셌고 거절 사유 폼을 더해 13개다. 새 폼은 위 기준으로 고른다.
+- **RHF 폼의 공용 길(⑥-forms, 2026-11-03 — `hosting/shared/model/rhf-form.ts`)**. 🤖 Claude 판단 — 규칙이 칸끼리 얽힌 폼이 많아 이렇게 정했다:
+  - 처음 값은 `defaultValues` 한 번. `values`·`resetOptions`를 쓰지 않는다. 저장이 성공한 뒤에만 `reset(응답 → 폼 값)` — **`handleSubmit`이 끝난 뒤에** 부른다(안에서 부르면 `handleSubmit`이 끝나며 `isSubmitted`를 다시 켠다). 그래서 저장 함수는 `const saved = await form.handleSubmit(onValid)(); if (saved) form.reset(…)` 꼴이고 `onValid`가 응답을 돌려준다.
+  - 검증은 기존 순수 함수 `validateX`를 `resolverFrom`으로 감싼 resolver — 오류가 있으면 `onValid`를 부르지 않는다. **화면 칸 오류는 같은 순수 함수를 지금 값(`useWatch`)으로 다시 계산**해 `formState.isSubmitted`(= 전의 `attempted`) 뒤에 보인다. RHF의 칸 단위 재검증은 옆 칸 오류를 남기므로(바뀐 칸만 검사 · 무제한 ↔ 재고) `EDIT_FORM_OPTIONS`(`reValidateMode: 'onSubmit'`, `shouldFocusError: false`)를 쓴다.
+  - 칸별 서버 에러는 `setError('root.<칸>')`, 읽기는 `serverErrorOf(errors, 칸)`. 그 칸을 이루는 값이 바뀌면 `useClearServerErrors(form, { 칸: [값 이름] })`가 지우고, 다음 제출(`handleSubmit`)도 비운다. 화면 전체 오류(공연 끝남 등)는 그대로 `useState`.
+  - PATCH 본문은 `dirtyFields`(어느 칸을 건드렸나 — `dirtyKeysOf`) → 순수 함수의 값 비교(공백 · 순서만 다른 "같은 값" 거르기) 두 단계. 순수 함수는 `dirty` 인자를 받고 기본값 `ALL_DIRTY`(RHF 없이 부르는 테스트 · 만들기 폼). `dirtyFields`는 렌더 중에 읽어 둬야 RHF가 계산한다(구독). 이탈 확인 · [저장] 활성은 `formState.isDirty && isXDirty(base, 값, dirty)`(공백만 바꾼 칸은 바뀐 것이 아니다 — 전과 같다).
+  - 반복 항목은 `useFieldArray`(줄 키는 `id`), 연락처 · 문의처 줄은 `hosting/shared/ui/ContactRows`. 텍스트 칸은 `register`, Radix 칸(드롭다운 · 토글)과 얽힌 입력은 훅 동작이 `setValue(…, { shouldDirty: true })`. 훅 테스트는 `rhf-test.ts`의 `typeInto`, "같은 입력 → 같은 본문"은 `editInRhf`.
+  - 빠른 두 번 누름은 그대로 `inflight` ref.
 - 객체·배열 필드는 통째 교체다. `place`를 고치면 `detailAddress`까지 다시 보낸다. `contacts`·`tagIds`도 전체를 보낸다.
 - **티켓 수정(P10/T-3)**: 값을 비울 때는 `null`이 아니라 `clear[]`. 같은 필드에 값과 clear를 함께 보내지 않는다. `payType`을 바꾸면 `price`를 함께 보낸다.
 - **티켓 폼**: "무제한"을 고르면 "재고 공개"를 끄고 비활성. 잠긴 티켓(`isSold || hasPendingOrders`)은 허용 필드만 활성.

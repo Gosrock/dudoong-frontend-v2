@@ -15,6 +15,7 @@ import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
+import { typeInto } from './rhf-test';
 import { useCreateHost } from './useCreateHost';
 
 const router = vi.hoisted(() => ({ replace: vi.fn(), push: vi.fn() }));
@@ -45,18 +46,17 @@ const writes = async (sent: ReturnType<typeof recordRequests>) =>
 
 type Hook = ReturnType<typeof setup>['result'];
 function fill(result: Hook) {
-  act(() => {
-    result.current.setName(' 새 밴드 ');
-    result.current.setIntroduce('');
-    result.current.setContactType(0, 'YOUTUBE');
-    result.current.setContactValue(0, 'https://youtube.com/@newband');
-  });
+  const { form } = result.current;
+  typeInto(form, 'name', ' 새 밴드 ');
+  typeInto(form, 'introduce', '');
+  act(() => result.current.contacts.setType(0, 'YOUTUBE'));
+  typeInto(form, 'contacts.0.value', 'https://youtube.com/@newband');
 }
 
 describe('호스트 만들기 — useCreateHost(PH-2)', () => {
   it('연락처 유형 6종(YOUTUBE 포함)과 처음 값(연락처 한 줄, 유형 미선택)', () => {
     const { result } = setup();
-    expect(result.current.contactOptions.map((o) => o.type)).toEqual([
+    expect(result.current.contacts.options.map((o) => o.type)).toEqual([
       'PHONE',
       'EMAIL',
       'INSTAGRAM',
@@ -65,7 +65,7 @@ describe('호스트 만들기 — useCreateHost(PH-2)', () => {
       'ETC',
     ]);
     expect(result.current.values.contacts).toEqual([{ type: null, value: '' }]);
-    expect(result.current.canRemoveContact).toBe(false);
+    expect(result.current.contacts.canRemove).toBe(false);
     expect(result.current.attempted).toBe(false);
   });
 
@@ -122,15 +122,15 @@ describe('호스트 만들기 — useCreateHost(PH-2)', () => {
 
   it('연락처는 1~10줄 — 더하고 지울 수 있다', () => {
     const { result } = setup();
-    act(() => result.current.addContact());
+    act(() => result.current.contacts.add());
     expect(result.current.values.contacts).toHaveLength(2);
-    act(() => result.current.removeContact(0));
+    act(() => result.current.contacts.remove(0));
     expect(result.current.values.contacts).toHaveLength(1);
-    act(() => result.current.removeContact(0));
+    act(() => result.current.contacts.remove(0));
     expect(result.current.values.contacts).toHaveLength(1);
-    for (let i = 0; i < 12; i++) act(() => result.current.addContact());
+    for (let i = 0; i < 12; i++) act(() => result.current.contacts.add());
     expect(result.current.values.contacts).toHaveLength(10);
-    expect(result.current.canAddContact).toBe(false);
+    expect(result.current.contacts.canAdd).toBe(false);
   });
 
   it('에러 분기 HOST_400_16(연락처 형식) → 연락처 영역 오류, 이동 없음, 토스트 없음 — 연락처를 고치면 지운다', async () => {
@@ -139,13 +139,13 @@ describe('호스트 만들기 — useCreateHost(PH-2)', () => {
     fill(result);
     await act(() => result.current.submit());
     await waitFor(() =>
-      expect(result.current.contactsServerError).toBe('연락처 형식을 확인해 주세요'),
+      expect(result.current.contacts.serverError).toBe('연락처 형식을 확인해 주세요'),
     );
     expect(errorToast).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
     expect(result.current.submitting).toBe(false);
-    act(() => result.current.setContactValue(0, 'https://youtube.com/@band2'));
-    expect(result.current.contactsServerError).toBeNull();
+    typeInto(result.current.form, 'contacts.0.value', 'https://youtube.com/@band2');
+    expect(result.current.contacts.serverError).toBeNull();
   });
 
   it('표에 없는 실패(BAD_REQUEST·5xx)는 공용 토스트로 간다', async () => {
@@ -154,7 +154,7 @@ describe('호스트 만들기 — useCreateHost(PH-2)', () => {
     fill(result);
     await act(() => result.current.submit());
     expect(errorToast).toHaveBeenCalledWith(VALIDATION_ERROR_MESSAGE, 'mutation:BAD_REQUEST');
-    expect(result.current.contactsServerError).toBeNull();
+    expect(result.current.contacts.serverError).toBeNull();
     expect(router.replace).not.toHaveBeenCalled();
   });
 

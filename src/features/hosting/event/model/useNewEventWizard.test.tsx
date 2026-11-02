@@ -10,6 +10,7 @@ import { server } from '@/api/__mocks__/server';
 import { VALIDATION_ERROR_MESSAGE } from '@/api/error-toast';
 import { MY_EVENTS_KEY } from '@/api/event/queries';
 import { CreateEventRequestSchema } from '@/api/event/schema';
+import { typeInto } from '@/features/hosting/shared/model/rhf-test';
 import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
@@ -122,11 +123,10 @@ describe('간편 공연 만들기 Step1 — 호스트 선택', () => {
     await hostsLoaded(result);
     act(() => result.current.startCreateHost());
     expect(result.current.creatingHost).toBe(true);
-    act(() => {
-      result.current.createHost.setName('새 밴드');
-      result.current.createHost.setContactType(0, 'INSTAGRAM');
-      result.current.createHost.setContactValue(0, '@newband');
-    });
+    const { form } = result.current.createHost;
+    typeInto(form, 'name', '새 밴드');
+    typeInto(form, 'contacts.0.type', 'INSTAGRAM');
+    typeInto(form, 'contacts.0.value', '@newband');
     await act(() => result.current.createHost.submit());
     await waitFor(() =>
       expect(nav.router.push).toHaveBeenCalledWith('/hosting/new/events?step=2&hostId=9001'),
