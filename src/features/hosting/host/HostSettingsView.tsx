@@ -3,21 +3,15 @@
 import Link from 'next/link';
 import { useId } from 'react';
 
-import {
-  HOST_CONTACT_VALUE_MAX,
-  HOST_INTRODUCE_MAX,
-  HOST_NAME_MAX,
-  HOST_PHONE_VALUE_MAX,
-  type HostContactType,
-} from '@/api/host/schema';
+import { HOST_INTRODUCE_MAX, HOST_NAME_MAX } from '@/api/host/schema';
 import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
-import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import { hostContactMaxLength } from '@/features/hosting/shared/model/host-fields';
+import { ContactRows } from '@/features/hosting/shared/ui/ContactRows';
 import { EditorBottomBar, useLeaveGuard } from '@/features/hosting/shared/ui/EditorParts';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
 import { hostHref } from '@/features/shared/routes';
 import { Button } from '@/ui/components/Button/Button';
-import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { DropZone } from '@/ui/components/DropZone/DropZone';
 import { Header } from '@/ui/components/Header/Header';
 import { Input } from '@/ui/components/Input/Input';
@@ -61,9 +55,9 @@ function HostSettings({ hostId }: { hostId: string }) {
   useLeaveGuard(settings.canEdit && settings.dirty);
   if (settings.access === 'forbidden') return <HostingForbidden />;
 
+  const { contacts } = settings;
   const show = (error: string | null) => (settings.attempted && error ? error : undefined);
   const readOnly = !settings.canEdit;
-  const options = settings.contactOptions.map((o) => ({ value: o.type, label: o.label }));
   const uploading = HOST_IMAGE_SLOTS.some((slot) => settings.images[slot].uploading);
 
   return (
@@ -93,9 +87,8 @@ function HostSettings({ hostId }: { hostId: string }) {
           placeholder={`최대 ${HOST_NAME_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_NAME_MAX}
           readOnly={readOnly}
-          value={settings.values.name}
-          onChange={(e) => settings.setName(e.target.value)}
           error={show(settings.errors.name)}
+          {...settings.form.register('name')}
         />
 
         <TextArea
@@ -103,9 +96,8 @@ function HostSettings({ hostId }: { hostId: string }) {
           placeholder={`최대 ${HOST_INTRODUCE_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_INTRODUCE_MAX}
           readOnly={readOnly}
-          value={settings.values.introduce}
-          onChange={(e) => settings.setIntroduce(e.target.value)}
           error={show(settings.errors.introduce)}
+          {...settings.form.register('introduce')}
         />
 
         <fieldset className={c.contacts}>
@@ -116,52 +108,31 @@ function HostSettings({ hostId }: { hostId: string }) {
             </span>
           </legend>
           <span className={field.helper}>호스트 홈에 보여지는 정보예요.</span>
-          {settings.values.contacts.map((contact, i) => (
-            <div key={i} className={c.contactRow} data-testid="contact-row">
-              <Dropdown
-                className={c.contactType}
-                aria-label={`연락처 유형 ${i + 1}`}
-                placeholder="유형 선택"
-                options={options}
-                disabled={readOnly}
-                value={contact.type ?? ''}
-                onValueChange={(v) => v && settings.setContactType(i, v as HostContactType)}
-              />
-              <Input
-                className={c.contactValue}
-                aria-label={`연락처 ${i + 1}`}
-                placeholder={contactPlaceholder(contact.type) ?? undefined}
-                maxLength={contact.type === 'PHONE' ? HOST_PHONE_VALUE_MAX : HOST_CONTACT_VALUE_MAX}
-                showCount={false}
-                readOnly={readOnly}
-                value={contact.value}
-                onChange={(e) => settings.setContactValue(i, e.target.value)}
-                error={show(settings.errors.contacts[i] ?? null)}
-              />
-              {settings.canRemoveContact && (
-                <button
-                  type="button"
-                  className={c.removeButton}
-                  aria-label={`연락처 ${i + 1} 삭제`}
-                  onClick={() => settings.removeContact(i)}
-                >
-                  <Icon name="close" />
-                </button>
-              )}
-            </div>
-          ))}
-          {settings.contactsServerError && (
+          <ContactRows
+            noun="연락처"
+            rows={contacts.rows}
+            values={settings.values.contacts}
+            register={(i) => settings.form.register(`contacts.${i}.value`)}
+            setType={contacts.setType}
+            errorOf={(i) => show(settings.errors.contacts[i] ?? null)}
+            maxLengthOf={hostContactMaxLength}
+            canRemove={contacts.canRemove}
+            onRemove={contacts.remove}
+            readOnly={readOnly}
+            classes={c.contactClasses}
+          />
+          {contacts.serverError && (
             <span role="alert" className={field.errorText}>
-              {settings.contactsServerError}
+              {contacts.serverError}
             </span>
           )}
-          {settings.canAddContact && (
+          {contacts.canAdd && (
             <Button
               variant="secondary"
               size="sm"
               className={c.addButton}
               icon={<Icon name="add" />}
-              onClick={settings.addContact}
+              onClick={contacts.add}
             >
               문의처 추가
             </Button>

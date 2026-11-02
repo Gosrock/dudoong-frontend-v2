@@ -12,6 +12,7 @@ import { server } from '@/api/__mocks__/server';
 import { isEventManageQueryKey, MY_EVENTS_KEY } from '@/api/event/queries';
 import { hostMembersQuery, hostViewerQuery, MY_HOSTS_KEY } from '@/api/host/queries';
 import { AddHostMembersRequestSchema, HostMembersSchema } from '@/api/host/schema';
+import { typeInto } from '@/features/hosting/shared/model/rhf-test';
 import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
@@ -258,7 +259,7 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
   it('일반 멤버는 보내지 않는다', async () => {
     const sent = recordRequests();
     const { result } = setupInvite('GUEST');
-    act(() => result.current.setEmail(0, 'guitar@example.com'));
+    typeInto(result.current.form, 'rows.0.email', 'guitar@example.com');
     await act(() => result.current.submit());
     expect(await writes(sent)).toEqual([]);
   });
@@ -267,7 +268,7 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
     const sent = recordRequests();
     const { result, queryClient } = setupInvite();
     act(() => {
-      result.current.setEmail(0, ' guitar@example.com ');
+      result.current.form.setValue('rows.0.email', ' guitar@example.com ', { shouldDirty: true });
       result.current.setRole(0, 'MANAGER');
     });
     let ok: boolean | undefined;
@@ -301,9 +302,9 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
       result.current.addRow();
     });
     act(() => {
-      result.current.setEmail(0, 'a@x.com');
-      result.current.setEmail(1, 'bad');
-      result.current.setEmail(2, 'A@x.com');
+      result.current.form.setValue('rows.0.email', 'a@x.com', { shouldDirty: true });
+      result.current.form.setValue('rows.1.email', 'bad', { shouldDirty: true });
+      result.current.form.setValue('rows.2.email', 'A@x.com', { shouldDirty: true });
     });
     await act(() => result.current.submit());
     expect(await writes(sent)).toEqual([]);
@@ -332,8 +333,8 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
       const { result, queryClient } = setupInvite();
       act(() => result.current.addRow());
       act(() => {
-        result.current.setEmail(0, 'vocal@example.com');
-        result.current.setEmail(1, email);
+        result.current.form.setValue('rows.0.email', 'vocal@example.com', { shouldDirty: true });
+        result.current.form.setValue('rows.1.email', email, { shouldDirty: true });
       });
       let ok: boolean | undefined;
       await act(async () => {
@@ -346,7 +347,7 @@ describe('멤버 초대 — useInviteMembers(PH-7)', () => {
       expect(result.current.serverErrors).toEqual([null, message]);
       expect(result.current.formError).toBeNull();
       // 그 줄을 고치면 그 줄의 사유를 지운다
-      act(() => result.current.setEmail(1, 'guitar@example.com'));
+      typeInto(result.current.form, 'rows.1.email', 'guitar@example.com');
       expect(result.current.serverErrors).toEqual([null, null]);
     },
   );

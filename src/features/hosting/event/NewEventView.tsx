@@ -3,21 +3,15 @@
 import { useRouter } from 'next/navigation';
 
 import { EVENT_NAME_MAX } from '@/api/event/schema';
-import {
-  HOST_CONTACT_VALUE_MAX,
-  HOST_INTRODUCE_MAX,
-  HOST_NAME_MAX,
-  HOST_PHONE_VALUE_MAX,
-  type HostContactType,
-} from '@/api/host/schema';
+import { HOST_INTRODUCE_MAX, HOST_NAME_MAX } from '@/api/host/schema';
 import { roleChipOf, UNNAMED_HOST } from '@/features/hosting/shared/model/home-cards';
-import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import { hostContactMaxLength } from '@/features/hosting/shared/model/host-fields';
+import { ContactRows } from '@/features/hosting/shared/ui/ContactRows';
 import { FieldError, FormSection } from '@/features/hosting/shared/ui/EditorParts';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
-import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { Header } from '@/ui/components/Header/Header';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Input } from '@/ui/components/Input/Input';
@@ -34,6 +28,13 @@ import { useNewEventWizard } from './model/useNewEventWizard';
 import * as s from './NewEventView.css';
 
 type Wizard = ReturnType<typeof useNewEventWizard>;
+
+const CONTACT_CLASSES = {
+  row: s.contactRow,
+  type: s.contactType,
+  value: s.contactValue,
+  remove: s.removeButton,
+};
 
 /**
  * `/hosting/new/events?step=1|2` 간편 공연 만들기 — **와이어 근거**(GUI `41:1996`·`55:3164` 등 Ready 아님).
@@ -154,8 +155,8 @@ function PickHostStep({ w }: { w: Wizard }) {
 /** Step1 안의 새 호스트 만들기(와이어 `108:2168`) — 만들면 그 호스트가 골라진 채 Step2로(L) */
 function CreateHostStep({ w }: { w: Wizard }) {
   const f = w.createHost;
+  const { contacts } = f;
   const show = (error: string | null) => (f.attempted && error ? error : undefined);
-  const options = f.contactOptions.map((o) => ({ value: o.type, label: o.label }));
   return (
     <section aria-labelledby="create-host-title" className={s.step}>
       <Flex direction="column" gap={2}>
@@ -179,59 +180,37 @@ function CreateHostStep({ w }: { w: Wizard }) {
           required
           placeholder={`최대 ${HOST_NAME_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_NAME_MAX}
-          value={f.values.name}
-          onChange={(e) => f.setName(e.target.value)}
           error={show(f.errors.name)}
+          {...f.form.register('name')}
         />
         <TextArea
           label="소개글"
           placeholder={`최대 ${HOST_INTRODUCE_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_INTRODUCE_MAX}
-          value={f.values.introduce}
-          onChange={(e) => f.setIntroduce(e.target.value)}
           error={show(f.errors.introduce)}
+          {...f.form.register('introduce')}
         />
         <FormSection title="호스트 대표 연락처" required description="호스트 홈에 보이는 정보예요.">
-          {f.values.contacts.map((c, i) => (
-            <div key={i} className={s.contactRow}>
-              <Dropdown
-                className={s.contactType}
-                aria-label={`연락처 유형 ${i + 1}`}
-                placeholder="유형 선택"
-                options={options}
-                value={c.type ?? ''}
-                onValueChange={(v) => v && f.setContactType(i, v as HostContactType)}
-              />
-              <Input
-                className={s.contactValue}
-                aria-label={`연락처 ${i + 1}`}
-                placeholder={contactPlaceholder(c.type) ?? undefined}
-                maxLength={c.type === 'PHONE' ? HOST_PHONE_VALUE_MAX : HOST_CONTACT_VALUE_MAX}
-                showCount={false}
-                value={c.value}
-                onChange={(e) => f.setContactValue(i, e.target.value)}
-                error={show(f.errors.contacts[i] ?? null)}
-              />
-              {f.canRemoveContact && (
-                <button
-                  type="button"
-                  className={s.removeButton}
-                  aria-label={`연락처 ${i + 1} 삭제`}
-                  onClick={() => f.removeContact(i)}
-                >
-                  <Icon name="close" />
-                </button>
-              )}
-            </div>
-          ))}
-          <FieldError>{f.contactsServerError}</FieldError>
-          {f.canAddContact && (
+          <ContactRows
+            noun="연락처"
+            rows={contacts.rows}
+            values={f.values.contacts}
+            register={(i) => f.form.register(`contacts.${i}.value`)}
+            setType={contacts.setType}
+            errorOf={(i) => show(f.errors.contacts[i] ?? null)}
+            maxLengthOf={hostContactMaxLength}
+            canRemove={contacts.canRemove}
+            onRemove={contacts.remove}
+            classes={CONTACT_CLASSES}
+          />
+          <FieldError>{contacts.serverError}</FieldError>
+          {contacts.canAdd && (
             <div>
               <Button
                 variant="secondary"
                 size="sm"
                 icon={<Icon name="add" />}
-                onClick={f.addContact}
+                onClick={contacts.add}
               >
                 연락처 추가
               </Button>

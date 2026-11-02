@@ -129,6 +129,25 @@
 
 **새 파일**: checkout `ui/{CheckoutForm, CheckoutPayment, CheckoutAgreements, RefundPolicy, OptionFields}.tsx` + css 5 · mypage `ui/{OrderDetailHeader, OrderDetailNotices, OrderDetailTickets, OrderDetailPayment, OrderCancelNotice}.tsx` + `OrderDetail.css.ts` · guest `{OrdersTab, IssuedTicketsTab, RefundsTab}.tsx` · `ui/{OrderDetailParts, OrderInfo, OrderReasonSteps, OrderDetailFooter, IssuedTicketDetailOverlay}.tsx`. 지운 파일: `GuestTabs.tsx` · mypage `OrderDetailView.css.ts` · `PaymentBlocks.css.ts`.
 
+### ⑥ 결과 — ⑥-forms(`31a pattern-split-forms`)
+
+`features/hosting/{event,host,ticket,shared}`. 관제탑이 ⑥을 둘로 나눴다(🤖 2026-11-03) — 이 절은 **복잡한 폼 7개 RHF 전환 + 그 화면 · 훅 나누기**. 나머지 큰 파일 · `Divider` · A46은 `⑥-views`. `src/ui` 수정 없음.
+
+| ID | 결과 | 한 것 · 이유 |
+|---|---|---|
+| D1(전환) | 끝(7) | patterns §23 분류표 "⑥" 7개 → RHF: `useCreateHost` · `useHostSettings` · `useInviteMembers` · `useEventBasicInfo` · `useEventSections` · `useTicketForm` · `useOptionEditor`(+ 같은 칸을 쓰는 새 옵션 폼 `useTicketOptions.newOption` — 공용 하위 훅 `useOptionForm`). 공용 길은 `hosting/shared/model/rhf-form.ts`(patterns §23 "RHF 폼의 공용 길"). 🤖 **칸 오류 표시는 순수 함수를 지금 값으로 다시 계산**(resolver는 제출 관문) — 규칙이 칸끼리 얽혀 RHF 칸 단위 재검증으론 옆 칸 오류가 남는다. 되돌리려면 `EDIT_FORM_OPTIONS` · 표시만 `formState.errors`로 |
+| A9 | 끝(RHF가 대신) | `base` → `formState.defaultValues`, `values` → `useWatch`, `attempted` → `formState.isSubmitted`, 칸별 `serverErrors` → `setError('root.<칸>')` + `useClearServerErrors`, `inflight` ref는 그대로 |
+| §23 본문 | 끝 | PATCH 본문 = `dirtyFields`(`dirtyKeysOf`) 1차 → 기존 값 비교 2차. `changedX`·`toXBody`·`isXDirty`·`validateX`가 `dirty`(기본 `ALL_DIRTY`)를 받는다. "같은 입력 → 같은 본문" 테스트: 호스트 설정 7 · 기본 정보 10 · 티켓 11(+ 무료→두둥) · 옵션 4×잠김/안 잠김(`rhf-test.ts` `editInRhf`) |
+| A25 | 끝(폼 훅) | 반환을 영역별로 묶음 — `useEventBasicInfo` 37 → 19키(`poster` · `schedule` · `place` · `contacts` · `tags` · `hasTicket` · `status` · `savedNotice`), `useTicketForm` 36 → 17(`access` · `set` · `feedback` · `status`), `useEventSections` → 10, `useOptionEditor` 15(`fields`), `useTicketOptions` 19(`newOption`), `useHostSettings` · `useCreateHost`(`contacts`), `useInviteMembers` 15 |
+| A24 | 끝(폼 화면) | `EventInfoView` 476 → 128줄(`event/ui/BasicInfoSections` · `InfoPreview` · `SavedNotice` — 상세 정보도 같이), `TicketFormView` 472 → 183(`ticket/ui/TicketFormFields` · `TicketFormToggles` · `RefundObligationField` · `ticket-form-props`), `OptionSheets` 559(컴포넌트 4) → `AddOptionsOverlay` · `OptionDetailOverlay` · `OptionFields` · `OptionPickItem` · `option-sheet-parts`. 연락처 · 문의처 줄 4벌(호스트 만들기 · 간편 만들기 Step1 · 호스트 설정 · 기본 정보) → `hosting/shared/ui/ContactRows`. 칸 묶음 css는 섹션 파일 옆(`ui/TicketFormSections.css.ts` · `ui/BasicInfoSections.css.ts` · `ui/InfoPreview.css.ts`)으로 — **DS 칸을 덮는 클래스는 `'&&'`**(나누자 CSS 청크 순서가 바뀌어 티켓 폼 320 리플로가 깨졌던 것을 고침, patterns §3 함정 줄) |
+| A28 | 끝(이 범위) | flex+gap만 하는 클래스 → `Flex`: 기본 정보 `previewFact` · 상세 `head` · `titleRow`, 티켓 폼 `account` · `periodRow`, 옵션 시트에서 안 쓰던 5개 지움. **그대로**: `RadioGroup`에 붙는 `radios` · `supplyRow`, 고유 값이 있는 `left`(minWidth) · `notices`(padding) · `periodHead`(minHeight) · `pickText`(minWidth), `data-testid`를 단 옵션 시트 `body` |
+| A46 | 끝(이 범위) | ⑥-views가 넘긴 `listStyle: 'none'` 8곳 → `sprinkles({ listStyle: 'none' })`(`EventDashboardView` 3 · `EventScopeNav` · `HostManage` · `OptionSheets` · `TicketCard` 2). `TicketParts`의 `disc`는 리셋이 아니라 그대로 |
+| A27 | ⑥-views 몫 | 이 범위의 1px 직접 선은 그대로 — 상세 정보 탭 줄 `tabRow` 아래선, 티켓 폼 PC 토글 사이 선(`globalStyle`) · 하단 바 위선 |
+
+**사용자에게 보이는 변화**: 칸별 서버 오류(기본 정보 · 티켓 · 옵션)가 그 칸을 고칠 때뿐 아니라 **[저장]을 다시 누를 때도** 지워진다(`handleSubmit`이 비운다 — 같은 이유로 또 실패하면 다시 붙는다). 그 밖 글자 · 모양 · 요청 본문은 그대로.
+
+**새 파일**: `hosting/shared/model/{rhf-form.ts, rhf-form.test.tsx, rhf-test.ts}` · `hosting/shared/ui/ContactRows.tsx` · `event/ui/{BasicInfoSections, InfoPreview, SavedNotice}.tsx` · `event/ui/{BasicInfoSections, InfoPreview}.css.ts` · `ticket/ui/TicketFormSections.css.ts` · `ticket/model/useOptionForm.ts` · `ticket/ui/{AddOptionsOverlay, OptionDetailOverlay, OptionFields, OptionPickItem, RefundObligationField, TicketFormFields, TicketFormToggles}.tsx` · `ticket/ui/{option-sheet-parts, ticket-form-props}.ts`. 지운 것: `ticket/ui/OptionSheets.tsx`, 쓰지 않게 된 `host-fields` 줄 바꾸기 4개 · `sections-form` 제목/본문 바꾸기 2개.
+
 ---
 
 # 리포트 원문

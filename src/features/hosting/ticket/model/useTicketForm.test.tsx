@@ -76,11 +76,11 @@ const banksLoaded = (result: Hook) =>
 async function fillDudoong(result: Hook, { agree = true }: { agree?: boolean } = {}) {
   await banksLoaded(result);
   act(() => {
-    result.current.setName('일반 예매');
-    result.current.setPrice('15000');
+    result.current.set.name('일반 예매');
+    result.current.set.price('15000');
     result.current.bank.select('088');
-    result.current.setAccountHolder('고스락');
-    result.current.setAccountNumber('110-123');
+    result.current.set.accountHolder('고스락');
+    result.current.set.accountNumber('110-123');
     result.current.agreement.setAgreed(agree);
   });
 }
@@ -127,12 +127,12 @@ describe('새 티켓(P10/T-2)', () => {
   it('무제한이면 재고 공개를 끄고 비활성 — 켜려 해도 바뀌지 않는다', async () => {
     const { result } = setup('140');
     await loaded(result);
-    act(() => result.current.setQuantityPublic(true));
+    act(() => result.current.set.quantityPublic(true));
     expect(result.current.values.isQuantityPublic).toBe(false);
-    act(() => result.current.setUnlimited(false));
-    act(() => result.current.setQuantityPublic(true));
+    act(() => result.current.set.unlimited(false));
+    act(() => result.current.set.quantityPublic(true));
     expect(result.current.values.isQuantityPublic).toBe(true);
-    act(() => result.current.setUnlimited(true));
+    act(() => result.current.set.unlimited(true));
     expect(result.current.values.isQuantityPublic).toBe(false);
     expect(result.current.locks.quantityPublic).toBe(true);
   });
@@ -142,11 +142,11 @@ describe('새 티켓(P10/T-2)', () => {
     await loaded(result);
     expect(result.current.locks.approval).toBe(true);
     act(() => {
-      result.current.setPayType('FREE');
-      result.current.setName('초대권');
+      result.current.set.payType('FREE');
+      result.current.set.name('초대권');
     });
     expect(result.current.locks.approval).toBe(false);
-    act(() => result.current.setApprovalRequired(false));
+    act(() => result.current.set.approvalRequired(false));
     const sent = recordRequests();
     expect(await save(result)).toBe(true);
     expect((await writes(sent))[0]!.body).toEqual({
@@ -161,7 +161,7 @@ describe('새 티켓(P10/T-2)', () => {
   it('두둥이면 승인을 끌 수 없다', async () => {
     const { result } = setup('140');
     await loaded(result);
-    act(() => result.current.setApprovalRequired(false));
+    act(() => result.current.set.approvalRequired(false));
     expect(result.current.values.approvalRequired).toBe(true);
   });
 
@@ -183,7 +183,7 @@ describe('새 티켓(P10/T-2)', () => {
     await loaded(result);
     const sent = recordRequests();
     expect(await save(result)).toBe(false);
-    expect(result.current.errors).toMatchObject({
+    expect(result.current.feedback.errors).toMatchObject({
       name: expect.any(String),
       price: expect.any(String),
     });
@@ -195,12 +195,12 @@ describe('새 티켓(P10/T-2)', () => {
     await loaded(result);
     await fillDudoong(result, { agree: false });
     expect(result.current.agreement).toMatchObject({ field: true, required: true, agreed: false });
-    expect(result.current.canSave).toBe(false);
+    expect(result.current.status.canSave).toBe(false);
     const sent = recordRequests();
     expect(await save(result)).toBe(false);
     expect(await writes(sent)).toEqual([]);
     act(() => result.current.agreement.setAgreed(true));
-    expect(result.current.canSave).toBe(true);
+    expect(result.current.status.canSave).toBe(true);
     expect(await save(result)).toBe(true);
     expect((await writes(sent))[0]!.body).toMatchObject({
       refundObligationAgreed: true,
@@ -211,7 +211,7 @@ describe('새 티켓(P10/T-2)', () => {
   it('무료 티켓에는 환불 의무 동의가 필요 없다', async () => {
     const { result } = setup('140');
     await loaded(result);
-    act(() => result.current.setPayType('FREE'));
+    act(() => result.current.set.payType('FREE'));
     expect(result.current.agreement.required).toBe(false);
   });
 
@@ -233,9 +233,9 @@ describe('새 티켓(P10/T-2)', () => {
     await loaded(result);
     await fillDudoong(result);
     expect(await save(result)).toBe(false);
-    await waitFor(() => expect(result.current.formError).toBe(AGREEMENT_REJECTED_MESSAGE));
+    await waitFor(() => expect(result.current.feedback.form).toBe(AGREEMENT_REJECTED_MESSAGE));
     expect(result.current.agreement.agreed).toBe(false);
-    expect(result.current.canSave).toBe(false);
+    expect(result.current.status.canSave).toBe(false);
     expect(errorToast).not.toHaveBeenCalled();
     server.resetHandlers();
     act(() => result.current.agreement.setAgreed(true));
@@ -252,7 +252,7 @@ describe('새 티켓(P10/T-2)', () => {
     await loaded(result);
     await fillDudoong(result);
     expect(await save(result)).toBe(false);
-    await waitFor(() => expect(result.current.serverErrors[field]).toEqual(expect.any(String)));
+    await waitFor(() => expect(result.current.feedback.server[field]).toEqual(expect.any(String)));
   });
 
   it('티켓 없음 공연은 만들 수 없다 — 읽기 전용, 요청하지 않는다', async () => {
@@ -268,9 +268,9 @@ describe('새 티켓(P10/T-2)', () => {
     );
     const { result } = setup(String(eventId));
     await loaded(result);
-    expect(result.current.readOnlyReason).toBe('noTicketEvent');
-    expect(result.current.canEdit).toBe(false);
-    act(() => result.current.setName('x'));
+    expect(result.current.access.readOnlyReason).toBe('noTicketEvent');
+    expect(result.current.access.canEdit).toBe(false);
+    act(() => result.current.set.name('x'));
     expect(result.current.values.name).toBe('');
   });
 
@@ -278,7 +278,7 @@ describe('새 티켓(P10/T-2)', () => {
     actAsRole(11, 'GUEST');
     const { result } = setup('140');
     await loaded(result);
-    expect(result.current.readOnlyReason).toBe('role');
+    expect(result.current.access.readOnlyReason).toBe('role');
     expect(await save(result)).toBe(false);
   });
 });
@@ -287,11 +287,11 @@ describe('티켓 수정(P10/T-3)', () => {
   it('바뀐 필드만 + 비우면 clear[] — 무제한으로', async () => {
     const { result } = setup('101', 503);
     await loaded(result);
-    expect(result.current.dirty).toBe(false);
+    expect(result.current.status.dirty).toBe(false);
     act(() => {
-      result.current.setDescription('입장 시 확인');
-      result.current.setLimitPurchase(true);
-      result.current.setPurchaseLimit('2');
+      result.current.set.description('입장 시 확인');
+      result.current.set.limitPurchase(true);
+      result.current.set.purchaseLimit('2');
     });
     const sent = recordRequests();
     expect(await save(result)).toBe(true);
@@ -306,7 +306,7 @@ describe('티켓 수정(P10/T-3)', () => {
     const { result } = setup('101', 502);
     await loaded(result);
     // 502는 매진(판매됨)이라 잠겼다 — 수량은 늘리기만, 무제한은 늘리기다
-    act(() => result.current.setUnlimited(true));
+    act(() => result.current.set.unlimited(true));
     const sent = recordRequests();
     expect(await save(result)).toBe(true);
     expect((await writes(sent))[0]!.body).toEqual({
@@ -320,17 +320,19 @@ describe('티켓 수정(P10/T-3)', () => {
     await loaded(result);
     expect(result.current.locks.locked).toBe(true);
     act(() => {
-      result.current.setName('바뀐 이름');
-      result.current.setPrice('1');
-      result.current.setPayType('FREE');
-      result.current.setSupplyCount('50');
+      result.current.set.name('바뀐 이름');
+      result.current.set.price('1');
+      result.current.set.payType('FREE');
+      result.current.set.supplyCount('50');
     });
     expect(result.current.values).toMatchObject({
       name: '일반 예매',
       price: '15000',
       payType: 'DUDOONG',
     });
-    expect(result.current.errors.supplyCount).toBe('판매된 티켓은 수량을 늘리기만 할 수 있어요');
+    expect(result.current.feedback.errors.supplyCount).toBe(
+      '판매된 티켓은 수량을 늘리기만 할 수 있어요',
+    );
   });
 
   it('잠긴 필드 변경(Ticket_Item_400_14)이 오면 폼 오류 + 목록 다시 읽기', async () => {
@@ -338,9 +340,9 @@ describe('티켓 수정(P10/T-3)', () => {
     const { result, queryClient } = setup('101', 503);
     await loaded(result);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-    act(() => result.current.setName('초대'));
+    act(() => result.current.set.name('초대'));
     expect(await save(result)).toBe(false);
-    await waitFor(() => expect(result.current.formError).toMatch(/설명·판매 기간/));
+    await waitFor(() => expect(result.current.feedback.form).toMatch(/설명·판매 기간/));
     expect(invalidate).toHaveBeenCalledWith({
       queryKey: ticketItemsManageQuery('101').queryKey,
       exact: true,
@@ -351,6 +353,6 @@ describe('티켓 수정(P10/T-3)', () => {
     const { result } = setup('101', 999);
     await loaded(result);
     expect(result.current.missing).toBe(true);
-    expect(result.current.canEdit).toBe(false);
+    expect(result.current.access.canEdit).toBe(false);
   });
 });

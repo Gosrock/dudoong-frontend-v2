@@ -7,6 +7,7 @@ import {
   type TicketOptionManage,
   type UpdateOptionRequest,
 } from '@/api/option/schema';
+import { ALL_DIRTY } from '@/features/hosting/shared/model/rhf-form';
 import { formatWon } from '@/utils/money';
 
 /**
@@ -101,17 +102,20 @@ export const toCreateOptionBody = (v: OptionFormValues): CreateOptionRequest => 
 
 /**
  * P10/O-3 본문 — 바뀐 이름·설명·추가금만. **형식(`type`)은 보내지 않는다.** 잠긴 옵션이면 추가금을 빼고(`locked`), 주관식은 추가금이 없다.
- * 바뀐 것이 없으면 null
+ * 바뀐 것이 없으면 null. `dirty`(RHF `dirtyFields`의 맨 위 칸)가 1차 — 건드리지 않은 칸은 보지 않는다, 값 비교(공백)가 2차
  */
 export function toUpdateOptionBody(
   base: OptionFormValues,
   v: OptionFormValues,
   { locked, yesNo }: { locked: boolean; yesNo: boolean },
+  dirty: ReadonlySet<string> = ALL_DIRTY,
 ): UpdateOptionRequest | null {
   const body: UpdateOptionRequest = {};
-  if (base.name.trim() !== v.name.trim()) body.name = v.name.trim();
-  if (base.description.trim() !== v.description.trim()) body.description = v.description.trim();
-  if (yesNo && !locked) {
+  if (dirty.has('name') && base.name.trim() !== v.name.trim()) body.name = v.name.trim();
+  if (dirty.has('description') && base.description.trim() !== v.description.trim()) {
+    body.description = v.description.trim();
+  }
+  if (yesNo && !locked && dirty.has('yesAdditionalPrice')) {
     const before = optionPriceOf(base.yesAdditionalPrice);
     const after = optionPriceOf(v.yesAdditionalPrice);
     if (after !== null && after !== before) body.yesAdditionalPrice = after;

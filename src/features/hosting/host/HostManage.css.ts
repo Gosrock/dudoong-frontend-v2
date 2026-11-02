@@ -2,6 +2,7 @@ import { globalStyle, style } from '@vanilla-extract/css';
 
 import { fabBottom, fabClearance } from '@/ui/components/Fab/Fab.css';
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -55,13 +56,15 @@ export const members = style({
   paddingBottom: fabClearance.lg,
 });
 
-export const memberList = style({
-  display: 'flex',
-  flexDirection: 'column',
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const memberList = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 export const memberRow = style({
   display: 'flex',

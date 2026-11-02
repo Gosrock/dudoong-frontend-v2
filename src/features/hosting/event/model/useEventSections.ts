@@ -1,7 +1,8 @@
 'use client';
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { updateEventSectionsMutation } from '@/api/event/mutations';
 import { eventSectionsManageQuery } from '@/api/event/queries';
@@ -12,12 +13,18 @@ import {
   invalidateEventStatus,
 } from '@/features/hosting/shared/model/event-cache';
 import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
+import {
+  EDIT_FORM_OPTIONS,
+  resolverFrom,
+  useFieldChange,
+} from '@/features/hosting/shared/model/rhf-form';
 import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 
 import {
   canAddSection,
   canRemoveSection,
+  emptySection,
   hasSectionErrors,
   isSectionsDirty,
   SECTION_ERROR,
@@ -25,17 +32,21 @@ import {
   sectionInputsOf,
   toUpdateSectionsBody,
   validateSections,
-  withAddedSection,
-  withMovedSection,
-  withoutSection,
-  withSectionContent,
-  withSectionTitle,
 } from './sections-form';
 import type { SavedNotice } from './useEventBasicInfo';
 
+type SectionsValues = { sections: SectionInput[] };
+
+/** 칸 오류를 RHF 경로(`sections.<i>.title`)로 — resolver용 */
+const sectionFieldErrors = ({ sections }: SectionsValues) => {
+  const errors = validateSections(sections);
+  return { sections: sections.map((s) => errors[s.key]!) };
+};
+
 /**
  * 공연 상세 정보(`/hosting/events/[eventId]/detail`, GE-5 · PE-6 · PE-10 `SECTION`, plan P11). 값·칸 오류·동작만 — 탭·에디터(Tiptap)는 V.
- * 공연 스코프 레이아웃 안에서 쓴다. 섹션은 쿠키를 싣는 GE-5(`eventSectionsManageQuery` — 준비중 공연은 멤버만 보인다)를 한 번만 채운다.
+ * 공연 스코프 레이아웃 안에서 쓴다. 섹션은 쿠키를 싣는 GE-5(`eventSectionsManageQuery` — 준비중 공연은 멤버만 보인다)를 RHF
+ * `defaultValues`로 한 번만 채운다(patterns §4-4). 폼은 RHF(patterns §23 — 섹션 탭 반복, `useFieldArray`), 검증은 `validateSections`를 resolver로.
  *
  * - 저장(PE-6)은 **전체 교체**: 지금 목록 전부를 순서대로 보내고, 뺀 섹션은 서버에서 지워진다. 성공하면 응답을 편집용 키에 넣고
  *   GE-7·GE-3(체크리스트 ②)·관객 공연 상세 공개 키를 무효화. 등록된 공연이면 `savedNotice: 'registeredChanged'`
@@ -47,28 +58,37 @@ export function useEventSections(eventId: string) {
   const queryClient = useQueryClient();
   const scope = useEventScope(eventId);
   const canEdit = scope.canEdit;
-  const { data: sections } = useSuspenseQuery(eventSectionsManageQuery(eventId));
+  const { data: saved } = useSuspenseQuery(eventSectionsManageQuery(eventId));
 
-  const [base, setBase] = useState<SectionInput[]>(() => sectionInputsOf(sections));
-  const [values, setValues] = useState<SectionInput[]>(base);
-  const [attempted, setAttempted] = useState(false);
+  const form = useForm<SectionsValues>({
+    ...EDIT_FORM_OPTIONS,
+    defaultValues: { sections: sectionInputsOf(saved) },
+    resolver: resolverFrom(sectionFieldErrors),
+  });
+  const rows = useFieldArray({ control: form.control, name: 'sections' });
+  const { sections } = useWatch({ control: form.control }) as SectionsValues;
+  const { defaultValues, isDirty, isSubmitted } = form.formState;
+  const base = (defaultValues as SectionsValues).sections;
+
   const [formError, setFormError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [savedNotice, setSavedNotice] = useState<SavedNotice | null>(null);
   const inflight = useRef(false);
 
-  const errors = useMemo(() => validateSections(values), [values]);
-  const dirty = useMemo(() => isSectionsDirty(base, values), [base, values]);
+  // 칸을 고치면 지난 저장 안내·폼 오류를 내린다(`reset`은 이름이 없어 걸리지 않는다)
+  useFieldChange(form, () => {
+    setSavedNotice(null);
+    setFormError(null);
+  });
 
-  const edit = useCallback(
-    (update: (v: SectionInput[]) => SectionInput[]) => {
-      if (!canEdit) return;
-      setSavedNotice(null);
-      setFormError(null);
-      setValues(update);
-    },
-    [canEdit],
-  );
+  const errors = validateSections(sections);
+  const dirty = isDirty && isSectionsDirty(base, sections);
+
+  const indexOf = (key: string) => form.getValues('sections').findIndex((s) => s.key === key);
+  const setField = (key: string, field: 'title' | 'content', value: string) => {
+    const i = indexOf(key);
+    if (canEdit && i >= 0) form.setValue(`sections.${i}.${field}`, value, { shouldDirty: true });
+  };
 
   // ─── 본문 이미지 ───
   const imageMutation = useMutation({
@@ -99,70 +119,86 @@ export function useEventSections(eventId: string) {
   // ─── 저장(PE-6) ───
   const saveMutation = useMutation({
     ...updateEventSectionsMutation(eventId),
-    onSuccess: (saved) => applySavedSections(queryClient, eventId, saved),
+    onSuccess: (next) => applySavedSections(queryClient, eventId, next),
   });
 
   const blocked = !canEdit || imageMutation.isPending || saveMutation.isPending;
 
   /** 저장했으면 `true`. 읽기 전용·바뀐 것 없음·칸 오류·업로드·저장 중이면 요청하지 않고 `false` */
-  const save = useCallback(async () => {
-    setAttempted(true);
-    if (blocked || !dirty || hasSectionErrors(errors) || inflight.current) return false;
-    inflight.current = true;
-    setFormError(null);
+  const save = async () => {
     const wasRegistered = scope.registered;
-    try {
-      const saved = await saveMutation.mutateAsync(toUpdateSectionsBody(values));
-      inflight.current = false;
-      const next = sectionInputsOf(saved);
-      setBase(next);
-      setValues(next);
-      setAttempted(false);
-      setSavedNotice(wasRegistered ? 'registeredChanged' : 'saved');
-      return true;
-    } catch (e) {
-      inflight.current = false;
-      handleError(e, {
-        Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
-        Event_400_17: () => {
-          setFormError(EVENT_ENDED_MESSAGE);
-          void invalidateEventStatus(queryClient, eventId);
-        },
-      });
-      return false;
-    }
-  }, [blocked, dirty, errors, eventId, queryClient, saveMutation, scope.registered, values]);
+    const result = await form.handleSubmit(async (valid) => {
+      if (blocked || !dirty || inflight.current) return;
+      inflight.current = true;
+      setFormError(null);
+      try {
+        const next = await saveMutation.mutateAsync(toUpdateSectionsBody(valid.sections));
+        inflight.current = false;
+        return next;
+      } catch (e) {
+        inflight.current = false;
+        handleError(e, {
+          Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
+          Event_400_17: () => {
+            setFormError(EVENT_ENDED_MESSAGE);
+            void invalidateEventStatus(queryClient, eventId);
+          },
+        });
+      }
+    })();
+    if (!result) return false;
+    // `handleSubmit`이 끝난 뒤에 새 기준으로 — 그래야 `isSubmitted`(칸 오류 표시)도 풀린다
+    form.reset({ sections: sectionInputsOf(result) });
+    setSavedNotice(wasRegistered ? 'registeredChanged' : 'saved');
+    return true;
+  };
 
+  const dismissSavedNotice = useCallback(() => setSavedNotice(null), []);
   const canSave = !blocked && dirty && !hasSectionErrors(errors);
 
   return {
-    event: scope.event,
+    /** RHF 폼 — 탭 이름은 `register('sections.<i>.title')`(V) */
+    form,
     canEdit,
-    readOnlyReason: scope.readOnlyReason,
-    readOnlyMessage: scope.readOnlyMessage,
     /** 지금 섹션(순서대로) */
-    sections: values,
-    setTitle: (key: string, title: string) => edit((v) => withSectionTitle(v, key, title)),
-    setContent: (key: string, content: string) => edit((v) => withSectionContent(v, key, content)),
-    addSection: () => edit(withAddedSection),
-    removeSection: (key: string) => edit((v) => withoutSection(v, key)),
-    moveSection: (key: string, to: number) => edit((v) => withMovedSection(v, key, to)),
-    canAddSection: canEdit && canAddSection(values),
-    canRemoveSection: canEdit && canRemoveSection(values),
-    uploadSectionImage,
-    imageUploading: imageMutation.isPending,
-    imageError,
+    sections,
+    /** 탭 고치기 — 섹션 키로. 읽기 전용이면 무시 */
+    tabs: {
+      setTitle: (key: string, title: string) => setField(key, 'title', title),
+      setContent: (key: string, content: string) => setField(key, 'content', content),
+      add: () => {
+        if (canEdit && canAddSection(form.getValues('sections'))) rows.append(emptySection());
+      },
+      remove: (key: string) => {
+        const i = indexOf(key);
+        if (canEdit && i >= 0 && canRemoveSection(form.getValues('sections'))) rows.remove(i);
+      },
+      move: (key: string, to: number) => {
+        const from = indexOf(key);
+        const length = form.getValues('sections').length;
+        if (canEdit && from >= 0 && to >= 0 && to < length && from !== to) rows.move(from, to);
+      },
+      canAdd: canEdit && canAddSection(sections),
+      canRemove: canEdit && canRemoveSection(sections),
+    },
+    image: {
+      upload: uploadSectionImage,
+      uploading: imageMutation.isPending,
+      error: imageError,
+    },
     /** 섹션 키 → 칸 오류 */
     errors,
-    attempted,
     formError,
-    dirty,
-    saving: saveMutation.isPending,
-    canSave,
-    /** [미리보기]는 저장할 수 있을 때만(plan P11 V) */
-    canPreview: canSave,
+    status: {
+      /** [저장]을 한 번이라도 눌렀는지(`formState.isSubmitted`) */
+      attempted: isSubmitted,
+      dirty,
+      saving: saveMutation.isPending,
+      canSave,
+      /** [미리보기]는 저장할 수 있을 때만(plan P11 V) */
+      canPreview: canSave,
+    },
     save,
-    savedNotice,
-    dismissSavedNotice: () => setSavedNotice(null),
+    savedNotice: { kind: savedNotice, dismiss: dismissSavedNotice },
   };
 }

@@ -59,24 +59,16 @@ export const canAddSection = (sections: readonly SectionInput[]) =>
 export const canRemoveSection = (sections: readonly SectionInput[]) =>
   sections.length > EVENT_SECTIONS_MIN;
 
-/** 섹션을 더한다(10개면 그대로). 새 섹션은 제목·본문이 비어 있다 — 제목을 채워야 저장된다 */
+/** 새 섹션 — 제목·본문이 비어 있다(제목을 채워야 저장된다) */
+export const emptySection = (): SectionInput => ({ key: newKey(), title: '', content: '' });
+
+/** 섹션을 더한다(10개면 그대로) */
 export const withAddedSection = (sections: readonly SectionInput[]): SectionInput[] =>
-  canAddSection(sections)
-    ? [...sections, { key: newKey(), title: '', content: '' }]
-    : [...sections];
+  canAddSection(sections) ? [...sections, emptySection()] : [...sections];
 
 /** 섹션을 뺀다(1개면 그대로). 저장하면 서버에서도 지워진다 */
 export const withoutSection = (sections: readonly SectionInput[], key: string): SectionInput[] =>
   canRemoveSection(sections) ? sections.filter((s) => s.key !== key) : [...sections];
-
-export const withSectionTitle = (sections: readonly SectionInput[], key: string, title: string) =>
-  sections.map((s) => (s.key === key ? { ...s, title } : s));
-
-export const withSectionContent = (
-  sections: readonly SectionInput[],
-  key: string,
-  content: string,
-) => sections.map((s) => (s.key === key ? { ...s, content } : s));
 
 /** 섹션 순서를 옮긴다(`to`는 옮긴 뒤 자리). 범위 밖이면 그대로 */
 export function withMovedSection(sections: readonly SectionInput[], key: string, to: number) {

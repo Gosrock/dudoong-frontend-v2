@@ -8,6 +8,7 @@ import { fixedBar } from '@/features/shared/shell/shell.css';
 import { sidebarTint } from '@/ui/components/SidebarMenu/SidebarMenu';
 import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -81,14 +82,16 @@ export const poster = style({
   background: vars.color.surface.imageBg,
 });
 
-export const menu = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[1],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const menu = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[1],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 /** 카드 → 메뉴 간격 16(GUI `Frame 1707480324` gap 16) */
 export const cardAndMenu = style({ display: 'flex', flexDirection: 'column', gap: vars.space[4] });

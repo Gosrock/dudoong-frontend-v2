@@ -27,9 +27,10 @@ export const contactRow = style({
 });
 
 /** 유형 드롭다운(와이어 `495:14815` 왼쪽 칸 — 오른쪽 입력보다 좁다) */
-export const contactType = style({ flex: '0 0 128px' });
+/** DS 컴포넌트에 붙는 클래스는 `'&&'`로 세기를 올린다 — CSS 청크 순서와 상관없이 DS 기본값을 덮게(`ContactRows` · 옵션 칸) */
+export const contactType = style({ selectors: { '&&': { flex: '0 0 128px' } } });
 
-export const contactValue = style({ flex: 1, minWidth: 0 });
+export const contactValue = style({ selectors: { '&&': { flex: 1, minWidth: 0 } } });
 
 export const removeButton = style({
   display: 'inline-flex',
@@ -48,6 +49,14 @@ export const removeButton = style({
     '&:hover': { background: vars.color.surface.container },
   },
 });
+
+/** `ContactRows` 줄 모양 — 호스트 설정도 같은 것을 쓴다 */
+export const contactClasses = {
+  row: contactRow,
+  type: contactType,
+  value: contactValue,
+  remove: removeButton,
+};
 
 export const contacts = style({
   display: 'flex',

@@ -2,34 +2,34 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
-import { TICKET_DESCRIPTION_MAX, TICKET_NAME_MAX } from '@/api/ticket-item/schema';
 import { HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
-import { FieldError, FormSection, useLeaveGuard } from '@/features/hosting/shared/ui/EditorParts';
+import { useLeaveGuard } from '@/features/hosting/shared/ui/EditorParts';
 import {
   EVENT_SCOPE_ATTR,
   HIDE_EVENT_HEADER_ATTR,
 } from '@/features/hosting/shared/ui/event-scope-attrs';
 import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { Button } from '@/ui/components/Button/Button';
-import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
-import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
-import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { Header } from '@/ui/components/Header/Header';
-import { Input } from '@/ui/components/Input/Input';
-import { Radio, RadioGroup } from '@/ui/components/Radio/Radio';
-import { TimePicker } from '@/ui/components/TimePicker/TimePicker';
 import { Icon } from '@/ui/icons/Icon';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import { parseTicketItemIdParam, PAY_TYPE_LABEL } from './model/ticket-rules';
+import type { TicketFormField } from './model/ticket-form';
+import { parseTicketItemIdParam } from './model/ticket-rules';
 import { useTicketForm } from './model/useTicketForm';
 import * as s from './TicketFormView.css';
-import { openApprovalGuide } from './ui/TicketGuides';
-import { ToggleSection } from './ui/TicketParts';
+import { REFUND_OBLIGATION_ERROR, RefundObligationField } from './ui/RefundObligationField';
+import {
+  AccountSection,
+  NameSections,
+  PayTypeSection,
+  PriceSupplySection,
+} from './ui/TicketFormFields';
+import { TicketFormToggles } from './ui/TicketFormToggles';
 
 /**
  * `/hosting/events/[eventId]/tickets/new` 새 티켓 만들기 — GUI 두둥 `767:46560`(토글 off) · `767:46664`(토글 on) · 무료 `821:23712`,
@@ -77,127 +77,16 @@ function useHideEventHeader() {
 function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: number | null }) {
   const form = useTicketForm(eventId, ticketItemId);
   const pageRef = useHideEventHeader();
-  // 처음 그린 값과 다르면 손댄 것(만들기는 L `dirty`가 늘 true — 빈 폼에서 나갈 때 묻지 않고, 버튼은 GUI처럼 비활성)
-  const [initial] = useState(() => JSON.stringify(form.values));
-  const touched = form.dirty && JSON.stringify(form.values) !== initial;
-  useLeaveGuard(form.canEdit && touched);
+  const { access, status, feedback, agreement } = form;
+  // 처음 값에서 손댔는지(만들기는 `formState.isDirty` — 빈 폼에서 나갈 때 묻지 않고, 버튼은 GUI처럼 비활성)
+  useLeaveGuard(access.canEdit && status.touched);
   if (form.missing) return <HostingNotFound />;
-  const v = form.values;
-  const readOnly = !form.canEdit;
-  const locked = form.locks.locked;
-  const err = (field: keyof typeof form.errors) =>
-    form.serverErrors[field] ?? (form.attempted ? form.errors[field] : undefined);
+  const readOnly = !access.canEdit;
+  const err = (field: TicketFormField) =>
+    feedback.server[field] ?? (status.attempted ? feedback.errors[field] : undefined);
   const title = form.mode === 'create' ? '새 티켓 만들기' : '티켓 수정';
-  const dudoong = v.payType === 'DUDOONG';
-  const agreementMissing =
-    form.agreement.field && form.agreement.required && !form.agreement.agreed;
-
-  const toggles = (
-    <>
-      <ToggleSection
-        title="관리자 승인 여부"
-        description="관리자가 승인해야 티켓이 발급돼요."
-        checked={v.approvalRequired}
-        disabled={readOnly || form.locks.approval}
-        onCheckedChange={form.setApprovalRequired}
-        onInfo={() => void openApprovalGuide()}
-        infoLabel="관리자 승인이란?"
-      />
-      <ToggleSection
-        title="재고 정보 공개"
-        description="남은 티켓의 수량을 공개해요."
-        checked={v.isQuantityPublic}
-        disabled={readOnly || form.locks.quantityPublic}
-        onCheckedChange={form.setQuantityPublic}
-      />
-      <ToggleSection
-        title="구매 가능 매수 제한"
-        description="한 명이 구매 가능한 티켓 매수를 제한해요."
-        checked={v.limitPurchase}
-        disabled={readOnly}
-        onCheckedChange={form.setLimitPurchase}
-      >
-        {v.limitPurchase && (
-          <Input
-            aria-label="1인 최대 매수"
-            className={s.narrow}
-            inputMode="numeric"
-            placeholder="0"
-            trailing="장"
-            value={v.purchaseLimit}
-            readOnly={readOnly}
-            onChange={(e) => form.setPurchaseLimit(e.target.value)}
-            error={err('purchaseLimit')}
-          />
-        )}
-      </ToggleSection>
-      <ToggleSection
-        title="판매 기간 설정"
-        description={'티켓을 구매할 수 있는 기간을 설정해요.\n판매는 공연 시작 전까지만 가능해요.'}
-        checked={v.salePeriod}
-        disabled={readOnly}
-        onCheckedChange={form.setSalePeriod}
-      >
-        {v.salePeriod && (
-          // FIGMA-CUSTOM: 판매 기간 상자(gui 767:46768 "Frame 1707480415") 커스텀 → 커스텀 TicketFormView.css.ts. DS 후보(design-system §3)
-          <div className={s.period} data-testid="sale-period">
-            <div className={s.periodRow}>
-              <div className={s.periodHead}>
-                <Txt typography="labelLgEmphasized">판매 시작</Txt>
-                <Checkbox
-                  label={<Txt typography="labelMd">공연 등록 즉시 판매 시작</Txt>}
-                  checked={v.saleStartNow}
-                  disabled={readOnly}
-                  onCheckedChange={form.setSaleStartNow}
-                />
-              </div>
-              {!v.saleStartNow && (
-                <div className={s.dateTime}>
-                  <DatePicker
-                    aria-label="판매 시작 날짜"
-                    placeholder="날짜 선택"
-                    value={v.saleStartDate}
-                    readOnly={readOnly}
-                    onChange={(e) => form.setSaleStart(e.target.value, v.saleStartTime)}
-                  />
-                  <TimePicker
-                    aria-label="판매 시작 시각"
-                    placeholder="시간 선택"
-                    value={v.saleStartTime}
-                    readOnly={readOnly}
-                    onChange={(e) => form.setSaleStart(v.saleStartDate, e.target.value)}
-                  />
-                </div>
-              )}
-              <FieldError>{err('saleStart')}</FieldError>
-            </div>
-            <div className={s.periodRow}>
-              <div className={s.periodHead}>
-                <Txt typography="labelLgEmphasized">판매 종료</Txt>
-              </div>
-              <div className={s.dateTime}>
-                <DatePicker
-                  aria-label="판매 종료 날짜"
-                  placeholder="날짜 선택"
-                  value={v.saleEndDate}
-                  readOnly={readOnly}
-                  onChange={(e) => form.setSaleEnd(e.target.value, v.saleEndTime)}
-                />
-                <TimePicker
-                  aria-label="판매 종료 시각"
-                  placeholder="시간 선택"
-                  value={v.saleEndTime}
-                  readOnly={readOnly}
-                  onChange={(e) => form.setSaleEnd(v.saleEndDate, e.target.value)}
-                />
-              </div>
-              <FieldError>{err('saleEnd')}</FieldError>
-            </div>
-          </div>
-        )}
-      </ToggleSection>
-    </>
-  );
+  const agreementMissing = agreement.field && agreement.required && !agreement.agreed;
+  const section = { form, readOnly, err };
 
   return (
     <section ref={pageRef} aria-labelledby="ticket-form-title" className={s.page}>
@@ -221,14 +110,15 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
         </h1>
 
         <div className={s.notices}>
-          {(form.readOnlyReason === 'noTicketEvent' || form.readOnlyReason === 'priceTicket') && (
+          {(access.readOnlyReason === 'noTicketEvent' ||
+            access.readOnlyReason === 'priceTicket') && (
             <p data-testid="ticket-form-read-only">
               <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-                {form.readOnlyMessage}
+                {access.readOnlyMessage}
               </Txt>
             </p>
           )}
-          {locked && (
+          {form.locks.locked && (
             <span data-testid="ticket-locked">
               <NoticeBox icon="important">
                 판매되었거나 승인 대기 주문이 있어 설명·판매 기간·재고 공개·매수 제한·수량 늘리기만
@@ -236,10 +126,10 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
               </NoticeBox>
             </span>
           )}
-          {form.formError && (
+          {feedback.form && (
             <p role="alert">
               <Txt typography="bodyMd" color={colors.textDangerLabel}>
-                {form.formError}
+                {feedback.form}
               </Txt>
             </p>
           )}
@@ -255,157 +145,25 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
           }}
         >
           <div className={s.left}>
-            <FormSection
-              title="티켓 종류"
-              description="계좌 송금 옵션을 통해 수수료 없이 티켓값을 받을 수 있어요."
-            >
-              <RadioGroup
-                aria-label="티켓 종류"
-                className={s.radios}
-                value={v.payType}
-                disabled={readOnly || locked}
-                onValueChange={(p) => form.setPayType(p as typeof v.payType)}
-              >
-                <Radio value="DUDOONG" label={PAY_TYPE_LABEL.DUDOONG} />
-                <Radio value="FREE" label={PAY_TYPE_LABEL.FREE} />
-              </RadioGroup>
-              <FieldError>{err('payType')}</FieldError>
-            </FormSection>
-
-            <FormSection
-              title="티켓 이름"
-              required
-              description="티켓의 성격이 잘 드러나는 이름을 써주세요."
-            >
-              <Input
-                aria-label="티켓 이름"
-                placeholder="예) 후원티켓"
-                maxLength={TICKET_NAME_MAX}
-                value={v.name}
-                readOnly={readOnly || locked}
-                onChange={(e) => form.setName(e.target.value)}
-                error={err('name')}
-              />
-            </FormSection>
-
-            <FormSection
-              title="티켓 설명"
-              description="티켓에 대한 추가 정보가 필요한 경우 작성해 주세요."
-            >
-              <Input
-                aria-label="티켓 설명"
-                placeholder="예) 해당 티켓은 후원 티켓으로 입장이 불가합니다."
-                maxLength={TICKET_DESCRIPTION_MAX}
-                value={v.description}
-                readOnly={readOnly}
-                onChange={(e) => form.setDescription(e.target.value)}
-                error={err('description')}
-              />
-            </FormSection>
-
-            <div className={s.priceSupply}>
-              {dudoong && (
-                <FormSection title="티켓 가격" required>
-                  <Input
-                    aria-label="가격"
-                    className={s.narrow}
-                    inputMode="numeric"
-                    placeholder="0"
-                    trailing="원"
-                    value={v.price}
-                    readOnly={readOnly || locked}
-                    onChange={(e) => form.setPrice(e.target.value)}
-                    error={err('price')}
-                  />
-                </FormSection>
-              )}
-              <FormSection title="판매 수량" required>
-                <RadioGroup
-                  aria-label="판매 수량 방식"
-                  className={s.supplyRow}
-                  value={v.unlimited ? 'unlimited' : 'limited'}
-                  disabled={readOnly || (v.unlimited && form.locks.limitedSupply)}
-                  onValueChange={(next) => form.setUnlimited(next === 'unlimited')}
-                >
-                  <Radio value="unlimited" label="무제한" />
-                  <span className={s.supplyCount}>
-                    <Radio value="limited" label="수량 지정" />
-                    <Input
-                      aria-label="판매 수량"
-                      className={s.count}
-                      inputMode="numeric"
-                      placeholder="0"
-                      trailing="장"
-                      value={v.unlimited ? '' : v.supplyCount}
-                      disabled={v.unlimited}
-                      readOnly={readOnly}
-                      onChange={(e) => form.setSupplyCount(e.target.value)}
-                    />
-                  </span>
-                </RadioGroup>
-                <FieldError>{err('supplyCount')}</FieldError>
-              </FormSection>
-            </div>
-
-            {dudoong && (
-              <FormSection
-                title="계좌번호 입력"
-                required
-                description="입금 받을 계좌 정보를 적어 주세요."
-              >
-                <div className={s.account}>
-                  <div className={s.accountRow}>
-                    {/* GUI는 은행명 자유 입력 — 서버 은행 목록 선택(사용자 결정 2026-10-31, 디자이너에게 전달됨) */}
-                    <Dropdown
-                      aria-label="은행"
-                      placeholder={
-                        form.bank.status === 'error' ? '은행 목록을 못 불러왔어요' : '은행명'
-                      }
-                      options={form.bank.banks.map((b) => ({ value: b.code, label: b.name }))}
-                      value={form.bank.selected?.code ?? ''}
-                      disabled={readOnly || locked || form.bank.status !== 'success'}
-                      onValueChange={form.bank.select}
-                      error={err('bankCode')}
-                    />
-                    <Input
-                      aria-label="예금주"
-                      placeholder="예금주"
-                      value={v.accountHolder}
-                      readOnly={readOnly || locked}
-                      onChange={(e) => form.setAccountHolder(e.target.value)}
-                      error={err('accountHolder')}
-                    />
-                  </div>
-                  <Input
-                    aria-label="계좌번호"
-                    placeholder="계좌번호"
-                    inputMode="numeric"
-                    value={v.accountNumber}
-                    readOnly={readOnly || locked}
-                    onChange={(e) => form.setAccountNumber(e.target.value)}
-                    error={err('accountNumber')}
-                  />
-                  {form.bank.status === 'error' && (
-                    <Button variant="secondary" size="sm" onClick={form.bank.retry}>
-                      은행 목록 다시 불러오기
-                    </Button>
-                  )}
-                </div>
-              </FormSection>
-            )}
+            <PayTypeSection {...section} />
+            <NameSections {...section} />
+            <PriceSupplySection {...section} />
+            {form.values.payType === 'DUDOONG' && <AccountSection {...section} bank={form.bank} />}
           </div>
-          <div className={s.right}>{toggles}</div>
-          {form.agreement.field && form.agreement.required && (
+          <div className={s.right}>
+            <TicketFormToggles {...section} />
+          </div>
+          {agreement.field && agreement.required && (
             <RefundObligationField
-              agreed={form.agreement.agreed}
-              onAgreedChange={form.agreement.setAgreed}
-              disabled={readOnly || form.saving}
-              error={form.attempted && !form.agreement.agreed ? REFUND_OBLIGATION_ERROR : undefined}
+              agreed={agreement.agreed}
+              onAgreedChange={agreement.setAgreed}
+              disabled={readOnly || status.saving}
+              error={status.attempted && !agreement.agreed ? REFUND_OBLIGATION_ERROR : undefined}
             />
           )}
         </form>
       </div>
-      {form.canEdit && (
+      {access.canEdit && (
         <div className={s.bottomBar}>
           <Button
             type="submit"
@@ -413,60 +171,13 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
             size="lg"
             fullWidth
             className={s.saveButton}
-            disabled={!touched || agreementMissing}
-            loading={form.saving}
+            disabled={!status.touched || agreementMissing}
+            loading={status.saving}
           >
             {form.mode === 'create' ? '티켓 만들기' : '저장하기'}
           </Button>
         </div>
       )}
     </section>
-  );
-}
-
-// ─── 환불 의무 동의(legal-copy C-1, 약관 제29조⑨) ────────────────
-
-/** C-1 원문 — 빼거나 바꾸지 않는다(바꾸면 `AGREEMENT_VERSION`을 올린다) */
-const REFUND_OBLIGATION_TITLE = '환불 의무 안내';
-const REFUND_OBLIGATION_BODY =
-  '두둥티켓 대금은 호스트 계좌로 직접 받으며 두둥은 대금과 수수료를 받지 않습니다. 구매자가 공연 시작 전에 취소하거나, 호스트가 주문을 거절·취소하거나, 공연이 취소되면 호스트는 구매자에게 지체 없이 환불해야 합니다. 환불 의무를 지키지 않으면 두둥티켓 판매가 제한될 수 있습니다.';
-const REFUND_OBLIGATION_LABEL = '위 내용을 확인했고 환불 의무를 지키는 데 동의합니다';
-const REFUND_OBLIGATION_ERROR = '환불 의무에 동의해 주세요';
-
-/** 디자인 없음(Q42 ④) — 기존 FormSection + NoticeBox + DS Checkbox로만 */
-function RefundObligationField({
-  agreed,
-  onAgreedChange,
-  disabled,
-  error,
-}: {
-  agreed: boolean;
-  onAgreedChange: (agreed: boolean) => void;
-  disabled: boolean;
-  error: string | undefined;
-}) {
-  const bodyId = useId();
-  const errorId = useId();
-  return (
-    <div className={s.agreement} data-testid="refund-obligation">
-      <FormSection title={REFUND_OBLIGATION_TITLE} required>
-        <div id={bodyId}>
-          <NoticeBox icon="important">{REFUND_OBLIGATION_BODY}</NoticeBox>
-        </div>
-        <Checkbox
-          checked={agreed}
-          onCheckedChange={onAgreedChange}
-          disabled={disabled}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${bodyId} ${errorId}` : bodyId}
-          label={<Txt typography="labelMd">{REFUND_OBLIGATION_LABEL}</Txt>}
-        />
-        {error && (
-          <div id={errorId}>
-            <FieldError>{error}</FieldError>
-          </div>
-        )}
-      </FormSection>
-    </div>
   );
 }

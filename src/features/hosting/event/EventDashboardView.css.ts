@@ -1,6 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -117,14 +118,16 @@ export const checklist = style({
   background: vars.color.surface.container,
 });
 
-export const checkRows = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[1],
-  margin: 0,
-  padding: `${vars.space[3]} 0`,
-  listStyle: 'none',
-});
+export const checkRows = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[1],
+    margin: 0,
+    padding: `${vars.space[3]} 0`,
+  },
+]);
 
 /** 행 — 위아래 4, 체크 20 + 간격 14(→12) + 글자 `Label/md`, 오른쪽 ›(모바일은 줄 끝, PC는 글자 옆) */
 export const checkRow = style({
@@ -191,21 +194,23 @@ export const statsState = style({
 /**
  * 통계 카드 — 모바일 2×2(간격 8, 좌우 24 — GUI 36 → 등록 전과 같은 24), PC 한 줄 4개(위아래 28 · 좌우 24 · 간격 16 — `712:1699`)
  */
-export const stats = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: vars.space[2],
-  margin: 0,
-  padding: `${vars.space[6]} ${vars.space[5]} 0`,
-  listStyle: 'none',
-  '@media': {
-    [media.desktop]: {
-      gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-      gap: vars.space[4],
-      padding: `${vars.space[5]} ${vars.space[5]}`,
+export const stats = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gap: vars.space[2],
+    margin: 0,
+    padding: `${vars.space[6]} ${vars.space[5]} 0`,
+    '@media': {
+      [media.desktop]: {
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+        gap: vars.space[4],
+        padding: `${vars.space[5]} ${vars.space[5]}`,
+      },
     },
   },
-});
+]);
 
 /**
  * 판매 · 입장 — 모바일 한 열(간격 12), PC 두 칸(간격 16 · 위아래 28 · 좌우 24, 위 선 #F7F7F6 — `712:1705`). 높이는 각자(입장 카드가 짧다)
@@ -234,11 +239,13 @@ export const panel = style({
   padding: `${vars.space[5]} ${vars.space[5]}`,
 });
 
-export const timeline = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[3],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const timeline = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[3],
+    margin: 0,
+    padding: 0,
+  },
+]);

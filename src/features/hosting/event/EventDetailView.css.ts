@@ -18,8 +18,6 @@ export const body = style({
   '@media': { [media.desktop]: { padding: vars.space[5] } },
 });
 
-export const head = style({ display: 'flex', flexDirection: 'column', gap: vars.space[1] });
-
 /** PC만 보인다. 모바일은 헤더 제목("상세 정보 ▾")이 대신하고 h1은 화면 읽기 도구에만 남긴다(P14 접근성 — 기본 정보와 같다) */
 export const desktopTitle = style({
   margin: 0,
@@ -67,7 +65,6 @@ export const panel = style({
   selectors: { '&[hidden]': { display: 'none' } },
 });
 
-export const titleRow = style({ display: 'flex', alignItems: 'flex-start', gap: vars.space[2] });
 export const titleInput = style({
   flex: '1 1 auto',
   minWidth: 0,

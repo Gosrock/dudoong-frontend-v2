@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { handleError, handlersFrom } from '@/api/handle-error';
 import { deleteOptionMutation, updateOptionMutation } from '@/api/option/mutations';
@@ -19,12 +19,11 @@ import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import {
   hasOptionFormErrors,
   OPTION_FIELD_ERRORS,
-  type OptionFormField,
-  type OptionFormValues,
   optionFormValuesOf,
   toUpdateOptionBody,
   validateOptionForm,
 } from './option-form';
+import { useOptionForm } from './useOptionForm';
 
 /** 옵션 상세 오류 문구(patterns §24 P12 — 잠정) */
 export const OPTION_EDITOR_ERRORS = {
@@ -39,10 +38,12 @@ export const OPTION_EDITOR_ERRORS = {
  *
  * - **응답 형식은 읽기 전용**(`type` — 수정 본문에 없다, 서버가 막는다). 객관식(v1) 옵션도 보여 주기만 한다
  * - 잠긴 옵션(`isLocked` — 판매·승인 대기 티켓에 붙음)은 이름·설명만(`priceLocked`), 삭제 없음(`canDelete` false)
+ * - 폼: RHF(`useOptionForm` — 칸별 서버 에러). 풀이 오면 그 옵션 값으로 **한 번** 채운다(`reset` — 처음 채우기라 편집 중인 값을 덮지 않는다,
+ *   옵션 id가 바뀔 때만 다시). 그 밖의 `reset`은 저장 성공 뒤와 [닫기](고친 값 버리기)뿐
  * - 설명은 필수, 50자는 바뀐 때만 검사(v1의 긴 설명은 그대로 둘 수 있다)
  * - 삭제는 옵션 자체를 지운다(붙은 판매 전 티켓에서도 떨어진다) — 이 티켓에서만 빼는 것은 `useTicketOptions.detach`
  * - 성공: 수정은 응답을 풀에, 삭제는 남은 풀을 넣고, 티켓 목록(붙은 옵션 이름·추가금)·관객 GP-5를 무효화
- * - 에러: `Option_Group_400_6` 설명 · `400_3`·`Item_Option_Group_400_4` 추가금 → 칸 오류, `Option_Group_400_5`·`400_2` 잠김 →
+ * - 에러: `Option_Group_400_6` 설명 · `400_3`·`Item_Option_Group_400_4` 추가금 → 칸 오류(`setError('root.<칸>')`), `Option_Group_400_5`·`400_2` 잠김 →
  *   안내 + 풀 다시 읽기, 404 → 안내 + 풀 다시 읽기, `Event_400_17` → 안내 + GE-3 다시 읽기(읽기 전용으로 — A2). 그 밖은 공용 토스트(handleError)
  */
 export function useOptionEditor(eventId: string, optionId: number) {
@@ -51,26 +52,32 @@ export function useOptionEditor(eventId: string, optionId: number) {
   const pool = useQuery(eventOptionsQuery(eventId));
   const option: TicketOptionManage | null = pool.data?.find((o) => o.optionId === optionId) ?? null;
 
-  const [base, setBase] = useState<OptionFormValues | null>(null);
-  const [values, setValues] = useState<OptionFormValues | null>(null);
-  const [attempted, setAttempted] = useState(false);
-  const [serverErrors, setServerErrors] = useState<Partial<Record<OptionFormField, string>>>({});
+  const canEdit = scope.canEdit && option !== null;
+  const locked = option?.isLocked ?? false;
+  const yesNo = option?.type === 'YES_NO';
+
   const [error, setError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
   const inflight = useRef(false);
 
-  // 풀이 오면 처음 값을 한 번 채운다(옵션이 바뀌면 다시)
-  const [seededFor, setSeededFor] = useState<number | null>(null);
-  if (option && seededFor !== option.optionId) {
-    setSeededFor(option.optionId);
-    const v = optionFormValuesOf(option);
-    setBase(v);
-    setValues(v);
-  }
+  const fields = useOptionForm((v, base) => validateOptionForm(v, { base }), {
+    fields: canEdit,
+    price: !locked && yesNo,
+  });
+  const { form, base, dirtyKeys } = fields;
 
-  const canEdit = scope.canEdit && option !== null;
-  const locked = option?.isLocked ?? false;
-  const yesNo = option?.type === 'YES_NO';
+  // 풀이 오면 처음 값을 한 번 채운다(옵션이 바뀌면 다시) — 채우기 전에는 폼을 돌려주지 않는다
+  const [seededFor, setSeededFor] = useState<number | null>(null);
+  const optionToSeed = option && seededFor !== option.optionId ? option : null;
+  useEffect(() => {
+    if (!optionToSeed) return;
+    form.reset(optionFormValuesOf(optionToSeed));
+    // 채운 뒤에야 폼을 돌려준다 — 렌더 중에 `reset`하면 RHF 구독이 렌더 도중에 바뀌고, 먼저 돌려주면 빈 값으로 한 번 그려진다
+    // (`OptionFields`의 가격 토글 처음 값이 빈 값으로 굳는다)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSeededFor(optionToSeed.optionId);
+  }, [form, optionToSeed]);
+  const seeded = option !== null && seededFor === option.optionId;
 
   const lockedError = () => {
     setError(OPTION_EDITOR_ERRORS.locked);
@@ -78,7 +85,7 @@ export function useOptionEditor(eventId: string, optionId: number) {
   };
   const codes = {
     ...handlersFrom(OPTION_FIELD_ERRORS, ({ field, message }) =>
-      setServerErrors((prev) => ({ ...prev, [field]: message })),
+      fields.setServerError(field, message),
     ),
     Option_Group_400_5: lockedError,
     Option_Group_400_2: lockedError,
@@ -105,30 +112,29 @@ export function useOptionEditor(eventId: string, optionId: number) {
     },
   });
 
-  const errors = values ? validateOptionForm(values, { base }) : {};
-  const body = base && values ? toUpdateOptionBody(base, values, { locked, yesNo }) : null;
+  const values = fields.api.values;
+  const body = seeded ? toUpdateOptionBody(base, values, { locked, yesNo }, dirtyKeys) : null;
   const busy = updateMutation.isPending || deleteMutation.isPending;
-  const canSave = canEdit && !busy && body !== null && !hasOptionFormErrors(errors);
+  const canSave = canEdit && !busy && body !== null && !hasOptionFormErrors(fields.api.errors);
 
   const save = async () => {
-    setAttempted(true);
-    if (!canSave || !body || inflight.current) return false;
-    inflight.current = true;
-    setError(null);
-    try {
-      const updated = await updateMutation.mutateAsync({ optionId, body });
-      inflight.current = false;
-      const v = optionFormValuesOf(updated);
-      setBase(v);
-      setValues(v);
-      setAttempted(false);
-      setServerErrors({});
-      return true;
-    } catch (e) {
-      inflight.current = false;
-      handleError(e, codes);
-      return false;
-    }
+    const updated = await form.handleSubmit(async () => {
+      if (!canSave || !body || inflight.current) return;
+      inflight.current = true;
+      setError(null);
+      try {
+        return await updateMutation.mutateAsync({ optionId, body });
+      } catch (e) {
+        handleError(e, codes);
+        return;
+      } finally {
+        inflight.current = false;
+      }
+    })();
+    if (!updated) return false;
+    // `handleSubmit`이 끝난 뒤에 새 기준으로 — 그래야 `isSubmitted`(칸 오류 표시)도 풀린다
+    form.reset(optionFormValuesOf(updated));
+    return true;
   };
 
   const canDelete = canEdit && !locked;
@@ -147,38 +153,22 @@ export function useOptionEditor(eventId: string, optionId: number) {
     }
   };
 
-  const edit = (field: OptionFormField, update: (v: OptionFormValues) => OptionFormValues) => {
-    if (!canEdit) return;
-    setServerErrors((prev) => ({ ...prev, [field]: undefined }));
-    setValues((v) => (v ? update(v) : v));
-  };
-
   return {
     status: pool.status,
     /** 풀에 없다(지웠거나 다른 공연) */
     missing: pool.status === 'success' && option === null && !deleted,
     option,
     canEdit,
-    values,
+    /** 옵션 칸(값 · 바꾸기 · 칸 오류 · 서버 오류 · attempted) — 채우기 전(풀을 받기 전)에는 null */
+    fields: seeded ? fields.api : null,
     /** 응답 형식(읽기 전용) */
     type: option?.type ?? null,
     /** 잠긴 옵션 — 추가금 칸 비활성 */
     priceLocked: locked,
-    setName: (name: string) => edit('name', (v) => ({ ...v, name })),
-    setDescription: (description: string) => edit('description', (v) => ({ ...v, description })),
-    setYesAdditionalPrice: (yesAdditionalPrice: string) => {
-      if (locked || !yesNo) return;
-      edit('yesAdditionalPrice', (v) => ({ ...v, yesAdditionalPrice }));
-    },
-    errors,
-    serverErrors,
-    attempted,
     dirty: body !== null,
     /** 고친 값을 버리고 처음 값으로(수정 시트를 닫을 때 — GUI `944:2455` 닫기 확인 뒤) */
     reset: () => {
-      if (base) setValues(base);
-      setAttempted(false);
-      setServerErrors({});
+      form.reset();
       setError(null);
     },
     canSave,

@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 import { textOf } from './text-style';
@@ -11,16 +12,18 @@ import { textOf } from './text-style';
  * 모바일 이름 `Heading/sm - emphasized` · 줄 `Label/sm` · 가격 `Label/lg-emphasized` · 칩 small, PC 이름·가격 `Heading/md2 - emphasized` ·
  * 줄 `Label/md` · 칩 large — 같은 DOM에서 글자·칩 크기만 CSS로 바꾼다
  */
-export const card = style({
-  position: 'relative',
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-  padding: vars.space[4],
-  borderRadius: vars.radius[5],
-  background: vars.color.surface.container,
-  listStyle: 'none',
-});
+export const card = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    position: 'relative',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[2],
+    padding: vars.space[4],
+    borderRadius: vars.radius[5],
+    background: vars.color.surface.container,
+  },
+]);
 
 export const top = style({
   display: 'flex',
@@ -116,14 +119,16 @@ export const menuButton = style({
   },
 });
 
-export const options = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const options = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[2],
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 /** [티켓 옵션 추가] — DS Button Secondary small(모바일 32) · PC medium(46, `910:3448`) */
 export const addOption = style({

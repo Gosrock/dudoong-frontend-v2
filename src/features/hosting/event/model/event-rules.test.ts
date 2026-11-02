@@ -10,13 +10,16 @@ import {
   parseEventIdParam,
   readOnlyReasonOf,
 } from '@/features/hosting/shared/model/event-scope';
+import { editInRhf } from '@/features/hosting/shared/model/rhf-test';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import {
+  type BasicInfoValues,
   basicInfoValuesOf,
   changedBasicFields,
   eventContactError,
   hasBasicInfoErrors,
+  isBasicInfoDirty,
   toggleTag,
   toUpdateEventBasicBody,
   validateBasicInfo,
@@ -349,6 +352,63 @@ describe('기본 정보 — 바뀐 필드만 PE-4', () => {
     const ten = Array.from({ length: 10 }, (_, i) => i + 1);
     expect(toggleTag(ten, 11)).toEqual(ten);
     expect(toggleTag(ten, 3)).toHaveLength(9);
+  });
+});
+
+describe('기본 정보 — RHF 경로(dirtyFields → 값 비교) — 같은 입력이면 같은 본문', () => {
+  const base = basicInfoValuesOf(
+    manage({
+      place: {
+        name: '롤링홀',
+        address: '서울',
+        detailAddress: '지하 1층',
+        latitude: 1,
+        longitude: 2,
+      },
+      contacts: [{ type: 'PHONE', value: '01012345678' }],
+      tags: [
+        { tagId: 1, category: 'EVENT_TYPE', name: '정기공연' },
+        { tagId: 2, category: 'EVENT_TYPE', name: '연합공연' },
+      ],
+    }),
+  );
+
+  it.each<[string, Parameters<typeof editInRhf<BasicInfoValues>>[1]]>([
+    ['이름', { name: '바꾼 이름' }],
+    ['이름 앞뒤 공백(이름은 공백까지 비교한다 — 다듬어 보낸다)', { name: ` ${base.name} ` }],
+    ['상세주소만 — 장소 전체', { 'place.detailAddress': '2층' }],
+    ['일정 종료만', { 'schedule.endTime': '23:30' }],
+    ['문의처 값', { 'contacts.0.value': '01099998888' }],
+    [
+      '빈 문의처 줄 추가만 — RHF는 dirty지만 보내지 않는다',
+      { contacts: [...base.contacts, { type: null, value: '' }] },
+    ],
+    ['태그 순서만 — RHF는 dirty지만 보내지 않는다', { tagIds: [2, 1] }],
+    ['같은 일정으로 되돌림', { 'schedule.date': base.schedule.date }],
+    ['포스터 올림 + 티켓 여부', { poster: { url: 'u', key: 'event/140/a.png' }, hasTicket: false }],
+    ['장소를 모두 비움 — 보내지 않는다', { place: emptyPlace() }],
+  ])('%s', (_, patch) => {
+    const { values, dirty } = editInRhf(base, patch);
+    const ctx = { registered: false, now: NOW };
+    expect(toUpdateEventBasicBody(base, values, dirty)).toEqual(
+      toUpdateEventBasicBody(base, values),
+    );
+    expect(isBasicInfoDirty(base, values, dirty)).toBe(isBasicInfoDirty(base, values));
+    expect(validateBasicInfo(base, values, ctx, dirty)).toEqual(
+      validateBasicInfo(base, values, ctx),
+    );
+  });
+
+  it('태그 순서만 바꾸면: RHF dirtyFields에는 있지만 본문 · 변경 여부에는 없다', () => {
+    const { values, dirty } = editInRhf(base, { tagIds: [2, 1] });
+    expect(dirty.has('tagIds')).toBe(true);
+    expect(toUpdateEventBasicBody(base, values, dirty)).toEqual({});
+    expect(isBasicInfoDirty(base, values, dirty)).toBe(false);
+  });
+
+  it('건드리지 않은 칸은 값이 달라도 보내지 않는다(dirtyFields가 1차)', () => {
+    const values = { ...base, name: '다른 이름' };
+    expect(toUpdateEventBasicBody(base, values, new Set())).toEqual({});
   });
 });
 

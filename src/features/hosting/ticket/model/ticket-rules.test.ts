@@ -4,6 +4,7 @@ import type { Bank } from '@/api/bank/schema';
 import type { TicketOptionManage } from '@/api/option/schema';
 import { AGREEMENT_VERSION } from '@/api/shared/agreement';
 import type { TicketItemManage } from '@/api/ticket-item/schema';
+import { editInRhf } from '@/features/hosting/shared/model/rhf-test';
 
 import { filterBanks } from './bank-select';
 import {
@@ -624,5 +625,83 @@ describe('은행 고르기', () => {
     ['없는은행', []],
   ])('"%s" → %j', (q, codes) => {
     expect(filterBanks(banks, q).map((b) => b.code)).toEqual(codes);
+  });
+});
+
+describe('RHF 경로(dirtyFields → 값 비교) — 같은 입력이면 같은 본문', () => {
+  const base = filled({
+    description: '1인 1매',
+    unlimited: false,
+    supplyCount: '100',
+    isQuantityPublic: true,
+    limitPurchase: true,
+    purchaseLimit: '4',
+    salePeriod: true,
+    saleStartNow: false,
+    saleStartDate: '2026-11-01',
+    saleStartTime: '10:00',
+    saleEndDate: '2026-11-20',
+    saleEndTime: '23:59',
+  });
+  const agreements = { refundObligationAgreed: true };
+
+  // 훅은 칸을 바꾼 뒤 칸 사이 규칙(normalizeTicketForm)이 바꾼 칸도 함께 setValue한다 — 패치도 정규화된 모양으로 준다
+  it.each<[string, Parameters<typeof editInRhf<TicketFormValues>>[1]]>([
+    ['설명 비우기 → clear', { description: '' }],
+    ['설명 공백만 — RHF는 dirty지만 보내지 않는다', { description: '1인 1매 ' }],
+    ['무제한 + 재고 공개 끔', { unlimited: true, isQuantityPublic: false }],
+    ['수량 · 매수 제한 끔', { supplyCount: '120', limitPurchase: false }],
+    ['판매 기간 끔 → clear 둘', { salePeriod: false }],
+    ['즉시 판매 시작', { saleStartNow: true }],
+    ['판매 종료 시각', { saleEndTime: '20:00' }],
+    ['무료로 바꾸기(가격 0 · 승인 그대로)', { payType: 'FREE' }],
+    ['계좌 은행만', { bankCode: '090' }],
+    ['계좌 예금주 공백만', { accountHolder: '고스락 ' }],
+    ['이름 + 가격', { name: '얼리버드', price: '12000' }],
+  ])('%s', (_, patch) => {
+    const { values, dirty } = editInRhf(base, patch);
+    expect(toUpdateTicketBody(base, values, agreements, dirty)).toEqual(
+      toUpdateTicketBody(base, values, agreements),
+    );
+    expect(isTicketFormDirty(base, values, dirty)).toBe(isTicketFormDirty(base, values));
+  });
+
+  it('무료 → 두둥(가격 · 계좌 · 승인 함께) — 동의 칸까지 같다', () => {
+    const free = filled({ payType: 'FREE', price: '', approvalRequired: false, bankCode: '' });
+    const { values, dirty } = editInRhf(free, {
+      payType: 'DUDOONG',
+      approvalRequired: true,
+      price: '5000',
+      bankCode: '088',
+      accountHolder: '고스락',
+      accountNumber: '110',
+    });
+    const body = toUpdateTicketBody(free, values, agreements, dirty);
+    expect(body).toEqual(toUpdateTicketBody(free, values, agreements));
+    expect(body).toMatchObject({ payType: 'DUDOONG', refundObligationAgreed: true });
+  });
+
+  it.each<[string, Parameters<typeof editInRhf<OptionFormValues>>[1]]>([
+    ['이름', { name: '뒤풀이 2차' }],
+    ['설명 공백만', { description: '참석하나요? ' }],
+    ['추가금', { yesAdditionalPrice: '3000' }],
+    ['추가금 같은 값(빈 칸 = 0)', { yesAdditionalPrice: '0' }],
+  ])('옵션 수정 — %s', (_, patch) => {
+    const optionBase: OptionFormValues = {
+      ...initialOptionFormValues(),
+      name: '뒤풀이',
+      description: '참석하나요?',
+      type: 'YES_NO',
+      yesAdditionalPrice: '',
+    };
+    const { values, dirty } = editInRhf(optionBase, patch);
+    for (const flags of [
+      { locked: false, yesNo: true },
+      { locked: true, yesNo: true },
+    ]) {
+      expect(toUpdateOptionBody(optionBase, values, flags, dirty)).toEqual(
+        toUpdateOptionBody(optionBase, values, flags),
+      );
+    }
   });
 });
