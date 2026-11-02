@@ -4,12 +4,13 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { eventManageQuery } from '@/api/event/queries';
 import { handleError } from '@/api/handle-error';
 import { formatKstDateTime } from '@/api/shared/date';
 import { createTicketItemMutation, updateTicketItemMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import type { EditableTicketPayType } from '@/api/ticket-item/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 
 import { applyCreatedTicket, applyUpdatedTicket, invalidateTickets } from './ticket-cache';
@@ -39,7 +40,7 @@ export type TicketFormReadOnlyReason = 'role' | 'ended' | 'noTicketEvent' | 'pri
 
 export const TICKET_FORM_READ_ONLY_MESSAGE: Record<TicketFormReadOnlyReason, string> = {
   role: '일반 멤버는 티켓을 볼 수만 있어요',
-  ended: '끝난 공연은 수정할 수 없어요',
+  ended: EVENT_ENDED_MESSAGE,
   noTicketEvent: '티켓 없는 공연이라 티켓을 만들 수 없어요',
   priceTicket: '이 티켓은 두둥 티켓·무료 티켓이 아니라 고칠 수 없어요',
 };
@@ -150,11 +151,7 @@ export function useTicketForm(
       setFormError(TICKET_FORM_ERRORS[code]);
       after?.();
     };
-    const reloadScope = () =>
-      void queryClient.invalidateQueries({
-        queryKey: eventManageQuery(eventId).queryKey,
-        exact: true,
-      });
+    const reloadScope = () => void invalidateEventStatus(queryClient, eventId);
     const reloadList = () => void invalidateTickets(queryClient, eventId);
     return {
       Ticket_Item_400_3: field('Ticket_Item_400_3'),

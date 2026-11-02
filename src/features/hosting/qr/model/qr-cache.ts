@@ -3,7 +3,6 @@ import type { QueryClient } from '@tanstack/react-query';
 import { checkInStatsQuery } from '@/api/check-in/queries';
 import type { CheckInResult } from '@/api/check-in/schema';
 import { eventDashboardQuery } from '@/api/dashboard/queries';
-import { eventManageQuery } from '@/api/event/queries';
 import { hostIssuedTicketsKey } from '@/api/issued-ticket/queries';
 
 /**
@@ -22,7 +21,3 @@ export const invalidateAfterScan = (qc: QueryClient, eventId: string, result?: C
         ]
       : []),
   ]);
-
-/** `Event_400_27`(스캔 사이에 공연 상태가 바뀜) 뒤 — GE-3을 다시 읽어 공연 상태별 안내를 새 상태로 */
-export const invalidateEventStatus = (qc: QueryClient, eventId: string) =>
-  qc.invalidateQueries({ queryKey: eventManageQuery(eventId).queryKey, exact: true });

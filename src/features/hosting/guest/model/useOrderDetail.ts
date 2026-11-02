@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getErrorCode } from '@/api/errors';
-import { eventManageQuery } from '@/api/event/queries';
 import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
 import {
   approveOrderMutation,
@@ -14,6 +13,7 @@ import {
 } from '@/api/order/mutations';
 import { hostOrderQuery } from '@/api/order/queries';
 import type { HostOrderDetail } from '@/api/order/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import { can } from '@/features/shared/permission/model/can';
 import { type Result, tryCatch } from '@/utils/try-catch';
@@ -115,10 +115,7 @@ export function useOrderDetail(
       setActionError(message);
       if (orderUuid) void refetchOrder(queryClient, eventId, orderUuid);
       if (eventChanged) {
-        void queryClient.invalidateQueries({
-          queryKey: eventManageQuery(eventId).queryKey,
-          exact: true,
-        });
+        void invalidateEventStatus(queryClient, eventId);
       }
     },
     [eventId, orderUuid, queryClient],

@@ -75,9 +75,10 @@ export function TicketCard({
   ].filter(Boolean);
 
   /** 확인 창 · 완료 토스트 — GUI #55 `958:20537`·`958:20680`, #56 `958:20860`·`958:20841`, #57 `958:21375`·`958:21517` */
+  // 확인 창 계약(patterns §6): 서버 호출은 확인 창 안에서 — 실패(`false`)면 열린 채, 성공하면 닫히고 토스트
   const confirmThen = async (action: 'delete' | 'suspend' | 'resume') => {
-    const ok = await openConfirm(
-      action === 'delete'
+    const done = await openConfirm({
+      ...(action === 'delete'
         ? {
             title: `[${name}] 티켓을 삭제할까요?`,
             description: '삭제한 티켓은 복구할 수 없어요.',
@@ -89,9 +90,10 @@ export function TicketCard({
               description: '추후 다시 판매를 재개할 수 있어요.',
               confirmLabel: '중단',
             }
-          : { title: `[${name}] 티켓을 다시 판매할까요?`, confirmLabel: '확인' },
-    );
-    if (!ok || !(await onAction(action))) return;
+          : { title: `[${name}] 티켓을 다시 판매할까요?`, confirmLabel: '확인' }),
+      onConfirm: () => onAction(action),
+    });
+    if (!done) return;
     toast(
       action === 'delete'
         ? '티켓을 삭제했어요.'
@@ -103,12 +105,13 @@ export function TicketCard({
 
   /** 옵션 ✕ — 이 티켓에서 빼기(L detach). 확인 창 · 토스트는 GUI #54 `934:2034`·`934:2127` 문구 그대로 */
   const detachOption = async (optionId: number) => {
-    const ok = await openConfirm({
+    const done = await openConfirm({
       title: '티켓 옵션을 삭제할까요?',
       description: '삭제한 옵션은 되돌릴 수 없어요.',
       confirmLabel: '삭제',
+      onConfirm: () => options.detach(optionId),
     });
-    if (ok && (await options.detach(optionId))) toast('옵션을 삭제했어요.');
+    if (done) toast('옵션을 삭제했어요.');
   };
 
   return (

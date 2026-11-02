@@ -5,8 +5,8 @@ import { useCallback, useState } from 'react';
 
 import type { Downloaded } from '@/api/client';
 import { getErrorCode } from '@/api/errors';
-import { eventManageQuery } from '@/api/event/queries';
 import { handleError } from '@/api/handle-error';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
 import { can } from '@/features/shared/permission/model/can';
 import { saveBlob } from '@/utils/download';
 
@@ -40,10 +40,7 @@ export function useGuestExport<P>(
         return true;
       } catch (e) {
         if (getErrorCode(e) === 'HOST_400_1') {
-          void queryClient.invalidateQueries({
-            queryKey: eventManageQuery(eventId).queryKey,
-            exact: true,
-          });
+          void invalidateEventStatus(queryClient, eventId);
         }
         // HOST_400_1을 포함해 표에 없는 실패는 공용 토스트
         handleError(e, {

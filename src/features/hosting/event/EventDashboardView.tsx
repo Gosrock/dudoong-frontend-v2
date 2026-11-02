@@ -159,10 +159,8 @@ function ChecklistSection({ d }: { d: Dashboard }) {
       description:
         '공연을 등록하면 모든 사용자에게 공개되며 삭제할 수 없어요. 등록 후에도 공연 정보는 수정할 수 있어요.',
       confirmLabel: '등록',
-      onConfirm: async () => {
-        const ok = await d.register();
-        if (!ok) throw new Error('register failed');
-      },
+      // 확인 창 계약(patterns §6): 실패(`false`)면 열린 채
+      onConfirm: () => d.register(),
     });
   return (
     <>

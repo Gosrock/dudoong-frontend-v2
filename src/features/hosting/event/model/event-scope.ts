@@ -60,9 +60,15 @@ export function readOnlyReasonOf(
   return null;
 }
 
+/**
+ * 끝난 공연(정산중·지난 공연)에서 고치려 할 때 — 읽기 전용 안내와 서버 `Event_400_17` 처리기가 같이 쓴다.
+ * 처리기는 이 문구를 띄우고 `invalidateEventStatus`(event-cache)로 GE-3을 다시 읽는다(코드 패턴 점검 A2)
+ */
+export const EVENT_ENDED_MESSAGE = '끝난 공연은 수정할 수 없어요';
+
 export const READ_ONLY_MESSAGE: Record<ReadOnlyReason, string> = {
   role: '일반 멤버는 공연 정보를 볼 수만 있어요',
-  ended: '끝난 공연은 수정할 수 없어요',
+  ended: EVENT_ENDED_MESSAGE,
 };
 
 /** 티켓 여부는 준비중일 때만 바꿀 수 있다(등록 후 잠금 — `Event_400_18`) */

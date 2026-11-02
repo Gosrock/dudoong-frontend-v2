@@ -65,7 +65,8 @@ export function AddOptionsOverlay({
   const o = useTicketOptions(eventId, ticketItemId);
   const [view, setView] = useState<'pick' | 'create'>('pick');
   const [picked, setPicked] = useState<number[]>([]);
-  const [busy, setBusy] = useState(false);
+  // 붙이기·만들기 중(훅의 mutation `isPending` — throw해도 굳지 않는다, 코드 패턴 점검 A13)
+  const busy = o.pending;
 
   const finish = () => {
     setPicked([]);
@@ -86,19 +87,13 @@ export function AddOptionsOverlay({
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const addPicked = async () => {
-    setBusy(true);
-    const ok = await o.attachMany(picked);
-    setBusy(false);
-    if (ok) {
+    if (await o.attachMany(picked)) {
       toast(ADDED);
       finish();
     }
   };
   const create = async () => {
-    setBusy(true);
-    const result = await o.createAndAttach();
-    setBusy(false);
-    if (result === 'attached') {
+    if ((await o.createAndAttach()) === 'attached') {
       toast(ADDED);
       finish();
     }
@@ -451,12 +446,14 @@ export function OptionDetailOverlay({
   };
   const remove = async () => {
     const name = e.option?.name ?? '';
-    const ok = await openConfirm({
+    // 확인 창 계약(patterns §6): 실패(`false`)면 열린 채
+    const done = await openConfirm({
       title: `[${name}] 옵션을 삭제할까요?`,
       description: '이 옵션이 붙은 모든 티켓에서 빠지고, 삭제한 옵션은 되돌릴 수 없어요.',
       confirmLabel: '삭제',
+      onConfirm: () => e.remove(),
     });
-    if (ok && (await e.remove())) {
+    if (done) {
       toast('옵션을 삭제했어요.');
       finish();
     }

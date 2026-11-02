@@ -60,16 +60,16 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   const checkIn = async (ticket: Pick<HostIssuedTicket, 'ticketUuid' | 'ownerName'>) => {
     const uuid = ticket.ticketUuid;
     if (!uuid) return;
-    let message: string | null = null;
-    const ok = await openConfirm({
+    // 확인 창 계약(patterns §6): 결과를 못 받으면(`false`) 열린 채, 받으면 결과 토스트와 함께 닫힌다
+    await openConfirm({
       ...checkInConfirm(ticket.ownerName),
       onConfirm: async () => {
         const result = await l.manualCheckIn(uuid);
         if (result?.kind !== 'result') return false;
-        message = result.tone === 'success' ? '입장 처리했어요.' : result.title;
+        toast(result.tone === 'success' ? '입장 처리했어요.' : result.title);
+        return true;
       },
     });
-    if (ok && message) toast(message);
   };
 
   const columns = nowrapColumns<HostIssuedTicket>([

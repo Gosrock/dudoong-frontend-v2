@@ -10,6 +10,8 @@ import type { TicketOptionManage } from '@/api/option/schema';
 import { replaceTicketOptionsMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import { TICKET_OPTIONS_MAX } from '@/api/ticket-item/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import { tryCatch } from '@/utils/try-catch';
 
@@ -37,7 +39,7 @@ export const TICKET_OPTION_ERRORS = {
   Option_Group_400_1: '이 공연의 옵션이 아니에요. 옵션 목록을 다시 불러왔어요',
   Option_Group_404_1: '옵션을 찾을 수 없어요. 옵션 목록을 다시 불러왔어요',
   Ticket_Item_404_1: '티켓을 찾을 수 없어요. 목록을 다시 불러왔어요',
-  Event_400_17: '끝난 공연은 수정할 수 없어요',
+  Event_400_17: EVENT_ENDED_MESSAGE,
   /** 새 옵션: 만들기(O-2)는 됐고 붙이기(O-5)가 실패 — 옵션은 풀에 남아 있다(patterns §23) */
   partial: '옵션은 만들어졌지만 티켓에 붙이지 못했어요. 다시 붙여 주세요',
 } as const;
@@ -55,7 +57,8 @@ export type CreateAndAttachResult = 'attached' | 'createdOnly' | 'failed';
  * - 티켓당 10개(`canAttachMore`)
  * - 새 옵션: O-2 성공 → 풀에 넣고 → O-5. O-5가 실패하면 `createAndAttach()`가 `'createdOnly'`, `partial`에 그 옵션 —
  *   `retryAttach()`로 다시 붙인다(만든 옵션은 풀에 남는다, patterns §23). O-2가 실패하면 `'failed'`
- * - 에러: `Item_Option_Group_400_2` → 목록 다시 읽기(잠김 반영), `Option_Group_400_1`·404 → 풀 다시 읽기, 그 밖 표의 코드는 `error`
+ * - 에러: `Item_Option_Group_400_2` → 목록 다시 읽기(잠김 반영), `Option_Group_400_1`·404 → 풀 다시 읽기,
+ *   `Event_400_17` → GE-3 다시 읽기(읽기 전용으로 — 코드 패턴 점검 A2), 그 밖 표의 코드는 `error`
  */
 export function useTicketOptions(eventId: string, ticketItemId: number) {
   const queryClient = useQueryClient();
@@ -88,7 +91,7 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
     Option_Group_400_1: show('Option_Group_400_1', () => invalidateOptions(queryClient, eventId)),
     Option_Group_404_1: show('Option_Group_404_1', () => invalidateOptions(queryClient, eventId)),
     Ticket_Item_404_1: show('Ticket_Item_404_1', () => invalidateTickets(queryClient, eventId)),
-    Event_400_17: show('Event_400_17'),
+    Event_400_17: show('Event_400_17', () => invalidateEventStatus(queryClient, eventId)),
   };
   const replaceMutation = useMutation({
     ...replaceTicketOptionsMutation(eventId),
@@ -102,7 +105,7 @@ export function useTicketOptions(eventId: string, ticketItemId: number) {
         () => setServerErrors((prev) => ({ ...prev, [field]: message })),
       ]),
     ),
-    Event_400_17: () => setError(TICKET_OPTION_ERRORS.Event_400_17),
+    Event_400_17: show('Event_400_17', () => invalidateEventStatus(queryClient, eventId)),
   };
   const createMutation = useMutation({
     ...createOptionMutation(eventId),

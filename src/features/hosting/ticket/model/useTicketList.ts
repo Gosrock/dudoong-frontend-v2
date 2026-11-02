@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { eventManageQuery } from '@/api/event/queries';
 import { handleError } from '@/api/handle-error';
 import { formatKstDateTime } from '@/api/shared/date';
 import {
@@ -13,6 +12,8 @@ import {
 } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import type { TicketItemManage } from '@/api/ticket-item/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 
 import { applyDeletedTicket, applyUpdatedTicket, invalidateTickets } from './ticket-cache';
@@ -33,7 +34,7 @@ import {
 export const TICKET_ACTION_ERRORS = {
   Ticket_Item_400_7: '판매되었거나 승인 대기 주문이 있어 지울 수 없어요. 판매 중단만 할 수 있어요',
   Ticket_Item_404_1: '티켓을 찾을 수 없어요. 목록을 다시 불러왔어요',
-  Event_400_17: '끝난 공연은 수정할 수 없어요',
+  Event_400_17: EVENT_ENDED_MESSAGE,
 } as const;
 
 export type TicketCard = {
@@ -133,10 +134,7 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
           },
           Event_400_17: () => {
             setActionError(TICKET_ACTION_ERRORS.Event_400_17);
-            void queryClient.invalidateQueries({
-              queryKey: eventManageQuery(eventId).queryKey,
-              exact: true,
-            });
+            void invalidateEventStatus(queryClient, eventId);
           },
         });
         return false;

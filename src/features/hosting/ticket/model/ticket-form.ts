@@ -14,6 +14,7 @@ import {
   type TicketItemManage,
   type UpdateTicketItemRequest,
 } from '@/api/ticket-item/schema';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
 
 import { isEditablePayType, isTicketLocked } from './ticket-rules';
 
@@ -467,6 +468,6 @@ export const TICKET_FORM_ERRORS = {
   Ticket_Item_400_11: '이 티켓은 두둥 티켓·무료 티켓이 아니라 고칠 수 없어요',
   Item_Option_Group_400_4: '추가금이 있는 옵션이 붙은 티켓은 무료 티켓으로 바꿀 수 없어요',
   Agreement_400_1: AGREEMENT_REJECTED_MESSAGE,
-  Event_400_17: '끝난 공연은 수정할 수 없어요',
+  Event_400_17: EVENT_ENDED_MESSAGE,
   Ticket_Item_404_1: '티켓을 찾을 수 없어요. 목록을 다시 불러왔어요',
 } as const;

@@ -7,6 +7,8 @@ import { handleError } from '@/api/handle-error';
 import { deleteOptionMutation, updateOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 
 import {
@@ -25,7 +27,7 @@ export const OPTION_EDITOR_ERRORS = {
   locked:
     '판매되었거나 승인 대기 주문이 있는 티켓에 붙은 옵션은 이름·설명만 고칠 수 있고 지울 수 없어요',
   Option_Group_404_1: '옵션을 찾을 수 없어요. 옵션 목록을 다시 불러왔어요',
-  Event_400_17: '끝난 공연은 수정할 수 없어요',
+  Event_400_17: EVENT_ENDED_MESSAGE,
 } as const;
 
 /**
@@ -37,7 +39,7 @@ export const OPTION_EDITOR_ERRORS = {
  * - 삭제는 옵션 자체를 지운다(붙은 판매 전 티켓에서도 떨어진다) — 이 티켓에서만 빼는 것은 `useTicketOptions.detach`
  * - 성공: 수정은 응답을 풀에, 삭제는 남은 풀을 넣고, 티켓 목록(붙은 옵션 이름·추가금)·관객 GP-5를 무효화
  * - 에러: `Option_Group_400_6` 설명 · `400_3`·`Item_Option_Group_400_4` 추가금 → 칸 오류, `Option_Group_400_5`·`400_2` 잠김 →
- *   안내 + 풀 다시 읽기, 404 → 안내 + 풀 다시 읽기, `Event_400_17` → 안내. 그 밖은 공용 토스트(handleError)
+ *   안내 + 풀 다시 읽기, 404 → 안내 + 풀 다시 읽기, `Event_400_17` → 안내 + GE-3 다시 읽기(읽기 전용으로 — A2). 그 밖은 공용 토스트(handleError)
  */
 export function useOptionEditor(eventId: string, optionId: number) {
   const queryClient = useQueryClient();
@@ -83,7 +85,10 @@ export function useOptionEditor(eventId: string, optionId: number) {
       setError(OPTION_EDITOR_ERRORS.Option_Group_404_1);
       void invalidateOptions(queryClient, eventId);
     },
-    Event_400_17: () => setError(OPTION_EDITOR_ERRORS.Event_400_17),
+    Event_400_17: () => {
+      setError(OPTION_EDITOR_ERRORS.Event_400_17);
+      void invalidateEventStatus(queryClient, eventId);
+    },
   };
 
   const updateMutation = useMutation({

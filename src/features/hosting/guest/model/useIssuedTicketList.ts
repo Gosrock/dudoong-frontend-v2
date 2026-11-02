@@ -10,8 +10,9 @@ import { exportIssuedTicketsMutation } from '@/api/issued-ticket/mutations';
 import { hostIssuedTicketQuery, hostIssuedTicketsQuery } from '@/api/issued-ticket/queries';
 import type { EntranceFilter, IssuedTicketSearchType } from '@/api/issued-ticket/schema';
 import { OPERATION_KEYWORD_MAX } from '@/api/order/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
-import { invalidateAfterScan, invalidateEventStatus } from '@/features/hosting/qr/model/qr-cache';
+import { invalidateAfterScan } from '@/features/hosting/qr/model/qr-cache';
 import {
   EVENT_NOT_CHECKABLE_MESSAGE,
   HOST_SCAN_BLOCK_MESSAGE,

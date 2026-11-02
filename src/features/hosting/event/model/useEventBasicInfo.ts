@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { updateEventBasicMutation } from '@/api/event/mutations';
-import { eventManageQuery, eventTagsQuery } from '@/api/event/queries';
+import { eventTagsQuery } from '@/api/event/queries';
 import { handleError } from '@/api/handle-error';
 import type { HostContactType } from '@/api/host/schema';
 import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED, uploadImage } from '@/api/upload';
@@ -27,7 +27,8 @@ import {
   toUpdateEventBasicBody,
   validateBasicInfo,
 } from './basic-info-form';
-import { applySavedBasic } from './event-cache';
+import { applySavedBasic, invalidateEventStatus } from './event-cache';
+import { EVENT_ENDED_MESSAGE } from './event-scope';
 import { kakaoGeocoder } from './kakao-geocoder';
 import { type Geocoder, PLACE_ERROR, type PlaceLookupFailure } from './place';
 import type { ScheduleInput } from './schedule';
@@ -262,7 +263,6 @@ export function useEventBasicInfo(
       return true;
     } catch (e) {
       inflight.current = false;
-      const manageKey = eventManageQuery(eventId).queryKey;
       const field = (code: FieldCode) => () => {
         const { field: f, message } = BASIC_INFO_FIELD_ERRORS[code];
         setServerErrors((prev) => ({ ...prev, [f]: message }));
@@ -280,8 +280,8 @@ export function useEventBasicInfo(
         },
         // 정산중·지난 공연 — GE-3을 다시 읽으면 읽기 전용으로 바뀐다
         Event_400_17: () => {
-          setFormError('끝난 공연은 수정할 수 없어요');
-          void queryClient.invalidateQueries({ queryKey: manageKey, exact: true });
+          setFormError(EVENT_ENDED_MESSAGE);
+          void invalidateEventStatus(queryClient, eventId);
         },
         // 등록 뒤 티켓 여부 변경 — GE-3을 다시 읽으면 토글이 잠긴다
         Event_400_18: () => {
@@ -289,7 +289,7 @@ export function useEventBasicInfo(
             ...prev,
             hasTicket: '등록된 공연은 티켓 여부를 바꿀 수 없어요',
           }));
-          void queryClient.invalidateQueries({ queryKey: manageKey, exact: true });
+          void invalidateEventStatus(queryClient, eventId);
         },
       });
       return false;

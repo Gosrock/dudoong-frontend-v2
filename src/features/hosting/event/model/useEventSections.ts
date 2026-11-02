@@ -4,11 +4,12 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { updateEventSectionsMutation } from '@/api/event/mutations';
-import { eventManageQuery, eventSectionsManageQuery } from '@/api/event/queries';
+import { eventSectionsManageQuery } from '@/api/event/queries';
 import { handleError } from '@/api/handle-error';
 import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED, uploadImage } from '@/api/upload';
 
-import { applySavedSections } from './event-cache';
+import { applySavedSections, invalidateEventStatus } from './event-cache';
+import { EVENT_ENDED_MESSAGE } from './event-scope';
 import {
   canAddSection,
   canRemoveSection,
@@ -128,11 +129,8 @@ export function useEventSections(eventId: string) {
       handleError(e, {
         Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
         Event_400_17: () => {
-          setFormError('끝난 공연은 수정할 수 없어요');
-          void queryClient.invalidateQueries({
-            queryKey: eventManageQuery(eventId).queryKey,
-            exact: true,
-          });
+          setFormError(EVENT_ENDED_MESSAGE);
+          void invalidateEventStatus(queryClient, eventId);
         },
       });
       return false;

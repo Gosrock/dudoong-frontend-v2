@@ -123,7 +123,6 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
   const { changeRoleTo, remove, transfer } = member.actions;
 
   const changeRole = (to: AssignableHostRole) => {
-    let ok = false;
     void openConfirm({
       title: '멤버 권한 변경',
       description: '멤버의 권한이 다음과 같이 변경됩니다.',
@@ -135,15 +134,12 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         </div>
       ),
       confirmLabel: '변경하기',
-      // 실패 안내는 훅이 한다(HOST_404_2는 목록 위 안내, 그 밖은 공용 토스트) — 실패해도 닫는다
-      onConfirm: async () => {
-        ok = await m.changeRole(member.userId, to);
-      },
-    }).then((closed) => closed && ok && toast('멤버의 권한을 변경하였습니다.'));
+      // 확인 창 계약(patterns §6): 실패(`false`)면 열린 채. 안내는 훅이 한다(HOST_404_2는 목록 위 안내, 그 밖은 공용 토스트)
+      onConfirm: () => m.changeRole(member.userId, to),
+    }).then((done) => done && toast('멤버의 권한을 변경하였습니다.'));
   };
 
   const transferMaster = () => {
-    let ok = false;
     void openConfirm({
       title: '마스터 권한을 양도하시겠어요?',
       description:
@@ -154,23 +150,18 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         </Txt>
       ),
       confirmLabel: '양도하기',
-      onConfirm: async () => {
-        ok = await m.transferMaster(member.userId);
-      },
-    }).then((closed) => closed && ok && toast('마스터 권한을 양도하였습니다.'));
+      onConfirm: () => m.transferMaster(member.userId),
+    }).then((done) => done && toast('마스터 권한을 양도하였습니다.'));
   };
 
   const removeMember = () => {
-    let ok = false;
     // 디자인 없음(와이어는 ⋮ "멤버 삭제" 항목만) — DS Popup으로 확인을 받는다(🤖)
     void openConfirm({
       title: `${name}님을 멤버에서 삭제할까요?`,
       description: '삭제하면 이 호스트의 공연을 관리할 수 없어요.',
       confirmLabel: '삭제하기',
-      onConfirm: async () => {
-        ok = await m.remove(member.userId);
-      },
-    }).then((closed) => closed && ok && toast('멤버를 삭제했어요'));
+      onConfirm: () => m.remove(member.userId),
+    }).then((done) => done && toast('멤버를 삭제했어요'));
   };
 
   const items: DropdownMenuItem[] = [
