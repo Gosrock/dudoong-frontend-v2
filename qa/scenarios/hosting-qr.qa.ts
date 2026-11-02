@@ -334,6 +334,55 @@ scenario(
   },
 );
 
+scenario(
+  'QR-10',
+  '카메라를 쓸 수 없으면 티켓 번호로 입장 — 입장 처리 뒤 관객 이름을 크게',
+  {
+    kind: '정상',
+    summary:
+      'PQ-2b(백엔드 #926 — 2.5.6). [호스트가 QR 스캔] 카메라 아래 "티켓 번호로 입장" DS Input + Button(디자인 없음 — Q99). 숫자만 넣어도 서버가 T를 붙인다. 번호는 추측할 수 있어 입장 처리 뒤 `ownerName`을 크게 보이고 확인을 부탁한다. 다시 넣으면 이미 입장, 없는 번호는 티켓 정보 없음.',
+    basis: ['Backend #914 답 6(B27)', 'design-requests Q99', '이슈 #93 §5'],
+  },
+  async ({ page, step }) => {
+    await setUp(page, 'denied');
+    await page.goto(QR);
+    const box = page.getByTestId('ticket-no-check-in');
+    const field = box.getByRole('textbox', { name: '티켓 번호로 입장' });
+    await step('카메라를 못 켜도 번호 입력 칸이 있다', async () => {
+      await expect(box).toBeVisible();
+      await expect(field).toHaveAttribute('placeholder', '예: T1000118');
+    });
+    await step('숫자만(1000001) 넣고 [입장 처리] → 입장 완료 + 관객 이름 "두둥이"', async () => {
+      await field.fill('1000001');
+      await box.getByRole('button', { name: '입장 처리' }).click();
+      const res = page.getByTestId('ticket-no-result');
+      await expect(res).toHaveAttribute('data-result', 'ENTERED');
+      await expect(page.getByTestId('ticket-no-owner')).toHaveText('두둥이');
+      await expect(field).toHaveValue('');
+      await expect(page.getByTestId('checkin-stat-entered')).toHaveText('1');
+    });
+    await step('같은 번호를 다시 넣으면 이미 입장', async () => {
+      await field.fill('T1000001');
+      await box.getByRole('button', { name: '입장 처리' }).click();
+      await expect(page.getByTestId('ticket-no-result')).toHaveAttribute(
+        'data-result',
+        'ALREADY_ENTERED',
+      );
+    });
+    await step('없는 번호는 티켓 정보 없음(OTHER_EVENT), 빈 값은 칸 오류', async () => {
+      await field.fill('T9999999');
+      await box.getByRole('button', { name: '입장 처리' }).click();
+      await expect(page.getByTestId('ticket-no-result')).toHaveAttribute(
+        'data-result',
+        'OTHER_EVENT',
+      );
+      await field.fill('');
+      await box.getByRole('button', { name: '입장 처리' }).click();
+      await expect(box.getByText('티켓 번호를 확인해 주세요 (예: T1000118)')).toBeVisible();
+    });
+  },
+);
+
 scenario.manual('QR-8', '실기기 3종 이상에서 티켓 QR 판독', {
   kind: '정상',
   basis: ['plan P13b 완료 기준 V(실기기 3종 이상에서 판독)'],

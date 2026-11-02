@@ -122,7 +122,7 @@ test('상세 → 티켓 선택 → 체크아웃 → 주문 완료를 키보드�
   await tabTo(page, notice);
   await page.keyboard.press('Space');
   await expect(notice).toBeChecked();
-  await tabTo(page, confirm.getByRole('button', { name: '결제완료' }));
+  await tabTo(page, confirm.getByRole('button', { name: '주문 완료하기' }));
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
   await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();

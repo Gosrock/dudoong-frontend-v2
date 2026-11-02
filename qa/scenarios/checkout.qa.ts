@@ -29,10 +29,10 @@ const confirmDialog = (page: Page) => page.getByRole('alertdialog', { name: '주
 const NOTICE_CHECK = '(필수) 위 내용을 확인했으며 이에 동의합니다';
 const HOST_CHECK = '(필수) 호스트에게 개인정보 제공 동의';
 
-/** 입금 확인 다이얼로그 — 입금 전 확인(두둥, #840 ③) 체크 → [결제완료] */
+/** 주문 확인 다이얼로그 — 입금 전 확인(두둥, #840 ③) 체크 → [주문 완료하기](B23 — 입금은 주문 뒤) */
 async function confirmDeposit(page: Page) {
   await confirmDialog(page).getByRole('checkbox', { name: NOTICE_CHECK }).click();
-  await confirmDialog(page).getByRole('button', { name: '결제완료' }).click();
+  await confirmDialog(page).getByRole('button', { name: '주문 완료하기' }).click();
 }
 
 async function fillPaidOptions(page: Page, answer: '예' | '아니오' = '예') {
@@ -50,11 +50,11 @@ async function agree(page: Page) {
 
 scenario(
   'CHK-1',
-  '공연 상세에서 티켓 2매를 고르고 체크아웃에서 옵션·동의 뒤 [결제하기] → 입금 확인 [결제완료] → 주문 완료',
+  '공연 상세에서 티켓 2매를 고르고 체크아웃에서 옵션·동의 뒤 [결제하기] → [주문 완료하기] → 주문 완료 화면에서 계좌·금액 안내(B23)',
   {
     kind: '정상',
     summary:
-      '상세(P6)의 [티켓 구매하기]가 체크아웃으로. 모든 티켓 동일 옵션(기본 켜짐)이라 1번 티켓 아코디언에만 옵션 칸. 결제정보에 입금자명(닉네임)·입금은행·결제계좌(복사)·예금주, 예매번호·티켓번호 없음. 확인 다이얼로그 요약 금액 = 화면 총액. 완료 뒤 뒤로가기는 체크아웃이 아니다.',
+      '상세(P6)의 [티켓 구매하기]가 체크아웃으로. 모든 티켓 동일 옵션(기본 켜짐)이라 1번 티켓 아코디언에만 옵션 칸. 결제정보에 입금자명(닉네임)·입금은행·결제계좌(복사)·예금주, 예매번호·티켓번호 없음. 확인 다이얼로그 요약 금액 = 화면 총액. 주문은 입금 전에 만든다(B23 — 사용자 결정 2026-11-02): 완료 화면에 입금자명·계좌(복사)·입금할 금액. 완료 뒤 뒤로가기는 체크아웃이 아니다.',
     basis: [
       'plan P7 완료 기준 V(흐름 · 예매번호·티켓번호 없음 · 은행명)',
       'GUI 564:4156 · 567:9468 · 939:27829',
@@ -121,28 +121,33 @@ scenario(
       },
     );
     await step(
-      '[결제하기]를 누르면 입금 확인 다이얼로그에 결제 요약(은행·계좌·금액)이 나온다',
+      '[결제하기]를 누르면 주문 확인 다이얼로그에 결제 요약(은행·계좌·금액)이 나온다',
       async () => {
         await page.getByRole('button', { name: '결제하기' }).click();
         const dialog = confirmDialog(page);
         await expect(dialog).toBeVisible();
-        await expect(dialog.getByText('입금 하셨나요?')).toBeVisible();
+        await expect(dialog.getByText(/주문이 호스트에게 전달되고 티켓이 잡혀요/)).toBeVisible();
         await expect(dialog.getByText('신한은행')).toBeVisible();
         await expect(dialog.getByText('110-123-456789')).toBeVisible();
         await expect(dialog.getByText('50,000 원')).toBeVisible();
       },
     );
     await step(
-      '[결제완료]를 누르면 주문 완료 화면(일러스트 · 주문 완료! · 두 버튼)이다',
+      '[주문 완료하기]를 누르면 주문 완료 화면(일러스트 · 주문 완료! · 입금 안내 · 두 버튼)이다',
       async () => {
-        // 입금 전 확인(③ — 2026-11-01 붙임) 전에는 [결제완료]가 막혀 있다
-        await expect(confirmDialog(page).getByRole('button', { name: '결제완료' })).toBeDisabled();
+        // 입금 전 확인(③ — 2026-11-01 붙임) 전에는 [주문 완료하기]가 막혀 있다
+        await expect(
+          confirmDialog(page).getByRole('button', { name: '주문 완료하기' }),
+        ).toBeDisabled();
         await confirmDeposit(page);
         await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
         await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
-        await expect(
-          page.getByText('티켓 승인여부는 티켓 페이지에서 확인 가능합니다!'),
-        ).toBeVisible();
+        await expect(page.getByText(/아래 계좌로 입금해 주세요/)).toBeVisible();
+        // B23 — 입금은 주문 뒤. 완료 화면이 계좌·금액을 안내한다(앞 화면은 Next 16이 숨긴 채 DOM에 남기므로 보이는 것만)
+        const guide = page.getByTestId('deposit-guide');
+        await expect(guide).toBeVisible();
+        await expect(guide.getByText('110-123-456789')).toBeVisible();
+        await expect(guide.getByTestId('deposit-amount')).toHaveText('50,000원');
         await expect(page.getByRole('link', { name: '주문내역' }).last()).toHaveAttribute(
           'href',
           '/orders',
@@ -151,9 +156,8 @@ scenario(
           'href',
           '/tickets',
         );
-        // 완료 화면에 예매번호·계좌·금액은 다시 보이지 않는다(plan P7 ⑤ · Q16 기본안). 앞 화면은 Next 16이 숨긴 채 DOM에 남기므로 보이는 것만 센다
+        // 예매번호는 완료 화면에 없다(plan P7 ⑤)
         await expect(page.getByText('예매번호').locator('visible=true')).toHaveCount(0);
-        await expect(page.getByText('110-123-456789').locator('visible=true')).toHaveCount(0);
         expect(
           mockApi.calls().filter((c) => c.method === 'POST' && c.path === '/api/v2/me/orders'),
         ).toHaveLength(1);
@@ -306,21 +310,34 @@ scenario(
 
 scenario(
   'CHK-6',
-  '[토스간편송금]을 고르면 토스 앱 송금 링크(금액 = 총액)가 나온다',
+  '[토스간편송금]을 고르고 주문하면 완료 화면에 토스 앱 송금 링크(금액 = 총액)가 나온다',
   {
     kind: '정상',
     summary:
-      '토스 송금 링크(`supertoss://send`)의 금액은 화면 총액. 은행 코드(`bankCode`)가 없는 계좌면 [토스간편송금]을 숨긴다(plan P7 L · B3). 버튼·안내는 디자인 없음(Figma 코멘트 567:8004).',
-    basis: ['plan P7 L 범위(토스 송금 링크)', 'tech-decisions §19·§22', 'Figma 코멘트 567:8004'],
+      'B23(2026-11-02) — 입금은 주문 뒤라 [토스 앱에서 송금하기]는 체크아웃이 아니라 주문 완료 화면(과 승인 대기 주문상세)에 있다. 링크(`supertoss://send`)의 금액은 화면 총액 = 서버 `totalAmount`. 은행 코드(`bankCode`)가 없는 계좌면 [토스간편송금]을 숨긴다(plan P7 L · B3). 버튼·안내는 디자인 없음(Figma 코멘트 567:8004 · Q97).',
+    basis: [
+      'plan P7 L 범위(토스 송금 링크)',
+      'tech-decisions §19·§22',
+      'Backend #914 답 2(B23)',
+      'Figma 코멘트 567:8004',
+    ],
   },
   async ({ page, step }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto(href(CHECKOUT_TICKET.paidNoOptions, 2));
-    await step('[토스간편송금]을 누르면 [토스 앱에서 송금하기] 링크가 생긴다', async () => {
+    let amount = '';
+    await step('[토스간편송금]을 골라도 체크아웃에는 송금 링크가 없다(주문 전)', async () => {
       await page.getByRole('radio', { name: '토스간편송금' }).click();
+      await expect(page.getByTestId('toss-link')).toHaveCount(0);
+      amount = (await page.getByTestId('checkout-amount').textContent())!.replace(/\D/g, '');
+    });
+    await step('[결제하기] → [주문 완료하기] 뒤 완료 화면에 [토스 앱에서 송금하기]', async () => {
+      await agree(page);
+      await page.getByRole('button', { name: '결제하기' }).click();
+      await confirmDeposit(page);
+      await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
       const link = page.getByTestId('toss-link');
       await expect(link).toBeVisible();
-      const amount = (await page.getByTestId('checkout-amount').textContent())!.replace(/\D/g, '');
       await expect(link).toHaveAttribute(
         'href',
         new RegExp(`^supertoss://send\\?.*amount=${amount}`),
@@ -447,7 +464,7 @@ const formErrors = [
 for (const [id, code, what, message] of formErrors) {
   scenario(
     id,
-    `[결제완료] 뒤 ${code}(${what})면 다이얼로그가 닫히고 화면 맨 위에 안내가 나온다`,
+    `[주문 완료하기] 뒤 ${code}(${what})면 다이얼로그가 닫히고 화면 맨 위에 안내가 나온다`,
     {
       kind: '에러',
       summary:
@@ -460,7 +477,7 @@ for (const [id, code, what, message] of formErrors) {
       await setMockSession(page, 'loggedIn');
       await page.goto(href(CHECKOUT_TICKET.paidNoOptions));
       await agree(page);
-      await step(`[결제하기] → [결제완료]를 누르면 "${message}"`, async () => {
+      await step(`[결제하기] → [주문 완료하기]를 누르면 "${message}"`, async () => {
         await page.getByRole('button', { name: '결제하기' }).click();
         await confirmDeposit(page);
         await expect(confirmDialog(page)).toBeHidden();
@@ -473,25 +490,68 @@ for (const [id, code, what, message] of formErrors) {
 
 scenario(
   'CHK-16',
-  '같은 무료 선착순 주문 처리 중(Order_400_26)이면 토스트와 함께 주문내역으로 간다',
+  '같은 주문 처리 중(Order_400_26)이면 이동하지 않고 [다시 시도] — 같은 키로 다시 보내면 주문 완료',
   {
     kind: '에러',
     summary:
-      '"같은 주문을 처리하고 있어요. 잠시 후 주문내역을 확인해 주세요." + `/orders` replace.',
-    basis: ['patterns §24 P7 Order_400_26'],
-    mocks: orderHandlers.createFails('Order_400_26'),
+      'Backend #914 답 1(#923) — 무료 선착순 확정 중이면 `Order_400_26`, 잠시 뒤 같은 `Idempotency-Key`로 다시. 폼 위 안내 + [다시 시도] · [주문내역 확인](디자인 없음 — Q98). [다시 시도]는 같은 키라 중복 주문이 생기지 않는다.',
+    basis: ['patterns §24 P7 Order_400_26', 'Backend #914 답 1', 'design-requests Q98'],
     viewports: ['mobile'],
   },
-  async ({ page, step }) => {
+  async ({ page, step, mockApi }) => {
+    mockApi.use(...orderHandlers.createFailsOnce('Order_400_26'));
     await setMockSession(page, 'loggedIn');
     await page.goto(href(CHECKOUT_TICKET.freeFcfs));
     await agree(page);
-    await step('[신청하기]를 누르면 주문내역으로 가고 토스트가 남는다', async () => {
-      await page.getByRole('button', { name: '신청하기' }).click();
-      await expect(page).toHaveURL(/\/orders$/);
+    await step(
+      '[신청하기]를 누르면 체크아웃에 남고 안내 + [다시 시도] · [주문내역 확인]',
+      async () => {
+        await page.getByRole('button', { name: '신청하기' }).click();
+        const alert = page.getByRole('alert').filter({ hasText: '같은 주문을 처리하고 있어요' });
+        await expect(alert).toBeVisible();
+        await expect(alert.getByRole('link', { name: '주문내역 확인' })).toHaveAttribute(
+          'href',
+          '/orders',
+        );
+        await expect(page).toHaveURL(/\/checkout\?/);
+      },
+    );
+    await step('처리가 끝난 뒤 [다시 시도]를 누르면 주문 완료', async () => {
+      await page.getByRole('button', { name: '다시 시도' }).click();
+      await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+    });
+  },
+);
+
+scenario(
+  'CHK-16b',
+  '주문 응답이 끊겨도(서버는 만듦) [다시 시도]는 같은 주문을 받아 중복되지 않는다',
+  {
+    kind: '에러',
+    summary:
+      '이슈 #92-4 · Backend #923 — 응답을 받지 못하면 "주문 결과를 확인하지 못했어요" + [다시 시도] · [주문내역 확인]. 다시 보낼 때 같은 `Idempotency-Key`라 서버가 앞 주문을 돌려준다 — 주문 생성 요청은 2번, 주문은 1개.',
+    basis: ['이슈 #92-4', 'Backend #914 답 1(#923)', 'checkout-errors.ts ORDER_UNCERTAIN'],
+    viewports: ['mobile'],
+  },
+  async ({ page, step, mockApi }) => {
+    mockApi.use(...orderHandlers.createLosesResponseOnce());
+    await setMockSession(page, 'loggedIn');
+    await page.goto(href(CHECKOUT_TICKET.paidNoOptions));
+    await agree(page);
+    await step('[결제하기] → [주문 완료하기] — 응답이 끊기면 폼 위 안내', async () => {
+      await page.getByRole('button', { name: '결제하기' }).click();
+      await confirmDeposit(page);
       await expect(
-        page.getByText('같은 주문을 처리하고 있어요. 잠시 후 주문내역을 확인해 주세요.'),
+        page.getByRole('alert').filter({ hasText: '주문 결과를 확인하지 못했어요' }),
       ).toBeVisible();
+    });
+    await step('[다시 시도] → 같은 주문으로 완료 화면(주문은 하나)', async () => {
+      await page.getByRole('button', { name: '다시 시도' }).click();
+      await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+      const posts = mockApi
+        .calls()
+        .filter((c) => c.method === 'POST' && c.path === '/api/v2/me/orders');
+      expect(posts).toHaveLength(2);
     });
   },
 );
@@ -628,9 +688,13 @@ scenario(
             '두둥티켓 대금은 호스트에게 직접 지급되며, 두둥은 대금을 받지 않습니다.',
           ),
         ).toBeVisible();
-        await expect(confirmDialog(page).getByRole('button', { name: '결제완료' })).toBeDisabled();
+        await expect(
+          confirmDialog(page).getByRole('button', { name: '주문 완료하기' }),
+        ).toBeDisabled();
         await confirmDialog(page).getByRole('checkbox', { name: NOTICE_CHECK }).click();
-        await expect(confirmDialog(page).getByRole('button', { name: '결제완료' })).toBeEnabled();
+        await expect(
+          confirmDialog(page).getByRole('button', { name: '주문 완료하기' }),
+        ).toBeEnabled();
       },
     );
   },

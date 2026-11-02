@@ -525,6 +525,18 @@ const refundAccount = http.put(
   },
 );
 
+/** O-1이 처음 한 번만 이 코드로 실패하고 그 뒤는 기본 처리(재시도 시나리오 — `Order_400_26` 처리 중 → 확정) */
+const createFailsOnce = (code: OrderErrorCode): HttpHandler[] => {
+  let failed = false;
+  return [
+    http.post('*/api/v2/me/orders', ({ request }) => {
+      if (failed) return undefined;
+      failed = true;
+      return orderError(request, code);
+    }),
+  ];
+};
+
 /** O-1이 언제나 이 코드로 실패한다 */
 const createFails = (code: OrderErrorCode): HttpHandler[] => [
   http.post('*/api/v2/me/orders', ({ request }) => orderError(request, code)),
@@ -628,6 +640,7 @@ export const orderHandlers = {
     ),
   ],
   createFails,
+  createFailsOnce,
   createLosesResponseOnce,
   freeFcfsConfirmFails,
   agreementEnforced,
