@@ -14,7 +14,9 @@
 >
 > **2026-11-01 갱신(4)**: 지금 판(버전 `2416576694112599706`, 2026-10-31T19:15Z)을 18:56Z 판과 비교했다 — `Design: 디자인 시스템` 이슈 #61(Filter Chip `number` 변형 2개, 예매자 관리용)과 Tabs 견본 `tab`의 탭 항목 2 → 4개. 변수·텍스트 스타일은 그대로(Desktop Bridge로 다시 읽음). 쓰는 `GUI 구현됨` 화면이 없어 코드는 그대로 — **반영 대기**. §8.
 >
-> **동기화 기준 버전: `2416576694112599706`(2026-10-31T19:15Z).** 다음 갱신은 이 버전과 비교한다. 디자인 시스템이 바뀌면 디자이너가 `Design: 디자인 시스템` 이슈(Figma 플러그인)를 남기고, 개발은 그 이슈를 화면 이슈보다 먼저 반영한다 — 이 문서 + 토큰·`src/ui` 컴포넌트·스토리를 고치고 PR `Closes #n`, 기준 버전을 올린다([`design-workflow.md`](./design-workflow.md) §4). 이슈 없이 바뀐 것도 잡도록 화면 작업을 시작할 때 버전 목록을 본다(스킬 `gui-implement` "디자인 시스템 변경").
+> **2026-11-03 갱신(`p13a-gui-guests`)**: 지금 판(버전 `2416898429564738752`, 2026-11-01T15:47Z)을 19:15Z 판과 비교했다 — 컴포넌트 변화는 `ic_favorite` filled 24 하나(쓰는 화면 없음 — 반영 대기). 이슈 #61 Filter Chip 개수형(예매자 관리 GUI가 Ready가 되어 **반영함** — `CountFilterChip`) · #109 Search Field placeholder 띄어쓰기 "검색어를 입력해 주세요"(글자만 — `ds_diff`가 잡지 않아 노드 글자로 확인, **반영함** — `SearchField` 기본 placeholder). 표는 GUI 예매자 관리 표(직접 그린 상자)로 `DataTable` 모양을 맞췄다. §8.
+>
+> **동기화 기준 버전: `2416898429564738752`(2026-11-01T15:47Z).** 다음 갱신은 이 버전과 비교한다. 디자인 시스템이 바뀌면 디자이너가 `Design: 디자인 시스템` 이슈(Figma 플러그인)를 남기고, 개발은 그 이슈를 화면 이슈보다 먼저 반영한다 — 이 문서 + 토큰·`src/ui` 컴포넌트·스토리를 고치고 PR `Closes #n`, 기준 버전을 올린다([`design-workflow.md`](./design-workflow.md) §4). 이슈 없이 바뀐 것도 잡도록 화면 작업을 시작할 때 버전 목록을 본다(스킬 `gui-implement` "디자인 시스템 변경").
 >
 > 관련 문서: 스타일링 방식 [`tech-decisions.md`](./tech-decisions.md) §6, 반응형·텍스트·레이아웃 패턴 [`patterns.md`](./patterns.md) §1~§3, Phase [`plan.md`](./plan.md) P1·P2, 와이어프레임 관측 [`figma-structure.md`](./figma-structure.md).
 
@@ -253,7 +255,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | Button `round` | `<button>` | — | 56 원형 아이콘 버튼(FAB). Primary 배경이 `text/primary`(검정). `variant`가 아니라 별도 `Fab` 컴포넌트로 둔다. 2026-10-25: Primary에 Hover·Pressed·Disabled가, 흰 판 `Color=Secondary`(Normal·Hover·Pressed)가 생겼다(아래 표) | P2 |
 | **numbering** — minus/plus × default/pressed, 20×20 | `<button>` | — | 수량 스테퍼(P6)의 부품 | P2 |
 | **Input** 3종 — input field · text input(단위 접미사 "원") · icon input, `State` Default/Focus/Filled/disabled | `<input>` | Input | `leading?`(아이콘), `trailing?`(단위). 44h, 모서리 8, 포커스는 보라 테두리. Focus·Filled는 CSS 상태 **2026-10-31**: icon input의 앞 아이콘이 20×20 틀(패딩 2) 안 16px로 바뀌었다(옛 24). disabled 테두리는 `interaction/disabled` 값이 바뀌어 Neutral 200 | P2 |
-| **Search Field** — Default/Focus/Filled(disabled 없음) | `<input type="search">` | Input | 검색 아이콘이 외부 `icon/search`다. 코드는 `ic/search`를 쓴다 | P2 |
+| **Search Field** — Default/Focus/Filled(disabled 없음) | `<input type="search">` | Input | 검색 아이콘이 외부 `icon/search`다. 코드는 `ic/search`를 쓴다. **2026-11-03(#109)**: placeholder "검색어를 입력해 주세요"(띄어쓰기) — 기본값 `SEARCH_FIELD_PLACEHOLDER`, 화면이 주면 그 글자 | P2 |
 | **Dropdown** — 트리거(상태 1개) + dropdown item(selected) | Radix `Select` | Select / Combobox | 트리거 아이콘이 위아래 화살표(`ic/up down`)라 shadcn Combobox 모양에 가깝다. 열린 목록은 컴포넌트가 아닌 예시 프레임(`284:1755`)이다. placeholder·disabled·에러 상태 없음. placeholder 스타일은 Radix의 `[data-placeholder]`로 받는다 **2026-10-31**: dropdown item 높이 28 → **36** | P2 |
 | **SortButton**(페이지 이름 Sort Dropdown) — 라벨이 변형(공연임박순/최신등록순) | — | — | 정렬값이 서버에 하나뿐이라 **고정 라벨**(patterns §13). Figma에 chevron-down 12가 붙어 있지만 코드는 chevron 없이 누를 수 없게 | P5a, P8 |
 | **Checkbox**(`Box`) — `checked` × `Status` default/disabled × `type` round/square(2026-11-01) | Radix `Checkbox` | Checkbox | 20px. 채움 색이 `text/primary-label`(검정)이다 — 브랜드색이 아니다 **2026-10-31**: disabled 채움·테두리가 Neutral 200(`interaction/disabled` 값 변경) **2026-11-01**(#23): `type=square`(모서리 4 `Space/1`)가 생겨 8변형. round 모서리 17 → 16(`Space/4`에 묶임 — 20의 원형 그대로). 코드 `<Checkbox shape="round" \| "square">`(기본 round — Figma `type`은 버튼 `type` 속성과 겹쳐 `shape`) **2026-11-01(3)**: 미선택 테두리 `text/primary-label` → `interaction/inactive`(#B8B7B3, §8) | P2 |
@@ -264,7 +266,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | **다이얼로그**(2026-11-01 새로, `758:1714`, 페이지 ┗Dialogue) — 단일 컴포넌트, 텍스트 속성 `타이틀`·`본문` | Radix `Dialog`(alertdialog) | Alert Dialog | 310폭(높이 내용), 모서리 16(`Radius/5`), 안쪽 24 · 간격 24(`Space/5`), 배경 `Background/normal`. 제목 `Heading/sm - emphasized` `text/primary-label` + 본문 `Label/sm` `text/secondary-label`(간격 8) / [취소 Button Secondary medium][확인 Primary medium] 같은 폭(간격 8). 설명: "삭제·판매 중단 등 되돌리기 어려운 작업 전 확인 창". **코드: 새 컴포넌트를 만들지 않고 기존 `Popup`(= `Modal compact`, `openConfirm`의 `variant: 'popup'`)을 이 모양으로 바꿨다**(#28) — 옛 근거 GUI `567:9468`(342폭 · Large 버튼 · 회색 배경)에서 | P2 |
 | **Badge** — large(숫자 20×20)/small(점 8) | — | — | 알림 배지. large는 고정 20×20이라 두 자리 숫자를 못 담는다. 코드는 최소 폭 20 + 좌우 패딩으로 늘린다 | P2 |
 | **Avatar** — 9개 변형: 24(grey만) · 32 · 40 × teal/orange/indigo/grey | — | Avatar | 캐릭터 일러스트. `size=40` 변형의 실제 크기는 **45px**, 호스트 행에서는 60px로 늘려 쓴다. 사진 변형이 없다 — 프로필 이미지(PM-3)를 어디에 보여 줄지는 디자인 확인 | P2 |
-| **Filter Chip** — selected/open 4상태 + number 2(2026-11-01) | Radix `Popover`(펼칠 때) | — | 선택 여부는 숫자 Badge가 붙는 것뿐이다. 공연 리스트(P5a)가 쓰고, 예매자 관리(P13a) 필터에도 쓸 것으로 본다(추정 — P13a 필터 디자인은 아직 없다). "태그" 문구가 고정이라 텍스트 속성이 필요하다 **2026-11-01(#61, 19:01Z 판)**: `state` `selected/number`(`776:2019`)·`deselected/number`(`776:2030`)가 생김 — "예매자 관리페이지에서 쓰일 필터칩". 32h · 패딩 6·12 · 간격 4 · 모서리 8(`Radius/2`) · 흰 배경(`Background/normal`), 글자 + 개수(둘 다 `Label/sm` `text/primary-label`), **chevron·Badge 없음**. 선택은 테두리 `text/primary-label`(검정), 미선택은 `surface/default-border`. 펼침 없이 누르면 그 값으로 거르는 단일 선택 필터로 보인다(GUI `↳예매자관리` `724:5256`의 "필터_전체" 등 — 상태별 개수). **반영 대기**(§8) — 코드는 `FilterChip`에 개수형 변형을 더하는 것으로 된다(기존 props 유지) | P2 · P13a |
+| **Filter Chip** — selected/open 4상태 + number 2(2026-11-01) | Radix `Popover`(펼칠 때) | — | 선택 여부는 숫자 Badge가 붙는 것뿐이다. 공연 리스트(P5a)가 쓰고, 예매자 관리(P13a) 필터에도 쓸 것으로 본다(추정 — P13a 필터 디자인은 아직 없다). "태그" 문구가 고정이라 텍스트 속성이 필요하다 **2026-11-01(#61, 19:01Z 판)**: `state` `selected/number`(`776:2019`)·`deselected/number`(`776:2030`)가 생김 — "예매자 관리페이지에서 쓰일 필터칩". 32h · 패딩 6·12 · 간격 4 · 모서리 8(`Radius/2`) · 흰 배경(`Background/normal`), 글자 + 개수(둘 다 `Label/sm` `text/primary-label`), **chevron·Badge 없음**. 선택은 테두리 `text/primary-label`(검정), 미선택은 `surface/default-border`. 펼침 없이 누르면 그 값으로 거르는 단일 선택 필터로 보인다(GUI `↳예매자관리` `724:5256`의 "필터_전체" 등 — 상태별 개수). **2026-11-03 반영함**(§8, `p13a-gui-guests`) — 개수형은 `CountFilterChip`(`label` · `count` · `selected`, 0·null이면 숫자 없음, `aria-pressed`). 예매자 관리 주문 · 발급된 티켓 · 환불 상태 필터 | P2 · P13a |
 | **Tag** 5종 — Ticket state chip(승인완료·선물대기·선물완료·승인대기), tag(공연 태그·티켓 수, 텍스트 속성), role chip(마스터·매니저), Concert state chip(D-day·준비중·지난 공연), money option chip(`amount`) | — | Badge | 상태 값은 서버 enum과 매핑하고, 모르는 값은 기본 모양(tech-decisions §4). **Ticket state chip은 서버 티켓 상태 11가지 중 4가지만 있다**(아래 "없는 상태"). **Concert state chip**(2026-10-25 변경): `Property 1` ready/d-day/past에 **`ing`(공연중 — 배경 `brand/accent`, 글자 `brand/accent-subtle`)** 이 더해졌고, `size` 축이 생겼다 — small 22h·좌우 10·모서리 6(직접 값)·`Label/sm`, large 25h·좌우 12·모서리 8(변수 `35:177`)·`Label/md`. 색은 §1 "원시 색에서 벗어난 것". 공연준비 홈 PC 목록(`공연 리스트_Desktop`)이 large를 쓴다. 코드(2026-10-25): Chip `tone` `ing` 추가(small 모양), large는 쓰는 화면(P10a-V)에서. role chip에 GUEST가 없다(호스트 행의 `Role tag=false`가 그 경우로 보인다). 다른 enum(사용자 주문 상태 × `refundStatus`, 호스트 주문 상태, `entrance`, `giftState`)의 칩 매핑은 쓰는 Phase에서 정한다. Concert state chip "D-7"은 텍스트 속성이 없다 **2026-10-31**: 페이지 이름이 "┗ Chip"이 됐다. Ticket state chip·Concert state chip small·money option chip 모서리 6 → **8**(코드는 이미 8), Ticket state chip은 고정 72 → 내용 폭(좌우 12, 66), tag 좌우 패딩 12(`Space/3`에 묶임, 공연 태그 72 → 내용 폭 45). 새 칩 세트 `tag_v2`·`Ticket state chip_host`는 아래 줄 | P2(공용 칩), 매핑은 사용 Phase |
 | **tag_v2**(2026-10-31 새로, `693:668`, 페이지 ┗ Chip) — `size` small 22h(좌우 10, `Label/sm` 12) · large 25h(좌우 12, `Label/md` 14) × `variant` square(모서리 8) · round(999 — 알약) × `color` violet · red · green · grey · cyan · purple × `theme` weak(옅은 배경 + 진한 글자) · fill(진한 배경 + 옅은 글자) · border(배경 없음 + 진한 테두리·글자), 텍스트 속성 `label` — 72변형 | — | Badge | **새 범용 칩.** 색: violet `brand/primary`·`primary-subtle`, red `brand/accent`·`accent-subtle`, green `status/success`·`success-subtle`, grey `surface/strong-border`·`interaction/disabled-bg`, **cyan Teal 400·50, purple Purple 400·50(원시 색 직접)**. GUI에서 63곳(Ready 프레임 안 12 — 티켓 관리의 판매 상태·옵션 칩: green/round/border, grey/square/weak, grey/round/border). **코드(2026-10-31, 사용자 결정): 옛 Tag 5종을 없애고 `Chip` 하나를 `tag_v2`로 바꿨다** — `<Chip size shape color theme>`(Figma `variant` → `shape`), 기본 sm·square·grey·weak. 옛 칩 대응은 아래 "옛 Tag → tag_v2". small 좌우 10은 Space 토큰이 아니라 `space[2]` 8(§5) | P2(2026-10-31 코드) |
 | **Ticket state chip_host**(2026-10-31 새로, `678:2237`) — `state` 승인완료("판매중" 보라 옅은 배경) · state2("판매 예정" 흰 배경 + `interaction/inactive-bg` 테두리 + `text/secondary`) · state3("판매 종료" Coral-red 50 배경 + `brand/accent`), 21h, 모서리 4, `Label/xs` 11 | — | — | **GUI에서 쓰는 곳이 없다**(티켓 관리 Ready 프레임은 `tag_v2`를 쓴다). 변형 이름이 정리되지 않았다(§5). 구현하지 않는다 | — |
@@ -370,7 +372,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | 공연 전환 헤더 ▾ | 대시보드 헤더 | 헤더만 있고 전환 메뉴는 없다 |
 
 **여전히 없는 것**
-- 표(DataTable) — 예매자 관리
+- 표(DataTable) — 예매자 관리(2026-11-03: DS 컴포넌트는 여전히 없고, GUI 예매자 관리 표 `1026:4526`(직접 그린 상자 — 머리글 44 · 행 56 · `Label/sm` 머리 · 칸 사이 16, 모바일 40 · 8)를 `DataTable` 모양으로 삼았다. 페이지 줄 지금 페이지는 배경 없이 진한 글자, `footerEnd`(엑셀) 슬롯 · 폭별 칸 `display` · PC에서만 `width` · 고른 행 배경. DS 후보 — 디자이너에게 표 컴포넌트 요청 Q104)
 - 텍스트 영역 — GUI의 소개글·티켓 설명은 한 줄 Input + 글자 수 카운터다
 - 날짜·시간 피커(달력 팝업)
 - 스켈레톤·로더·스피너 — Button 로딩, 화면 로딩
@@ -638,6 +640,16 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 ## 8. 디자인 시스템 변경 반영 기록
 
 디자인 시스템 파일이 바뀔 때마다 절 하나를 위에 더한다. 받는 길은 둘이다 — 디자이너의 `Design: 디자인 시스템` 이슈, 그리고 화면 작업 시작 때 버전 목록 확인(이슈 없이 바뀐 것). 비교는 `python3 -I .claude/skills/gui-implement/ds_diff.py diff <기준 버전> --out <scratchpad>`, 변수 값은 Desktop Bridge(스킬 `gui-implement` "디자인 시스템 변경"). 끝나면 머리의 "동기화 기준 버전"을 올린다.
+
+### 2026-11-03 — `2416576694112599706`(10-31T19:15Z) → `2416898429564738752`(11-01T15:47Z) · `p13a-gui-guests`
+
+받은 이슈 2개: **#61** Filter Chip 개수형(2026-11-01 반영 대기로 열어 둔 것) · **#109** Search Field(Nemin, "입력해 주세요 — 문구 띄어쓰기 변경"). 그사이 판 6개(11-01 07:27Z · 11:15Z · 12:18Z · 13:10Z 공개 · 13:15Z · 15:44Z 공개 · 15:47Z). `ds_diff.py`로 컴포넌트·스타일·페이지는 `ic_favorite` 세트에 `size=24, type=filled` 변형이 더해진 것뿐. 글자 바꿈(#109)은 `ds_diff`가 보지 않아 REST 노드 글자로 확인(`73:19` 세 상태 모두 "검색어를 입력해 주세요"). 변수 · 텍스트 스타일은 Desktop Bridge를 열지 않아 다시 읽지 않았다(스타일 이름 변화 없음 — `ds_diff`).
+
+| 바뀐 것 | Figma | 코드 |
+|---|---|---|
+| Filter Chip(#61) | `selected/number`(`776:2019`) · `deselected/number`(`776:2030`) — 32h · 패딩 6·12 · 간격 4 · 모서리 8 · 흰 배경 · 글자 + 개수(`Label/sm`), 고른 칩 테두리 `text/primary-label` | **반영함** — `CountFilterChip`(같은 파일, 기존 `FilterChip` props 그대로). 개수가 0 · null이면 숫자를 그리지 않는다(GUI 예매자 관리 "승인 대기" 칩). `aria-pressed`. 스토리 `CountVariants` |
+| Search Field(#109) | placeholder "검색어를 입력해주세요" → "검색어를 입력해 주세요" | **반영함** — `SearchField` 기본 placeholder `SEARCH_FIELD_PLACEHOLDER`. placeholder를 직접 주는 화면(공연 리스트 "공연명, 호스트, 공연장으로 검색" · 공연준비 홈 "내 공연 검색")은 그대로 — 그 화면 GUI 글자 |
+| `ic_favorite` | filled 24 변형 추가 | 반영 대기 — 쓰는 GUI 구현 화면 없음 |
 
 ### 2026-11-01(4) — `2416566330909386505`(10-31T18:56Z) → `2416576694112599706`(10-31T19:15Z)
 

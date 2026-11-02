@@ -2681,3 +2681,56 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · vitest(audience · kakao-share · checkin-result 675+) 통과. e2e(checkout · event-detail · tickets · gift-landing · mypage · check-in · a11y · a11y-keyboard) 218 passed / 0 failed. QA checkout 31 · event-detail 18 · ticket-select 13 · tickets 20 · gift 14 · mypage 33 · self-checkin 14 · integration 8 — 모두 통과.
 
 **ego-browser 확인(2026-11-03, dev:mock)**: 주문내역 390(배지 `D-18` · 금액 `6,000원` · 무료) · 티켓탭 390(칩 `승인대기 2`) · 주문상세(결제방식 `계좌이체` · 티켓상태 `입장 완료` · 금액 블록) · 선물 랜딩 거절 확인 390(바텀시트 [아니오] [예]) · 1440(가운데 모달) → [예] → "선물 거절 완료".
+
+## P13a-V GUI 반영 — 예매자 관리(2026-11-03, `p13a-gui-guests`)
+
+**근거**: GUI Ready for dev(2026-11-01 16:17Z 판 `2416923667352073432`, 페이지 `724:5256` ↳예매자관리✅) — 모바일 섹션 8개(27장) + 데스크탑1440 27장, Design Sync #110~#125(전부 Ready — #112 · #115 · #116 본문의 "—"는 이슈를 쓴 뒤 Ready가 됨). DS #61 Filter Chip 개수형 · #109 Search Field 문구. 노드 목록은 gui-screens §0 예매자 관리 줄. 와이어 판(#58)의 표 · 상세를 GUI로 다시 입혔다.
+
+**매핑**(`figma_nodes.py map` — 기본 화면은 DS 인스턴스 38/38)
+
+| Figma | 분류 | 코드 | 판단 |
+|---|---|---|---|
+| Filter Chip `selected/number` · `deselected/number` | DS | `CountFilterChip`(새 변형, #61) | DS 인스턴스 |
+| dropdown "검색 기준" · Search Field | DS | `Dropdown` · `SearchField`(기본 placeholder #109) | DS 인스턴스 — [검색] 버튼 없음(Enter) |
+| tab | DS | `Tabs` `size="md"`(PC도 44 · 16) | DS 인스턴스 |
+| Box · Button small · tag_v2 small round · Radio · input Field · ic | DS | `Checkbox shape="square"` · `Button sm` · `Chip shape="round"` · `RadioGroup` · `Input`(글자 수) · `Icon` | DS 인스턴스 |
+| "주문 표" · "머리글" · 행(직접 그림) | 커스텀, DS 불가(표 컴포넌트 없음) | `DataTable` 모양을 GUI로(머리글 44/40 · 행 56 · `Label/sm` · 칸 사이 16/8) + `display`(폭별 칸) · PC만 `width` · `isRowSelected` · `alwaysShowPagination` · `footerEnd` | 공용 표라 `src/ui` — DS 후보(Q104) |
+| "모달_주문 상세"(직접 그림, 흰 바탕 · 안쪽 24) | 커스텀인데 DS 가능 | `ResponsiveOverlay`(Modal · BottomSheet) | `FIGMA-CUSTOM` → DS + 코멘트 `1029:6888` |
+| 로컬 "정보 줄" · "티켓 1"(카드) · "옵션" | 로컬 | `Line` · `TicketCard` · `OptionAnswers`(`OrderDetailOverlay.css.ts`) | `FIGMA-CUSTOM` → 커스텀, DS 후보 |
+| "일괄 처리 바"(PC 640 떠 있음 · 모바일 하단) | 직접 그림, DS 불가 | `SelectionBar`(`OrderBulk.css.ts`) | `FIGMA-CUSTOM` → 커스텀 |
+| "환불 안내"(노란 상자 + `important`) | 직접 그림 | 티켓 관리의 `NoticeBox`(이미 `FIGMA-CUSTOM` 커스텀) 재사용 | 두 화면 반복 — DS 후보 |
+
+**한 것**
+
+| 항목 | 내용 | 파일 |
+|---|---|---|
+| DS | `CountFilterChip`(#61) · `SearchField` 기본 placeholder "검색어를 입력해 주세요"(#109) · `DataTable` GUI 표 모양 + props 5개 · 페이지 버튼 이름 "1 페이지"(axe `label-content-name-mismatch`) | `src/ui/components/{FilterChip,SearchField,DataTable}` |
+| 주문 탭 | 도구 줄(PC 한 줄 · 모바일 두 줄) · 완전 일치 안내(GUI 문구) · 표(PC 주문 번호 · 주문자 · 티켓 수 · 결제 금액 · 주문 일시 · 상태 ›, 모바일 주문자 · 티켓 수 · 상태 ›) · 승인 대기 행 체크박스 + [거절][승인] · 선택 바 · 빈 표 · 실패(표 안 [다시 시도]) · 엑셀 Secondary small(빈 표 · 실패면 비활성) | `GuestsView.tsx` · `ui/GuestParts.tsx` · `ui/OrderBulk.tsx` |
+| 주문 상세 | 이름 + 상태 칩(+ 환불 칩) · 주문 번호, 주문 정보 · 주문자 · 주문한 티켓(발급 전)/발급 티켓(입장 칩) 카드 · 환불 정보(은행 · 계좌번호 [복사] · 예금주 · 수정일 · 환불 완료일 / 계좌 없음 문구) · 취소 불가 안내 · ‹ 거절/취소 사유 단계(라디오 4 + 기타 입력). 페이지 단위로 올려 환불 탭 행도 같은 상세 | `ui/OrderDetailOverlay.tsx` · `ui/ReasonFields.tsx` |
+| 발급된 티켓 | 표(PC 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인 ›, 모바일 주문자 · 티켓 · 체크인 ›) · 행 [입장 처리] · 상세(번호 + 입장 · 종류 칩, 티켓 정보 · 옵션 응답 카드 · [입장 처리]) | `GuestTabs.tsx` |
+| 환불 탭 | 노란 안내 · 상태 칩(숫자 없음) · 표(주문 번호 · 주문자 · 환불 금액 · 취소 일시 · 상태 ›) · 행 → 주문 상세 · "환불할 주문이 없어요." | `GuestTabs.tsx` |
+
+**L 변경**(사용자 결정 2026-11-01 — GUI가 로직 규칙을 바꾸면 같은 PR, plan §0)
+- 승인 후 취소 사유를 라디오 4개로(`CANCEL_REASON_OPTIONS` — 고른 글자를 PR-5 `reason`으로, 기타는 입력값. API 그대로) · `cancelReasonType`.
+- 입장한 티켓이 있으면 승인 후 취소 비활성(`ticketUsed` — 서버는 막지 않음, 선물은 GR-2에 값이 없어 B35). 단위 테스트 2개는 준비 단계에서 입장 티켓을 입장 전으로 바꿈.
+- 매니저가 보는 환불 계좌가 없으면 [환불 완료] 비활성(`noAccount` — Q96 답).
+- 환불 상태 칩 `refundRowStateOf`(계좌 입력 전), 일괄 처리 훅 `useBulkOrderActions`(차례 호출, B34), 상태 칩 글자 "취소" → "주문 취소", 완전 일치 안내 GUI 문구.
+
+**결정(🤖 Claude 판단 2026-11-03 — 되돌리려면 그 줄만)**
+- 일괄 API가 없어 고른 주문을 차례로 부른다(동시 호출은 재고 · 1인 제한 검사가 겹침). 결과는 토스트 + 실패 이유 한 줄. 되돌리려면: 일괄 API가 오면 `runMany`만 바꾼다(B34).
+- 여러 건 · 행 [거절]은 상세 거절 단계와 같은 오버레이, 사유 하나를 모두에(Q101, 코멘트 `1029:5714`).
+- [입장 처리] · [환불 완료] 확인 팝업 유지 — GUI는 바로 처리지만 되돌릴 API가 없다(#106 §5, Q103). 되돌리려면 `openConfirm`을 빼고 바로 부른다.
+- 거절 · 취소 단계의 노란 안내는 GUI 문구 대신 약관 근거 C-3 · C-4(legal-copy — 바꾸지 않는다), 두둥 주문만(Q102).
+- "입금 미확인으로 거절하면 환불 요청이 생기지 않아요."는 서버 동작과 달라 숨김(상수 `REFUSE_DEPOSIT_UNCONFIRMED_SKIPS_REFUND`, B35).
+- 그리지 않은 것: 입장 취소(B37) · 검색 기준 주문 번호/티켓 번호 · 환불 탭 검색 · 칩 숫자 · 엑셀(B36) · 취소한 사람(B35). 환불 탭 일시 칸은 "취소 일시"(Q103).
+- 주문 취소 칩 빨강 · 모달 폭 480 · 사유 단계 [돌아가기](Q100). 주문한 티켓 카드는 수량이 2 이상이면 "이름 × n". 발급 티켓 카드에 티켓 번호는 넣지 않음(GUI 그대로). 취소된 주문의 발급 티켓은 "취소된 티켓" 칩.
+- `DataTable` 모양을 GUI 표로 바꿔 멤버 화면(`HostMembersView`) 표도 같이 바뀐다(머리글 · 행 높이 · 페이지 줄 지금 페이지 글자) — 공용 표의 첫 디자인 근거.
+- 표 칸 클릭이 행 클릭으로 번지지 않게 체크박스 · 버튼 칸만 전파를 막는다.
+
+**Figma 코멘트(2026-11-03)**: `1029:6888` [개발 · DS 컴포넌트로 구현] 주문 상세 모달(데스크탑) · 시트(모바일) · `1029:5714` [개발 · 디자인 없음] 여러 개 선택 — 한 번에 거절할 때 · 일부만 처리됐을 때 · `1003:3143` [개발 · 디자인 없음] 발급된 티켓 모바일 표 머리글 문구.
+
+**테스트**: 단위 — 바뀐 규칙에 맞춰 준비만 고침(useOrderDetail 취소 2). 스토리 — `FilterChip` `CountVariants`, `DataTable` 페이지 버튼 이름. e2e `hosting-guests`(거절 버튼 이름 · 가린 연락처는 상세에서 · 안내 문구) · `a11y`. QA `hosting-guests` HG-4~HG-11 GUI 흐름으로, **HG-14**(여러 개 선택 · 일괄 승인) · **HG-15**(행 거절) · **HG-16**(취소 불가) 추가.
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related(guest 84) 통과. e2e `hosting-guests` · `a11y` · `notifications` · `hosting` 통과(125 + 191 — 실패 4는 고침). QA `hosting-guests` 29 통과 · 실패 0 · 수동 1. origin/main(#128 패턴 ③ 관객) merge 뒤 typecheck 통과.
+
+**ego-browser 확인(2026-11-03, dev:mock 3075)**: 1440 · 390 — 주문 탭(칩 · 검색 · 표 · 체크박스 · 행 [거절][승인] · 선택 바 PC 떠 있음/모바일 하단) · 주문 상세(승인 대기 · 환불 요청 · 승인 완료 시트) · 거절 사유 단계 · 행 [거절] 오버레이 → 거절 · 모두 선택 → [승인] → "1건을 승인했어요." · 발급된 티켓 표 · 티켓 상세(입장 완료) · 환불 탭(안내 · 칩 · 계좌 입력 전). 발견 → 처리: PC 탭이 GUI보다 큼(→ md) · 주문 번호 칸 폭(→ PC만 `width`) · 폭별로 숨는 첫 칸 때문에 양 끝 여백 어긋남(→ `edge` 표시) · › 칸 눌림(→ 40) · 글자 수 두 번(→ Input 것만).
