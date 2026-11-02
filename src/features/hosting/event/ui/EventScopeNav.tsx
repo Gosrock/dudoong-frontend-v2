@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { myEventsQuery } from '@/api/event/queries';
+import { formatDday } from '@/api/shared/dday';
 import { eventChipOf, UNNAMED_EVENT } from '@/features/hosting/home/model/home-cards';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
 import { ShellBell } from '@/features/shared/shell/ShellParts';
@@ -101,7 +102,7 @@ function EventSidebarBody({
               {event.name ?? UNNAMED_EVENT}
             </Txt>
             <Txt typography="bodyMd" color={colors.textSecondary} lines={1}>
-              {[event.hostName, event.dDay !== null ? `D-${event.dDay}` : null]
+              {[event.hostName, event.dDay !== null ? formatDday(event.dDay) : null]
                 .filter(Boolean)
                 .join(' · ')}
             </Txt>

@@ -91,8 +91,6 @@ export const PAY_TYPE_LABEL: Record<TicketPayType, string> = {
   UNKNOWN: '—',
 };
 
-export { formatWon as won } from '@/utils/money';
-
 /** 서버 일시 → "2026.03.25"(환불 계좌 수정일 · 환불 완료일 — GUI `1029:8733`) */
 export const dateText = (v: string | null) => (v === null ? '—' : dateTimeText(v).slice(0, 10));
 

@@ -13,6 +13,7 @@ import { DataTable } from '@/ui/components/DataTable/DataTable';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Txt } from '@/ui/primitives/Txt';
+import { formatWon } from '@/utils/money';
 
 import * as s from './GuestsView.css';
 import { IssuedTicketsTab, RefundsTab } from './GuestTabs';
@@ -22,7 +23,7 @@ import { useGuestsUrlState } from './model/useGuestsUrlState';
 import { useOrderDetail } from './model/useOrderDetail';
 import { useOrderList } from './model/useOrderList';
 import { DetailCell } from './ui/DetailCell';
-import { dateTimeText, orderStatusChipOf, text, won } from './ui/guest-labels';
+import { dateTimeText, orderStatusChipOf, text } from './ui/guest-labels';
 import {
   Empty,
   ExportButton,
@@ -173,7 +174,7 @@ function OrdersTab({ eventId, onOpen }: { eventId: string; onOpen: (uuid: string
       align: 'right',
       display: 'desktop',
       width: 120,
-      cell: (o) => won(o.totalAmount),
+      cell: (o) => formatWon(o.totalAmount),
     },
     {
       id: 'orderedAt',

@@ -7,6 +7,7 @@ import {
   type TicketOptionManage,
   type UpdateOptionRequest,
 } from '@/api/option/schema';
+import { formatWon } from '@/utils/money';
 
 /**
  * 옵션 폼(P10/O-2 만들기 · P10/O-3 수정, plan P12). 근거: 백엔드 `V2TicketOptionRequest`·`V2TicketOptionDomainService`(432cce4).
@@ -45,7 +46,7 @@ export const OPTION_FORM_MESSAGE = {
   name: `옵션 이름을 ${OPTION_NAME_MAX}자까지 입력해 주세요`,
   descriptionRequired: '옵션 설명을 입력해 주세요',
   descriptionTooLong: `옵션 설명은 ${OPTION_DESCRIPTION_MAX}자까지 쓸 수 있어요`,
-  price: `추가 금액은 0원부터 ${OPTION_PRICE_MAX.toLocaleString('ko-KR')}원까지 입력할 수 있어요`,
+  price: `추가 금액은 0원부터 ${formatWon(OPTION_PRICE_MAX)}까지 입력할 수 있어요`,
   paidOnFree: '무료 티켓에는 추가 금액이 있는 옵션을 붙일 수 없어요',
 } as const;
 

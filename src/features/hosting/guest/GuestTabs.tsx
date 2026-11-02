@@ -11,6 +11,7 @@ import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
+import { formatWon } from '@/utils/money';
 
 import * as s from './GuestsView.css';
 import { refundRowStateOf } from './model/guest-rules';
@@ -23,7 +24,6 @@ import {
   PAY_TYPE_CHIP_LABEL,
   REFUND_STATE_CHIP,
   text,
-  won,
 } from './ui/guest-labels';
 import {
   Empty,
@@ -308,7 +308,7 @@ export function RefundsTab({
       id: 'amount',
       header: '환불 금액',
       align: 'right',
-      cell: ({ refund: r }) => won(r.totalAmount),
+      cell: ({ refund: r }) => formatWon(r.totalAmount),
     },
     {
       id: 'withdrawnAt',

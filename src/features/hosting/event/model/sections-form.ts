@@ -8,6 +8,7 @@ import {
 } from '@/api/event/schema';
 import { renderSectionHtml } from '@/features/shared/section-viewer/model/render-section';
 import { DEFAULT_SECTION_TITLES } from '@/features/shared/section-viewer/model/section-tabs';
+import { formatCount } from '@/utils/money';
 
 /**
  * 상세 정보(`/hosting/events/[eventId]/detail`, GE-5 · PE-6, plan P11) 섹션 폼. PE-6은 **전체 교체**다 —
@@ -90,7 +91,7 @@ export function withMovedSection(sections: readonly SectionInput[], key: string,
 export const SECTION_ERROR = {
   title: '탭 이름을 입력해 주세요',
   titleTooLong: `탭 이름은 ${EVENT_SECTION_TITLE_MAX}자까지 입력할 수 있어요`,
-  contentTooLong: `본문이 너무 길어요(${EVENT_SECTION_CONTENT_MAX.toLocaleString('ko-KR')}자까지)`,
+  contentTooLong: `본문이 너무 길어요(${formatCount(EVENT_SECTION_CONTENT_MAX)}자까지)`,
   /** PE-6 `Event_400_21` — 폼이 먼저 막으므로 정상 흐름에서는 나지 않는다(서버 sanitize 뒤 길이가 다를 때 등) */
   Event_400_21: '섹션 형식을 확인해 주세요(1~10개, 탭 이름 20자, 본문 20,000자)',
 } as const;

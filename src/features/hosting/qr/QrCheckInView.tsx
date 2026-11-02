@@ -15,6 +15,7 @@ import { Icon } from '@/ui/icons/Icon';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
+import { formatCount } from '@/utils/money';
 
 import { useCheckInStats } from './model/useCheckInStats';
 import { useHostScan } from './model/useHostScan';
@@ -77,7 +78,7 @@ function QrCheckIn({ eventId }: { eventId: string }) {
 function CheckInStats({ eventId }: { eventId: string }) {
   const st = useCheckInStats(eventId);
   const v = st.stats;
-  const num = (n: number | undefined) => (n === undefined ? '–' : n.toLocaleString('ko-KR'));
+  const num = (n: number | undefined) => (n === undefined ? '–' : formatCount(n));
   const ratio = v && v.issuedCount > 0 ? Math.min(v.enteredCount / v.issuedCount, 1) : 0;
   return (
     <section aria-label="체크인 통계" data-testid="checkin-stats">

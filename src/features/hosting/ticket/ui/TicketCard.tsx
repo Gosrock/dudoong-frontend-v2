@@ -9,6 +9,7 @@ import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
+import { formatCount, formatWon } from '@/utils/money';
 
 import type { TicketSaleChip } from '../model/ticket-rules';
 import type { TicketCard as Card } from '../model/useTicketList';
@@ -39,7 +40,7 @@ export function stockText(t: Card['ticket']) {
   const open = t.isQuantityPublic ? '공개' : '비공개';
   return t.supplyCount === null
     ? `무제한 (${open})`
-    : `${(t.remaining ?? 0).toLocaleString('ko-KR')}/${t.supplyCount.toLocaleString('ko-KR')}매 (${open})`;
+    : `${formatCount(t.remaining ?? 0)}/${formatCount(t.supplyCount)}매 (${open})`;
 }
 
 // FIGMA-CUSTOM: 티켓 카드(gui 910:3335 "티켓 행_모바일" · 910:3433 "티켓 행_데스크탑" 로컬 컴포넌트) 커스텀 → 커스텀 TicketCard.css.ts. DS 후보(design-system §3)
@@ -135,9 +136,7 @@ export function TicketCard({
           )}
         </div>
         <div className={s.side}>
-          <p className={s.price}>
-            {t.payType === 'FREE' ? '무료' : `${t.price.toLocaleString('ko-KR')}원`}
-          </p>
+          <p className={s.price}>{t.payType === 'FREE' ? '무료' : formatWon(t.price)}</p>
           <span data-testid="ticket-stock">
             <Chip className={s.chipLg}>{stockText(t)}</Chip>
           </span>
