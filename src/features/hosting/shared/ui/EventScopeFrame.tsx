@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 
-import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
+import { useActivityMarker } from '@/ui/hooks/useActivityMarker';
 
 import { EVENT_SCOPE_ATTR } from './event-scope-attrs';
 import * as s from './EventScopeFrame.css';

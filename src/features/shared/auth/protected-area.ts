@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { activeMarker } from '@/features/shared/shell/activity-marker';
+import { activeMarker } from '@/ui/hooks/activity-marker';
 
 /**
  * 지금 보호 영역(`(protected)`·`/hosting`) 안에 있는지. 경로 목록으로 판정하지 않고(tech-decisions §3 — 폴더로 나눈다)

@@ -7,7 +7,6 @@ import { type ReactNode, useEffect, useRef, useSyncExternalStore } from 'react';
 import { hasSessionLostFired } from '@/api/auth-handlers';
 import { isSessionLost } from '@/api/errors';
 import { meQuery } from '@/api/me/queries';
-import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 import {
   AsyncBoundary,
   type ErrorFallbackProps,
@@ -15,6 +14,7 @@ import {
 import { Button } from '@/ui/components/Button/Button';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { Skeleton, SkeletonText } from '@/ui/components/Skeleton/Skeleton';
+import { useActivityMarker } from '@/ui/hooks/useActivityMarker';
 import { Container } from '@/ui/primitives/Container';
 import { Flex } from '@/ui/primitives/Flex';
 

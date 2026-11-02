@@ -1,8 +1,8 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
 import { EVENT_SCOPE_ATTR } from '@/features/hosting/shared/ui/event-scope-attrs';
-import { activeMarker } from '@/features/shared/shell/activity-marker';
 import { fixedBar, shellBarSpaceVars } from '@/features/shared/shell/shell.css';
+import { activeMarker } from '@/ui/hooks/activity-marker';
 import { container } from '@/ui/primitives/layout.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
