@@ -2620,3 +2620,30 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **문서**: design-requests §2 "스테이징 QA #106" Q88~Q96 · backend-questions B31~B33 · gui-screens §0 열린 이슈 칸 · progress. Figma 코멘트 `[개발 · 스테이징 QA #106]` 3개(`759:11869` · `908:3276` · `759:7895`).
 
+
+## 백엔드 #914 답 반영(2026-11-02, `backend-914-sync`)
+
+**근거**: Gosrock/DuDoong-Backend#914 답(닫힘) · 백엔드 PR #923(주문 `Idempotency-Key`) · #924(T-1 `approvalRequired`) · #925(카드 가격 값) · #926(티켓 번호 체크인) — 소스 diff로 확인(스테이징은 02:00에 꺼져 응답을 직접 보지 않음). **Api 2.5.6 — 스테이징만**(Deploy#100, 2.5.5의 #921 · #922 포함), 운영 2.5.3 → 새 응답 필드는 zod optional, 새 API · 헤더는 스테이징 · 컷오버 기준(cutover-runbook §2에 "운영 2.5.6 이상" 줄).
+
+| 항목 | 한 것 | 파일 |
+|---|---|---|
+| 주문 멱등 키(#923) | `CallOptions.headers` → O-1에 `Idempotency-Key`(`crypto.randomUUID()`). 주문 시도마다 새 키, **주문이 생겼는지 모르는 실패(응답 없음 · 5xx · `Order_400_26`)면 키를 남겨 다음 제출이 같은 키**(`keepsAttemptKey`), 4xx 업무 규칙이면 키를 버림. #94의 "주문내역 확인" 안내는 [다시 시도] · [주문내역 확인] 두 버튼으로 합침. `Order_400_26`은 이제 주문내역으로 이동하지 않고 같은 안내(+ `Redisson_500_1`). 키는 로그에 없음(변경 실패 로그는 에러만) | `api/client.ts` · `api/order/mutations.ts` · `checkout/model/{useCheckout,checkout-errors}.ts` · `CheckoutView.tsx` |
+| B23 주문 먼저(사용자 결정) | [결제하기] → 주문 확인 모달(같은 DS Popup, 문구 · 버튼 [주문 완료하기]로) → O-1 → 주문 완료 화면 **입금 안내**(`DepositGuide` — 입금자명 · 은행 · 계좌[복사] · 예금주 · 입금할 금액 · 토스 송금 주문이면 [토스 앱에서 송금하기]). 토스 버튼은 체크아웃에서 빼고 완료 화면 · 승인 대기 주문상세로. `needsDepositConfirm` → `needsOrderConfirm`. 두둥 입금 전 확인(A-6)은 그 모달 그대로 — 주문 · 입금 전이라 맞다(legal-copy A-6 위치 칸만 고침, 문구 그대로) | `checkout/ui/DepositGuide.tsx` · `OrderCompleteView.tsx` · `model/{payment,order-result}.ts` · `mypage/OrderDetailView.tsx` |
+| B24 | 닉네임 고정 유지(사용자 결정) — 코드 변경 없음, backend-questions에 기록 | — |
+| B25 카드 가격 줄(#925) | GP-1 · GP-2 스키마 4필드 optional, `concertCardPrice`(매진 → 무료 → `formatWon(minPrice)~` → 티켓 없음 → null), DS ConcertCard `price` 줄(날짜 아래, `labelMdEmphasized`) | `api/event/schema.ts` · `home/model/card-date.ts` · `ui/components/ConcertCard` |
+| B26 '발급 완료'(#924) | T-1 `approvalRequired` optional, `ticketStateView(state, approvalRequired)` — false면 '발급 완료'(green) | `api/my-ticket/schema.ts` · `ticket/model/{my-ticket-state,ticket-groups}.ts` |
+| B27 번호 체크인(#926) | PQ-2b `hostCheckInByTicketNoMutation`, `useTicketNoCheckIn`(판정 · 에러 분류는 QR 스캔과 같은 함수), [호스트가 QR 스캔] 아래 "티켓 번호로 입장"(DS Input + Button) — 결과에 **관객 이름 `headingXl`**. #107 [수동 입장 처리]는 그대로 | `api/check-in/*` · `hosting/qr/model/useTicketNoCheckIn.ts` · `hosting/qr/ui/TicketNoCheckIn.tsx` |
+| B31(#921 · #922 — 2.5.6에 듦) | `REFUSE_REASON_TEXT_MAX` 100, 둘러보기 검색칸 "공연명, 호스트, 공연장으로 검색", 가짜 백엔드 검색에 장소명 | `api/order/schema.ts` · `EventListView.tsx` |
+| 가짜 백엔드 | O-1 `Idempotency-Key`(형식 400 · 같은 티켓 · 키면 앞 주문, 주문을 만든 요청만 저장) · `createLosesResponseOnce`(서버는 만들고 응답만 끊김) · `createFailsOnce` · `Redisson_500_1`, 카드 가격 값 계산 · T-1 `approvalRequired` · PQ-2b(번호 정리 · 숫자만이면 T) | `api/__mocks__/*` |
+
+**테스트**: 단위 — 키 형식 · 재시도 같은 키 · 응답 끊김 뒤 주문 1개 · 4xx 뒤 새 키 · `keepsAttemptKey`, 카드 가격 줄 6경우, '발급 완료', 번호 체크인 6경우. e2e `checkout`(헤더 · 완료 화면 입금 안내 · 새로고침 뒤에도) · 버튼 이름 [주문 완료하기](checkout · a11y-keyboard · hosting-guests). QA `checkout` CHK-1 · CHK-6(토스 링크가 완료 화면에) · CHK-16(처리 중 → [다시 시도]) · **CHK-16b**(응답 끊김 → 같은 주문) · `tickets` **TIX-1b** · `hosting-qr` **QR-10** · `events` 검색칸 이름.
+
+**Claude 판단(🤖 2026-11-02)**
+- 키를 남기는 기준을 "주문이 생겼는지 모름"으로 — 5xx 전체(게이트웨이 502/504 포함)도 남긴다. 같은 키라도 앞 주문이 없으면 서버가 새로 만드므로 남겨서 손해가 없다.
+- [다시 시도]는 확인 모달을 다시 열지 않고 바로 보낸다(이미 확인 · 동의한 시도의 재시도).
+- 체크아웃 CTA는 GUI "결제하기" 그대로, 모달 제목(GUI "주문 완료하기")과 같은 글자를 확인 버튼에 썼다 — 사용자 지시의 [주문 완료하기].
+- 입금 안내 끝 문구 "입금자명과 금액이 맞아야 호스트가 입금을 확인할 수 있어요. 계좌는 주문내역에서 다시 볼 수 있어요." — 입금 기한이 서버에 없어 기한 문구는 넣지 않았다.
+- 번호 체크인은 탭이 아니라 카메라 아래 — 카메라가 안 될 때 바로 보이게(권한 거부 상태에서도 칸이 있다). 번호 형식은 클라이언트에서 따지지 않는다(서버가 맞춤, 없는 번호는 `OTHER_EVENT`).
+- 호스팅 센터 공연 검색(GE-1) 안내는 그대로 — #922는 GP-2 검색만 바꿨다.
+
+**문서**: api-contract(§1 메서드 의미 중복 판정 · GP-1/2 카드 값 · 검색 · T-1 · PQ-2b) · backend-questions(B23~B27 답 · 결정, B24 고정, B31 닫음, B28~B33 "전달함 — Backend #928") · error-codes(머리 · `Redisson_500_1` · `Order_400_26`) · cutover-runbook §2(운영 2.5.6) · design-requests Q97~Q99(+ Q16 · Q63 · Q74 칸) · legal-copy A-6 위치 칸 · progress.

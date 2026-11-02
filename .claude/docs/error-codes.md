@@ -6,6 +6,7 @@
 > v1·v2가 같은 enum을 쓴다. `reason`은 서버가 내려 주는 문장이고, 화면 문구는 `code`로 분기해 FE가 정한다([`api-contract.md`](./api-contract.md) §1).
 > HTTP 열은 enum에 적힌 값이다. **v2에서 호스트 권한 실패 코드는 enum이 400이어도 실제 응답은 403이다**(아래 표시).
 > **토큰 없음(쿠키 만료 포함)·정지·탈퇴 계정은 HTTP 401 `AUTH_401_2`**(본문 `status`도 401, #808 — 그 전엔 `AUTH_403_2`에 본문 403). `AUTH_403_2`는 역할 부족(HTTP 403)만이다. `AUTH_403_1`(재발급 실패)은 쿠키를 지우지 않는다. 분기는 HTTP 상태로 한다([`api-contract.md`](./api-contract.md) §1).
+> **주문 생성 `Idempotency-Key`(#923 — 2.5.6 스테이징만, 2026-11-02)**: 헤더 형식이 틀리면 400 `BAD_REQUEST`(새 코드 없음). 같은 키 재시도 중 앞 요청이 락을 10초 안에 놓지 않으면 500 `Redisson_500_1`(주문은 생기지 않음), 무료 선착순 확정 중이면 `Order_400_26` — **둘 다 같은 키로 다시**(체크아웃 [다시 시도], `checkout-errors.ts` `DUPLICATE_IN_PROGRESS`). 티켓 번호 체크인 PQ-2b(#926)는 PQ-2와 같은 코드(`Event_400_27`, 본문 `@NotBlank @Size(max = 20)` 400 `BAD_REQUEST`).
 > **#758 L-3(남은 항목)**: `IssuedTicket_400_1`(PQ-5 같은 공연 남의 티켓)과 10/O-5 다른 공연 `optionId` 400은 나중에 404로 바뀔 수 있다(백엔드 Develop 기획서 2026-10-25). 바뀌면 이 표와 patterns §24를 고친다.
 
 ## AdminErrorCode
@@ -39,7 +40,7 @@
 | `FEIGN_400_4` | 400 | Other server expired token | `OTHER_SERVER_EXPIRED_TOKEN` |
 | `FEIGN_400_5` | 400 | Other server not found error | `OTHER_SERVER_NOT_FOUND` |
 | `FEIGN_400_6` | 400 | Other server internal server error | `OTHER_SERVER_INTERNAL_SERVER_ERROR` |
-| `Redisson_500_1` | 500 | can not get redisson lock | `NOT_AVAILABLE_REDISSON_LOCK` |
+| `Redisson_500_1` | 500 | can not get redisson lock (v2 O-1: 락 대기 초과 — 같은 키로 다시, #923) | `NOT_AVAILABLE_REDISSON_LOCK` |
 | `GLOBAL_500_2` | 500 | security context not found | `SECURITY_CONTEXT_NOT_FOUND` |
 | `PAYMENTS_INTERNAL_SERVER` | 500 | 관리자에게 연락부탁드려요. | `TOSS_PAYMENTS_UNHANDLED` |
 | `AOP_500_1` | 500 | 락의 키값이 잘못 세팅 되었습니다 | `BAD_LOCK_IDENTIFIER` |
@@ -202,7 +203,7 @@
 | `Order_400_23` | 400 | 옵션 답변이 올바르지 않습니다. | `V2_INVALID_OPTION_ANSWERS` |
 | `Order_400_24` | 400 | 취소할 수 없는 주문입니다. | `V2_ORDER_CANNOT_CANCEL_BY_USER` |
 | `Order_400_25` | 400 | 환불 받을 계좌를 입력해 주세요. | `V2_REFUND_ACCOUNT_REQUIRED` |
-| `Order_400_26` | 400 | 같은 주문을 처리하고 있습니다. 잠시 후 주문내역을 확인해 주세요. | `V2_DUPLICATE_ORDER_IN_PROGRESS` |
+| `Order_400_26` | 400 | 같은 주문을 처리하고 있습니다. 잠시 후 주문내역을 확인해 주세요. (FE: 같은 키로 [다시 시도] — #923) | `V2_DUPLICATE_ORDER_IN_PROGRESS` |
 | `Order_400_27` | 400 | 환불 계좌를 입력할 수 없는 주문입니다. | `V2_REFUND_ACCOUNT_NOT_ALLOWED` |
 | `Order_400_28` | 400 | 이미 환불이 완료된 주문입니다. | `V2_REFUND_ALREADY_COMPLETED` |
 

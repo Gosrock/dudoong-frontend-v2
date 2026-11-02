@@ -45,6 +45,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 - [ ] `next`가 `16.4.1` 이상(`package.json` 정확한 버전) — `/_next/image` 차단을 지우는 조건(deploy-plan §3). 그 뒤 이미지 최적화 보안 공지가 없는지 [GitHub advisories](https://github.com/vercel/next.js/security/advisories) 확인
 - [ ] 카카오 개발자 콘솔 Redirect URI에 `https://dudoong.com/kakao/callback`이 있다(v1 티켓도 쓰는 값). `/admin/kakao/callback`은 v2가 받지 않는다(tech-decisions §22) — 백엔드 허용 목록에서 빼는 것은 컷오버 뒤
 - [ ] 백엔드 마이그레이션이 운영에 실행돼 있다(backend-questions B5)
+- [ ] **운영 백엔드가 Api 2.5.6 이상**(2026-11-02 — Backend #914 답 · Deploy#100은 스테이징만, 운영은 2.5.3). v2 프론트가 기대하는 것: 주문 `Idempotency-Key`(#923 — 없으면 헤더를 무시하고 10초 중복 판정만, 타임아웃 재시도가 새 주문이 될 수 있다), 카드 가격 줄 값(#925 — 없으면 줄이 안 보임), T-1 `approvalRequired`(#924 — 없으면 '승인완료'), 티켓 번호 체크인 `by-ticket-no`(#926 — **없으면 404**, QR 체크인 "티켓 번호로 입장"이 실패), 거절 사유 100자(#921 — **2.5.3은 20자라 21~100자 거절이 400 `Order_400_18`**), 검색에 공연장 이름(#922). 운영 compose 백엔드 태그를 컷오버 때 같이 올린다(백엔드 답 "컷오버 날짜를 정할 때 같이"). 선택 DDL V022(`idx_issued_ticket_no`)
 - [ ] CSP: 스테이징에서 `csp.violation` 로그 0을 봤다. 강제(`CSP_ENFORCE=1`)는 컷오버와 따로 — Report-Only로 출시해도 된다(사용자 대기 "CSP 강제 전환")
 
 ## 3. Deploy 저장소 적용 diff
