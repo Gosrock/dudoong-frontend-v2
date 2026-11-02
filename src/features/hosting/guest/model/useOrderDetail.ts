@@ -12,8 +12,8 @@ import {
 } from '@/api/order/mutations';
 import { hostOrderQuery } from '@/api/order/queries';
 import type { HostOrderDetail } from '@/api/order/schema';
-import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { can } from '@/features/shared/permission/model/can';
 import { type Result, tryCatch } from '@/utils/try-catch';
 

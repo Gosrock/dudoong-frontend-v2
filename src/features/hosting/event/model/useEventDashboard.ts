@@ -8,6 +8,9 @@ import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { openEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
 import { handleError } from '@/api/handle-error';
+import { invalidateAfterRegister } from '@/features/hosting/shared/model/event-cache';
+import { eventHref } from '@/features/hosting/shared/model/event-scope';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 
 import {
   checklistItemsOf,
@@ -22,9 +25,6 @@ import {
   statCardsOf,
   ticketSalesOf,
 } from './dashboard-stats';
-import { invalidateAfterRegister } from './event-cache';
-import { eventHref } from './event-scope';
-import { useEventScope } from './useEventScope';
 
 type RegisterErrorCode = keyof typeof REGISTER_ERROR_MESSAGE;
 

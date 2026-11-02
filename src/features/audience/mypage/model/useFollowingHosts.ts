@@ -14,7 +14,7 @@ import { hostViewerQuery } from '@/api/host/queries';
 import { FOLLOWING_HOSTS_KEY, followingHostsQuery } from '@/api/me/queries';
 import type { FollowingHost, FollowingHostFilter } from '@/api/me/schema';
 import { flattenPages, infiniteListControls, type Page } from '@/api/shared/page';
-import { eventHref, hostHref } from '@/features/audience/routes';
+import { eventHref, hostHref } from '@/features/shared/routes';
 
 import { FOLLOWING_TABS, representativeBadge } from './lists';
 

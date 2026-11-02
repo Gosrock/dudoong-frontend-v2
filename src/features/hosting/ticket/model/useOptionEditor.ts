@@ -7,9 +7,14 @@ import { handleError, handlersFrom } from '@/api/handle-error';
 import { deleteOptionMutation, updateOptionMutation } from '@/api/option/mutations';
 import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
-import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
-import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
+import {
+  applyDeletedOption,
+  applyUpdatedOption,
+  invalidateOptions,
+} from '@/features/hosting/shared/model/ticket-cache';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 
 import {
   hasOptionFormErrors,
@@ -20,7 +25,6 @@ import {
   toUpdateOptionBody,
   validateOptionForm,
 } from './option-form';
-import { applyDeletedOption, applyUpdatedOption, invalidateOptions } from './ticket-cache';
 
 /** 옵션 상세 오류 문구(patterns §24 P12 — 잠정) */
 export const OPTION_EDITOR_ERRORS = {

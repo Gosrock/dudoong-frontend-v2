@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import { handleError } from '@/api/handle-error';
 import { clearSessionFlag } from '@/api/session-flag';
 import { withdrawAccount } from '@/api/user/calls';
-import { browserLocation } from '@/features/shared/auth/browser-location';
+import { browserLocation } from '@/features/shared/auth/model/browser-location';
 
 export const WITHDRAW_MASTER_MESSAGE = '마스터를 양도한 뒤 탈퇴해 주세요';
 

@@ -10,9 +10,15 @@ import type { TicketOptionManage } from '@/api/option/schema';
 import { replaceTicketOptionsMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import { TICKET_OPTIONS_MAX } from '@/api/ticket-item/schema';
-import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
-import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
+import {
+  applyCreatedOption,
+  applyTicketOptions,
+  invalidateOptions,
+  invalidateTickets,
+} from '@/features/hosting/shared/model/ticket-cache';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { tryCatch } from '@/utils/try-catch';
 
 import {
@@ -24,12 +30,6 @@ import {
   toCreateOptionBody,
   validateOptionForm,
 } from './option-form';
-import {
-  applyCreatedOption,
-  applyTicketOptions,
-  invalidateOptions,
-  invalidateTickets,
-} from './ticket-cache';
 import { attachableOptionsOf, canAttachMoreOptions, canChangeTicketOptions } from './ticket-rules';
 
 /** 붙이기·떼기 오류 문구(patterns §24 P12 — 잠정) */

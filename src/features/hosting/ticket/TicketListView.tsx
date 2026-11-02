@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
+import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { button } from '@/ui/components/Button/Button.css';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { Fab } from '@/ui/components/Fab/Fab';
@@ -17,7 +18,6 @@ import { useTicketList } from './model/useTicketList';
 import * as s from './TicketListView.css';
 import { TicketCard } from './ui/TicketCard';
 import { openOptionGuide } from './ui/TicketGuides';
-import { NoticeBox } from './ui/TicketParts';
 import * as parts from './ui/TicketParts.css';
 
 /**

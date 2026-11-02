@@ -7,7 +7,7 @@ import { isNotFound, isSessionLost } from '@/api/errors';
 import { sentGiftTicketQuery } from '@/api/gift/queries';
 import { myTicketQuery, myTicketsQuery } from '@/api/my-ticket/queries';
 import type { MyTicketDetail } from '@/api/my-ticket/schema';
-import { orderHref } from '@/features/audience/routes';
+import { orderHref } from '@/features/shared/routes';
 
 import {
   type EntryQr,

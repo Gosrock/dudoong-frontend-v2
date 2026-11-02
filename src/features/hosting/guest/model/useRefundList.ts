@@ -7,7 +7,7 @@ import { handleError } from '@/api/handle-error';
 import { completeRefundMutation } from '@/api/order/mutations';
 import { refundsQuery } from '@/api/order/queries';
 import type { RefundStatusFilter } from '@/api/order/schema';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { can } from '@/features/shared/permission/model/can';
 
 import { applyChangedOrder, invalidateGuestLists } from './guest-cache';

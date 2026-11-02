@@ -7,7 +7,7 @@ import { getErrorCode } from '@/api/errors';
 import { approveOrderMutation, refuseOrderMutation } from '@/api/order/mutations';
 import { hostOrderQuery } from '@/api/order/queries';
 import type { HostOrderDetail, HostOrderElement, RefuseOrderRequest } from '@/api/order/schema';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { type Result, tryCatch } from '@/utils/try-catch';
 
 import { invalidateGuestLists } from './guest-cache';

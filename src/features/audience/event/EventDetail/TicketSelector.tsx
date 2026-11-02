@@ -7,8 +7,9 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 import { formatPrice } from '@/utils/money';
 
+import { canListTickets } from '../model/ticket-list';
 import { ONE_TICKET_KIND_WARNING, type TicketSelection } from '../model/useTicketSelection';
-import { canListTickets, TicketListFallback, TicketRowContent } from './TicketOptionList';
+import { TicketListFallback, TicketRowContent } from './TicketOptionList';
 import * as s from './TicketSelector.css';
 
 /**

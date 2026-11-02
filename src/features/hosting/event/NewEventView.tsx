@@ -10,8 +10,9 @@ import {
   HOST_PHONE_VALUE_MAX,
   type HostContactType,
 } from '@/api/host/schema';
-import { roleChipOf, UNNAMED_HOST } from '@/features/hosting/home/model/home-cards';
-import { contactPlaceholder } from '@/features/hosting/host/model/host-fields';
+import { roleChipOf, UNNAMED_HOST } from '@/features/hosting/shared/model/home-cards';
+import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import { FieldError, FormSection } from '@/features/hosting/shared/ui/EditorParts';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
@@ -31,7 +32,6 @@ import { colors } from '@/ui/theme/colors';
 
 import { useNewEventWizard } from './model/useNewEventWizard';
 import * as s from './NewEventView.css';
-import { FieldError, FormSection } from './ui/EditorParts';
 
 type Wizard = ReturnType<typeof useNewEventWizard>;
 

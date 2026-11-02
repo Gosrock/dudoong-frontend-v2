@@ -9,7 +9,7 @@ import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import { useLogout } from './useLogout';
+import { useLogout } from './model/useLogout';
 
 /**
  * 임시 보호 화면(P4a `/gate-check`). 게이트를 통과하면 보이고, 로그아웃 버튼이 있다.

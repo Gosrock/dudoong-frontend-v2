@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import { handleError } from '@/api/handle-error';
 import { updateMeMutation } from '@/api/me/mutations';
 import { meQuery } from '@/api/me/queries';
-import { useSession } from '@/features/shared/auth/useSession';
+import { useSession } from '@/features/shared/auth/model/useSession';
 
 import { MARKETING_ERROR_MESSAGE, marketingResultMessage } from './profile';
 

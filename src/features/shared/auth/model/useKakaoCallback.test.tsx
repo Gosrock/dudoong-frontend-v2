@@ -11,8 +11,8 @@ import { readSessionFlag, resetSessionFlagStateForTest, startSession } from '@/a
 import { renderWithProviders } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
-import { browserLocation } from '../browser-location';
 import { KakaoCallbackView } from '../KakaoCallbackView';
+import { browserLocation } from './browser-location';
 import { readLoginRedirect, saveLoginRedirect } from './login-redirect';
 import { resetKakaoCallbackForTest, useKakaoCallback } from './useKakaoCallback';
 

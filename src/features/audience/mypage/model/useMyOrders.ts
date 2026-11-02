@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 
 import { myOrdersQuery } from '@/api/order/queries';
 import { flattenPages, infiniteListControls } from '@/api/shared/page';
-import { orderHref } from '@/features/audience/routes';
+import { orderHref } from '@/features/shared/routes';
 
 import { orderStatusView } from './order-status';
 

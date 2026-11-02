@@ -6,9 +6,9 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { handleError, handlersFrom } from '@/api/handle-error';
 import { addHostMembersMutation } from '@/api/host/mutations';
 import type { AssignableHostRole } from '@/api/host/schema';
+import { applyMembers, invalidateHostSummary } from '@/features/hosting/shared/model/host-cache';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 
-import { applyMembers, invalidateHostSummary } from './host-cache';
 import {
   canAddInviteRow,
   canRemoveInviteRow,

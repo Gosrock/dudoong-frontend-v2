@@ -95,6 +95,23 @@
 
 **새 파일**: `hosting/access/HostingBoundary.tsx` · `hosting/guest/model/useTableQueryState.ts` · `hosting/guest/model/useMissingDetail.ts`.
 
+### ⑤ 결과(`30 pattern-structure`)
+
+`features/**` · `src/ui/hooks` · eslint. **이동만** — import 경로 · 파일 이름 · 위치. 화면에 보이는 변화는 셸 드로어 실패 문구 자리 하나(A7).
+
+| ID | 결과 | 한 것 · 이유 |
+|---|---|---|
+| A14 | 끝 | `features/hosting/shared/` 새로 — model(event-scope · useEventScope · event-cache · ticket-cache · qr-cache · qr-check-in-rules · host-fields · create-host-form · useCreateHost · host-cache · home-cards · 새 `host-role`(`HOST_ROLE_LABEL`)) · ui(EditorParts · `NoticeBox`(TicketParts에서 떼어 냄) · EventScopeFrame(`hosting/shell`에서) · 새 `event-scope-attrs`(`EVENT_SCOPE_ATTR` · `HIDE_EVENT_HEADER_ATTR`)) · `routes.ts`(`HOSTING_TAB_PARAM` · `HOSTING_HOME_HOSTS_HREF` · `NEW_EVENT_PATH`). `useDeleteEvent`는 쓰는 곳(`home/model`)으로. 티켓 폼의 "공연 헤더 숨김" 전역 스타일은 공연 헤더 css(`EventScopeNav.css.ts`)로 — 속성 이름만 shared. **eslint**: 호스팅 피처(event · host · home · ticket · guest · qr · shell)끼리 import 금지, `hosting/shared` · `hosting/access`만 허용(`boundaries` 요소 `hosting`이 피처 이름을 capture하고 같은 피처만 허용). 🤖 `hosting/shell`도 피처로 본다(허용 목록에 넣지 않음) — 다른 피처가 쓰던 공연 스코프 틀 · 속성을 shared로 옮겨 위반 0 |
+| A15 · D7 | 끝 | `activity-marker` · `useActivityMarker` → `src/ui/hooks`. `fs/auth` → `fs/shell` import 0(남은 방향은 shell → auth 하나). patterns §6 경로 고침 |
+| A29 | 끝(6곳) | features의 sr-only 직접 스타일 6벌 → Radix `VisuallyHidden`(알림함 · 셸 드로어 · 호스트 홈 · 멤버 역할 · 폼 필수 표시 · 마이페이지 프로필 사진/주문 카드). **그대로**: 예매자 표 머리 `GuestsView` `srOnly`(절대 위치를 쓰지 않아야 표 가로 스크롤이 화면 폭을 넓히지 않는다 — 주석 그대로), PC에서 보이는 반응형 제목들(`clip: auto` — 숨김 전용이 아니다), `src/ui` `FilterChip` · `DataTable` caption(파일 소유 밖 — `<caption>`은 `asChild`로 바꿀 수 있다, ⑥ 후보) |
+| A31 | 그대로(이유) | Figma 확인: DS `My`(`585:752`) 아바타 45에 배지 **20** · 와이어 `128:2875` 안 `128:2904` 배지 **24**(드로어 아바타 60 · 마이페이지 80 + 흰 테두리 2 = 28). 근거가 둘이라 하나로 묶으면 PC 아바타 메뉴(GUI 근거)가 바뀐다 — 두 css에 근거 주석. 참고: 와이어 배지는 회색인데 드로어는 검정 — 색은 이 묶음 밖이라 바꾸지 않음 |
+| A40 | 끝 | `fs/auth` 루트 로직 8개(browser-location · login-href · protected-area · register-auth · session-lost · session-sync · useLogout · useSession) + 테스트 3 → `fs/auth/model`. `week-calendar` → `fa/event/model`, `notice-format` → `fs/notice/model`, `ticket-chips.tsx` → `TicketChips.tsx`, `TicketOptionList.tsx`가 export하던 `ticketConditions` · `canListTickets` → `fa/event/model/ticket-list.ts`. `mypage.css.ts`(278줄 → 공용 배치 103줄) + 화면별 css 6개(`MyPageView` · `ArchiveView` · `FollowingHostsView` · `OrderDetailView` · `OrdersView` · `ui/OrderParts`). **그대로**: `shareEvent.tsx`(오버레이를 여는 UI 동작 — plan §0상 model이 아니다) |
+| A9 | 건너뜀 | `base` · `values` · `attempted` · `serverErrors` · `inflight` 골격을 가진 훅(`useEventBasicInfo` · `useEventSections` · `useTicketForm` · `useOptionEditor` · `useHostSettings`)은 모두 §23 분류표의 **복잡** — ⑥에서 RHF가 골격 자체를 대신한다. **간단** 폼(가입 · 프로필 · 환불 계좌 · 거절 사유 · 간편 공연 만들기)에는 `base`/`isDirty`가 없어(만들기 폼이거나 값이 시트에 있다) 묶을 골격이 없다. 지금 `useEditDraft`를 만들면 ⑥에서 버린다 |
+| A36 · A37(⑤ 몫) | 끝 | `audience/routes.ts` · `audience/event-labels.ts` → `features/shared/`(호스팅 · 공용 피처가 audience를 import하지 못해서). 알림 이동 주소 · 셸 호스트 줄 · 호스트 홈 공연 카드 · 호스팅(공연 페이지 보기 · 호스트 홈 · 멤버 · 설정 뒤로)이 `eventHref` · `hostHref` · `orderHref`, 호스팅 `home-cards`의 `UNNAMED_EVENT` 사본과 `HostEventCard`의 직접 쓴 문구 → `shared/event-labels` |
+| A7(⑤ 몫) | 끝 | 셸 드로어 메뉴 조회 실패 → `InlineError`(문구 그대로, 왼쪽 정렬 → 가운데 + 위아래 여백, `role=alert`) |
+
+**새 파일**: `hosting/shared/{routes.ts, model/host-role.ts, ui/NoticeBox.tsx(+css), ui/event-scope-attrs.ts}` · `audience/event/model/ticket-list.ts` · mypage 화면별 css 6. ⑥으로 넘기는 것: `src/ui` sr-only 2곳(FilterChip · DataTable caption), A9는 RHF 전환과 같이.
+
 ---
 
 # 리포트 원문

@@ -14,7 +14,7 @@ import {
   type TicketItemManage,
   type UpdateTicketItemRequest,
 } from '@/api/ticket-item/schema';
-import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
 import { formatCount, formatWon } from '@/utils/money';
 
 import { isEditablePayType, isTicketLocked } from './ticket-rules';

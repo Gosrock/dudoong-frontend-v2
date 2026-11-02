@@ -1,7 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
-import { activeMarker } from '@/features/shared/shell/activity-marker';
 import { fixedBar, shellBarSpaceVars } from '@/features/shared/shell/shell.css';
+import { activeMarker } from '@/ui/hooks/activity-marker';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 

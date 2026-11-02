@@ -8,7 +8,8 @@ import { createEventMutation } from '@/api/event/mutations';
 import { handleError } from '@/api/handle-error';
 import { myHostsQuery } from '@/api/host/queries';
 import { flattenPages } from '@/api/shared/page';
-import { useCreateHost } from '@/features/hosting/host/model/useCreateHost';
+import { invalidateAfterCreate } from '@/features/hosting/shared/model/event-cache';
+import { useCreateHost } from '@/features/hosting/shared/model/useCreateHost';
 
 import {
   createdEventHref,
@@ -22,7 +23,6 @@ import {
   validateCreateEvent,
   wizardStepHref,
 } from './create-event-form';
-import { invalidateAfterCreate } from './event-cache';
 import { SCHEDULE_ERROR, type ScheduleInput, toScheduleRange } from './schedule';
 
 /**

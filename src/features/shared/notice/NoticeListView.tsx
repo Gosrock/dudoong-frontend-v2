@@ -12,9 +12,9 @@ import { Container } from '@/ui/primitives/Container';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
+import { noticeDateText } from './model/notice-format';
 import type { NoticeRow } from './model/notice-rules';
 import { useNoticeList } from './model/useNoticeList';
-import { noticeDateText } from './notice-format';
 import * as s from './NoticeListView.css';
 
 /**

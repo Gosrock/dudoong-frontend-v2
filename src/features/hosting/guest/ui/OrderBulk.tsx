@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 import { REFUSE_REASON_TEXT_MAX, type RefuseOrderRequest } from '@/api/order/schema';
-import { NoticeBox } from '@/features/hosting/ticket/ui/TicketParts';
+import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { Txt } from '@/ui/primitives/Txt';

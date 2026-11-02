@@ -20,9 +20,9 @@ import {
 } from '@/api/session-flag';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 
-import { browserLocation } from './browser-location';
 import { LoginGate } from './LoginGate';
-import { registerAuth } from './register-auth';
+import { browserLocation } from './model/browser-location';
+import { registerAuth } from './model/register-auth';
 
 const router = { replace: vi.fn(), push: vi.fn() };
 vi.mock('next/navigation', () => ({ useRouter: () => router }));

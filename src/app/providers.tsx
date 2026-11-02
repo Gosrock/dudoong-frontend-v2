@@ -9,7 +9,7 @@ import { type ReactNode, Suspense, useEffect } from 'react';
 
 import { setErrorNotifier } from '@/api/error-toast';
 import { getQueryClient } from '@/api/query-client';
-import { registerAuth } from '@/features/shared/auth/register-auth';
+import { registerAuth } from '@/features/shared/auth/model/register-auth';
 import { toast, Toaster } from '@/ui/components/Toast/Toast';
 
 import { OverlayRouteReset } from './OverlayRouteReset';

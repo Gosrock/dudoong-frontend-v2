@@ -2,8 +2,9 @@ import type { MyEvent } from '@/api/event/schema';
 import type { HostRole } from '@/api/shared/common-schema';
 import { formatKstKoreanDate, formatKstTime } from '@/api/shared/date';
 import { formatDday } from '@/api/shared/dday';
-import { HOST_ROLE_LABEL } from '@/features/hosting/host/model/member-rules';
 import { type ChipColor, type ChipTheme } from '@/ui/components/Chip/Chip';
+
+import { HOST_ROLE_LABEL } from './host-role';
 
 /**
  * 공연준비 홈 카드의 표시값(plan P10a V). 칩 색은 design-system §3 "옛 Tag → tag_v2" 표 그대로 —
@@ -72,8 +73,7 @@ export function eventLinesOf(
   return lines;
 }
 
-/** 이름을 아직 안 정한 준비중 공연·호스트 */
-export const UNNAMED_EVENT = '이름 없는 공연';
+/** 이름을 아직 안 정한 준비중 호스트(공연은 `features/shared/event-labels` `UNNAMED_EVENT`) */
 export const UNNAMED_HOST = '이름 없는 호스트';
 
 /** 공연 탭 빈 상태(와이어 `487:15070`) · 검색 결과 없음(와이어 `531:12320`·`531:12470`) */

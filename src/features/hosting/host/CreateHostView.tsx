@@ -9,7 +9,9 @@ import {
   HOST_PHONE_VALUE_MAX,
   type HostContactType,
 } from '@/api/host/schema';
-import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/home/model/hosting-home';
+import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import { useCreateHost } from '@/features/hosting/shared/model/useCreateHost';
+import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/shared/routes';
 import { Button } from '@/ui/components/Button/Button';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { Header } from '@/ui/components/Header/Header';
@@ -21,8 +23,6 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './CreateHostView.css';
-import { contactPlaceholder } from './model/host-fields';
-import { useCreateHost } from './model/useCreateHost';
 
 /**
  * `/hosting/new/hosts` 호스트 만들기(plan P10a V) — **와이어 근거** `495:14815`(공연준비홈_새 호스트 만들기).

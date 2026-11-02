@@ -1,5 +1,6 @@
 import type { CreateEventRequest } from '@/api/event/schema';
 import type { MyHost } from '@/api/host/schema';
+import { NEW_EVENT_PATH } from '@/features/hosting/shared/routes';
 import { can } from '@/features/shared/permission/model/can';
 
 import { nameError } from './basic-info-form';
@@ -10,8 +11,6 @@ import { emptySchedule, scheduleError, type ScheduleInput, toScheduleRange } fro
  * Step1 호스트 선택(일반 멤버인 호스트는 고를 수 없다 — patterns §22) · Step1 안의 호스트 만들기(P10a 로직 그대로, 만든 호스트가 골라진 채
  * Step2로) → Step2 이름(25자) · 날짜 1칸 + 시작·종료 시각 · 티켓 여부. 만든 뒤 대시보드로(design-requests Q7 기본안).
  */
-
-export const NEW_EVENT_PATH = '/hosting/new/events';
 
 export type WizardStep = 1 | 2;
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 import { isSessionLost } from '@/api/errors';
-import { DELETED_EVENT } from '@/features/audience/event-labels';
+import { DELETED_EVENT } from '@/features/shared/event-labels';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';

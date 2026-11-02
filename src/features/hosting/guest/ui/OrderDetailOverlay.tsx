@@ -3,7 +3,7 @@
 import { type ReactNode, useState } from 'react';
 
 import { type HostOrderDetail, REFUSE_REASON_TEXT_MAX } from '@/api/order/schema';
-import { NoticeBox } from '@/features/hosting/ticket/ui/TicketParts';
+import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';

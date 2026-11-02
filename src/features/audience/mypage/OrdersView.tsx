@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import { isSessionLost } from '@/api/errors';
-import { DELETED_EVENT, UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { DELETED_EVENT, UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
@@ -16,6 +16,7 @@ import { formatPrice } from '@/utils/money';
 
 import { orderDateLabel, orderPosterBadge } from './model/order-card';
 import { useMyOrders } from './model/useMyOrders';
+import * as p from './OrdersView.css';
 import * as s from './ui/mypage.css';
 import { OrderPoster, OrderStatusChips } from './ui/OrderParts';
 
@@ -55,7 +56,7 @@ function OrderList() {
   }
   return (
     <>
-      <div className={s.toolbar}>
+      <div className={p.toolbar}>
         <Txt typography="labelMd" color={colors.textSecondaryLabel}>
           {list.sortLabel}
         </Txt>
@@ -63,7 +64,7 @@ function OrderList() {
       <ul className={s.list} aria-label="주문 목록">
         {list.orders.map((o) => (
           <li key={o.orderUuid} className={s.row} data-testid="order-row">
-            <Link href={o.href} className={s.cardLink}>
+            <Link href={o.href} className={p.cardLink}>
               <Flex justify="space-between" align="center">
                 <Txt typography="labelMd" color={colors.textSecondaryLabel}>
                   {orderDateLabel(o.orderedAt) ?? ''}

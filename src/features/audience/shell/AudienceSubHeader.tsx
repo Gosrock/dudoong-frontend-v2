@@ -2,8 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 
-import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 import { Header } from '@/ui/components/Header/Header';
+import { useActivityMarker } from '@/ui/hooks/useActivityMarker';
 
 import * as s from './AudienceShell.css';
 

@@ -9,11 +9,15 @@ import { formatKstDateTime } from '@/api/shared/date';
 import { createTicketItemMutation, updateTicketItemMutation } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import type { EditableTicketPayType } from '@/api/ticket-item/schema';
-import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
-import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
+import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
+import {
+  applyCreatedTicket,
+  applyUpdatedTicket,
+  invalidateTickets,
+} from '@/features/hosting/shared/model/ticket-cache';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 
-import { applyCreatedTicket, applyUpdatedTicket, invalidateTickets } from './ticket-cache';
 import {
   hasTicketFormErrors,
   initialTicketFormValues,

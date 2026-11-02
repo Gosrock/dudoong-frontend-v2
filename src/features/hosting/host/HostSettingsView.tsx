@@ -12,8 +12,10 @@ import {
 } from '@/api/host/schema';
 import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
-import { EditorBottomBar, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
+import { contactPlaceholder } from '@/features/hosting/shared/model/host-fields';
+import { EditorBottomBar, useLeaveGuard } from '@/features/hosting/shared/ui/EditorParts';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
+import { hostHref } from '@/features/shared/routes';
 import { Button } from '@/ui/components/Button/Button';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { DropZone } from '@/ui/components/DropZone/DropZone';
@@ -29,7 +31,6 @@ import { colors } from '@/ui/theme/colors';
 
 import * as c from './CreateHostView.css';
 import * as s from './HostManage.css';
-import { contactPlaceholder } from './model/host-fields';
 import { HOST_IMAGE_SLOTS, type HostImageSlot } from './model/host-settings-form';
 import { useHostSettings } from './model/useHostSettings';
 
@@ -37,8 +38,6 @@ const IMAGE_LABEL: Record<HostImageSlot, string> = {
   PROFILE: '프로필 이미지',
   COVER: '커버 이미지',
 };
-
-const hostHomeHref = (hostId: string) => `/hosts/${hostId}`;
 
 /**
  * `/hosting/hosts/[hostId]/settings` 호스트 설정(plan P10b V) — **와이어 근거** `503:32374`(호스트_매니저v1.0 "호스트 설정").
@@ -69,7 +68,7 @@ function HostSettings({ hostId }: { hostId: string }) {
 
   return (
     <main className={s.page}>
-      <Header title="호스트 설정" backHref={hostHomeHref(hostId)} linkAs={Link} />
+      <Header title="호스트 설정" backHref={hostHref(hostId)} linkAs={Link} />
       <form
         id={formId}
         noValidate

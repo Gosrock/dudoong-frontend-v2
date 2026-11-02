@@ -3,8 +3,8 @@
 import { useMemo } from 'react';
 
 import { useLoginHref } from '@/features/shared/auth/LoginRequiredLink';
-import { useLogout } from '@/features/shared/auth/useLogout';
-import { useSession } from '@/features/shared/auth/useSession';
+import { useLogout } from '@/features/shared/auth/model/useLogout';
+import { useSession } from '@/features/shared/auth/model/useSession';
 import { useNotificationBell } from '@/features/shared/notification/model/useNotificationBell';
 
 import { type ShellMenu, shellMenu } from './shell-menu';

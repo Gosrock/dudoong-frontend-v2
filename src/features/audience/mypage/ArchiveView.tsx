@@ -4,7 +4,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
 import { type ReactNode, useId } from 'react';
 
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
@@ -14,6 +14,7 @@ import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
+import * as p from './ArchiveView.css';
 import { useArchive } from './model/useArchive';
 import * as s from './ui/mypage.css';
 
@@ -35,7 +36,7 @@ export function ArchiveView() {
         지난 공연 아카이빙
       </Txt>
       {a.tabs.length > 1 && (
-        <div className={s.tabsBar}>
+        <div className={p.tabsBar}>
           <Tabs
             value={a.year === null ? ALL : String(a.year)}
             onValueChange={(v) => a.setYear(v === ALL ? null : Number(v))}
@@ -56,7 +57,7 @@ export function ArchiveView() {
       )}
 
       {a.listStatus === 'pending' && (
-        <div aria-busy="true" className={s.grid}>
+        <div aria-busy="true" className={p.grid}>
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} height={200} />
           ))}
@@ -76,7 +77,7 @@ export function ArchiveView() {
 
       <ul
         id={listId}
-        className={s.grid}
+        className={p.grid}
         aria-label="관람한 공연"
         aria-busy={a.switching || undefined}
       >
@@ -95,13 +96,13 @@ export function ArchiveView() {
           return (
             <li key={e.eventId} data-testid="archive-event">
               {e.orderHref ? (
-                <Link href={e.orderHref} className={s.gridItem}>
+                <Link href={e.orderHref} className={p.gridItem}>
                   {body}
                   {/* 이름 = 보이는 공연명 · 날짜 + "주문상세"(WCAG 2.5.3, P14 접근성) */}
                   <VisuallyHidden> 주문상세</VisuallyHidden>
                 </Link>
               ) : (
-                <div className={s.gridItem}>{body}</div>
+                <div className={p.gridItem}>{body}</div>
               )}
             </li>
           );
@@ -114,7 +115,7 @@ export function ArchiveView() {
 
 function ArchivePoster({ src }: { src: string | null }) {
   return (
-    <span className={s.gridPoster}>
+    <span className={p.gridPoster}>
       {src && (
         // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 2열 · PC 4열(mypage.css `grid`)
         <UploadedImage

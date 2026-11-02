@@ -2,13 +2,14 @@
 
 import { overlay } from 'overlay-kit';
 
+import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import { NoticeBox, OptionRow } from './TicketParts';
+import { OptionRow } from './TicketParts';
 import * as s from './TicketParts.css';
 
 /**

@@ -1,5 +1,9 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import {
+  EVENT_SCOPE_ATTR,
+  HIDE_EVENT_HEADER_ATTR,
+} from '@/features/hosting/shared/ui/event-scope-attrs';
 import { fixedBar } from '@/features/shared/shell/shell.css';
 import { sidebarTint } from '@/ui/components/SidebarMenu/SidebarMenu';
 import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
@@ -111,6 +115,11 @@ export const mobileHeader = style([
   fixedBar,
   { '@media': { [media.desktop]: { display: 'none' } } },
 ]);
+
+/** 공연 헤더 숨김(`HIDE_EVENT_HEADER_ATTR`) — 티켓 폼(모바일)이 ← 제목 헤더를 쓰는 동안 */
+globalStyle(`[${EVENT_SCOPE_ATTR}][${HIDE_EVENT_HEADER_ATTR}] .${mobileHeader}`, {
+  display: 'none',
+});
 
 /** 드로어 안 사이드바 — 드로어 머리 줄 아래를 채운다 */
 export const drawerSidebar = style({ minHeight: '100%', borderRadius: vars.radius[4] });

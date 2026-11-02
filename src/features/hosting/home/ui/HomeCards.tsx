@@ -4,6 +4,13 @@ import Link from 'next/link';
 
 import type { MyEvent } from '@/api/event/schema';
 import type { MyHost } from '@/api/host/schema';
+import {
+  eventChipOf,
+  eventLinesOf,
+  roleChipOf,
+  UNNAMED_HOST,
+} from '@/features/hosting/shared/model/home-cards';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';
@@ -13,13 +20,6 @@ import { Illustration } from '@/ui/illustrations/Illustration';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import {
-  eventChipOf,
-  eventLinesOf,
-  roleChipOf,
-  UNNAMED_EVENT,
-  UNNAMED_HOST,
-} from '../model/home-cards';
 import * as s from './HomeCards.css';
 
 type EventItem = MyEvent & { href: string; canDelete: boolean };

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
+import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/shared/routes';
+
 import {
   clampHostingKeyword,
   emptyKindOf,
-  HOSTING_HOME_HOSTS_HREF,
   HOSTING_HOME_TABS,
   HOSTING_KEYWORD_MAX,
   hostingHomeSearch,

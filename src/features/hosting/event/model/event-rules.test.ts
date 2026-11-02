@@ -2,6 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { EventManage, EventStatus } from '@/api/event/schema';
 import type { HostRole } from '@/api/shared/common-schema';
+import {
+  canDeleteEvent,
+  eventMenuOf,
+  eventPublicHref,
+  isHasTicketLocked,
+  parseEventIdParam,
+  readOnlyReasonOf,
+} from '@/features/hosting/shared/model/event-scope';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import {
@@ -22,14 +30,6 @@ import {
   toCreateEventBody,
   validateCreateEvent,
 } from './create-event-form';
-import {
-  canDeleteEvent,
-  eventMenuOf,
-  eventPublicHref,
-  isHasTicketLocked,
-  parseEventIdParam,
-  readOnlyReasonOf,
-} from './event-scope';
 import { emptyPlace, placeError, toPlaceRequest } from './place';
 import { scheduleError, scheduleInputOf, toScheduleRange } from './schedule';
 import {

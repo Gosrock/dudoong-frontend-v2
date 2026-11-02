@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import type { FollowingHostFilter } from '@/api/me/schema';
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Chip, type ChipColor } from '@/ui/components/Chip/Chip';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
@@ -16,6 +16,7 @@ import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
+import * as p from './FollowingHostsView.css';
 import { useFollowingHosts } from './model/useFollowingHosts';
 import * as s from './ui/mypage.css';
 
@@ -35,10 +36,10 @@ export function FollowingHostsView() {
       <Txt as="h1" typography="headingMdEmphasized" className={s.title}>
         관심 호스트
       </Txt>
-      <div className={s.filterBar}>
+      <div className={p.filterBar}>
         <Dropdown
           aria-label="관심 호스트 필터"
-          className={s.filterDropdown}
+          className={p.filterDropdown}
           options={f.tabs.map((t) => ({ value: t.status, label: t.label }))}
           value={f.status}
           onValueChange={(v) => f.setStatus(v as FollowingHostFilter)}
@@ -70,7 +71,7 @@ export function FollowingHostsView() {
 
       <ul className={s.list} aria-label="관심 호스트 목록">
         {f.hosts.map((h) => (
-          <li key={h.hostId} className={s.hostRow} data-testid="following-host">
+          <li key={h.hostId} className={p.hostRow} data-testid="following-host">
             <Link href={h.href} className={s.plainLink} aria-hidden tabIndex={-1}>
               <Avatar size={56} src={h.profileImageUrl} />
             </Link>
@@ -102,7 +103,7 @@ export function FollowingHostsView() {
             </Flex>
             <button
               type="button"
-              className={s.heart}
+              className={p.heart}
               aria-label={`${h.name ?? '호스트'} 관심 해제`}
               aria-pressed
               onClick={() => f.unfollow(h.hostId)}

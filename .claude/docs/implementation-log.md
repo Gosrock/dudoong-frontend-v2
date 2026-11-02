@@ -2754,3 +2754,32 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · lint 통과. vitest hosting · host-home · notice · audience/home 39파일 766개 통과(단언 고침 둘 — `useTicketList` 그새 팔림 반환값 `false` → `'reread'`, `useHostMembers` 테스트 변수 타입). e2e hosting · hosting-event · hosting-guests · hosting-host · hosting-ticket · hosting-checkin · event-list · home · host-home · notices · notifications · a11y · a11y-keyboard 357 통과 / 0 실패. QA hosting-home 18 · hosting-event 20 · hosting-ticket 30 · hosting-guests 29 · hosting-qr 18 · host-settings 28(HS-14가 "팝업은 닫히고 목록 위 안내" — 처음 바꾼 판에서 실패해 `'missing'`을 넣었다) · events 19 · home 8 · notifications 14 · notices 16 · host-home 14 — 모두 통과.
 
 **ego-browser 확인(2026-11-03, dev:mock 3077)**: 공연준비 홈 960(검색 150ms엔 4장 그대로 → 300ms 뒤 1장) · 티켓 관리(가격 · 재고 · `+10,000원`, [삭제] → 확인 창 안에서 호출 → 닫힘 + "티켓을 삭제했어요.") · 공연 대시보드 1440(사이드바 `고스락 · D-21`) · 멤버 390(권한 변경 → 닫힘 + 토스트, 일반 멤버 역할 글자 숨김) · 예매자 관리 1440(검색 "김" → 9행 → 2행). 발견: 없음(Next dev Insight 1건은 instant 내비게이션 안내 — 이 변경과 무관).
+
+## 코드 패턴 정리 ⑤ 구조 이동(2026-11-03, `pattern-structure`)
+
+**근거**: [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) "⑤ 결과"(A번호별 끝 · 그대로 · 건너뜀 이유) · progress "다음 순서" 30. **이동만** — import 경로 · 파일 이름 · 위치. `git mv`로 옮기고 A번호마다 커밋했다.
+
+**바꾼 것**
+
+- A14 — `features/hosting/shared/`(model · ui · `routes.ts`)를 만들고 호스팅 피처 사이에서 쓰던 파일 15개와 새 파일 4개(`host-role` · `NoticeBox` · `event-scope-attrs` · `routes`)를 둠. `useDeleteEvent` → `home/model`. eslint `boundaries`: 요소 `hosting`이 `src/features/hosting/*/**`의 피처 이름을 capture하고 같은 피처 · `hosting-shared` · `hosting-access`만 허용 — 지금 코드 위반 0, 일부러 넣은 home → ticket import는 막힘을 확인.
+- A15 — `activity-marker` · `useActivityMarker` → `src/ui/hooks`(patterns §6 경로).
+- A29 — features sr-only 6벌 → Radix `VisuallyHidden`(파일 칸은 `asChild`).
+- A31 — Figma 확인(DS `My` 20 · 와이어 `128:2904` 24) 뒤 그대로, 근거 주석.
+- A40 — `fs/auth` 로직 8개 + 테스트 3 → `auth/model`, `week-calendar` · `notice-format` → model, `TicketChips.tsx`, `ticket-list.ts`, `mypage.css.ts` 공용 103줄 + 화면별 css 6.
+- A36 · A37 ⑤ 몫 — `audience/routes.ts` · `event-labels.ts` → `features/shared/`, 알림 · 셸 · 호스트 홈 · 호스팅 주소와 공연명 대체 문구가 이것을 쓴다.
+- A7 ⑤ 몫 — 셸 드로어 메뉴 조회 실패 → `InlineError`.
+- A9 — 건너뜀(골격을 가진 폼이 모두 §23 "복잡" — ⑥ RHF).
+
+**사용자에게 보이는 변화**
+
+| 화면 | 전 | 후 | 근거 |
+|---|---|---|---|
+| 셸 드로어(메뉴 조회 실패) | "메뉴를 불러오지 못했어요." + [다시 시도] 왼쪽 정렬 | 같은 문구 · 가운데 정렬 + 위아래 여백(`InlineError`) | A7 — 디자인 없음, 지역 fallback과 같은 모양 |
+
+그 밖에 글자 · 모양 변화 없음(ego-browser로 확인).
+
+**🤖 판단**: `hosting/shell`도 경계를 지키는 피처로 본다(허용 목록에 넣지 않음) — 공연 스코프 틀(`EventScopeFrame`)과 속성을 shared로. 티켓 폼의 "공연 헤더 숨김" 전역 스타일은 숨기는 대상인 공연 헤더 css로 옮김(셀렉터 같음).
+
+**검사**: lint 전체 · typecheck 통과. vitest 134파일 2532개 · 스토리 62파일 253개 통과(관객 · 공용 묶음에서 한 번 1건 흔들림 → 재실행 3번 통과). e2e 전체 587 통과 · 39 건너뜀 · 실패 0. QA shell 18 · hosting-event 20 · hosting-ticket 30 · host-settings 28 · mypage 33 · tickets 20 — 실패 0.
+
+**ego-browser 확인(2026-11-03, dev:mock 3078)**: 공연준비 홈 1440 · 공연 대시보드 1440(사이드바 · 3단 · 일정 패널) · 새 티켓 390(공연 헤더 숨고 ← 제목 헤더만 — 옮긴 숨김 스타일 · 필수 `*`) · 티켓 목록 390(`NoticeBox` "티켓 옵션이란?") · 마이페이지 390(연필 배지 · 화면별 css) · 셸 드로어 390(프로필 편집 숨김 글자) · 주문내역 1440(툴바 · 카드 · 포스터 칩). 발견 없음.

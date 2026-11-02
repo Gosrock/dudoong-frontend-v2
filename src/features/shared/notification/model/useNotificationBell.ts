@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 import { unreadNotificationCountQuery } from '@/api/notification/queries';
-import { useSession } from '@/features/shared/auth/useSession';
+import { useSession } from '@/features/shared/auth/model/useSession';
 
 /**
  * 알림 벨(GN-2, patterns §21). 관객 헤더·호스팅 셸이 같이 쓴다(S7 — P9b가 먼저 만들었다).

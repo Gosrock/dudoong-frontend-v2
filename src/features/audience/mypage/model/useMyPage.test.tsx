@@ -14,7 +14,7 @@ import { followingHostsQuery, meQuery } from '@/api/me/queries';
 import { UpdateMeRequestSchema } from '@/api/me/schema';
 import { shouldToastQueryError } from '@/api/query-client';
 import { readSessionFlag, startSession } from '@/api/session-flag';
-import { browserLocation } from '@/features/shared/auth/browser-location';
+import { browserLocation } from '@/features/shared/auth/model/browser-location';
 import { errorToast } from '@/test/error-toast';
 import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';

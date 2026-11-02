@@ -8,14 +8,14 @@ import { handleError } from '@/api/handle-error';
 import { exportIssuedTicketsMutation } from '@/api/issued-ticket/mutations';
 import { hostIssuedTicketQuery, hostIssuedTicketsQuery } from '@/api/issued-ticket/queries';
 import type { EntranceFilter, IssuedTicketSearchType } from '@/api/issued-ticket/schema';
-import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
-import { useEventScope } from '@/features/hosting/event/model/useEventScope';
-import { invalidateAfterScan } from '@/features/hosting/qr/model/qr-cache';
+import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
+import { invalidateAfterScan } from '@/features/hosting/shared/model/qr-cache';
 import {
   EVENT_NOT_CHECKABLE_MESSAGE,
   HOST_SCAN_BLOCK_MESSAGE,
   hostScanBlockOf,
-} from '@/features/hosting/qr/model/qr-check-in-rules';
+} from '@/features/hosting/shared/model/qr-check-in-rules';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import {
   type CheckInResultView,
   checkInResultView,

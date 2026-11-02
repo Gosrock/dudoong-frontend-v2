@@ -1,5 +1,6 @@
 'use client';
 
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -122,7 +123,7 @@ function NotificationRow({
             typography="labelSm"
             color={unread ? colors.textSecondaryLabel : colors.textTertiaryLabel}
           >
-            {unread && <span className={s.srOnly}>안 읽음 · </span>}
+            {unread && <VisuallyHidden>안 읽음 · </VisuallyHidden>}
             {item.categoryLabel ?? '알림'}
           </Txt>
           {item.createdAt && (

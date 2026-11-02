@@ -136,12 +136,3 @@ export const inviteForm = style({
 });
 
 export const check = style({ display: 'inline-flex', color: vars.color.brand.primary });
-
-export const visuallyHidden = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-});

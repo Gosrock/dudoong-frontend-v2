@@ -15,7 +15,7 @@ import { checkoutQuery, MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order
 import type { Checkout } from '@/api/order/schema';
 import { eventTicketItemsQuery } from '@/api/ticket-item/queries';
 import { toTicketView } from '@/features/audience/event/model/ticket-state';
-import { eventHref } from '@/features/audience/routes';
+import { eventHref } from '@/features/shared/routes';
 import { toast } from '@/ui/components/Toast/Toast';
 
 import {

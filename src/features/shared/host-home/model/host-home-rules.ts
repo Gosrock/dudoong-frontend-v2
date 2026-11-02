@@ -1,6 +1,7 @@
 import type { HostEvent } from '@/api/host/schema';
 import type { HostRole } from '@/api/shared/common-schema';
 import { can, type HostAction } from '@/features/shared/permission/model/can';
+import { eventHref } from '@/features/shared/routes';
 
 /**
  * 주소의 `[hostId]` → 백엔드에 보낼 id. 숫자가 아니면 null(라우트가 `notFound()`).
@@ -21,7 +22,7 @@ export function parseHostIdParam(raw: string): string | null {
 export function hostEventHref(event: Pick<HostEvent, 'eventId' | 'status'>): string {
   return event.status === 'PREPARING'
     ? `/hosting/events/${event.eventId}`
-    : `/events/${event.eventId}`;
+    : eventHref(event.eventId);
 }
 
 export type HostManageKey = 'settings' | 'members' | 'newEvent';

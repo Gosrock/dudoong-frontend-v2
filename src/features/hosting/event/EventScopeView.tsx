@@ -4,10 +4,10 @@ import type { ReactNode } from 'react';
 
 import { HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
-import { EventScopeFrame } from '@/features/hosting/shell/EventScopeFrame';
+import { parseEventIdParam } from '@/features/hosting/shared/model/event-scope';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
+import { EventScopeFrame } from '@/features/hosting/shared/ui/EventScopeFrame';
 
-import { parseEventIdParam } from './model/event-scope';
-import { useEventScope } from './model/useEventScope';
 import { EventMobileHeader, EventSidebar, ReadOnlyNotice } from './ui/EventScopeNav';
 
 /**

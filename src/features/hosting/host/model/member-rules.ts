@@ -14,14 +14,6 @@ import { type ActorRole, can, type HostAction } from '@/features/shared/permissi
  * (마스터 삭제 불가), `Host.changeActiveHostUserRole`(마스터 대상 불가), `Host.transferMaster`(활성 멤버에게만).
  */
 
-/** 역할 이름. 일반 멤버(`GUEST`)는 "일반"(plan P10b — 서버 표시 이름 "게스트"는 쓰지 않는다) */
-export const HOST_ROLE_LABEL: Record<HostRole, string> = {
-  MASTER: '마스터',
-  MANAGER: '매니저',
-  GUEST: '일반',
-  UNKNOWN: '알 수 없음',
-};
-
 /**
  * 멤버 목록에서 역할 글자를 눈으로는 숨기는 역할(와이어: 마스터·매니저만 적고 일반은 비워 둔다 — 화면 읽기 프로그램에는 읽힌다).
  * 표시용 매핑이라 `can()`이 아니다(patterns §22 D10, 코드 패턴 점검 A42)

@@ -9,11 +9,17 @@ import { handleError, handlersFrom } from '@/api/handle-error';
 import type { HostContactType } from '@/api/host/schema';
 import { uploadImage } from '@/api/upload';
 import {
+  applySavedBasic,
+  invalidateEventStatus,
+} from '@/features/hosting/shared/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
+import {
   emptyContact,
   HOST_CONTACT_OPTIONS,
   withContactType,
   withContactValue,
-} from '@/features/hosting/host/model/host-fields';
+} from '@/features/hosting/shared/model/host-fields';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 
 import {
@@ -28,13 +34,10 @@ import {
   toUpdateEventBasicBody,
   validateBasicInfo,
 } from './basic-info-form';
-import { applySavedBasic, invalidateEventStatus } from './event-cache';
-import { EVENT_ENDED_MESSAGE } from './event-scope';
 import { kakaoGeocoder } from './kakao-geocoder';
 import { type Geocoder, PLACE_ERROR, type PlaceLookupFailure } from './place';
 import type { ScheduleInput } from './schedule';
 import { toScheduleRange } from './schedule';
-import { useEventScope } from './useEventScope';
 
 type ServerErrors = Partial<Record<BasicInfoServerField, string>>;
 type FieldCode = keyof typeof BASIC_INFO_FIELD_ERRORS;

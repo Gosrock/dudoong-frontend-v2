@@ -7,8 +7,12 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { TICKET_DESCRIPTION_MAX, TICKET_NAME_MAX } from '@/api/ticket-item/schema';
 import { HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
-import { FieldError, FormSection, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
-import { EVENT_SCOPE_ATTR } from '@/features/hosting/shell/HostingShell.css';
+import { FieldError, FormSection, useLeaveGuard } from '@/features/hosting/shared/ui/EditorParts';
+import {
+  EVENT_SCOPE_ATTR,
+  HIDE_EVENT_HEADER_ATTR,
+} from '@/features/hosting/shared/ui/event-scope-attrs';
+import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
@@ -25,7 +29,7 @@ import { parseTicketItemIdParam, PAY_TYPE_LABEL } from './model/ticket-rules';
 import { useTicketForm } from './model/useTicketForm';
 import * as s from './TicketFormView.css';
 import { openApprovalGuide } from './ui/TicketGuides';
-import { NoticeBox, ToggleSection } from './ui/TicketParts';
+import { ToggleSection } from './ui/TicketParts';
 
 /**
  * `/hosting/events/[eventId]/tickets/new` 새 티켓 만들기 — GUI 두둥 `767:46560`(토글 off) · `767:46664`(토글 on) · 무료 `821:23712`,
@@ -64,8 +68,8 @@ function useHideEventHeader() {
   useLayoutEffect(() => {
     const scope = ref.current?.closest(`[${EVENT_SCOPE_ATTR}]`);
     if (!scope) return;
-    scope.setAttribute(s.HIDE_HEADER_ATTR, '');
-    return () => scope.removeAttribute(s.HIDE_HEADER_ATTR);
+    scope.setAttribute(HIDE_EVENT_HEADER_ATTR, '');
+    return () => scope.removeAttribute(HIDE_EVENT_HEADER_ATTR);
   }, []);
   return ref;
 }

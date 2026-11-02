@@ -1,7 +1,6 @@
 import type { Dashboard } from '@/api/dashboard/schema';
 import type { EventDisplayStatus } from '@/api/event/schema';
-
-import { eventHref } from './event-scope';
+import { eventHref } from '@/features/hosting/shared/model/event-scope';
 
 /**
  * 등록 후 대시보드(GD-1, plan P13a) 파생값 — 통계 카드 4개·NEW 배지·티켓 판매 정보·입장 현황·일정 타임라인.

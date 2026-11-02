@@ -7,10 +7,14 @@ import { updateEventSectionsMutation } from '@/api/event/mutations';
 import { eventSectionsManageQuery } from '@/api/event/queries';
 import { handleError, handlersFrom } from '@/api/handle-error';
 import { uploadImage } from '@/api/upload';
+import {
+  applySavedSections,
+  invalidateEventStatus,
+} from '@/features/hosting/shared/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/shared/model/event-scope';
+import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 
-import { applySavedSections, invalidateEventStatus } from './event-cache';
-import { EVENT_ENDED_MESSAGE } from './event-scope';
 import {
   canAddSection,
   canRemoveSection,
@@ -28,7 +32,6 @@ import {
   withSectionTitle,
 } from './sections-form';
 import type { SavedNotice } from './useEventBasicInfo';
-import { useEventScope } from './useEventScope';
 
 /**
  * 공연 상세 정보(`/hosting/events/[eventId]/detail`, GE-5 · PE-6 · PE-10 `SECTION`, plan P11). 값·칸 오류·동작만 — 탭·에디터(Tiptap)는 V.

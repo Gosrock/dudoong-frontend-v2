@@ -9,7 +9,7 @@ import { acceptGiftMutation, rejectGiftMutation } from '@/api/gift/mutations';
 import { giftLandingQuery, giftLandingViewerQuery } from '@/api/gift/queries';
 import type { GiftLanding } from '@/api/gift/schema';
 import { handleError, handlersFrom } from '@/api/handle-error';
-import { useSession } from '@/features/shared/auth/useSession';
+import { useSession } from '@/features/shared/auth/model/useSession';
 
 import { refreshAfterGiftChange } from './gift-cache';
 import { GIFT_ERROR_TABLE, type GiftErrorOutcome } from './gift-errors';

@@ -6,7 +6,7 @@ import { useCallback, useState } from 'react';
 import type { Downloaded } from '@/api/client';
 import { getErrorCode } from '@/api/errors';
 import { handleError } from '@/api/handle-error';
-import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
+import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
 import { can } from '@/features/shared/permission/model/can';
 import { saveBlob } from '@/utils/download';
 

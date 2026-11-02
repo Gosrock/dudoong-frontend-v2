@@ -4,6 +4,7 @@ import type {
   NotificationType,
   ReadNotificationsRequest,
 } from '@/api/notification/schema';
+import { eventHref, hostHref, orderHref } from '@/features/shared/routes';
 
 /**
  * 알림 타입 → 카테고리·아이콘·이동 경로(plan P9b, patterns §21). 문구는 서버 `title`·`body`를 그대로 쓴다 — 여기서 만들지 않는다.
@@ -92,19 +93,19 @@ export function notificationHref(n: Pick<Notification, 'type' | 'target'>): stri
   const id = encodeURIComponent(t.targetId);
   switch (t.type) {
     case 'HOST':
-      return t.targetId ? `/hosts/${id}` : null;
+      return t.targetId ? hostHref(t.targetId) : null;
     case 'ORDER': {
       if (!t.targetId || n.type === 'UNKNOWN') return null;
       if (notificationAudience(n.type) === 'host') {
         return t.eventId === null ? null : `/hosting/events/${t.eventId}/guests?order=${id}`;
       }
-      return `/orders/${id}`;
+      return orderHref(t.targetId);
     }
     case 'GIFT':
       return '/tickets';
     case 'EVENT': {
       const eventId = t.eventId ?? (/^\d+$/.test(t.targetId) ? Number(t.targetId) : null);
-      return eventId === null ? null : `/events/${eventId}`;
+      return eventId === null ? null : eventHref(eventId);
     }
     case 'UNKNOWN':
       return null;

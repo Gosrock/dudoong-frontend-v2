@@ -5,8 +5,12 @@ import Link from 'next/link';
 import { type ReactNode, useState } from 'react';
 
 import { meQuery } from '@/api/me/queries';
-import { NEW_EVENT_PATH } from '@/features/hosting/event/model/create-event-form';
-import { useDeleteEvent } from '@/features/hosting/event/model/useDeleteEvent';
+import {
+  EVENTS_EMPTY_TITLE,
+  EVENTS_SEARCH_EMPTY_TITLE,
+  HOSTS_SEARCH_EMPTY_TITLE,
+} from '@/features/hosting/shared/model/home-cards';
+import { NEW_EVENT_PATH } from '@/features/hosting/shared/routes';
 import { button } from '@/ui/components/Button/Button.css';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
@@ -25,16 +29,12 @@ import { colors } from '@/ui/theme/colors';
 
 import * as s from './HostingHomeView.css';
 import {
-  EVENTS_EMPTY_TITLE,
-  EVENTS_SEARCH_EMPTY_TITLE,
-  HOSTS_SEARCH_EMPTY_TITLE,
-} from './model/home-cards';
-import {
   type HostingEmptyKind,
   type HostingHomeTab,
   HOSTS_EMPTY_TITLE,
   NEW_HOST_HREF,
 } from './model/hosting-home';
+import { useDeleteEvent } from './model/useDeleteEvent';
 import { useHostingHome } from './model/useHostingHome';
 import { MyEventCard, MyHostCard } from './ui/HomeCards';
 import * as cards from './ui/HomeCards.css';

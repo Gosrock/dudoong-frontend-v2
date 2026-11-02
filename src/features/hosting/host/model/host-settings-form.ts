@@ -1,5 +1,4 @@
 import type { HostViewer, UpdateHostRequest } from '@/api/host/schema';
-
 import {
   contactError,
   contactInputsOf,
@@ -8,7 +7,7 @@ import {
   introduceError,
   nameError,
   toContactsBody,
-} from './host-fields';
+} from '@/features/hosting/shared/model/host-fields';
 
 /**
  * 호스트 설정(`/hosting/hosts/[hostId]/settings`, PH-4 · PH-15, plan P10b) 폼. 칸 규칙은 호스트 만들기와 같다(`host-fields.ts`).

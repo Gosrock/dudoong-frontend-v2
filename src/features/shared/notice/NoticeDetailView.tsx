@@ -19,9 +19,9 @@ import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
+import { noticeDateText } from './model/notice-format';
 import { noticeListHref, parseNoticeIdParam } from './model/notice-rules';
 import { useNoticeDetail } from './model/useNoticeDetail';
-import { noticeDateText } from './notice-format';
 import * as s from './NoticeDetailView.css';
 
 /**

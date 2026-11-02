@@ -1,6 +1,5 @@
 import type { EventChecklist } from '@/api/event/schema';
-
-import { eventHref, type EventMenuKey } from './event-scope';
+import { eventHref, type EventMenuKey } from '@/features/hosting/shared/model/event-scope';
 
 /**
  * 대시보드 등록 체크리스트(GE-7, plan P11). GUI `727:23088`(0/3) · `745:32167`(3/3) — 행 ›는 각 화면으로 간다.

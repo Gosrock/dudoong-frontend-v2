@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react';
 
 import { archiveQuery } from '@/api/me/queries';
 import { flattenPages, infiniteListControls } from '@/api/shared/page';
-import { eventHref } from '@/features/audience/routes';
+import { eventHref } from '@/features/shared/routes';
 
 import { archiveOrderHref, archiveYearTabs } from './lists';
 

@@ -3,10 +3,9 @@
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useId } from 'react';
 
-import { UNNAMED_EVENT } from '@/features/audience/event-labels';
-import { eventHref } from '@/features/audience/routes';
 import { NO_SEARCH_ATTR } from '@/features/audience/shell/AudienceShell.css';
-import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
+import { eventHref } from '@/features/shared/routes';
 import { Button } from '@/ui/components/Button/Button';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
@@ -16,6 +15,7 @@ import { Popover } from '@/ui/components/Popover/Popover';
 import { SearchField } from '@/ui/components/SearchField/SearchField';
 import { Skeleton, SkeletonText } from '@/ui/components/Skeleton/Skeleton';
 import { Toggle } from '@/ui/components/Toggle/Toggle';
+import { useActivityMarker } from '@/ui/hooks/useActivityMarker';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';

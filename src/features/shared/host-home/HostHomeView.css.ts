@@ -220,16 +220,3 @@ export const fab = style({
   zIndex: vars.zIndex.header,
   textDecoration: 'none',
 });
-
-/** 화면에는 안 보이고 읽기 프로그램만 읽는 글자(멤버 수·개설일의 뜻) */
-export const srOnly = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  padding: 0,
-  margin: -1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-});

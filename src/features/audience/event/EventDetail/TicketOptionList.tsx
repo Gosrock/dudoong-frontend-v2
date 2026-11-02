@@ -9,19 +9,9 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 import { formatPrice } from '@/utils/money';
 
+import { canListTickets, ticketConditions, type TicketListStatus } from '../model/ticket-list';
 import type { TicketView } from '../model/ticket-state';
-import type { TicketSelection } from '../model/useTicketSelection';
 import * as s from './TicketOptionList.css';
-
-/** 티켓 설명 아래 작은 줄 — `인당 3매 제한 / 호스트 승인 후 확정`(와이어 `640:1957`) */
-export function ticketConditions(t: TicketView['ticket']) {
-  return [
-    t.purchaseLimit !== null ? `인당 ${t.purchaseLimit}매 제한` : null,
-    t.approvalRequired ? '호스트 승인 후 확정' : '구매 후 자동 확정',
-  ]
-    .filter(Boolean)
-    .join(' / ');
-}
 
 const STATE_CHIP: Partial<Record<TicketView['state'], string>> = {
   SUSPENDED: '판매 중단',
@@ -29,19 +19,11 @@ const STATE_CHIP: Partial<Record<TicketView['state'], string>> = {
   NOT_ON_SALE: '판매 종료',
 };
 
-type ListStatus = Pick<TicketSelection, 'status' | 'tickets' | 'listState' | 'refetch'>;
-
-/** 티켓 줄을 그릴 수 있나 — 아니면 `TicketListFallback`. 지난 공연은 티켓이 남아 있어도 목록 대신 문구 */
-export const canListTickets = (selection: ListStatus) =>
-  selection.status === 'success' &&
-  selection.tickets.length > 0 &&
-  selection.listState !== 'EVENT_ENDED';
-
 /**
  * 목록을 그리기 전 상태(조회 중 · 실패 · 티켓 없음 · 지난 공연). 목록을 그릴 수 있으면 `null`.
  * 표시 목록(`TicketOptionList`)과 선택 목록(`TicketSelector`)이 같이 쓴다.
  */
-export function TicketListFallback({ selection }: { selection: ListStatus }) {
+export function TicketListFallback({ selection }: { selection: TicketListStatus }) {
   if (selection.status === 'pending') {
     return (
       <Flex direction="column" gap={3} fullWidth>
@@ -115,7 +97,7 @@ export function TicketOptionList({
   selection,
   headingId,
 }: {
-  selection: ListStatus;
+  selection: TicketListStatus;
   headingId: string;
 }) {
   if (!canListTickets(selection)) return <TicketListFallback selection={selection} />;

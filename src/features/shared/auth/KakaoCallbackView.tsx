@@ -10,10 +10,10 @@ import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import { browserLocation } from './browser-location';
 import * as s from './KakaoCallbackView.css';
-import { loginHref } from './login-href';
 import { AUTH_FAILURE_MESSAGE } from './model/auth-outcome';
+import { browserLocation } from './model/browser-location';
+import { loginHref } from './model/login-href';
 import { readLoginRedirect } from './model/login-redirect';
 import { type KakaoCallbackState, useKakaoCallback } from './model/useKakaoCallback';
 import { RegisterOverlay } from './ui/RegisterOverlay';

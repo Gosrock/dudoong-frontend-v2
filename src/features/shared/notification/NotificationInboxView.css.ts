@@ -100,13 +100,3 @@ export const meta = style({
 export const text = style({ overflowWrap: 'anywhere' });
 
 export const empty = style({ paddingTop: vars.space[9] });
-
-/** 화면 읽기 도구에만 "안 읽음"(빨간 점은 aria-hidden) */
-export const srOnly = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-});

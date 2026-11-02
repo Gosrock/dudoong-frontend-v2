@@ -7,7 +7,7 @@ import { resetNotificationStore } from '@/api/__mocks__/fixtures/notification';
 import { ok } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { resetSessionFlagStateForTest } from '@/api/session-flag';
-import { browserLocation } from '@/features/shared/auth/browser-location';
+import { browserLocation } from '@/features/shared/auth/model/browser-location';
 import {
   resetKakaoCallbackForTest,
   useKakaoCallback,

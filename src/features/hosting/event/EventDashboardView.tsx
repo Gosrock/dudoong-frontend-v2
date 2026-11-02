@@ -11,8 +11,10 @@ import {
   formatKstTime,
   kstWeekOf,
 } from '@/api/shared/date';
-import { eventChipOf, UNNAMED_EVENT } from '@/features/hosting/home/model/home-cards';
-import { EventPanelLayout } from '@/features/hosting/shell/EventScopeFrame';
+import { eventHref } from '@/features/hosting/shared/model/event-scope';
+import { eventChipOf } from '@/features/hosting/shared/model/home-cards';
+import { EventPanelLayout } from '@/features/hosting/shared/ui/EventScopeFrame';
+import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
@@ -32,7 +34,6 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './EventDashboardView.css';
-import { eventHref } from './model/event-scope';
 import { useEventDashboard } from './model/useEventDashboard';
 
 type Dashboard = ReturnType<typeof useEventDashboard>;
