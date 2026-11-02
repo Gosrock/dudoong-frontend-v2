@@ -195,6 +195,7 @@ export const menuRow = style({
 /** 프로필 아바타 + 편집 배지(와이어 `128:2875` 연필) */
 export const avatarWrap = style({ position: 'relative', flexShrink: 0 });
 
+/** 연필 배지 — 와이어 `128:2904` 24 원(+ 아바타와 떼는 흰 테두리 2 = 28). 셸 드로어 · PC 아바타 메뉴와 크기가 다른 이유는 A31(`ShellDrawer.css.ts`) */
 export const editBadge = style({
   position: 'absolute',
   right: -2,

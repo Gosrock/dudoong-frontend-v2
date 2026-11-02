@@ -29,6 +29,10 @@ export const profile = style({ ...reset, gap: vars.space[5], width: '100%' });
 
 export const profileAvatar = style({ position: 'relative', display: 'inline-flex', flexShrink: 0 });
 
+/**
+ * 아바타(60) 오른쪽 아래 연필 배지 24 — 와이어 `128:2875` 안 `128:2904`(24 원 + 연필). PC 아바타 메뉴(DS `My` `585:752` — 아바타 45에 20)
+ * · 마이페이지(80에 24 + 흰 테두리)와 크기가 다른 것은 근거가 달라서다 — 하나로 묶지 않는다(코드 패턴 점검 A31, 2026-11-03)
+ */
 export const editBadge = style({
   position: 'absolute',
   right: 0,
