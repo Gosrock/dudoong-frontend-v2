@@ -58,13 +58,13 @@ describe('주문 탭(GR-1)', () => {
       'REFUSED',
       'CANCELED',
     ]);
-    expect([result.current.rows.length, result.current.totalPages]).toEqual([20, 2]);
-    act(() => result.current.setPage(1));
+    expect([result.current.rows.length, result.current.pagination.totalPages]).toEqual([20, 2]);
+    act(() => result.current.pagination.setPage(1));
     await waitFor(() => expect(result.current.rows).toHaveLength(14));
     const sent = recordRequests();
     act(() => result.current.setStatus('REFUSED'));
     await waitFor(() => expect(result.current.rows).toHaveLength(2));
-    expect(result.current.page).toBe(0);
+    expect(result.current.pagination.page).toBe(0);
     expect((await sent.list()).map((r) => r.query)).toEqual([{ status: 'REFUSED' }]);
     expect(result.current.statusTabs[0]!.count).toBe(34);
   });
@@ -73,34 +73,34 @@ describe('주문 탭(GR-1)', () => {
     const { result } = setup(() => useOrderList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
     act(() => {
-      result.current.setSearchType('DEPOSITOR_NAME');
-      result.current.setKeywordInput(' 엄마 ');
+      result.current.search.setType('DEPOSITOR_NAME');
+      result.current.search.setInput(' 엄마 ');
     });
     const sent = recordRequests();
-    act(() => result.current.submitSearch());
+    act(() => result.current.search.submit());
     await waitFor(() => expect(result.current.rows).toHaveLength(1));
     expect((await sent.list())[0]!.query).toEqual({
       keyword: '엄마',
       searchType: 'DEPOSITOR_NAME',
     });
-    expect(result.current.exactMatchHint).toBeNull();
+    expect(result.current.search.exactMatchHint).toBeNull();
   });
 
   it('일반 멤버: 엑셀 없음, 연락처·입금자명 검색에 완전 일치 안내, 가린 값 그대로', async () => {
     actAsRole(11, 'GUEST');
     const { result } = setup(() => useOrderList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
-    expect(result.current.canExport).toBe(false);
-    expect(result.current.exactMatchHint).toBeNull();
-    act(() => result.current.setSearchType('PHONE'));
-    expect(result.current.exactMatchHint).toBe(EXACT_MATCH_HINT);
+    expect(result.current.excel.can).toBe(false);
+    expect(result.current.search.exactMatchHint).toBeNull();
+    act(() => result.current.search.setType('PHONE'));
+    expect(result.current.search.exactMatchHint).toBe(EXACT_MATCH_HINT);
     expect(result.current.rows.find((o) => o.orderUuid === GUEST_ORDER.pendingToss)).toMatchObject({
       buyerPhone: '010-****-7890',
       depositorName: '이***마',
     });
     const sent = recordRequests();
     await act(async () => {
-      await result.current.exportExcel();
+      await result.current.excel.download();
     });
     expect(await sent.list()).toEqual([]);
   });
@@ -112,7 +112,7 @@ describe('주문 탭(GR-1)', () => {
     const sent = recordRequests();
     let ok = false;
     await act(async () => {
-      ok = await result.current.exportExcel();
+      ok = await result.current.excel.download();
     });
     expect(ok).toBe(true);
     expect((await sent.list()).find((r) => r.path.endsWith('/export'))?.query).toEqual({
@@ -124,24 +124,24 @@ describe('주문 탭(GR-1)', () => {
     ]);
     server.use(...hostingGuestHandlers.exportTooMany);
     await act(async () => {
-      ok = await result.current.exportExcel();
+      ok = await result.current.excel.download();
     });
-    expect([ok, result.current.exportError]).toEqual([false, EXPORT_TOO_MANY_MESSAGE]);
+    expect([ok, result.current.excel.error]).toEqual([false, EXPORT_TOO_MANY_MESSAGE]);
     expect(errorToast).not.toHaveBeenCalled();
   });
   it('엑셀 403 HOST_400_1(화면을 연 뒤 일반 멤버가 됨) → GE-3 다시 읽기 → 엑셀 버튼이 사라진다(403은 공용 토스트)', async () => {
     const { result } = setup(() => useOrderList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
-    expect(result.current.canExport).toBe(true);
+    expect(result.current.excel.can).toBe(true);
     actAsRole(11, 'GUEST');
     const sent = recordRequests();
     let ok = true;
     await act(async () => {
-      ok = await result.current.exportExcel();
+      ok = await result.current.excel.download();
     });
     expect(ok).toBe(false);
     expect(errorToast).toHaveBeenCalledWith(expect.any(String), 'mutation:HOST_400_1');
-    await waitFor(() => expect(result.current.canExport).toBe(false));
+    await waitFor(() => expect(result.current.excel.can).toBe(false));
     expect(await sent.lines()).toContain('GET /api/v2/events/101/manage');
   });
 });
@@ -159,9 +159,9 @@ describe('발급된 티켓 탭(GI-1 · GI-2 · GI-3)', () => {
     await waitFor(() => expect(result.current.rows).toHaveLength(1));
     act(() => {
       result.current.setEntrance('ALL');
-      result.current.setKeywordInput('최유진');
+      result.current.search.setInput('최유진');
     });
-    act(() => result.current.submitSearch());
+    act(() => result.current.search.submit());
     await waitFor(() => expect(result.current.rows.map((t) => t.ownerName)).toEqual(['최유진']));
   });
 
@@ -182,15 +182,15 @@ describe('발급된 티켓 탭(GI-1 · GI-2 · GI-3)', () => {
   it('수동 입장 처리(#106 §5): 입장 전 티켓을 PQ-2로 입장시키고 목록·상세를 다시 읽는다', async () => {
     const { result } = setup(() => useIssuedTicketList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
-    expect(result.current.canManualCheckIn).toBe(true);
-    expect(result.current.checkInBlockMessage).toBeNull();
+    expect(result.current.checkIn.can).toBe(true);
+    expect(result.current.checkIn.blockMessage).toBeNull();
     const before = result.current.rows.find((t) => t.entrance === 'BEFORE')!;
     act(() => result.current.openTicket(before.ticketUuid!));
     await waitFor(() => expect(result.current.detail?.ticket.entrance).toBe('BEFORE'));
     const sent = recordRequests();
-    let view: Awaited<ReturnType<typeof result.current.manualCheckIn>> = null;
+    let view: Awaited<ReturnType<typeof result.current.checkIn.run>> = null;
     await act(async () => {
-      view = await result.current.manualCheckIn(before.ticketUuid!);
+      view = await result.current.checkIn.run(before.ticketUuid!);
     });
     expect(view).toMatchObject({ kind: 'result', result: 'ENTERED', title: '입장 완료' });
     expect((await sent.list())[0]).toMatchObject({
@@ -200,7 +200,7 @@ describe('발급된 티켓 탭(GI-1 · GI-2 · GI-3)', () => {
     await waitFor(() => expect(result.current.detail?.ticket.entrance).toBe('DONE'));
     // 같은 티켓을 또 누르면 서버 판정(이미 입장)을 그대로 보여 준다
     await act(async () => {
-      view = await result.current.manualCheckIn(before.ticketUuid!);
+      view = await result.current.checkIn.run(before.ticketUuid!);
     });
     expect(view).toMatchObject({ result: 'ALREADY_ENTERED' });
   });
@@ -209,9 +209,9 @@ describe('발급된 티켓 탭(GI-1 · GI-2 · GI-3)', () => {
     actAsRole(11, 'GUEST');
     const { result } = setup(() => useIssuedTicketList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
-    expect(result.current.canExport).toBe(false);
-    act(() => result.current.setSearchType('PHONE'));
-    expect(result.current.exactMatchHint).toBe(EXACT_MATCH_HINT);
+    expect(result.current.excel.can).toBe(false);
+    act(() => result.current.search.setType('PHONE'));
+    expect(result.current.search.exactMatchHint).toBe(EXACT_MATCH_HINT);
   });
 
   it('엑셀 1만 행 초과 안내(IssuedTicket_400_7)', async () => {
@@ -219,9 +219,9 @@ describe('발급된 티켓 탭(GI-1 · GI-2 · GI-3)', () => {
     const { result } = setup(() => useIssuedTicketList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
     await act(async () => {
-      await result.current.exportExcel();
+      await result.current.excel.download();
     });
-    expect(result.current.exportError).toBe(EXPORT_TOO_MANY_MESSAGE);
+    expect(result.current.excel.error).toBe(EXPORT_TOO_MANY_MESSAGE);
   });
 });
 

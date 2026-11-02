@@ -230,3 +230,16 @@ export function nowrapColumns<T extends object>(
     cell: (row: T, i: number) => <span className={v.nowrap}>{c.cell(row, i)}</span>,
   }));
 }
+
+/** 칸 클릭이 행 클릭(상세 열기)으로 번지지 않게 */
+export function StopRowClick({ children }: { children: ReactNode }) {
+  return (
+    <span
+      className={s.rowActions}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      {children}
+    </span>
+  );
+}
