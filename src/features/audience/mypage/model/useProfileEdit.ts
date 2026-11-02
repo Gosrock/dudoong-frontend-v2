@@ -3,12 +3,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useRef, useState } from 'react';
 
-import { handleError } from '@/api/handle-error';
+import { handleError, handlersFrom } from '@/api/handle-error';
 import { updateMeMutation } from '@/api/me/mutations';
 import { meQuery } from '@/api/me/queries';
 import type { Me } from '@/api/me/schema';
 import { uploadImage } from '@/api/upload';
 import { useSession } from '@/features/shared/auth/useSession';
+import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 
 import { nicknameError, PROFILE_ERROR_MESSAGE } from './profile';
 
@@ -77,8 +78,7 @@ export function useProfileEdit() {
         // 표에 없는 실패(429·네트워크 등)는 공용 토스트
         handleError(e, {
           USER_400_5: show('USER_400_5'),
-          UPLOAD_INVALID_EXTENSION: show('UPLOAD_INVALID_EXTENSION'),
-          UPLOAD_PUT_FAILED: show('UPLOAD_PUT_FAILED'),
+          ...handlersFrom(UPLOAD_ERROR_MESSAGE, (message) => setImageError(message)),
         });
       }
     },

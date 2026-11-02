@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { formatKstDotDateWeekdayTime } from '@/api/shared/date';
+import { DELETED_EVENT } from '@/features/audience/event-labels';
 import { button } from '@/ui/components/Button/Button.css';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
@@ -24,7 +25,7 @@ export function EventInfo({
   return (
     <>
       <Txt as="h2" typography="title" color={inverse ? colors.textInverse : colors.textPrimary}>
-        {event?.name ?? '삭제된 공연'}
+        {event?.name ?? DELETED_EVENT}
       </Txt>
       {(date || ticketName) && (
         <Txt as="p" typography="bodyLg" color={inverse ? colors.textInverse : colors.textSecondary}>

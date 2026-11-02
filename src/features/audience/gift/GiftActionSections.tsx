@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { GIFT_MEMO_MAX } from '@/api/gift/schema';
 import type { MyTicketDetail } from '@/api/my-ticket/schema';
-import { shareKakaoFeed } from '@/features/shared/kakao-share/model/kakao-sdk';
+import { shareKakaoOrCopy } from '@/features/shared/kakao-share/model/kakao-sdk';
 import { BottomSheet } from '@/ui/components/BottomSheet/BottomSheet';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
@@ -141,10 +141,7 @@ export function GiftLinkView({
   const copy = async () => {
     toast((await copyText(gift.share.url)) ? COPIED : '링크를 복사하지 못했어요');
   };
-  const shareKakao = async () => {
-    if ((await shareKakaoFeed(gift.share.kakao)) === 'shared') return;
-    await copy();
-  };
+  const shareKakao = () => shareKakaoOrCopy(gift.share.kakao, copy);
 
   return (
     <GiftResult

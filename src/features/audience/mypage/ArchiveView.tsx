@@ -2,15 +2,15 @@
 
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
-import { type ReactNode, useId, useState } from 'react';
+import { type ReactNode, useId } from 'react';
 
-import { Button } from '@/ui/components/Button/Button';
+import { UNNAMED_EVENT } from '@/features/audience/event-labels';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Tab, TabList, Tabs } from '@/ui/components/Tabs/Tabs';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
-import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -62,18 +62,7 @@ export function ArchiveView() {
           ))}
         </div>
       )}
-      {a.listStatus === 'error' && (
-        <div role="alert" className={s.stateBox}>
-          <Flex direction="column" align="center" gap={3}>
-            <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-              불러오지 못했어요.
-            </Txt>
-            <Button variant="secondary" size="sm" onClick={a.retry}>
-              다시 시도
-            </Button>
-          </Flex>
-        </div>
-      )}
+      {a.listStatus === 'error' && <InlineError className={s.stateBox} onRetry={a.retry} />}
       {a.empty && (
         <div className={s.stateBox}>
           {/* 빈 상태는 와이어에 없다(Tomato 10-24 "빈 상태 만들기" 미해결) — DS EmptyState로(Figma 코멘트 — 디자인 없음) */}
@@ -96,7 +85,7 @@ export function ArchiveView() {
             <>
               <ArchivePoster src={e.posterImageUrl} />
               <Txt typography="labelLgEmphasized" lines={2}>
-                {e.name ?? '이름 없는 공연'}
+                {e.name ?? UNNAMED_EVENT}
               </Txt>
               <Txt typography="bodySm" color={colors.textTertiaryLabel}>
                 {e.startAt ?? ''}
@@ -124,10 +113,9 @@ export function ArchiveView() {
 }
 
 function ArchivePoster({ src }: { src: string | null }) {
-  const [failed, setFailed] = useState(false);
   return (
     <span className={s.gridPoster}>
-      {src && !failed && (
+      {src && (
         // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 2열 · PC 4열(mypage.css `grid`)
         <UploadedImage
           src={src}
@@ -135,11 +123,7 @@ function ArchivePoster({ src }: { src: string | null }) {
           width={240}
           height={240}
           sizes="(min-width: 1024px) 320px, 50vw"
-          ref={(img) => {
-            if (img && img.complete && img.naturalWidth === 0) setFailed(true);
-          }}
           className={s.posterImage}
-          onError={() => setFailed(true)}
         />
       )}
     </span>

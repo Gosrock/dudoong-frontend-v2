@@ -412,7 +412,7 @@ describe('관심 호스트 · 아카이빙', () => {
   it.each<[string, Parameters<typeof representativeBadge>[0], string | null]>([
     ['대표 공연 없음', null, null],
     ['D-7', { ...rep, displayStatus: 'UPCOMING', dDay: 7 }, 'D-7'],
-    ['당일', { ...rep, displayStatus: 'UPCOMING', dDay: 0 }, 'D-DAY'],
+    ['당일', { ...rep, displayStatus: 'UPCOMING', dDay: 0 }, 'D-day'],
     ['UPCOMING인데 dDay null', { ...rep, displayStatus: 'UPCOMING', dDay: null }, null],
     ['공연 중', { ...rep, displayStatus: 'ONGOING', dDay: null }, '공연 중'],
     ['공연 종료', { ...rep, displayStatus: 'PAST', dDay: null }, '공연 종료'],

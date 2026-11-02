@@ -4,9 +4,9 @@ import { useSuspenseInfiniteQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { myOrdersQuery } from '@/api/order/queries';
-import { flattenPages } from '@/api/shared/page';
+import { flattenPages, infiniteListControls } from '@/api/shared/page';
+import { orderHref } from '@/features/audience/routes';
 
-import { orderHref } from './lists';
 import { orderStatusView } from './order-status';
 
 /**
@@ -31,12 +31,6 @@ export function useMyOrders() {
     orders,
     empty: orders.length === 0,
     sortLabel: '최근주문순',
-    hasNextPage: list.hasNextPage,
-    isFetchingNextPage: list.isFetchingNextPage,
-    nextPageError: list.isFetchNextPageError,
-    loadMore: () => {
-      if (list.hasNextPage && !list.isFetching) void list.fetchNextPage({ cancelRefetch: false });
-    },
-    retry: () => void (list.isFetchNextPageError ? list.fetchNextPage() : list.refetch()),
+    ...infiniteListControls(list),
   };
 }

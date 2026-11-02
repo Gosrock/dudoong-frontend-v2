@@ -7,7 +7,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { type Resolver, useForm, useWatch } from 'react-hook-form';
 
 import { isApiError, isNotFound, isSessionLost } from '@/api/errors';
-import { handleError } from '@/api/handle-error';
+import { handleError, handlersFrom } from '@/api/handle-error';
 import { meQuery } from '@/api/me/queries';
 import { createOrderMutation, newIdempotencyKey } from '@/api/order/mutations';
 import { orderTotalAmount } from '@/api/order/price';
@@ -15,6 +15,7 @@ import { checkoutQuery, MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order
 import type { Checkout } from '@/api/order/schema';
 import { eventTicketItemsQuery } from '@/api/ticket-item/queries';
 import { toTicketView } from '@/features/audience/event/model/ticket-state';
+import { eventHref } from '@/features/audience/routes';
 import { toast } from '@/ui/components/Toast/Toast';
 
 import {
@@ -25,7 +26,7 @@ import {
   ORDER_UNCERTAIN,
   UNCERTAIN_ERROR_CODES,
 } from './checkout-errors';
-import { type CheckoutParams, eventHref } from './checkout-params';
+import type { CheckoutParams } from './checkout-params';
 import {
   checkoutAgreementFields,
   checkoutFormSchema,
@@ -197,7 +198,6 @@ export function useCheckout({
 
   // ─── 제출 ───
   const [submitError, setSubmitError] = useState<CheckoutErrorOutcome | null>(null);
-  const [succeeded, setSucceeded] = useState(false);
   const inflight = useRef(false);
   /** 지금 주문 시도의 `Idempotency-Key`. 결과를 모르는 실패 뒤에는 남겨 재시도가 같은 키를 쓴다 */
   const attemptKey = useRef<string | null>(null);
@@ -239,6 +239,9 @@ export function useCheckout({
     },
   });
 
+  /** 주문 성공(이동 중) — mutation `isSuccess`(코드 패턴 점검 A34) */
+  const succeeded = mutation.isSuccess;
+
   const submit = useCallback(async () => {
     if (inflight.current || succeeded || quantity < 1) return;
     setSubmitError(null);
@@ -253,7 +256,6 @@ export function useCheckout({
       attemptKey.current ??= newIdempotencyKey();
       try {
         const order = await mutation.mutateAsync({ body, idempotencyKey: attemptKey.current });
-        setSucceeded(true);
         router.replace(orderCreatedHref(order.orderUuid));
       } catch (e) {
         inflight.current = false;
@@ -265,13 +267,10 @@ export function useCheckout({
         };
         handleError(
           e,
-          Object.fromEntries([
-            ...Object.entries(CHECKOUT_ERROR_TABLE).map(([code, outcome]) => [
-              code,
-              () => onKnownError(outcome, code),
-            ]),
-            ...UNCERTAIN_ERROR_CODES.map((code) => [code, onUncertain]),
-          ]),
+          {
+            ...handlersFrom(CHECKOUT_ERROR_TABLE, onKnownError),
+            ...Object.fromEntries(UNCERTAIN_ERROR_CODES.map((code) => [code, onUncertain])),
+          },
           // 무료 선착순은 표에 없는 실패도 화면이 맡는다(공용 토스트 대신 재시도 안내)
           kind === 'FREE_FCFS' ? { otherwise: () => setSubmitError(FREE_FCFS_FAILED) } : {},
         );

@@ -4,7 +4,7 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useCallback, useMemo, useState } from 'react';
 
 import { banksQuery } from '@/api/bank/queries';
-import { type ErrorCodeHandlers, handleError } from '@/api/handle-error';
+import { type ErrorCodeHandlers, handleError, handlersFrom } from '@/api/handle-error';
 import { MY_TICKETS_KEY } from '@/api/my-ticket/queries';
 import { cancelMyOrderMutation, putRefundAccountMutation } from '@/api/order/mutations';
 import { MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order/queries';
@@ -71,21 +71,16 @@ function useOrderCodes(
   const queryClient = useQueryClient();
   return useMemo(
     () =>
-      Object.fromEntries(
-        Object.entries(table).map(([code, outcome]) => [
-          code,
-          () => {
-            if (!outcome.refetch) {
-              onOutcome(outcome, undefined);
-              return;
-            }
-            void queryClient
-              .fetchQuery({ ...myOrderQuery(orderUuid), staleTime: 0 })
-              .catch(() => undefined)
-              .then((fresh) => onOutcome(outcome, fresh));
-          },
-        ]),
-      ),
+      handlersFrom(table, (outcome) => {
+        if (!outcome.refetch) {
+          onOutcome(outcome, undefined);
+          return;
+        }
+        void queryClient
+          .fetchQuery({ ...myOrderQuery(orderUuid), staleTime: 0 })
+          .catch(() => undefined)
+          .then((fresh) => onOutcome(outcome, fresh));
+      }),
     [queryClient, orderUuid, table, onOutcome],
   );
 }
@@ -186,7 +181,6 @@ export function useRefundAccount(orderUuid: string) {
   const { data: order } = useSuspenseQuery(myOrderQuery(orderUuid));
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RefundAccountFieldErrors>({});
-  const [saved, setSaved] = useState(false);
 
   const onOutcome = useCallback((outcome: OrderActionOutcome) => setError(outcome.message), []);
   const codes = useOrderCodes(orderUuid, REFUND_ACCOUNT_ERROR_TABLE, onOutcome);
@@ -203,7 +197,6 @@ export function useRefundAccount(orderUuid: string) {
     async (values: RefundAccountFormValues) => {
       if (mutation.isPending) return;
       setError(null);
-      setSaved(false);
       const checked = toRefundAccountBody(values, bankCodesOf(queryClient));
       if (!checked.ok) {
         setFieldErrors(checked.errors);
@@ -212,7 +205,6 @@ export function useRefundAccount(orderUuid: string) {
       setFieldErrors({});
       try {
         await mutation.mutateAsync(checked.body);
-        setSaved(true);
       } catch (e) {
         handleError(e, codes);
       }
@@ -229,6 +221,7 @@ export function useRefundAccount(orderUuid: string) {
     pending: mutation.isPending,
     error,
     fieldErrors,
-    saved,
+    /** 저장 성공 — mutation `isSuccess`(코드 패턴 점검 A34). 다시 보내면 요청 중에 false로 돌아간다 */
+    saved: mutation.isSuccess,
   };
 }

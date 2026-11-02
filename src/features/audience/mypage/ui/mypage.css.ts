@@ -79,12 +79,6 @@ export const optionBox = style({
   background: vars.color.surface.container,
 });
 
-export const divider = style({
-  height: 1,
-  margin: `0 ${vars.space[5]}`,
-  background: vars.color.surface.defaultBorder,
-});
-
 /** 안내 상자(거절 사유 · 환불 계좌 유도 · 취소 안내) */
 export const notice = style({
   display: 'flex',
@@ -129,7 +123,7 @@ export const posterImage = style({
   objectFit: 'cover',
 });
 
-/** 포스터 위 D-n · 공연종료 칩(와이어 `128:2772` 오른쪽 위) */
+/** 포스터 위 D-n · 공연 종료 칩(와이어 `128:2772` 오른쪽 위) */
 export const posterChip = style({
   position: 'absolute',
   top: vars.space[1],

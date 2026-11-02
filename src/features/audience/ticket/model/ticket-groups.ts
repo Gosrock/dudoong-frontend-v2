@@ -1,5 +1,6 @@
 import type { MyTicketGroup, MyTicketState, NewApproved } from '@/api/my-ticket/schema';
 import { MY_TICKET_STATES } from '@/api/my-ticket/schema';
+import { orderHref } from '@/features/audience/routes';
 
 import { TICKET_STATE_ORDER, ticketStateView, type TicketTone } from './my-ticket-state';
 
@@ -42,14 +43,12 @@ export type TicketGroupView = {
   total: number;
 };
 
-export const orderDetailHref = (orderUuid: string) => `/orders/${encodeURIComponent(orderUuid)}`;
-
 export function toTicketGroupView(group: MyTicketGroup): TicketGroupView {
   return {
     group,
     key: group.groupKey,
     counts: stateCounts(group.counts, group.approvalRequired),
-    orderHref: group.orderUuid ? orderDetailHref(group.orderUuid) : null,
+    orderHref: group.orderUuid ? orderHref(group.orderUuid) : null,
     orderOnly: group.tickets.length === 0,
     total: group.tickets.length,
   };
@@ -111,7 +110,7 @@ export function noticeBar(
   groups: readonly Pick<MyTicketGroup, 'groupKey' | 'orderUuid' | 'event' | 'tickets'>[],
 ): TicketNoticeBar {
   const refused = notice?.refusedOrderUuids?.[0];
-  if (refused) return { kind: 'REFUSED', orderHref: orderDetailHref(refused) };
+  if (refused) return { kind: 'REFUSED', orderHref: orderHref(refused) };
   if (notice?.hasNew) {
     const first = notice.orderUuids[0];
     const target = groups.find((g) => g.orderUuid !== null && g.orderUuid === first);

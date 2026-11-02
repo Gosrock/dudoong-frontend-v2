@@ -15,9 +15,6 @@ export function checkoutHref(eventId: string | number, { ticketItemId, quantity 
   return `/events/${encodeURIComponent(eventId)}/checkout?${query.toString()}`;
 }
 
-/** 공연 상세(티켓 선택으로 돌려보낼 곳) */
-export const eventHref = (eventId: string | number) => `/events/${encodeURIComponent(eventId)}`;
-
 const POSITIVE_INT = /^[1-9]\d*$/;
 
 type SearchParamsLike =

@@ -16,6 +16,8 @@ export const WITHDRAW_DESCRIPTION =
 /**
  * 회원 탈퇴 확인 — DS 확인 팝업(`Popup`). GUI·와이어에 탈퇴 화면이 없어 DS로만 만들었다(Figma 코멘트 — 디자인 없음).
  * 훅을 팝업 안에서 읽어 `USER_400_6`(마스터 양도 필요) 안내를 팝업에 그대로 보인다. 성공하면 훅이 홈으로 하드 이동한다.
+ * 확인 창 계약(patterns §6)의 `openConfirm`을 쓰지 않는다 — 실패 문구(`USER_400_6` 마스터 양도 안내)를 시트 안에 보여야 하는데 EasyOverlay `content`는 열 때 고정된
+ * 노드라 훅 상태를 받지 못한다(코드 패턴 점검 A1 — 이유를 적고 그대로). 실패하면 열린 채, 성공하면 닫힘은 같다.
  */
 export function openWithdraw() {
   overlay.open(({ isOpen, close, unmount }) => (
