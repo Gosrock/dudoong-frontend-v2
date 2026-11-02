@@ -6,7 +6,6 @@ import { overlay } from 'overlay-kit';
 import type { ComponentPropsWithRef, MouseEvent, ReactNode } from 'react';
 
 import { Avatar } from '@/ui/components/Avatar/Avatar';
-import { Button } from '@/ui/components/Button/Button';
 import { Drawer } from '@/ui/components/Drawer/Drawer';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Tooltip } from '@/ui/components/Tooltip/Tooltip';
