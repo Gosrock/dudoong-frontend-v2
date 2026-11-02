@@ -58,6 +58,23 @@ export const SpacingAndDivider: Story = {
   ),
 };
 
+/** `Divider` 변형 — 1px 선(기본) · 안쪽 여백 선(`inset`, GUI 총액 위 선 좌우 24) · 섹션 띠(`variant="section"`) */
+export const DividerVariants: Story = {
+  render: () => (
+    <div style={{ width: 390 }}>
+      <Txt typography="bodyMd">선(기본)</Txt>
+      <Divider />
+      <Spacing size={4} />
+      <Txt typography="bodyMd">inset={'{5}'}</Txt>
+      <Divider inset={5} />
+      <Spacing size={4} />
+      <Txt typography="bodyMd">variant=&quot;section&quot;</Txt>
+      <Divider variant="section" />
+      <Txt typography="bodyMd">아래 섹션</Txt>
+    </div>
+  ),
+};
+
 export const TextLines: Story = {
   render: () => (
     <div style={{ width: 200 }}>

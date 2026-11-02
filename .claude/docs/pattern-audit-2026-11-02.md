@@ -112,6 +112,23 @@
 
 **새 파일**: `hosting/shared/{routes.ts, model/host-role.ts, ui/NoticeBox.tsx(+css), ui/event-scope-attrs.ts}` · `audience/event/model/ticket-list.ts` · mypage 화면별 css 6. ⑥으로 넘기는 것: `src/ui` sr-only 2곳(FilterChip · DataTable caption), A9는 RHF 전환과 같이.
 
+### ⑥-views 결과(`31b pattern-split-views`)
+
+`src/ui`(Divider · Flex · sprinkles · FilterChip · DataTable) · `features/audience/**` · `features/hosting/{guest,home,qr}` · `features/shared/**`. **동작 그대로** — 나누기 · 묶기 · 같은 모양을 공용 부품으로. `hosting/{event,host,ticket,shared}`는 병렬 `31a pattern-split-forms` 몫이라 건드리지 않았다.
+
+| ID | 결과 | 한 것 · 이유 |
+|---|---|---|
+| A24 | 끝(셋 + 예매자 관리 탭) | **체크아웃** `CheckoutView.tsx` 750줄 → 진입 106줄 + `ui/CheckoutForm`(폼 · 폼 위 안내 · 옵션적용 · 예매정보 · 하단 동의 · 주문 확인 팝업) · `CheckoutPayment`(결제정보 · 금액 · 결제방식 · 확인 요약) · `CheckoutAgreements`(② ③ 동의 — 문구 그대로) · `RefundPolicy` · `OptionFields`, css는 조각마다 + 공용 `checkout.css.ts`. **주문상세** `OrderDetailView.tsx` 541 → 120 + `ui/OrderDetailHeader` · `OrderDetailNotices` · `OrderDetailTickets` · `OrderDetailPayment` · `OrderCancelNotice`(A-8 원문 그대로). **호스팅 주문 상세** `OrderDetailOverlay.tsx` 561 → 150 + `OrderDetailParts`(정보 줄 · 섹션 · 티켓 카드 · 옵션 응답 — 발급 티켓 상세도 씀) · `OrderInfo` · `OrderReasonSteps` · `OrderDetailFooter`. 같이 `GuestTabs.tsx`(385) → `IssuedTicketsTab` · `RefundsTab` + `ui/IssuedTicketDetailOverlay`, `GuestsView`의 `OrdersTab` → 파일(`GuestsView` 321 → 67), 행 클릭 막기 두 벌 → `StopRowClick`. 하위 컴포넌트 prop `d` · `o` → `detail` · `state`(A41 남은 몫) |
+| A25 | 끝(넷) | `useCheckout` → `options`(`has` · `mode` · `canChooseMode` · `setMode`) · `submission`(`validate` · `submit` · `pending` · `error` · `dismissError`) — 27키 → 19. `useOrderList` · `useIssuedTicketList` → `search` · `pagination` · `excel`(+ 발급 티켓 `checkIn`), `useRefundList` → `pagination`. 호스팅 `useOrderDetail`의 취소 사유 6키 → `cancelForm`(`refuseForm`과 같은 모양). 테스트는 접근 경로만 고쳤다(단언 그대로). 돈 경로(`useCheckout` 제출 · 멱등 키 · 금액)는 손대지 않았다 |
+| A27 | 끝 | `Divider`에 `variant="section"`(높이 space 4 · `surface.container`, 보조 기술에 숨김) · `inset`(SpaceKey — 가로면 좌우). **DS 파일에는 Divider 컴포넌트가 없다**(2026-11-03 REST 공개 컴포넌트 목록으로 확인) — 섹션 띠는 체크아웃 GUI `564:4156` 섹션 간격, inset은 `567:7924` 총액 위 선(좌우 24). 옮긴 곳: 섹션 띠 `sectionGap` 두 벌(체크아웃 7 · 주문상세 7 · 마이페이지 1) · 체크아웃 옵션 사이 선 · 확인 요약 선 2 · 결제금액 총액 위 선(inset). 리포트의 "16파일 23곳"은 1×1 sr-only 숨김(`width: 1 · height: 1`)을 함께 센 수 — 다시 세니 독립된 선 요소는 위 넷뿐이고, 나머지 1px은 행 · 상자 · 바의 **테두리**(그 요소의 모양)라 그대로 둔다. `SectionViewer`의 `hr` 전역 스타일(본문 HTML)도 그대로 |
+| A28 | 끝(guest · home · qr + 나눈 파일) | flex · gap만 하는 클래스 13개 → `Flex`(주문 상세 본문 · 섹션 · 카드 머리 · 하단 버튼 줄 · 사유 묶음 · 툴바 · 안내 줄 · 목록 상태 칸 · 공연준비 홈 탭 줄 · 목록 · QR 통계 오류 · 전체화면 줄), 나눈 체크아웃 파일의 `refundPolicy` · `agreementCheck` · `notice` · `paymentChannels` · `errorBannerAction`. `Flex`가 `aria-label` · `role` · `id` · `data-testid`를 받게 했다(`as="section"`에 이름을 달려고 감싸는 div를 두지 않게). **그대로**: `inline-flex`(Flex는 `flex`만) · `form`(onSubmit을 받지 않는다) · `dl`/`p`의 margin 리셋을 같이 하는 클래스 · Radix 부품에 붙는 클래스(`TabPanel` · `RadioGroup`) |
+| A46 | 끝 | `listStyle: 'none'` 22곳(이 세션 범위) → `sprinkles({ listStyle: 'none' })`(sprinkles에 `listStyle` 속성). 🤖 전역 `ul, ol` 리셋은 두지 않았다 — 체크아웃 동의 `ol` · 마이페이지 안내 `ul`이 표식을 보인다. 숫자 → 토큰: 호스트 홈 가로 스크롤 ±24 → `space[5]`, 선물 안내 들여쓰기 28 → `space[5] + space[1]`. 공연 리스트 뼈대 `gap: 10`은 `ConcertCard`(DS 카드)와 같은 값이라 그대로 + 주석(10 토큰 없음). `'use client'` 3개(`EventInfo` · `TicketChips` · `DetailCell`) |
+| ⑤에서 넘김 | 끝 | `src/ui` sr-only 2곳 → Radix `VisuallyHidden`(`FilterChip` "n개 선택됨" · `DataTable` `<caption>`은 `asChild`) |
+
+**forms 세션 파일에 남긴 것(A27 · A28 · A46)**: `hosting/{event,host,ticket,shared}`의 1px은 sr-only(`EventDetailView` · `EventInfoView` · `TicketFormView` · `TicketListView`의 `desktopTitle`)와 테두리(`EventDetailView.css:56` · `EventDashboardView.css:30,224` · `HostManage.css:72` · `TicketFormView.css:114,207` · `EditorParts.css:30`) — 독립된 선 요소는 없다. flex 전용 클래스와 `listStyle`(`HostManage` · `OptionSheets` · `TicketParts` · `EventDashboardView` · `EventScopeNav` · `TicketCard`)도 그 세션 범위.
+
+**새 파일**: checkout `ui/{CheckoutForm, CheckoutPayment, CheckoutAgreements, RefundPolicy, OptionFields}.tsx` + css 5 · mypage `ui/{OrderDetailHeader, OrderDetailNotices, OrderDetailTickets, OrderDetailPayment, OrderCancelNotice}.tsx` + `OrderDetail.css.ts` · guest `{OrdersTab, IssuedTicketsTab, RefundsTab}.tsx` · `ui/{OrderDetailParts, OrderInfo, OrderReasonSteps, OrderDetailFooter, IssuedTicketDetailOverlay}.tsx`. 지운 파일: `GuestTabs.tsx` · mypage `OrderDetailView.css.ts` · `PaymentBlocks.css.ts`.
+
 ### ⑥ 결과 — ⑥-forms(`31a pattern-split-forms`)
 
 `features/hosting/{event,host,ticket,shared}`. 관제탑이 ⑥을 둘로 나눴다(🤖 2026-11-03) — 이 절은 **복잡한 폼 7개 RHF 전환 + 그 화면 · 훅 나누기**. 나머지 큰 파일 · `Divider` · A46은 `⑥-views`. `src/ui` 수정 없음.

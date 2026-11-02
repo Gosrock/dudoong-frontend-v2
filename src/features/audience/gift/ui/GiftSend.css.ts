@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** 유의사항 확인 상자 — GUI `908:12227`(342×124 · 모서리 12 · 패딩 12 · 채움 #F7F7F6 변수) */
@@ -13,11 +14,13 @@ export const notice = style({
 });
 
 /** 안내 두 줄 — 체크 상자(20) + 간격 8 만큼 들여 쓴다(GUI 왼쪽 패딩 29 → 28) */
-export const noticeList = style({
-  margin: 0,
-  paddingLeft: 28,
-  listStyle: 'none',
-});
+export const noticeList = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    margin: 0,
+    paddingLeft: `calc(${vars.space[5]} + ${vars.space[1]})`,
+  },
+]);
 
 /** 공유 버튼 3개 — 같은 폭 · 간격 8(GUI `908:13336` 109×46 ×3) */
 export const shareRow = style({

@@ -2,6 +2,7 @@ import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
 import { colors } from '@/ui/theme/colors';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** PC 본문 폭(figma-structure 공연홈 PC "본문 1200", 와이어 `626:19888` — 1440에서 좌우 120) */
@@ -62,21 +63,23 @@ export const moreLink = style({
 export const moreArrow = style({ width: 30, height: 30, pointerEvents: 'none' });
 
 /** 가로 캐러셀(GUI `759:22414` 카드 163 · 간격 16, 와이어 PC 카드 282 · 간격 24) */
-export const carousel = style({
-  display: 'flex',
-  gap: vars.space[4],
-  margin: 0,
-  padding: 0,
-  paddingInline: edge,
-  listStyle: 'none',
-  overflowX: 'auto',
-  overscrollBehaviorX: 'contain',
-  scrollSnapType: 'x mandatory',
-  scrollPaddingInline: edge,
-  scrollbarWidth: 'none',
-  selectors: { '&::-webkit-scrollbar': { display: 'none' } },
-  '@media': { [media.desktop]: { gap: vars.space[5] } },
-});
+export const carousel = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    gap: vars.space[4],
+    margin: 0,
+    padding: 0,
+    paddingInline: edge,
+    overflowX: 'auto',
+    overscrollBehaviorX: 'contain',
+    scrollSnapType: 'x mandatory',
+    scrollPaddingInline: edge,
+    scrollbarWidth: 'none',
+    selectors: { '&::-webkit-scrollbar': { display: 'none' } },
+    '@media': { [media.desktop]: { gap: vars.space[5] } },
+  },
+]);
 
 export const carouselItem = style({
   flex: '0 0 163px',

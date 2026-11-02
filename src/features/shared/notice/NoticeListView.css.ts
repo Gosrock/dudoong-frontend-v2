@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -45,12 +46,14 @@ export const titleDesktopOnly = style([
   },
 ]);
 
-export const list = style({
-  listStyle: 'none',
-  margin: 0,
-  padding: 0,
-  borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
-});
+export const list = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    margin: 0,
+    padding: 0,
+    borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
+  },
+]);
 
 export const item = style({
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,

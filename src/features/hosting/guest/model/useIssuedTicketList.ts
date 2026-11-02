@@ -126,21 +126,26 @@ export function useIssuedTicketList(eventId: string) {
     })),
     entrance,
     setEntrance: table.setFilter,
-    searchTypes: TICKET_SEARCH_TYPE_OPTIONS,
-    searchType,
-    setSearchType: table.setSearchType,
-    keywordInput: table.keywordInput,
-    setKeywordInput: table.setKeywordInput,
-    keywordMax: table.keywordMax,
-    submitSearch: table.submitSearch,
-    appliedKeyword: applied.keyword,
-    exactMatchHint: exactMatchHintOf(scope.role, searchType),
+    /** 검색 — 기준 · 입력(50자) · 적용 */
+    search: {
+      types: TICKET_SEARCH_TYPE_OPTIONS,
+      type: searchType,
+      setType: table.setSearchType,
+      input: table.keywordInput,
+      setInput: table.setKeywordInput,
+      max: table.keywordMax,
+      submit: table.submitSearch,
+      applied: applied.keyword,
+      exactMatchHint: exactMatchHintOf(scope.role, searchType),
+    },
     rows: data?.tickets.content ?? [],
     empty: query.status === 'success' && data?.tickets.content.length === 0,
-    page,
-    totalPages: data?.tickets.totalPages ?? null,
-    hasNext: data?.tickets.hasNext ?? false,
-    setPage: table.setPage,
+    pagination: {
+      page,
+      totalPages: data?.tickets.totalPages ?? null,
+      hasNext: data?.tickets.hasNext ?? false,
+      setPage: table.setPage,
+    },
     /** 티켓 상세 */
     selectedTicketUuid: selected,
     openTicket: (ticketUuid: string) => {
@@ -155,20 +160,27 @@ export function useIssuedTicketList(eventId: string) {
     /**
      * [수동 입장 처리] — 일반 멤버 이상, 입장 전(`BEFORE`) 티켓만 보인다. 공연이 OPEN·정산중이 아니면 버튼 대신 `checkInBlockMessage`
      */
-    canManualCheckIn,
-    checkInBlockMessage: checkInBlock ? HOST_SCAN_BLOCK_MESSAGE[checkInBlock] : null,
-    manualCheckIn,
-    checkingIn: checkInM.isPending,
-    /** 마지막 수동 입장 결과(상세를 닫으면 지운다) */
-    checkInResult,
+    checkIn: {
+      can: canManualCheckIn,
+      blockMessage: checkInBlock ? HOST_SCAN_BLOCK_MESSAGE[checkInBlock] : null,
+      run: manualCheckIn,
+      pending: checkInM.isPending,
+      /** 마지막 수동 입장 결과(상세를 닫으면 지운다) */
+      result: checkInResult,
+    },
     detailStatus: selected === null ? ('idle' as const) : detailQuery.status,
     detail: selected !== null ? (detailQuery.data ?? null) : null,
     missingNotice,
     dismissMissingNotice: () => setMissingNotice(null),
-    canExport: exporter.canExport,
-    exporting: exporter.exporting,
-    exportError: exporter.error,
-    dismissExportError: exporter.dismissError,
-    exportExcel: () => exporter.download({ entrance, ...applied }),
+    /** 엑셀 — 매니저 이상만 */
+    excel: {
+      can: exporter.canExport,
+      pending: exporter.exporting,
+      error: exporter.error,
+      dismissError: exporter.dismissError,
+      download: () => exporter.download({ entrance, ...applied }),
+    },
   };
 }
+
+export type IssuedTicketListState = ReturnType<typeof useIssuedTicketList>;

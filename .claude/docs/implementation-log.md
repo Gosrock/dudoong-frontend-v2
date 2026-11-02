@@ -2784,6 +2784,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(2026-11-03, dev:mock 3078)**: 공연준비 홈 1440 · 공연 대시보드 1440(사이드바 · 3단 · 일정 패널) · 새 티켓 390(공연 헤더 숨고 ← 제목 헤더만 — 옮긴 숨김 스타일 · 필수 `*`) · 티켓 목록 390(`NoticeBox` "티켓 옵션이란?") · 마이페이지 390(연필 배지 · 화면별 css) · 셸 드로어 390(프로필 편집 숨김 글자) · 주문내역 1440(툴바 · 카드 · 포스터 칩). 발견 없음.
 
+<<<<<<< HEAD
 ## 코드 패턴 정리 ⑥-forms — 호스팅 복잡한 폼 RHF 전환 · 폼 화면 나누기(2026-11-03, `pattern-split-forms`)
 
 근거: `pattern-audit-2026-11-02.md` "⑥ 결과 — ⑥-forms"(D1 전환 · A9 · A24 · A25 · A28), patterns §23 폼 분류표. 관제탑이 ⑥을 forms ∥ views로 나눴다(🤖 2026-11-03). 범위 `features/hosting/{event,host,ticket,shared}` — `src/ui` 수정 없음.
@@ -2810,3 +2811,26 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest `src/features/hosting` 34파일 664개 통과. e2e(CSS 고친 빌드) a11y 전체 · hosting-ticket · hosting-event · hosting-host · hosting 245 통과, a11y-keyboard · host-home · shell 34 통과. QA hosting-event 20 · hosting-ticket 30 · host-settings 18 · hosting-home 28 — 실패 0.
 
 **ego-browser 확인(2026-11-03, 운영 빌드 + 가짜 백엔드 4279 — 이 워크트리의 `dev:mock`은 "로그인 확인 중"에서 넘어가지 않아 e2e와 같은 `pnpm start`로 띄움)**: 호스트 설정 390 · 948(이름 지우고 [저장] → 칸 오류, 고치면 사라짐 · 연락처 줄 추가 → 둘째 줄 ✕ → 남은 줄 값 그대로 · 뒤로가기 → "저장하지 않고 나갈까요?" 확인 창), 멤버 초대 948(`nobody@example.com` → 그 줄에 `HOST_400_13` 사유, 고치면 지움, 바른 이메일 → "멤버를 초대했어요"), 새 티켓 320 · 390(가로 넘침 없음 · 수량 칸 136, 무료 티켓 만들기 → 목록으로), 공연 140 기본 정보 948 · 1440(티켓 있는 공연에서 "티켓 없음" 저장 → 그 칸에 `Event_400_25`, 되돌리면 사라짐), 티켓 수정 1440(두 열 · 수량 칸 88 · 잠김 안내). 발견: 티켓 폼 320 넘침(위 — 고침).
+=======
+## 코드 패턴 정리 ⑥-views 큰 화면 파일 나누기(2026-11-03, `pattern-split-views`)
+
+**근거**: [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) "⑥-views 결과"(A24 · A25 · A27 · A28 · A46 + ⑤에서 넘긴 `src/ui` sr-only) · progress "다음 순서" 31b. 병렬 `31a pattern-split-forms`(호스팅 폼 RHF 전환)와 파일을 나눴다 — 이 세션은 `src/ui` · `audience` · `hosting/{guest,home,qr,shell,access}` · `shared`. **동작 그대로**.
+
+**바꾼 것**
+
+- A24 — 체크아웃(750 → 106 + 조각 5) · 주문상세(541 → 120 + 조각 5) · 호스팅 주문 상세 오버레이(561 → 150 + 조각 4) · 예매자 관리 탭(`GuestTabs` 385 → `IssuedTicketsTab` · `RefundsTab` + 발급 티켓 상세, `OrdersTab` 분리). 섹션 단위로 자르고 하위 prop `d` · `o` → `detail` · `state`.
+- A25 — `useCheckout` `options` · `submission`, 예매자 목록 훅 `search` · `pagination` · `excel` · `checkIn`, 호스팅 `useOrderDetail` `cancelForm`. 테스트는 접근 경로만(단언 그대로).
+- A27 — `Divider` `variant="section"` · `inset`(DS 파일에 Divider 컴포넌트 없음 — GUI 섹션 간격 · 총액 위 선 근거). 섹션 띠 15곳 · 선 4곳. 스토리 `Foundation/Primitives` → `DividerVariants`.
+- A28 — flex 전용 클래스 13개(guest · home · qr) + 나눈 체크아웃 조각 5개 → `Flex`. `Flex`가 `aria-label` · `role` · `id` · `data-testid`를 받는다.
+- A46 — `listStyle: 'none'` 22곳 → `sprinkles({ listStyle: 'none' })`, 토큰 2곳, `'use client'` 3.
+- ⑤ 넘김 — `FilterChip` · `DataTable` caption → `VisuallyHidden`.
+- 문서 — patterns §3(Divider 변형 · Flex 이름 속성 · 목록 리셋), directory-structure(guest 파일).
+
+**사용자에게 보이는 변화**: 없음 — 같은 DOM 모양(섹션 띠 `div` → `hr aria-hidden`, 선 `div` → `hr`)과 같은 값. 캡처 차이는 아래 검사 줄.
+
+**🤖 판단**: 전역 `ul, ol` 리셋 대신 sprinkles 속성(표식을 보이는 목록이 있다). 1px 테두리(행 · 상자 · 바)는 Divider로 옮기지 않는다 — 요소 자신의 모양이다. 섹션 띠 `hr`은 꾸밈이라 `aria-hidden`(전에도 이름 없는 `div`), 1px 선은 `hr`(separator)로 남긴다.
+
+**검사**: typecheck · lint 통과. vitest 관련 묶음(audience · shared · ui · hosting guest/home/qr · 크리티컬 패스) 통과, 스토리 62파일 254개 통과. e2e 전체 587 통과 · 39 건너뜀 · 실패 0. QA checkout 31 · mypage 33 · hosting-guests 29 · tickets 20 · shell 18 — 실패 0.
+
+**ego-browser 확인(2026-11-03, dev:mock 3080)**: 체크아웃 390(섹션 띠 · 옵션 사이 선 · 총액 위 inset 선 · 결제방식 · 동의) · 1440, 주문 확인 팝업(요약 선 2 · ③ 동의 목록 번호), 주문상세 390(섹션 띠 · 예매정보 · 결제 · 예매취소 안내 · 하단 버튼) · 1440, 예매자 관리 1440(주문 탭) · 390(발급된 티켓 탭), 호스팅 주문 상세 오버레이 1440(정보 줄 · 티켓 카드 · [거절][승인]). 발견 없음.
+>>>>>>> origin/main

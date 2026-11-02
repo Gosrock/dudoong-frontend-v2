@@ -2,6 +2,7 @@ import { style } from '@vanilla-extract/css';
 
 import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -90,7 +91,7 @@ export const info = style({
 
 export const infoRows = style({ display: 'flex', flexDirection: 'column', gap: vars.space[3] });
 
-export const chips = style({ listStyle: 'none', margin: 0, padding: 0 });
+export const chips = style([sprinkles({ listStyle: 'none' }), { margin: 0, padding: 0 }]);
 
 export const iconRow = style({
   display: 'flex',

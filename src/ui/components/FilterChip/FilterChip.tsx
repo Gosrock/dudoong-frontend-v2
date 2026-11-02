@@ -1,3 +1,4 @@
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import type { ComponentPropsWithRef } from 'react';
 
 import { Icon } from '../../icons/Icon';
@@ -45,7 +46,7 @@ export function FilterChip({
       {...rest}
     >
       {label}
-      {selected ? <span className={s.srOnly}>, {count}개 선택됨</span> : null}
+      {selected ? <VisuallyHidden>, {count}개 선택됨</VisuallyHidden> : null}
       <span className={s.chevron} aria-hidden>
         <Icon name="chevron-down" size={12} />
       </span>

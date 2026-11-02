@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { sprinkles } from '../../theme/sprinkles.css';
 import { vars } from '../../theme/tokens.css';
 
 /**
@@ -27,15 +28,17 @@ export const chartRow = style({
 
 export const donut = style({ display: 'block', flexShrink: 0, width: 104, height: 104 });
 
-export const legend = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[1],
-  minWidth: 0,
-  margin: 0,
-  padding: 0,
-  listStyle: 'none',
-});
+export const legend = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[1],
+    minWidth: 0,
+    margin: 0,
+    padding: 0,
+  },
+]);
 
 export const legendItem = style({
   display: 'flex',

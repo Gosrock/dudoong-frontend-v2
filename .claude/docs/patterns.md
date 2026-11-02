@@ -64,6 +64,8 @@
 ## 3. 레이아웃 — `Flex` / `Spacing` 우선
 
 - `div` + `display: flex` 대신 `<Flex>`, margin 대신 `<Spacing>`. 페이지 폭은 `<Container>`(Figma 그리드 여백 24 · 40 · 80), 구분선은 `<Divider>`.
+- 구분선은 1px 선이든 섹션 띠든 `<Divider>` — `variant="section"`(흰 섹션 사이 회색 띠, 높이 space 4) · `inset={5}`(양 끝을 토큰만큼 들인 선). `.css.ts`에 `height: 1` · 섹션 간격 클래스를 새로 짜지 않는다(행 · 상자의 테두리 `borderBottom`은 그 요소의 모양이라 그대로). `Flex`는 `as`와 함께 `aria-label` · `role` · `id` · `data-testid`를 받는다 — `<section aria-label>`을 감싸려고 div를 하나 더 두지 않는다.
+- 목록 표식 리셋은 `sprinkles({ listStyle: 'none' })`(`style([sprinkles({ listStyle: 'none' }), { … }])`). 전역 `ul, ol` 리셋은 없다 — 번호 · 글머리를 보이는 목록이 있다(체크아웃 동의 · 안내).
 - 정렬은 `Flex.Center`(양축), `Flex.CenterVertical`(교차축), `Flex.CenterHorizontal`(주축).
 - props는 토큰 키만 받는다 — `gap={4}`는 `Space/4`(16px). 반응형 값은 `{ mobile, desktop }`. `justify`·`align`은 CSS 값 그대로(`flex-start`·`space-between` — `start`·`between` 아님).
 - 그 밖의 부품 함정: `Icon`의 `size`는 레지스트리에 있는 (이름, 크기) 조합만 받는다(대부분 24, 일부 12·20 — 다른 크기는 className으로). `Button`에 ghost 변형은 없다.

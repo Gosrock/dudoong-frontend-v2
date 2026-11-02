@@ -40,15 +40,6 @@ export const chevron = style({
 
 export const badge = style({ position: 'absolute', top: -10, right: -10 });
 
-export const srOnly = style({
-  position: 'absolute',
-  width: 1,
-  height: 1,
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-});
-
 /** 개수형(#61) — 고른 칩은 테두리 검정(`text/primary-label`) */
 export const count = style({
   selectors: {

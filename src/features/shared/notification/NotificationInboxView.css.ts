@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -38,7 +39,7 @@ export const title = style({
 
 export const titleAction = style({ gridColumn: 3, justifySelf: 'end' });
 
-export const list = style({ listStyle: 'none', margin: 0, padding: 0 });
+export const list = style([sprinkles({ listStyle: 'none' }), { margin: 0, padding: 0 }]);
 
 export const item = style({
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,

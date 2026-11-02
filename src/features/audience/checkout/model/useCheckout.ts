@@ -306,11 +306,13 @@ export function useCheckout({
      * 칸이 있으면 체크 전 제출이 막힌다
      */
     agreementFields: checkoutAgreementFields(ticket),
-    hasOptions: hasOptions(ticket),
-    /** 옵션 모드(수량 1이면 언제나 same — 모드 선택을 그리지 않는다) */
-    mode,
-    canChooseMode: hasOptions(ticket) && quantity > 1,
-    setMode,
+    /** 옵션 응답 — `has`: 옵션 칸이 있는지, `mode`: 옵션 모드(수량 1이면 언제나 same — 모드 선택을 그리지 않는다) */
+    options: {
+      has: hasOptions(ticket),
+      mode,
+      canChooseMode: hasOptions(ticket) && quantity > 1,
+      setMode,
+    },
     quantity,
     maxQuantity,
     /** 원한 수량(주소·스테퍼)이 상한보다 커서 줄였는지(재고 갱신 뒤 포함) */
@@ -321,16 +323,20 @@ export function useCheckout({
     paymentChannel,
     /** 입금자명(닉네임 고정, 읽기 전용) */
     depositorName,
-    /**
-     * 확인 모달을 열기 전 검증(칸 오류 표시). 통과하면 true. 두둥 입금 전 확인(③)은 그 모달 안에서 받으므로 여기서는 보지 않는다
-     * (모달의 [주문 완료하기]가 체크 전 비활성이고, `submit`이 전체를 다시 검사한다)
-     */
-    validate: () => form.trigger(PRE_CONFIRM_FIELDS),
-    submit,
-    submitting: mutation.isPending || succeeded,
-    /** 폼 상단 오류(입금자명·옵션 답·재고·1인 제한·무료 선착순 실패) */
-    submitError,
-    dismissSubmitError: () => setSubmitError(null),
+    /** 검증 · 제출 */
+    submission: {
+      /**
+       * 확인 모달을 열기 전 검증(칸 오류 표시). 통과하면 true. 두둥 입금 전 확인(③)은 그 모달 안에서 받으므로 여기서는 보지 않는다
+       * (모달의 [주문 완료하기]가 체크 전 비활성이고, `submit`이 전체를 다시 검사한다)
+       */
+      validate: () => form.trigger(PRE_CONFIRM_FIELDS),
+      submit,
+      /** 요청 중이거나 성공해 이동 중 */
+      pending: mutation.isPending || succeeded,
+      /** 폼 상단 오류(입금자명·옵션 답·재고·1인 제한·무료 선착순 실패) */
+      error: submitError,
+      dismissError: () => setSubmitError(null),
+    },
   };
 }
 

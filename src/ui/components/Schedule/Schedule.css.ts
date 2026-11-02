@@ -1,5 +1,6 @@
 import { globalStyle, style, styleVariants } from '@vanilla-extract/css';
 
+import { sprinkles } from '../../theme/sprinkles.css';
 import { vars } from '../../theme/tokens.css';
 
 // ─── `날짜`(`605:1875`) — 주간 줄 ──────────────────────────────────
@@ -7,13 +8,15 @@ import { vars } from '../../theme/tokens.css';
 /** "26년 10월" `Label/lg-emphasized` + 7칸(위아래 9 → 8). 칸 = 요일 `Label/sm` + 간격 8 + 날짜 `Label/md` */
 export const week = style({ display: 'flex', flexDirection: 'column' });
 
-export const days = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
-  margin: 0,
-  padding: `${vars.space[2]} 0`,
-  listStyle: 'none',
-});
+export const days = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+    margin: 0,
+    padding: `${vars.space[2]} 0`,
+  },
+]);
 
 export const day = style({
   display: 'flex',

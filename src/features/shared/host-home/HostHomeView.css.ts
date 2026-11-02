@@ -2,6 +2,7 @@ import { globalStyle, style } from '@vanilla-extract/css';
 
 import { fabBottom, fabClearance } from '@/ui/components/Fab/Fab.css';
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -95,15 +96,17 @@ export const metaIcon = style({ width: 20, height: 20, flexShrink: 0 });
 
 export const introduce = style({ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' });
 
-export const contacts = style({
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: vars.space[2],
-  margin: 0,
-  marginTop: vars.space[2],
-  padding: 0,
-  listStyle: 'none',
-});
+export const contacts = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: vars.space[2],
+    margin: 0,
+    marginTop: vars.space[2],
+    padding: 0,
+  },
+]);
 
 /** 연락처 아이콘 원 40(와이어 회색 원) */
 export const contactButton = style({
@@ -156,31 +159,33 @@ export const section = style({
 });
 
 /** 가로로 넘기는 줄(멤버 · 공연) — 모바일은 화면 끝까지 넘친다 */
-export const scroller = style({
-  display: 'flex',
-  gap: vars.space[4],
-  margin: 0,
-  marginLeft: -24,
-  marginRight: -24,
-  paddingLeft: 24,
-  paddingRight: 24,
-  paddingBottom: vars.space[1],
-  listStyle: 'none',
-  overflowX: 'auto',
-  scrollSnapType: 'x proximity',
-  scrollPaddingLeft: 24,
-  scrollbarWidth: 'none',
-  '@media': {
-    [media.desktop]: {
-      marginLeft: 0,
-      marginRight: 0,
-      paddingLeft: 0,
-      paddingRight: 0,
-      scrollPaddingLeft: 0,
-      scrollbarWidth: 'thin',
+export const scroller = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    display: 'flex',
+    gap: vars.space[4],
+    margin: 0,
+    marginLeft: -24,
+    marginRight: -24,
+    paddingLeft: 24,
+    paddingRight: 24,
+    paddingBottom: vars.space[1],
+    overflowX: 'auto',
+    scrollSnapType: 'x proximity',
+    scrollPaddingLeft: 24,
+    scrollbarWidth: 'none',
+    '@media': {
+      [media.desktop]: {
+        marginLeft: 0,
+        marginRight: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        scrollPaddingLeft: 0,
+        scrollbarWidth: 'thin',
+      },
     },
   },
-});
+]);
 
 export const member = style({
   display: 'flex',

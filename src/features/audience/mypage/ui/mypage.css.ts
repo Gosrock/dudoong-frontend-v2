@@ -1,6 +1,7 @@
 import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -48,18 +49,11 @@ export const title = style({
   },
 });
 
-export const list = style({ listStyle: 'none', margin: 0, padding: 0 });
+export const list = style([sprinkles({ listStyle: 'none' }), { margin: 0, padding: 0 }]);
 
 /** 목록 행 사이 선(와이어 주문 카드 구분선) */
 export const row = style({
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
-});
-
-/** 섹션 사이 회색 띠(체크아웃과 같은 섹션 간격) */
-export const sectionGap = style({
-  height: vars.space[4],
-  background: vars.color.surface.container,
-  flexShrink: 0,
 });
 
 /** 안내 상자(거절 사유 · 환불 계좌 유도 · 취소 안내) */

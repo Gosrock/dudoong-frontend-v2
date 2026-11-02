@@ -2,6 +2,7 @@
 
 import { Input } from '@/ui/components/Input/Input';
 import { Radio, RadioGroup } from '@/ui/components/Radio/Radio';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -38,7 +39,7 @@ export function ReasonFields<K extends string>({
   typeError?: string;
 }) {
   return (
-    <div className={s.reasonBlock}>
+    <Flex direction="column" gap={3}>
       <RadioGroup
         aria-label={label}
         className={s.reasons}
@@ -66,6 +67,6 @@ export function ReasonFields<K extends string>({
           {typeError}
         </Txt>
       )}
-    </div>
+    </Flex>
   );
 }

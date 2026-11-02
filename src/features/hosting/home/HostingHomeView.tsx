@@ -24,6 +24,7 @@ import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -115,7 +116,7 @@ export function HostingHomeView() {
       )}
 
       <Tabs value={home.tab} onValueChange={(v) => home.setTab(v as HostingHomeTab)}>
-        <div className={s.tabRow}>
+        <Flex align="center" gap={2}>
           <TabList aria-label="공연준비 홈 탭" className={s.tabList}>
             {home.tabs.map((t) => (
               <Tab key={t.key} value={t.key}>
@@ -142,7 +143,7 @@ export function HostingHomeView() {
               {create.label}
             </Link>
           )}
-        </div>
+        </Flex>
 
         <TabPanel value="events" className={s.panel}>
           <ListArea
@@ -216,11 +217,11 @@ function ListArea({
 }) {
   if (list.status === 'pending') {
     return (
-      <div className={s.listArea} role="status" aria-label="불러오는 중">
+      <Flex direction="column" gap={3} role="status" aria-label="불러오는 중">
         {[0, 1, 2].map((i) => (
           <Skeleton key={i} height={165} />
         ))}
-      </div>
+      </Flex>
     );
   }
   if (list.status === 'error') {
@@ -240,10 +241,10 @@ function ListArea({
     );
   }
   return (
-    <div className={s.listArea}>
+    <Flex direction="column" gap={3}>
       {children}
       <LoadMoreSentinel list={list} />
-    </div>
+    </Flex>
   );
 }
 

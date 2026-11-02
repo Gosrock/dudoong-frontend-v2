@@ -55,30 +55,37 @@ export function useOrderList(eventId: string) {
     })),
     statusFilter: status,
     setStatus: table.setFilter,
-    searchTypes: ORDER_SEARCH_TYPE_OPTIONS,
-    searchType,
-    setSearchType: table.setSearchType,
-    keywordInput: table.keywordInput,
-    setKeywordInput: table.setKeywordInput,
-    keywordMax: table.keywordMax,
-    submitSearch: table.submitSearch,
-    clearSearch: table.clearSearch,
-    /** 적용된 검색어(빈 문자열 = 검색 없음) */
-    appliedKeyword: applied.keyword,
-    /** 일반 멤버의 연락처·입금자명 검색 칸 안내(#846) */
-    exactMatchHint: exactMatchHintOf(scope.role, searchType),
+    /** 검색 — 기준 · 입력(50자) · 적용 · 지우기 */
+    search: {
+      types: ORDER_SEARCH_TYPE_OPTIONS,
+      type: searchType,
+      setType: table.setSearchType,
+      input: table.keywordInput,
+      setInput: table.setKeywordInput,
+      max: table.keywordMax,
+      submit: table.submitSearch,
+      clear: table.clearSearch,
+      /** 적용된 검색어(빈 문자열 = 검색 없음) */
+      applied: applied.keyword,
+      /** 일반 멤버의 연락처·입금자명 검색 칸 안내(#846) */
+      exactMatchHint: exactMatchHintOf(scope.role, searchType),
+    },
     rows: data?.orders.content ?? [],
     empty: query.status === 'success' && data?.orders.content.length === 0,
-    page,
-    totalPages: data?.orders.totalPages ?? null,
-    totalElements: data?.orders.totalElements ?? null,
-    hasNext: data?.orders.hasNext ?? false,
-    setPage: table.setPage,
+    pagination: {
+      page,
+      totalPages: data?.orders.totalPages ?? null,
+      totalElements: data?.orders.totalElements ?? null,
+      hasNext: data?.orders.hasNext ?? false,
+      setPage: table.setPage,
+    },
     /** 엑셀(GR-6) — 매니저 이상만 */
-    canExport: exporter.canExport,
-    exporting: exporter.exporting,
-    exportError: exporter.error,
-    dismissExportError: exporter.dismissError,
-    exportExcel: () => exporter.download({ status, ...applied }),
+    excel: {
+      can: exporter.canExport,
+      pending: exporter.exporting,
+      error: exporter.error,
+      dismissError: exporter.dismissError,
+      download: () => exporter.download({ status, ...applied }),
+    },
   };
 }

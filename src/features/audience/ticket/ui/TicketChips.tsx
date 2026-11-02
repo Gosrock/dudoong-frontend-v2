@@ -1,3 +1,5 @@
+'use client';
+
 import type { EventDisplayStatus } from '@/api/event/schema';
 import type { StateCount } from '@/features/audience/ticket/model/ticket-groups';
 import { Chip } from '@/ui/components/Chip/Chip';
