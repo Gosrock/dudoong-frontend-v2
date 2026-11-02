@@ -66,6 +66,35 @@
 
 **새 파일**: `checkout/ui/PaymentBlocks.tsx`(+css) · `ticket/ui/state-tone.ts` · `ticket/model/useMarkTicketViewed.ts` · `audience/routes.ts` · `audience/event-labels.ts` · `shared/image-upload/upload-errors.ts` · `shared/checkin-result/ui/checkin-tone.ts`. ④ · ⑤가 쓸 수 있게 둔 것: `UPLOAD_ERROR_MESSAGE`(호스팅 업로드 세 벌) · `CHECKIN_TONE`(`ScanResult`) · `UNNAMED_EVENT`(공연홈 · 호스팅 홈 — 호스팅은 audience를 import하지 못하므로 ⑤에서 공용 자리로).
 
+### ④ 결과(`29 pattern-hosting`)
+
+`features/hosting/**` · `shared/{host-home,notice,checkin-result}` · `audience/home`. 공용 부품과 ③의 `UPLOAD_ERROR_MESSAGE` · `CHECKIN_TONE` · `UNNAMED_EVENT`는 쓰기만 했다(`src/ui`·`src/api` 수정 없음). #129(예매자 관리 GUI) 뒤 main 기준으로 다시 봤다.
+
+| ID | 결과 | 한 것 · 이유 |
+|---|---|---|
+| A1 | 끝 | `let ok` 클로저(멤버 3) · 닫고 나서 호출(티켓 카드 삭제/중단/재개 · 옵션 ✕ · 옵션 삭제) · `false`→throw(공연 등록) · `let message`(수동 입장)를 모두 `onConfirm` 안으로. **표의 코드로 다시 읽은 화면이 답인 실패는 닫는다**(③과 같은 규칙 — patterns §6에 한 줄): `useHostMembers`가 `HOST_404_2`면 `'missing'`, `useTicketList`가 `Ticket_Item_400_7` · `404_1` · `Event_400_17`이면 `'reread'`, 그 밖 실패만 `false`(열린 채). 토스트는 `true`일 때만 |
+| A2 | 끝 | `invalidateEventStatus`를 `qr-cache` → `event/model/event-cache`로, 문구 `EVENT_ENDED_MESSAGE`는 `event-scope`(읽기 전용 안내와 같은 글자). `Event_400_17` 처리기 7곳(티켓 목록 · 티켓 폼 · 기본 정보 · 상세 정보 · **옵션 붙이기/만들기 · 옵션 상세**)과 GE-3을 다시 읽던 곳(엑셀 `HOST_400_1` · 주문 상세 · QR 3곳)이 모두 이것을 쓴다. **새 동작**: 옵션 두 곳도 GE-3을 다시 읽어 끝난 공연이면 읽기 전용으로 바뀐다 |
+| A3 | 끝 | `formatWon` · `formatSignedWon` · `formatCount` — 티켓 카드 가격 · 재고, 옵션 추가금 칩, QR 통계, 폼 한도 문구 3, 예매자 관리(`won` 별칭 지움, 옵션 응답 `(+1,000원)`). 글자는 그대로 |
+| A4 | 끝 | 공연 사이드바 `D-${dDay}` → `formatDday`(**`D-0` → `D-day`**), 공연준비 홈 · 호스트 홈 카드는 `Chip` 대신 `api/shared/dday`에서 import |
+| A7 | 일부 | `InlineError`로 10곳(공연준비 홈 목록 · 주문 상세 · 티켓 목록 · 옵션 풀 · 사이드바 공연 목록 · 호스트 고르기 · 대시보드 체크리스트/통계 · 호스트 홈 viewer/공연 · 공연 리스트 태그 · 공지 상세). 문구 그대로, 글자 크기·색은 `InlineError`로 맞춰짐(bodyLg/bodySm → bodyMd, 보조 글자색). **그대로 둔 넷**: 예매자 표 `ListError`(GUI `1029:5135` 색 · 표 안 자리) · QR 통계(위험 글자색 + "통계 다시 시도") · 지도 오버레이(`PlaceParts` — 지도 위 자리 · 다시 시도가 SDK 재시도) · 셸 드로어(셸 — ⑤에서 셸과 같이) |
+| A8 | 끝 | 공연준비 홈: `es-toolkit` `debounce` — 입력 300ms 뒤 적용, [검색]·엔터는 `cancel()` 뒤 바로. 공연 리스트: `useDebouncedValue` + "멈춘 값만 적용"(주소가 바깥에서 바뀐 직후 옛 입력으로 되돌리지 않게) |
+| A10 | 끝 | 호스트 이미지 · 포스터 · 섹션 이미지의 문구표 3벌 → `UPLOAD_ERROR_MESSAGE` + `handlersFrom`. `useImageUpload` 훅은 만들지 않음(세 곳의 에러 자리가 슬롯별 · 폼 · 에디터로 달라 묶으면 옵션이 늘어난다) |
+| A11 | 끝 | `infiniteListControls` — 공연준비 홈 · 공연 리스트 · 호스트 홈. 알림함 · 공지 목록은 Suspense 무한 목록에 자동 `loadMore`만 있어 모양이 달라 그대로 |
+| A13 | 끝 | `OptionSheets` `busy` → 훅의 `pending`(mutation `isPending`) — throw해도 굳지 않는다 |
+| A16 | 끝 | `guest/model/useTableQueryState.ts` — `useTableFilter(initial)`(필터 + 페이지, 환불 탭) · `useTableQueryState(filter, searchType)`(+ 검색 기준 · 입력 50자 · 적용 · 지우기, 주문 · 발급 티켓). 반환 모양은 그대로 |
+| A18 | 끝 | `ScanResult`의 톤 표 → `CHECKIN_TONE` |
+| A19 | 끝 | 티켓 폼 `splitDateTime` · `toServerDateTime` → `splitKstDateTime` · `joinKstDateTime`(이름은 별칭으로 남김 — 테스트가 쓴다), 공연 일정 `scheduleInputOf` · `toScheduleRange`도 |
+| A23 | 끝(호스팅) | `handlersFrom` — 옵션 필드 오류 2 · 초대 오류 · 업로드 3 |
+| A26 | 끝 | `access/HostingBoundary`(`AsyncBoundary` + `holdOn={isSessionLost}` + `HostingAccessRejected`) — 8파일 9곳 |
+| A30 | 끝 | 전역 `:focus-visible`(2px brand, offset 2)과 똑같은 선언 14곳 지움. offset이 다른 6곳(1 · −2 · 4)과 `:has(a:focus-visible)` 카드 테두리는 그대로. 지운 클래스 중 `outline: none`을 가진 것은 없다(확인함) |
+| A32 | 끝 | `guest/model/useMissingDetail` — 404가 시작될 때마다 한 번, 렌더 중 `onNotFound`(안내 · 선택 지우기) + 이펙트 `afterNotFound`(목록 다시 읽기 · 닫기, `useEffectEvent`). 주문 상세 · 발급 티켓 상세 |
+| A33 | 끝 | `invalidateExact` 하나(event-cache, ticket-cache가 import), `invalidateAfterCreateHost`(host-cache), guest-cache가 `invalidateTickets` · `invalidatePublicTickets`를 쓴다. `applyDeleted`는 `eventManageKey` |
+| A36 · A37 | 끝(공연홈 몫) | 공연홈 · 공연 리스트 카드 주소 → `eventHref`, `card-date`의 `UNNAMED_EVENT` 사본 지우고 `audience/event-labels`. 호스팅의 같은 문구(`home-cards`)는 audience를 import하지 못해 ⑤ |
+| A41 | 끝 | `V` 컴포넌트는 #129에서 이미 없어졌다. 화면의 한 글자 훅 결과 26곳 → 이름(`form` · `list` · `detail` · `scope` · `home` · `members` …) — TypeScript 언어 서비스 rename으로 바꿨다. 하위 컴포넌트 prop 이름(`d` · `m` 등)은 ⑥에서 큰 파일을 나눌 때 |
+| A42 | 끝 | `roleChipOf` → `Record<HostRole, ChipLook \| null>`, 멤버 목록 역할 글자 숨김 → `member-rules` `hideRoleLabel` + 행의 `roleLabelHidden` |
+
+**새 파일**: `hosting/access/HostingBoundary.tsx` · `hosting/guest/model/useTableQueryState.ts` · `hosting/guest/model/useMissingDetail.ts`.
+
 ---
 
 # 리포트 원문
