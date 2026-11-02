@@ -1,6 +1,6 @@
 import { startSession } from '@/api/session-flag';
 
-import { browserLocation } from '../browser-location';
+import { browserLocation } from './browser-location';
 import { clearLoginRedirect, readLoginRedirect } from './login-redirect';
 
 /**

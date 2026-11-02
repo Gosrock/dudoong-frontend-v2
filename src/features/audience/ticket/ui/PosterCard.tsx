@@ -5,7 +5,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 
 import type { TicketGroupView } from '../model/ticket-groups';
-import { TicketStateChips } from './ticket-chips';
+import { TicketStateChips } from './TicketChips';
 import * as s from './TicketTab.css';
 
 /**

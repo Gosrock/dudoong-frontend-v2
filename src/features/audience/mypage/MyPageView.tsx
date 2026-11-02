@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { type FormEvent, useState } from 'react';
 
 import { NICKNAME_MAX, NICKNAME_MIN } from '@/api/me/schema';
-import { useLogout } from '@/features/shared/auth/useLogout';
+import { useLogout } from '@/features/shared/auth/model/useLogout';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { Input } from '@/ui/components/Input/Input';
@@ -16,6 +16,7 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import { useProfileEdit } from './model/useProfileEdit';
+import * as p from './MyPageView.css';
 import * as s from './ui/mypage.css';
 import { openWithdraw } from './ui/WithdrawPopup';
 
@@ -50,11 +51,11 @@ export function MyPageView() {
 
       <section aria-label="프로필">
         <Flex align="center" gap={4} paddingX={5} paddingY={5}>
-          <span className={s.avatarWrap}>
+          <span className={p.avatarWrap}>
             <Avatar size={80} src={profile?.profileImageUrl} alt="프로필 이미지" />
             {/* 연필 배지 = 사진 고르기(와이어 `128:2875`). 파일 칸은 숨기고 label로 연다 */}
-            <label className={s.editBadge} aria-disabled={image.pending || undefined}>
-              <Icon name="edit" className={s.editIcon} />
+            <label className={p.editBadge} aria-disabled={image.pending || undefined}>
+              <Icon name="edit" className={p.editIcon} />
               <VisuallyHidden>프로필 이미지 바꾸기</VisuallyHidden>
               <VisuallyHidden asChild>
                 <input
@@ -145,7 +146,7 @@ export function MyPageView() {
         <ul className={s.list}>
           {SHORTCUTS.map((l) => (
             <li key={l.href}>
-              <Link href={l.href} className={s.menuRow}>
+              <Link href={l.href} className={p.menuRow}>
                 <Icon name={l.icon} />
                 <Txt typography="labelLg">{l.label}</Txt>
               </Link>
@@ -159,14 +160,14 @@ export function MyPageView() {
       <Flex direction="column">
         <button
           type="button"
-          className={s.menuRow}
+          className={p.menuRow}
           onClick={() => void logout.logout()}
           disabled={logout.disabled}
         >
           <Icon name="log-out" />
           <Txt typography="labelLg">로그아웃</Txt>
         </button>
-        <button type="button" className={s.menuRow} onClick={openWithdraw}>
+        <button type="button" className={p.menuRow} onClick={openWithdraw}>
           <Txt typography="labelMd" color={colors.textTertiaryLabel}>
             회원 탈퇴
           </Txt>

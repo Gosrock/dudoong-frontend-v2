@@ -11,10 +11,10 @@ import {
 import { getErrorCode, getErrorStatus } from '@/api/errors';
 import { log } from '@/utils/log';
 
-import { browserLocation } from '../browser-location';
-import { loginHref } from '../login-href';
 import { type AuthFailure, classifyAuthFailure, readCallbackParams } from './auth-outcome';
+import { browserLocation } from './browser-location';
 import { finishLogin } from './finish-login';
+import { loginHref } from './login-href';
 import { readLoginRedirect } from './login-redirect';
 import { type RegisterForm, type RegisterInput, useRegisterForm } from './useRegisterForm';
 

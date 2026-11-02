@@ -1,5 +1,5 @@
 import type { Contact } from '@/api/shared/common-schema';
-import type { SessionState } from '@/features/shared/auth/useSession';
+import type { SessionState } from '@/features/shared/auth/model/useSession';
 
 import { type ContactLink, contactLink } from './contact-link';
 

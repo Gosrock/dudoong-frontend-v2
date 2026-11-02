@@ -1,4 +1,4 @@
-import { globalStyle, style } from '@vanilla-extract/css';
+import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
@@ -48,14 +48,6 @@ export const title = style({
   },
 });
 
-/** 목록 위 오른쪽 고정 라벨 줄("최근주문순" — Q36) */
-export const toolbar = style({
-  display: 'flex',
-  justifyContent: 'flex-end',
-  padding: `${vars.space[3]} ${vars.space[5]}`,
-  borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
-});
-
 export const list = style({ listStyle: 'none', margin: 0, padding: 0 });
 
 /** 목록 행 사이 선(와이어 주문 카드 구분선) */
@@ -68,15 +60,6 @@ export const sectionGap = style({
   height: vars.space[4],
   background: vars.color.surface.container,
   flexShrink: 0,
-});
-
-/** 옵션 응답 영역(체크아웃 `optionBox`와 같은 회색 판) */
-export const optionBox = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[4],
-  padding: `${vars.space[4]} ${vars.space[5]} ${vars.space[5]}`,
-  background: vars.color.surface.container,
 });
 
 /** 안내 상자(거절 사유 · 환불 계좌 유도 · 취소 안내) */
@@ -103,18 +86,6 @@ export const noticeList = style({
   gap: vars.space[1],
 });
 
-/** 포스터 상자(와이어 회색 상자 — 서버 포스터가 없으면 `surface.imageBg`, Q26 기본안) */
-export const poster = style({
-  position: 'relative',
-  flexShrink: 0,
-  width: 76,
-  aspectRatio: '3 / 4',
-  overflow: 'hidden',
-  borderRadius: vars.radius[2],
-  background: vars.color.surface.imageBg,
-  '@media': { [media.desktop]: { width: 120 } },
-});
-
 export const posterImage = style({
   position: 'absolute',
   inset: 0,
@@ -123,147 +94,10 @@ export const posterImage = style({
   objectFit: 'cover',
 });
 
-/** 포스터 위 D-n · 공연 종료 칩(와이어 `128:2772` 오른쪽 위) */
-export const posterChip = style({
-  position: 'absolute',
-  top: vars.space[1],
-  right: vars.space[1],
-});
-
-export const cardLink = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[3],
-  padding: `${vars.space[4]} ${vars.space[5]}`,
-  color: 'inherit',
-  textDecoration: 'none',
-});
-
 export const grow = style({ flex: 1, minWidth: 0 });
-
-/** 하단 [목록] 버튼 자리(와이어 주문상세 맨 아래) */
-export const bottomAction = style({
-  padding: `${vars.space[5]} ${vars.space[5]} 0`,
-});
-
-/** 아카이빙 포스터 그리드(와이어 `503:16328` 2열, PC `671:6692` 4열) */
-export const grid = style({
-  listStyle: 'none',
-  margin: 0,
-  padding: `${vars.space[4]} ${vars.space[5]}`,
-  display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: `${vars.space[5]} ${vars.space[4]}`,
-  '@media': { [media.desktop]: { gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' } },
-});
-
-export const gridPoster = style({
-  position: 'relative',
-  width: '100%',
-  aspectRatio: '1 / 1',
-  overflow: 'hidden',
-  borderRadius: vars.radius[2],
-  background: vars.color.surface.imageBg,
-});
-
-export const gridItem = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-  alignItems: 'center',
-  textAlign: 'center',
-  color: 'inherit',
-  textDecoration: 'none',
-});
-
-/** 마이페이지 메뉴 행(와이어 햄버거 `128:2875` 아이콘 + 글자) */
-export const menuRow = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.space[3],
-  width: '100%',
-  padding: `${vars.space[3]} ${vars.space[5]}`,
-  border: 0,
-  background: 'none',
-  color: vars.color.text.primaryLabel,
-  textAlign: 'left',
-  textDecoration: 'none',
-  cursor: 'pointer',
-  selectors: { '&:hover': { background: vars.color.surface.container } },
-});
-
-/** 프로필 아바타 + 편집 배지(와이어 `128:2875` 연필) */
-export const avatarWrap = style({ position: 'relative', flexShrink: 0 });
-
-/** 연필 배지 — 와이어 `128:2904` 24 원(+ 아바타와 떼는 흰 테두리 2 = 28). 셸 드로어 · PC 아바타 메뉴와 크기가 다른 이유는 A31(`ShellDrawer.css.ts`) */
-export const editBadge = style({
-  position: 'absolute',
-  right: -2,
-  bottom: -2,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 28,
-  height: 28,
-  borderRadius: vars.radius.full,
-  border: `2px solid ${vars.color.background.normal}`,
-  background: vars.color.text.secondaryLabel,
-  color: vars.color.text.inverse,
-  cursor: 'pointer',
-});
-
-export const chipRow = style({ display: 'inline-flex', flexWrap: 'wrap', gap: vars.space[1] });
-
-export const editIcon = style({ width: 16, height: 16 });
-
-export const tabsBar = style({ padding: `0 ${vars.space[5]}` });
 
 export const stateBox = style({ padding: `${vars.space[7]} ${vars.space[5]}` });
 
 export const plainLink = style({ color: 'inherit', textDecoration: 'none' });
 
 export const preLine = style({ whiteSpace: 'pre-line' });
-
-/** 관심 해제 하트(P5c 호스트 홈 ♡와 같은 모양 — 눌린 상태 = 채운 하트, 브랜드 색) */
-export const heart = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  width: 44,
-  height: 44,
-  padding: 0,
-  border: 0,
-  borderRadius: vars.radius.full,
-  background: 'transparent',
-  color: vars.color.text.primaryLabel,
-  cursor: 'pointer',
-  selectors: {
-    '&[aria-pressed="true"]': { color: vars.color.brand.primary },
-    '&:disabled': { color: vars.color.interaction.disabled, cursor: 'default' },
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
-});
-
-globalStyle(`${heart}[aria-pressed="true"] svg path`, { fill: 'currentColor' });
-
-export const hostRow = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.space[3],
-  padding: `${vars.space[3]} ${vars.space[5]}`,
-});
-
-export const filterBar = style({
-  display: 'flex',
-  justifyContent: 'flex-end',
-  padding: `${vars.space[3]} ${vars.space[5]}`,
-  borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
-});
-
-export const filterDropdown = style({ width: 160 });
-
-/** 주문상세 결제정보 아래 [토스 앱에서 송금하기](B23) — 행 좌우 여백에 맞춘다 */
-export const tossTransfer = style({
-  padding: `${vars.space[2]} ${vars.space[5]} ${vars.space[3]}`,
-});

@@ -8,11 +8,12 @@ import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 
 import type { OrderStatusView } from '../model/order-status';
 import * as s from './mypage.css';
+import * as p from './OrderParts.css';
 
 /** 상태 칩 + (거절·호스트 취소된 유료 주문의) 환불 진행 보조 칩 */
 export function OrderStatusChips({ view }: { view: OrderStatusView }) {
   return (
-    <span data-testid="order-status" data-tone={view.tone} className={s.chipRow}>
+    <span data-testid="order-status" data-tone={view.tone} className={p.chipRow}>
       <Chip size="sm" shape="square" color={STATE_TONE_COLOR[view.tone]} theme="weak">
         {view.label}
       </Chip>
@@ -29,7 +30,7 @@ export function OrderStatusChips({ view }: { view: OrderStatusView }) {
 /** 포스터 상자 + 오른쪽 위 배지(D-n · 공연 종료). 포스터가 없거나 못 읽으면 빈 상자(Q26 기본안) */
 export function OrderPoster({ src, badge }: { src: string | null; badge: string | null }) {
   return (
-    <span className={s.poster}>
+    <span className={p.poster}>
       {src && (
         // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 폭 76 · PC 120(mypage.css `poster`)
         <UploadedImage
@@ -42,7 +43,7 @@ export function OrderPoster({ src, badge }: { src: string | null; badge: string 
         />
       )}
       {badge && (
-        <span className={s.posterChip}>
+        <span className={p.posterChip}>
           <Chip size="sm" shape="square" color="grey" theme="weak">
             {badge}
           </Chip>

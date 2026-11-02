@@ -13,7 +13,7 @@ import {
 import type { HostEvent } from '@/api/host/schema';
 import { infiniteListControls } from '@/api/shared/page';
 import { flattenPages } from '@/api/shared/page';
-import { useSession } from '@/features/shared/auth/useSession';
+import { useSession } from '@/features/shared/auth/model/useSession';
 import {
   type ContactsState,
   resolveContacts,

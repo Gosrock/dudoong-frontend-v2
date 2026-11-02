@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { eventDetailViewerQuery } from '@/api/event/queries';
-import { useSession } from '@/features/shared/auth/useSession';
+import { useSession } from '@/features/shared/auth/model/useSession';
 import {
   type ContactsState,
   resolveContacts,

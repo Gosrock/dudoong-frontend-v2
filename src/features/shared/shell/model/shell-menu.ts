@@ -1,5 +1,5 @@
 import type { Me, MeHost } from '@/api/me/schema';
-import { loginHref } from '@/features/shared/auth/login-href';
+import { loginHref } from '@/features/shared/auth/model/login-href';
 import { hostHref } from '@/features/shared/routes';
 
 /**

@@ -23,10 +23,10 @@ import {
   SESSION_KEY,
   startSession,
 } from '@/api/session-flag';
+import { LoginRequiredLink, useRequireLogin } from '@/features/shared/auth/LoginRequiredLink';
 import { createTestQueryClient, renderWithProviders } from '@/test/render';
 
 import { browserLocation } from './browser-location';
-import { LoginRequiredLink, useRequireLogin } from './LoginRequiredLink';
 import { useProtectedArea } from './protected-area';
 import { registerAuth } from './register-auth';
 import { handleSessionLost } from './session-lost';

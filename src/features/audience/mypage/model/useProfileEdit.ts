@@ -8,7 +8,7 @@ import { updateMeMutation } from '@/api/me/mutations';
 import { meQuery } from '@/api/me/queries';
 import type { Me } from '@/api/me/schema';
 import { uploadImage } from '@/api/upload';
-import { useSession } from '@/features/shared/auth/useSession';
+import { useSession } from '@/features/shared/auth/model/useSession';
 import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 
 import { nicknameError, PROFILE_ERROR_MESSAGE } from './profile';

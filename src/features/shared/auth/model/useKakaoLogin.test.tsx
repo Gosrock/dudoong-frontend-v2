@@ -7,8 +7,8 @@ import { server } from '@/api/__mocks__/server';
 import { renderWithProviders } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
-import { browserLocation } from '../browser-location';
 import { LoginView } from '../LoginView';
+import { browserLocation } from './browser-location';
 import { readLoginRedirect } from './login-redirect';
 import { useKakaoLogin } from './useKakaoLogin';
 

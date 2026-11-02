@@ -18,10 +18,10 @@ import { useActivityMarker } from '@/ui/hooks/useActivityMarker';
 import { Container } from '@/ui/primitives/Container';
 import { Flex } from '@/ui/primitives/Flex';
 
-import { browserLocation } from './browser-location';
-import { loginHref } from './login-href';
 import * as s from './LoginGate.css';
-import { PROTECTED_AREA_ATTR, useProtectedArea } from './protected-area';
+import { browserLocation } from './model/browser-location';
+import { loginHref } from './model/login-href';
+import { PROTECTED_AREA_ATTR, useProtectedArea } from './model/protected-area';
 
 /**
  * 로그인 게이트(tech-decisions §4 인증 표 "게이트", plan P4a). `(protected)` 레이아웃과 `hosting` 레이아웃이 children을 감싼다.

@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 
-import { browserLocation } from '@/features/shared/auth/browser-location';
-import { loginHref } from '@/features/shared/auth/login-href';
+import { browserLocation } from '@/features/shared/auth/model/browser-location';
+import { loginHref } from '@/features/shared/auth/model/login-href';
 import { Button } from '@/ui/components/Button/Button';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Icon, type IconProps } from '@/ui/icons/Icon';

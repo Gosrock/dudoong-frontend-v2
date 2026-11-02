@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useId, useLayoutEffect, useState } from 'react';
 
 import type { EventDetail } from '@/api/event/schema';
+import { eventWeek } from '@/features/audience/event/model/week-calendar';
 import { hostHref } from '@/features/shared/routes';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
 import { Button } from '@/ui/components/Button/Button';
@@ -27,7 +28,6 @@ import { shareEvent } from './shareEvent';
 import { TicketOptionList } from './TicketOptionList';
 import { TicketSelector } from './TicketSelector';
 import { TicketSheet } from './TicketSheet';
-import { eventWeek } from './week-calendar';
 
 /**
  * 공연 상세(P5b-V) — 근거는 와이어(공연상세 GUI `759:12772`는 Ready for dev 아님, gui-screens §0).

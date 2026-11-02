@@ -1,7 +1,7 @@
 import type { EventDisplayStatus } from '@/api/event/schema';
+import type { StateCount } from '@/features/audience/ticket/model/ticket-groups';
 import { Chip } from '@/ui/components/Chip/Chip';
 
-import type { StateCount } from '../model/ticket-groups';
 import { STATE_TONE_COLOR } from './state-tone';
 import * as s from './TicketTab.css';
 

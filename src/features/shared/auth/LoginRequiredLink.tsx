@@ -3,9 +3,9 @@
 import { useRouter } from 'next/navigation';
 import { type AnchorHTMLAttributes, useCallback, useSyncExternalStore } from 'react';
 
-import { browserLocation } from './browser-location';
-import { loginHref } from './login-href';
-import { useSession } from './useSession';
+import { browserLocation } from './model/browser-location';
+import { loginHref } from './model/login-href';
+import { useSession } from './model/useSession';
 
 const noopSubscribe = () => () => {};
 /** 지금 주소로 돌아오는 로그인 주소. 서버·하이드레이션 때는 `/login`(주소를 읽지 않는다). 셸 메뉴의 [로그인]도 쓴다 */

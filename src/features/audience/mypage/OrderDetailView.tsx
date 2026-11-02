@@ -37,6 +37,7 @@ import {
   REFUSE_REASON_DESCRIPTION,
 } from './model/order-card';
 import { useOrderDetail } from './model/useOrderDetail';
+import * as p from './OrderDetailView.css';
 import * as s from './ui/mypage.css';
 import { openCancelOrder, openHostInquiry, openRefundAccountSheet } from './ui/OrderOverlays';
 import { OrderPoster, OrderStatusChips } from './ui/OrderParts';
@@ -116,7 +117,7 @@ function OrderDetail({ orderUuid }: { orderUuid: string }) {
         </>
       )}
       {d.cancel.kind !== 'none' && d.cancelNotice && <CancelNotice d={d} />}
-      <Flex direction="column" gap={2} className={s.bottomAction}>
+      <Flex direction="column" gap={2} className={p.bottomAction}>
         {d.contactsEventId !== null && (
           <Button
             variant="secondary"
@@ -393,7 +394,7 @@ function OptionAmountChip({ answers }: { answers: readonly Answer[] }) {
 function OptionAnswers({ answers }: { answers: readonly Answer[] }) {
   if (answers.length === 0) return null;
   return (
-    <div className={s.optionBox}>
+    <div className={p.optionBox}>
       {answers.map((a, i) => (
         <Flex key={i} direction="column" gap={1}>
           <Txt typography="labelMd">
@@ -442,7 +443,7 @@ function PaymentInfo({ order }: { order: MyOrderDetail }) {
       {account && <DepositAccountRows account={account} toastId="order:copy" />}
       {/* B23 — 주문을 입금 전에 만들므로 앱이 꺼진 뒤에도 여기서 송금을 이어 간다(승인 대기 + 토스 송금만) */}
       {order.status === 'PENDING_APPROVE' && orderTossLink(order) && (
-        <div className={s.tossTransfer}>
+        <div className={p.tossTransfer}>
           <TossTransferButton order={order} />
         </div>
       )}

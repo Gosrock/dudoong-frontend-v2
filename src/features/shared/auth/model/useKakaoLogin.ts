@@ -6,8 +6,8 @@ import { getKakaoLoginLink } from '@/api/auth/calls';
 import { getErrorCode, getErrorStatus } from '@/api/errors';
 import { log } from '@/utils/log';
 
-import { browserLocation } from '../browser-location';
 import type { AuthFailure } from './auth-outcome';
+import { browserLocation } from './browser-location';
 import { saveLoginRedirect } from './login-redirect';
 
 export type KakaoLoginState =
