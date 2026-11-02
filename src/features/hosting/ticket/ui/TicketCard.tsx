@@ -12,7 +12,7 @@ import { Icon } from '@/ui/icons/Icon';
 import { formatCount, formatWon } from '@/utils/money';
 
 import type { TicketSaleChip } from '../model/ticket-rules';
-import type { TicketCard as Card } from '../model/useTicketList';
+import type { TicketActionResult, TicketCard as Card } from '../model/useTicketList';
 import { useTicketOptions } from '../model/useTicketOptions';
 import { AddOptionsOverlay, OptionDetailOverlay } from './OptionSheets';
 import * as s from './TicketCard.css';
@@ -34,6 +34,13 @@ export function salePeriodText(start: string | null, end: string | null) {
   if (start === null && end === null) return null;
   return `${start ? short(start) : '등록 즉시'} ~ ${end ? short(end) : '공연 시작까지'}`;
 }
+
+/** 완료 토스트 — GUI #55 `958:20680` · #56 `958:20841` · #57 `958:21517` */
+const ACTION_DONE_TOAST = {
+  delete: '티켓을 삭제했어요.',
+  suspend: '티켓의 판매를 중단했어요.',
+  resume: '티켓을 다시 판매하기 시작했어요.',
+} as const;
 
 /** 재고 칩 — "무제한 (공개)" · 수량이면 "남은/전체매 (공개)"(🤖 GUI는 무제한만) */
 export function stockText(t: Card['ticket']) {
@@ -59,7 +66,7 @@ export function TicketCard({
   card: Card;
   /** 다른 동작이 도는 중 */
   pending: boolean;
-  onAction: (action: 'delete' | 'suspend' | 'resume') => Promise<boolean>;
+  onAction: (action: 'delete' | 'suspend' | 'resume') => Promise<TicketActionResult>;
 }) {
   const router = useRouter();
   const t = card.ticket;
@@ -76,9 +83,10 @@ export function TicketCard({
   ].filter(Boolean);
 
   /** 확인 창 · 완료 토스트 — GUI #55 `958:20537`·`958:20680`, #56 `958:20860`·`958:20841`, #57 `958:21375`·`958:21517` */
-  // 확인 창 계약(patterns §6): 서버 호출은 확인 창 안에서 — 실패(`false`)면 열린 채, 성공하면 닫히고 토스트
-  const confirmThen = async (action: 'delete' | 'suspend' | 'resume') => {
-    const done = await openConfirm({
+  // 확인 창 계약(patterns §6): 서버 호출은 확인 창 안에서 — 실패(`false`)면 열린 채, 성공하면 닫히고 토스트.
+  // 표의 코드(`'reread'` — 그새 팔림 · 없음 · 끝난 공연)는 목록 위 안내와 다시 읽은 목록이 답이라 토스트 없이 닫는다
+  const confirmThen = (action: 'delete' | 'suspend' | 'resume') =>
+    void openConfirm({
       ...(action === 'delete'
         ? {
             title: `[${name}] 티켓을 삭제할까요?`,
@@ -92,17 +100,12 @@ export function TicketCard({
               confirmLabel: '중단',
             }
           : { title: `[${name}] 티켓을 다시 판매할까요?`, confirmLabel: '확인' }),
-      onConfirm: () => onAction(action),
+      onConfirm: async () => {
+        const result = await onAction(action);
+        if (result === true) toast(ACTION_DONE_TOAST[action]);
+        return result !== false;
+      },
     });
-    if (!done) return;
-    toast(
-      action === 'delete'
-        ? '티켓을 삭제했어요.'
-        : action === 'suspend'
-          ? '티켓의 판매를 중단했어요.'
-          : '티켓을 다시 판매하기 시작했어요.',
-    );
-  };
 
   /** 옵션 ✕ — 이 티켓에서 빼기(L detach). 확인 창 · 토스트는 GUI #54 `934:2034`·`934:2127` 문구 그대로 */
   const detachOption = async (optionId: number) => {

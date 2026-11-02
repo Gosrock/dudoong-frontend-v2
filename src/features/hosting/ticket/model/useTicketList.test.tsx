@@ -221,7 +221,7 @@ describe('삭제(T-4)', () => {
     const { result, queryClient } = setup('101');
     await loaded(result);
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
-    expect(await act(() => result.current.remove(503))).toBe(false);
+    expect(await act(() => result.current.remove(503))).toBe('reread');
     await waitFor(() =>
       expect(result.current.actionError).toBe(
         '판매되었거나 승인 대기 주문이 있어 지울 수 없어요. 판매 중단만 할 수 있어요',
