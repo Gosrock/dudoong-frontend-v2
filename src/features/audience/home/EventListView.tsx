@@ -3,6 +3,8 @@
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useId } from 'react';
 
+import { UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { eventHref } from '@/features/audience/routes';
 import { NO_SEARCH_ATTR } from '@/features/audience/shell/AudienceShell.css';
 import { useActivityMarker } from '@/features/shared/shell/useActivityMarker';
 import { Button } from '@/ui/components/Button/Button';
@@ -19,7 +21,7 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './EventListView.css';
-import { concertCardDate, concertCardPrice, UNNAMED_EVENT } from './model/card-date';
+import { concertCardDate, concertCardPrice } from './model/card-date';
 import { useEventList } from './model/useEventList';
 import { ScrollTopButton } from './ui/ScrollTopButton';
 import { TagPanel } from './ui/TagPanel';
@@ -135,7 +137,7 @@ export function EventListView() {
             {events.items.map((e) => (
               <li key={e.eventId}>
                 <ConcertCard
-                  href={`/events/${e.eventId}`}
+                  href={eventHref(e.eventId)}
                   title={e.name ?? UNNAMED_EVENT}
                   date={concertCardDate(e.startAt)}
                   price={concertCardPrice(e)}
