@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { eventManageQuery } from '@/api/event/queries';
 import { handleError } from '@/api/handle-error';
 import { formatKstDateTime } from '@/api/shared/date';
 import {
@@ -13,6 +12,8 @@ import {
 } from '@/api/ticket-item/mutations';
 import { ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import type { TicketItemManage } from '@/api/ticket-item/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 
 import { applyDeletedTicket, applyUpdatedTicket, invalidateTickets } from './ticket-cache';
@@ -33,8 +34,11 @@ import {
 export const TICKET_ACTION_ERRORS = {
   Ticket_Item_400_7: '판매되었거나 승인 대기 주문이 있어 지울 수 없어요. 판매 중단만 할 수 있어요',
   Ticket_Item_404_1: '티켓을 찾을 수 없어요. 목록을 다시 불러왔어요',
-  Event_400_17: '끝난 공연은 수정할 수 없어요',
+  Event_400_17: EVENT_ENDED_MESSAGE,
 } as const;
+
+/** 목록 동작 결과 — 성공 `true` · 표의 코드(안내 + 목록·GE-3 다시 읽기) `'reread'` · 그 밖 실패 `false` */
+export type TicketActionResult = boolean | 'reread';
 
 export type TicketCard = {
   ticket: TicketItemManage;
@@ -104,9 +108,15 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
     [eventId, nowText, scope.canEdit, scope.event.startAt, scope.registered, tickets],
   );
 
-  /** 메뉴에 있는 동작만 보낸다. 끝나면 `true` */
+  /**
+   * 메뉴에 있는 동작만 보낸다. 끝나면 `true`, 표의 코드(그새 팔림 · 없음 · 끝난 공연 — 안내 + 다시 읽은 목록이 답)면 `'reread'`,
+   * 그 밖 실패는 `false`(공용 토스트). 확인 창은 `false`에만 열린 채 둔다(patterns §6)
+   */
   const run = useCallback(
-    async (ticketItemId: number, action: Exclude<TicketMenuAction, 'edit'>) => {
+    async (
+      ticketItemId: number,
+      action: Exclude<TicketMenuAction, 'edit'>,
+    ): Promise<TicketActionResult> => {
       const card = cards.find((c) => c.ticket.ticketItemId === ticketItemId);
       if (!card || !card.menu.some((m) => m.action === action) || inflight.current) return false;
       inflight.current = true;
@@ -122,24 +132,25 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
         await mutation.mutateAsync(ticketItemId);
         return true;
       } catch (e) {
+        let result: TicketActionResult = false;
         handleError(e, {
           Ticket_Item_400_7: () => {
+            result = 'reread';
             setActionError(TICKET_ACTION_ERRORS.Ticket_Item_400_7);
             void invalidateTickets(queryClient, eventId);
           },
           Ticket_Item_404_1: () => {
+            result = 'reread';
             setActionError(TICKET_ACTION_ERRORS.Ticket_Item_404_1);
             void invalidateTickets(queryClient, eventId);
           },
           Event_400_17: () => {
+            result = 'reread';
             setActionError(TICKET_ACTION_ERRORS.Event_400_17);
-            void queryClient.invalidateQueries({
-              queryKey: eventManageQuery(eventId).queryKey,
-              exact: true,
-            });
+            void invalidateEventStatus(queryClient, eventId);
           },
         });
-        return false;
+        return result;
       } finally {
         inflight.current = false;
         setPendingId(null);

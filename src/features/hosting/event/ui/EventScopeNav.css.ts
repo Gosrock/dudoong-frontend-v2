@@ -53,7 +53,6 @@ export const back = style({
   borderRadius: vars.radius[2],
   selectors: {
     '&:hover': { color: vars.color.text.inverse },
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
   },
 });
 globalStyle(`${back} > svg`, { width: 20, height: 20, flexShrink: 0 });
@@ -126,9 +125,6 @@ export const switchRow = style({
   color: vars.color.text.primaryLabel,
   textDecoration: 'none',
   borderRadius: vars.radius[2],
-  selectors: {
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
 });
 
 /** 읽기 전용 안내 줄(디자인 없음 — 본문 위, 회색 상자) */

@@ -62,7 +62,6 @@ export const iconButton = style({
   cursor: 'pointer',
   selectors: {
     '&:hover': { background: vars.color.surface.container },
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}` },
   },
 });
 

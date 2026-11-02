@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { myEventsQuery } from '@/api/event/queries';
+import { formatDday } from '@/api/shared/dday';
 import { eventChipOf, UNNAMED_EVENT } from '@/features/hosting/home/model/home-cards';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
 import { ShellBell } from '@/features/shared/shell/ShellParts';
@@ -16,6 +17,7 @@ import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { Drawer } from '@/ui/components/Drawer/Drawer';
 import { Header, HeaderIconButton } from '@/ui/components/Header/Header';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { SidebarMenuItem } from '@/ui/components/SidebarMenu/SidebarMenu';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
@@ -101,7 +103,7 @@ function EventSidebarBody({
               {event.name ?? UNNAMED_EVENT}
             </Txt>
             <Txt typography="bodyMd" color={colors.textSecondary} lines={1}>
-              {[event.hostName, event.dDay !== null ? `D-${event.dDay}` : null]
+              {[event.hostName, event.dDay !== null ? formatDday(event.dDay) : null]
                 .filter(Boolean)
                 .join(' · ')}
             </Txt>
@@ -261,14 +263,11 @@ function EventSwitchList({
   }
   if (q.status === 'error') {
     return (
-      <div role="alert">
-        <Flex direction="column" gap={3} align="flex-start">
-          <Txt typography="bodyMd">공연 목록을 불러오지 못했어요.</Txt>
-          <Button variant="secondary" size="sm" onClick={() => void q.refetch()}>
-            다시 시도
-          </Button>
-        </Flex>
-      </div>
+      <InlineError
+        layout="row"
+        message="공연 목록을 불러오지 못했어요."
+        onRetry={() => void q.refetch()}
+      />
     );
   }
   const events = q.data.pages.flatMap((p) => p.content);

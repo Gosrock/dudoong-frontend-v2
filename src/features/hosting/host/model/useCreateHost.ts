@@ -6,9 +6,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { handleError } from '@/api/handle-error';
 import { createHostMutation } from '@/api/host/mutations';
-import { MY_HOSTS_KEY } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
-import { meQuery } from '@/api/me/queries';
 import { HOSTING_HOME_HOSTS_HREF } from '@/features/hosting/home/model/hosting-home';
 import { toast } from '@/ui/components/Toast/Toast';
 import { tryCatch } from '@/utils/try-catch';
@@ -22,6 +20,7 @@ import {
   toCreateHostBody,
   validateCreateHost,
 } from './create-host-form';
+import { invalidateAfterCreateHost } from './host-cache';
 import {
   canAddContact,
   canRemoveContact,
@@ -56,11 +55,7 @@ export function useCreateHost({ onCreated }: { onCreated?: (hostId: number) => v
   // 목록·세션 무효화는 화면이 사라져도 해야 하므로 옵션의 onSuccess에 둔다
   const mutation = useMutation({
     ...createHostMutation(),
-    onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: MY_HOSTS_KEY }),
-        queryClient.invalidateQueries({ queryKey: meQuery().queryKey, exact: true }),
-      ]),
+    onSuccess: () => invalidateAfterCreateHost(queryClient),
   });
 
   const setName = useCallback((name: string) => setValues((v) => ({ ...v, name })), []);

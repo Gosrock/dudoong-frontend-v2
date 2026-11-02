@@ -30,16 +30,16 @@ export function openHostContacts(hostId: string) {
 
 /** 화면과 같은 훅을 읽는다 — 캐시를 같이 써서 요청이 늘지 않고, 시트가 열린 동안 viewer가 확정되면 원문으로 바뀐다 */
 function HostContactsBody({ hostId }: { hostId: string }) {
-  const h = useHostHome(hostId);
+  const home = useHostHome(hostId);
   return (
     <Flex direction="column" align="center" gap={5} fullWidth>
       <Flex direction="column" align="center" gap={3}>
-        <Avatar size={80} src={h.host.profileImageUrl} />
+        <Avatar size={80} src={home.host.profileImageUrl} />
         <Txt typography="headingMdEmphasized" align="center">
-          {h.host.name ?? '이름 없는 호스트'}
+          {home.host.name ?? '이름 없는 호스트'}
         </Txt>
       </Flex>
-      <ContactList state={h.contacts} onRetry={h.retryViewer} />
+      <ContactList state={home.contacts} onRetry={home.retryViewer} />
     </Flex>
   );
 }

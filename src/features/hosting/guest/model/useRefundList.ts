@@ -12,6 +12,7 @@ import { can } from '@/features/shared/permission/model/can';
 
 import { applyChangedOrder, invalidateGuestLists } from './guest-cache';
 import { DETAIL_MISSING_MESSAGE, REFUND_ERROR_MESSAGE, REFUND_FILTER_OPTIONS } from './guest-rules';
+import { useTableFilter } from './useTableQueryState';
 
 /**
  * 예매자 관리 환불 탭(GF-1 · PF-2, plan P13a — Figma에 없어 백엔드 GF-1을 그대로 세 번째 탭으로). 상태 필터·페이지 번호·환불 완료.
@@ -22,8 +23,12 @@ import { DETAIL_MISSING_MESSAGE, REFUND_ERROR_MESSAGE, REFUND_FILTER_OPTIONS } f
 export function useRefundList(eventId: string) {
   const queryClient = useQueryClient();
   const scope = useEventScope(eventId);
-  const [status, setStatusState] = useState<RefundStatusFilter>('ALL');
-  const [page, setPage] = useState(0);
+  const {
+    filter: status,
+    setFilter: setStatus,
+    page,
+    setPage,
+  } = useTableFilter<RefundStatusFilter>('ALL');
   const query = useQuery({
     ...refundsQuery(eventId, { status, page }),
     placeholderData: keepPreviousData,
@@ -78,10 +83,7 @@ export function useRefundList(eventId: string) {
     fetching: query.isFetching,
     filters: REFUND_FILTER_OPTIONS.map((f) => ({ ...f, selected: f.key === status })),
     statusFilter: status,
-    setStatus: (next: RefundStatusFilter) => {
-      setStatusState(next);
-      setPage(0);
-    },
+    setStatus,
     rows,
     empty: query.status === 'success' && rows.length === 0,
     page,

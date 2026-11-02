@@ -18,11 +18,15 @@ import { type Result, tryCatch } from '@/utils/try-catch';
 
 import { applyMembers, invalidateHostSummary, invalidateMyRoleQueries } from './host-cache';
 import {
+  hideRoleLabel,
   HOST_ROLE_LABEL,
   MEMBER_ACTION_ERROR_MESSAGE,
   memberActionsOf,
   PERMISSION_GUIDE,
 } from './member-rules';
+
+/** 멤버 동작 결과 — 성공 `true` · 이미 없는 멤버(`HOST_404_2`, 목록을 다시 읽음) `'missing'` · 그 밖 실패 `false` */
+export type MemberActionResult = boolean | 'missing';
 
 /**
  * 멤버 관리(`/hosting/hosts/[hostId]/members`, GH-6 · PH-10 · DH-11 · PH-12, plan P10b). 목록·행별 할 수 있는 일·변경 동작만 돌려주고
@@ -68,9 +72,12 @@ export function useHostMembers(hostId: string) {
     },
   });
 
-  /** 한 번에 하나만. 성공하면 `true`. 표에 없는 실패는 공용 토스트 */
+  /**
+   * 한 번에 하나만. 성공하면 `true`, `HOST_404_2`(이미 없는 멤버 — 다시 읽은 목록이 답)면 `'missing'`, 그 밖 실패는 `false`
+   * (표에 없는 실패는 공용 토스트). 확인 창은 `false`에만 열린 채 둔다(patterns §6)
+   */
   const run = useCallback(
-    async (userId: number, call: () => Promise<Result<unknown>>) => {
+    async (userId: number, call: () => Promise<Result<unknown>>): Promise<MemberActionResult> => {
       if (inflight.current) return false;
       inflight.current = true;
       setPendingUserId(userId);
@@ -79,8 +86,10 @@ export function useHostMembers(hostId: string) {
       inflight.current = false;
       setPendingUserId(null);
       if (!error) return true;
+      let result: MemberActionResult = false;
       handleError(error, {
         HOST_404_2: () => {
+          result = 'missing';
           setActionError(MEMBER_ACTION_ERROR_MESSAGE.HOST_404_2);
           void queryClient.invalidateQueries({
             queryKey: hostMembersQuery(hostId).queryKey,
@@ -88,7 +97,7 @@ export function useHostMembers(hostId: string) {
           });
         },
       });
-      return false;
+      return result;
     },
     [hostId, queryClient],
   );
@@ -98,6 +107,8 @@ export function useHostMembers(hostId: string) {
       members.map((m) => ({
         ...m,
         roleLabel: HOST_ROLE_LABEL[m.role],
+        /** 역할 글자를 눈으로는 숨긴다(일반 멤버 — 와이어) */
+        roleLabelHidden: hideRoleLabel(m.role),
         /** 나(GM-1 `userId`) — "나" 표시용 */
         isMe: me?.userId === m.userId,
         actions: memberActionsOf(myRole, m),
@@ -121,17 +132,17 @@ export function useHostMembers(hostId: string) {
     changeRole: (userId: number, role: AssignableHostRole) =>
       findActions(userId)?.changeRoleTo === role
         ? run(userId, () => tryCatch(roleMutation.mutateAsync({ userId, role })))
-        : Promise.resolve(false),
+        : Promise.resolve<MemberActionResult>(false),
     /** 삭제(DH-11) */
     remove: (userId: number) =>
       findActions(userId)?.remove
         ? run(userId, () => tryCatch(removeMutation.mutateAsync(userId)))
-        : Promise.resolve(false),
+        : Promise.resolve<MemberActionResult>(false),
     /** 마스터 양도(PH-12) — 확인은 V */
     transferMaster: (userId: number) =>
       findActions(userId)?.transfer
         ? run(userId, () => tryCatch(transferMutation.mutateAsync({ userId })))
-        : Promise.resolve(false),
+        : Promise.resolve<MemberActionResult>(false),
     /** 요청 중인 멤버 */
     pendingUserId,
     /** 화면이 처리한 실패(`HOST_404_2`). 다음 동작에서 지운다 */

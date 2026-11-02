@@ -1,5 +1,5 @@
 import { AGREEMENT_REJECTED_MESSAGE, agreementFields } from '@/api/shared/agreement';
-import { isKstDateTime } from '@/api/shared/date';
+import { joinKstDateTime, splitKstDateTime } from '@/api/shared/date';
 import {
   type CreateTicketItemRequest,
   type EditableTicketPayType,
@@ -14,6 +14,8 @@ import {
   type TicketItemManage,
   type UpdateTicketItemRequest,
 } from '@/api/ticket-item/schema';
+import { EVENT_ENDED_MESSAGE } from '@/features/hosting/event/model/event-scope';
+import { formatCount, formatWon } from '@/utils/money';
 
 import { isEditablePayType, isTicketLocked } from './ticket-rules';
 
@@ -87,24 +89,13 @@ export const initialTicketFormValues = (): TicketFormValues => ({
   saleEndTime: '',
 });
 
-/** 서버 일시 → `[YYYY-MM-DD, HH:mm]` */
-const splitDateTime = (v: string | null): [string, string] => {
-  if (!v) return ['', ''];
-  const [d = '', t = ''] = v.split(' ');
-  return [d.replaceAll('.', '-'), t];
-};
-
-/** 칸 → 서버 일시(`yyyy.MM.dd HH:mm`). 칸이 비었거나 틀리면 null */
-export function toServerDateTime(date: string, time: string): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
-  const v = `${date.replaceAll('-', '.')} ${time}`;
-  return isKstDateTime(v) ? v : null;
-}
+/** 칸 → 서버 일시(`yyyy.MM.dd HH:mm`). 칸이 비었거나 틀리면 null — `date.ts` 그대로(코드 패턴 점검 A19) */
+export const toServerDateTime = joinKstDateTime;
 
 /** 수정 폼 처음 값(T-1 응답). PG 티켓은 고칠 수 없다(호출 쪽이 `isEditablePayType`으로 막는다) */
 export function ticketFormValuesOf(t: TicketItemManage): TicketFormValues {
-  const [startDate, startTime] = splitDateTime(t.saleStartAt);
-  const [endDate, endTime] = splitDateTime(t.saleEndAt);
+  const { date: startDate, time: startTime } = splitKstDateTime(t.saleStartAt);
+  const { date: endDate, time: endTime } = splitKstDateTime(t.saleEndAt);
   const payType = isEditablePayType(t.payType) ? t.payType : 'DUDOONG';
   return {
     payType,
@@ -230,8 +221,8 @@ export const TICKET_FORM_MESSAGE = {
   nameRequired: '티켓 이름을 입력해 주세요',
   nameTooLong: `티켓 이름은 ${TICKET_NAME_MAX}자까지 쓸 수 있어요`,
   descriptionTooLong: `설명은 ${TICKET_DESCRIPTION_MAX}자까지 쓸 수 있어요`,
-  price: `가격은 1원부터 ${TICKET_PRICE_MAX.toLocaleString('ko-KR')}원까지 입력할 수 있어요`,
-  count: `1부터 ${TICKET_COUNT_MAX.toLocaleString('ko-KR')}까지 입력해 주세요`,
+  price: `가격은 1원부터 ${formatWon(TICKET_PRICE_MAX)}까지 입력할 수 있어요`,
+  count: `1부터 ${formatCount(TICKET_COUNT_MAX)}까지 입력해 주세요`,
   supplyDecrease: '판매된 티켓은 수량을 늘리기만 할 수 있어요',
   bank: '은행을 골라 주세요',
   accountHolder: `예금주를 입력해 주세요(${TICKET_ACCOUNT_HOLDER_MAX}자까지)`,
@@ -467,6 +458,6 @@ export const TICKET_FORM_ERRORS = {
   Ticket_Item_400_11: '이 티켓은 두둥 티켓·무료 티켓이 아니라 고칠 수 없어요',
   Item_Option_Group_400_4: '추가금이 있는 옵션이 붙은 티켓은 무료 티켓으로 바꿀 수 없어요',
   Agreement_400_1: AGREEMENT_REJECTED_MESSAGE,
-  Event_400_17: '끝난 공연은 수정할 수 없어요',
+  Event_400_17: EVENT_ENDED_MESSAGE,
   Ticket_Item_404_1: '티켓을 찾을 수 없어요. 목록을 다시 불러왔어요',
 } as const;

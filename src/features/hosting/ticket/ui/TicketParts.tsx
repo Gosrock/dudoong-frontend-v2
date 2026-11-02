@@ -8,6 +8,7 @@ import { Chip } from '@/ui/components/Chip/Chip';
 import { Toggle } from '@/ui/components/Toggle/Toggle';
 import { Icon } from '@/ui/icons/Icon';
 import { Txt } from '@/ui/primitives/Txt';
+import { formatSignedWon } from '@/utils/money';
 
 import * as s from './TicketParts.css';
 
@@ -64,7 +65,7 @@ export function OptionChips({
       </Chip>
       {type === 'YES_NO' && (yesAdditionalPrice ?? 0) > 0 && (
         <Chip shape="round" color="violet" theme="fill">
-          {`+${(yesAdditionalPrice ?? 0).toLocaleString('ko-KR')}원`}
+          {formatSignedWon(yesAdditionalPrice ?? 0)}
         </Chip>
       )}
     </span>

@@ -3,12 +3,10 @@
 import { overlay } from 'overlay-kit';
 import { useEffect, useId, useState } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import { EVENT_SECTION_TITLE_MAX } from '@/api/event/schema';
-import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { sanitizeSectionHtml } from '@/features/shared/section-viewer/model/sanitize-section-html';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { NumberingButton } from '@/ui/components/Counter/Counter';
@@ -35,31 +33,31 @@ type Form = ReturnType<typeof useEventSections>;
  */
 export function EventDetailView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
+    <HostingBoundary resetKeys={[eventId]}>
       <EventDetail eventId={eventId} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
 function EventDetail({ eventId }: { eventId: string }) {
-  const f = useEventSections(eventId);
+  const form = useEventSections(eventId);
   const formId = useId();
-  const readOnly = !f.canEdit;
-  const [active, setActive] = useState(f.sections[0]?.key ?? '');
+  const readOnly = !form.canEdit;
+  const [active, setActive] = useState(form.sections[0]?.key ?? '');
   // 지운 탭이 고른 탭이었으면 첫 탭으로
-  const current = f.sections.find((x) => x.key === active) ?? f.sections[0];
-  useLeaveGuard(f.canEdit && f.dirty);
-  useSavedToast(f);
+  const current = form.sections.find((x) => x.key === active) ?? form.sections[0];
+  useLeaveGuard(form.canEdit && form.dirty);
+  useSavedToast(form);
 
   const [pendingSelect, setPendingSelect] = useState<Set<string> | null>(null);
   const add = () => {
-    const before = new Set(f.sections.map((x) => x.key));
-    f.addSection();
+    const before = new Set(form.sections.map((x) => x.key));
+    form.addSection();
     // 새 탭은 다음 렌더에 생긴다 — 그 키를 고른다
     setPendingSelect(before);
   };
   if (pendingSelect) {
-    const added = f.sections.find((x) => !pendingSelect.has(x.key));
+    const added = form.sections.find((x) => !pendingSelect.has(x.key));
     if (added) {
       setPendingSelect(null);
       setActive(added.key);
@@ -72,7 +70,7 @@ function EventDetail({ eventId }: { eventId: string }) {
       description: '저장하면 공연 상세에서도 이 탭이 사라져요.',
       confirmLabel: '빼기',
     }).then((ok) => {
-      if (ok) f.removeSection(key);
+      if (ok) form.removeSection(key);
     });
 
   return (
@@ -86,10 +84,10 @@ function EventDetail({ eventId }: { eventId: string }) {
             {'공연 상세 내용을 적어주세요.\n이미지는 드래그 앤 드롭으로도 첨부 가능해요.'}
           </Txt>
         </div>
-        {f.formError && (
+        {form.formError && (
           <p role="alert">
             <Txt typography="bodyMd" color={colors.textDangerLabel}>
-              {f.formError}
+              {form.formError}
             </Txt>
           </p>
         )}
@@ -98,15 +96,15 @@ function EventDetail({ eventId }: { eventId: string }) {
           noValidate
           onSubmit={(e) => {
             e.preventDefault();
-            void f.save();
+            void form.save();
           }}
         >
           {current && (
             <Tabs value={current.key} onValueChange={setActive}>
               <div className={s.tabRow}>
                 <TabList size="responsive" aria-label="상세 정보 탭" className={s.tabList}>
-                  {f.sections.map((sec) => {
-                    const error = f.attempted ? f.errors[sec.key] : undefined;
+                  {form.sections.map((sec) => {
+                    const error = form.attempted ? form.errors[sec.key] : undefined;
                     return (
                       <Tab
                         key={sec.key}
@@ -119,12 +117,12 @@ function EventDetail({ eventId }: { eventId: string }) {
                     );
                   })}
                 </TabList>
-                {f.canAddSection && (
+                {form.canAddSection && (
                   <NumberingButton icon="plus" aria-label="탭 추가" onClick={add} />
                 )}
               </div>
-              {f.sections.map((sec, i) => {
-                const error = f.attempted ? f.errors[sec.key] : undefined;
+              {form.sections.map((sec, i) => {
+                const error = form.attempted ? form.errors[sec.key] : undefined;
                 return (
                   <TabPanel key={sec.key} value={sec.key} className={s.panel}>
                     {!readOnly && (
@@ -135,10 +133,10 @@ function EventDetail({ eventId }: { eventId: string }) {
                           placeholder="탭 이름"
                           maxLength={EVENT_SECTION_TITLE_MAX}
                           value={sec.title}
-                          onChange={(e) => f.setTitle(sec.key, e.target.value)}
+                          onChange={(e) => form.setTitle(sec.key, e.target.value)}
                           error={error?.title ?? undefined}
                         />
-                        {f.canRemoveSection && (
+                        {form.canRemoveSection && (
                           <Button variant="secondary" onClick={() => remove(sec.key, sec.title)}>
                             탭 빼기
                           </Button>
@@ -150,9 +148,9 @@ function EventDetail({ eventId }: { eventId: string }) {
                       label={`${sec.title || '새 탭'} 본문`}
                       content={sec.content}
                       readOnly={readOnly}
-                      onChange={(html) => f.setContent(sec.key, html)}
-                      uploadImage={f.uploadSectionImage}
-                      uploading={f.imageUploading}
+                      onChange={(html) => form.setContent(sec.key, html)}
+                      uploadImage={form.uploadSectionImage}
+                      uploading={form.imageUploading}
                     />
                     <FieldError>{error?.content}</FieldError>
                   </TabPanel>
@@ -160,25 +158,25 @@ function EventDetail({ eventId }: { eventId: string }) {
               })}
             </Tabs>
           )}
-          <FieldError>{f.imageError}</FieldError>
+          <FieldError>{form.imageError}</FieldError>
         </form>
       </div>
-      {f.canEdit && (
+      {form.canEdit && (
         <EditorBottomBar
           formId={formId}
-          canPreview={f.canPreview}
-          onPreview={() => openSectionsPreview(f.sections)}
-          canSave={f.canSave}
-          saving={f.saving}
+          canPreview={form.canPreview}
+          onPreview={() => openSectionsPreview(form.sections)}
+          canSave={form.canSave}
+          saving={form.saving}
         />
       )}
       <Popup
-        open={f.savedNotice === 'registeredChanged'}
-        onOpenChange={(o) => !o && f.dismissSavedNotice()}
+        open={form.savedNotice === 'registeredChanged'}
+        onOpenChange={(o) => !o && form.dismissSavedNotice()}
         title={REGISTERED_SAVED_TITLE}
         description={REGISTERED_SAVED_DESCRIPTION}
         cancelLabel={null}
-        onConfirm={f.dismissSavedNotice}
+        onConfirm={form.dismissSavedNotice}
       />
     </section>
   );

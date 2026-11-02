@@ -5,6 +5,7 @@ import { eventOptionsQuery } from '@/api/option/queries';
 import type { TicketOptionManage } from '@/api/option/schema';
 import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
 import type { TicketItemManage } from '@/api/ticket-item/schema';
+import { invalidateExact } from '@/features/hosting/event/model/event-cache';
 
 /**
  * 티켓·옵션 변경 뒤 캐시 반영(plan P12, patterns §11 "변경 응답으로 캐시를 바로 채운다"). 무효화는 모두 정확한 키(`exact`).
@@ -13,9 +14,6 @@ import type { TicketItemManage } from '@/api/ticket-item/schema';
  * - 체크리스트 ③(유효 티켓)은 만들기·삭제 뒤 GE-7·GE-3(`checklist`)을 무효화한다
  * - 옵션 풀의 `appliedTicketItemIds`·`isLocked`는 티켓 쪽 변경(붙이기·떼기·삭제)으로 바뀌고, 티켓의 `options`(이름·추가금)는 옵션 변경으로 바뀐다
  */
-
-const invalidateExact = (qc: QueryClient, queryKey: readonly unknown[]) =>
-  qc.invalidateQueries({ queryKey, exact: true });
 
 const ticketsKey = (eventId: string) => ticketItemsManageQuery(eventId).queryKey;
 const optionsKey = (eventId: string) => eventOptionsQuery(eventId).queryKey;

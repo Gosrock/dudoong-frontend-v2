@@ -28,9 +28,6 @@ export const noticeButton = style([
   notice,
   {
     cursor: 'pointer',
-    selectors: {
-      '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-    },
   },
 ]);
 
@@ -66,7 +63,6 @@ export const optionRowButton = style([
     cursor: 'pointer',
     selectors: {
       '&:hover': { background: vars.color.surface.container },
-      '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
     },
   },
 ]);

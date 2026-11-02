@@ -26,9 +26,6 @@ export const backButton = style({
   color: vars.color.text.primary,
   cursor: 'pointer',
   borderRadius: vars.radius[1],
-  selectors: {
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
 });
 
 /** 정보 줄 묶음(줄 사이 8) */
@@ -102,14 +99,6 @@ export const answer = style({
 export const plain = style({ margin: 0 });
 
 export const alert = style({ margin: 0 });
-
-export const errorBox = style({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: vars.space[3],
-  padding: vars.space[5],
-});
 
 /** 버튼 위 가운데 안내(GUI `1029:7706` "입장했거나 선물한 티켓이 있어 …") */
 export const centerNote = style({ margin: 0, textAlign: 'center' });

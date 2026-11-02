@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 
 import {
   eventChecklistQuery,
+  eventManageKey,
   eventManageQuery,
   eventPublicKeys,
   eventSectionsManageQuery,
@@ -15,8 +16,16 @@ import { MY_HOSTS_KEY } from '@/api/host/queries';
  * 무효화는 모두 정확한 키(`exact`) 또는 목록 접두 키 — GE-3 키 아래의 체크리스트·편집용 섹션을 덩달아 다시 읽지 않게.
  */
 
-const invalidateExact = (qc: QueryClient, queryKey: readonly unknown[]) =>
+/** 정확한 키 하나만 무효화(아래 키를 덩달아 다시 읽지 않게) — 호스팅 cache 파일이 같이 쓴다(코드 패턴 점검 A33) */
+export const invalidateExact = (qc: QueryClient, queryKey: readonly unknown[]) =>
   qc.invalidateQueries({ queryKey, exact: true });
+
+/**
+ * GE-3(공연 상태 · 내 역할 · 메뉴)을 정확한 키로 다시 읽는다 — `Event_400_17`(끝난 공연) · `Event_400_27`(스캔 사이 상태 변경) ·
+ * `HOST_400_1`(역할 바뀜)처럼 서버가 "공연 상태가 화면과 다르다"고 답한 뒤. 다시 읽으면 `readOnlyReasonOf`가 읽기 전용으로 바꾼다
+ */
+export const invalidateEventStatus = (qc: QueryClient, eventId: string) =>
+  invalidateExact(qc, eventManageQuery(eventId).queryKey);
 
 /** 관객 공연 상세의 공개 키(GP-3 공개·viewer, GE-5) — 저장 뒤 공연 상세를 열면 바로 반영 */
 const invalidatePublic = (qc: QueryClient, eventId: string) =>
@@ -47,7 +56,7 @@ export async function applySavedSections(qc: QueryClient, eventId: string, saved
   qc.setQueryData(eventSectionsManageQuery(eventId).queryKey, saved);
   await Promise.all([
     invalidateExact(qc, eventChecklistQuery(eventId).queryKey),
-    invalidateExact(qc, eventManageQuery(eventId).queryKey),
+    invalidateEventStatus(qc, eventId),
     invalidatePublic(qc, eventId),
   ]);
 }
@@ -58,12 +67,12 @@ export async function applySavedSections(qc: QueryClient, eventId: string, saved
  */
 export const invalidateAfterRegister = (qc: QueryClient, eventId: string) =>
   Promise.all([
-    invalidateExact(qc, eventManageQuery(eventId).queryKey),
+    invalidateEventStatus(qc, eventId),
     qc.invalidateQueries({ queryKey: MY_EVENTS_KEY }),
   ]);
 
 /** DE-9 뒤 — 공연준비 홈 목록(GE-1)과 호스트 카드 공연 수(GH-1). 지운 공연의 GE-3 이하 캐시는 버린다 */
 export async function applyDeleted(qc: QueryClient, eventId: number) {
-  qc.removeQueries({ queryKey: ['events', String(eventId), 'manage'] });
+  qc.removeQueries({ queryKey: eventManageKey(eventId) });
   await invalidateAfterCreate(qc);
 }

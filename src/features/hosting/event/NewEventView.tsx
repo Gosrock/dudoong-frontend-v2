@@ -18,6 +18,7 @@ import { Chip } from '@/ui/components/Chip/Chip';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { Header } from '@/ui/components/Header/Header';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Input } from '@/ui/components/Input/Input';
 import { Radio, RadioGroup } from '@/ui/components/Radio/Radio';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
@@ -40,11 +41,12 @@ type Wizard = ReturnType<typeof useNewEventWizard>;
  * 가운데 제목 "간편 공연만들기" → 2단 진행 막대 → 단계 제목 → 내용 → 아래 버튼. DS 토큰·컴포넌트만(design-workflow §3).
  */
 export function NewEventView() {
-  const w = useNewEventWizard();
+  const wizard = useNewEventWizard();
   const router = useRouter();
-  const step = w.step === 1 && w.creatingHost ? 'createHost' : w.step === 1 ? 'pick' : 'event';
+  const step =
+    wizard.step === 1 && wizard.creatingHost ? 'createHost' : wizard.step === 1 ? 'pick' : 'event';
   const back = () => {
-    if (step === 'createHost') w.cancelCreateHost();
+    if (step === 'createHost') wizard.cancelCreateHost();
     else if (step === 'event') router.back();
     else router.push('/hosting');
   };
@@ -58,16 +60,16 @@ export function NewEventView() {
           aria-label="진행"
           aria-valuemin={1}
           aria-valuemax={2}
-          aria-valuenow={w.step}
-          aria-valuetext={`${w.step}/2단계`}
+          aria-valuenow={wizard.step}
+          aria-valuetext={`${wizard.step}/2단계`}
           data-testid="wizard-step"
-          data-step={w.step}
+          data-step={wizard.step}
         >
-          <span className={s.progressFill} data-step={w.step} />
+          <span className={s.progressFill} data-step={wizard.step} />
         </div>
-        {step === 'pick' && <PickHostStep w={w} />}
-        {step === 'createHost' && <CreateHostStep w={w} />}
-        {step === 'event' && <EventStep w={w} />}
+        {step === 'pick' && <PickHostStep w={wizard} />}
+        {step === 'createHost' && <CreateHostStep w={wizard} />}
+        {step === 'event' && <EventStep w={wizard} />}
       </div>
     </main>
   );
@@ -88,14 +90,7 @@ function PickHostStep({ w }: { w: Wizard }) {
         </Flex>
       )}
       {h.status === 'error' && (
-        <div role="alert">
-          <Flex direction="column" gap={3} align="flex-start">
-            <Txt typography="bodyMd">호스트 목록을 불러오지 못했어요.</Txt>
-            <Button variant="secondary" size="sm" onClick={h.retry}>
-              다시 시도
-            </Button>
-          </Flex>
-        </div>
+        <InlineError layout="row" message="호스트 목록을 불러오지 못했어요." onRetry={h.retry} />
       )}
       {h.status === 'empty' && (
         <p data-testid="no-hosts" className={s.plain}>

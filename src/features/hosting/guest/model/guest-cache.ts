@@ -5,7 +5,11 @@ import { hostIssuedTicketsKey } from '@/api/issued-ticket/queries';
 import { hostOrderQuery, hostOrdersKey, hostRefundsKey } from '@/api/order/queries';
 import type { HostOrderDetail, RefundElement } from '@/api/order/schema';
 import type { Page } from '@/api/shared/page';
-import { eventTicketItemsQuery, ticketItemsManageQuery } from '@/api/ticket-item/queries';
+import { invalidateExact } from '@/features/hosting/event/model/event-cache';
+import {
+  invalidatePublicTickets,
+  invalidateTickets,
+} from '@/features/hosting/ticket/model/ticket-cache';
 
 /**
  * 주문 처리(PR-3·PR-4·PR-5·PF-2) 뒤 반영(plan P13a "승인·거절 뒤 상태 탭 counts가 갱신됨").
@@ -66,15 +70,12 @@ export async function invalidateGuestLists(
     hostRefundsKey(eventId),
     hostIssuedTicketsKey(eventId),
   ];
-  const exact = [
-    eventDashboardQuery(eventId).queryKey,
-    ...(ticketAvailabilityChanged
-      ? [ticketItemsManageQuery(eventId).queryKey, eventTicketItemsQuery(eventId).queryKey]
-      : []),
-  ];
   await Promise.all([
     ...keys.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
-    ...exact.map((queryKey) => queryClient.invalidateQueries({ queryKey, exact: true })),
+    invalidateExact(queryClient, eventDashboardQuery(eventId).queryKey),
+    ...(ticketAvailabilityChanged
+      ? [invalidateTickets(queryClient, eventId), invalidatePublicTickets(queryClient, eventId)]
+      : []),
   ]);
 }
 

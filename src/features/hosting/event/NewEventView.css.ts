@@ -71,7 +71,6 @@ export const hostRow = style({
   selectors: {
     '&[aria-checked="true"]': { borderColor: vars.color.text.primaryLabel },
     '&[aria-disabled="true"]': { cursor: 'not-allowed', color: vars.color.text.tertiaryLabel },
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
   },
 });
 

@@ -356,6 +356,7 @@ try {
     const ok = await openConfirm({ title: '멤버를 삭제할까요?', onConfirm: () => m.remove(userId) });
     if (ok) toast('멤버를 삭제했어요');
     ```
+  - **표의 코드로 "다시 읽은 화면이 답"인 실패는 닫는다**(묶음 ③ 선물 랜딩 · ④ 멤버 · 티켓 카드, 2026-11-03): 이미 없는 멤버(`HOST_404_2`)·그새 팔린 티켓(`Ticket_Item_400_7`)처럼 안내와 다시 읽은 목록이 결과인 코드는 훅이 `false`가 아닌 값(`'missing'` · `'reread'`)을 돌려주고, 호출 쪽은 성공(`true`)일 때만 토스트한다 — `onConfirm: async () => { const r = await m.remove(id); if (r === true) toast(…); return r !== false; }`. 확인 창이 열린 채면 뒤의 안내가 가려진다
 
     쓰지 않는 것: `let ok = false` 클로저로 결과를 따로 들기(실패해도 닫힌다), 닫힌 뒤에 서버 부르기, `false`를 throw로 바꾸기, 시트에 pending·effect 닫기를 직접 달기. 옮기기는 ③(관객)·④(호스팅). 시트 안에 에러 문구를 띄워야 하는 확인(선물 보내기 `TicketGiftButton`, 탈퇴 `USER_400_6`)은 `content`에 문구를 넣고 훅의 에러 상태를 읽는다 — ③에서 맞는지 본다.
 - **뒤로가기는 열린 오버레이를 닫는다**(P2 사용자 결정). 시트·모달·팝업(`BottomSheet`·`Modal`·`Popup`·`ResponsiveOverlay`·`EasyOverlay`)은 `useCloseOnBack`으로 열 때 `window.history.pushState({ ...history.state, ddOverlay: id }, '', location.href)`로 항목을 하나 넣는다(주소는 그대로, Next의 `__NA` 등 기존 state 보존). 뒤로가기(popstate)로 표시가 빠지면 닫히고, UI로 닫으면(버튼·Esc·바깥·스와이프) 내 항목이 맨 위일 때 `history.back()`으로 소비한다. 겹친 오버레이는 맨 위 것만 닫힌다. 토스트·팝오버·툴팁·메뉴는 해당 없다. 실제 Next 16 dev 서버에서 RSC 재요청 0건을 확인했다.

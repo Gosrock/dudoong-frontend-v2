@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useId } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import {
   HOST_CONTACT_VALUE_MAX,
   HOST_INTRODUCE_MAX,
@@ -11,14 +10,10 @@ import {
   HOST_PHONE_VALUE_MAX,
   type HostContactType,
 } from '@/api/host/schema';
-import {
-  HostingAccessRejected,
-  HostingForbidden,
-  HostingNotFound,
-} from '@/features/hosting/access/HostingAccessRejected';
+import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { EditorBottomBar, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { Dropdown } from '@/ui/components/Dropdown/Dropdown';
 import { DropZone } from '@/ui/components/DropZone/DropZone';
@@ -55,22 +50,22 @@ export function HostSettingsView({ hostId }: { hostId: string }) {
   const id = parseHostIdParam(hostId);
   if (id === null) return <HostingNotFound />;
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
+    <HostingBoundary resetKeys={[id]}>
       <HostSettings hostId={id} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
 function HostSettings({ hostId }: { hostId: string }) {
-  const f = useHostSettings(hostId);
+  const settings = useHostSettings(hostId);
   const formId = useId();
-  useLeaveGuard(f.canEdit && f.dirty);
-  if (f.access === 'forbidden') return <HostingForbidden />;
+  useLeaveGuard(settings.canEdit && settings.dirty);
+  if (settings.access === 'forbidden') return <HostingForbidden />;
 
-  const show = (error: string | null) => (f.attempted && error ? error : undefined);
-  const readOnly = !f.canEdit;
-  const options = f.contactOptions.map((o) => ({ value: o.type, label: o.label }));
-  const uploading = HOST_IMAGE_SLOTS.some((slot) => f.images[slot].uploading);
+  const show = (error: string | null) => (settings.attempted && error ? error : undefined);
+  const readOnly = !settings.canEdit;
+  const options = settings.contactOptions.map((o) => ({ value: o.type, label: o.label }));
+  const uploading = HOST_IMAGE_SLOTS.some((slot) => settings.images[slot].uploading);
 
   return (
     <main className={s.page}>
@@ -81,7 +76,7 @@ function HostSettings({ hostId }: { hostId: string }) {
         className={`${c.form} ${s.body}`}
         onSubmit={(e) => {
           e.preventDefault();
-          void f.save().then((ok) => ok && toast('저장했어요', { id: 'host-saved' }));
+          void settings.save().then((ok) => ok && toast('저장했어요', { id: 'host-saved' }));
         }}
       >
         {readOnly && (
@@ -99,9 +94,9 @@ function HostSettings({ hostId }: { hostId: string }) {
           placeholder={`최대 ${HOST_NAME_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_NAME_MAX}
           readOnly={readOnly}
-          value={f.values.name}
-          onChange={(e) => f.setName(e.target.value)}
-          error={show(f.errors.name)}
+          value={settings.values.name}
+          onChange={(e) => settings.setName(e.target.value)}
+          error={show(settings.errors.name)}
         />
 
         <TextArea
@@ -109,9 +104,9 @@ function HostSettings({ hostId }: { hostId: string }) {
           placeholder={`최대 ${HOST_INTRODUCE_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_INTRODUCE_MAX}
           readOnly={readOnly}
-          value={f.values.introduce}
-          onChange={(e) => f.setIntroduce(e.target.value)}
-          error={show(f.errors.introduce)}
+          value={settings.values.introduce}
+          onChange={(e) => settings.setIntroduce(e.target.value)}
+          error={show(settings.errors.introduce)}
         />
 
         <fieldset className={c.contacts}>
@@ -122,7 +117,7 @@ function HostSettings({ hostId }: { hostId: string }) {
             </span>
           </legend>
           <span className={field.helper}>호스트 홈에 보여지는 정보예요.</span>
-          {f.values.contacts.map((contact, i) => (
+          {settings.values.contacts.map((contact, i) => (
             <div key={i} className={c.contactRow} data-testid="contact-row">
               <Dropdown
                 className={c.contactType}
@@ -131,7 +126,7 @@ function HostSettings({ hostId }: { hostId: string }) {
                 options={options}
                 disabled={readOnly}
                 value={contact.type ?? ''}
-                onValueChange={(v) => v && f.setContactType(i, v as HostContactType)}
+                onValueChange={(v) => v && settings.setContactType(i, v as HostContactType)}
               />
               <Input
                 className={c.contactValue}
@@ -141,33 +136,33 @@ function HostSettings({ hostId }: { hostId: string }) {
                 showCount={false}
                 readOnly={readOnly}
                 value={contact.value}
-                onChange={(e) => f.setContactValue(i, e.target.value)}
-                error={show(f.errors.contacts[i] ?? null)}
+                onChange={(e) => settings.setContactValue(i, e.target.value)}
+                error={show(settings.errors.contacts[i] ?? null)}
               />
-              {f.canRemoveContact && (
+              {settings.canRemoveContact && (
                 <button
                   type="button"
                   className={c.removeButton}
                   aria-label={`연락처 ${i + 1} 삭제`}
-                  onClick={() => f.removeContact(i)}
+                  onClick={() => settings.removeContact(i)}
                 >
                   <Icon name="close" />
                 </button>
               )}
             </div>
           ))}
-          {f.contactsServerError && (
+          {settings.contactsServerError && (
             <span role="alert" className={field.errorText}>
-              {f.contactsServerError}
+              {settings.contactsServerError}
             </span>
           )}
-          {f.canAddContact && (
+          {settings.canAddContact && (
             <Button
               variant="secondary"
               size="sm"
               className={c.addButton}
               icon={<Icon name="add" />}
-              onClick={f.addContact}
+              onClick={settings.addContact}
             >
               문의처 추가
             </Button>
@@ -180,7 +175,7 @@ function HostSettings({ hostId }: { hostId: string }) {
           <span className={field.helper}>호스트 홈의 프로필과 배경에 보여요.</span>
           <div className={s.images}>
             {HOST_IMAGE_SLOTS.map((slot) => {
-              const image = f.images[slot];
+              const image = settings.images[slot];
               return (
                 <div key={slot} className={s.imageSlot} data-testid={`image-${slot}`}>
                   <Txt typography="labelMd" color={colors.textSecondaryLabel}>
@@ -224,13 +219,13 @@ function HostSettings({ hostId }: { hostId: string }) {
           </div>
         </fieldset>
       </form>
-      {f.canEdit && (
+      {settings.canEdit && (
         <EditorBottomBar
           formId={formId}
           saveLabel="저장"
           // 칸 오류는 [저장]을 누른 뒤 보인다(attempted) — 바뀐 것이 있으면 누를 수 있게 둔다
-          canSave={f.dirty && !uploading && !f.saving}
-          saving={f.saving}
+          canSave={settings.dirty && !uploading && !settings.saving}
+          saving={settings.saving}
         />
       )}
     </main>

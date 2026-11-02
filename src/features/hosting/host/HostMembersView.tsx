@@ -3,16 +3,11 @@
 import Link from 'next/link';
 import { overlay } from 'overlay-kit';
 
-import { isSessionLost } from '@/api/errors';
 import type { AssignableHostRole } from '@/api/host/schema';
-import {
-  HostingAccessRejected,
-  HostingForbidden,
-  HostingNotFound,
-} from '@/features/hosting/access/HostingAccessRejected';
+import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
 import type { ActorRole } from '@/features/shared/permission/model/can';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { DataTable } from '@/ui/components/DataTable/DataTable';
@@ -30,7 +25,7 @@ import { colors } from '@/ui/theme/colors';
 
 import * as s from './HostManage.css';
 import { HOST_ROLE_LABEL, type PermissionGuideRow } from './model/member-rules';
-import { useHostMembers } from './model/useHostMembers';
+import { type MemberActionResult, useHostMembers } from './model/useHostMembers';
 import { useInviteMembers } from './model/useInviteMembers';
 
 type Members = ReturnType<typeof useHostMembers>;
@@ -47,15 +42,15 @@ export function HostMembersView({ hostId }: { hostId: string }) {
   const id = parseHostIdParam(hostId);
   if (id === null) return <HostingNotFound />;
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
+    <HostingBoundary resetKeys={[id]}>
       <HostMembers hostId={id} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
 function HostMembers({ hostId }: { hostId: string }) {
-  const m = useHostMembers(hostId);
-  if (m.access === 'forbidden') return <HostingForbidden />;
+  const members = useHostMembers(hostId);
+  if (members.access === 'forbidden') return <HostingForbidden />;
 
   const openGuide = () =>
     overlay.open(({ isOpen, close, unmount }) => (
@@ -63,7 +58,7 @@ function HostMembers({ hostId }: { hostId: string }) {
         open={isOpen}
         onClose={close}
         onExited={unmount}
-        guide={m.permissionGuide}
+        guide={members.permissionGuide}
       />
     ));
   const openInvite = () =>
@@ -73,7 +68,7 @@ function HostMembers({ hostId }: { hostId: string }) {
         onClose={close}
         onExited={unmount}
         hostId={hostId}
-        myRole={m.myRole}
+        myRole={members.myRole}
       />
     ));
 
@@ -91,20 +86,20 @@ function HostMembers({ hostId }: { hostId: string }) {
           멤버 권한이란?
         </Button>
         <Spacing size={3} />
-        {m.actionError && (
+        {members.actionError && (
           <p role="alert" className={s.note}>
             <Txt typography="bodySm" color={colors.textDangerLabel}>
-              {m.actionError}
+              {members.actionError}
             </Txt>
           </p>
         )}
         <ul aria-label="멤버 목록" className={s.memberList}>
-          {m.members.map((member) => (
-            <MemberItem key={member.userId} member={member} m={m} />
+          {members.members.map((member) => (
+            <MemberItem key={member.userId} member={member} m={members} />
           ))}
         </ul>
       </div>
-      {m.canInvite && (
+      {members.canInvite && (
         <Button
           variant="dark"
           className={s.inviteButton}
@@ -118,12 +113,21 @@ function HostMembers({ hostId }: { hostId: string }) {
   );
 }
 
+/**
+ * 확인 창 계약(patterns §6) — 실패(`false`)면 열린 채. 성공이면 토스트와 함께 닫히고, 이미 없는 멤버(`'missing'` — HOST_404_2)는
+ * 다시 읽은 목록과 목록 위 안내가 답이라 토스트 없이 닫힌다(묶음 ③ 선물 랜딩과 같은 규칙). 그 밖 안내는 훅이 한다(공용 토스트)
+ */
+async function confirmed(action: Promise<MemberActionResult>, doneMessage: string) {
+  const result = await action;
+  if (result === true) toast(doneMessage);
+  return result !== false;
+}
+
 function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
   const name = member.name ?? '이름 없음';
   const { changeRoleTo, remove, transfer } = member.actions;
 
   const changeRole = (to: AssignableHostRole) => {
-    let ok = false;
     void openConfirm({
       title: '멤버 권한 변경',
       description: '멤버의 권한이 다음과 같이 변경됩니다.',
@@ -135,15 +139,11 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         </div>
       ),
       confirmLabel: '변경하기',
-      // 실패 안내는 훅이 한다(HOST_404_2는 목록 위 안내, 그 밖은 공용 토스트) — 실패해도 닫는다
-      onConfirm: async () => {
-        ok = await m.changeRole(member.userId, to);
-      },
-    }).then((closed) => closed && ok && toast('멤버의 권한을 변경하였습니다.'));
+      onConfirm: () => confirmed(m.changeRole(member.userId, to), '멤버의 권한을 변경하였습니다.'),
+    });
   };
 
   const transferMaster = () => {
-    let ok = false;
     void openConfirm({
       title: '마스터 권한을 양도하시겠어요?',
       description:
@@ -154,23 +154,18 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         </Txt>
       ),
       confirmLabel: '양도하기',
-      onConfirm: async () => {
-        ok = await m.transferMaster(member.userId);
-      },
-    }).then((closed) => closed && ok && toast('마스터 권한을 양도하였습니다.'));
+      onConfirm: () => confirmed(m.transferMaster(member.userId), '마스터 권한을 양도하였습니다.'),
+    });
   };
 
   const removeMember = () => {
-    let ok = false;
     // 디자인 없음(와이어는 ⋮ "멤버 삭제" 항목만) — DS Popup으로 확인을 받는다(🤖)
     void openConfirm({
       title: `${name}님을 멤버에서 삭제할까요?`,
       description: '삭제하면 이 호스트의 공연을 관리할 수 없어요.',
       confirmLabel: '삭제하기',
-      onConfirm: async () => {
-        ok = await m.remove(member.userId);
-      },
-    }).then((closed) => closed && ok && toast('멤버를 삭제했어요'));
+      onConfirm: () => confirmed(m.remove(member.userId), '멤버를 삭제했어요'),
+    });
   };
 
   const items: DropdownMenuItem[] = [
@@ -194,7 +189,7 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
         </Txt>
         {/* 와이어는 마스터·매니저만 역할을 적고 일반은 비워 둔다. 화면 읽기 프로그램에는 "일반"도 읽힌다 */}
         <span data-testid="member-role" data-role={member.role}>
-          {member.role === 'GUEST' ? (
+          {member.roleLabelHidden ? (
             <span className={s.visuallyHidden}>{member.roleLabel}</span>
           ) : (
             <Txt typography="bodySm" color={colors.textSecondaryLabel}>
@@ -284,17 +279,20 @@ function InviteModal({
   hostId: string;
   myRole: ActorRole | null;
 }) {
-  const f = useInviteMembers(hostId, myRole);
-  const row = f.rows[0]!;
-  const error = f.serverErrors[0] ?? (f.attempted ? f.errors[0] : null) ?? f.formError;
+  const inviteForm = useInviteMembers(hostId, myRole);
+  const row = inviteForm.rows[0]!;
+  const error =
+    inviteForm.serverErrors[0] ??
+    (inviteForm.attempted ? inviteForm.errors[0] : null) ??
+    inviteForm.formError;
   const formId = 'host-invite-form';
 
   return (
     <Modal
       open={open}
-      onOpenChange={(o) => !o && !f.submitting && onClose()}
+      onOpenChange={(o) => !o && !inviteForm.submitting && onClose()}
       onExited={onExited}
-      dismissible={!f.submitting}
+      dismissible={!inviteForm.submitting}
       title="멤버 초대하기"
       description="초대하면 바로 멤버로 추가됩니다."
       footer={
@@ -304,7 +302,7 @@ function InviteModal({
           size="lg"
           fullWidth
           disabled={!row.email.trim()}
-          loading={f.submitting}
+          loading={inviteForm.submitting}
         >
           초대하기
         </Button>
@@ -317,7 +315,7 @@ function InviteModal({
         className={s.inviteForm}
         onSubmit={(e) => {
           e.preventDefault();
-          void f.submit().then((ok) => {
+          void inviteForm.submit().then((ok) => {
             if (!ok) return;
             onClose();
             toast('멤버를 초대했어요');
@@ -332,16 +330,19 @@ function InviteModal({
             placeholder="dudoong@email.com"
             showCount={false}
             value={row.email}
-            onChange={(e) => f.setEmail(0, e.target.value)}
+            onChange={(e) => inviteForm.setEmail(0, e.target.value)}
             error={error ?? undefined}
           />
           <Dropdown
             className={s.inviteRole}
             aria-label="역할"
-            options={f.roleOptions.map((role) => ({ value: role, label: HOST_ROLE_LABEL[role] }))}
+            options={inviteForm.roleOptions.map((role) => ({
+              value: role,
+              label: HOST_ROLE_LABEL[role],
+            }))}
             value={row.role}
-            disabled={f.roleOptions.length < 2}
-            onValueChange={(v) => v && f.setRole(0, v as AssignableHostRole)}
+            disabled={inviteForm.roleOptions.length < 2}
+            onValueChange={(v) => v && inviteForm.setRole(0, v as AssignableHostRole)}
           />
         </div>
       </form>

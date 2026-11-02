@@ -5,6 +5,8 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
 import { homeQuery } from '@/api/event/queries';
+import { UNNAMED_EVENT } from '@/features/audience/event-labels';
+import { eventHref } from '@/features/audience/routes';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 import { fab } from '@/ui/components/Fab/Fab.css';
 import { Icon } from '@/ui/icons/Icon';
@@ -15,7 +17,7 @@ import { colors } from '@/ui/theme/colors';
 import heroSmall from './assets/home-hero-780.jpg';
 import heroLarge from './assets/home-hero-1170.jpg';
 import * as s from './HomeView.css';
-import { concertCardDate, concertCardPrice, UNNAMED_EVENT } from './model/card-date';
+import { concertCardDate, concertCardPrice } from './model/card-date';
 import { ScrollTopButton } from './ui/ScrollTopButton';
 
 /**
@@ -65,7 +67,7 @@ export function HomeView() {
             {data.events.map((e) => (
               <li key={e.eventId} className={s.carouselItem}>
                 <ConcertCard
-                  href={`/events/${e.eventId}`}
+                  href={eventHref(e.eventId)}
                   title={e.name ?? UNNAMED_EVENT}
                   date={concertCardDate(e.startAt)}
                   price={concertCardPrice(e)}

@@ -96,7 +96,6 @@ export const menuButton = style({
   cursor: 'pointer',
   selectors: {
     '&:hover:not(:disabled)': { background: vars.color.surface.container },
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}` },
     '&:disabled': { cursor: 'not-allowed', color: vars.color.text.disabledLabel },
   },
 });

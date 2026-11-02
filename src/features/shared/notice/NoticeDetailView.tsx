@@ -9,9 +9,9 @@ import {
   AsyncBoundary,
   type ErrorFallbackProps,
 } from '@/ui/components/AsyncBoundary/AsyncBoundary';
-import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
 import { Container } from '@/ui/primitives/Container';
 import { Divider } from '@/ui/primitives/Divider';
@@ -61,18 +61,7 @@ export function NoticeDetailView({
 }
 
 function Retry({ reset }: ErrorFallbackProps) {
-  return (
-    <div role="alert" className={s.retry}>
-      <Flex direction="column" align="center" gap={3}>
-        <Txt typography="bodyLg" color={colors.textSecondary}>
-          불러오지 못했어요
-        </Txt>
-        <Button variant="secondary" size="sm" onClick={reset}>
-          다시 시도
-        </Button>
-      </Flex>
-    </div>
-  );
+  return <InlineError className={s.retry} message="불러오지 못했어요" onRetry={reset} />;
 }
 
 function NoticeDetailContent({
@@ -82,24 +71,24 @@ function NoticeDetailContent({
   noticeId: string;
   audience: NoticeAudience;
 }) {
-  const d = useNoticeDetail(noticeId, audience);
-  const created = noticeDateText(d.notice.createdAt, 'dateTime');
-  const updated = d.edited ? noticeDateText(d.notice.updatedAt, 'dateTime') : null;
+  const detail = useNoticeDetail(noticeId, audience);
+  const created = noticeDateText(detail.notice.createdAt, 'dateTime');
+  const updated = detail.edited ? noticeDateText(detail.notice.updatedAt, 'dateTime') : null;
   return (
     <article className={s.article}>
       <header className={s.head}>
-        {(d.notice.pinned || d.hostOnly) && (
+        {(detail.notice.pinned || detail.hostOnly) && (
           <Flex gap={1}>
-            {d.notice.pinned && (
+            {detail.notice.pinned && (
               <Chip color="violet" theme="weak">
                 고정
               </Chip>
             )}
-            {d.hostOnly && <Chip>공연준비</Chip>}
+            {detail.hostOnly && <Chip>공연준비</Chip>}
           </Flex>
         )}
         <Txt as="h1" typography="headingLgEmphasized" className={s.title}>
-          {d.notice.title}
+          {detail.notice.title}
         </Txt>
         {(created || updated) && (
           <Txt typography="labelMd" color={colors.textTertiaryLabel}>
@@ -111,9 +100,9 @@ function NoticeDetailContent({
       </header>
       <Divider />
       <div className={s.body}>
-        {d.html ? (
+        {detail.html ? (
           <div data-testid="notice-content">
-            <SectionViewer html={d.html} />
+            <SectionViewer html={detail.html} />
           </div>
         ) : (
           <Txt as="p" typography="bodyLg" color={colors.textTertiary}>
@@ -123,7 +112,7 @@ function NoticeDetailContent({
       </div>
       <Divider />
       <div className={s.footer}>
-        <Link href={d.listHref} className={button({ variant: 'secondary', size: 'md' })}>
+        <Link href={detail.listHref} className={button({ variant: 'secondary', size: 'md' })}>
           목록으로
         </Link>
       </div>

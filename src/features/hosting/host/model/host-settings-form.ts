@@ -1,5 +1,4 @@
 import type { HostViewer, UpdateHostRequest } from '@/api/host/schema';
-import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED } from '@/api/upload';
 
 import {
   contactError,
@@ -111,10 +110,4 @@ export const HOST_SETTINGS_ERROR_MESSAGE = {
   HOST_400_16: HOST_CONTACTS_SERVER_ERROR,
   /** 이 호스트에 발급한 이미지 key가 아님 — 올린 이미지를 버리고 업로드를 처음부터(발급부터) */
   HOST_400_17: '이미지를 다시 올려 주세요',
-} as const;
-
-/** 이미지 자리의 업로드 오류(`src/api/upload.ts`가 만드는 코드). 발급의 429·네트워크 등은 공용 토스트(handleError) */
-export const HOST_IMAGE_ERROR_MESSAGE = {
-  [UPLOAD_INVALID_EXTENSION]: 'JPG·PNG 이미지만 올릴 수 있어요',
-  [UPLOAD_PUT_FAILED]: '이미지를 올리지 못했어요. 다시 시도해 주세요',
 } as const;

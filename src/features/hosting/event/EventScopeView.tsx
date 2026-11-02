@@ -2,13 +2,9 @@
 
 import type { ReactNode } from 'react';
 
-import { isSessionLost } from '@/api/errors';
-import {
-  HostingAccessRejected,
-  HostingNotFound,
-} from '@/features/hosting/access/HostingAccessRejected';
+import { HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { EventScopeFrame } from '@/features/hosting/shell/EventScopeFrame';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 
 import { parseEventIdParam } from './model/event-scope';
 import { useEventScope } from './model/useEventScope';
@@ -29,26 +25,20 @@ export function EventScopeView({ eventId, children }: { eventId: string; childre
     );
   }
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[id]}>
+    <HostingBoundary resetKeys={[id]}>
       <EventScope eventId={id}>{children}</EventScope>
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
 function EventScope({ eventId, children }: { eventId: string; children: ReactNode }) {
-  const s = useEventScope(eventId);
+  const scope = useEventScope(eventId);
   return (
-    <EventScopeFrame sidebar={<EventSidebar scope={s} />}>
-      <EventMobileHeader scope={s} />
-      {s.readOnlyMessage && <ReadOnlyNotice message={s.readOnlyMessage} />}
+    <EventScopeFrame sidebar={<EventSidebar scope={scope} />}>
+      <EventMobileHeader scope={scope} />
+      {scope.readOnlyMessage && <ReadOnlyNotice message={scope.readOnlyMessage} />}
       <main>
-        <AsyncBoundary
-          holdOn={isSessionLost}
-          rejected={HostingAccessRejected}
-          resetKeys={[eventId]}
-        >
-          {children}
-        </AsyncBoundary>
+        <HostingBoundary resetKeys={[eventId]}>{children}</HostingBoundary>
       </main>
     </EventScopeFrame>
   );

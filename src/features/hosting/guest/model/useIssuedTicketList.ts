@@ -1,17 +1,16 @@
 'use client';
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { hostCheckInMutation } from '@/api/check-in/mutations';
-import { getErrorCode } from '@/api/errors';
 import { handleError } from '@/api/handle-error';
 import { exportIssuedTicketsMutation } from '@/api/issued-ticket/mutations';
 import { hostIssuedTicketQuery, hostIssuedTicketsQuery } from '@/api/issued-ticket/queries';
 import type { EntranceFilter, IssuedTicketSearchType } from '@/api/issued-ticket/schema';
-import { OPERATION_KEYWORD_MAX } from '@/api/order/schema';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
-import { invalidateAfterScan, invalidateEventStatus } from '@/features/hosting/qr/model/qr-cache';
+import { invalidateAfterScan } from '@/features/hosting/qr/model/qr-cache';
 import {
   EVENT_NOT_CHECKABLE_MESSAGE,
   HOST_SCAN_BLOCK_MESSAGE,
@@ -31,6 +30,8 @@ import {
   TICKET_SEARCH_TYPE_OPTIONS,
 } from './guest-rules';
 import { useGuestExport } from './useGuestExport';
+import { useMissingDetail } from './useMissingDetail';
+import { useTableQueryState } from './useTableQueryState';
 
 /**
  * 예매자 관리 발급된 티켓 탭(GI-1 · GI-2 · GI-3, plan P13a). 입장 필터·검색(현재 소유자 기준 — 이름·연락처)·페이지 번호,
@@ -43,14 +44,8 @@ import { useGuestExport } from './useGuestExport';
 export function useIssuedTicketList(eventId: string) {
   const queryClient = useQueryClient();
   const scope = useEventScope(eventId);
-  const [entrance, setEntranceState] = useState<EntranceFilter>('ALL');
-  const [searchType, setSearchType] = useState<IssuedTicketSearchType>('NAME');
-  const [keywordInput, setKeywordInputState] = useState('');
-  const [applied, setApplied] = useState<{ searchType: IssuedTicketSearchType; keyword: string }>({
-    searchType: 'NAME',
-    keyword: '',
-  });
-  const [page, setPage] = useState(0);
+  const table = useTableQueryState<EntranceFilter, IssuedTicketSearchType>('ALL', 'NAME');
+  const { filter: entrance, page, searchType, applied } = table;
   const query = useQuery({
     ...hostIssuedTicketsQuery(eventId, { entrance, ...applied, page }),
     placeholderData: keepPreviousData,
@@ -64,25 +59,17 @@ export function useIssuedTicketList(eventId: string) {
     enabled: selected !== null,
   });
   const [missingNotice, setMissingNotice] = useState<string | null>(null);
-  // 닫힌 뒤 목록을 다시 읽는다 — 상태는 렌더 중에(이전 값 비교), 무효화는 이펙트에서
-  const [missingCount, setMissingCount] = useState(0);
-  if (selected !== null && getErrorCode(detailQuery.error) === 'IssuedTicket_404_1') {
-    setSelected(null);
-    setMissingNotice(TICKET_MISSING_MESSAGE);
-    setMissingCount((n) => n + 1);
-  }
-  useEffect(() => {
-    if (missingCount > 0) void invalidateGuestLists(queryClient, eventId);
-  }, [eventId, queryClient, missingCount]);
-
-  const setEntrance = useCallback((next: EntranceFilter) => {
-    setEntranceState(next);
-    setPage(0);
-  }, []);
-  const submitSearch = useCallback(() => {
-    setApplied({ searchType, keyword: keywordInput.trim() });
-    setPage(0);
-  }, [keywordInput, searchType]);
+  // 닫고 목록을 다시 읽는다 — 상태는 렌더 중에, 무효화는 이펙트에서(`useMissingDetail`)
+  useMissingDetail({
+    id: selected,
+    error: detailQuery.error,
+    code: 'IssuedTicket_404_1',
+    onNotFound: () => {
+      setSelected(null);
+      setMissingNotice(TICKET_MISSING_MESSAGE);
+    },
+    afterNotFound: () => void invalidateGuestLists(queryClient, eventId),
+  });
 
   // ─── 수동 입장 처리(PQ-2 — QR 값 = 티켓 uuid, 스테이징 QA #106 §5) ───
   // 카메라 고장·QR이 안 읽힐 때 상세에서 바로 입장. 스캔과 같은 API·권한(일반 멤버 이상)·공연 상태(OPEN·정산중)
@@ -138,14 +125,14 @@ export function useIssuedTicketList(eventId: string) {
       selected: f.key === entrance,
     })),
     entrance,
-    setEntrance,
+    setEntrance: table.setFilter,
     searchTypes: TICKET_SEARCH_TYPE_OPTIONS,
     searchType,
-    setSearchType,
-    keywordInput,
-    setKeywordInput: (v: string) => setKeywordInputState(v.slice(0, OPERATION_KEYWORD_MAX)),
-    keywordMax: OPERATION_KEYWORD_MAX,
-    submitSearch,
+    setSearchType: table.setSearchType,
+    keywordInput: table.keywordInput,
+    setKeywordInput: table.setKeywordInput,
+    keywordMax: table.keywordMax,
+    submitSearch: table.submitSearch,
     appliedKeyword: applied.keyword,
     exactMatchHint: exactMatchHintOf(scope.role, searchType),
     rows: data?.tickets.content ?? [],
@@ -153,7 +140,7 @@ export function useIssuedTicketList(eventId: string) {
     page,
     totalPages: data?.tickets.totalPages ?? null,
     hasNext: data?.tickets.hasNext ?? false,
-    setPage,
+    setPage: table.setPage,
     /** 티켓 상세 */
     selectedTicketUuid: selected,
     openTicket: (ticketUuid: string) => {

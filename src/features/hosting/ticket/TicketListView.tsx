@@ -3,13 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { isSessionLost } from '@/api/errors';
-import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
-import { Button } from '@/ui/components/Button/Button';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { button } from '@/ui/components/Button/Button.css';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { Fab } from '@/ui/components/Fab/Fab';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Txt } from '@/ui/primitives/Txt';
@@ -29,14 +27,14 @@ import * as parts from './ui/TicketParts.css';
  */
 export function TicketListView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
+    <HostingBoundary resetKeys={[eventId]}>
       <TicketList eventId={eventId} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
 function TicketList({ eventId }: { eventId: string }) {
-  const l = useTicketList(eventId);
+  const list = useTicketList(eventId);
   const router = useRouter();
   return (
     <section aria-labelledby="tickets-title" className={s.page}>
@@ -57,32 +55,25 @@ function TicketList({ eventId }: { eventId: string }) {
         </NoticeBox>
       </div>
 
-      {l.noTicketEvent && (
+      {list.noTicketEvent && (
         <p data-testid="no-ticket-event">
           <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
             티켓 없는 공연이라 티켓을 만들 수 없어요. 기본 정보에서 티켓 여부를 바꿀 수 있어요.
           </Txt>
         </p>
       )}
-      {l.actionError && (
+      {list.actionError && (
         <p role="alert">
           <Txt typography="bodyMd" color={colors.textDangerLabel}>
-            {l.actionError}
+            {list.actionError}
           </Txt>
         </p>
       )}
-      {l.status === 'error' && (
-        <p role="alert">
-          <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-            티켓을 불러오지 못했어요{' '}
-          </Txt>
-          <Button variant="secondary" size="sm" onClick={l.retry}>
-            다시 시도
-          </Button>
-        </p>
+      {list.status === 'error' && (
+        <InlineError layout="row" message="티켓을 불러오지 못했어요" onRetry={list.retry} />
       )}
 
-      {l.empty ? (
+      {list.empty ? (
         <EmptyState
           className={s.empty}
           illustration={<Illustration name="no-ticket" className={s.emptyIllustration} />}
@@ -94,9 +85,9 @@ function TicketList({ eventId }: { eventId: string }) {
             </span>
           }
           action={
-            l.canAdd ? (
+            list.canAdd ? (
               <Link
-                href={l.newHref}
+                href={list.newHref}
                 className={`${button({ variant: 'primary', size: 'lg' })} ${s.emptyAction}`}
               >
                 <Icon name="add" />새 티켓 만들기
@@ -106,31 +97,31 @@ function TicketList({ eventId }: { eventId: string }) {
         />
       ) : (
         <ul className={s.cards} aria-label="티켓 목록">
-          {l.cards.map((c) => (
+          {list.cards.map((c) => (
             <TicketCard
               key={c.ticket.ticketItemId}
               eventId={eventId}
               card={c}
-              pending={l.pendingId !== null}
+              pending={list.pendingId !== null}
               onAction={(action) =>
                 action === 'delete'
-                  ? l.remove(c.ticket.ticketItemId)
+                  ? list.remove(c.ticket.ticketItemId)
                   : action === 'suspend'
-                    ? l.suspend(c.ticket.ticketItemId)
-                    : l.resume(c.ticket.ticketItemId)
+                    ? list.suspend(c.ticket.ticketItemId)
+                    : list.resume(c.ticket.ticketItemId)
               }
             />
           ))}
         </ul>
       )}
 
-      {l.canAdd && !l.empty && l.status === 'success' && (
+      {list.canAdd && !list.empty && list.status === 'success' && (
         // FIGMA-CUSTOM: 새 티켓 FAB(gui 793:2469 "Button" round Primary, 채움을 보라로 덮어씀) 커스텀 → DS Fab(round Primary 검정). Figma 코멘트 2026-11-01
         <Fab
           className={s.fab}
           icon={<Icon name="add" />}
           aria-label="새 티켓 만들기"
-          onClick={() => router.push(l.newHref)}
+          onClick={() => router.push(list.newHref)}
         />
       )}
     </section>

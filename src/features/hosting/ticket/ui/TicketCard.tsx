@@ -9,9 +9,10 @@ import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
+import { formatCount, formatWon } from '@/utils/money';
 
 import type { TicketSaleChip } from '../model/ticket-rules';
-import type { TicketCard as Card } from '../model/useTicketList';
+import type { TicketActionResult, TicketCard as Card } from '../model/useTicketList';
 import { useTicketOptions } from '../model/useTicketOptions';
 import { AddOptionsOverlay, OptionDetailOverlay } from './OptionSheets';
 import * as s from './TicketCard.css';
@@ -34,12 +35,19 @@ export function salePeriodText(start: string | null, end: string | null) {
   return `${start ? short(start) : '등록 즉시'} ~ ${end ? short(end) : '공연 시작까지'}`;
 }
 
+/** 완료 토스트 — GUI #55 `958:20680` · #56 `958:20841` · #57 `958:21517` */
+const ACTION_DONE_TOAST = {
+  delete: '티켓을 삭제했어요.',
+  suspend: '티켓의 판매를 중단했어요.',
+  resume: '티켓을 다시 판매하기 시작했어요.',
+} as const;
+
 /** 재고 칩 — "무제한 (공개)" · 수량이면 "남은/전체매 (공개)"(🤖 GUI는 무제한만) */
 export function stockText(t: Card['ticket']) {
   const open = t.isQuantityPublic ? '공개' : '비공개';
   return t.supplyCount === null
     ? `무제한 (${open})`
-    : `${(t.remaining ?? 0).toLocaleString('ko-KR')}/${t.supplyCount.toLocaleString('ko-KR')}매 (${open})`;
+    : `${formatCount(t.remaining ?? 0)}/${formatCount(t.supplyCount)}매 (${open})`;
 }
 
 // FIGMA-CUSTOM: 티켓 카드(gui 910:3335 "티켓 행_모바일" · 910:3433 "티켓 행_데스크탑" 로컬 컴포넌트) 커스텀 → 커스텀 TicketCard.css.ts. DS 후보(design-system §3)
@@ -58,7 +66,7 @@ export function TicketCard({
   card: Card;
   /** 다른 동작이 도는 중 */
   pending: boolean;
-  onAction: (action: 'delete' | 'suspend' | 'resume') => Promise<boolean>;
+  onAction: (action: 'delete' | 'suspend' | 'resume') => Promise<TicketActionResult>;
 }) {
   const router = useRouter();
   const t = card.ticket;
@@ -75,9 +83,11 @@ export function TicketCard({
   ].filter(Boolean);
 
   /** 확인 창 · 완료 토스트 — GUI #55 `958:20537`·`958:20680`, #56 `958:20860`·`958:20841`, #57 `958:21375`·`958:21517` */
-  const confirmThen = async (action: 'delete' | 'suspend' | 'resume') => {
-    const ok = await openConfirm(
-      action === 'delete'
+  // 확인 창 계약(patterns §6): 서버 호출은 확인 창 안에서 — 실패(`false`)면 열린 채, 성공하면 닫히고 토스트.
+  // 표의 코드(`'reread'` — 그새 팔림 · 없음 · 끝난 공연)는 목록 위 안내와 다시 읽은 목록이 답이라 토스트 없이 닫는다
+  const confirmThen = (action: 'delete' | 'suspend' | 'resume') =>
+    void openConfirm({
+      ...(action === 'delete'
         ? {
             title: `[${name}] 티켓을 삭제할까요?`,
             description: '삭제한 티켓은 복구할 수 없어요.',
@@ -89,26 +99,23 @@ export function TicketCard({
               description: '추후 다시 판매를 재개할 수 있어요.',
               confirmLabel: '중단',
             }
-          : { title: `[${name}] 티켓을 다시 판매할까요?`, confirmLabel: '확인' },
-    );
-    if (!ok || !(await onAction(action))) return;
-    toast(
-      action === 'delete'
-        ? '티켓을 삭제했어요.'
-        : action === 'suspend'
-          ? '티켓의 판매를 중단했어요.'
-          : '티켓을 다시 판매하기 시작했어요.',
-    );
-  };
+          : { title: `[${name}] 티켓을 다시 판매할까요?`, confirmLabel: '확인' }),
+      onConfirm: async () => {
+        const result = await onAction(action);
+        if (result === true) toast(ACTION_DONE_TOAST[action]);
+        return result !== false;
+      },
+    });
 
   /** 옵션 ✕ — 이 티켓에서 빼기(L detach). 확인 창 · 토스트는 GUI #54 `934:2034`·`934:2127` 문구 그대로 */
   const detachOption = async (optionId: number) => {
-    const ok = await openConfirm({
+    const done = await openConfirm({
       title: '티켓 옵션을 삭제할까요?',
       description: '삭제한 옵션은 되돌릴 수 없어요.',
       confirmLabel: '삭제',
+      onConfirm: () => options.detach(optionId),
     });
-    if (ok && (await options.detach(optionId))) toast('옵션을 삭제했어요.');
+    if (done) toast('옵션을 삭제했어요.');
   };
 
   return (
@@ -132,9 +139,7 @@ export function TicketCard({
           )}
         </div>
         <div className={s.side}>
-          <p className={s.price}>
-            {t.payType === 'FREE' ? '무료' : `${t.price.toLocaleString('ko-KR')}원`}
-          </p>
+          <p className={s.price}>{t.payType === 'FREE' ? '무료' : formatWon(t.price)}</p>
           <span data-testid="ticket-stock">
             <Chip className={s.chipLg}>{stockText(t)}</Chip>
           </span>

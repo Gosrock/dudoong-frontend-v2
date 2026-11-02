@@ -7,10 +7,10 @@ import { type ReactNode, useState } from 'react';
 import { meQuery } from '@/api/me/queries';
 import { NEW_EVENT_PATH } from '@/features/hosting/event/model/create-event-form';
 import { useDeleteEvent } from '@/features/hosting/event/model/useDeleteEvent';
-import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import {
   LoadMoreSentinel,
   type LoadMoreState,
@@ -20,7 +20,6 @@ import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
 import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
-import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -57,15 +56,15 @@ const CREATE = {
  * - PC(1024~): 제목 "{닉네임}님의 공연 준비 홈" + 같은 탭 줄 오른쪽에 같은 [+ 새 … 만들기](같은 DOM, CSS로 자리만 바꾼다)
  */
 export function HostingHomeView() {
-  const h = useHostingHome();
+  const home = useHostingHome();
   const me = useQuery(meQuery());
   const del = useDeleteEvent();
   const [searchOpen, setSearchOpen] = useState(false);
-  const list: ListLike = h.tab === 'hosts' ? h.hosts : h.events;
-  const create = CREATE[h.tab];
+  const list: ListLike = home.tab === 'hosts' ? home.hosts : home.events;
+  const create = CREATE[home.tab];
 
   const closeSearch = () => {
-    h.setKeywordInput('');
+    home.setKeywordInput('');
     setSearchOpen(false);
   };
 
@@ -93,7 +92,7 @@ export function HostingHomeView() {
           className={s.searchRow}
           onSubmit={(e) => {
             e.preventDefault();
-            h.submitKeyword();
+            home.submitKeyword();
           }}
         >
           <button
@@ -107,18 +106,18 @@ export function HostingHomeView() {
           <SearchField
             className={s.searchField}
             aria-label="검색"
-            placeholder={h.tab === 'hosts' ? '내 호스트 검색' : '내 공연 검색'}
+            placeholder={home.tab === 'hosts' ? '내 호스트 검색' : '내 공연 검색'}
             autoFocus
-            value={h.keywordInput}
-            onChange={(e) => h.setKeywordInput(e.target.value)}
+            value={home.keywordInput}
+            onChange={(e) => home.setKeywordInput(e.target.value)}
           />
         </form>
       )}
 
-      <Tabs value={h.tab} onValueChange={(v) => h.setTab(v as HostingHomeTab)}>
+      <Tabs value={home.tab} onValueChange={(v) => home.setTab(v as HostingHomeTab)}>
         <div className={s.tabRow}>
           <TabList aria-label="공연준비 홈 탭" className={s.tabList}>
-            {h.tabs.map((t) => (
+            {home.tabs.map((t) => (
               <Tab key={t.key} value={t.key}>
                 {t.label}
               </Tab>
@@ -147,9 +146,9 @@ export function HostingHomeView() {
 
         <TabPanel value="events" className={s.panel}>
           <ListArea
-            list={h.events}
+            list={home.events}
             empty={
-              h.events.emptyKind === 'search' ? (
+              home.events.emptyKind === 'search' ? (
                 <Empty description={EVENTS_SEARCH_EMPTY_TITLE} />
               ) : (
                 <Empty
@@ -160,7 +159,7 @@ export function HostingHomeView() {
             }
           >
             <ul className={cards.list} aria-label="내 공연">
-              {h.events.items.map((event) => (
+              {home.events.items.map((event) => (
                 <MyEventCard
                   key={event.eventId}
                   event={event}
@@ -181,9 +180,9 @@ export function HostingHomeView() {
 
         <TabPanel value="hosts" className={s.panel}>
           <ListArea
-            list={h.hosts}
+            list={home.hosts}
             empty={
-              h.hosts.emptyKind === 'search' ? (
+              home.hosts.emptyKind === 'search' ? (
                 <Empty description={HOSTS_SEARCH_EMPTY_TITLE} />
               ) : (
                 <Empty
@@ -194,7 +193,7 @@ export function HostingHomeView() {
             }
           >
             <ul className={cards.list} aria-label="내 호스트">
-              {h.hosts.items.map((host) => (
+              {home.hosts.items.map((host) => (
                 <MyHostCard key={host.hostId} host={host} />
               ))}
             </ul>
@@ -226,16 +225,11 @@ function ListArea({
   }
   if (list.status === 'error') {
     return (
-      <div role="alert" className={s.centered}>
-        <Flex direction="column" align="center" gap={3}>
-          <Txt as="p" typography="bodyLg" color={colors.textSecondary}>
-            불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-          </Txt>
-          <Button variant="secondary" size="sm" onClick={list.retry}>
-            다시 시도
-          </Button>
-        </Flex>
-      </div>
+      <InlineError
+        className={s.centered}
+        message="불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+        onRetry={list.retry}
+      />
     );
   }
   if (list.status === 'empty') {

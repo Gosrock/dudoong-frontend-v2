@@ -131,9 +131,6 @@ export const iconButton = style({
   color: vars.color.text.secondaryLabel,
   cursor: 'pointer',
   borderRadius: vars.radius[1],
-  selectors: {
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
 });
 globalStyle(`${iconButton} > svg`, { width: 20, height: 20 });
 
@@ -155,9 +152,6 @@ export const removeButton = style({
   background: 'transparent',
   color: vars.color.text.primaryLabel,
   cursor: 'pointer',
-  selectors: {
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
 });
 
 /** 태그 — 모바일 4열(GUI 78 고정 → 칸 나눔), PC 7열(GUI `748:34645` 600 안 7칸) */

@@ -8,11 +8,13 @@ import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 import { copyText } from '@/utils/copy-text';
+import { formatSignedWon, formatWon } from '@/utils/money';
 
 import {
   CANCEL_REASON_OPTIONS,
@@ -34,7 +36,6 @@ import {
   orderStatusChipOf,
   REFUND_STATE_CHIP,
   text,
-  won,
 } from './guest-labels';
 import * as s from './OrderDetailOverlay.css';
 import { ReasonFields } from './ReasonFields';
@@ -93,12 +94,7 @@ export function OrderDetailOverlay({ d, onClose }: { d: Detail; onClose: () => v
           </Txt>
         )}
         {d.status === 'error' && (
-          <div role="alert" className={s.errorBox}>
-            <Txt typography="bodyMd">주문을 불러오지 못했어요.</Txt>
-            <Button variant="secondary" size="sm" onClick={d.retry}>
-              다시 시도
-            </Button>
-          </div>
+          <InlineError message="주문을 불러오지 못했어요." onRetry={d.retry} />
         )}
         {o && step === 'detail' && <OrderInfo d={d} o={o} />}
         {o && step === 'refuse' && <RefuseStep d={d} />}
@@ -223,7 +219,7 @@ function OrderInfo({ d, o }: { d: Detail; o: HostOrderDetail }) {
       <Section title="주문 정보">
         <dl className={s.lines}>
           <Line label="주문 일시">{dateTimeText(o.order.orderedAt)}</Line>
-          <Line label="결제 금액">{won(o.order.totalAmount)}</Line>
+          <Line label="결제 금액">{formatWon(o.order.totalAmount)}</Line>
           {o.order.refuseReason && <Line label="거절 사유">{o.order.refuseReason}</Line>}
           {o.order.cancelReason && <Line label="취소 사유">{o.order.cancelReason}</Line>}
         </dl>
@@ -373,7 +369,7 @@ export function OptionAnswers({
           </Txt>
           <Txt as="dd" typography="bodyMd" color={colors.textPrimaryLabel} className={s.plain}>
             {text(a.answer)}
-            {a.additionalPrice > 0 ? ` (+${won(a.additionalPrice)})` : ''}
+            {a.additionalPrice > 0 ? ` (${formatSignedWon(a.additionalPrice)})` : ''}
           </Txt>
         </div>
       ))}

@@ -18,6 +18,7 @@ import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EntranceCard } from '@/ui/components/EntranceCard/EntranceCard';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Popup } from '@/ui/components/Popup/Popup';
 import { SalesCard } from '@/ui/components/SalesCard/SalesCard';
 import { ScheduleStep, WeekStrip } from '@/ui/components/Schedule/Schedule';
@@ -44,20 +45,26 @@ type Dashboard = ReturnType<typeof useEventDashboard>;
  * 유의사항 + PC 우측 `일정 패널`(주간 줄 · 단계 타임라인).
  */
 export function EventDashboardView({ eventId }: { eventId: string }) {
-  const d = useEventDashboard(eventId);
+  const dashboard = useEventDashboard(eventId);
   const content = (
     <section aria-labelledby="dashboard-title" className={s.page}>
       <VisuallyHidden asChild>
         <h1 id="dashboard-title">대시보드</h1>
       </VisuallyHidden>
-      <DashboardNotices d={d} />
-      <EventHead event={d.event} eventId={eventId} />
-      {d.mode === 'registered' ? <RegisteredSection d={d} /> : <ChecklistSection d={d} />}
+      <DashboardNotices d={dashboard} />
+      <EventHead event={dashboard.event} eventId={eventId} />
+      {dashboard.mode === 'registered' ? (
+        <RegisteredSection d={dashboard} />
+      ) : (
+        <ChecklistSection d={dashboard} />
+      )}
     </section>
   );
   // 등록 후만 우측 일정 패널(P4s-V 슬롯 · 본문 P13a-V — DS `일정 패널`)
-  return d.mode === 'registered' ? (
-    <EventPanelLayout panel={d.stats ? <SchedulePanel timeline={d.stats.timeline} /> : null}>
+  return dashboard.mode === 'registered' ? (
+    <EventPanelLayout
+      panel={dashboard.stats ? <SchedulePanel timeline={dashboard.stats.timeline} /> : null}
+    >
       {content}
     </EventPanelLayout>
   ) : (
@@ -159,10 +166,8 @@ function ChecklistSection({ d }: { d: Dashboard }) {
       description:
         '공연을 등록하면 모든 사용자에게 공개되며 삭제할 수 없어요. 등록 후에도 공연 정보는 수정할 수 있어요.',
       confirmLabel: '등록',
-      onConfirm: async () => {
-        const ok = await d.register();
-        if (!ok) throw new Error('register failed');
-      },
+      // 확인 창 계약(patterns §6): 실패(`false`)면 열린 채
+      onConfirm: () => d.register(),
     });
   return (
     <>
@@ -180,14 +185,11 @@ function ChecklistSection({ d }: { d: Dashboard }) {
             </Txt>
           )}
           {d.checklistStatus === 'error' && (
-            <div role="alert">
-              <Flex align="center" gap={2} wrap>
-                <Txt typography="bodyMd">체크리스트를 불러오지 못했어요.</Txt>
-                <Button variant="secondary" size="sm" onClick={d.retryChecklist}>
-                  다시 시도
-                </Button>
-              </Flex>
-            </div>
+            <InlineError
+              layout="row"
+              message="체크리스트를 불러오지 못했어요."
+              onRetry={d.retryChecklist}
+            />
           )}
           {d.checklistItems && (
             <ul className={s.checkRows}>
@@ -276,14 +278,12 @@ function RegisteredSection({ d }: { d: Dashboard }) {
         </div>
       )}
       {d.statsStatus === 'error' && (
-        <div role="alert" className={s.statsState}>
-          <Flex align="center" gap={2} wrap>
-            <Txt typography="bodyMd">대시보드를 불러오지 못했어요.</Txt>
-            <Button variant="secondary" size="sm" onClick={d.retryStats}>
-              다시 시도
-            </Button>
-          </Flex>
-        </div>
+        <InlineError
+          layout="row"
+          className={s.statsState}
+          message="대시보드를 불러오지 못했어요."
+          onRetry={d.retryStats}
+        />
       )}
       {d.stats && (
         <>

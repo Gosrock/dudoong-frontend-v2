@@ -6,6 +6,7 @@ import { useCallback, useRef, useState } from 'react';
 import { hostCheckInMutation } from '@/api/check-in/mutations';
 import { isSessionLost } from '@/api/errors';
 import { handleError } from '@/api/handle-error';
+import { invalidateEventStatus } from '@/features/hosting/event/model/event-cache';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 import {
   type CheckInResultView,
@@ -13,7 +14,7 @@ import {
 } from '@/features/shared/checkin-result/model/checkin-result';
 import { tryCatch } from '@/utils/try-catch';
 
-import { invalidateAfterScan, invalidateEventStatus } from './qr-cache';
+import { invalidateAfterScan } from './qr-cache';
 import {
   EVENT_NOT_CHECKABLE_MESSAGE,
   HOST_SCAN_BLOCK_MESSAGE,

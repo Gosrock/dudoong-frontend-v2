@@ -1,19 +1,15 @@
 'use client';
 
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useCallback, useState } from 'react';
 
 import { exportOrdersMutation } from '@/api/order/mutations';
 import { hostOrdersQuery } from '@/api/order/queries';
-import {
-  type HostOrderStatusFilter,
-  OPERATION_KEYWORD_MAX,
-  type OrderSearchType,
-} from '@/api/order/schema';
+import type { HostOrderStatusFilter, OrderSearchType } from '@/api/order/schema';
 import { useEventScope } from '@/features/hosting/event/model/useEventScope';
 
 import { exactMatchHintOf, ORDER_SEARCH_TYPE_OPTIONS, ORDER_STATUS_TABS } from './guest-rules';
 import { useGuestExport } from './useGuestExport';
+import { useTableQueryState } from './useTableQueryState';
 
 /**
  * 예매자 관리 주문 탭(GR-1, plan P13a). 상태 탭·검색·페이지 번호와 엑셀(GR-6)을 돌려준다. UI 동작은 없다.
@@ -27,14 +23,8 @@ import { useGuestExport } from './useGuestExport';
  */
 export function useOrderList(eventId: string) {
   const scope = useEventScope(eventId);
-  const [status, setStatusState] = useState<HostOrderStatusFilter>('ALL');
-  const [searchType, setSearchType] = useState<OrderSearchType>('NAME');
-  const [keywordInput, setKeywordInputState] = useState('');
-  const [applied, setApplied] = useState<{ searchType: OrderSearchType; keyword: string }>({
-    searchType: 'NAME',
-    keyword: '',
-  });
-  const [page, setPage] = useState(0);
+  const table = useTableQueryState<HostOrderStatusFilter, OrderSearchType>('ALL', 'NAME');
+  const { filter: status, page, searchType, applied } = table;
 
   const params = { status, ...applied, page };
   const query = useQuery({
@@ -42,21 +32,6 @@ export function useOrderList(eventId: string) {
     placeholderData: keepPreviousData,
   });
   const data = query.data;
-
-  const setStatus = useCallback((next: HostOrderStatusFilter) => {
-    setStatusState(next);
-    setPage(0);
-  }, []);
-  const setKeywordInput = (v: string) => setKeywordInputState(v.slice(0, OPERATION_KEYWORD_MAX));
-  const submitSearch = useCallback(() => {
-    setApplied({ searchType, keyword: keywordInput.trim() });
-    setPage(0);
-  }, [keywordInput, searchType]);
-  const clearSearch = useCallback(() => {
-    setKeywordInputState('');
-    setApplied({ searchType, keyword: '' });
-    setPage(0);
-  }, [searchType]);
 
   const exporter = useGuestExport(
     eventId,
@@ -79,15 +54,15 @@ export function useOrderList(eventId: string) {
       selected: t.key === status,
     })),
     statusFilter: status,
-    setStatus,
+    setStatus: table.setFilter,
     searchTypes: ORDER_SEARCH_TYPE_OPTIONS,
     searchType,
-    setSearchType,
-    keywordInput,
-    setKeywordInput,
-    keywordMax: OPERATION_KEYWORD_MAX,
-    submitSearch,
-    clearSearch,
+    setSearchType: table.setSearchType,
+    keywordInput: table.keywordInput,
+    setKeywordInput: table.setKeywordInput,
+    keywordMax: table.keywordMax,
+    submitSearch: table.submitSearch,
+    clearSearch: table.clearSearch,
     /** 적용된 검색어(빈 문자열 = 검색 없음) */
     appliedKeyword: applied.keyword,
     /** 일반 멤버의 연락처·입금자명 검색 칸 안내(#846) */
@@ -98,7 +73,7 @@ export function useOrderList(eventId: string) {
     totalPages: data?.orders.totalPages ?? null,
     totalElements: data?.orders.totalElements ?? null,
     hasNext: data?.orders.hasNext ?? false,
-    setPage,
+    setPage: table.setPage,
     /** 엑셀(GR-6) — 매니저 이상만 */
     canExport: exporter.canExport,
     exporting: exporter.exporting,

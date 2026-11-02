@@ -4,11 +4,13 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { updateEventSectionsMutation } from '@/api/event/mutations';
-import { eventManageQuery, eventSectionsManageQuery } from '@/api/event/queries';
-import { handleError } from '@/api/handle-error';
-import { UPLOAD_INVALID_EXTENSION, UPLOAD_PUT_FAILED, uploadImage } from '@/api/upload';
+import { eventSectionsManageQuery } from '@/api/event/queries';
+import { handleError, handlersFrom } from '@/api/handle-error';
+import { uploadImage } from '@/api/upload';
+import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 
-import { applySavedSections } from './event-cache';
+import { applySavedSections, invalidateEventStatus } from './event-cache';
+import { EVENT_ENDED_MESSAGE } from './event-scope';
 import {
   canAddSection,
   canRemoveSection,
@@ -27,11 +29,6 @@ import {
 } from './sections-form';
 import type { SavedNotice } from './useEventBasicInfo';
 import { useEventScope } from './useEventScope';
-
-const IMAGE_ERROR = {
-  [UPLOAD_INVALID_EXTENSION]: 'JPG·PNG 이미지만 올릴 수 있어요',
-  [UPLOAD_PUT_FAILED]: '이미지를 올리지 못했어요. 다시 시도해 주세요',
-} as const;
 
 /**
  * 공연 상세 정보(`/hosting/events/[eventId]/detail`, GE-5 · PE-6 · PE-10 `SECTION`, plan P11). 값·칸 오류·동작만 — 탭·에디터(Tiptap)는 V.
@@ -88,11 +85,8 @@ export function useEventSections(eventId: string) {
         const uploaded = await imageMutation.mutateAsync(file);
         return uploaded.url;
       } catch (e) {
-        const show = (code: keyof typeof IMAGE_ERROR) => () => setImageError(IMAGE_ERROR[code]);
-        handleError(e, {
-          [UPLOAD_INVALID_EXTENSION]: show(UPLOAD_INVALID_EXTENSION),
-          [UPLOAD_PUT_FAILED]: show(UPLOAD_PUT_FAILED),
-        });
+        // 공용 업로드 문구(A10). 표에 없는 실패는 공용 토스트
+        handleError(e, handlersFrom(UPLOAD_ERROR_MESSAGE, setImageError));
         return null;
       }
     },
@@ -128,11 +122,8 @@ export function useEventSections(eventId: string) {
       handleError(e, {
         Event_400_21: () => setFormError(SECTION_ERROR.Event_400_21),
         Event_400_17: () => {
-          setFormError('끝난 공연은 수정할 수 없어요');
-          void queryClient.invalidateQueries({
-            queryKey: eventManageQuery(eventId).queryKey,
-            exact: true,
-          });
+          setFormError(EVENT_ENDED_MESSAGE);
+          void invalidateEventStatus(queryClient, eventId);
         },
       });
       return false;

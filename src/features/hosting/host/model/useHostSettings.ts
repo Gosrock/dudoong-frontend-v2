@@ -3,12 +3,13 @@
 import { useMutation, useQueryClient, useSuspenseQueries } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { handleError } from '@/api/handle-error';
+import { handleError, handlersFrom } from '@/api/handle-error';
 import { updateHostMutation } from '@/api/host/mutations';
 import { hostMembersQuery, hostViewerQuery } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
 import { uploadImage } from '@/api/upload';
 import { hostingAccessOfRole } from '@/features/hosting/access/model/hosting-access';
+import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 
 import { applyUpdatedHost } from './host-cache';
@@ -23,7 +24,6 @@ import {
 } from './host-fields';
 import {
   hasHostSettingsErrors,
-  HOST_IMAGE_ERROR_MESSAGE,
   HOST_IMAGE_SLOTS,
   HOST_SETTINGS_ERROR_MESSAGE,
   type HostImageSlot,
@@ -94,15 +94,11 @@ export function useHostSettings(hostId: string) {
           images: { ...v.images, [slot]: { url: uploaded.url, key: uploaded.key } },
         }));
       } catch (e) {
-        const show = (code: keyof typeof HOST_IMAGE_ERROR_MESSAGE) => () =>
-          setImageErrors((prev) => ({ ...prev, [slot]: HOST_IMAGE_ERROR_MESSAGE[code] }));
-        // 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
+        // 그 자리의 업로드 오류(공용 문구 — A10). 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
         handleError(
           e,
-          Object.fromEntries(
-            (
-              Object.keys(HOST_IMAGE_ERROR_MESSAGE) as (keyof typeof HOST_IMAGE_ERROR_MESSAGE)[]
-            ).map((c) => [c, show(c)]),
+          handlersFrom(UPLOAD_ERROR_MESSAGE, (message) =>
+            setImageErrors((prev) => ({ ...prev, [slot]: message })),
           ),
         );
       }

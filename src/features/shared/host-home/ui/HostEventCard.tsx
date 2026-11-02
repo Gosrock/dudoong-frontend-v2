@@ -1,7 +1,8 @@
 'use client';
 
 import type { HostEvent } from '@/api/host/schema';
-import { Chip, type ChipColor, type ChipTheme, formatDday } from '@/ui/components/Chip/Chip';
+import { formatDday } from '@/api/shared/dday';
+import { Chip, type ChipColor, type ChipTheme } from '@/ui/components/Chip/Chip';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 
 import type { HostEventCard as HostEventCardItem } from '../model/useHostHome';

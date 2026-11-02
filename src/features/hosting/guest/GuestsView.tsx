@@ -2,10 +2,8 @@
 
 import { type ReactNode, useState } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import type { HostOrderElement } from '@/api/order/schema';
-import { HostingAccessRejected } from '@/features/hosting/access/HostingAccessRejected';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { Chip } from '@/ui/components/Chip/Chip';
@@ -13,6 +11,7 @@ import { DataTable } from '@/ui/components/DataTable/DataTable';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Txt } from '@/ui/primitives/Txt';
+import { formatWon } from '@/utils/money';
 
 import * as s from './GuestsView.css';
 import { IssuedTicketsTab, RefundsTab } from './GuestTabs';
@@ -22,7 +21,7 @@ import { useGuestsUrlState } from './model/useGuestsUrlState';
 import { useOrderDetail } from './model/useOrderDetail';
 import { useOrderList } from './model/useOrderList';
 import { DetailCell } from './ui/DetailCell';
-import { dateTimeText, orderStatusChipOf, text, won } from './ui/guest-labels';
+import { dateTimeText, orderStatusChipOf, text } from './ui/guest-labels';
 import {
   Empty,
   ExportButton,
@@ -45,15 +44,15 @@ import { OrderDetailOverlay } from './ui/OrderDetailOverlay';
  */
 export function GuestsView({ eventId }: { eventId: string }) {
   return (
-    <AsyncBoundary holdOn={isSessionLost} rejected={HostingAccessRejected} resetKeys={[eventId]}>
+    <HostingBoundary resetKeys={[eventId]}>
       <Guests eventId={eventId} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
 function Guests({ eventId }: { eventId: string }) {
   const url = useGuestsUrlState();
-  const d = useOrderDetail(eventId, url.orderUuid, { onMissing: url.closeOrder });
+  const detail = useOrderDetail(eventId, url.orderUuid, { onMissing: url.closeOrder });
   return (
     <section aria-labelledby="guests-title" className={s.page}>
       <h1 id="guests-title" className={s.desktopTitle}>
@@ -68,9 +67,9 @@ function Guests({ eventId }: { eventId: string }) {
             </Tab>
           ))}
         </TabList>
-        {d.missingNotice && (
+        {detail.missingNotice && (
           <div className={s.panelNotice}>
-            <NoticeLine onDismiss={d.dismissMissingNotice}>{d.missingNotice}</NoticeLine>
+            <NoticeLine onDismiss={detail.dismissMissingNotice}>{detail.missingNotice}</NoticeLine>
           </div>
         )}
         <TabPanel value="orders" className={s.panel}>
@@ -83,7 +82,9 @@ function Guests({ eventId }: { eventId: string }) {
           <RefundsTab eventId={eventId} onOpen={url.openOrder} />
         </TabPanel>
       </Tabs>
-      {d.open && <OrderDetailOverlay key={url.orderUuid} d={d} onClose={url.closeOrder} />}
+      {detail.open && (
+        <OrderDetailOverlay key={url.orderUuid} d={detail} onClose={url.closeOrder} />
+      )}
     </section>
   );
 }
@@ -102,14 +103,14 @@ function StopRowClick({ children }: { children: ReactNode }) {
 }
 
 function OrdersTab({ eventId, onOpen }: { eventId: string; onOpen: (uuid: string) => void }) {
-  const l = useOrderList(eventId);
+  const list = useOrderList(eventId);
   const bulk = useBulkOrderActions(eventId);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   /** 행 [거절](주문 하나) · 선택 바 [거절](고른 주문) */
   const [refusing, setRefusing] = useState<readonly string[] | null>(null);
   const [bulkNotice, setBulkNotice] = useState<string | null>(null);
 
-  const selectable = l.rows.filter((o) => bulk.isSelectable(o));
+  const selectable = list.rows.filter((o) => bulk.isSelectable(o));
   const selected = selectable.filter((o) => picked.has(o.orderUuid)).map((o) => o.orderUuid);
   const allPicked = selectable.length > 0 && selected.length === selectable.length;
   const clearPicked = () => setPicked(new Set());
@@ -173,7 +174,7 @@ function OrdersTab({ eventId, onOpen }: { eventId: string; onOpen: (uuid: string
       align: 'right',
       display: 'desktop',
       width: 120,
-      cell: (o) => won(o.totalAmount),
+      cell: (o) => formatWon(o.totalAmount),
     },
     {
       id: 'orderedAt',
@@ -224,10 +225,10 @@ function OrdersTab({ eventId, onOpen }: { eventId: string; onOpen: (uuid: string
     },
   ]);
 
-  const failed = l.status === 'error';
-  const empty = l.status === 'success' && l.rows.length === 0;
+  const failed = list.status === 'error';
+  const empty = list.status === 'success' && list.rows.length === 0;
   const refusingDudoong = (refusing ?? []).some((uuid) => {
-    const row = l.rows.find((o) => o.orderUuid === uuid);
+    const row = list.rows.find((o) => o.orderUuid === uuid);
     return row ? isDudoongOrder(row) : false;
   });
 
@@ -237,10 +238,10 @@ function OrdersTab({ eventId, onOpen }: { eventId: string; onOpen: (uuid: string
         filters={
           <FilterRow
             label="주문 상태"
-            options={l.statusTabs}
+            options={list.statusTabs}
             onSelect={(k) => {
               clearPicked();
-              l.setStatus(k);
+              list.setStatus(k);
             }}
             testIdPrefix="status"
           />
@@ -248,53 +249,55 @@ function OrdersTab({ eventId, onOpen }: { eventId: string; onOpen: (uuid: string
         search={
           <SearchBar
             label="주문 검색어"
-            types={l.searchTypes}
-            type={l.searchType}
-            onTypeChange={l.setSearchType}
-            keyword={l.keywordInput}
-            onKeywordChange={l.setKeywordInput}
-            keywordMax={l.keywordMax}
+            types={list.searchTypes}
+            type={list.searchType}
+            onTypeChange={list.setSearchType}
+            keyword={list.keywordInput}
+            onKeywordChange={list.setKeywordInput}
+            keywordMax={list.keywordMax}
             onSubmit={() => {
               clearPicked();
-              l.submitSearch();
+              list.submitSearch();
             }}
           />
         }
-        hint={l.exactMatchHint}
+        hint={list.exactMatchHint}
       />
-      {l.exportError && <NoticeLine onDismiss={l.dismissExportError}>{l.exportError}</NoticeLine>}
+      {list.exportError && (
+        <NoticeLine onDismiss={list.dismissExportError}>{list.exportError}</NoticeLine>
+      )}
       {bulkNotice && <NoticeLine onDismiss={() => setBulkNotice(null)}>{bulkNotice}</NoticeLine>}
       <DataTable
         caption="주문 목록"
         columns={columns}
-        data={failed ? [] : l.rows}
+        data={failed ? [] : list.rows}
         getRowId={(o) => o.orderUuid}
         rowTestId="order-row"
         onRowClick={(o) => onOpen(o.orderUuid)}
         getRowLabel={(o) => `${text(o.orderNo)} ${text(o.buyerName)} 주문 상세`}
         isRowSelected={(o) => picked.has(o.orderUuid)}
-        pageIndex={l.page}
-        pageCount={l.totalPages ?? 1}
+        pageIndex={list.page}
+        pageCount={list.totalPages ?? 1}
         onPageChange={(n) => {
           clearPicked();
-          l.setPage(n);
+          list.setPage(n);
         }}
         alwaysShowPagination
-        loading={l.status === 'pending' ? <ListLoading /> : undefined}
+        loading={list.status === 'pending' ? <ListLoading /> : undefined}
         empty={
           failed ? (
-            <ListError what="주문" onRetry={l.retry} />
+            <ListError what="주문" onRetry={list.retry} />
           ) : (
-            <Empty>{l.appliedKeyword ? '검색 결과가 없어요' : '주문이 없어요'}</Empty>
+            <Empty>{list.appliedKeyword ? '검색 결과가 없어요' : '주문이 없어요'}</Empty>
           )
         }
         footerEnd={
-          l.canExport ? (
+          list.canExport ? (
             <ExportButton
               label="주문 엑셀로 다운로드"
-              exporting={l.exporting}
+              exporting={list.exporting}
               disabled={failed || empty}
-              onExport={() => void l.exportExcel()}
+              onExport={() => void list.exportExcel()}
             />
           ) : undefined
         }

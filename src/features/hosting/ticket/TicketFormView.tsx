@@ -4,15 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 
-import { isSessionLost } from '@/api/errors';
 import { TICKET_DESCRIPTION_MAX, TICKET_NAME_MAX } from '@/api/ticket-item/schema';
-import {
-  HostingAccessRejected,
-  HostingNotFound,
-} from '@/features/hosting/access/HostingAccessRejected';
+import { HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
+import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { FieldError, FormSection, useLeaveGuard } from '@/features/hosting/event/ui/EditorParts';
 import { EVENT_SCOPE_ATTR } from '@/features/hosting/shell/HostingShell.css';
-import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
@@ -54,13 +50,9 @@ export function TicketFormView({
   const id = ticketItemId === undefined ? null : parseTicketItemIdParam(ticketItemId);
   if (ticketItemId !== undefined && id === null) return <HostingNotFound />;
   return (
-    <AsyncBoundary
-      holdOn={isSessionLost}
-      rejected={HostingAccessRejected}
-      resetKeys={[eventId, id]}
-    >
+    <HostingBoundary resetKeys={[eventId, id]}>
       <TicketForm key={bfcacheId} eventId={eventId} ticketItemId={id} />
-    </AsyncBoundary>
+    </HostingBoundary>
   );
 }
 
@@ -79,21 +71,22 @@ function useHideEventHeader() {
 }
 
 function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: number | null }) {
-  const f = useTicketForm(eventId, ticketItemId);
+  const form = useTicketForm(eventId, ticketItemId);
   const pageRef = useHideEventHeader();
   // 처음 그린 값과 다르면 손댄 것(만들기는 L `dirty`가 늘 true — 빈 폼에서 나갈 때 묻지 않고, 버튼은 GUI처럼 비활성)
-  const [initial] = useState(() => JSON.stringify(f.values));
-  const touched = f.dirty && JSON.stringify(f.values) !== initial;
-  useLeaveGuard(f.canEdit && touched);
-  if (f.missing) return <HostingNotFound />;
-  const v = f.values;
-  const readOnly = !f.canEdit;
-  const locked = f.locks.locked;
-  const err = (field: keyof typeof f.errors) =>
-    f.serverErrors[field] ?? (f.attempted ? f.errors[field] : undefined);
-  const title = f.mode === 'create' ? '새 티켓 만들기' : '티켓 수정';
+  const [initial] = useState(() => JSON.stringify(form.values));
+  const touched = form.dirty && JSON.stringify(form.values) !== initial;
+  useLeaveGuard(form.canEdit && touched);
+  if (form.missing) return <HostingNotFound />;
+  const v = form.values;
+  const readOnly = !form.canEdit;
+  const locked = form.locks.locked;
+  const err = (field: keyof typeof form.errors) =>
+    form.serverErrors[field] ?? (form.attempted ? form.errors[field] : undefined);
+  const title = form.mode === 'create' ? '새 티켓 만들기' : '티켓 수정';
   const dudoong = v.payType === 'DUDOONG';
-  const agreementMissing = f.agreement.field && f.agreement.required && !f.agreement.agreed;
+  const agreementMissing =
+    form.agreement.field && form.agreement.required && !form.agreement.agreed;
 
   const toggles = (
     <>
@@ -101,8 +94,8 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
         title="관리자 승인 여부"
         description="관리자가 승인해야 티켓이 발급돼요."
         checked={v.approvalRequired}
-        disabled={readOnly || f.locks.approval}
-        onCheckedChange={f.setApprovalRequired}
+        disabled={readOnly || form.locks.approval}
+        onCheckedChange={form.setApprovalRequired}
         onInfo={() => void openApprovalGuide()}
         infoLabel="관리자 승인이란?"
       />
@@ -110,15 +103,15 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
         title="재고 정보 공개"
         description="남은 티켓의 수량을 공개해요."
         checked={v.isQuantityPublic}
-        disabled={readOnly || f.locks.quantityPublic}
-        onCheckedChange={f.setQuantityPublic}
+        disabled={readOnly || form.locks.quantityPublic}
+        onCheckedChange={form.setQuantityPublic}
       />
       <ToggleSection
         title="구매 가능 매수 제한"
         description="한 명이 구매 가능한 티켓 매수를 제한해요."
         checked={v.limitPurchase}
         disabled={readOnly}
-        onCheckedChange={f.setLimitPurchase}
+        onCheckedChange={form.setLimitPurchase}
       >
         {v.limitPurchase && (
           <Input
@@ -129,7 +122,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
             trailing="장"
             value={v.purchaseLimit}
             readOnly={readOnly}
-            onChange={(e) => f.setPurchaseLimit(e.target.value)}
+            onChange={(e) => form.setPurchaseLimit(e.target.value)}
             error={err('purchaseLimit')}
           />
         )}
@@ -139,7 +132,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
         description={'티켓을 구매할 수 있는 기간을 설정해요.\n판매는 공연 시작 전까지만 가능해요.'}
         checked={v.salePeriod}
         disabled={readOnly}
-        onCheckedChange={f.setSalePeriod}
+        onCheckedChange={form.setSalePeriod}
       >
         {v.salePeriod && (
           // FIGMA-CUSTOM: 판매 기간 상자(gui 767:46768 "Frame 1707480415") 커스텀 → 커스텀 TicketFormView.css.ts. DS 후보(design-system §3)
@@ -151,7 +144,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                   label={<Txt typography="labelMd">공연 등록 즉시 판매 시작</Txt>}
                   checked={v.saleStartNow}
                   disabled={readOnly}
-                  onCheckedChange={f.setSaleStartNow}
+                  onCheckedChange={form.setSaleStartNow}
                 />
               </div>
               {!v.saleStartNow && (
@@ -161,14 +154,14 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                     placeholder="날짜 선택"
                     value={v.saleStartDate}
                     readOnly={readOnly}
-                    onChange={(e) => f.setSaleStart(e.target.value, v.saleStartTime)}
+                    onChange={(e) => form.setSaleStart(e.target.value, v.saleStartTime)}
                   />
                   <TimePicker
                     aria-label="판매 시작 시각"
                     placeholder="시간 선택"
                     value={v.saleStartTime}
                     readOnly={readOnly}
-                    onChange={(e) => f.setSaleStart(v.saleStartDate, e.target.value)}
+                    onChange={(e) => form.setSaleStart(v.saleStartDate, e.target.value)}
                   />
                 </div>
               )}
@@ -184,14 +177,14 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                   placeholder="날짜 선택"
                   value={v.saleEndDate}
                   readOnly={readOnly}
-                  onChange={(e) => f.setSaleEnd(e.target.value, v.saleEndTime)}
+                  onChange={(e) => form.setSaleEnd(e.target.value, v.saleEndTime)}
                 />
                 <TimePicker
                   aria-label="판매 종료 시각"
                   placeholder="시간 선택"
                   value={v.saleEndTime}
                   readOnly={readOnly}
-                  onChange={(e) => f.setSaleEnd(v.saleEndDate, e.target.value)}
+                  onChange={(e) => form.setSaleEnd(v.saleEndDate, e.target.value)}
                 />
               </div>
               <FieldError>{err('saleEnd')}</FieldError>
@@ -208,13 +201,13 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
         className={s.mobileHeaderBar}
         title={title}
         titleAs="p"
-        backHref={f.listHref}
+        backHref={form.listHref}
         backLabel="티켓 관리로"
         linkAs={Link}
       />
       <div className={s.body}>
         <div className={s.desktopHead}>
-          <Link href={f.listHref} className={s.crumb}>
+          <Link href={form.listHref} className={s.crumb}>
             <Icon name="chevron-left" size={16} />
             <Txt typography="labelMd">티켓 관리</Txt>
           </Link>
@@ -224,10 +217,10 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
         </h1>
 
         <div className={s.notices}>
-          {(f.readOnlyReason === 'noTicketEvent' || f.readOnlyReason === 'priceTicket') && (
+          {(form.readOnlyReason === 'noTicketEvent' || form.readOnlyReason === 'priceTicket') && (
             <p data-testid="ticket-form-read-only">
               <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
-                {f.readOnlyMessage}
+                {form.readOnlyMessage}
               </Txt>
             </p>
           )}
@@ -239,10 +232,10 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
               </NoticeBox>
             </span>
           )}
-          {f.formError && (
+          {form.formError && (
             <p role="alert">
               <Txt typography="bodyMd" color={colors.textDangerLabel}>
-                {f.formError}
+                {form.formError}
               </Txt>
             </p>
           )}
@@ -254,7 +247,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
           className={s.columns}
           onSubmit={(e) => {
             e.preventDefault();
-            void f.save();
+            void form.save();
           }}
         >
           <div className={s.left}>
@@ -267,7 +260,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                 className={s.radios}
                 value={v.payType}
                 disabled={readOnly || locked}
-                onValueChange={(p) => f.setPayType(p as typeof v.payType)}
+                onValueChange={(p) => form.setPayType(p as typeof v.payType)}
               >
                 <Radio value="DUDOONG" label={PAY_TYPE_LABEL.DUDOONG} />
                 <Radio value="FREE" label={PAY_TYPE_LABEL.FREE} />
@@ -286,7 +279,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                 maxLength={TICKET_NAME_MAX}
                 value={v.name}
                 readOnly={readOnly || locked}
-                onChange={(e) => f.setName(e.target.value)}
+                onChange={(e) => form.setName(e.target.value)}
                 error={err('name')}
               />
             </FormSection>
@@ -301,7 +294,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                 maxLength={TICKET_DESCRIPTION_MAX}
                 value={v.description}
                 readOnly={readOnly}
-                onChange={(e) => f.setDescription(e.target.value)}
+                onChange={(e) => form.setDescription(e.target.value)}
                 error={err('description')}
               />
             </FormSection>
@@ -317,7 +310,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                     trailing="원"
                     value={v.price}
                     readOnly={readOnly || locked}
-                    onChange={(e) => f.setPrice(e.target.value)}
+                    onChange={(e) => form.setPrice(e.target.value)}
                     error={err('price')}
                   />
                 </FormSection>
@@ -327,8 +320,8 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                   aria-label="판매 수량 방식"
                   className={s.supplyRow}
                   value={v.unlimited ? 'unlimited' : 'limited'}
-                  disabled={readOnly || (v.unlimited && f.locks.limitedSupply)}
-                  onValueChange={(next) => f.setUnlimited(next === 'unlimited')}
+                  disabled={readOnly || (v.unlimited && form.locks.limitedSupply)}
+                  onValueChange={(next) => form.setUnlimited(next === 'unlimited')}
                 >
                   <Radio value="unlimited" label="무제한" />
                   <span className={s.supplyCount}>
@@ -342,7 +335,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                       value={v.unlimited ? '' : v.supplyCount}
                       disabled={v.unlimited}
                       readOnly={readOnly}
-                      onChange={(e) => f.setSupplyCount(e.target.value)}
+                      onChange={(e) => form.setSupplyCount(e.target.value)}
                     />
                   </span>
                 </RadioGroup>
@@ -362,12 +355,12 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                     <Dropdown
                       aria-label="은행"
                       placeholder={
-                        f.bank.status === 'error' ? '은행 목록을 못 불러왔어요' : '은행명'
+                        form.bank.status === 'error' ? '은행 목록을 못 불러왔어요' : '은행명'
                       }
-                      options={f.bank.banks.map((b) => ({ value: b.code, label: b.name }))}
-                      value={f.bank.selected?.code ?? ''}
-                      disabled={readOnly || locked || f.bank.status !== 'success'}
-                      onValueChange={f.bank.select}
+                      options={form.bank.banks.map((b) => ({ value: b.code, label: b.name }))}
+                      value={form.bank.selected?.code ?? ''}
+                      disabled={readOnly || locked || form.bank.status !== 'success'}
+                      onValueChange={form.bank.select}
                       error={err('bankCode')}
                     />
                     <Input
@@ -375,7 +368,7 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                       placeholder="예금주"
                       value={v.accountHolder}
                       readOnly={readOnly || locked}
-                      onChange={(e) => f.setAccountHolder(e.target.value)}
+                      onChange={(e) => form.setAccountHolder(e.target.value)}
                       error={err('accountHolder')}
                     />
                   </div>
@@ -385,11 +378,11 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
                     inputMode="numeric"
                     value={v.accountNumber}
                     readOnly={readOnly || locked}
-                    onChange={(e) => f.setAccountNumber(e.target.value)}
+                    onChange={(e) => form.setAccountNumber(e.target.value)}
                     error={err('accountNumber')}
                   />
-                  {f.bank.status === 'error' && (
-                    <Button variant="secondary" size="sm" onClick={f.bank.retry}>
+                  {form.bank.status === 'error' && (
+                    <Button variant="secondary" size="sm" onClick={form.bank.retry}>
                       은행 목록 다시 불러오기
                     </Button>
                   )}
@@ -398,17 +391,17 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
             )}
           </div>
           <div className={s.right}>{toggles}</div>
-          {f.agreement.field && f.agreement.required && (
+          {form.agreement.field && form.agreement.required && (
             <RefundObligationField
-              agreed={f.agreement.agreed}
-              onAgreedChange={f.agreement.setAgreed}
-              disabled={readOnly || f.saving}
-              error={f.attempted && !f.agreement.agreed ? REFUND_OBLIGATION_ERROR : undefined}
+              agreed={form.agreement.agreed}
+              onAgreedChange={form.agreement.setAgreed}
+              disabled={readOnly || form.saving}
+              error={form.attempted && !form.agreement.agreed ? REFUND_OBLIGATION_ERROR : undefined}
             />
           )}
         </form>
       </div>
-      {f.canEdit && (
+      {form.canEdit && (
         <div className={s.bottomBar}>
           <Button
             type="submit"
@@ -417,9 +410,9 @@ function TicketForm({ eventId, ticketItemId }: { eventId: string; ticketItemId: 
             fullWidth
             className={s.saveButton}
             disabled={!touched || agreementMissing}
-            loading={f.saving}
+            loading={form.saving}
           >
-            {f.mode === 'create' ? '티켓 만들기' : '저장하기'}
+            {form.mode === 'create' ? '티켓 만들기' : '저장하기'}
           </Button>
         </div>
       )}

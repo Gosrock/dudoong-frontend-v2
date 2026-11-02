@@ -30,9 +30,9 @@ import { useCreateHost } from './model/useCreateHost';
  * 칸 오류는 [만들기]를 한 번 누른 뒤부터 보인다(`attempted`).
  */
 export function CreateHostView() {
-  const f = useCreateHost();
-  const show = (error: string | null) => (f.attempted && error ? error : undefined);
-  const options = f.contactOptions.map((o) => ({ value: o.type, label: o.label }));
+  const form = useCreateHost();
+  const show = (error: string | null) => (form.attempted && error ? error : undefined);
+  const options = form.contactOptions.map((o) => ({ value: o.type, label: o.label }));
 
   return (
     <main className={s.page}>
@@ -42,7 +42,7 @@ export function CreateHostView() {
         className={s.form}
         onSubmit={(e) => {
           e.preventDefault();
-          void f.submit();
+          void form.submit();
         }}
       >
         <Txt as="p" typography="bodyMd" color={colors.textPrimary}>
@@ -54,18 +54,18 @@ export function CreateHostView() {
           required
           placeholder={`최대 ${HOST_NAME_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_NAME_MAX}
-          value={f.values.name}
-          onChange={(e) => f.setName(e.target.value)}
-          error={show(f.errors.name)}
+          value={form.values.name}
+          onChange={(e) => form.setName(e.target.value)}
+          error={show(form.errors.name)}
         />
 
         <TextArea
           label="소개글"
           placeholder={`최대 ${HOST_INTRODUCE_MAX}자까지 쓸 수 있어요.`}
           maxLength={HOST_INTRODUCE_MAX}
-          value={f.values.introduce}
-          onChange={(e) => f.setIntroduce(e.target.value)}
-          error={show(f.errors.introduce)}
+          value={form.values.introduce}
+          onChange={(e) => form.setIntroduce(e.target.value)}
+          error={show(form.errors.introduce)}
         />
 
         <fieldset className={s.contacts}>
@@ -76,7 +76,7 @@ export function CreateHostView() {
             </span>
           </legend>
           <span className={field.helper}>호스트 홈에 보이는 정보예요.</span>
-          {f.values.contacts.map((c, i) => (
+          {form.values.contacts.map((c, i) => (
             <div key={i} className={s.contactRow} data-testid="contact-row">
               <Dropdown
                 className={s.contactType}
@@ -84,7 +84,7 @@ export function CreateHostView() {
                 placeholder="유형 선택"
                 options={options}
                 value={c.type ?? ''}
-                onValueChange={(v) => v && f.setContactType(i, v as HostContactType)}
+                onValueChange={(v) => v && form.setContactType(i, v as HostContactType)}
               />
               <Input
                 className={s.contactValue}
@@ -93,40 +93,40 @@ export function CreateHostView() {
                 maxLength={c.type === 'PHONE' ? HOST_PHONE_VALUE_MAX : HOST_CONTACT_VALUE_MAX}
                 showCount={false}
                 value={c.value}
-                onChange={(e) => f.setContactValue(i, e.target.value)}
-                error={show(f.errors.contacts[i] ?? null)}
+                onChange={(e) => form.setContactValue(i, e.target.value)}
+                error={show(form.errors.contacts[i] ?? null)}
               />
-              {f.canRemoveContact && (
+              {form.canRemoveContact && (
                 <button
                   type="button"
                   className={s.removeButton}
                   aria-label={`연락처 ${i + 1} 삭제`}
-                  onClick={() => f.removeContact(i)}
+                  onClick={() => form.removeContact(i)}
                 >
                   <Icon name="close" />
                 </button>
               )}
             </div>
           ))}
-          {f.contactsServerError && (
+          {form.contactsServerError && (
             <span role="alert" className={field.errorText}>
-              {f.contactsServerError}
+              {form.contactsServerError}
             </span>
           )}
-          {f.canAddContact && (
+          {form.canAddContact && (
             <Button
               variant="secondary"
               size="sm"
               className={s.addButton}
               icon={<Icon name="add" />}
-              onClick={f.addContact}
+              onClick={form.addContact}
             >
               연락처 추가
             </Button>
           )}
         </fieldset>
 
-        <Button type="submit" size="lg" fullWidth loading={f.submitting}>
+        <Button type="submit" size="lg" fullWidth loading={form.submitting}>
           만들기
         </Button>
       </form>

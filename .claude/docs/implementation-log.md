@@ -2734,3 +2734,23 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · vitest related(guest 84) 통과. e2e `hosting-guests` · `a11y` · `notifications` · `hosting` 통과(125 + 191 — 실패 4는 고침). QA `hosting-guests` 29 통과 · 실패 0 · 수동 1. origin/main(#128 패턴 ③ 관객) merge 뒤 typecheck 통과.
 
 **ego-browser 확인(2026-11-03, dev:mock 3075)**: 1440 · 390 — 주문 탭(칩 · 검색 · 표 · 체크박스 · 행 [거절][승인] · 선택 바 PC 떠 있음/모바일 하단) · 주문 상세(승인 대기 · 환불 요청 · 승인 완료 시트) · 거절 사유 단계 · 행 [거절] 오버레이 → 거절 · 모두 선택 → [승인] → "1건을 승인했어요." · 발급된 티켓 표 · 티켓 상세(입장 완료) · 환불 탭(안내 · 칩 · 계좌 입력 전). 발견 → 처리: PC 탭이 GUI보다 큼(→ md) · 주문 번호 칸 폭(→ PC만 `width`) · 폭별로 숨는 첫 칸 때문에 양 끝 여백 어긋남(→ `edge` 표시) · › 칸 눌림(→ 40) · 글자 수 두 번(→ Input 것만).
+
+## 코드 패턴 정리 ④ 호스팅 화면 옮기기(2026-11-03, `pattern-hosting`)
+
+**근거**: [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) "④ 결과"(A번호별 끝 · 일부 · 건너뜀 이유) · progress "다음 순서" 29. 공용 부품(#126)과 ③(#128)이 둔 것을 쓰기만 했다 — `src/ui` · `src/api` 수정 없음. #129(예매자 관리 GUI) 뒤 main 기준.
+
+**사용자에게 보이는 변화**
+
+| 화면 | 전 | 후 | 근거 |
+|---|---|---|---|
+| 공연 사이드바 공연 줄 | 공연 당일 `D-0` | `D-day` | design-system §3 Concert state chip(A4 `formatDday`) |
+| 옵션 붙이기 · 새 옵션 · 옵션 상세(끝난 공연에서 저장 실패) | 안내만, 화면은 수정 가능한 채 | 안내 + GE-3 다시 읽기 → 읽기 전용 | A2 — 나머지 화면과 같게 |
+| 멤버 권한 변경 · 양도 · 삭제 확인 | 실패해도 닫힘 | 표에 없는 실패(공용 토스트)는 열린 채, `HOST_404_2`는 닫히고 목록 위 안내 | patterns §6 확인 창 계약(사용자 결정 2026-11-02) |
+| 티켓 삭제 · 판매 중단 · 재개, 옵션 ✕ · 옵션 삭제 확인 | 확인 창을 닫은 뒤 호출 | 확인 창 안에서 호출(버튼 로딩) — 실패는 열린 채, 그새 팔림 · 없음 · 끝난 공연은 닫히고 목록 위 안내 | 같음 |
+| 공연 등록 확인 | 실패면 열린 채(throw) | 같음(`false`) | 같음 — 동작 그대로 |
+| "불러오지 못했어요" 10곳 | 화면마다 글자 크기 · 색 · 배치 | `InlineError`(bodyMd · 보조 글자색 · secondary sm) — 문구 그대로 | A7(디자인 없음 — 지역 fallback과 같은 모양) |
+| 공연준비 홈 검색 | 300ms 뒤 적용 | 같음(es-toolkit) | A8 |
+
+**검사**: typecheck · lint 통과. vitest hosting · host-home · notice · audience/home 39파일 766개 통과(단언 고침 둘 — `useTicketList` 그새 팔림 반환값 `false` → `'reread'`, `useHostMembers` 테스트 변수 타입). e2e hosting · hosting-event · hosting-guests · hosting-host · hosting-ticket · hosting-checkin · event-list · home · host-home · notices · notifications · a11y · a11y-keyboard 357 통과 / 0 실패. QA hosting-home 18 · hosting-event 20 · hosting-ticket 30 · hosting-guests 29 · hosting-qr 18 · host-settings 28(HS-14가 "팝업은 닫히고 목록 위 안내" — 처음 바꾼 판에서 실패해 `'missing'`을 넣었다) · events 19 · home 8 · notifications 14 · notices 16 · host-home 14 — 모두 통과.
+
+**ego-browser 확인(2026-11-03, dev:mock 3077)**: 공연준비 홈 960(검색 150ms엔 4장 그대로 → 300ms 뒤 1장) · 티켓 관리(가격 · 재고 · `+10,000원`, [삭제] → 확인 창 안에서 호출 → 닫힘 + "티켓을 삭제했어요.") · 공연 대시보드 1440(사이드바 `고스락 · D-21`) · 멤버 390(권한 변경 → 닫힘 + 토스트, 일반 멤버 역할 글자 숨김) · 예매자 관리 1440(검색 "김" → 9행 → 2행). 발견: 없음(Next dev Insight 1건은 instant 내비게이션 안내 — 이 변경과 무관).
