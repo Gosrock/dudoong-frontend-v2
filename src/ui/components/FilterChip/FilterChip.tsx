@@ -84,6 +84,8 @@ export function CountFilterChip({
       {...rest}
     >
       {label}
+      {/* 공백 글자는 flex 안에서 그려지지 않는다(간격은 gap 4) — 접근성 이름 "전체 6" */}
+      {count ? ' ' : null}
       {count ? <span>{count.toLocaleString('ko-KR')}</span> : null}
     </button>
   );

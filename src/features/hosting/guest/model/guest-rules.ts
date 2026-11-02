@@ -107,10 +107,10 @@ export const REFUND_FILTER_OPTIONS = [
 ] as const satisfies readonly { key: RefundStatusFilter; label: string }[];
 
 /**
- * 일반 멤버의 연락처·입금자명 검색은 완전 일치만 된다(#846 — 가린 값을 부분 일치로 복원하지 못하게). 그 검색 칸의 안내 문구(잠정).
+ * 일반 멤버의 연락처·입금자명 검색은 완전 일치만 된다(#846 — 가린 값을 부분 일치로 복원하지 못하게). 그 검색 칸의 안내 문구(GUI `1029:4569`).
  * 이름 검색·매니저 이상은 안내 없음
  */
-export const EXACT_MATCH_HINT = '연락처·입금자명은 전체를 정확히 입력해야 찾을 수 있어요';
+export const EXACT_MATCH_HINT = '연락처, 입금자명은 전체를 정확히 입력해야 찾을 수 있어요.';
 export function exactMatchHintOf(
   role: ActorRole | null | undefined,
   searchType: OrderSearchType | IssuedTicketSearchType,

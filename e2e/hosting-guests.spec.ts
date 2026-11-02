@@ -123,14 +123,14 @@ test.describe('주문 처리', () => {
     await detail(page).getByRole('radio', { name: '기타 - 직접 입력' }).click();
     await detail(page).getByLabel('기타 사유').fill('중복 주문');
     const post = page.waitForRequest((r) => r.method() === 'POST' && r.url().endsWith('/refuse'));
-    await detail(page).getByRole('button', { name: '거절하기' }).click();
+    await detail(page).getByRole('button', { name: '거절', exact: true }).click();
     expect((await post).postDataJSON()).toEqual({ reasonType: 'ETC', reasonText: '중복 주문' });
     await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 거절');
   });
 });
 
 test.describe('권한 · 엑셀', () => {
-  test('일반 멤버: 엑셀 버튼 없음, 가린 연락처·입금자명 그대로, 검색 칸 완전 일치 안내, 처리 버튼 없음', async ({
+  test('일반 멤버: 엑셀 버튼 없음, 검색 칸 완전 일치 안내, 상세의 가린 연락처 그대로, 처리 버튼 없음', async ({
     page,
   }) => {
     actAsRole(11, 'GUEST');
@@ -138,16 +138,16 @@ test.describe('권한 · 엑셀', () => {
     await page.goto(GUESTS);
     await expect(page.getByTestId('order-row')).toHaveCount(9);
     await expect(page.getByRole('button', { name: '주문 엑셀로 다운로드' })).toHaveCount(0);
-    const toss = page.getByTestId('order-row').filter({ hasText: '이서연' }).first();
-    await expect(toss.getByTestId('order-phone')).toHaveText('010-****-7890');
     await expect(page.getByTestId('exact-hint')).toHaveCount(0);
     await page.getByRole('combobox', { name: '검색 기준' }).click();
     await page.getByRole('option', { name: '연락처' }).click();
     await expect(page.getByTestId('exact-hint')).toHaveText(
-      '연락처·입금자명은 전체를 정확히 입력해야 찾을 수 있어요',
+      '연락처, 입금자명은 전체를 정확히 입력해야 찾을 수 있어요.',
     );
     await page.goto(`${GUESTS}?order=${GUEST_ORDER.pendingTransfer}`);
     await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 대기');
+    // 표에서 연락처 칸이 빠졌다(GUI 2026-11-01) — 가린 값은 상세에서
+    await expect(detail(page).getByTestId('detail-phone')).toHaveText('010-****-6789');
     await expect(detail(page).getByRole('button', { name: '승인' })).toHaveCount(0);
   });
 

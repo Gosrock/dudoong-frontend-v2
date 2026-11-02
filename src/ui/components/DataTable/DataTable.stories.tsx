@@ -79,7 +79,7 @@ export const Paginated: Story = {
     const nav = canvas.getByRole('navigation', { name: '페이지' });
     const pages = within(nav);
 
-    await expect(pages.getByRole('button', { name: '1페이지' })).toHaveAttribute(
+    await expect(pages.getByRole('button', { name: '1 페이지' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -89,23 +89,23 @@ export const Paginated: Story = {
     pages.getByRole('button', { name: '다음 페이지' }).focus();
     await userEvent.keyboard('{Enter}');
     await expect(args.onPageChange).toHaveBeenLastCalledWith(1);
-    await expect(pages.getByRole('button', { name: '2페이지' })).toHaveAttribute(
+    await expect(pages.getByRole('button', { name: '2 페이지' })).toHaveAttribute(
       'aria-current',
       'page',
     );
 
     // 번호 버튼은 Tab으로 가서 Space로 누른다
-    pages.getByRole('button', { name: '5페이지' }).focus();
+    pages.getByRole('button', { name: '5 페이지' }).focus();
     await userEvent.keyboard(' ');
-    await expect(pages.getByRole('button', { name: '5페이지' })).toHaveAttribute(
+    await expect(pages.getByRole('button', { name: '5 페이지' })).toHaveAttribute(
       'aria-current',
       'page',
     );
-    await expect(pages.getByRole('button', { name: '1페이지' })).not.toHaveAttribute(
+    await expect(pages.getByRole('button', { name: '1 페이지' })).not.toHaveAttribute(
       'aria-current',
     );
 
-    await userEvent.click(pages.getByRole('button', { name: '20페이지' }));
+    await userEvent.click(pages.getByRole('button', { name: '20 페이지' }));
     await expect(pages.getByRole('button', { name: '다음 페이지' })).toBeDisabled();
   },
 };
