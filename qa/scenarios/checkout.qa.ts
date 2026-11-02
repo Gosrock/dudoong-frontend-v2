@@ -534,7 +534,14 @@ scenario(
     viewports: ['mobile'],
   },
   async ({ page, step, mockApi }) => {
-    mockApi.use(...orderHandlers.createLosesResponseOnce());
+    // 첫 주문 요청은 서버까지 보내 주문을 만들게 하고(route.fetch) 브라우저에는 응답을 끊는다 — 그 뒤는 그대로
+    let lost = false;
+    await page.route('**/api/v2/me/orders', async (route) => {
+      if (route.request().method() !== 'POST' || lost) return route.continue();
+      lost = true;
+      await route.fetch();
+      await route.abort('internetdisconnected');
+    });
     await setMockSession(page, 'loggedIn');
     await page.goto(href(CHECKOUT_TICKET.paidNoOptions));
     await agree(page);

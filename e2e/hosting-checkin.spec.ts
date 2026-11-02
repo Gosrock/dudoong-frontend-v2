@@ -134,7 +134,9 @@ test.describe('[관객이 스캔]', () => {
     await expect(qr.locator('svg')).toBeVisible();
 
     await page.goto(expected);
-    // 101에는 입장 전 내 티켓이 2장 — 고르기
+    // 확인 단계(이슈 #106 §6 — #108) 뒤 PQ-5. 101에는 입장 전 내 티켓이 2장 — 고르기
+    await expect(page.getByRole('region', { name: '입장 확인' })).toBeVisible();
+    await page.getByRole('button', { name: '입장하기' }).click();
     await expect(page.getByRole('region', { name: '티켓 고르기' })).toBeVisible();
   });
 
