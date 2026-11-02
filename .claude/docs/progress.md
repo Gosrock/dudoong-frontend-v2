@@ -13,6 +13,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 작업 | 브랜치 · PR | 시작 | 상태 | 메모 |
 |---|---|---|---|---|
 | 코드 패턴 정리 ①문서 + ②공용 부품 | `9yujin/pattern-base` | 2026-11-02 | PR 검토 대기 | 새로 만들기만(호출 쪽은 ③④). 병렬 `staging-qa-105-audience` · `staging-qa-106-host`와 파일 나눔 |
+| 코드 패턴 정리 ⑤ 구조 이동 | `9yujin/pattern-structure` | 2026-11-03 | 진행 중 | A14 `fh/shared` + eslint 피처 경계 · A15 · A29 · A31 · A40 · A9. 이동만(동작 그대로), A번호마다 커밋 |
 
 ## 사용자 대기
 
@@ -87,7 +88,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 | 27 | `pattern-base` | 코드 패턴 정리 ①문서(D1~D12 — D7은 30) + ②공용 부품 새로 만들기만(A1 · A3 · A4 · A5 · A7 · A8 · A11 · A12 · A19 · A21 · A22 · A23 · A44 · A45, [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md)) | — | PR | G 패턴 정리 |
 | 28 | `pattern-audience` ∥ 29 | ③ 관객 화면 옮기기 — A1(관객 확인 시트 6개 → `openConfirm`), A3 · A4 · A7 · A11 · A19 · A23 호출 쪽, A6, A10(profile), A12(gift-cache), A13(관심 호스트), A17, A18(관객), A20, A34~A39 | 27 · `staging-qa-105-audience` 머지 | 끝(#128) | G 패턴 정리 |
 | 29 | `pattern-hosting` ∥ 28 | ④ 호스팅 화면 옮기기 — A2, A1(호스팅 확인 → `onConfirm: () => m.action()`), A3 · A4 · A7 · A8(`useDebouncedValue` — 공연 리스트 · 공연준비 홈) · A11 · A19 호출 쪽, A10, A13(OptionSheets), A16, A18(ScanResult), A26, A30, A32, A33, A41, A42 | 27 · `staging-qa-106-host` 머지 | 끝(#130) | G 패턴 정리 |
-| 30 | `pattern-structure` | ⑤ 구조 이동 — A14 `fh/shared` + eslint 피처 경계, A15 activity-marker → `src/ui/hooks`(+ D7 patterns §6 경로), A29, A31, A40, A9 골격 묶기(폼 RHF 전환은 31) | 28 · 29 | 대기 | G 패턴 정리 |
+| 30 | `pattern-structure` | ⑤ 구조 이동 — A14 `fh/shared` + eslint 피처 경계, A15 activity-marker → `src/ui/hooks`(+ D7 patterns §6 경로), A29, A31, A40, A9 골격 묶기(폼 RHF 전환은 31) | 28 · 29 | 진행 중 | G 패턴 정리 |
 | 31 | `pattern-split` | ⑥ 큰 파일 나누기 — A24 · A25 큰 파일 · 큰 반환 객체, **복잡한 폼 RHF 전환**(patterns §23 분류표 "⑥" 7개), A27 `Divider` 변형, A28 flex 전용 클래스, A46 | 30 | 대기 | G 패턴 정리 **(그룹 끝 — 전체 회귀)** |
 | 32 | `p13a-gui-guests` | P13a-V GUI 반영 — 예매자 관리 전체(주문 · 다중선택 · 주문 상세 · 발급된 티켓 · 환불, 모바일 + 1440) + DS Filter Chip 개수형(#61) · Search Field 문구(#109)(`Closes #61 #109 #110~#125`, Q100~Q104 · B34~B37) | P13a-V | 끝(#129) | B 호스팅 GUI |
 
