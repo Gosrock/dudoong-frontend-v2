@@ -9,7 +9,7 @@ import {
   HOST_PHONE_VALUE_MAX,
 } from '../host/schema';
 import { CONTACT_TYPES } from '../shared/common-schema';
-import { resetEventStore } from './event-store';
+import { mockNow, resetEventStore } from './event-store';
 import {
   CREATED_HOST_ID_START,
   defaultMemberships,
@@ -104,16 +104,46 @@ function listHandlers(memberships: () => MockMembership[]): HttpHandler[] {
       const url = new URL(request.url);
       const paging = readPageParams(url, 10);
       const keyword = readKeyword(url);
-      if (!paging || keyword === null) return errors.badRequest(request);
+      const sort = url.searchParams.get('sort') ?? 'LATEST';
+      // 2.5.7 — 대문자 SCHEDULE · LATEST만, 그 밖은 400(백엔드 #928 B32)
+      if (!paging || keyword === null || !MY_EVENT_SORTS.has(sort)) {
+        return errors.badRequest(request);
+      }
       const list = memberships()
         .map(managed)
         .flatMap((m) => hostEventsOf(m.hostId).map((e) => toMyEvent(e, m.myRole)))
         .filter((e) => includes(e.name, keyword))
         // 최신 생성 순 — mock 공연에는 생성일이 없어 id 큰 것을 최근으로 본다
         .sort((a, b) => b.eventId - a.eventId);
+      if (sort === 'SCHEDULE') list.sort(byScheduleOf(mockNow()));
       return ok(paginate(list, paging.page, paging.size));
     }),
   ];
+}
+
+const MY_EVENT_SORTS = new Set(['LATEST', 'SCHEDULE']);
+
+/**
+ * GE-1 `sort=SCHEDULE`(백엔드 #930 · #935, 2.5.7) — ① 다가오는 공연(진행 중 포함) 시작 일시 오름차순 → ② 일시 미정 →
+ * ③ 지난 공연 시작 일시 내림차순. 같은 순서 안에서는 앞선 최신 생성 순(안정 정렬)을 그대로 둔다.
+ * 지난 공연 = 끝 일시(없으면 시작 일시)가 지금보다 앞. 일시 문자열(`yyyy.MM.dd HH:mm`)은 글자 순서가 시간 순서다.
+ */
+export function byScheduleOf(now: string) {
+  const rank = (e: { startAt: string | null; endAt: string | null }) => {
+    if (e.startAt === null) return 1;
+    return (e.endAt ?? e.startAt) < now ? 2 : 0;
+  };
+  return (
+    a: { startAt: string | null; endAt: string | null },
+    b: { startAt: string | null; endAt: string | null },
+  ) => {
+    const ra = rank(a);
+    const rb = rank(b);
+    if (ra !== rb) return ra - rb;
+    if (ra === 1) return 0;
+    const cmp = a.startAt! < b.startAt! ? -1 : a.startAt! > b.startAt! ? 1 : 0;
+    return ra === 0 ? cmp : -cmp;
+  };
 }
 
 const isText = (v: unknown): v is string => typeof v === 'string';

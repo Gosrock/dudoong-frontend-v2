@@ -2879,3 +2879,27 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest guest · permission · order API 테스트 통과(새 `guest-929-api.test.ts` 11 · `useBulkOrderActions.test.ts` 5 · 규칙 표 추가). e2e `hosting-guests` · `hosting-checkin` 40 통과(새 3개 — 일괄 API 한 번 · 입장 취소 · 일반 멤버 버튼 없음), `a11y` · `notifications` · `hosting` 175 통과. QA `hosting-guests` 33 통과(HG-7 입장 취소 · HG-8 환불 검색/건수/엑셀 · HG-9 결과 없음 안내 · HG-15 입금 미확인 안내 · HG-16 선물 취소 불가 · 취소한 사람 · 새 HG-19 검색 기준).
 
 **ego-browser 확인(2026-11-04, dev:mock 3091)**: 환불 탭 1440(칩 "전체 4 · 환불 요청 3 · 환불 완료 1" · 검색 · 주문 일시 · 엑셀 — GUI `1031:9189` 배치), 티켓 상세 1440 입장 완료 [입장 취소] → 확인 → 입장 전 + [입장 처리] + 토스트(GUI `1030:9136` · `1030:9318`), 주문 상세 390 승인 완료(선물 받음 칩 · 취소 불가 안내 · 비활성 [주문 취소]) · 주문 취소(취소한 사람 호스트) · 거절 단계 입금 미확인 안내.
+
+## 백엔드 #928 · #929 답 반영 — 약관 문구 · 공연준비 홈 정렬 · 미가입자 초대 링크(2026-11-04, `backend-928-misc`)
+
+근거: 이슈 #136 §1 · §2 · §3 · §8(팀원이 백엔드 Gosrock/DuDoong-Backend #928 답을 정리), 백엔드 #930 · #935(정렬) · #933(초대 링크, `V2HostInvitationController` · 응답 DTO dev 2026-11-04). 병렬 세션 `backend-928-host`(§4~§6 예매자 관리)와 파일을 나눴다.
+
+**1 약관 근거 문구(B28 확정본)** — legal-copy "B28 확정 문구"(출처 B28 · 백엔드 #928 · 2026-11-04). 확정본이 말한 문장만 바꿨다: A-1 공연 상세 고지 마지막 문장(`EventDetailView`), A-7 ④(`refund-policy.ts`), A-8 ④ 앞 문장(`OrderCancelNotice`), A-9 본문 둘째 문장 · A-11 두둥 토스트(`OrderOverlays`). 계좌 칸 위 임시 안내 줄(#105)을 뺐다(라벨 "환불받을 계좌"는 둠, `sheetNotice` 스타일 삭제). `AGREEMENT_VERSION` 그대로. 테스트: `e2e/legal.spec.ts` "약관 근거 문구(B28 확정본)" · `refund-policy.test.ts` · QA MY-7 토스트.
+
+**2 B31 확인** — `REFUSE_REASON_TEXT_MAX` 100(`src/api/order/schema.ts`), 공연 둘러보기 검색칸 placeholder · `aria-label` "공연명, 호스트, 공연장으로 검색"(`EventListView`) 모두 이미 들어 있다(#127 앞 `backend-914-sync`). 코드 변경 없음.
+
+**3 공연준비 홈 정렬(B32)** — `myEventsQuery`가 늘 `sort=SCHEDULE`(파라미터 `sort`, 기본 SCHEDULE — 공연준비 홈 · 공연 바꾸기 시트 둘 다). 가짜 백엔드 GE-1이 `sort`(LATEST · SCHEDULE, 그 밖 400)를 받고 `byScheduleOf(now)`로 다가오는 공연 오름차순 → 일시 미정 → 지난 공연 내림차순(같은 순서 안은 id 내림차순 — 안정 정렬). fixture 날짜가 오늘 기준으로 바뀌므로 테스트는 "지난 공연(90)이 맨 뒤"만 단언하고 순서 자체는 `byScheduleOf` 단위 테스트로.
+
+**8 미가입자 초대 링크(B33② — H-16~H-20)**
+
+- API `src/api/host-invitation/`(schema · queries · mutations). 새 필드 `mailSent` · `hostProfileImageUrl` · `inviterUserId`는 `optional`. `routePattern`이 `host-invitations/:param`으로 가린다(`TOKEN_PARENTS`).
+- 호스팅(멤버 화면): `useInviteMembers`가 `HOST_400_13`이면 그 줄을 `unregistered`로 → 초대 팝업에 [초대 링크 만들기](`useCreateInviteLink` — 같은 이메일 · 역할, 매니저는 GUEST만 `can()`) → 같은 Modal이 "초대 링크를 만들었어요"(읽기 전용 Input · 만료 · 메일 안내 · [링크 복사] `copyText`). 링크 = `window.location.origin` + `inviteUrlPath`(모양이 `/host-invitations/{base64url}` 하나가 아니면 토큰으로 경로를 다시 만든다 — `inviteUrlOf`). 멤버 목록 아래 "초대 대기"(`useHostInvitations` — H-17 useQuery, 404면 숨김 · 5xx면 `InlineError`, H-18 취소는 `openConfirm` 계약). `HOST_400_13` 문구를 "가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요"로.
+- 관객(수락 화면): 라우트 `(audience)/(app)/host-invitations/[token]` · `(audience)/(app)/host-invitations`(토큰 없음), 피처 `features/audience/host-invitation`. **`(protected)` 밖** — 게이트는 지금 주소(토큰 포함)를 로그인 `redirect`에 넣기 때문. 훅 `useHostInvitation`이 세션(GM-1)을 직접 보고 익명이면 토큰을 `sessionStorage`(`dd:hostInvitation`)에 두고 `/login?redirect=%2Fhost-invitations`로. 서버 조회 없음(`instant` 없음 — `(app)` 규칙).
+- **토큰 보호**: 진입 effect에서 `history.replaceState(null, '', '/host-invitations')`(Next 라우터와 같이 움직인다 — 설치본 linking-and-navigating), 토큰은 메모리에만(로그인으로 갈 때만 저장소, 돌아오면 꺼내며 지움 — 새로고침하면 "초대 링크를 다시 열어 주세요"), 메타 `referrer: no-referrer` · `robots: noindex`, robots.txt `Disallow: /host-invitations`. e2e fixture `consolePii`에 "호스트 초대 토큰"(`mock-invite-…`). **남는 것(B43)**: Next가 메타를 스트리밍으로 늦게 넣어 서버 HTML `<head>`의 같은 출처 정적 파일 요청 Referer에는 토큰이 실린다(e2e에서 확인) — 같은 출처 nginx 로그뿐이고 첫 요청 줄에도 이미 있다. 앱 응답 헤더로 `Referrer-Policy`를 주는 길은 nginx가 앱 보안 헤더를 숨겨(cutover-runbook) 운영에서 효과가 없어 넣지 않았다(tech-decisions §25 중복 금지).
+- 가짜 백엔드: `host-store.ts` 초대 저장소(고정 토큰 `MOCK_INVITE_TOKEN` valid · member · expired · used · missing, 고스락 대기 초대 405 · 406), `host.handlers.ts` H-16~H-20(검사 순서: 권한 → 형식 → MASTER `HOST_400_10` → 매니저 MANAGER 403 `HOST_400_11` → 이미 멤버 `HOST_400_15` → 한도 `limit@example.com` `HOST_400_21`).
+
+**🤖 판단**: ① 정렬은 공연 바꾸기 시트도 같은 `SCHEDULE`(같은 "내 공연" 목록이라 순서를 맞춤 — 되돌리려면 `myEventsQuery({ sort: 'LATEST' })`) ② A-8 ④는 확정 문장으로 앞 문장만 바꾸고 "호스트는 지체 없이 환불해야 하며, 연락처는…"을 남김(약관 근거 — 확정본이 말하지 않은 문장은 그대로), A-9 제목도 그대로(B42) ③ 초대 수락 화면을 `(protected)` 밖에 두고 훅이 세션을 직접 봄(토큰이 로그인 주소에 실리지 않게) ④ 대기 초대 목록 404는 숨김(운영 2.5.3에는 API가 없다 — 컷오버 전까지 늘 404) ⑤ 디자인 없음 — Q119~Q121.
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2577개 + 새 테스트(host-invitation-api 12 · invitation-rules 12 · useHostInvitation 10) 통과. e2e(빌드) host-invitation 16 · hosting-host · security · legal · legacy-urls · hosting · seo · a11y · a11y-keyboard · checkout · event-detail · home · host-home · mypage · notifications · hosting-event 모두 통과. QA host-invitation 14 · host-settings 34 · hosting-home 18 · mypage 33 · checkout 31 · event-detail 18 — 실패 0.
+
+**ego-browser 확인(2026-11-04, dev:mock 3093 · `localhost`)**: 멤버 390(초대 대기 3줄 · [취소]) → 초대 팝업 미가입 사유 + [초대 링크 만들기] → "초대 링크를 만들었어요"(전체 주소 · 만료 · [링크 복사]) · 수락 화면 390 · 1440(주소창 `/host-invitations` — 토큰 없음) → [수락하기] → "소음공작소에 합류했어요 · 내 역할: 일반 멤버" · 주문상세 1440 취소 시트(새 본문, 계좌 칸 위 임시 줄 없음). 발견: 없음.

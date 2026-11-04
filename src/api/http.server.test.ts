@@ -118,6 +118,7 @@ describe('routePattern', () => {
     expect(routePattern('events/12/ticket-items')).toBe('events/:param/ticket-items');
     expect(routePattern('gifts/aB3xYz')).toBe('gifts/:param');
     expect(routePattern('gifts/alllowercase')).toBe('gifts/:param');
+    expect(routePattern('host-invitations/abc-def/accept')).toBe('host-invitations/:param/accept');
     expect(routePattern('me/orders?page=2')).toBe('me/orders');
   });
 });

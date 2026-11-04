@@ -127,16 +127,25 @@ export const eventSectionsQuery = (eventId: string | number) =>
  */
 export const MY_EVENTS_KEY = ['me', 'events'] as const;
 
+/**
+ * GE-1 정렬(백엔드 #930 · #935, Api 2.5.7 — B32). `SCHEDULE` = 다가오는 공연 날짜순(진행 중 맨 앞) → 일시 미정 → 지난 공연(최근 순),
+ * `LATEST`(서버 기본) = 최신 생성 순. 값은 대문자 — 그 밖은 400. 2.5.6 이하(운영 2.5.3)는 이 파라미터를 무시하고 최신 생성 순으로 준다
+ */
+export type MyEventsSort = 'SCHEDULE' | 'LATEST';
+
 export type MyEventsParams = PageParams & {
   /** 공연명 부분일치, 50자까지(51자는 400) */
   keyword?: string;
+  /** 기본 `SCHEDULE`(공연준비 홈 · 공연 바꾸기 — 🤖 B32) */
+  sort?: MyEventsSort;
 };
 
-/** GE-1 내 공연(로그인, 무한 목록 — patterns §12). 준비중 포함, 최신 생성 순. 카드형 기본 크기 10 */
+/** GE-1 내 공연(로그인, 무한 목록 — patterns §12). 준비중 포함, 기본 일정순(`sort=SCHEDULE`). 카드형 기본 크기 10 */
 export const myEventsQuery = (params: MyEventsParams = {}) => {
   const keyword = params.keyword?.trim();
   const p = {
     ...(keyword && { keyword }),
+    sort: params.sort ?? 'SCHEDULE',
     ...(params.size !== undefined && { size: params.size }),
   };
   return infiniteQueryOptions({
@@ -145,6 +154,7 @@ export const myEventsQuery = (params: MyEventsParams = {}) => {
     queryFn: ({ pageParam, signal }) => {
       const searchParams = new URLSearchParams();
       if (p.keyword) searchParams.set('keyword', p.keyword);
+      searchParams.set('sort', p.sort);
       searchParams.set('page', String(pageParam));
       if (p.size !== undefined) searchParams.set('size', String(p.size));
       return api.get('me/events', MyEventPageSchema, { searchParams, signal });

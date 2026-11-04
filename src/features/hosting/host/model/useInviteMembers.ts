@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { handleError, handlersFrom } from '@/api/handle-error';
@@ -22,6 +22,7 @@ import {
   emptyInviteRow,
   INVITE_ERROR_MESSAGE,
   type InviteErrorCode,
+  inviteFailureEmails,
   inviteRoleOptions,
   type InviteRow,
   inviteRowErrors,
@@ -46,6 +47,8 @@ const rowErrorKey = (index: number) => `row${index}` as const;
  * - 실패(patterns §24 P10b): `HOST_400_13`·`14`·`15`·`18` → `reason`의 이메일과 같은 줄에 사유(`rowErrors`). 맞는 줄이 없으면 `formError`
  *   (`setError('root.row<i>')` · `setError('root.form')`).
  *   그 줄을 고치면 그 줄의 서버 오류를 지운다. 그 밖(400 `BAD_REQUEST`·403 등)은 공용 토스트(handleError)
+ * - 미가입(`HOST_400_13`)이면 그 줄을 `unregistered`로 돌려준다 — 화면이 초대 링크(H-16, `useCreateInviteLink`)를 만들 수 있게(B33②).
+ *   여러 줄이면 첫 미가입 줄. 칸을 고치면 지운다
  */
 export function useInviteMembers(hostId: string, myRole: ActorRole | null | undefined) {
   const queryClient = useQueryClient();
@@ -59,9 +62,11 @@ export function useInviteMembers(hostId: string, myRole: ActorRole | null | unde
   const { rows } = useWatch({ control: form.control }) as InviteValues;
   const { isSubmitted, errors: formErrors } = form.formState;
   const inflight = useRef(false);
+  const [unregistered, setUnregistered] = useState<InviteRow | null>(null);
 
   // 한 줄을 고치면 그 줄의 서버 오류와 폼 오류를, 줄을 더하거나 빼면(지난 실패의 줄 매핑이 어긋난다) 서버 오류를 모두 지운다
   useFieldChange(form, (name) => {
+    setUnregistered(null);
     const [, index] = name.split('.');
     if (index === undefined) return form.clearErrors('root');
     form.clearErrors('root.form');
@@ -82,6 +87,7 @@ export function useInviteMembers(hostId: string, myRole: ActorRole | null | unde
     const invited = await form.handleSubmit(async (valid) => {
       if (roleOptions.length === 0 || inflight.current) return false;
       inflight.current = true;
+      setUnregistered(null);
       try {
         await mutation.mutateAsync(toAddMembersBody(valid.rows));
         return true;
@@ -96,6 +102,13 @@ export function useInviteMembers(hostId: string, myRole: ActorRole | null | unde
               if (message) form.setError(`root.${rowErrorKey(i)}`, { message });
             });
             if (mapped.form) form.setError('root.form', { message: mapped.form });
+            if (code === 'HOST_400_13') {
+              const failed = new Set(inviteFailureEmails(e.reason).map((x) => x.toLowerCase()));
+              const row =
+                valid.rows.find((r) => failed.has(r.email.trim().toLowerCase())) ??
+                (valid.rows.length === 1 ? valid.rows[0] : undefined);
+              if (row) setUnregistered({ email: row.email.trim(), role: row.role });
+            }
           }),
         );
         return false;
@@ -142,5 +155,7 @@ export function useInviteMembers(hostId: string, myRole: ActorRole | null | unde
     attempted: isSubmitted,
     submitting: mutation.isPending,
     submit,
+    /** 가입되지 않은 이메일(`HOST_400_13`)의 줄 — 초대 링크를 만들 수 있다. 칸을 고치면 null */
+    unregistered,
   };
 }

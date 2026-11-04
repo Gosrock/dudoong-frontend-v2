@@ -198,14 +198,25 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 | PH-13 | PUT · DELETE `/hosts/{hostId}/follow` | U |
 | GH-14 | GET `/hosts/{hostId}/events` | P |
 | PH-15 | POST `/hosts/{hostId}/images` | M+ |
+| H-16 | POST `/hosts/{hostId}/invitations` `{email, role}` — **2.5.7** | M+ (매니저는 GUEST만 — 403 `HOST_400_11`) |
+| H-17 | GET `/hosts/{hostId}/invitations` — 2.5.7 | M+ |
+| H-18 | DELETE `/hosts/{hostId}/invitations/{invitationId}` — 2.5.7 | M+ (매니저는 GUEST 초대만) |
+| H-19 | GET `/host-invitations/{token}` — 2.5.7 | U |
+| H-20 | POST `/host-invitations/{token}/accept` — 2.5.7 | U |
 
 GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by(DESC, "id")` @fe423ed4). 공연 시작일 순이 아니다.
+
+**미가입자 초대 링크 H-16~H-20**(Api **2.5.7**, 백엔드 #933 — 이슈 #136 §8, B33②. 스테이징 DDL V024 뒤에만 동작 — 그 전 500, 운영 2.5.3은 없음 — 404). PH-7은 그대로이고, 프론트는 PH-7이 `HOST_400_13`(미가입)일 때만 H-16을 부른다.
+- H-16 응답 `{invitationId, token, inviteUrlPath, expiresAt, mailSent}` — `inviteUrlPath`는 경로만(`/host-invitations/{token}`), origin은 프론트가 붙인다. 토큰은 base64url 43자 · 1회용 · 7일, 이 응답에서만 받는다. 같은 이메일에 대기 초대가 있으면 새 링크로 바꾼다(옛 링크 무효). `mailSent=false` = 같은 이메일 10분 안 재초대(메일 재발송 안 함). 이미 멤버인 계정의 이메일 `HOST_400_15`, 발급 한도(호스트 24시간 20건 · 초대한 사람 50건) `HOST_400_21`. 서버가 링크 메일을 보내지만 실패해도 발급은 성공 → 화면은 [링크 복사]
+- H-17 대기 초대 `[{invitationId, email(소문자), role, inviterUserId, expiresAt}]`(만료 · 수락 · 취소 제외, 토큰 없음, `@PrivacyAccess(LIST)`). H-18 응답 = 남은 대기 초대, 없는 초대 404 `HOST_404_3`
+- H-19 `{hostId, hostName, hostProfileImageUrl, role, maskedEmail, expiresAt, alreadyMember}`. H-20 `{hostId, role, alreadyMember}` — `role`은 **내 역할**(이미 멤버였으면 기존 역할 — 초대한 역할과 다를 수 있다). 이메일 일치는 보지 않는다(링크 소지가 자격). 에러: 없음 · 취소 · 옛 링크 `HOST_404_3`, 사용됨 `HOST_400_20`, 만료 `HOST_400_19`
+- 새 응답 필드 `mailSent` · `hostProfileImageUrl` · `inviterUserId`는 zod `optional`
 
 ### 공연 준비
 
 | ID | 메서드 · 경로 | 권한 |
 |---|---|---|
-| GE-1 | GET `/me/events` | U |
+| GE-1 | GET `/me/events?sort=SCHEDULE` | U |
 | PE-2 | POST `/events` | M+ |
 | GE-3 | GET `/events/{eventId}/manage` | G+ |
 | PE-4 | PATCH `/events/{eventId}/basic` | M+ |
@@ -216,6 +227,8 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 | DE-9 | DELETE `/events/{eventId}` | M+ |
 | PE-10 | POST `/events/{eventId}/images` | M+ |
 | GE-11 | GET `/tags` | P |
+
+GE-1 `sort`(Api **2.5.7**, 백엔드 #930 · #935 — B32): `SCHEDULE` = ① 다가오는 공연(일시 있음, 진행 중 맨 앞) 시작 일시 오름차순 → ② 일시 미정(준비중) → ③ 지난 공연(`ended(now)`, 표시 상태 PAST와 같은 기준) 시작 일시 내림차순, 같은 값이면 id 내림차순. 빼거나 `LATEST`면 최신 생성 순. 대문자만 — 잘못된 값 400. 프론트는 늘 `SCHEDULE`(공연준비 홈 · 공연 바꾸기). 운영 2.5.3은 이 파라미터를 무시한다(최신 생성 순).
 
 ### 티켓 · 옵션 (호스팅, 10 문서)
 

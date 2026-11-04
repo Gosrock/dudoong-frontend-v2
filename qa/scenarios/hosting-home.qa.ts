@@ -20,7 +20,12 @@ scenario(
     kind: '정상',
     summary:
       '기본 탭은 공연. 카드는 포스터 + 상태 칩 + 공연명 + 호스트 · 날짜 · 시각 · 장소(접두어 없음). ⋮는 준비중 + 매니저 이상만. [+ 새 공연 만들기]는 모바일 오른쪽 아래, PC는 탭 줄 오른쪽.',
-    basis: ['plan P10a V 범위 · GUI 카드 문구', 'gui-screens §2 공연준비 홈', '와이어 424:11664'],
+    basis: [
+      'plan P10a V 범위 · GUI 카드 문구',
+      'gui-screens §2 공연준비 홈',
+      '와이어 424:11664',
+      'api-contract GE-1 sort=SCHEDULE(B32 · 백엔드 #930, 2.5.7)',
+    ],
   },
   async ({ page, step }) => {
     resetHostingStore();
@@ -32,6 +37,9 @@ scenario(
         'true',
       );
       await expect(page.getByTestId('my-event')).toHaveCount(4);
+    });
+    await step('일정순(GE-1 sort=SCHEDULE, B32) — 지난 공연 카드가 맨 아래', async () => {
+      await expect(page.getByTestId('my-event').last()).toContainText('지난 공연');
     });
     await step('준비중 카드에는 "준비중" 칩과 ⋮가 있고, 지난 공연 카드에는 ⋮가 없다', async () => {
       const prep = page

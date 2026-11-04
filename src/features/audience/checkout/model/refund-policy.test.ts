@@ -22,6 +22,14 @@ describe('체크아웃 환불 규정(legal-copy A-7, 이슈 #105)', () => {
     expect(items[0]).toBe('취소기한 이전까지 수수료 없이 취소 가능합니다.');
   });
 
+  it('두둥 ④는 운영 확정본(B28 · 백엔드 #928) — 입력한 환불 계좌로 호스트가 환불', () => {
+    const items = refundPolicyItems('DUDOONG', BEFORE)!;
+    expect(items[3]).toBe(
+      '환불 방법 : 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요. 연락처는 공연 상세 페이지에서 확인할 수 있습니다.',
+    );
+    expect(items.join('')).not.toContain('환불받을 계좌를 알려주세요');
+  });
+
   it('두둥 — 시행 뒤에는 ④와 ⑥ 사이에 B18 ⑤', () => {
     const items = refundPolicyItems('DUDOONG', AFTER)!;
     expect(items).toHaveLength(6);

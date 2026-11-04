@@ -323,7 +323,8 @@ function EventPoster({ src, alt }: { src: string | null; alt: string }) {
 }
 
 /**
- * 중개자 고지 — legal-copy A-1 원문 그대로(약관 제3조③·제19조③). 와이어 `640:1957` 정보 표 아래 "예매 안내 문구" 자리.
+ * 중개자 고지 — legal-copy A-1 그대로(약관 제3조③·제19조③). 와이어 `640:1957` 정보 표 아래 "예매 안내 문구" 자리.
+ * 마지막 문장 "'판매정보'와" → "호스트가 공연 상세에 안내한 환불 기준과"는 운영 확정본(B28 · 백엔드 #928, 2026-11-04).
  * 문구를 바꾸거나 빼지 않는다(legal-copy). 이용약관 링크는 v2 경로 `/meta/term`(새 창).
  */
 function IntermediaryNotice() {
@@ -331,7 +332,7 @@ function IntermediaryNotice() {
     <Txt as="p" typography="bodySm" color={colors.textTertiary}>
       두둥은 통신판매중개자로서 공연의 당사자가 아니며, 공연의 내용과 진행은 호스트가 책임집니다.
       두둥티켓(호스트 계좌 입금) 대금의 환불도 호스트가 직접 하며, 호스트가 공연 상세에 안내한 환불
-      기준이 우선합니다. 취소·환불 규정은 &apos;판매정보&apos;와{' '}
+      기준이 우선합니다. 취소·환불 규정은 호스트가 공연 상세에 안내한 환불 기준과{' '}
       <a href="/meta/term" target="_blank" rel="noopener noreferrer" className={s.textLink}>
         이용약관
       </a>

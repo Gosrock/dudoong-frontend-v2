@@ -277,7 +277,7 @@ scenario(
         await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
         await dialog.getByRole('button', { name: '초대하기' }).click();
         await expect(dialog.getByRole('alert')).toHaveText(
-          '가입되지 않은 이메일이에요. 상대가 두둥에 가입한 뒤 그 카카오 계정 이메일로 다시 초대해 주세요',
+          '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
         );
       },
     );
@@ -529,6 +529,123 @@ scenario(
               .filter((c) => c.method === 'GET' && c.path === '/api/v2/hosts/11/members').length,
         )
         .toBe(2);
+    });
+  },
+);
+
+// ─── 미가입자 초대 링크(H-16~H-18, B33② · 백엔드 #933 — Api 2.5.7). 디자인 없음(design-requests Q119 · Q120) ───
+
+scenario(
+  'HS-15',
+  '초대 — 가입되지 않은 이메일이면 [초대 링크 만들기] → 링크 · 만료 · [링크 복사], 닫으면 "초대 대기"에 생긴다',
+  {
+    kind: '정상',
+    summary:
+      'PH-7이 HOST_400_13이면 같은 이메일 · 역할로 H-16. 링크는 지금 출처 + 서버 경로(/host-invitations/{token}). 메일이 안 갈 수 있어 링크를 직접 전한다(백엔드 #928). 디자인 없음 — DS Modal · Input(읽기 전용) · Button(🤖 Q119).',
+    basis: [
+      '이슈 #136 §8',
+      'backend-questions B33②',
+      'api-contract H-16 · H-17',
+      'patterns §9 copyText',
+    ],
+  },
+  async ({ page, step }) => {
+    reset();
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await setMockSession(page, 'loggedIn');
+    const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
+    await step('미가입 이메일로 [초대하기] → 칸 아래 안내 + [초대 링크 만들기]', async () => {
+      await page.goto(MEMBERS);
+      await page.getByRole('button', { name: '멤버 초대하기' }).click();
+      await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
+      await dialog.getByRole('button', { name: '초대하기' }).click();
+      await expect(dialog.getByRole('alert')).toHaveText(
+        '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
+      );
+      await expect(dialog.getByRole('button', { name: '초대 링크 만들기' })).toBeVisible();
+    });
+    const done = page.getByRole('dialog', { name: '초대 링크를 만들었어요' });
+    await step('[초대 링크 만들기] → 링크(지금 출처) · 만료 안내', async () => {
+      await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
+      await expect(done.getByLabel('초대 링크')).toHaveValue(
+        new RegExp(`^${new URL(page.url()).origin}/host-invitations/`),
+      );
+      await expect(done).toContainText('한 번만 쓸 수 있어요');
+    });
+    await step('[링크 복사] → 토스트', async () => {
+      await done.getByRole('button', { name: '링크 복사' }).click();
+      await expect(page.getByText('초대 링크를 복사했어요')).toBeVisible();
+    });
+    await step('[확인]으로 닫으면 "초대 대기"에 그 이메일', async () => {
+      await done.getByRole('button', { name: '확인' }).click();
+      await expect(
+        page.getByTestId('invitation-row').filter({ hasText: 'nobody@example.com' }),
+      ).toHaveCount(1);
+    });
+  },
+);
+
+scenario(
+  'HS-16',
+  '초대 대기 — [취소] 확인 뒤 줄이 사라진다. 매니저는 매니저 초대를 취소할 수 없다',
+  {
+    kind: '권한',
+    summary:
+      'H-17 대기 초대(이메일 · 역할 · 만료). H-18 취소는 확인 창(openConfirm). 매니저는 일반 초대만 취소(can — 서버 HOST_400_11과 같은 기준). 일반 멤버에게는 목록이 없다.',
+    basis: ['api-contract H-17 · H-18', 'patterns §6 확인 창 계약 · §22 can()'],
+  },
+  async ({ page, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    const rows = page.getByTestId('invitation-row');
+    await step('마스터 — 대기 3줄, 모두 [취소]', async () => {
+      await page.goto(MEMBERS);
+      await expect(rows).toHaveCount(3);
+      await expect(rows.getByRole('button', { name: /초대 취소$/ })).toHaveCount(3);
+    });
+    await step('[취소] → "초대를 취소할까요?" → [초대 취소] → 토스트 · 2줄', async () => {
+      await page.getByRole('button', { name: 'pending-guest@example.com 초대 취소' }).click();
+      await expect(page.getByRole('alertdialog', { name: '초대를 취소할까요?' })).toBeVisible();
+      await page.getByRole('button', { name: '초대 취소', exact: true }).click();
+      await expect(page.getByText('초대를 취소했어요')).toBeVisible();
+      await expect(rows).toHaveCount(2);
+    });
+    await step('매니저 — 매니저 초대 줄에는 [취소]가 없다', async () => {
+      actAsRole(11, 'MANAGER');
+      await page.reload();
+      await expect(rows.filter({ hasText: 'pending-manager@' }).getByRole('button')).toHaveCount(0);
+    });
+    await step('일반 멤버 — "초대 대기"가 없다', async () => {
+      actAsRole(11, 'GUEST');
+      await page.reload();
+      await expect(page.getByTestId('member-row')).toHaveCount(4);
+      await expect(page.getByTestId('pending-invitations')).toHaveCount(0);
+    });
+  },
+);
+
+scenario(
+  'HS-17',
+  '초대 대기 목록이 5xx(스테이징 DDL 전)면 그 자리만 다시 시도 — 멤버 화면은 그대로',
+  {
+    kind: '에러',
+    summary:
+      'H-16~H-20은 스테이징 DDL V024 뒤에만 동작(그 전 500), 운영 2.5.3에는 없다(404 — 목록을 숨긴다). 멤버 목록 · 초대는 그대로 쓴다.',
+    basis: ['이슈 #136 버전', 'api-contract H-17'],
+    mocks: [
+      http.get('*/api/v2/hosts/11/invitations', () =>
+        HttpResponse.json(envelope.error(500, 'GLOBAL_500_1'), { status: 500 }),
+      ),
+    ],
+  },
+  async ({ page, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    await step('멤버 4명 + "초대 대기 목록을 불러오지 못했어요" [다시 시도]', async () => {
+      await page.goto(MEMBERS);
+      await expect(page.getByTestId('member-row')).toHaveCount(4);
+      await expect(page.getByText('초대 대기 목록을 불러오지 못했어요')).toBeVisible();
+      await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible();
     });
   },
 );

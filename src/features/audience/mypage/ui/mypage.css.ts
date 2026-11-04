@@ -68,8 +68,6 @@ export const notice = style({
 });
 
 /** 시트 · 모달 안 안내 상자(좌우 여백은 시트가 준다) */
-export const sheetNotice = style([notice, { margin: 0 }]);
-
 export const warningNotice = style([notice, { background: vars.color.status.warningSubtle }]);
 
 export const noticeList = style({

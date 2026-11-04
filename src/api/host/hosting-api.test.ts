@@ -5,6 +5,7 @@ import { installLoggedInFetch } from '@/test/login-fetch';
 import { recordRequests } from '@/test/requests';
 
 import { resetHostingStore } from '../__mocks__/hosting.handlers';
+import { byScheduleOf } from '../__mocks__/hosting.handlers';
 import { myEventsQuery } from '../event/queries';
 import { MyEventSchema } from '../event/schema';
 import { createHostMutation } from './mutations';
@@ -80,9 +81,11 @@ describe('GH-1 내 호스트', () => {
 });
 
 describe('GE-1 내 공연', () => {
-  it('내 호스트의 공연을 준비중까지, 최신 생성 순으로 — 장소는 평평한 세 필드', async () => {
+  it('sort=LATEST — 내 호스트의 공연을 준비중까지, 최신 생성 순으로 — 장소는 평평한 세 필드', async () => {
     login();
-    const page = await firstPage<{ content: { eventId: number }[] }>(myEventsQuery());
+    const page = await firstPage<{ content: { eventId: number }[] }>(
+      myEventsQuery({ sort: 'LATEST' }),
+    );
     expect(page.content.map((e) => e.eventId)).toEqual([140, 103, 101, 90]);
     const parsed = MyEventSchema.parse(page.content[2]);
     expect(parsed).toMatchObject({
@@ -97,6 +100,33 @@ describe('GE-1 내 공연', () => {
       status: 'PREPARING',
       displayStatus: 'PREPARING',
     });
+  });
+
+  it('기본은 sort=SCHEDULE(B32) — 다가오는 공연 → 지난 공연(90, 2026.05)이 맨 뒤', async () => {
+    login();
+    const page = await firstPage<{ content: { eventId: number }[] }>(myEventsQuery());
+    const ids = page.content.map((e) => e.eventId);
+    expect([...ids].sort()).toEqual([101, 103, 140, 90].sort());
+    expect(ids.at(-1)).toBe(90);
+  });
+
+  it('가짜 백엔드 SCHEDULE 정렬 — 진행 중 · 다가오는 날짜순 → 일시 미정 → 지난 공연 최근 순(백엔드 #930)', () => {
+    const now = '2026.11.04 12:00';
+    const ev = (id: number, startAt: string | null, endAt: string | null = startAt) => ({
+      id,
+      startAt,
+      endAt,
+    });
+    const list = [
+      ev(9, '2026.10.01 19:00'), // 지난
+      ev(8, null), // 일시 미정
+      ev(7, '2026.12.13 19:00'),
+      ev(6, '2026.11.04 10:00', '2026.11.04 14:00'), // 진행 중
+      ev(5, '2026.11.15 19:00', '2026.11.15 21:00'),
+      ev(4, '2026.11.01 19:00'), // 지난(가장 최근)
+      ev(3, null),
+    ];
+    expect(list.sort(byScheduleOf(now)).map((e) => e.id)).toEqual([6, 5, 7, 8, 3, 4, 9]);
   });
 
   it('검색어는 공연명 부분일치', async () => {

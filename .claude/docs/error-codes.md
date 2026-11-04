@@ -155,8 +155,12 @@
 | `HOST_400_16` | 400 | 연락처 형식이 올바르지 않습니다. | `INVALID_HOST_CONTACT` |
 | `HOST_400_17` | 400 | 이 호스트에 업로드한 이미지가 아닙니다. | `INVALID_HOST_IMAGE_KEY` |
 | `HOST_400_18` | 400 | 같은 이메일로 가입된 계정이 여러 개입니다. | `AMBIGUOUS_MEMBER_EMAIL` |
+| `HOST_400_19` | 400 | 만료된 초대 링크입니다. | `HOST_INVITATION_EXPIRED` — H-19 · H-20(Api 2.5.7, 백엔드 #933 · 2026-11-04 손으로 더함) |
+| `HOST_400_20` | 400 | 이미 사용된 초대 링크입니다. | `HOST_INVITATION_ALREADY_USED` — H-19 · H-20(2.5.7) |
+| `HOST_400_21` | 400 | 초대 링크 발급 한도를 넘었습니다. 잠시 후 다시 시도해주세요. | `HOST_INVITATION_LIMIT_EXCEEDED` — H-16(2.5.7, 호스트 24시간 20건 · 초대한 사람 24시간 50건) |
 | `Host_404_1` | 404 | 해당 호스트를 찾을 수 없습니다. | `HOST_NOT_FOUND` |
 | `HOST_404_2` | 404 | 가입된 호스트 유저가 아닙니다. | `HOST_USER_NOT_FOUND` |
+| `HOST_404_3` | 404 | 초대 링크를 찾을 수 없습니다. | `HOST_INVITATION_NOT_FOUND` — H-18 · H-19 · H-20(없음 · 취소 · 다시 초대해 무효가 된 옛 링크, 2.5.7) |
 
 ## IssuedTicketErrorCode
 

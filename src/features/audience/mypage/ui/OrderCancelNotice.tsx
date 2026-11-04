@@ -14,7 +14,7 @@ import * as s from './mypage.css';
 
 /**
  * 예매취소 안내 — legal-copy A-8 원문(두둥 / 무료). 두둥 ⑤-b(승인 대기)는 v1 문구를 쓰지 않고 백엔드 #897 확정 문구를
- * 쓴다 — 개정 약관 시행(2026-11-07 KST) 뒤에만(`cancelNotice`). ④는 v2 흐름(앱에서 환불 계좌를 받는다)과 순서가 다르지만 약관 근거 문구라 원문 그대로 둔다(🤖).
+ * 쓴다 — 개정 약관 시행(2026-11-07 KST) 뒤에만(`cancelNotice`). ④ 앞 문장은 운영 확정본(B28 · 백엔드 #928, 2026-11-04)으로 바꿨다.
  */
 export function OrderCancelNotice({ detail }: { detail: OrderDetailState }) {
   const notice = detail.cancelNotice;
@@ -27,8 +27,8 @@ export function OrderCancelNotice({ detail }: { detail: OrderDetailState }) {
           '공연 입장확인이 된 티켓이 있을경우 취소가 불가합니다.',
           '두둥티켓은 호스트 계좌로 입금한 티켓이라, 예매를 취소해도 자동으로 환불되지 않습니다.',
           <>
-            환불 방법 : 예매취소 후 호스트에게 연락해 환불받을 계좌를 알려주세요. 호스트는 지체 없이
-            환불해야 하며, 연락처는{' '}
+            환불 방법 : 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게
+            연락해 주세요. 호스트는 지체 없이 환불해야 하며, 연락처는{' '}
             {eventId !== null ? (
               <Link href={eventHref(eventId)}>공연 상세 페이지</Link>
             ) : (

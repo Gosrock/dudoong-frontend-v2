@@ -1,5 +1,7 @@
+import { MOCK_INVITE_TOKEN } from '@/api/__mocks__/host-store';
 import { ZXING_WASM_PATH } from '@/features/hosting/qr/ui/zxing-wasm';
 
+import { setMockSession } from './support/auth';
 import { expect, test } from './support/fixtures';
 
 /**
@@ -11,7 +13,7 @@ test.describe('CSP', () => {
   test('모든 화면에 Report-Only 정책 — 외부 스크립트는 카카오 · 다음만, jsdelivr 없음', async ({
     page,
   }) => {
-    for (const path of ['/', '/hosting', '/login']) {
+    for (const path of ['/', '/hosting', '/login', '/host-invitations']) {
       const res = await page.goto(path);
       const headers = res!.headers();
       expect(headers['content-security-policy']).toBeUndefined();
@@ -83,4 +85,38 @@ test('zxing wasm은 우리 출처에서 받는다', async ({ request }) => {
   const body = await res.body();
   // wasm 매직 넘버 `\0asm`
   expect([...body.subarray(0, 4)]).toEqual([0x00, 0x61, 0x73, 0x6d]);
+});
+
+/**
+ * 호스트 초대 링크 토큰(B33② · 백엔드 #933) — 1회용이지만 링크를 가진 사람이면 누구나 수락할 수 있다. 주소창 · 로그인 `redirect` ·
+ * Referer · 콘솔에 남지 않아야 한다(콘솔은 자동 fixture `consolePii`의 "호스트 초대 토큰"이 본다)
+ */
+test('호스트 초대 링크 — 토큰이 주소 · 로그인 redirect · Referer에 남지 않는다', async ({
+  page,
+}) => {
+  const token = MOCK_INVITE_TOKEN.valid;
+  const leaks: string[] = [];
+  page.on('request', (req) => {
+    const referer = req.headers()['referer'] ?? '';
+    // 서버 HTML <head>의 같은 출처 정적 파일은 주소를 지우기 전에 나간다(B43 — nginx 로그). 그 밖(API · 다른 출처)은 없어야 한다
+    const sameOriginStatic = new URL(req.url()).pathname.startsWith('/_next/static/');
+    if (referer.includes(token) && !sameOriginStatic) leaks.push(`referer ${req.url()}`);
+  });
+  page.on('framenavigated', (frame) => {
+    if (
+      frame === page.mainFrame() &&
+      frame.url().includes('/login') &&
+      frame.url().includes(token)
+    ) {
+      leaks.push(`login ${frame.url()}`);
+    }
+  });
+  await setMockSession(page, 'anonymous');
+  await page.goto(`/host-invitations/${token}`);
+  await expect(page).toHaveURL(/\/login\?redirect=/);
+  await setMockSession(page, 'loggedIn');
+  await page.goto(`/host-invitations/${token}`);
+  await expect(page).toHaveURL(/\/host-invitations$/);
+  await expect(page.getByRole('button', { name: '수락하기' })).toBeVisible();
+  expect(leaks).toEqual([]);
 });

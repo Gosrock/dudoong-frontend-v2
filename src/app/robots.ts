@@ -26,6 +26,7 @@ const DISALLOWED_PATHS = [
   '/kakao',
   '/login',
   '/gifts',
+  '/host-invitations',
   '/events/*/checkout',
   '/api/',
 ] as const;
