@@ -149,7 +149,7 @@ describe('PE-2 간편 공연 만들기', () => {
       checklist: { ticketRequired: false },
     });
     const page = await (
-      myEventsQuery().queryFn as unknown as (c: {
+      myEventsQuery({ sort: 'LATEST' }).queryFn as unknown as (c: {
         pageParam: number;
         signal: AbortSignal;
       }) => Promise<{ content: { eventId: number; status: string }[] }>

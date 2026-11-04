@@ -75,3 +75,17 @@ test.describe('짐작 주소 → v2 (307 임시)', () => {
     expect(res.headers()['location']).toBe('/mypage/notifications');
   });
 });
+
+test.describe('v2 새 주소 — 리다이렉트 규칙에 걸리지 않는다', () => {
+  // 호스트 초대 링크(B33② · 백엔드 #933). 메일 · 메신저로 유통되는 주소라 리다이렉트로 토큰이 다른 곳(Location)에 실리면 안 된다
+  for (const path of [
+    '/host-invitations/mock-invite-valid-Q2hvb3NlIHRoZSBzb3VuZA',
+    '/host-invitations',
+  ]) {
+    test(`${path.replace(/mock-invite-[\w-]+/, '{token}')} 200`, async ({ request }) => {
+      const res = await request.get(path, { maxRedirects: 0 });
+      expect(res.status()).toBe(200);
+      expect(res.headers()['location']).toBeUndefined();
+    });
+  }
+});

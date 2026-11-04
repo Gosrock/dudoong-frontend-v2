@@ -31,6 +31,11 @@ test.describe('공연준비 홈', () => {
         .filter({ hasText: '고스락 신입 환영 공연(준비중)' })
         .getByRole('link'),
     ).toHaveAttribute('href', '/hosting/events/140');
+    // 일정순(sort=SCHEDULE, B32) — 지난 공연(90 · 2026.05)이 맨 뒤
+    await expect(page.getByTestId('my-event').last().getByRole('link')).toHaveAttribute(
+      'href',
+      '/hosting/events/90',
+    );
     const calls = mockApi.calls();
     expect(calls.filter((c) => c.from === 'server')).toEqual([]);
     // 셸 상단 바 벨(GN-2 unread-count, P4s-V)은 빼고 본다
@@ -39,7 +44,7 @@ test.describe('공연준비 홈', () => {
         .filter((c) => c.path.startsWith('/api/v2/me/'))
         .map((c) => c.path)
         .filter((path) => !path.startsWith('/api/v2/me/notifications/unread-count')),
-    ).toEqual(['/api/v2/me/events?page=0']);
+    ).toEqual(['/api/v2/me/events?sort=SCHEDULE&page=0']);
   });
 
   test('호스트 탭으로 바꾸면 주소에 ?tab=hosts, 카드에 역할 — 새로고침해도 호스트 탭', async ({

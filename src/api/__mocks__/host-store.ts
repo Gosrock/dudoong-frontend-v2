@@ -32,8 +32,11 @@ function seed() {
 }
 seed();
 
-/** 처음 값으로 되돌린다(vitest `beforeEach`·e2e `test.beforeEach`) */
-export const resetHostStore = seed;
+/** 처음 값으로 되돌린다(vitest `beforeEach`·e2e `test.beforeEach`). 초대 저장소도 함께 */
+export function resetHostStore() {
+  seed();
+  seedInvitations();
+}
 
 /** GH-6 순서: 마스터 → 매니저 → 일반, 같은 역할은 먼저 들어온 순(`V2ReadHostMembersUseCase`, 432cce4) */
 export function membersOf(hostId: number): HostMember[] {
@@ -102,4 +105,151 @@ export function actAsRole(hostId: number, role: Exclude<HostRole, 'UNKNOWN'>) {
     setStoredRole(hostId, others[0].userId, 'MASTER');
   }
   setStoredRole(hostId, me.userId, role);
+}
+
+// ─── 초대 링크(H-16~H-20, 백엔드 #933 · Api 2.5.7) ───
+
+/** 대기 중인 초대(H-17). 토큰은 mock이라 원문으로 둔다(서버는 SHA-256 해시만) */
+export type StoredInvitation = {
+  invitationId: number;
+  hostId: number;
+  email: string;
+  role: 'MANAGER' | 'GUEST';
+  inviterUserId: number;
+  expiresAt: string;
+  token: string;
+  state: 'PENDING' | 'ACCEPTED' | 'CANCELED' | 'EXPIRED';
+};
+
+/**
+ * 고정 토큰(e2e · QA). 모두 `mock-invite-`로 시작한다 — e2e fixture `consolePii`가 이 모양을 콘솔에서 잡는다.
+ * - `valid` 소음공작소(12) 일반 멤버 초대 — mock 사용자는 아직 멤버가 아니다
+ * - `member` 고스락(11) 매니저 초대 — mock 사용자는 이미 마스터라 `alreadyMember`, 수락 결과 역할은 기존 마스터
+ * - `expired` `HOST_400_19` · `used` `HOST_400_20` · 그 밖 `HOST_404_3`
+ */
+export const MOCK_INVITE_TOKEN = {
+  valid: 'mock-invite-valid-Q2hvb3NlIHRoZSBzb3VuZA',
+  member: 'mock-invite-member-R29zcm9jayBtYXN0ZXI',
+  expired: 'mock-invite-expired-T2xkIGxpbmsgZXhwaXJlZA',
+  used: 'mock-invite-used-QWxyZWFkeSB1c2VkIGxpbms',
+  missing: 'mock-invite-missing-Tm8gc3VjaCBpbnZpdGF0aW9u',
+} as const;
+
+let invitations: StoredInvitation[] = [];
+let invitationSeq = 0;
+
+function seedInvitations() {
+  invitationSeq = 500;
+  const base = { inviterUserId: 1, state: 'PENDING' as const };
+  invitations = [
+    {
+      ...base,
+      invitationId: 401,
+      hostId: 12,
+      email: 'newbie@example.com',
+      role: 'GUEST',
+      inviterUserId: 21,
+      expiresAt: '2099.01.01 12:00',
+      token: MOCK_INVITE_TOKEN.valid,
+    },
+    {
+      ...base,
+      invitationId: 402,
+      hostId: 11,
+      email: 'dudoong@example.com',
+      role: 'MANAGER',
+      expiresAt: '2099.01.01 12:00',
+      token: MOCK_INVITE_TOKEN.member,
+    },
+    {
+      ...base,
+      invitationId: 403,
+      hostId: 11,
+      email: 'late@example.com',
+      role: 'GUEST',
+      expiresAt: '2020.01.01 12:00',
+      token: MOCK_INVITE_TOKEN.expired,
+      state: 'EXPIRED',
+    },
+    {
+      ...base,
+      invitationId: 404,
+      hostId: 11,
+      email: 'used@example.com',
+      role: 'GUEST',
+      expiresAt: '2099.01.01 12:00',
+      token: MOCK_INVITE_TOKEN.used,
+      state: 'ACCEPTED',
+    },
+    // 고스락(11) 대기 초대 — 멤버 화면 "초대 대기" 목록(매니저 초대는 마스터만 취소)
+    {
+      ...base,
+      invitationId: 405,
+      hostId: 11,
+      email: 'pending-guest@example.com',
+      role: 'GUEST',
+      expiresAt: '2099.01.08 12:00',
+      token: 'mock-invite-405-UGVuZGluZyBndWVzdA',
+    },
+    {
+      ...base,
+      invitationId: 406,
+      hostId: 11,
+      email: 'pending-manager@example.com',
+      role: 'MANAGER',
+      expiresAt: '2099.01.09 12:00',
+      token: 'mock-invite-406-UGVuZGluZyBtYW5hZ2Vy',
+    },
+  ];
+}
+seedInvitations();
+
+/** 초대 저장소만 처음 값으로(`resetHostStore`가 같이 부른다) */
+export const resetInvitationStore = seedInvitations;
+
+/** H-17 — 이 호스트의 대기 초대(만료 시각이 지난 것 빼고), 발급 순 */
+export function pendingInvitationsOf(hostId: number, now: string) {
+  return invitations.filter(
+    (i) => i.hostId === hostId && i.state === 'PENDING' && i.expiresAt > now,
+  );
+}
+
+export const invitationByToken = (token: string) => invitations.find((i) => i.token === token);
+
+export const invitationById = (hostId: number, invitationId: number) =>
+  invitations.find(
+    (i) => i.hostId === hostId && i.invitationId === invitationId && i.state === 'PENDING',
+  );
+
+/** H-16 — 같은 이메일의 대기 초대는 무효로 하고 새로 발급한다 */
+export function issueInvitation(
+  hostId: number,
+  email: string,
+  role: 'MANAGER' | 'GUEST',
+  inviterUserId: number,
+  expiresAt: string,
+): StoredInvitation {
+  const lower = email.toLowerCase();
+  invitations = invitations.map((i) =>
+    i.hostId === hostId && i.email === lower && i.state === 'PENDING'
+      ? { ...i, state: 'CANCELED' }
+      : i,
+  );
+  invitationSeq += 1;
+  const issued: StoredInvitation = {
+    invitationId: invitationSeq,
+    hostId,
+    email: lower,
+    role,
+    inviterUserId,
+    expiresAt,
+    token: `mock-invite-${invitationSeq}-${Math.random().toString(36).slice(2, 12)}`,
+    state: 'PENDING',
+  };
+  invitations = [...invitations, issued];
+  return issued;
+}
+
+export function setInvitationState(invitationId: number, state: StoredInvitation['state']) {
+  invitations = invitations.map((i) => (i.invitationId === invitationId ? { ...i, state } : i));
 }

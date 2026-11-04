@@ -22,17 +22,16 @@ import type {
 } from '../model/refund-account-form';
 import { useCancelOrder, useRefundAccount } from '../model/useOrderDetail';
 import { useOrderHostContacts } from '../model/useOrderHostContacts';
-import * as s from './mypage.css';
 
 /** 환불 계좌 칸 길이(plan P9 — 예금주 20자 · 계좌번호 30자, 서버 P11/O-5와 같다) */
 const ACCOUNT_HOLDER_MAX = 20;
 const ACCOUNT_NUMBER_MAX = 30;
 
-/** 취소 확인 문구 — legal-copy A-9(두둥) · A-10(무료) 원문. 빼거나 바꾸지 않는다 */
+/** 취소 확인 문구 — legal-copy A-9(두둥) · A-10(무료). 빼거나 바꾸지 않는다. A-9 본문 둘째 문장은 운영 확정본(B28 · 백엔드 #928) */
 export const CANCEL_COPY = {
   paidTitle: '취소 후 직접 환불을 요청해야 해요',
   paidBody:
-    '두둥티켓은 호스트 계좌로 입금한 티켓이라 자동으로 환불되지 않아요. 예매를 취소한 뒤 호스트에게 연락해 환불받을 계좌를 알려주세요. 호스트가 공연 상세에 별도 환불 기준을 안내했다면, 직접 취소할 때는 그 기준에 따라 환불이 제한될 수 있어요.',
+    '두둥티켓은 호스트 계좌로 입금한 티켓이라 자동으로 환불되지 않아요. 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요. 호스트가 공연 상세에 별도 환불 기준을 안내했다면, 직접 취소할 때는 그 기준에 따라 환불이 제한될 수 있어요.',
   paidContacts: '호스트 연락처 확인하기',
   paidConfirm: '확인했어요, 취소할게요',
   freeTitle: '예매를 취소할까요?',
@@ -41,9 +40,10 @@ export const CANCEL_COPY = {
   no: '아니요',
 } as const;
 
-/** 취소 성공 토스트 — legal-copy A-11 원문 */
+/** 취소 성공 토스트 — legal-copy A-11. 두둥 문구 뒷부분은 운영 확정본(B28 · 백엔드 #928) */
 export const CANCEL_TOAST = {
-  refundRequested: '예매가 취소되었어요. 호스트에게 연락해 환불을 요청해주세요.',
+  refundRequested:
+    '예매가 취소되었어요. 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요.',
   canceled: '티켓이 정상적으로 취소되었습니다.',
 } as const;
 
@@ -297,15 +297,8 @@ function PaidCancelSheet({
           </span>
           {showContacts && <ContactList state={contacts} onRetry={contacts.retry} />}
         </Flex>
-        <div className={s.sheetNotice}>
-          <Txt typography="labelMd">환불받을 계좌</Txt>
-          {/* 위 A-9 원문("호스트에게 연락해 계좌를 알려주세요")은 v1 기준 — 약관 근거라 그대로 두고(B28), v2 흐름은 이 줄이 알린다.
-              약관 제29조③은 "서비스에 입력하거나 호스트에게 알린 때" 둘 다 허용(legal-copy "v2 계획과 다른 점 공통"). 이슈 #105 🤖 */}
-          <Txt typography="bodySm" color={colors.textSecondaryLabel}>
-            취소하려면 환불받을 계좌가 필요해요. 여기에 입력한 계좌는 호스트에게 바로 전달되고,
-            호스트가 이 계좌로 환불해요. 환불이 늦어지면 호스트에게 연락해 주세요.
-          </Txt>
-        </div>
+        {/* 계좌 칸 위 임시 안내 줄(#105)은 A-9 확정본(B28)과 겹쳐 뺐다(백엔드 #928 — 빼도 된다) */}
+        <Txt typography="labelMd">환불받을 계좌</Txt>
         <RefundAccountFields
           formId={formId}
           defaults={EMPTY_ACCOUNT}

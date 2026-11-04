@@ -1,9 +1,11 @@
 import type { Page } from '@playwright/test';
+import { http } from 'msw';
 
 import { MISSING_HOST_ID } from '@/api/__mocks__/fixtures/host';
 import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
+import { errors as mockErrors, fail } from '@/api/__mocks__/respond';
 import { MOCK_S3_ORIGIN } from '@/api/__mocks__/upload-handlers';
 
 import { setMockSession } from './support/auth';
@@ -262,7 +264,7 @@ test.describe('멤버 관리 — 변경', () => {
     await email.fill('nobody@example.com');
     await dialog.getByRole('button', { name: '초대하기' }).click();
     await expect(dialog.getByTestId('invite-row').getByRole('alert')).toHaveText(
-      '가입되지 않은 이메일이에요. 상대가 두둥에 가입한 뒤 그 카카오 계정 이메일로 다시 초대해 주세요',
+      '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
     );
     await expect(roles(page)).toHaveCount(4);
     await email.fill('guitar@example.com');
@@ -338,5 +340,123 @@ test.describe('멤버 관리 — 변경', () => {
     // 공연준비 홈 호스트 카드도 매니저
     await page.goto('/hosting?tab=hosts');
     await expect(page.getByTestId('my-role')).toHaveText('매니저');
+  });
+});
+
+/**
+ * 미가입자 초대 링크(H-16~H-18, B33② · 백엔드 #933 — Api 2.5.7). 디자인 없음(Q119 · Q120) — 초대 팝업에 이어지는 칸과 "초대 대기" 목록.
+ */
+test.describe('멤버 관리 — 초대 링크', () => {
+  test('미가입(HOST_400_13)이면 [초대 링크 만들기] → H-16 → 지금 출처 + 경로 링크 · [링크 복사] · 대기 목록에 생긴다', async ({
+    page,
+    context,
+    mockApi,
+  }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/hosts/11/members');
+    await expect(page.getByTestId('invitation-row')).toHaveCount(3);
+    await page.getByRole('button', { name: '멤버 초대하기' }).click();
+    const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
+    await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
+    await dialog.getByRole('button', { name: '초대하기' }).click();
+    await expect(dialog.getByTestId('invite-row').getByRole('alert')).toHaveText(
+      '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
+    );
+    await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
+    const done = page.getByRole('dialog', { name: '초대 링크를 만들었어요' });
+    const link = done.getByLabel('초대 링크');
+    const origin = new URL(page.url()).origin;
+    await expect(link).toHaveValue(
+      new RegExp(`^${origin}/host-invitations/mock-invite-\\d+-\\w+$`),
+    );
+    await done.getByRole('button', { name: '링크 복사' }).click();
+    await expect(page.getByText('초대 링크를 복사했어요')).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await link.inputValue());
+    const post = mockApi.calls().filter((c) => c.method === 'POST');
+    expect(post.map((c) => [c.path, c.status])).toEqual([
+      ['/api/v2/hosts/11/members', 400],
+      ['/api/v2/hosts/11/invitations', 200],
+    ]);
+    await done.getByRole('button', { name: '확인' }).click();
+    await expect(page.getByTestId('invitation-row')).toHaveCount(4);
+    await expect(page.getByTestId('invitation-row').last()).toContainText('nobody@example.com');
+  });
+
+  test('발급 한도(HOST_400_21)면 팝업 안에 사유, 링크는 없다', async ({ page }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/hosts/11/members');
+    await page.getByRole('button', { name: '멤버 초대하기' }).click();
+    const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
+    await dialog.getByLabel('초대할 이메일').fill('limit@example.com');
+    await dialog.getByRole('button', { name: '초대하기' }).click();
+    await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
+    await expect(dialog.getByTestId('invite-link-offer').getByRole('alert')).toHaveText(
+      '초대 링크를 너무 많이 만들었어요. 잠시 후 다시 시도해 주세요',
+    );
+  });
+
+  test('초대 대기 [취소] → 확인 → H-18, 줄이 사라진다', async ({ page, mockApi }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/hosts/11/members');
+    await page.getByRole('button', { name: 'pending-guest@example.com 초대 취소' }).click();
+    await page.getByRole('button', { name: '초대 취소', exact: true }).click();
+    await expect(page.getByText('초대를 취소했어요')).toBeVisible();
+    await expect(page.getByTestId('invitation-row')).toHaveCount(2);
+    expect(
+      mockApi
+        .calls()
+        .filter((c) => c.method === 'DELETE')
+        .map((c) => [c.path, c.status]),
+    ).toEqual([['/api/v2/hosts/11/invitations/405', 200]]);
+  });
+
+  test('매니저는 매니저 초대를 취소할 수 없다(버튼 없음), 일반 멤버는 목록을 읽지 않는다', async ({
+    page,
+    mockApi,
+  }) => {
+    actAsRole(11, 'MANAGER');
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/hosts/11/members');
+    const rows = page.getByTestId('invitation-row');
+    await expect(rows).toHaveCount(3);
+    await expect(rows.filter({ hasText: 'pending-guest@' }).getByRole('button')).toHaveCount(1);
+    await expect(rows.filter({ hasText: 'pending-manager@' }).getByRole('button')).toHaveCount(0);
+
+    actAsRole(11, 'GUEST');
+    await page.reload();
+    await expect(roles(page)).toHaveCount(4);
+    await expect(page.getByTestId('pending-invitations')).toHaveCount(0);
+    expect(
+      mockApi.calls().filter((c) => c.path === '/api/v2/hosts/11/invitations' && c.status === 403),
+    ).toEqual([]);
+  });
+
+  test('서버에 초대 API가 없으면(운영 2.5.3 — 404) 목록을 숨기고 멤버 화면은 그대로', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.use(
+      http.get('*/api/v2/hosts/:hostId/invitations', ({ request }) =>
+        fail(request, 404, 'GLOBAL_404_1', 'No static resource'),
+      ),
+    );
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/hosts/11/members');
+    await expect(roles(page)).toHaveCount(4);
+    await expect(page.getByTestId('pending-invitations')).toHaveCount(0);
+    await expect(page.getByRole('region', { name: '초대 대기' })).toHaveCount(0);
+  });
+
+  test('초대 대기 목록이 5xx(스테이징 DDL 전)면 그 자리만 다시 시도', async ({ page, mockApi }) => {
+    mockApi.use(
+      http.get('*/api/v2/hosts/:hostId/invitations', ({ request }) =>
+        mockErrors.serverError(request),
+      ),
+    );
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/hosts/11/members');
+    await expect(roles(page)).toHaveCount(4);
+    await expect(page.getByText('초대 대기 목록을 불러오지 못했어요')).toBeVisible();
   });
 });

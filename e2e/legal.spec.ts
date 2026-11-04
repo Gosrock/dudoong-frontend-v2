@@ -1,3 +1,7 @@
+import { P9_ORDER } from '@/api/__mocks__/fixtures/order';
+import { resetOrderStore } from '@/api/__mocks__/order.handlers';
+
+import { setMockSession } from './support/auth';
 import { expect, test } from './support/fixtures';
 
 /**
@@ -35,4 +39,47 @@ test.describe('약관 경로', () => {
       }
     });
   }
+});
+
+/**
+ * 화면의 약관 근거 문구 — 운영 확정본(B28 · 백엔드 #928, 2026-11-04). legal-copy A-1 · A-8 ④ · A-9 · A-11.
+ * 문구를 바꿀 때는 이 테스트와 legal-copy를 같이 고친다.
+ */
+test.describe('약관 근거 문구(B28 확정본)', () => {
+  const REFUND_SENTENCE =
+    '취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요.';
+
+  test('공연 상세 중개자 고지(A-1) — "판매정보" 대신 호스트가 안내한 환불 기준', async ({
+    page,
+  }) => {
+    await page.goto('/events/101');
+    const notice = page.getByText(/두둥은 통신판매중개자로서/);
+    await expect(notice).toContainText(
+      '취소·환불 규정은 호스트가 공연 상세에 안내한 환불 기준과 이용약관에서 확인할 수 있습니다.',
+    );
+    await expect(notice).not.toContainText('판매정보');
+  });
+
+  test('주문 상세(A-8 ④) · 취소 시트(A-9) · 취소 토스트(A-11) — 입력한 환불 계좌로 호스트가 환불', async ({
+    page,
+  }) => {
+    resetOrderStore();
+    await setMockSession(page, 'loggedIn');
+    await page.goto(`/orders/${P9_ORDER.approvedPaid}`);
+    await expect(page.getByText(`환불 방법 : ${REFUND_SENTENCE}`, { exact: false })).toBeVisible();
+    await expect(page.getByText('환불받을 계좌를 알려주세요', { exact: false })).toHaveCount(0);
+
+    await page.getByRole('button', { name: '주문취소' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByText(REFUND_SENTENCE, { exact: false })).toBeVisible();
+    // 계좌 칸 위 임시 안내 줄(#105)은 확정본과 겹쳐 뺐다
+    await expect(dialog.getByText('여기에 입력한 계좌는', { exact: false })).toHaveCount(0);
+
+    await dialog.getByRole('combobox', { name: /은행/ }).click();
+    await page.getByRole('option', { name: 'KB국민은행' }).click();
+    await dialog.getByRole('textbox', { name: /예금주/ }).fill('두둥이');
+    await dialog.getByRole('textbox', { name: /계좌번호/ }).fill('123-456-7890');
+    await page.getByRole('button', { name: '확인했어요, 취소할게요' }).click();
+    await expect(page.getByText(`예매가 취소되었어요. ${REFUND_SENTENCE}`)).toBeVisible();
+  });
 });

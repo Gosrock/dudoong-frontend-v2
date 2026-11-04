@@ -14,6 +14,8 @@ import {
   type HostViewer,
 } from '../host/schema';
 import { CONTACT_TYPES, type HostRole } from '../shared/common-schema';
+import { formatKstDateTime } from '../shared/date';
+import { mockNow } from './event-store';
 import type { MockEvent } from './fixtures/event';
 import { events, preparingEvents } from './fixtures/event';
 import { hosts, mockUsers, viewerOf } from './fixtures/host';
@@ -21,11 +23,17 @@ import { me } from './fixtures/me';
 import {
   addStoredMembers,
   editHostProfile,
+  invitationById,
+  invitationByToken,
+  issueInvitation,
   membersOf,
   mockUserRoleIn,
+  pendingInvitationsOf,
   removeStoredMember,
   resetHostStore,
+  setInvitationState,
   setStoredRole,
+  type StoredInvitation,
   withHostEdits,
 } from './host-store';
 import { maskContacts } from './privacy-mask';
@@ -81,6 +89,48 @@ const badRequest = (request: Request, code: HostBadRequestCode, emails?: string[
 
 const memberGone = (request: Request) =>
   fail(request, 404, 'HOST_404_2', '가입된 호스트 유저가 아닙니다.');
+
+// ─── 초대 링크(H-16~H-20, 백엔드 #933 · Api 2.5.7) ───
+
+const INVITATION_ERROR = {
+  HOST_400_19: '만료된 초대 링크입니다.',
+  HOST_400_20: '이미 사용된 초대 링크입니다.',
+  HOST_400_21: '초대 링크 발급 한도를 넘었습니다. 잠시 후 다시 시도해주세요.',
+} as const;
+const invitationError = (request: Request, code: keyof typeof INVITATION_ERROR) =>
+  fail(request, 400, code, INVITATION_ERROR[code]);
+const invitationGone = (request: Request) =>
+  fail(request, 404, 'HOST_404_3', '초대 링크를 찾을 수 없습니다.');
+
+/** QA · e2e용 — 이 이메일로 H-16을 부르면 발급 한도(`HOST_400_21`) */
+export const MOCK_INVITE_LIMIT_EMAIL = 'limit@example.com';
+const INVITE_VALID_DAYS = 7;
+
+/** H-17 응답 한 줄 — 토큰은 주지 않는다 */
+const toInvitation = (i: StoredInvitation) => ({
+  invitationId: i.invitationId,
+  email: i.email,
+  role: i.role,
+  inviterUserId: i.inviterUserId,
+  expiresAt: i.expiresAt,
+});
+
+/** `PrivacyMasker.maskEmail` 흉내 — 앞 두 글자만 */
+const maskEmail = (email: string) => {
+  const [local = '', domain = ''] = email.split('@');
+  return `${local.slice(0, 2)}***@${domain}`;
+};
+
+/** H-19 · H-20 공통 — 없음 · 취소(404) → 사용됨(400_20) → 만료(400_19) */
+function readInvitation(request: Request, token: unknown) {
+  const found = typeof token === 'string' ? invitationByToken(token) : undefined;
+  if (!found || found.state === 'CANCELED') return { response: invitationGone(request) };
+  if (found.state === 'ACCEPTED') return { response: invitationError(request, 'HOST_400_20') };
+  if (found.state === 'EXPIRED' || found.expiresAt <= mockNow()) {
+    return { response: invitationError(request, 'HOST_400_19') };
+  }
+  return { invitation: found };
+}
 
 const RANK: Record<HostRole, number> = { GUEST: 1, MANAGER: 2, MASTER: 3, UNKNOWN: 0 };
 
@@ -380,6 +430,102 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       setStoredRole(g.id, me.userId, 'MANAGER');
       setStoredRole(g.id, userId, 'MASTER');
       return ok(membersOf(g.id));
+    }),
+
+    // H-16 초대 링크 발급(매니저 이상, 매니저는 GUEST만) — 미가입 이메일도 된다
+    http.post('*/api/v2/hosts/:hostId/invitations', async ({ request, params, cookies }) => {
+      const g = guard(request, cookies, params.hostId, 'MANAGER');
+      if (g.response) return g.response;
+      const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+      const email = isText(body?.email) ? body.email.trim() : '';
+      if (!/^[^\s@]+@[^\s@]+$/.test(email) || !isRole(body?.role)) {
+        return errors.badRequest(request);
+      }
+      if (body.role === 'MASTER') return badRequest(request, 'HOST_400_10');
+      if (body.role !== 'GUEST' && g.myRole !== 'MASTER') return forbidden(request, 'HOST_400_11');
+      const memberIds = new Set(membersOf(g.id).map((m) => m.userId));
+      const account = mockUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      if (account && memberIds.has(account.userId)) return badRequest(request, 'HOST_400_15');
+      if (email.toLowerCase() === MOCK_INVITE_LIMIT_EMAIL) {
+        return invitationError(request, 'HOST_400_21');
+      }
+      const expiresAt = formatKstDateTime(new Date(Date.now() + INVITE_VALID_DAYS * 86_400_000));
+      const issued = issueInvitation(g.id, email, body.role, me.userId, expiresAt);
+      return ok({
+        invitationId: issued.invitationId,
+        token: issued.token,
+        inviteUrlPath: `/host-invitations/${issued.token}`,
+        expiresAt: issued.expiresAt,
+        mailSent: true,
+      });
+    }),
+
+    // H-17 대기 중인 초대(매니저 이상)
+    http.get('*/api/v2/hosts/:hostId/invitations', ({ request, params, cookies }) => {
+      const g = guard(request, cookies, params.hostId, 'MANAGER');
+      if (g.response) return g.response;
+      return ok(pendingInvitationsOf(g.id, mockNow()).map(toInvitation));
+    }),
+
+    // H-18 초대 취소(매니저 이상, 매니저는 GUEST 초대만) — 응답은 남은 대기 초대
+    http.delete(
+      '*/api/v2/hosts/:hostId/invitations/:invitationId',
+      ({ request, params, cookies }) => {
+        const g = guard(request, cookies, params.hostId, 'MANAGER');
+        if (g.response) return g.response;
+        const invitationId = readId(params.invitationId);
+        if (invitationId === null) return errors.typeMismatch(request);
+        const target = invitationById(g.id, invitationId);
+        if (!target) return invitationGone(request);
+        if (target.role !== 'GUEST' && g.myRole !== 'MASTER') {
+          return forbidden(request, 'HOST_400_11');
+        }
+        setInvitationState(invitationId, 'CANCELED');
+        return ok(pendingInvitationsOf(g.id, mockNow()).map(toInvitation));
+      },
+    ),
+
+    // H-19 초대 수락 화면(로그인)
+    http.get('*/api/v2/host-invitations/:token', ({ request, params, cookies }) => {
+      const denied = requireAuth(request, cookies);
+      if (denied) return denied;
+      const read = readInvitation(request, params.token);
+      if (read.response) return read.response;
+      const { invitation } = read;
+      const host = findHost(String(invitation.hostId)).host!;
+      return ok({
+        hostId: host.hostId,
+        hostName: host.name,
+        hostProfileImageUrl: host.profileImageUrl,
+        role: invitation.role,
+        maskedEmail: maskEmail(invitation.email),
+        expiresAt: invitation.expiresAt,
+        alreadyMember: viewer(host).myRole !== null,
+      });
+    }),
+
+    // H-20 초대 수락(로그인) — 이미 멤버면 200 + alreadyMember, 역할은 기존 역할
+    http.post('*/api/v2/host-invitations/:token/accept', ({ request, params, cookies }) => {
+      const denied = requireAuth(request, cookies);
+      if (denied) return denied;
+      const read = readInvitation(request, params.token);
+      if (read.response) return read.response;
+      const { invitation } = read;
+      const host = findHost(String(invitation.hostId)).host!;
+      const current = viewer(host).myRole;
+      setInvitationState(invitation.invitationId, 'ACCEPTED');
+      if (current !== null) {
+        return ok({ hostId: host.hostId, role: current, alreadyMember: true });
+      }
+      addStoredMembers(host.hostId, [
+        {
+          userId: me.userId,
+          name: me.name,
+          profileImageUrl: me.profileImageUrl,
+          role: invitation.role,
+        },
+      ]);
+      return ok({ hostId: host.hostId, role: invitation.role, alreadyMember: false });
     }),
 
     http.put('*/api/v2/hosts/:hostId/follow', ({ request, params, cookies }) =>

@@ -1,5 +1,5 @@
 /** 바로 다음 세그먼트가 토큰인 리소스. 토큰은 모양과 상관없이 가린다. */
-const TOKEN_PARENTS = new Set(['gifts']);
+const TOKEN_PARENTS = new Set(['gifts', 'host-invitations']);
 
 /**
  * 로그용 라우트 패턴. id·토큰처럼 보이는 세그먼트를 `:param`으로 가리고 쿼리스트링은 버린다(tech-decisions §13).

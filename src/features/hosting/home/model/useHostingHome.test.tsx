@@ -64,9 +64,14 @@ describe('공연준비 홈 — 탭(GH-1 / GE-1)', () => {
     const { result } = open();
     expect(result.current.tab).toBe('events');
     await waitFor(() => expect(result.current.events.status).toBe('success'));
-    expect(result.current.events.items.map((e) => e.eventId)).toEqual([140, 103, 101, 90]);
+    // 일정순(sort=SCHEDULE, B32) — 지난 공연(90)이 맨 뒤. 다가오는 공연끼리 순서는 오늘 날짜에 따라 다르다(mock 정렬은 handlers.test)
+    expect(result.current.events.items.map((e) => e.eventId).at(-1)).toBe(90);
     expect(await sent.list()).toMatchObject([
-      { path: '/api/v2/me/events', query: { page: '0' }, credentials: 'include' },
+      {
+        path: '/api/v2/me/events',
+        query: { sort: 'SCHEDULE', page: '0' },
+        credentials: 'include',
+      },
     ]);
     expect(result.current.hosts.status).toBe('pending');
   });
@@ -74,7 +79,8 @@ describe('공연준비 홈 — 탭(GH-1 / GE-1)', () => {
   it('공연 카드 ⋮ 삭제(P11): 준비중 공연 + 매니저 이상만 canDelete', async () => {
     const { result } = open();
     await waitFor(() => expect(result.current.events.status).toBe('success'));
-    expect(result.current.events.items.map((e) => [e.eventId, e.status, e.canDelete])).toEqual([
+    const rows = result.current.events.items.map((e) => [e.eventId, e.status, e.canDelete]);
+    expect(rows.sort((a, b) => Number(b[0]) - Number(a[0]))).toEqual([
       [140, 'PREPARING', true],
       [103, 'OPEN', false],
       [101, 'OPEN', false],
@@ -137,7 +143,7 @@ describe('공연준비 홈 — 검색', () => {
     await waitFor(() => expect(result.current.hosts.status).toBe('empty'));
     expect(result.current.hosts.emptyKind).toBe('search');
     expect(await reads(sent)).toEqual([
-      '/api/v2/me/events?keyword=%EC%A0%95%EA%B8%B0%EA%B3%B5%EC%97%B0&page=0',
+      '/api/v2/me/events?keyword=%EC%A0%95%EA%B8%B0%EA%B3%B5%EC%97%B0&sort=SCHEDULE&page=0',
       '/api/v2/me/hosts?keyword=%EC%A0%95%EA%B8%B0%EA%B3%B5%EC%97%B0&page=0',
     ]);
   });

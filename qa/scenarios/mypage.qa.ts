@@ -314,7 +314,9 @@ scenario(
       await fillAccount(page);
       await page.getByRole('button', { name: '확인했어요, 취소할게요' }).click();
       await expect(
-        page.getByText('예매가 취소되었어요. 호스트에게 연락해 환불을 요청해주세요.'),
+        page.getByText(
+          '예매가 취소되었어요. 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요.',
+        ),
       ).toBeVisible();
       await expect(page.getByTestId('order-status').first()).toHaveText('환불요청');
       await expect(page.getByTestId('refund-account')).toContainText('7890');

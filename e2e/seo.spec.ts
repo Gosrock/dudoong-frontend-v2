@@ -25,6 +25,7 @@ const PRIVATE_PATHS = [
   '/kakao',
   '/login',
   '/gifts',
+  '/host-invitations',
 ];
 
 test.describe('robots.txt', () => {
