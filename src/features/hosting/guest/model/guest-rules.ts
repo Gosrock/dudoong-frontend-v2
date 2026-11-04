@@ -5,6 +5,7 @@ import {
   type HostCancelOrderRequest,
   type HostOrderElement,
   type HostOrderStatusFilter,
+  type OrderCanceledBy,
   type OrderSearchType,
   type RefundStatusFilter,
   REFUSE_REASON_TEXT_MAX,
@@ -83,15 +84,21 @@ export const ORDER_STATUS_TABS = [
   count: 'all' | 'pendingApprove' | 'approved' | 'refused' | 'canceled';
 }[];
 
+/** 주문 · 환불 탭 검색 기준(GUI `1029:6014` 순서 — 이름 · 주문 번호 · 연락처 · 입금자명). 주문 번호는 백엔드 #929(B36) */
 export const ORDER_SEARCH_TYPE_OPTIONS = [
   { key: 'NAME', label: '이름' },
+  { key: 'ORDER_NO', label: '주문 번호' },
   { key: 'PHONE', label: '연락처' },
   { key: 'DEPOSITOR_NAME', label: '입금자명' },
 ] as const satisfies readonly { key: OrderSearchType; label: string }[];
 
+/** 발급된 티켓 탭 검색 기준(GUI `1030:8703` 순서 — 이름 · 주문 번호 · 연락처 · 입금자명 · 티켓 번호). 백엔드 #929(B36) */
 export const TICKET_SEARCH_TYPE_OPTIONS = [
   { key: 'NAME', label: '이름' },
+  { key: 'ORDER_NO', label: '주문 번호' },
   { key: 'PHONE', label: '연락처' },
+  { key: 'DEPOSITOR_NAME', label: '입금자명' },
+  { key: 'TICKET_NO', label: '티켓 번호' },
 ] as const satisfies readonly { key: IssuedTicketSearchType; label: string }[];
 
 export const ENTRANCE_FILTER_OPTIONS = [
@@ -108,15 +115,34 @@ export const REFUND_FILTER_OPTIONS = [
 
 /**
  * 일반 멤버의 연락처·입금자명 검색은 완전 일치만 된다(#846 — 가린 값을 부분 일치로 복원하지 못하게). 그 검색 칸의 안내 문구(GUI `1029:4569`).
- * 이름 검색·매니저 이상은 안내 없음
+ * 이름 · 주문 번호 · 티켓 번호(개인정보가 아니라 부분 일치 — 백엔드 #929) 검색과 매니저 이상은 안내 없음
  */
 export const EXACT_MATCH_HINT = '연락처, 입금자명은 전체를 정확히 입력해야 찾을 수 있어요.';
+const isExactMatchSearch = (
+  role: ActorRole | null | undefined,
+  searchType: OrderSearchType | IssuedTicketSearchType,
+) => !can(role, 'viewRefundAccount') && (searchType === 'PHONE' || searchType === 'DEPOSITOR_NAME');
 export function exactMatchHintOf(
   role: ActorRole | null | undefined,
   searchType: OrderSearchType | IssuedTicketSearchType,
 ): string | null {
-  if (can(role, 'viewRefundAccount') || searchType === 'NAME') return null;
-  return EXACT_MATCH_HINT;
+  return isExactMatchSearch(role, searchType) ? EXACT_MATCH_HINT : null;
+}
+
+/**
+ * 검색 결과가 없을 때 표 안 문구. 일반 멤버가 연락처·입금자명으로 찾았으면 완전 일치 안내를 붙인다(백엔드 #929 B36 "결과가 없을 때
+ * '전체 값을 입력해 주세요' 안내"). 🤖 문구는 Claude 판단(GUI 빈 상태 `1031:9948`은 검색 없는 빈 목록뿐)
+ */
+export const SEARCH_EMPTY_MESSAGE = '검색 결과가 없어요';
+export const SEARCH_EMPTY_EXACT_MESSAGE =
+  '검색 결과가 없어요. 연락처, 입금자명은 전체 값을 입력해 주세요.';
+export function searchEmptyMessageOf(
+  role: ActorRole | null | undefined,
+  appliedSearchType: OrderSearchType | IssuedTicketSearchType,
+): string {
+  return isExactMatchSearch(role, appliedSearchType)
+    ? SEARCH_EMPTY_EXACT_MESSAGE
+    : SEARCH_EMPTY_MESSAGE;
 }
 
 // ─── 주문 처리 ───────────────────────────────────────────────
@@ -245,13 +271,20 @@ export function cancelReasonTextOf(type: CancelReasonKey | null, text: string): 
 }
 
 /**
- * 승인 후 취소를 막는 발급 티켓(GUI `1029:7706` "취소 불가" — #112, 2026-11-01): 입장했거나 선물한 티켓이 있으면 취소할 수 없다.
- * 서버(PR-5 `validCanCancel`)는 이 검사를 하지 않는다 — 화면 규칙(L 변경 p13a-gui-guests). GR-2 발급 티켓에는 선물 상태가 없어
- * 지금은 입장(`DONE`)만 본다(선물 — backend-questions B35)
+ * 승인 후 취소를 막는 발급 티켓(GUI `1029:7706` "취소 불가" — #112, 2026-11-01): 입장했거나 선물한(선물 대기 · 선물 받음) 티켓이 있으면
+ * 취소할 수 없다. 서버도 같은 경우 `Order_400_30`으로 막는다(백엔드 #929 — B35, 2.5.7). 판정은 `entrance == DONE` 또는
+ * `giftState != NONE`(GR-2 `issuedTickets[].giftState`). 운영 2.5.3 응답에는 `giftState`가 없다 — 그때는 입장만 본다(서버도 막지 않는다).
+ * 모르는 선물 상태(`UNKNOWN`)는 막는 쪽으로 본다(버튼이 잘못 열리지 않게)
  */
 export const CANCEL_BLOCKED_MESSAGE = ORDER_ACTION_BLOCK_MESSAGE.ticketUsed;
-export const hasCancelBlockingTicket = (issuedTickets: readonly { entrance: string }[]) =>
-  issuedTickets.some((t) => t.entrance === 'DONE');
+export const hasCancelBlockingTicket = (
+  issuedTickets: readonly { entrance: string; giftState?: string }[],
+) =>
+  issuedTickets.some(
+    (t) =>
+      t.entrance !== 'CANCELED' &&
+      (t.entrance === 'DONE' || (t.giftState !== undefined && t.giftState !== 'NONE')),
+  );
 
 /**
  * 선물 대기(수락 전, `giftState: PENDING`) 티켓은 서버가 입장시키지 않는다 — PQ-2가 200 + `GIFT_PENDING`(입장 안 함). QR 스캔 ·
@@ -280,12 +313,20 @@ export function refundRowStateOf(
 export const REFUND_NO_ACCOUNT_MESSAGE = ORDER_ACTION_BLOCK_MESSAGE.noAccount;
 
 /**
- * 거절 사유 "입금 미확인" 안내(GUI `1029:7114`). 서버는 사유와 관계없이 결제 금액이 있으면 환불 요청을 만든다(PR-4 `refuseByHost(
- * refundRequested = isPaid)`) — 안내가 사실이 될 때(backend-questions B35)까지 보이지 않는다
+ * 거절 사유 "입금 미확인" 안내(GUI `1029:7114`). 백엔드 #929(B35 — 2.5.7)부터 입금 미확인 거절은 결제 금액이 있어도 환불 요청을 만들지
+ * 않고 **되돌릴 수 없다**(관객도 환불 계좌를 넣을 수 없다 — `Order_400_27`). 거절 사유 단계(주문 상세 · 표에서 거절)에서 그 사유를 고르면 꼭 보인다
  */
 export const REFUSE_DEPOSIT_UNCONFIRMED_NOTE =
   '입금 미확인으로 거절하면 환불 요청이 생기지 않아요.';
-export const REFUSE_DEPOSIT_UNCONFIRMED_SKIPS_REFUND = false;
+export const showsDepositUnconfirmedNote = (reasonType: RefuseReasonKey | null) =>
+  reasonType === 'DEPOSIT_UNCONFIRMED';
+
+/** 주문 상세 "취소한 사람"(GUI `1029:8522`, GR-2 `canceledBy` — 백엔드 #929 B35). 값이 없으면(운영 2.5.3 · 취소 전) 줄을 그리지 않는다 */
+export const CANCELED_BY_LABEL: Record<OrderCanceledBy, string | null> = {
+  BUYER: '예매자',
+  HOST: '호스트',
+  UNKNOWN: null,
+};
 export const CANCEL_REASON_ERROR = `취소 사유는 ${HOST_CANCEL_REASON_MAX}자까지 적을 수 있어요`;
 
 /** PR-5 본문 — 사유는 선택(trim 후 비면 본문 없이) */
@@ -349,6 +390,8 @@ export const APPROVE_ERROR_MESSAGE = {
  */
 export const WITHDRAW_ERROR_MESSAGE = {
   Order_400_5: '이미 처리된 주문이에요. 최신 상태를 불러왔어요',
+  /** 승인 후 취소 — 입장했거나 선물한 티켓이 있다(백엔드 #929 B35). 그 사이 입장·선물됐을 수 있어 최신 상태를 다시 읽는다 */
+  Order_400_30: `${ORDER_ACTION_BLOCK_MESSAGE.ticketUsed} 최신 상태를 불러왔어요`,
   Order_400_9: ORDER_ACTION_BLOCK_MESSAGE.started,
   Order_400_18: REFUSE_ERRORS.reasonText,
   Event_400_5: ORDER_ACTION_BLOCK_MESSAGE.notOpen,
@@ -388,3 +431,18 @@ export const TICKET_MISSING_MESSAGE = '티켓을 찾을 수 없어요. 목록을
 /** 엑셀 1만 행 초과(`Order_400_19`·`IssuedTicket_400_7`) */
 export const EXPORT_TOO_MANY_MESSAGE =
   '1만 건이 넘어 내려받을 수 없어요. 상태·검색으로 좁혀 주세요';
+
+// ─── 입장 취소(Q-3, 백엔드 #929 — B37) ─────────────────────────
+
+/** 입장 취소 확인(GUI `1030:9318` 문구 그대로) */
+export const CANCEL_ENTRANCE_CONFIRM = {
+  title: '입장 처리를 취소할까요?',
+  description: '입장 인원에서 빠지고, 다시 입장할 수 있는 상태가 돼요.',
+  confirmLabel: '입장 취소',
+} as const;
+
+/** 입장 취소 실패 — 상태가 이미 바뀐 것은 최신 상태를 다시 읽는다 */
+export const CANCEL_ENTRANCE_ERROR_MESSAGE = {
+  IssuedTicket_400_9: '입장 전 티켓이에요. 최신 상태를 불러왔어요',
+  IssuedTicket_400_3: '취소된 티켓이라 입장을 취소할 수 없어요. 최신 상태를 불러왔어요',
+} as const;

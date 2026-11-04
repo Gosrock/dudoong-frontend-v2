@@ -7,7 +7,12 @@ import { hostOrdersQuery } from '@/api/order/queries';
 import type { HostOrderStatusFilter, OrderSearchType } from '@/api/order/schema';
 import { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 
-import { exactMatchHintOf, ORDER_SEARCH_TYPE_OPTIONS, ORDER_STATUS_TABS } from './guest-rules';
+import {
+  exactMatchHintOf,
+  ORDER_SEARCH_TYPE_OPTIONS,
+  ORDER_STATUS_TABS,
+  searchEmptyMessageOf,
+} from './guest-rules';
 import { useGuestExport } from './useGuestExport';
 import { useTableQueryState } from './useTableQueryState';
 
@@ -69,6 +74,8 @@ export function useOrderList(eventId: string) {
       applied: applied.keyword,
       /** 일반 멤버의 연락처·입금자명 검색 칸 안내(#846) */
       exactMatchHint: exactMatchHintOf(scope.role, searchType),
+      /** 검색 결과가 없을 때 문구(일반 멤버의 연락처·입금자명이면 전체 값 안내) */
+      emptyMessage: searchEmptyMessageOf(scope.role, applied.searchType),
     },
     rows: data?.orders.content ?? [],
     empty: query.status === 'success' && data?.orders.content.length === 0,

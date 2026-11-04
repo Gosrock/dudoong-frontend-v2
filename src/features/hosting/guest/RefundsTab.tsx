@@ -13,18 +13,20 @@ import { DetailCell } from './ui/DetailCell';
 import { dateTimeText, REFUND_STATE_CHIP, text } from './ui/guest-labels';
 import {
   Empty,
+  ExportButton,
   FilterRow,
   ListError,
   ListLoading,
   NoticeLine,
   nowrapColumns,
+  SearchBar,
   Toolbar,
 } from './ui/GuestParts';
 
 /**
- * 환불 탭(GF-1) — GUI `1031:9189`(PC) · `1009:4319`(모바일) · 환불 완료 처리 `1031:9567` · 빈 상태 `1031:9948`.
- * 노란 안내 → 상태 필터 → 표(주문 번호 · 주문자 · 환불 금액 · 일시 · 상태 ›). 행을 누르면 주문 상세(`?order=`) — [환불 완료]는 상세에서.
- * GF-1에 검색 · 상태별 건수 · 엑셀 · 주문 일시가 없어 검색 줄 · 칩 숫자 · 엑셀을 그리지 않고 일시 칸은 취소 일시(backend-questions B36)
+ * 환불 탭(GF-1 · GF-1b · GF-3) — GUI `1031:9189`(PC) · `1009:4319`(모바일) · 환불 완료 처리 `1031:9567` · 빈 상태 `1031:9948`.
+ * 노란 안내 → 상태 필터(건수) · 검색 → 표(주문 번호 · 주문자 · 환불 금액 · 주문 일시 · 상태 ›) → 엑셀(매니저 이상). 행을 누르면 주문 상세
+ * (`?order=`) — [환불 완료]는 상세에서. 검색 · 건수 · 엑셀 · 주문 일시는 백엔드 #929(B36 — 2.5.7)
  */
 export function RefundsTab({
   eventId,
@@ -50,11 +52,12 @@ export function RefundsTab({
       cell: ({ refund: r }) => formatWon(r.totalAmount),
     },
     {
-      id: 'withdrawnAt',
-      header: '취소 일시',
+      id: 'orderedAt',
+      header: '주문 일시',
       display: 'desktop',
       width: 192,
-      cell: ({ refund: r }) => dateTimeText(r.withdrawnAt),
+      // 운영 2.5.3 응답에는 `orderedAt`이 없다(컷오버 때 올라간다) — 그때는 "—"
+      cell: ({ refund: r }) => dateTimeText(r.orderedAt ?? null),
     },
     {
       id: 'refundStatus',
@@ -80,6 +83,7 @@ export function RefundsTab({
   ]);
 
   const failed = list.status === 'error';
+  const empty = list.status === 'success' && list.rows.length === 0;
   return (
     <div className={s.tab}>
       <NoticeBox icon="important">예매자 계좌로 직접 보낸 뒤 [환불 완료]를 눌러주세요</NoticeBox>
@@ -87,12 +91,28 @@ export function RefundsTab({
         filters={
           <FilterRow
             label="환불 상태"
-            options={list.filters.map((f) => ({ ...f, count: null }))}
+            options={list.filters}
             onSelect={list.setStatus}
             testIdPrefix="refund-filter"
           />
         }
+        search={
+          <SearchBar
+            label="환불 검색어"
+            types={list.search.types}
+            type={list.search.type}
+            onTypeChange={list.search.setType}
+            keyword={list.search.input}
+            onKeywordChange={list.search.setInput}
+            keywordMax={list.search.max}
+            onSubmit={list.search.submit}
+          />
+        }
+        hint={list.search.exactMatchHint}
       />
+      {list.excel.error && (
+        <NoticeLine onDismiss={list.excel.dismissError}>{list.excel.error}</NoticeLine>
+      )}
       {list.actionError && (
         <NoticeLine onDismiss={list.dismissActionError}>{list.actionError}</NoticeLine>
       )}
@@ -113,8 +133,20 @@ export function RefundsTab({
           failed ? (
             <ListError what="환불 목록" onRetry={list.retry} />
           ) : (
-            <Empty>환불할 주문이 없어요.</Empty>
+            <Empty>
+              {list.search.applied ? list.search.emptyMessage : '환불할 주문이 없어요.'}
+            </Empty>
           )
+        }
+        footerEnd={
+          list.excel.can ? (
+            <ExportButton
+              label="환불 엑셀로 다운로드"
+              exporting={list.excel.pending}
+              disabled={failed || empty}
+              onExport={() => void list.excel.download()}
+            />
+          ) : undefined
         }
       />
     </div>

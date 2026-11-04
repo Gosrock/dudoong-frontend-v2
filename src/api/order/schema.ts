@@ -344,8 +344,11 @@ export type HostOrderStatus = z.infer<typeof HostOrderStatusSchema>;
 export const HOST_ORDER_STATUS_FILTERS = ['ALL', ...HOST_ORDER_STATUSES] as const;
 export type HostOrderStatusFilter = (typeof HOST_ORDER_STATUS_FILTERS)[number];
 
-/** GR-1·GR-6 `searchType`(`V2OrderSearchType`, 기본 NAME). 일반 멤버의 PHONE·DEPOSITOR_NAME은 완전 일치만(#822) */
-export const ORDER_SEARCH_TYPES = ['NAME', 'PHONE', 'DEPOSITOR_NAME'] as const;
+/**
+ * GR-1·GR-6·GF-1·GF-1b·GF-3 `searchType`(`V2OrderSearchType`, 기본 NAME). 일반 멤버의 PHONE·DEPOSITOR_NAME은 완전 일치만(#822).
+ * `ORDER_NO`(주문 번호, 대소문자 무시 부분 일치)는 백엔드 #929(B36 — 2.5.7 스테이징, 운영 2.5.3은 400)
+ */
+export const ORDER_SEARCH_TYPES = ['NAME', 'PHONE', 'DEPOSITOR_NAME', 'ORDER_NO'] as const;
 export type OrderSearchType = (typeof ORDER_SEARCH_TYPES)[number];
 
 /** GF-1 `status`(`V2RefundStatusFilter`, 기본 ALL) */
@@ -421,10 +424,24 @@ export const HostOrderLineSchema = z.object({
   optionAnswers: z.array(OrderOptionAnswerSchema),
 });
 
+/** 호스트 화면 선물 상태(`V2HostGiftState`) — 보는 사람 기준이 아니라 티켓 기준. GI-1·GI-2·GR-2(#929)가 같은 값 */
+export const HOST_GIFT_STATES = ['NONE', 'PENDING', 'ACCEPTED'] as const;
+export const HostGiftStateSchema = openEnum('HostGiftState', HOST_GIFT_STATES);
+export type HostGiftState = z.infer<typeof HostGiftStateSchema>;
+
+/** GR-2 취소 주체(`V2OrderCanceledBy`, #929) — BUYER 예매자 취소 · HOST 호스트 거절·취소(운영자 어드민 취소도 HOST) */
+export const ORDER_CANCELED_BY = ['BUYER', 'HOST'] as const;
+export const OrderCanceledBySchema = openEnum('OrderCanceledBy', ORDER_CANCELED_BY);
+export type OrderCanceledBy = z.infer<typeof OrderCanceledBySchema>;
+
 export const HostOrderIssuedTicketSchema = z.object({
   ticketUuid: z.string().nullable(),
   issuedTicketNo: z.string().nullable(),
   ticketName: z.string().nullable(),
+  /**
+   * 선물 상태(#929 — B35, 2.5.7). 운영 2.5.3 응답에는 없다(컷오버 때 올라간다) — 없으면 입장만 보고 취소 불가를 판정한다
+   */
+  giftState: HostGiftStateSchema.optional(),
   entrance: EntranceStateSchema,
   enteredAt: z.string().nullable(),
   optionAnswers: z.array(OrderOptionAnswerSchema),
@@ -445,16 +462,20 @@ export const HostOrderDetailSchema = z.object({
   issuedTickets: z.array(HostOrderIssuedTicketSchema),
   /** 매니저 이상만 값, 일반 멤버·계좌 없는 주문은 null */
   refundAccount: HostRefundAccountSchema.nullable(),
+  /** 취소 주체(#929 — B35, 2.5.7). 취소·거절되지 않은 주문은 null, 운영 2.5.3 응답에는 없다 */
+  canceledBy: OrderCanceledBySchema.nullable().optional(),
 });
 export type HostOrderDetail = z.infer<typeof HostOrderDetailSchema>;
 
-/** GF-1 행(`V2RefundElement`). 환불 상태가 NONE이 아닌 주문만, 최신 순. 검색은 없다 */
+/** GF-1 행(`V2RefundElement`). 환불 상태가 NONE이 아닌 주문만, 최신 순. 검색은 주문 목록과 같은 기준(#929) */
 export const RefundElementSchema = z.object({
   orderUuid: z.string().nullable(),
   orderNo: z.string().nullable(),
   buyerName: z.string().nullable(),
   ticketName: z.string().nullable(),
   totalAmount: z.number().int(),
+  /** 주문 일시(#929 — B36, 2.5.7). 운영 2.5.3 응답에는 없다 */
+  orderedAt: z.string().nullable().optional(),
   status: HostOrderStatusSchema.nullable(),
   refundStatus: RefundStatusSchema,
   /** 거절·취소 사유 문구 */
@@ -465,6 +486,14 @@ export const RefundElementSchema = z.object({
 });
 export type RefundElement = z.infer<typeof RefundElementSchema>;
 export const RefundPageSchema = pageSchema(RefundElementSchema);
+
+/** GF-1b 환불 상태별 건수(`V2RefundCountsResponse`, #929 — B36, 2.5.7). 검색어 반영, 상태 필터 무시(all = 요청 + 완료) */
+export const RefundCountsSchema = z.object({
+  all: z.number().int(),
+  requested: z.number().int(),
+  completed: z.number().int(),
+});
+export type RefundCounts = z.infer<typeof RefundCountsSchema>;
 
 /**
  * 거절 기타 사유(trim 후 1~100자, `V2OrderDomainService.REFUSE_REASON_MAX_LENGTH`) · 승인 후 취소 사유(100자).
@@ -494,3 +523,39 @@ export const HostCancelOrderRequestSchema = z.strictObject({
   reason: z.string().trim().min(1).max(HOST_CANCEL_REASON_MAX),
 });
 export type HostCancelOrderRequest = z.infer<typeof HostCancelOrderRequestSchema>;
+
+// ─── 일괄 승인·거절(R-7 · R-8, 백엔드 #929 — B34, 2.5.7) ─────────────
+
+/** 한 번에 보낼 수 있는 주문 수(`V2OperationRequests.BULK_ORDER_MAX`). 넘으면 나눠 보낸다 */
+export const BULK_ORDER_MAX = 50;
+/** 20초 상한을 넘어 처리하지 않은 주문의 `errorCode`(`V2ChangeOrderUseCase.BULK_NOT_PROCESSED`) — 그 주문만 다시 보낸다 */
+export const BULK_NOT_PROCESSED = 'ORDER_BULK_NOT_PROCESSED';
+
+/** R-7 본문(엄격). uuid 1~50개(각 1~64자), 중복은 서버가 한 번만 처리한다 */
+export const BulkApproveOrdersRequestSchema = z.strictObject({
+  orderUuids: z.array(z.string().min(1).max(64)).min(1).max(BULK_ORDER_MAX),
+});
+export type BulkApproveOrdersRequest = z.infer<typeof BulkApproveOrdersRequestSchema>;
+
+/** R-8 본문 = R-7 + PR-4와 같은 사유(처리 전에 한 번 검사 — 틀리면 전체 400 `Order_400_18`) */
+export type BulkRefuseOrdersRequest = BulkApproveOrdersRequest & RefuseOrderRequest;
+
+/** 주문 하나의 결과. 실패 코드는 단건 API와 같다(예상 못 한 오류 `GLOBAL_500_1`, 시간 상한 `ORDER_BULK_NOT_PROCESSED`) */
+export const BulkOrderResultSchema = z.object({
+  orderUuid: z.string(),
+  success: z.boolean(),
+  errorCode: z.string().nullable(),
+  reason: z.string().nullable(),
+});
+export type BulkOrderResult = z.infer<typeof BulkOrderResultSchema>;
+
+/** R-7 · R-8 응답(`V2BulkOrderResultResponse`). `results`는 요청 순서(중복 제거) 전부 */
+export const BulkOrderResultResponseSchema = z.object({
+  succeeded: z.number().int(),
+  /** 처리했지만 실패한 건수(처리하지 않은 건 제외) */
+  failed: z.number().int(),
+  /** 시간 상한으로 처리하지 않은 건수 */
+  notProcessed: z.number().int().optional(),
+  results: z.array(BulkOrderResultSchema),
+});
+export type BulkOrderResultResponse = z.infer<typeof BulkOrderResultResponseSchema>;

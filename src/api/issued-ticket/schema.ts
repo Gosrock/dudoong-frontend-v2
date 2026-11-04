@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
-import { EntranceStateSchema, OrderOptionAnswerSchema } from '../order/schema';
-import { openEnum } from '../shared/open-enum';
+import { EntranceStateSchema, HostGiftStateSchema, OrderOptionAnswerSchema } from '../order/schema';
 import { pageSchema } from '../shared/page';
 import { TicketPayTypeSchema } from '../ticket-item/schema';
 
@@ -14,14 +13,21 @@ import { TicketPayTypeSchema } from '../ticket-item/schema';
 export const ENTRANCE_FILTERS = ['ALL', 'BEFORE', 'DONE'] as const;
 export type EntranceFilter = (typeof ENTRANCE_FILTERS)[number];
 
-/** GI-1·GI-3 `searchType`(`AdminTableSearchType`, 기본 NAME) — **현재 소유자** 기준(#740). 일반 멤버의 PHONE은 완전 일치만(#822) */
-export const ISSUED_TICKET_SEARCH_TYPES = ['NAME', 'PHONE'] as const;
+/**
+ * GI-1·GI-3 `searchType`(`V2IssuedTicketSearchType`, 기본 NAME). NAME·PHONE은 **현재 소유자** 기준(#740), 일반 멤버의 PHONE·DEPOSITOR_NAME은
+ * 완전 일치만(#822). `ORDER_NO` · `TICKET_NO`(숫자만 넣어도 부분 일치) · `DEPOSITOR_NAME`(그 티켓 주문의 입금자명)은 백엔드 #929(B36 — 2.5.7)
+ */
+export const ISSUED_TICKET_SEARCH_TYPES = [
+  'NAME',
+  'PHONE',
+  'ORDER_NO',
+  'TICKET_NO',
+  'DEPOSITOR_NAME',
+] as const;
 export type IssuedTicketSearchType = (typeof ISSUED_TICKET_SEARCH_TYPES)[number];
 
-/** 호스트 화면 선물 상태(`V2HostGiftState`) — 보는 사람 기준이 아니라 티켓 기준 */
-export const HOST_GIFT_STATES = ['NONE', 'PENDING', 'ACCEPTED'] as const;
-export const HostGiftStateSchema = openEnum('HostGiftState', HOST_GIFT_STATES);
-export type HostGiftState = z.infer<typeof HostGiftStateSchema>;
+/** 선물 상태는 GR-2(#929)도 같은 값이라 `order/schema`에 둔다 */
+export { HOST_GIFT_STATES, type HostGiftState, HostGiftStateSchema } from '../order/schema';
 
 /**
  * 유효(취소 제외) 티켓 입장 통계(`V2EntranceStatsResponse`) — GD-1 `entranceStats`·GI-1 `counts`·GQ-1이 같은 모양.

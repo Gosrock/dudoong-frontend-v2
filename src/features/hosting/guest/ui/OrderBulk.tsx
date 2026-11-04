@@ -18,6 +18,7 @@ import {
   validateRefuse,
 } from '../model/guest-rules';
 import * as s from './OrderBulk.css';
+import { DepositUnconfirmedNote } from './OrderReasonSteps';
 import { ReasonFields } from './ReasonFields';
 
 // FIGMA-CUSTOM: 일괄 처리 바(gui 1029:5714 "일괄 처리 바" PC 640×62 · 989:910 모바일 하단) 커스텀 → 커스텀 OrderBulk.css.ts. DS 후보(design-system §3)
@@ -127,6 +128,7 @@ export function RefuseOverlay({
           textLabel="기타 사유"
           textError={errors.reasonText}
         />
+        <DepositUnconfirmedNote reasonType={form.reasonType} />
         {dudoong && (
           <NoticeBox icon="important">
             <span data-testid="refuse-dudoong-notice">{REFUSE_CONFIRM.dudoongNotice}</span>

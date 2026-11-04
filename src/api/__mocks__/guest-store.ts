@@ -26,6 +26,7 @@ import {
   myTicketGiftStateOf,
   recordHostApprovedOrder,
   recordHostCanceledOrder,
+  revertMyTicketEntrance,
 } from './fixtures/my-ticket';
 import { maskEmail, maskName, maskPhone } from './privacy-mask';
 import { isUnlimited, saveTicket, storedTicket, ticketsOfEvent } from './ticket-store';
@@ -96,6 +97,8 @@ export type StoredGuestOrder = {
   refundAccount: HostRefundAccount | null;
   /** mock 사용자가 O-1로 만든 주문(관객 화면과 연결) */
   audience: boolean;
+  /** GR-2 `canceledBy`(#929) — 예매자 취소 BUYER, 호스트 거절·취소 HOST, 그 밖 null */
+  canceledBy: 'BUYER' | 'HOST' | null;
 };
 
 /** 거절 종류 문구(`OrderRefuseReasonType.label`) — 기타는 입력값 */
@@ -206,6 +209,7 @@ function base(
     issuedTickets: [],
     refundAccount: null,
     audience: false,
+    canceledBy: null,
     ...patch,
   };
 }
@@ -326,6 +330,7 @@ function seed() {
       status: 'REFUSED',
       refuseReasonType: 'DEPOSIT_UNCONFIRMED',
       reasonText: REFUSE_REASON_LABELS.DEPOSIT_UNCONFIRMED,
+      canceledBy: 'HOST',
       withdrawnAt: '2026.10.17 10:00',
       refundStatus: 'REQUESTED',
       refundStatusChangedAt: '2026.10.17 10:00',
@@ -336,6 +341,7 @@ function seed() {
       status: 'REFUSED',
       refuseReasonType: 'ETC',
       reasonText: '중복 주문',
+      canceledBy: 'HOST',
       withdrawnAt: '2026.10.18 10:00',
       refundStatus: 'COMPLETED',
       refundStatusChangedAt: '2026.10.19 10:00',
@@ -344,6 +350,7 @@ function seed() {
   const canceled = base(GUEST_ORDER.hostCanceled, b.sehun, {
     status: 'CANCELED',
     reasonText: '공연 일정 변경',
+    canceledBy: 'HOST',
     approvedAt: '2026.10.16 12:00',
     withdrawnAt: '2026.10.19 12:00',
     refundStatus: 'REQUESTED',
@@ -354,6 +361,7 @@ function seed() {
   list.push(canceled);
   const refunded = base(GUEST_ORDER.userRefunded, b.nari, {
     status: 'CANCELED',
+    canceledBy: 'BUYER',
     approvedAt: '2026.10.16 13:00',
     withdrawnAt: '2026.10.21 09:30',
     refundStatus: 'REQUESTED',
@@ -478,6 +486,7 @@ export function registerAudienceOrder(o: MyOrderDetail) {
     })),
     refundAccount: null,
     audience: true,
+    canceledBy: null,
   };
   orders.set(stored.orderUuid, stored);
 }
@@ -496,6 +505,7 @@ export function syncAudienceCancel(
   orders.set(orderUuid, {
     ...s,
     status: 'CANCELED',
+    canceledBy: 'BUYER',
     refundStatus: o.refundStatus === 'UNKNOWN' ? 'NONE' : o.refundStatus,
     withdrawnAt: now,
     refundStatusChangedAt: o.refundStatus === 'REQUESTED' ? now : s.refundStatusChangedAt,
@@ -518,6 +528,11 @@ const isStarted = (eventId: number) => {
 };
 const isOpen = (eventId: number) => storedEvent(eventId)?.status === 'OPEN';
 
+/** 지금 선물 상태 — 관객 주문은 티켓탭 저장소의 선물 상태를 따른다(입장 상태 `entranceOf`와 같은 이음) */
+function giftStateOf(o: StoredGuestOrder, t: StoredGuestTicket): HostGiftState {
+  return (o.audience && myTicketGiftStateOf(t.ticketUuid)) || t.giftState;
+}
+
 /** 지금 입장 상태 — 관객 주문 티켓은 티켓탭 저장소(호스트 스캔 PQ-2·셀프 체크인)를 따른다 */
 function entranceOf(o: StoredGuestOrder, t: StoredGuestTicket) {
   if (!o.audience) return { entrance: t.entrance, enteredAt: t.enteredAt };
@@ -526,6 +541,7 @@ function entranceOf(o: StoredGuestOrder, t: StoredGuestTicket) {
 
 export type ChangeError =
   | 'Order_404_1'
+  | 'Order_400_30'
   | 'Order_400_3'
   | 'Order_400_5'
   | 'Order_400_9'
@@ -615,10 +631,12 @@ export function refuseGuestOrder(
   const blocked = withdrawBlocker(o, 'PENDING_APPROVE');
   if (blocked) return { error: blocked };
   const now = mockNow();
-  const paid = o.totalAmount > 0;
+  // 입금 미확인 거절은 받은 돈이 없어 환불 요청을 걸지 않는다 — 되돌릴 수 없다(#929 B35)
+  const paid = o.totalAmount > 0 && reasonType !== 'DEPOSIT_UNCONFIRMED';
   const next: StoredGuestOrder = {
     ...o,
     status: 'REFUSED',
+    canceledBy: 'HOST',
     refuseReasonType: reasonType,
     reasonText,
     withdrawnAt: now,
@@ -640,11 +658,18 @@ export function cancelGuestOrder(
   if (!o) return { error: 'Order_404_1' };
   const blocked = withdrawBlocker(o, 'APPROVED');
   if (blocked) return { error: blocked };
+  // 입장했거나 선물(대기·수락)한 티켓이 있으면 `Order_400_30`(#929 B35 — 취소되지 않은 티켓만 본다)
+  const blocking = o.issuedTickets.some((t) => {
+    const entrance = entranceOf(o, t).entrance;
+    return entrance !== 'CANCELED' && (entrance === 'DONE' || giftStateOf(o, t) !== 'NONE');
+  });
+  if (blocking) return { error: 'Order_400_30' };
   const now = mockNow();
   const paid = o.totalAmount > 0;
   const next: StoredGuestOrder = {
     ...o,
     status: 'CANCELED',
+    canceledBy: 'HOST',
     reasonText: reason,
     withdrawnAt: now,
     refundStatus: paid ? 'REQUESTED' : 'NONE',
@@ -726,6 +751,27 @@ export function hostCheckInGuestTicket(
   return null;
 }
 
+/**
+ * Q-3 입장 취소(#929 B37 — `IssuedTicket.revertEntrance`): 취소 티켓 `IssuedTicket_400_3` → 입장 전 `IssuedTicket_400_9` → 입장 전으로 +
+ * 입장 시각 비움. 공연 상태 · 권한은 핸들러가 본다. 관객 주문 티켓은 티켓탭 저장소도 되돌린다
+ */
+export function revertGuestTicketEntrance(
+  eventId: number,
+  ticketUuid: string,
+):
+  | { ok: GuestTicketRow }
+  | { error: 'IssuedTicket_404_1' | 'IssuedTicket_400_3' | 'IssuedTicket_400_9' } {
+  const r = findGuestTicket(eventId, ticketUuid);
+  if (!r) return { error: 'IssuedTicket_404_1' };
+  const entrance = entranceOf(r.order, r.ticket).entrance;
+  if (entrance === 'CANCELED') return { error: 'IssuedTicket_400_3' };
+  if (entrance !== 'DONE') return { error: 'IssuedTicket_400_9' };
+  r.ticket.entrance = 'BEFORE';
+  r.ticket.enteredAt = null;
+  if (r.order.audience) revertMyTicketEntrance(ticketUuid);
+  return { ok: r };
+}
+
 // ─── 응답 모양(`V2OperationMapper`) ──────────────────────────
 
 /** 매니저 이상이면 원본, 일반 멤버면 가린 값(#822) */
@@ -766,10 +812,12 @@ export function toOrderDetail(
       ticketUuid: t.ticketUuid,
       issuedTicketNo: t.issuedTicketNo,
       ticketName: o.ticketName,
+      giftState: giftStateOf(o, t),
       ...entranceOf(o, t),
       optionAnswers: t.optionAnswers,
     })),
     refundAccount: showRefundAccount ? o.refundAccount : null,
+    canceledBy: o.canceledBy,
   };
 }
 
@@ -780,6 +828,7 @@ export function toRefundElement(o: StoredGuestOrder, showRefundAccount: boolean)
     buyerName: o.buyer.name,
     ticketName: o.ticketName,
     totalAmount: o.totalAmount,
+    orderedAt: o.orderedAt,
     status: o.status,
     refundStatus: o.refundStatus,
     reason: o.reasonText,
@@ -817,6 +866,8 @@ export function matchesOrderSearch(
     const name = o.depositorName ?? '';
     return exact ? name === keyword : o.depositorName !== null && name.includes(keyword);
   }
+  // 주문 번호(#929): 대소문자 무시 부분 일치 — 개인정보가 아니라 일반 멤버도 부분 일치
+  if (searchType === 'ORDER_NO') return o.orderNo.toLowerCase().includes(keyword.toLowerCase());
   return (o.buyer.name ?? '').includes(keyword);
 }
 
@@ -860,6 +911,14 @@ export function matchesTicketSearch(
     const phone = r.ticket.owner.phone ?? '';
     return exact ? phoneExactMatch(phone, keyword) : phone.includes(keyword);
   }
+  // #929: 주문 번호 · 티켓 번호(대소문자 무시 부분 일치 — 숫자만 넣어도 된다) · 입금자명(그 티켓 주문, 일반 멤버는 완전 일치)
+  const lower = keyword.toLowerCase();
+  if (searchType === 'ORDER_NO') return r.order.orderNo.toLowerCase().includes(lower);
+  if (searchType === 'TICKET_NO') return r.ticket.issuedTicketNo.toLowerCase().includes(lower);
+  if (searchType === 'DEPOSITOR_NAME') {
+    const name = r.order.depositorName;
+    return name !== null && (exact ? name === keyword : name.includes(keyword));
+  }
   return (r.ticket.owner.name ?? '').includes(keyword);
 }
 
@@ -874,7 +933,7 @@ export function toIssuedTicket(r: GuestTicketRow): HostIssuedTicket {
     buyerName: o.buyer.name,
     ownerName: t.owner.name,
     // 관객 주문은 티켓탭 저장소의 선물 상태를 따른다(입장 상태 `entranceOf`와 같은 이음)
-    giftState: (o.audience && myTicketGiftStateOf(t.ticketUuid)) || t.giftState,
+    giftState: giftStateOf(o, t),
     orderUuid: o.orderUuid,
     orderNo: o.orderNo,
     issuedAt: t.issuedAt,

@@ -860,6 +860,15 @@ export function myTicketEntranceOf(
   return t ? { entrance: t.status, enteredAt: t.enteredAt } : null;
 }
 
+/** 호스트 입장 취소(Q-3, #929)가 관객 주문 티켓을 입장 전으로 되돌린다 */
+export function revertMyTicketEntrance(ticketUuid: string) {
+  const t = store.tickets.find((x) => x.uuid === ticketUuid);
+  if (t && t.status === 'DONE') {
+    t.status = 'BEFORE';
+    t.enteredAt = null;
+  }
+}
+
 /**
  * 관객 주문 티켓의 지금 선물 상태(호스트 GI-1 `giftState` — P14 회귀 통합 시나리오에서 이음). 선물 링크를 보낸 뒤 수락 전이면
  * `PENDING`. 수락하면 uuid가 바뀌어(PG-4) 이 uuid로는 찾지 못하므로 null — 호스트 쪽 저장값을 그대로 쓴다.

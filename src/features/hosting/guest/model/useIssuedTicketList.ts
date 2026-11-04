@@ -5,7 +5,7 @@ import { useCallback, useState } from 'react';
 
 import { hostCheckInMutation } from '@/api/check-in/mutations';
 import { handleError } from '@/api/handle-error';
-import { exportIssuedTicketsMutation } from '@/api/issued-ticket/mutations';
+import { cancelEntranceMutation, exportIssuedTicketsMutation } from '@/api/issued-ticket/mutations';
 import { hostIssuedTicketQuery, hostIssuedTicketsQuery } from '@/api/issued-ticket/queries';
 import type { EntranceFilter, IssuedTicketSearchType } from '@/api/issued-ticket/schema';
 import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
@@ -24,8 +24,10 @@ import { can } from '@/features/shared/permission/model/can';
 
 import { invalidateGuestLists } from './guest-cache';
 import {
+  CANCEL_ENTRANCE_ERROR_MESSAGE,
   ENTRANCE_FILTER_OPTIONS,
   exactMatchHintOf,
+  searchEmptyMessageOf,
   TICKET_MISSING_MESSAGE,
   TICKET_SEARCH_TYPE_OPTIONS,
 } from './guest-rules';
@@ -100,6 +102,42 @@ export function useIssuedTicketList(eventId: string) {
     [canManualCheckIn, checkInBlock, checkInM, eventId, queryClient],
   );
 
+  // ─── 입장 취소(Q-3 — 매니저 이상, 백엔드 #929 B37) ───
+  // 입장 완료 티켓 상세에서 입장 전으로 되돌린다. 공연 상태는 스캔과 같다(OPEN·정산중). 응답(GI-2 상세)을 상세 키에 넣고
+  // 발급 티켓 목록 · 대시보드 · 체크인 통계를 다시 읽는다(`invalidateAfterScan('ENTERED')`와 같은 범위)
+  const cancelEntranceM = useMutation(cancelEntranceMutation(eventId));
+  const canCancelEntrance = can(scope.role, 'cancelEntrance') && checkInBlock === null;
+  const cancelEntrance = useCallback(
+    async (ticketUuid: string) => {
+      if (!canCancelEntrance || cancelEntranceM.isPending) return false;
+      const reread = (message: string) => {
+        setMissingNotice(message);
+        void invalidateAfterScan(queryClient, eventId, 'ENTERED');
+      };
+      try {
+        const detail = await cancelEntranceM.mutateAsync(ticketUuid);
+        queryClient.setQueryData(hostIssuedTicketQuery(eventId, ticketUuid).queryKey, detail);
+        void invalidateAfterScan(queryClient, eventId, 'ENTERED');
+        return true;
+      } catch (e) {
+        handleError(e, {
+          IssuedTicket_400_9: () => reread(CANCEL_ENTRANCE_ERROR_MESSAGE.IssuedTicket_400_9),
+          IssuedTicket_400_3: () => reread(CANCEL_ENTRANCE_ERROR_MESSAGE.IssuedTicket_400_3),
+          IssuedTicket_404_1: () => {
+            setSelected(null);
+            reread(TICKET_MISSING_MESSAGE);
+          },
+          Event_400_27: () => {
+            setMissingNotice(EVENT_NOT_CHECKABLE_MESSAGE);
+            void invalidateEventStatus(queryClient, eventId);
+          },
+        });
+        return false;
+      }
+    },
+    [canCancelEntrance, cancelEntranceM, eventId, queryClient],
+  );
+
   const exporter = useGuestExport(
     eventId,
     scope.role,
@@ -137,6 +175,8 @@ export function useIssuedTicketList(eventId: string) {
       submit: table.submitSearch,
       applied: applied.keyword,
       exactMatchHint: exactMatchHintOf(scope.role, searchType),
+      /** 검색 결과가 없을 때 문구(일반 멤버의 연락처·입금자명이면 전체 값 안내) */
+      emptyMessage: searchEmptyMessageOf(scope.role, applied.searchType),
     },
     rows: data?.tickets.content ?? [],
     empty: query.status === 'success' && data?.tickets.content.length === 0,
@@ -167,6 +207,12 @@ export function useIssuedTicketList(eventId: string) {
       pending: checkInM.isPending,
       /** 마지막 수동 입장 결과(상세를 닫으면 지운다) */
       result: checkInResult,
+    },
+    /** [입장 취소] — 매니저 이상 + 공연 OPEN·정산중, 입장 완료(`DONE`) 티켓 상세에만. 취소했으면 `true` */
+    entranceCancel: {
+      can: canCancelEntrance,
+      run: cancelEntrance,
+      pending: cancelEntranceM.isPending,
     },
     detailStatus: selected === null ? ('idle' as const) : detailQuery.status,
     detail: selected !== null ? (detailQuery.data ?? null) : null,

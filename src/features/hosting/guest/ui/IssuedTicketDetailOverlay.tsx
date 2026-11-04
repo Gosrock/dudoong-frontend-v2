@@ -18,15 +18,18 @@ import { Line, OptionAnswers, Section } from './OrderDetailParts';
 
 /**
  * 발급 티켓 상세(GI-3) — GUI 입장 전 `1030:8955` · 입장 완료 `1030:9136`. 제목(티켓 번호 + 입장 · 결제 칩) · 티켓 정보 · 옵션 응답,
- * 하단 [입장 처리](입장 전 + 일반 멤버 이상, 공연이 OPEN·정산중이 아니거나 선물 대기 티켓이면 안내 문구).
+ * 하단 [입장 처리](입장 전 + 일반 멤버 이상, 공연이 OPEN·정산중이 아니거나 선물 대기 티켓이면 안내 문구) ·
+ * [입장 취소](입장 완료 + 매니저 이상 + 공연 OPEN·정산중 — Q-3, 백엔드 #929 B37).
  * 소유자 줄(선물이 있을 때만)은 GUI에 없다 — 🤖 Q110
  */
 export function IssuedTicketDetailOverlay({
   list,
   onCheckIn,
+  onCancelEntrance,
 }: {
   list: IssuedTicketListState;
   onCheckIn: (ticket: Pick<HostIssuedTicket, 'ticketUuid' | 'ownerName'>) => Promise<void>;
+  onCancelEntrance: (ticketUuid: string) => Promise<void>;
 }) {
   const t = list.detail;
   const entranceChip = t ? entranceChipOf(t.ticket.entrance, 'border') : null;
@@ -57,7 +60,18 @@ export function IssuedTicketDetailOverlay({
       }
       description={t ? text(t.ticket.ticketName) : undefined}
       footer={
-        t && t.ticket.entrance === 'BEFORE' && t.ticket.ticketUuid && list.checkIn.can ? (
+        t && t.ticket.entrance === 'DONE' && t.ticket.ticketUuid && list.entranceCancel.can ? (
+          // GUI `1030:9136` — 입장 완료 상세 하단 [입장 취소](secondary 큰 버튼) → 확인 `1030:9318`
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            loading={list.entranceCancel.pending}
+            onClick={() => void onCancelEntrance(t.ticket.ticketUuid!)}
+          >
+            입장 취소
+          </Button>
+        ) : t && t.ticket.entrance === 'BEFORE' && t.ticket.ticketUuid && list.checkIn.can ? (
           blockMessage ? (
             <Txt
               as="p"
