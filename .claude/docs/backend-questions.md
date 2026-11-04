@@ -49,7 +49,7 @@
 
 ---
 
-### B42~B43. 백엔드 #928 답 반영 중 나온 것(2026-11-04, `backend-928-misc`)
+### B42~B43. 백엔드 #928 답 반영 중 나온 것(2026-11-04, `backend-928-misc`) — **전달함 Backend #938(2026-11-04)**
 
 - **B42. A-9 취소 시트 제목** — B28 확정본은 A-9 본문 둘째 문장만 바꿨다. 제목 "취소 후 직접 환불을 요청해야 해요"는 그대로라 새 본문("취소할 때 입력한 환불 계좌로 호스트가 환불합니다")과 결이 다르다(직접 요청할 필요가 없다). 제목도 바꿀지(예: "취소하면 입력한 계좌로 호스트가 환불해요")? **답이 없으면**: 원문 제목 그대로(약관 근거 문구 — 운영 확인 없이 바꾸지 않는다).
 - **B43. 초대 링크 토큰 — nginx 로그 · Referer(운영 · 인프라)** — 프론트는 진입 직후 주소에서 토큰을 지우고(`history.replaceState`), 로그인 `redirect`에는 토큰 없는 경로만, 메타 `referrer: no-referrer`를 둔다. 남는 것: ① 첫 요청 줄(`GET /host-invitations/{token}`)과, 서버 HTML `<head>`가 바로 부르는 같은 출처 정적 파일(`/_next/static/*`)의 Referer에 토큰이 실린다(Next가 메타를 스트리밍으로 늦게 넣는다) — nginx 접근 로그(combined 형식은 `$http_referer` 포함)에 남는다. 교차 출처 요청은 nginx `Referrer-Policy: strict-origin-when-cross-origin`이 origin까지로 줄인다(앱 헤더는 nginx가 숨긴다 — cutover-runbook). `/host-invitations/` 경로만 로그에서 가리거나 `Referrer-Policy: no-referrer`를 줄 수 있나? ② GA · 애드핏을 넣을 때 이 경로의 page_view는 토큰 없는 경로로만(사용자 대기 "GA · 카카오 애드핏" 줄). **답이 없으면**: 지금 그대로(토큰은 1회용 · 7일, 서버는 해시만 저장 · 로그 마스킹).
