@@ -13,6 +13,7 @@ const TABLE: Row[] = [
   ['viewRefundAccount', false, true, true, true],
   ['downloadExcel', false, true, true, true],
   ['checkIn', true, true, true, true],
+  ['cancelEntrance', false, true, true, true],
   ['editEvent', false, true, true, true],
   ['editHost', false, true, true, true],
   ['manageMembers', false, true, true, true],

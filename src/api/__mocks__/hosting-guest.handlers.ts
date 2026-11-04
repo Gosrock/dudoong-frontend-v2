@@ -2,6 +2,8 @@ import { http, type HttpHandler, HttpResponse } from 'msw';
 
 import { ENTRANCE_FILTERS, ISSUED_TICKET_SEARCH_TYPES } from '../issued-ticket/schema';
 import {
+  BULK_NOT_PROCESSED,
+  BULK_ORDER_MAX,
   HOST_CANCEL_REASON_MAX,
   HOST_ORDER_STATUS_FILTERS,
   OPERATION_KEYWORD_MAX,
@@ -11,6 +13,7 @@ import {
   REFUND_STATUS_FILTERS,
   REFUSE_REASON_TEXT_MAX,
   REFUSE_REASON_TYPES,
+  type RefuseReasonType,
 } from '../order/schema';
 import type { HostRole } from '../shared/common-schema';
 import {
@@ -29,6 +32,7 @@ import {
   matchesTicketSearch,
   REFUSE_REASON_LABELS,
   refuseGuestOrder,
+  revertGuestTicketEntrance,
   storedGuestOrder,
   toIssuedTicket,
   toIssuedTicketDetail,
@@ -50,9 +54,20 @@ import { errors, fail, ok, paginate, readPageParams } from './respond';
  */
 
 export const GUEST_ERROR_REASONS: Record<
-  ChangeError | 'Order_400_18' | 'Order_400_19' | 'IssuedTicket_404_1' | 'IssuedTicket_400_7',
+  | ChangeError
+  | 'Order_400_18'
+  | 'Order_400_19'
+  | 'IssuedTicket_404_1'
+  | 'IssuedTicket_400_7'
+  | 'IssuedTicket_400_3'
+  | 'IssuedTicket_400_9'
+  | 'Event_400_27',
   [number, string]
 > = {
+  Order_400_30: [400, '입장했거나 선물한 티켓이 있는 주문은 취소할 수 없습니다.'],
+  IssuedTicket_400_3: [400, '티켓이 입장 취소 할 수 있는 상태가 아닙니다.'],
+  IssuedTicket_400_9: [400, '입장 처리된 티켓이 아닙니다.'],
+  Event_400_27: [400, '입장 처리를 할 수 없는 공연 상태입니다.'],
   Order_404_1: [404, '주문을 찾을 수 없습니다.'],
   Order_400_3: [400, '결제,승인 대기중인 주문이 아닙니다.'],
   Order_400_5: [400, '주문을 취소할 수 없는 상태입니다.'],
@@ -160,20 +175,64 @@ const orderDetail = http.get(
   },
 );
 
+/** GF-1 · GF-1b · GF-3 필터(#929 — 검색은 주문 목록과 같은 기준) */
+function readRefundFilter(url: URL) {
+  const status = oneOf(REFUND_STATUS_FILTERS, url.searchParams.get('status'), 'ALL');
+  const searchType = oneOf(ORDER_SEARCH_TYPES, url.searchParams.get('searchType'), 'NAME');
+  const keyword = readKeyword(url);
+  if (status === null || searchType === null || keyword === undefined) return null;
+  return { status, searchType, keyword };
+}
+
+/** 환불 상태가 있는 주문 중 검색에 맞는 것(`searched` — 건수용)과 상태까지 맞는 것(`rows`) */
+function filterRefunds(
+  eventId: number,
+  f: NonNullable<ReturnType<typeof readRefundFilter>>,
+  exact: boolean,
+) {
+  const searched = guestOrdersOf(eventId)
+    .filter((o) => o.refundStatus !== 'NONE')
+    .filter((o) => f.keyword === null || matchesOrderSearch(o, f.searchType, f.keyword, exact));
+  return {
+    searched,
+    rows: searched.filter((o) => f.status === 'ALL' || o.refundStatus === f.status),
+  };
+}
+
 const refunds = http.get('*/api/v2/events/:eventId/refunds', ({ request, params, cookies }) => {
   const url = new URL(request.url);
-  const status = oneOf(REFUND_STATUS_FILTERS, url.searchParams.get('status'), 'ALL');
+  const f = readRefundFilter(url);
   const paging = readPageParams(url, OPERATION_PAGE_SIZE, OPERATION_PAGE_SIZE_MAX);
-  if (status === null || !paging) return errors.badRequest(request);
+  if (!f || !paging) return errors.badRequest(request);
   const g = guard(request, cookies, params.eventId, 'GUEST');
   if ('response' in g) return g.response;
   const show = managerOrAbove(g.myRole);
-  const rows = guestOrdersOf(g.event.eventId)
-    .filter((o) => o.refundStatus !== 'NONE')
-    .filter((o) => status === 'ALL' || o.refundStatus === status)
-    .map((o) => toRefundElement(o, show));
-  return ok(paginate(rows, paging.page, paging.size));
+  const { rows } = filterRefunds(g.event.eventId, f, !show);
+  return ok(
+    paginate(
+      rows.map((o) => toRefundElement(o, show)),
+      paging.page,
+      paging.size,
+    ),
+  );
 });
+
+/** GF-1b 환불 상태별 건수(#929) — 검색 반영, 상태 필터 무시 */
+const refundCounts = http.get(
+  '*/api/v2/events/:eventId/refunds/counts',
+  ({ request, params, cookies }) => {
+    const f = readRefundFilter(new URL(request.url));
+    if (!f) return errors.badRequest(request);
+    const g = guard(request, cookies, params.eventId, 'GUEST');
+    if ('response' in g) return g.response;
+    const { searched } = filterRefunds(g.event.eventId, f, !managerOrAbove(g.myRole));
+    return ok({
+      all: searched.length,
+      requested: searched.filter((o) => o.refundStatus === 'REQUESTED').length,
+      completed: searched.filter((o) => o.refundStatus === 'COMPLETED').length,
+    });
+  },
+);
 
 /** GI-1 · GI-3 필터 */
 function readTicketFilter(url: URL) {
@@ -254,6 +313,20 @@ const exportOrders = http.get(
   },
 );
 
+/** GF-3 환불 엑셀(#929, 매니저 이상) */
+const exportRefunds = http.get(
+  '*/api/v2/events/:eventId/refunds/export',
+  ({ request, params, cookies }) => {
+    const f = readRefundFilter(new URL(request.url));
+    if (!f) return errors.badRequest(request);
+    const g = guard(request, cookies, params.eventId, 'MANAGER');
+    if ('response' in g) return g.response;
+    const { rows } = filterRefunds(g.event.eventId, f, false);
+    if (rows.length > EXPORT_MAX_ROWS) return guestError(request, 'Order_400_19');
+    return xlsx(`refunds-${g.event.eventId}.xlsx`, rows.length);
+  },
+);
+
 const exportTickets = http.get(
   '*/api/v2/events/:eventId/issued-tickets/export',
   ({ request, params, cookies }) => {
@@ -292,6 +365,110 @@ const approve = http.post(
     const g = guard(request, cookies, params.eventId, 'MANAGER');
     if ('response' in g) return g.response;
     return detailOrError(request, approveGuestOrder(g.event.eventId, String(params.orderUuid)));
+  },
+);
+
+/** R-7 · R-8 본문의 `orderUuids`(1~50개, 각 1~64자). 틀리면 null → 400 */
+function readOrderUuids(body: Record<string, unknown>): string[] | null {
+  const list = body.orderUuids;
+  if (!Array.isArray(list) || list.length < 1 || list.length > BULK_ORDER_MAX) return null;
+  if (!list.every((v) => typeof v === 'string' && v.trim() !== '' && v.length <= 64)) return null;
+  return list as string[];
+}
+
+/**
+ * 일괄 처리(`V2ChangeOrderUseCase.runEach`) — 중복은 처음 나온 순서로 한 번, 주문마다 단건과 같은 판정, 실패는 단건 코드·문구.
+ * `notProcessedAfter`가 있으면 그 건수만 처리하고 남은 주문은 `ORDER_BULK_NOT_PROCESSED`(20초 상한 흉내 — 시나리오용)
+ */
+function runBulk(
+  orderUuids: string[],
+  each: (uuid: string) => ReturnType<typeof approveGuestOrder>,
+  notProcessedAfter: number | null = null,
+) {
+  const targets = [...new Set(orderUuids)];
+  const results = targets.map((orderUuid, i) => {
+    if (notProcessedAfter !== null && i >= notProcessedAfter) {
+      return {
+        orderUuid,
+        success: false,
+        errorCode: BULK_NOT_PROCESSED,
+        reason: '시간이 오래 걸려 처리하지 못했어요. 다시 시도해 주세요.',
+      };
+    }
+    const r = each(orderUuid);
+    if ('ok' in r) return { orderUuid, success: true, errorCode: null, reason: null };
+    return {
+      orderUuid,
+      success: false,
+      errorCode: r.error,
+      reason: GUEST_ERROR_REASONS[r.error][1],
+    };
+  });
+  const succeeded = results.filter((r) => r.success).length;
+  const notProcessed = results.filter((r) => r.errorCode === BULK_NOT_PROCESSED).length;
+  return { succeeded, failed: targets.length - succeeded - notProcessed, notProcessed, results };
+}
+
+/** 일괄 상한 흉내(`bulkNotProcessedOnce`) — 다음 일괄 요청 한 번만 앞의 n건만 처리한다 */
+let bulkLimitOnce: number | null = null;
+const takeBulkLimit = () => {
+  const n = bulkLimitOnce;
+  bulkLimitOnce = null;
+  return n;
+};
+
+/** R-7 일괄 승인(#929): `@Valid`(1~50개) → 권한(매니저 이상) → 주문마다 PR-3 */
+const bulkApprove = http.post(
+  '*/api/v2/events/:eventId/orders/approve',
+  async ({ request, params, cookies }) => {
+    const body = await readBody(request);
+    const uuids = body && body !== 'invalid' ? readOrderUuids(body) : null;
+    if (!uuids) return errors.badRequest(request);
+    const g = guard(request, cookies, params.eventId, 'MANAGER');
+    if ('response' in g) return g.response;
+    const eventId = g.event.eventId;
+    return ok(runBulk(uuids, (uuid) => approveGuestOrder(eventId, uuid), takeBulkLimit()));
+  },
+);
+
+/** 거절 사유 검사(`refuseReasonText`) — 기타면 trim 1~100자, 아니면 `Order_400_18`. 그 밖 종류는 종류 문구 */
+function refuseReasonOf(
+  reasonType: Exclude<RefuseReasonType, 'UNKNOWN'>,
+  text: unknown,
+): string | null {
+  if (reasonType !== 'ETC') return REFUSE_REASON_LABELS[reasonType];
+  const trimmed = typeof text === 'string' ? text.trim() : '';
+  return trimmed && trimmed.length <= REFUSE_REASON_TEXT_MAX ? trimmed : null;
+}
+
+const isRefuseBody = (body: Record<string, unknown>) =>
+  (REFUSE_REASON_TYPES as readonly unknown[]).includes(body.reasonType) &&
+  (body.reasonText === undefined ||
+    body.reasonText === null ||
+    (typeof body.reasonText === 'string' && body.reasonText.length <= 200));
+
+/** R-8 일괄 거절(#929): `@Valid` → 권한 → 사유 한 번(틀리면 전체 `Order_400_18`) → 주문마다 PR-4 */
+const bulkRefuse = http.post(
+  '*/api/v2/events/:eventId/orders/refuse',
+  async ({ request, params, cookies }) => {
+    const body = await readBody(request);
+    const uuids = body && body !== 'invalid' ? readOrderUuids(body) : null;
+    if (!uuids || !body || body === 'invalid' || !isRefuseBody(body)) {
+      return errors.badRequest(request);
+    }
+    const g = guard(request, cookies, params.eventId, 'MANAGER');
+    if ('response' in g) return g.response;
+    const reasonType = body.reasonType as Exclude<RefuseReasonType, 'UNKNOWN'>;
+    const reason = refuseReasonOf(reasonType, body.reasonText);
+    if (reason === null) return guestError(request, 'Order_400_18');
+    const eventId = g.event.eventId;
+    return ok(
+      runBulk(
+        uuids,
+        (uuid) => refuseGuestOrder(eventId, uuid, reasonType, reason),
+        takeBulkLimit(),
+      ),
+    );
   },
 );
 
@@ -352,6 +529,23 @@ const cancel = http.post(
   },
 );
 
+/**
+ * Q-3 입장 취소(#929 B37): 권한(매니저 이상) → 공연 OPEN·정산중(아니면 `Event_400_27`) → 티켓 404 → 취소 티켓 `IssuedTicket_400_3` →
+ * 입장 전 `IssuedTicket_400_9`. 응답은 GI-2 상세(연락처 원본)
+ */
+const cancelEntrance = http.post(
+  '*/api/v2/events/:eventId/issued-tickets/:ticketUuid/entrance/cancel',
+  ({ request, params, cookies }) => {
+    const g = guard(request, cookies, params.eventId, 'MANAGER');
+    if ('response' in g) return g.response;
+    if (g.event.status !== 'OPEN' && g.event.status !== 'CALCULATING') {
+      return guestError(request, 'Event_400_27');
+    }
+    const r = revertGuestTicketEntrance(g.event.eventId, String(params.ticketUuid));
+    return 'error' in r ? guestError(request, r.error) : ok(toIssuedTicketDetail(r.ok, true));
+  },
+);
+
 const completeRefund = http.post(
   '*/api/v2/events/:eventId/refunds/:orderUuid/complete',
   ({ request, params, cookies }) => {
@@ -360,6 +554,9 @@ const completeRefund = http.post(
     return detailOrError(request, completeGuestRefund(g.event.eventId, String(params.orderUuid)));
   },
 );
+
+/** 경로가 없는 서버(운영 2.5.3)의 404 — 코드는 알 수 없으니 상태만 맞춘다 */
+const noRoute = (request: Request) => fail(request, 404, 'NOT_FOUND', 'Not Found');
 
 /** 이 경로의 처리가 언제나 이 코드로 실패한다(주문은 그대로) */
 const changeFails =
@@ -375,21 +572,40 @@ const changeFails =
  * - `approveFails(code)`·`refuseFails(code)`·`cancelFails(code)` — 처리가 언제나 그 코드로 실패
  * - `exportTooMany` — 두 엑셀 모두 1만 행 초과
  * - `listServerError` — GR-1·GI-1·GF-1 5xx
+ * - `bulkUnsupported` · `refundCountsUnsupported` — 운영 2.5.3처럼 새 API가 없다(404)
+ * - 일괄 상한 흉내는 `setBulkNotProcessedOnce(n)`(다음 일괄 요청 한 번만 앞 n건만 처리)
  */
+export function setBulkNotProcessedOnce(n: number | null) {
+  bulkLimitOnce = n;
+}
 export const hostingGuestHandlers = {
   default: [
     dashboard,
     exportOrders,
+    bulkApprove,
+    bulkRefuse,
     orders,
     orderDetail,
     approve,
     refuse,
     cancel,
+    exportRefunds,
+    refundCounts,
     refunds,
     completeRefund,
     exportTickets,
+    cancelEntrance,
     issuedTickets,
     issuedTicketDetail,
+  ] as HttpHandler[],
+  /** 일괄 API가 없는 서버(운영 2.5.3 — 404). 화면은 단건 차례 호출로 돌아간다 */
+  bulkUnsupported: [
+    http.post('*/api/v2/events/:eventId/orders/approve', ({ request }) => noRoute(request)),
+    http.post('*/api/v2/events/:eventId/orders/refuse', ({ request }) => noRoute(request)),
+  ] as HttpHandler[],
+  /** GF-1b 건수가 없는 서버(운영 2.5.3) */
+  refundCountsUnsupported: [
+    http.get('*/api/v2/events/:eventId/refunds/counts', ({ request }) => noRoute(request)),
   ] as HttpHandler[],
   approveFails: changeFails('approve'),
   refuseFails: changeFails('refuse'),

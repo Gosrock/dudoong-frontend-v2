@@ -175,6 +175,7 @@
 | `IssuedTicket_400_6` | 400 | 이 티켓은 해당 이벤트에서 발급된 티켓이 아닙니다. | `ISSUED_TICKET_NOT_MATCHED_EVENT` |
 | `IssuedTicket_400_7` | 400 | 엑셀로 내려받을 티켓이 너무 많습니다. 필터로 줄여 주세요. | `EXPORT_TOO_MANY_ISSUED_TICKETS` |
 | `IssuedTicket_400_8` | 400 | 선물 대기 중인 티켓입니다. | `ISSUED_TICKET_GIFT_PENDING` |
+| `IssuedTicket_400_9` | 400 | 입장 처리된 티켓이 아닙니다. | `ISSUED_TICKET_NOT_ENTERED` — Q-3 입장 취소를 입장 전 티켓에(#929, 2.5.7). FE: "입장 전 티켓이에요. 최신 상태를 불러왔어요" + 다시 읽기 |
 
 ## OrderErrorCode
 
@@ -210,6 +211,8 @@
 | `Order_400_26` | 400 | 같은 주문을 처리하고 있습니다. 잠시 후 주문내역을 확인해 주세요. (FE: 같은 키로 [다시 시도] — #923) | `V2_DUPLICATE_ORDER_IN_PROGRESS` |
 | `Order_400_27` | 400 | 환불 계좌를 입력할 수 없는 주문입니다. | `V2_REFUND_ACCOUNT_NOT_ALLOWED` |
 | `Order_400_28` | 400 | 이미 환불이 완료된 주문입니다. | `V2_REFUND_ALREADY_COMPLETED` |
+| `Order_400_30` | 400 | 입장했거나 선물한 티켓이 있는 주문은 취소할 수 없습니다. | `V2_ORDER_CANNOT_CANCEL_BY_HOST` — PR-5(#929, 2.5.7). FE: 안내 + GR-2 다시 읽기 |
+| `ORDER_BULK_NOT_PROCESSED` | — | 시간이 오래 걸려 처리하지 못했어요. 다시 시도해 주세요. | 에러 응답이 아니라 R-7 · R-8 `results[].errorCode`(#929, 2.5.7 — 20초 상한). FE: 그 주문만 다시 보낸다 |
 
 ## AgreementErrorCode (#840, 432cce4)
 

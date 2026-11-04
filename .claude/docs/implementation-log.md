@@ -2853,6 +2853,33 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(2026-11-03, dev:mock 3081 — `localhost`로 열어 로그인 확인 넘어감)**: 관객 체크아웃 → 호스트 승인 → 관객 [선물하기]로 선물 대기 티켓 T1009001을 만든 뒤 예매자 관리 발급된 티켓 1440 · 390(선물 대기 · 선물 받음 칩, 선물 대기 행은 "입장 전" 칩), 티켓 상세 1440 · 390(소유자 줄 + 칩, 하단 안내 문구, 버튼 없음). 발견 없음(390 시트 하단 문구는 두 줄로 줄바꿈).
 
+## 백엔드 #928 · #929 답 반영 — 예매자 관리(2026-11-04, `backend-928-host`)
+
+근거: 이슈 #136의 4 · 5 · 6(팀원이 Backend #928 · #929 답을 프론트 할 일로 정리), 백엔드 PR #934(`2806b8d` — 일괄 승인·거절 · 취소 불가 · `giftState` · `canceledBy` · 입금 미확인 거절) · #931(`da3bbed` — 검색 기준 · 환불 목록 · 입장 취소)의 diff. Api **2.5.7 스테이징만**, 운영 2.5.3은 컷오버 때 — 새 응답 필드는 zod `optional`, 새 API가 404·405면 화면이 죽지 않게. 병렬 세션 `backend-928-misc`(이슈 1 · 2 · 3 · 8)와 파일을 나눴다.
+
+**바꾼 것**
+
+- API — `order/schema`: `ORDER_SEARCH_TYPES` + `ORDER_NO`, `HostGiftState`를 여기로(issued-ticket는 다시 내보냄), GR-2 `issuedTickets[].giftState?` · `canceledBy?`, GF-1 `orderedAt?`, `RefundCountsSchema`, 일괄 요청·응답 스키마(`BULK_ORDER_MAX` 50 · `BULK_NOT_PROCESSED`). `order/queries`: `normalizeRefundsParams`(검색) · `refundCountsQuery`(GF-1b — 키 `…refunds, 'counts'`). `order/mutations`: `bulkApproveOrdersMutation` · `bulkRefuseOrdersMutation`(시간 제한 30초 — 서버 20초 상한보다 길게) · `exportRefundsMutation`. `issued-ticket`: 검색 5값 · `cancelEntranceMutation`(Q-3, 응답 GI-2 상세).
+- 권한 — `can`에 `cancelEntrance: 'MANAGER'`.
+- 일괄 승인·거절(B34) — `useBulkOrderActions`가 `runBulkOrders`(순수 실행부)로: 50건씩 나눠 보내고 `ORDER_BULK_NOT_PROCESSED`인 주문만 다시(한 묶음에서 하나도 처리되지 않으면 멈추고 실패로), 404·405면 예전처럼 단건 차례 호출, 요청 전체 실패면 남은 주문 모두 그 이유. 실패 이유는 코드 문구 → 서버 `reason` 폴백. 결과 표시 UI(토스트 · 안내 줄)는 그대로. 처리한 주문 상세(GR-2)와 목록을 다시 읽는다.
+- 주문 상세(B35) — `hasCancelBlockingTicket` = 취소되지 않은 티켓 중 `entrance == DONE || giftState != NONE`(없으면 입장만, `UNKNOWN`은 막음). PR-5 `Order_400_30` → 안내 + 다시 읽기. "취소한 사람: 예매자/호스트"(`canceledBy`, GUI `1029:8522`). 발급 티켓 카드에 선물 칩(#134 `GiftChip`). 입금 미확인 안내를 플래그 없이 — 주문 상세 거절 단계와 표 거절(`RefuseOverlay`)이 같은 `DepositUnconfirmedNote`.
+- 검색 · 환불 탭(B36) — 검색 기준 주문 "이름 · 주문 번호 · 연락처 · 입금자명", 티켓 "+ 티켓 번호"(GUI 순서). 완전 일치 안내는 연락처 · 입금자명만, 결과 없을 때 "검색 결과가 없어요. 연락처, 입금자명은 전체 값을 입력해 주세요."(`searchEmptyMessageOf`). 환불 탭에 검색 줄 · 칩 건수(GF-1b — 실패하면 숫자 없이) · "주문 일시" 칸(`orderedAt`, 없으면 —) · [엑셀로 다운로드](GF-3, 매니저 이상). `patchRefundRows`는 목록 키(`'list'`)만 — 같은 접두의 건수 캐시를 건드리지 않게.
+- 입장 취소(B37) — 입장 완료 티켓 상세에 [입장 취소](secondary lg, GUI `1030:9136`) → 확인 "입장 처리를 취소할까요?"(`1030:9318` 문구 · [돌아가기]) → 토스트 "입장 처리를 취소했어요.". 매니저 이상 + 공연 OPEN·정산중. 에러 `IssuedTicket_400_9` · `_400_3` → 안내 + 다시 읽기, `_404_1` → 닫기, `Event_400_27` → 공연 상태 안내. 수동 [입장 처리] 확인 팝업은 GUI(`1030:8448` Ready)대로 뺐다.
+- 가짜 백엔드 — R-7 · R-8(본문 검증 · 사유 먼저 · 중복 한 번 · `setBulkNotProcessedOnce`), GR-2 `giftState` · `canceledBy`(저장소에 `canceledBy`), PR-5 `Order_400_30`, 입금 미확인 거절 환불 없음, 검색 새 기준, GF-1 검색 · `orderedAt` · GF-1b · GF-3, Q-3(`revertGuestTicketEntrance` + 관객 티켓 `revertMyTicketEntrance`). 이름 붙인 세트 `bulkUnsupported` · `refundCountsUnsupported`(운영 2.5.3 흉내).
+- 문서 — api-contract(표 R-7 · R-8 · GF-1b · GF-3 · Q-3, #929 반영 절), error-codes(`Order_400_30` · `IssuedTicket_400_9` · `ORDER_BULK_NOT_PROCESSED`), backend-questions B34~B37 답, design-requests Q102 · Q103 갱신, gui-screens 예매자 관리 줄.
+
+**🤖 판단**
+
+- 처리되지 않은 주문은 자동으로 다시 보낸다(사람이 다시 누르지 않게). 한 묶음이 통째로 처리되지 않으면 끝없이 돌지 않게 멈춘다. 되돌리려면 `runBulkOrders`의 다시 보내기 줄.
+- 일괄 API가 404·405면 단건 차례 호출로 — 운영 2.5.3(컷오버 전)에서 선택 승인이 그대로 동작하게.
+- 결과 없음 안내 문구 · 입장 취소 성공 토스트 문구는 GUI에 없어 정함.
+- 수동 [입장 처리] 확인 팝업 제거(이슈 허용 + GUI `1030:8448` Ready). [환불 완료] 확인 팝업은 되돌릴 API가 없어 그대로.
+- 입장 취소 확인 창 폭은 DS `openConfirm` 기본(GUI는 더 넓다 — 기존 확인 창들과 같게).
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest guest · permission · order API 테스트 통과(새 `guest-929-api.test.ts` 11 · `useBulkOrderActions.test.ts` 5 · 규칙 표 추가). e2e `hosting-guests` · `hosting-checkin` 40 통과(새 3개 — 일괄 API 한 번 · 입장 취소 · 일반 멤버 버튼 없음), `a11y` · `notifications` · `hosting` 175 통과. QA `hosting-guests` 33 통과(HG-7 입장 취소 · HG-8 환불 검색/건수/엑셀 · HG-9 결과 없음 안내 · HG-15 입금 미확인 안내 · HG-16 선물 취소 불가 · 취소한 사람 · 새 HG-19 검색 기준).
+
+**ego-browser 확인(2026-11-04, dev:mock 3091)**: 환불 탭 1440(칩 "전체 4 · 환불 요청 3 · 환불 완료 1" · 검색 · 주문 일시 · 엑셀 — GUI `1031:9189` 배치), 티켓 상세 1440 입장 완료 [입장 취소] → 확인 → 입장 전 + [입장 처리] + 토스트(GUI `1030:9136` · `1030:9318`), 주문 상세 390 승인 완료(선물 받음 칩 · 취소 불가 안내 · 비활성 [주문 취소]) · 주문 취소(취소한 사람 호스트) · 거절 단계 입금 미확인 안내.
+
 ## 백엔드 #928 · #929 답 반영 — 약관 문구 · 공연준비 홈 정렬 · 미가입자 초대 링크(2026-11-04, `backend-928-misc`)
 
 근거: 이슈 #136 §1 · §2 · §3 · §8(팀원이 백엔드 Gosrock/DuDoong-Backend #928 답을 정리), 백엔드 #930 · #935(정렬) · #933(초대 링크, `V2HostInvitationController` · 응답 DTO dev 2026-11-04). 병렬 세션 `backend-928-host`(§4~§6 예매자 관리)와 파일을 나눴다.

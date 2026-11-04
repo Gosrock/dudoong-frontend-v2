@@ -8,7 +8,7 @@ import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { toast } from '@/ui/components/Toast/Toast';
 
 import * as s from './GuestsView.css';
-import { isGiftPending } from './model/guest-rules';
+import { CANCEL_ENTRANCE_CONFIRM, isGiftPending } from './model/guest-rules';
 import { useIssuedTicketList } from './model/useIssuedTicketList';
 import { DetailCell } from './ui/DetailCell';
 import { NameWithGift } from './ui/GiftChip';
@@ -27,35 +27,33 @@ import {
 } from './ui/GuestParts';
 import { IssuedTicketDetailOverlay } from './ui/IssuedTicketDetailOverlay';
 
-/** [수동 입장 처리] 확인(#106 §5 — 입장 처리는 되돌릴 API가 없다, B37). GUI는 확인 없이 토스트(`1030:8448`) — 🤖 확인 유지 */
-const checkInConfirm = (ownerName: string | null) => ({
-  title: `${text(ownerName)}님 티켓을 입장 처리할까요?`,
-  description: 'QR을 읽을 수 없을 때 써 주세요. 입장 처리는 되돌릴 수 없어요.',
-  confirmLabel: '입장 처리',
-});
-
 /**
  * 발급된 티켓 탭(GI-1 · GI-2 · GI-3 · 수동 입장 PQ-2) — GUI `1030:8054`(PC) · `1003:3143`(모바일) · 입장 처리 완료 `1030:8448` ·
  * 검색 기준 열림 `1030:8703` · 티켓 상세 입장 전 `1030:8955` · 입장 완료 `1030:9136`.
- * 입장 취소(`1030:9318`)는 API가 없어 그리지 않는다(backend-questions B37). 검색 기준 "주문 번호 · 입금자명 · 티켓 번호"도 API가 없다(B36)
+ * 입장 취소(`1030:9318`)는 티켓 상세 [입장 취소](Q-3, 백엔드 #929 B37). 검색 기준 "주문 번호 · 입금자명 · 티켓 번호"도 #929(B36)
  */
 export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   const list = useIssuedTicketList(eventId);
   const canCheckIn = list.checkIn.can && list.checkIn.blockMessage === null;
 
+  // GUI(`1030:8448`)대로 확인 없이 바로 처리하고 토스트 — 잘못 누르면 매니저가 [입장 취소](Q-3)로 되돌린다(백엔드 #929 B37
+  // "수동 [입장 처리]의 확인 팝업은 GUI대로 빼도 돼요"). 예전 확인 팝업(#106 §5)은 뺐다
   const checkIn = async (ticket: Pick<HostIssuedTicket, 'ticketUuid' | 'ownerName'>) => {
     const uuid = ticket.ticketUuid;
     if (!uuid) return;
-    // 확인 창 계약(patterns §6): 결과를 못 받으면(`false`) 열린 채, 받으면 결과 토스트와 함께 닫힌다
-    await openConfirm({
-      ...checkInConfirm(ticket.ownerName),
-      onConfirm: async () => {
-        const result = await list.checkIn.run(uuid);
-        if (result?.kind !== 'result') return false;
-        toast(result.tone === 'success' ? '입장 처리했어요.' : result.title);
-        return true;
-      },
+    const result = await list.checkIn.run(uuid);
+    if (result?.kind !== 'result') return;
+    toast(result.tone === 'success' ? '입장 처리했어요.' : result.title);
+  };
+
+  const cancelEntrance = async (ticketUuid: string) => {
+    // 확인 창 계약(patterns §6): 실패면(`false`) 열린 채, 성공하면 닫히고 토스트
+    const ok = await openConfirm({
+      ...CANCEL_ENTRANCE_CONFIRM,
+      cancelLabel: '돌아가기',
+      onConfirm: () => list.entranceCancel.run(ticketUuid),
     });
+    if (ok) toast('입장 처리를 취소했어요.');
   };
 
   const columns = nowrapColumns<HostIssuedTicket>([
@@ -182,7 +180,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
           failed ? (
             <ListError what="티켓" onRetry={list.retry} />
           ) : (
-            <Empty>{list.search.applied ? '검색 결과가 없어요' : '발급된 티켓이 없어요'}</Empty>
+            <Empty>{list.search.applied ? list.search.emptyMessage : '발급된 티켓이 없어요'}</Empty>
           )
         }
         footerEnd={
@@ -196,7 +194,11 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
           ) : undefined
         }
       />
-      <IssuedTicketDetailOverlay list={list} onCheckIn={checkIn} />
+      <IssuedTicketDetailOverlay
+        list={list}
+        onCheckIn={checkIn}
+        onCancelEntrance={cancelEntrance}
+      />
     </div>
   );
 }

@@ -1,8 +1,16 @@
 import { mutationOptions } from '@tanstack/react-query';
 
 import { api } from '../http';
-import { type HostOrdersParams, normalizeHostOrdersParams } from './queries';
 import {
+  type HostOrdersParams,
+  normalizeHostOrdersParams,
+  normalizeRefundsParams,
+  type RefundsParams,
+} from './queries';
+import {
+  type BulkApproveOrdersRequest,
+  BulkOrderResultResponseSchema,
+  type BulkRefuseOrdersRequest,
   type CancelMyOrderRequest,
   type CreateOrderRequest,
   type HostCancelOrderRequest,
@@ -111,6 +119,49 @@ export const completeRefundMutation = (eventId: string | number) =>
         `events/${encodeURIComponent(eventId)}/refunds/${encodeURIComponent(orderUuid)}/complete`,
         HostOrderDetailSchema,
       ),
+  });
+
+/** 일괄 승인·거절의 시간 제한 — 서버가 20초까지 처리하고 남은 주문을 돌려주므로(`ORDER_BULK_NOT_PROCESSED`) 그보다 길게 */
+export const BULK_ORDER_TIMEOUT_MS = 30_000;
+
+/**
+ * R-7 일괄 승인(매니저 이상, 백엔드 #929 — B34, 2.5.7). 1~50건, 서버가 단건(PR-3)을 **차례로** 부르고 주문마다 결과를 돌려준다
+ * (한 트랜잭션이 아니다 — 앞 주문이 재고를 쓰면 뒤 주문만 실패). 20초가 넘으면 남은 주문은 `ORDER_BULK_NOT_PROCESSED`.
+ * 운영 2.5.3에는 없다(404·405) — 화면이 단건 차례 호출로 돌아간다(`useBulkOrderActions`)
+ */
+export const bulkApproveOrdersMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: (body: BulkApproveOrdersRequest) =>
+      api.post(
+        `events/${encodeURIComponent(eventId)}/orders/approve`,
+        BulkOrderResultResponseSchema,
+        body,
+        { timeout: BULK_ORDER_TIMEOUT_MS },
+      ),
+  });
+
+/** R-8 일괄 거절(R-7과 같은 방식). 사유는 처리 전에 한 번 검사한다 — 틀리면 전체 400 `Order_400_18` */
+export const bulkRefuseOrdersMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: (body: BulkRefuseOrdersRequest) =>
+      api.post(
+        `events/${encodeURIComponent(eventId)}/orders/refuse`,
+        BulkOrderResultResponseSchema,
+        body,
+        { timeout: BULK_ORDER_TIMEOUT_MS },
+      ),
+  });
+
+/**
+ * GF-3 환불 엑셀(매니저 이상, 백엔드 #929 — B36, 2.5.7). GF-1과 같은 필터, 전체 행(1만 행 초과 `Order_400_19`), 환불 계좌 포함.
+ * 래퍼 없는 xlsx
+ */
+export const exportRefundsMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: (params: Omit<RefundsParams, 'page' | 'size'> = {}) =>
+      api.download(`events/${encodeURIComponent(eventId)}/refunds/export`, {
+        searchParams: normalizeRefundsParams(params),
+      }),
   });
 
 /**
