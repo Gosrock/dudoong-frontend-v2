@@ -8,6 +8,7 @@ import {
   GUEST_BUYERS,
   GUEST_ORDER,
   markBuyerWithdrawn,
+  patchGuestOrder,
   storedGuestOrder,
 } from '../__mocks__/guest-store';
 import { resetHostMockState } from '../__mocks__/host.handlers';
@@ -303,8 +304,24 @@ describe('PR-4 거절 · PR-5 승인 후 취소 · PF-2 환불 완료', () => {
       400,
       'BAD_REQUEST',
     ]);
+    // 입장했거나 선물한 티켓이 있으면 서버도 막는다(#929 B35)
+    expect(await codeOf(cancel(GUEST_ORDER.approved, { reason: '공연 일정 변경' }))).toEqual([
+      400,
+      'Order_400_30',
+    ]);
+    const o = storedGuestOrder(GUEST_ORDER.approved)!;
+    patchGuestOrder(GUEST_ORDER.approved, {
+      issuedTickets: o.issuedTickets.map((t) => ({
+        ...t,
+        entrance: 'BEFORE',
+        enteredAt: null,
+        giftState: 'NONE',
+        owner: o.buyer,
+      })),
+    });
     const before = storedTicket(501)!.quantity;
     const d = await cancel(GUEST_ORDER.approved, { reason: '공연 일정 변경' });
+    expect(d.canceledBy).toBe('HOST');
     expect(d.order.status).toBe('CANCELED');
     expect(d.order.cancelReason).toBe('공연 일정 변경');
     expect(d.issuedTickets.every((t) => t.entrance === 'CANCELED')).toBe(true);

@@ -12,6 +12,7 @@ import {
   MyOrderPageSchema,
   type MyOrderStatusFilter,
   type OrderSearchType,
+  RefundCountsSchema,
   RefundPageSchema,
   type RefundStatusFilter,
 } from './schema';
@@ -126,19 +127,62 @@ export const hostOrderQuery = (eventId: string | number, orderUuid: string) =>
       ),
   });
 
-export type RefundsParams = { status?: RefundStatusFilter; page?: number; size?: number };
+export type RefundsParams = {
+  status?: RefundStatusFilter;
+  searchType?: OrderSearchType;
+  keyword?: string;
+  page?: number;
+  size?: number;
+};
 
-/** GF-1 환불 목록(환불 상태가 NONE이 아닌 주문, 최신 순). 계좌는 매니저 이상에게만 값이 있다 */
-export const refundsQuery = (eventId: string | number, params: RefundsParams = {}) => {
-  const p = {
+/** 검색 기준·검색어 정규형(GR-1과 같은 규칙 — 검색어가 없으면 기준도 뺀다) */
+const searchParamsOf = ({
+  searchType,
+  keyword,
+}: {
+  searchType?: OrderSearchType;
+  keyword?: string;
+}) => {
+  const k = keyword?.trim();
+  return k ? { keyword: k, ...(searchType && searchType !== 'NAME' && { searchType }) } : {};
+};
+
+/** GF-1 · GF-3 쿼리 정규형. 검색(`searchType` · `keyword`)은 백엔드 #929(B36 — 2.5.7) */
+export function normalizeRefundsParams(params: RefundsParams = {}) {
+  return {
     ...(params.status && params.status !== 'ALL' && { status: params.status }),
+    ...searchParamsOf(params),
     ...(params.page && { page: params.page }),
     ...(params.size !== undefined && { size: params.size }),
   };
+}
+
+/** GF-1 환불 목록(환불 상태가 NONE이 아닌 주문, 최신 순). 계좌는 매니저 이상에게만 값이 있다 */
+export const refundsQuery = (eventId: string | number, params: RefundsParams = {}) => {
+  const p = normalizeRefundsParams(params);
   return queryOptions({
     queryKey: [...hostRefundsKey(eventId), 'list', p],
     queryFn: ({ signal }) =>
       api.get(`events/${encodeURIComponent(eventId)}/refunds`, RefundPageSchema, {
+        searchParams: p,
+        signal,
+      }),
+  });
+};
+
+/**
+ * GF-1b 환불 상태별 건수(일반 멤버 이상, 백엔드 #929 — B36, 2.5.7). GF-1과 같은 검색 반영, 상태 필터 없음.
+ * 운영 2.5.3에는 없다(404) — 화면은 실패하면 칩 숫자 없이 그린다
+ */
+export const refundCountsQuery = (
+  eventId: string | number,
+  params: Pick<RefundsParams, 'searchType' | 'keyword'> = {},
+) => {
+  const p = searchParamsOf(params);
+  return queryOptions({
+    queryKey: [...hostRefundsKey(eventId), 'counts', p],
+    queryFn: ({ signal }) =>
+      api.get(`events/${encodeURIComponent(eventId)}/refunds/counts`, RefundCountsSchema, {
         searchParams: p,
         signal,
       }),

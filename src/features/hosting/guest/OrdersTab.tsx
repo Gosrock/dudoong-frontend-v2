@@ -222,7 +222,7 @@ export function OrdersTab({
           failed ? (
             <ListError what="주문" onRetry={list.retry} />
           ) : (
-            <Empty>{list.search.applied ? '검색 결과가 없어요' : '주문이 없어요'}</Empty>
+            <Empty>{list.search.applied ? list.search.emptyMessage : '주문이 없어요'}</Empty>
           )
         }
         footerEnd={

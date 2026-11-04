@@ -52,7 +52,8 @@ const INITIAL_REFUSE: RefuseForm = { reasonType: null, reasonText: '' };
  * - 처리 성공: 응답을 GR-2에 넣고 GR-1(`counts`)·GF-1·GI-1·GD-1을 다시 읽는다(승인·취소는 T-1·GP-5도 — 재고)
  * - 승인 실패(재고·1인 제한·탈퇴): 안내 + 주문은 승인 대기로 남는다(거절로 정리). 이미 처리됨·공연 OPEN 아님·시작 후:
  *   안내 + GR-2·GE-3 다시 읽기(운영자 대리 처리 #828도 이 길로 흡수)
- * - 거절: 사유 4종, 기타는 문구 1~100자(`Order_400_18`은 칸 오류, #921). 승인 후 취소: 사유 선택 100자
+ * - 거절: 사유 4종, 기타는 문구 1~100자(`Order_400_18`은 칸 오류, #921). 입금 미확인은 환불 요청이 생기지 않는다는 안내(#929 B35).
+ *   승인 후 취소: 사유 선택 100자. 입장·선물한 티켓이 있으면 막고, 서버가 `Order_400_30`이면 안내 + 다시 읽기
  * - 404 `Order_404_1`(다른 공연·없는 주문 — 조회·처리 모두): 공용 404가 아니라 `onMissing()`(닫기) + 목록 다시 읽기 + `missingNotice`
  * - 약관 안내(legal-copy C-2~C-4): 두둥 주문이면 거절·취소 확인에 직접 환불 안내 줄(`refuseConfirm`·`cancelConfirm`)
  */
@@ -135,6 +136,7 @@ export function useOrderDetail(
   const withdrawCodes = useMemo<ErrorCodeHandlers>(
     () => ({
       Order_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_5, false),
+      Order_400_30: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_30, false),
       Order_400_9: () => reread(WITHDRAW_ERROR_MESSAGE.Order_400_9, true),
       Event_400_5: () => reread(WITHDRAW_ERROR_MESSAGE.Event_400_5, true),
       Order_400_18: () => setRefuseServerError(WITHDRAW_ERROR_MESSAGE.Order_400_18),
@@ -175,8 +177,8 @@ export function useOrderDetail(
 
   const canSeeRefundAccount = can(scope.role, 'viewRefundAccount');
   /**
-   * 처리 버튼. GUI(2026-11-01)가 더한 화면 규칙 둘(L 변경 p13a-gui-guests): 입장한 티켓이 있으면 승인 후 취소 비활성(`ticketUsed` —
-   * 서버는 막지 않는다, B35), 매니저가 보는 환불 계좌가 없으면 [환불 완료] 비활성(`noAccount` — Q96 답)
+   * 처리 버튼. GUI(2026-11-01)가 더한 화면 규칙 둘: 입장했거나 선물한 티켓이 있으면 승인 후 취소 비활성(`ticketUsed` — 서버도
+   * `Order_400_30`으로 막는다, 백엔드 #929 B35), 매니저가 보는 환불 계좌가 없으면 [환불 완료] 비활성(`noAccount` — Q96 답)
    */
   const actions = useMemo(() => {
     if (!detail) return [];

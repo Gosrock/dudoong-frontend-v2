@@ -240,12 +240,16 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 | GR-1 | GET `/events/{eventId}/orders` | G+ |
 | GR-2 | GET `/events/{eventId}/orders/{orderUuid}` | G+ |
 | PR-3 · PR-4 · PR-5 | POST `…/orders/{orderUuid}/approve` · `/refuse` · `/cancel` | M+ |
+| R-7 · R-8 | POST `/events/{eventId}/orders/approve` · `/orders/refuse` — 일괄(#929 — **2.5.7**) | M+ |
 | GR-6 | GET `/events/{eventId}/orders/export` | M+ (#846 전 G+) |
 | GF-1 | GET `/events/{eventId}/refunds` | G+ |
+| GF-1b | GET `/events/{eventId}/refunds/counts` (#929 — **2.5.7**) | G+ |
+| GF-3 | GET `/events/{eventId}/refunds/export` (#929 — **2.5.7**) | M+ |
 | PF-2 | POST `/events/{eventId}/refunds/{orderUuid}/complete` | M+ |
 | GI-1 | GET `/events/{eventId}/issued-tickets` | G+ |
 | GI-2 | GET `/events/{eventId}/issued-tickets/{ticketUuid}` | G+ |
 | GI-3 | GET `/events/{eventId}/issued-tickets/export` | M+ (#846 전 G+) |
+| Q-3 | POST `/events/{eventId}/issued-tickets/{ticketUuid}/entrance/cancel` — 입장 취소(#929 — **2.5.7**) | M+ |
 | GQ-1 | GET `/events/{eventId}/check-ins/stats` | G+ |
 | PQ-2 | POST `/events/{eventId}/check-ins` | G+ |
 | PQ-2b | POST `/events/{eventId}/check-ins/by-ticket-no` (#926 — 2.5.6) | G+ |
@@ -398,7 +402,8 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 
 ### 체크인 (F8)
 
-- 호스트 스캔(PQ-2) `{ticketUuid}` — **QR 값 = 티켓 uuid**(G11/T-2 `qrValue`). 항상 200 + `result`. 체크인 취소는 없다.
+- 호스트 스캔(PQ-2) `{ticketUuid}` — **QR 값 = 티켓 uuid**(G11/T-2 `qrValue`). 항상 200 + `result`. 잘못 입장 처리한 티켓은 **입장 취소 Q-3**(#929 — 2.5.7, 아래)로 되돌린다.
+- **입장 취소 Q-3(#929 B37 — 2.5.7 스테이징, 운영 2.5.3에는 없다)** `POST /events/{eventId}/issued-tickets/{ticketUuid}/entrance/cancel`, 본문 없음. 매니저 이상(일반 멤버 403 `HOST_400_1`), 공연 상태는 PQ-2와 같다(OPEN·정산중, 아니면 `Event_400_27`). 입장 완료 → 입장 전 + `enteredAt` 비움(다시 입장 가능, 입장 인원에서 빠진다). 에러: 입장 전 `IssuedTicket_400_9` · 취소 티켓 `IssuedTicket_400_3` · 다른 공연·없는 티켓 404 `IssuedTicket_404_1`. 응답은 GI-2 상세(연락처 원본). 다시 입장하면 입장 메일이 한 번 더 간다. 이게 생겨 수동 [입장 처리] 확인 팝업은 GUI대로 뺐다.
 - **티켓 번호 체크인(PQ-2b, #926 — 2.5.6)** `{ticketNo}`(`@NotBlank @Size(max = 20)`) — 카메라 없는 현장용. 권한(일반 멤버 이상) · 공연 상태(OPEN·정산중, 아니면 `Event_400_27`) · 응답(항상 200 + `result` 5종)이 PQ-2와 같다. 서버가 대소문자 · 앞뒤 공백을 무시하고 숫자만이면 `T`를 붙인다. 없는 번호 · 다른 공연 번호는 `OTHER_EVENT`(티켓 null). **번호는 추측할 수 있다** — 입장 처리 뒤 `ticket.ownerName`을 크게 보여 현장에서 이름을 확인한다(QR 체크인 화면 "티켓 번호로 입장").
 - 호스트 스캔은 OPEN·CALCULATING 공연만(그 밖 400 `Event_400_27`). 셀프 체크인은 OPEN만.
 - 셀프 체크인 QR(GQ-4): 공연별 고정 토큰. 응답 `qrPath = /check-in?token=…`(origin은 프론트가 붙인다).
@@ -416,14 +421,20 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 - 멤버 목록(GH-6)에는 이메일이 없다. 이름·프로필·역할만 그린다. 공개 GH-3에도 멤버 요약(최대 10명)이 있다(#811, 위 공연 절).
 - **호스트 설정·멤버 변경(소스 확인 @432cce4, P10b-L)**: PH-4 응답은 GH-3과 같은 `V2HostHomeResponse`(요청자 기준 `myRole`·`isFollowing`·원문 연락처). PH-4 `introduce`는 `""`이면 비운다(`null`·키 없음은 변경 안 함), 이미지 key는 `""`이면 기본 이미지, 이 호스트에 PH-15가 발급한 모양(`host/{hostId}/{UUID}.{jpeg|jpg|png}`)이 아니면 `HOST_400_17`. 멤버 변경 4종(PH-7·PH-10·DH-11·PH-12) 응답은 GH-6과 같은 순서의 활성 멤버 전체 목록. PH-7은 하나라도 실패하면 아무도 추가하지 않고, 검사 순서는 역할(MASTER 지정 `HOST_400_10`, 매니저가 MANAGER 지정 403 `HOST_400_11`) → 중복(소문자 비교, `HOST_400_14`) → 같은 이메일 계정 여럿(`HOST_400_18`) → 미가입(`HOST_400_13`) → 이미 멤버(`HOST_400_15`)이며 **문제 이메일을 `reason` 끝 괄호에 `, `로 붙인다**(`"가입되지 않은 이메일입니다. (a@x.com, b@y.com)"`, `HostErrorCode.toDetailException`). 동시 추가로 유일 제약에 걸리면 새 트랜잭션에서 실제로 이미 멤버인 유저를 다시 읽어 `HOST_400_15`에 **겹친 이메일만**(요청 표기 그대로) 붙인다 — 못 찾거나 조회가 실패하면 예전처럼 보낸 이메일 전부(2.5.3 — #899). 삭제는 마스터 불가(`HOST_400_12`)·매니저는 일반 멤버만(403 `HOST_400_11`) — 본인 삭제(나가기)는 이 규칙으로 늘 막힌다. 역할 변경 대상이 마스터면 `HOST_400_5`, 활성 멤버가 아니면 404 `HOST_404_2`(양도도 같다).
 
-- 주문 목록 `counts`는 검색어는 반영하고 상태 필터는 무시한 탭 건수. `searchType` = `NAME`(기본) · `PHONE` · `DEPOSITOR_NAME`.
+- 주문 목록 `counts`는 검색어는 반영하고 상태 필터는 무시한 탭 건수. `searchType` = `NAME`(기본) · `PHONE` · `DEPOSITOR_NAME` · **`ORDER_NO`**(#929 — 2.5.7, 대소문자 무시 부분 일치 — GR-1 · GR-6 · GF-1 · GF-1b · GF-3 공통).
+- **백엔드 #929 반영(2.5.7 — 스테이징만, 운영 2.5.3은 컷오버 때. 새 응답 필드는 FE zod `optional`, 새 API가 404·405면 화면이 죽지 않게)** — 근거 Backend PR #934(`2806b8d`) · #931(`da3bbed`):
+  - **일괄 승인·거절 R-7 · R-8(B34)** `{orderUuids}` · `{orderUuids, reasonType, reasonText}` — 1~50개(각 1~64자, 중복은 처음 나온 순서로 한 번), 거절 사유는 처리 전에 한 번 검사(틀리면 전체 400 `Order_400_18`). 서버가 단건 PR-3 · PR-4를 **차례로** 부른다(한 트랜잭션 아님 — 앞 주문이 재고를 쓰면 뒤 주문만 실패). 응답 `{succeeded, failed, notProcessed, results: [{orderUuid, success, errorCode, reason}]}`(요청 순서 전부, 실패 코드는 단건과 같고 예상 못 한 오류 `GLOBAL_500_1`). **20초 상한**을 넘으면 남은 주문은 처리하지 않고 `errorCode = ORDER_BULK_NOT_PROCESSED` — 그 주문만 다시 보낸다. FE(`useBulkOrderActions`)는 50건씩 나눠 보내고 처리되지 않은 주문만 다시(한 묶음에서 하나도 처리되지 않으면 멈춤), 요청 시간 제한 30초, 404·405(운영 2.5.3)면 단건 차례 호출로 돌아간다.
+  - **GR-2(B35)**: `issuedTickets[].giftState`(`NONE` / `PENDING` / `ACCEPTED` — GI-1 · GI-2와 같은 값) · `canceledBy`(`BUYER` 예매자 취소 / `HOST` 호스트 거절·취소 — 운영자 어드민 취소도 HOST / 그 밖 `null`). **PR-5는 취소되지 않은 티켓 중 입장 · 선물 대기 · 선물 수락 티켓이 하나라도 있으면 `Order_400_30`**("입장했거나 선물한 티켓이 있는 주문은 취소할 수 없습니다.") — FE는 `entrance == DONE || giftState != NONE`으로 [주문 취소]를 미리 막는다.
+  - **입금 미확인 거절(B35)**: `reasonType = DEPOSIT_UNCONFIRMED`면 결제 금액이 있어도 환불 요청이 생기지 않는다(`refundStatus = NONE`, 관객은 환불 계좌를 넣을 수 없다 — `Order_400_27`). **되돌릴 수 없다** — 거절 확인에 "입금 미확인으로 거절하면 환불 요청이 생기지 않아요."를 꼭 보인다(주문 상세 거절 단계 · 표에서 거절).
+  - **검색(B36)**: 발급 티켓(GI-1 · GI-3) `searchType` = `NAME` · `PHONE`(현재 소유자) · `ORDER_NO` · `TICKET_NO`(숫자만 넣어도 부분 일치) · `DEPOSITOR_NAME`(그 티켓 주문) — `V2IssuedTicketSearchType`. 번호는 개인정보가 아니라 일반 멤버도 부분 일치, 일반 멤버의 `PHONE` · `DEPOSITOR_NAME`은 완전 일치(결과가 없으면 "전체 값을 입력해 주세요" 안내).
+  - **환불 탭(B36)**: GF-1에 `searchType` · `keyword`(주문 목록과 같은 기준) · 항목 `orderedAt`. 건수는 새 **GF-1b** `GET /refunds/counts` → `{all, requested, completed}`(같은 검색 반영, 상태 필터 없음 — GF-1 응답 모양은 그대로). 엑셀 **GF-3** `GET /refunds/export`(같은 필터, 매니저 이상, 1만 행 초과 `Order_400_19`, 환불 계좌 포함).
 - 주문 상세: 승인 전에는 `issuedTickets`가 빈 배열 → 라인을 "티켓 1, 2…"로 표시.
 - 발급 티켓 목록은 취소 티켓 제외, 검색은 현재 소유자 기준.
 - 엑셀은 최대 1만 행(넘으면 `Order_400_19` · `IssuedTicket_400_7`). **매니저 이상만**(일반 멤버 403 — #846, §2).
 - 일반 멤버에게는 주문 목록·상세, 발급 티켓 상세의 구매자 연락처·이메일·입금자명이 가린 값이고, `PHONE`·`DEPOSITOR_NAME` 검색은 완전 일치만 된다(이름 검색은 부분 일치 그대로). 검색 안내 문구에 반영한다(#846, 백엔드 Develop 기획서).
 - 호스트·운영자의 구매자 정보 조회·엑셀은 서버가 접근 기록을 남긴다(#845). 응답 변화는 없다.
 - **예매자 관리·대시보드 소스 확인(2026-10-31 P13a-L, dev `cb8d24e` — `432cce4` 이후 이 API 변경 없음)**. 근거: `V2OrderManageController`·`V2IssuedTicketController`·`V2Excel`, `V2OperationRequests.kt`·`V2OperationTypes.kt`·`V2OrderResponses.kt`·`V2IssuedTicketResponses.kt`·`V2DashboardResponse.kt`, `V2ReadOrdersUseCase`·`V2ChangeOrderUseCase`·`V2ReadIssuedTicketsUseCase`·`V2ReadDashboardUseCase`·`V2OperationMapper`, 도메인 `V2OrderDomainService`·`V2OrderQuery`(`V2OrderSearchType`)·`V2OrderStatus`·`V2MyOrderStatus`·`V2IssuedTicketQuery`·`AdminTableSearchType`(`ContactSearch.phoneExact`)·`OrderValidator`·`Order`·`RefundInfoVo`·`PrivacyMasker`·`OrderCustomRepositoryImpl.findRefunds`.
-  - 파라미터: GR-1·GR-6 `status`(ALL 기본, FAILED 포함 6값)·`searchType`(NAME 기본)·`keyword`(50자), GI-1·GI-3 `entrance`(ALL·BEFORE·DONE)·`searchType`(NAME·PHONE — `AdminTableSearchType`), GF-1 `status`(ALL·REQUESTED·COMPLETED)만 — **GF-1은 검색이 없다**. 표 크기 기본 20·상한 100(`V2Paging`). 엑셀에는 페이지가 없다.
+  - 파라미터: GR-1·GR-6 `status`(ALL 기본, FAILED 포함 6값)·`searchType`(NAME 기본)·`keyword`(50자), GI-1·GI-3 `entrance`(ALL·BEFORE·DONE)·`searchType`(NAME·PHONE — `AdminTableSearchType`, #929부터 위 5값), GF-1 `status`(ALL·REQUESTED·COMPLETED)만 — **GF-1은 검색이 없다**(#929 — 2.5.7부터 검색 있음, 위). 표 크기 기본 20·상한 100(`V2Paging`). 엑셀에는 페이지가 없다.
   - 일반 멤버 검색: 연락처는 숫자만 비교하는 전체 번호 완전 일치(`010-1234-5678`·`01012345678`·`+82 10-…` 모두 같다), 입금자명은 문자열 완전 일치, 이름은 부분 일치. 가림은 연락처 `010-****-5678`, 이메일 `ab***@…`, 입금자명 `김*수`(`maskName` — 2자 `김*`, 1자 `*`).
   - 상태 분류: 사용자 취소·환불(v1 `REFUND`)은 호스트 화면에서 `CANCELED`다(사용자 화면은 환불 여부로 `CANCELED`·`REFUNDED`). 거절 사유 문구는 종류 라벨(`입금 미확인`·`결제 금액 오류`·`티켓 매진`, 기타는 입력값)이 `refuseReason`으로 온다.
   - **주문 방식 `orderMethod`(GR-1 행·GR-2 `order`, #888 @78b1b6e7 — `V2OrderElement`, `V2OrderMethod`)**: `APPROVAL` = 승인형(유료면 두둥티켓 — 호스트가 직접 환불, 무료면 승인형 무료) / `PAYMENT` = 결제형(v1 PG 결제·선착순 무료). **v1 주문도 값이 있다**(`paymentChannel`은 v1 주문 null). 서버 타입은 nullable(도메인 값이 없을 때만 null). 거절·승인 후 취소 확인의 직접 환불 안내(legal-copy C-3·C-4)는 `orderMethod == APPROVAL && totalAmount > 0`(B19 — FE `isDudoongOrder`. `orderMethod`가 null·모르는 값일 때만 예전 판정 `paymentChannel` 계좌이체·null + 금액 > 0).

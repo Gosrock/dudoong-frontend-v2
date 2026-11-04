@@ -36,10 +36,17 @@ import { useRefundList } from './useRefundList';
 
 let restore: () => void;
 /** 입장한 티켓이 있으면 승인 후 취소가 막힌다(GUI `1029:7706`, L 변경 p13a-gui-guests) — 취소 흐름 테스트는 입장 전으로 바꿔 둔다 */
+/** 입장 · 선물한 티켓을 없앤다(승인 후 취소가 되도록 — 화면과 서버 모두 막는다, #929 B35) */
 function notEntered(orderUuid: string) {
   const o = storedGuestOrder(orderUuid)!;
   patchGuestOrder(orderUuid, {
-    issuedTickets: o.issuedTickets.map((t) => ({ ...t, entrance: 'BEFORE', enteredAt: null })),
+    issuedTickets: o.issuedTickets.map((t) => ({
+      ...t,
+      entrance: 'BEFORE',
+      enteredAt: null,
+      giftState: 'NONE',
+      owner: o.buyer,
+    })),
   });
 }
 

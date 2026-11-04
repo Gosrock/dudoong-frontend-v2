@@ -4,13 +4,15 @@ import type { HostOrderDetail } from '@/api/order/schema';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { toast } from '@/ui/components/Toast/Toast';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 import { copyText } from '@/utils/copy-text';
 import { formatWon } from '@/utils/money';
 
-import { isDudoongOrder, REFUND_NO_ACCOUNT_MESSAGE } from '../model/guest-rules';
+import { CANCELED_BY_LABEL, isDudoongOrder, REFUND_NO_ACCOUNT_MESSAGE } from '../model/guest-rules';
 import type { OrderDetailState } from '../model/useOrderDetail';
+import { GiftChip } from './GiftChip';
 import { dateText, dateTimeText, entranceChipOf, NOT_ISSUED_CHIP, text } from './guest-labels';
 import * as s from './OrderDetailOverlay.css';
 import { Line, Section, TicketCard } from './OrderDetailParts';
@@ -18,6 +20,8 @@ import { Line, Section, TicketCard } from './OrderDetailParts';
 /** 상세 단계 본문 — 주문 정보 · 주문자 · 티켓 · 환불 정보 */
 export function OrderInfo({ state, detail }: { state: OrderDetailState; detail: HostOrderDetail }) {
   const { order } = detail;
+  // GUI `1029:8522` "취소한 사람: 예매자/호스트"(GR-2 `canceledBy` — 백엔드 #929 B35). 값이 없으면(운영 2.5.3 · 취소 전) 줄 없음
+  const canceledByLabel = detail.canceledBy ? CANCELED_BY_LABEL[detail.canceledBy] : null;
   return (
     <>
       <Section title="주문 정보">
@@ -26,6 +30,11 @@ export function OrderInfo({ state, detail }: { state: OrderDetailState; detail: 
           <Line label="결제 금액">{formatWon(order.totalAmount)}</Line>
           {order.refuseReason && <Line label="거절 사유">{order.refuseReason}</Line>}
           {order.cancelReason && <Line label="취소 사유">{order.cancelReason}</Line>}
+          {canceledByLabel && (
+            <Line label="취소한 사람">
+              <span data-testid="detail-canceled-by">{canceledByLabel}</span>
+            </Line>
+          )}
         </dl>
       </Section>
       <Section title="주문자">
@@ -61,9 +70,13 @@ function OrderTickets({ detail }: { detail: HostOrderDetail }) {
                 name={text(t.ticketName)}
                 dudoong={dudoong}
                 end={
-                  <Chip shape="round" color={chip.color} theme={chip.theme}>
-                    {chip.label}
-                  </Chip>
+                  // 선물 칩은 발급된 티켓 표 · 티켓 상세와 같은 DS Chip(#134 — 🤖 Q110). GR-2 `giftState`(#929)가 없으면 그리지 않는다
+                  <Flex as="span" gap={1} align="center">
+                    {t.giftState && <GiftChip giftState={t.giftState} />}
+                    <Chip shape="round" color={chip.color} theme={chip.theme}>
+                      {chip.label}
+                    </Chip>
+                  </Flex>
                 }
                 answers={t.optionAnswers}
               />

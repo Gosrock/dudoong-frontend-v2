@@ -272,14 +272,14 @@ scenario(
 
 scenario(
   'HG-7',
-  '발급된 티켓 탭 — 입장 칩 · 행 [입장 처리], 티켓 상세(티켓 정보 · 옵션 응답 · [입장 처리])',
+  '발급된 티켓 탭 — 입장 칩 · 행 [입장 처리], 티켓 상세 [입장 처리] · [입장 취소]',
   {
     kind: '정상',
     summary:
-      'GUI 표(PC 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인 ›, 모바일 주문자 · 티켓 · 체크인 ›). 입장 전은 [입장 처리](확인 → "입장 처리했어요."), 입장 완료는 초록 칩. 행 → 티켓 상세.',
+      'GUI 표(PC 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인 ›, 모바일 주문자 · 티켓 · 체크인 ›). 입장 전은 [입장 처리](GUI대로 확인 없이 → "입장 처리했어요."), 입장 완료는 초록 칩. 행 → 티켓 상세. 입장 완료 상세의 [입장 취소] → 확인 → 입장 전(Q-3, 매니저 이상).',
     basis: [
-      'GUI 1030:8054 · 1030:8448 · 1030:8955 · 1030:9136',
-      '#106 §5 수동 입장(B37 입장 취소 API 없음)',
+      'GUI 1030:8054 · 1030:8448 · 1030:8955 · 1030:9136 · 1030:9318',
+      '백엔드 #929 B37(Q-3 입장 취소 — 수동 입장 확인 팝업은 GUI대로 뺀다)',
     ],
   },
   async ({ page, step, testInfo }) => {
@@ -291,14 +291,12 @@ scenario(
       await expect(page.getByTestId('ticket-entrance')).toHaveText('입장 완료');
     });
     await step(
-      '입장 전 행의 [입장 처리] → 확인하면 "입장 처리했어요."와 입장 완료 칩',
+      '입장 전 행의 [입장 처리]를 누르면 확인 없이 "입장 처리했어요."와 입장 완료 칩',
       async () => {
         const row = page.getByTestId('ticket-row').filter({ hasText: 'T2000002' });
         await row.getByRole('button', { name: '입장 처리' }).click();
-        const confirm = page.getByRole('alertdialog', { name: /입장 처리할까요/ });
-        await expect(confirm).toContainText('되돌릴 수 없어요');
-        await confirm.getByRole('button', { name: '입장 처리' }).click();
         await expect(page.getByText('입장 처리했어요.')).toBeVisible();
+        await expect(page.getByRole('alertdialog')).toHaveCount(0);
         await expect(row.getByTestId('ticket-entrance')).toHaveText('입장 완료');
         await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 2');
       },
@@ -315,17 +313,30 @@ scenario(
         await expect(detail.getByRole('button', { name: '입장 처리' })).toBeVisible();
       },
     );
-    await step('상세의 [입장 처리] → 확인하면 입장 완료로 바뀌고 버튼이 사라진다', async () => {
+    await step('상세의 [입장 처리]를 누르면 입장 완료로 바뀌고 [입장 취소]가 보인다', async () => {
       const detail = page.getByRole('dialog');
       await detail.getByRole('button', { name: '입장 처리' }).click();
-      await page
-        .getByRole('alertdialog', { name: /입장 처리할까요/ })
-        .getByRole('button', { name: '입장 처리' })
-        .click();
       await expect(detail.getByTestId('ticket-detail-entrance')).toHaveText('입장 완료');
       await expect(detail.getByRole('button', { name: '입장 처리' })).toHaveCount(0);
+      await expect(detail.getByRole('button', { name: '입장 취소' })).toBeVisible();
       await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 3');
     });
+    await step(
+      '[입장 취소] → "입장 처리를 취소할까요?" 확인 → 입장 전으로 돌아가고 [입장 처리]가 다시 보인다',
+      async () => {
+        const detail = page.getByRole('dialog', { name: /T2000003/ });
+        await detail.getByRole('button', { name: '입장 취소' }).click();
+        const confirm = page.getByRole('alertdialog', { name: '입장 처리를 취소할까요?' });
+        await expect(confirm).toContainText(
+          '입장 인원에서 빠지고, 다시 입장할 수 있는 상태가 돼요.',
+        );
+        await confirm.getByRole('button', { name: '입장 취소' }).click();
+        await expect(page.getByText('입장 처리를 취소했어요.')).toBeVisible();
+        await expect(detail.getByTestId('ticket-detail-entrance')).toHaveText('입장 전');
+        await expect(detail.getByRole('button', { name: '입장 처리' })).toBeVisible();
+        await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 2');
+      },
+    );
   },
 );
 
@@ -373,14 +384,15 @@ scenario(
 
 scenario(
   'HG-8',
-  '환불 탭 — 노란 안내 · 상태 칩(환불 요청 · 계좌 입력 전 · 환불 완료) → 상세에서 [환불 완료]',
+  '환불 탭 — 노란 안내 · 상태 칩(건수) · 검색 · 주문 일시 · 엑셀 → 상세에서 [환불 완료]',
   {
     kind: '정상',
     summary:
-      'GUI 1031:9189 — 안내 "예매자 계좌로 직접 보낸 뒤 [환불 완료]를 눌러주세요", 행을 누르면 주문 상세(환불 정보 · 계좌 없으면 버튼 비활성), [환불 완료] → 확인 → "환불 완료로 표시했어요.". 검색 · 칩 숫자 · 엑셀은 API가 없어 없다(B36).',
+      'GUI 1031:9189 — 안내 "예매자 계좌로 직접 보낸 뒤 [환불 완료]를 눌러주세요", 상태 칩 건수(GF-1b) · 검색(GF-1 searchType · keyword) · 주문 일시 칸 · [엑셀로 다운로드](GF-3, 매니저 이상), 행을 누르면 주문 상세(환불 정보 · 계좌 없으면 버튼 비활성), [환불 완료] → 확인 → "환불 완료로 표시했어요.".',
     basis: [
       'GUI 1031:9189 · 1031:9567 · 1029:8117 · 1029:8733',
       'plan P13a L(환불 탭 GF-1 · PF-2)',
+      '백엔드 #929 B36(GF-1 검색 · orderedAt · GF-1b · GF-3)',
     ],
   },
   async ({ page, step, testInfo }) => {
@@ -391,9 +403,30 @@ scenario(
         page.getByText('예매자 계좌로 직접 보낸 뒤 [환불 완료]를 눌러주세요'),
       ).toBeVisible();
       await expect(page.getByTestId('refund-row')).toHaveCount(4);
+      await expect(page.getByTestId('refund-filter-ALL')).toHaveText('전체 4');
+      await expect(page.getByTestId('refund-filter-REQUESTED')).toHaveText('환불 요청 3');
       await expect(
         page.getByTestId('refund-row').filter({ hasText: '한도윤' }).getByTestId('refund-status'),
       ).toHaveText('계좌 입력 전');
+      if (isDesktop(testInfo)) {
+        await expect(page.getByRole('columnheader', { name: '주문 일시' })).toBeVisible();
+      }
+      await expect(page.getByRole('button', { name: '환불 엑셀로 다운로드' })).toBeEnabled();
+    });
+    await step('이름으로 검색하면 그 주문만 남고 칩 건수도 검색 결과로 바뀐다', async () => {
+      const box = page.getByRole('searchbox', { name: '환불 검색어' });
+      await box.fill('오세훈');
+      await box.press('Enter');
+      await expect(page.getByTestId('refund-row')).toHaveCount(1);
+      await expect(page.getByTestId('refund-filter-ALL')).toHaveText('전체 1');
+      await box.fill('');
+      await box.press('Enter');
+      await expect(page.getByTestId('refund-row')).toHaveCount(4);
+    });
+    await step('[엑셀로 다운로드]를 누르면 refunds-101.xlsx를 받는다', async () => {
+      const download = page.waitForEvent('download');
+      await page.getByRole('button', { name: '환불 엑셀로 다운로드' }).click();
+      expect((await download).suggestedFilename()).toBe('refunds-101.xlsx');
     });
     await step('계좌 입력 전 주문 상세는 안내 문구와 비활성 [환불 완료]', async () => {
       await page.getByTestId('refund-row').filter({ hasText: '한도윤' }).click();
@@ -447,6 +480,13 @@ scenario(
       await page.getByRole('combobox', { name: '검색 기준' }).click();
       await page.getByRole('option', { name: '연락처' }).click();
       await expect(page.getByTestId('exact-hint')).toBeVisible();
+    });
+    await step('연락처 일부만 넣으면 결과가 없고 전체 값을 넣으라는 안내가 보인다', async () => {
+      await page.getByRole('searchbox', { name: '주문 검색어' }).fill('6789');
+      await page.getByRole('searchbox', { name: '주문 검색어' }).press('Enter');
+      await expect(page.getByTestId('list-empty')).toHaveText(
+        '검색 결과가 없어요. 연락처, 입금자명은 전체 값을 입력해 주세요.',
+      );
     });
     await step('승인 대기 주문 상세에 가린 연락처 · 처리 버튼 없음', async () => {
       await page.goto(`${GUESTS}?order=${GUEST_ORDER.pendingTransfer}`);
@@ -549,8 +589,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      '승인 대기 행의 [거절] → "거절 사유를 선택해 주세요." 오버레이(상세와 같은 라디오) → [거절] → "1건을 거절했어요.", 행이 승인 거절 칩.',
-    basis: ['GUI 980:24267(행 [거절][승인]) · 1029:6920', '#113'],
+      '승인 대기 행의 [거절] → "거절 사유를 선택해 주세요." 오버레이(상세와 같은 라디오, 입금 미확인이면 환불 요청이 생기지 않는다는 안내) → [거절](일괄 API R-8) → "1건을 거절했어요.", 행이 승인 거절 칩.',
+    basis: [
+      'GUI 980:24267(행 [거절][승인]) · 1029:6920 · 1029:7114',
+      '#113',
+      '백엔드 #929 B34 · B35',
+    ],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -563,6 +607,10 @@ scenario(
     await step('입금 미확인을 고르고 [거절]하면 그 행이 승인 거절이 된다', async () => {
       const overlay = page.getByRole('dialog').filter({ has: page.getByTestId('refuse-overlay') });
       await overlay.getByRole('radio', { name: '입금 미확인' }).click();
+      // 입금 미확인 거절은 환불 요청이 생기지 않고 되돌릴 수 없다(#929 B35) — 꼭 보인다
+      await expect(overlay.getByTestId('refuse-deposit-note')).toHaveText(
+        '입금 미확인으로 거절하면 환불 요청이 생기지 않아요.',
+      );
       await overlay.getByRole('button', { name: '거절', exact: true }).click();
       await expect(page.getByText('1건을 거절했어요.')).toBeVisible();
       await expect(
@@ -574,12 +622,12 @@ scenario(
 
 scenario(
   'HG-16',
-  '취소 불가 — 입장한 티켓이 있는 승인 완료 주문은 [주문 취소] 비활성 + 안내',
+  '취소 불가 — 입장했거나 선물한 티켓이 있는 승인 완료 주문은 [주문 취소] 비활성 + 안내, 취소한 사람',
   {
     kind: '정상',
     summary:
-      '발급 티켓 카드(입장 완료 칩) 아래 "입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요." + 비활성 [주문 취소]. 서버는 막지 않는다 — 화면 규칙(입장만 판정, 선물은 B35).',
-    basis: ['GUI 1029:7706 · 1000:1793', '#112', 'backend-questions B35'],
+      '발급 티켓 카드(입장 완료 칩 · 선물 칩) 아래 "입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요." + 비활성 [주문 취소]. 판정은 entrance == DONE 또는 giftState != NONE(GR-2), 서버도 Order_400_30. 취소된 주문은 "취소한 사람: 호스트/예매자".',
+    basis: ['GUI 1029:7706 · 1000:1793 · 1029:8522', '#112', '백엔드 #929 B35'],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -593,6 +641,63 @@ scenario(
         '입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요.',
       );
       await expect(detail(page).getByRole('button', { name: '주문 취소' })).toBeDisabled();
+    });
+    await step('선물만 한(입장 전) 무료 주문도 취소가 막히고 카드에 선물 칩이 보인다', async () => {
+      const free = storedGuestOrder(GUEST_ORDER.approvedFree)!;
+      patchGuestOrder(GUEST_ORDER.approvedFree, {
+        issuedTickets: free.issuedTickets.map((t) => ({ ...t, giftState: 'PENDING' as const })),
+      });
+      await page.goto(`${GUESTS}?order=${GUEST_ORDER.approvedFree}`);
+      await expect(detail(page).getByTestId('ticket-gift')).toHaveText('선물 대기');
+      await expect(detail(page).getByTestId('blocked')).toHaveText(
+        '입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요.',
+      );
+      await expect(detail(page).getByRole('button', { name: '주문 취소' })).toBeDisabled();
+    });
+    await step('취소된 주문 상세에 "취소한 사람"이 보인다', async () => {
+      await page.goto(`${GUESTS}?order=${GUEST_ORDER.hostCanceled}`);
+      await expect(detail(page).getByTestId('detail-canceled-by')).toHaveText('호스트');
+      await page.goto(`${GUESTS}?order=${GUEST_ORDER.userRefunded}`);
+      await expect(detail(page).getByTestId('detail-canceled-by')).toHaveText('예매자');
+    });
+  },
+);
+
+scenario(
+  'HG-19',
+  '검색 기준 — 주문 번호(주문 탭) · 티켓 번호(발급된 티켓 탭)',
+  {
+    kind: '정상',
+    summary:
+      'GUI 검색 기준 드롭다운: 주문 "이름 · 주문 번호 · 연락처 · 입금자명"(1029:6014), 티켓 "이름 · 주문 번호 · 연락처 · 입금자명 · 티켓 번호"(1030:8703). 번호는 부분 일치(숫자만 넣어도 된다).',
+    basis: ['GUI 1029:6014 · 1030:8703', '백엔드 #929 B36'],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('주문 탭에서 주문 번호로 찾으면 그 주문만 남는다', async () => {
+      await page.goto(GUESTS);
+      await page.getByRole('combobox', { name: '검색 기준' }).click();
+      await page.getByRole('option', { name: '주문 번호' }).click();
+      await page.getByRole('searchbox', { name: '주문 검색어' }).fill('2001003');
+      await page.getByRole('searchbox', { name: '주문 검색어' }).press('Enter');
+      await expect(page.getByTestId('order-row')).toHaveCount(1);
+      await expect(page.getByTestId('order-row')).toContainText('박지훈');
+    });
+    await step('발급된 티켓 탭에서 티켓 번호(숫자만)로 찾으면 그 티켓만 남는다', async () => {
+      await page.goto(`${GUESTS}?tab=tickets`);
+      await page.getByRole('combobox', { name: '검색 기준' }).click();
+      await expect(page.getByRole('option')).toHaveText([
+        '이름',
+        '주문 번호',
+        '연락처',
+        '입금자명',
+        '티켓 번호',
+      ]);
+      await page.getByRole('option', { name: '티켓 번호' }).click();
+      await page.getByRole('searchbox', { name: '티켓 검색어' }).fill('2000002');
+      await page.getByRole('searchbox', { name: '티켓 검색어' }).press('Enter');
+      await expect(page.getByTestId('ticket-row')).toHaveCount(1);
+      await expect(page.getByTestId('ticket-row')).toContainText('T2000002');
     });
   },
 );

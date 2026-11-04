@@ -9,12 +9,26 @@ import { colors } from '@/ui/theme/colors';
 import {
   CANCEL_REASON_OPTIONS,
   REFUSE_DEPOSIT_UNCONFIRMED_NOTE,
-  REFUSE_DEPOSIT_UNCONFIRMED_SKIPS_REFUND,
   REFUSE_REASON_OPTIONS,
+  type RefuseReasonKey,
+  showsDepositUnconfirmedNote,
 } from '../model/guest-rules';
 import type { OrderDetailState } from '../model/useOrderDetail';
 import * as s from './OrderDetailOverlay.css';
 import { ReasonFields } from './ReasonFields';
+
+/**
+ * 입금 미확인 거절 안내(GUI `1029:7114` — 사유 아래 가운데 한 줄). 그 사유를 고르면 꼭 보인다 — 환불 요청이 생기지 않고 되돌릴 수 없다
+ * (백엔드 #929 B35). 주문 상세 거절 단계 · 표에서 거절(`RefuseOverlay`)이 같이 쓴다
+ */
+export function DepositUnconfirmedNote({ reasonType }: { reasonType: RefuseReasonKey | null }) {
+  if (!showsDepositUnconfirmedNote(reasonType)) return null;
+  return (
+    <Txt as="p" typography="bodyMd" color={colors.textPrimaryLabel} className={s.centerNote}>
+      <span data-testid="refuse-deposit-note">{REFUSE_DEPOSIT_UNCONFIRMED_NOTE}</span>
+    </Txt>
+  );
+}
 
 /** 거절 사유(GUI `1029:6920` · `1029:7114`) + 약관 안내 C-3(두둥 — 제29조③, 문구 그대로) */
 export function RefuseStep({ state }: { state: OrderDetailState }) {
@@ -33,11 +47,7 @@ export function RefuseStep({ state }: { state: OrderDetailState }) {
         textError={form.errors.reasonText}
         typeError={form.errors.reasonType}
       />
-      {REFUSE_DEPOSIT_UNCONFIRMED_SKIPS_REFUND && form.reasonType === 'DEPOSIT_UNCONFIRMED' && (
-        <Txt as="p" typography="bodyMd" color={colors.textPrimaryLabel} className={s.centerNote}>
-          {REFUSE_DEPOSIT_UNCONFIRMED_NOTE}
-        </Txt>
-      )}
+      <DepositUnconfirmedNote reasonType={form.reasonType} />
       {state.refuseConfirm.dudoongNotice && (
         <NoticeBox icon="important">
           <span data-testid="refuse-dudoong-notice">{state.refuseConfirm.dudoongNotice}</span>

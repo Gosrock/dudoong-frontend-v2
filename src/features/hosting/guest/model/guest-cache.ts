@@ -40,22 +40,25 @@ export function patchRefundRows(
   detail: HostOrderDetail,
 ) {
   const o = detail.order;
-  queryClient.setQueriesData<Page<RefundElement>>({ queryKey: hostRefundsKey(eventId) }, (page) =>
-    page
-      ? {
-          ...page,
-          content: page.content.map((r) =>
-            r.orderUuid === o.orderUuid
-              ? {
-                  ...r,
-                  status: o.status,
-                  refundStatus: o.refundStatus,
-                  refundStatusChangedAt: detail.refundStatusChangedAt,
-                }
-              : r,
-          ),
-        }
-      : page,
+  // 목록 키만(같은 접두 아래 건수 GF-1b `'counts'`는 모양이 다르다)
+  queryClient.setQueriesData<Page<RefundElement>>(
+    { queryKey: [...hostRefundsKey(eventId), 'list'] },
+    (page) =>
+      page
+        ? {
+            ...page,
+            content: page.content.map((r) =>
+              r.orderUuid === o.orderUuid
+                ? {
+                    ...r,
+                    status: o.status,
+                    refundStatus: o.refundStatus,
+                    refundStatusChangedAt: detail.refundStatusChangedAt,
+                  }
+                : r,
+            ),
+          }
+        : page,
   );
 }
 

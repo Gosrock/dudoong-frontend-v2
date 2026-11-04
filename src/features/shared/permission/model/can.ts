@@ -15,6 +15,8 @@ export const HOST_ACTIONS = {
   downloadExcel: 'MANAGER',
   /** QR 체크인, 셀프 체크인 QR 띄우기, 체크인 통계 */
   checkIn: 'GUEST',
+  /** 입장 취소(Q-3 — 입장 완료 → 입장 전, 백엔드 #929 · B37). 일반 멤버는 403 `HOST_400_1` */
+  cancelEntrance: 'MANAGER',
   /** 공연·티켓·옵션 쓰기(새 공연 만들기 포함) */
   editEvent: 'MANAGER',
   /** 호스트 설정·이미지 */

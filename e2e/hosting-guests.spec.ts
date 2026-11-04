@@ -129,6 +129,60 @@ test.describe('주문 처리', () => {
   });
 });
 
+test.describe('백엔드 #929 반영 — 일괄 API · 입장 취소', () => {
+  test('선택 바 [승인]은 일괄 API(R-7) 한 번으로 보내고 결과 건수를 보인다', async ({
+    page,
+    mockApi,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto(GUESTS);
+    await page.getByRole('checkbox', { name: '승인 대기 주문 모두 선택' }).click();
+    const post = page.waitForRequest(
+      (r) => r.method() === 'POST' && r.url().endsWith('/orders/approve'),
+    );
+    await page.getByTestId('selection-bar').getByRole('button', { name: '승인' }).click();
+    expect((await post).postDataJSON()).toEqual({
+      orderUuids: expect.arrayContaining([GUEST_ORDER.pendingTransfer, GUEST_ORDER.pendingToss]),
+    });
+    await expect(page.getByText('2건을 승인했어요.')).toBeVisible();
+    await expect(page.getByTestId('status-APPROVED')).toHaveText('승인 완료 4');
+    expect(
+      mockApi
+        .calls()
+        .filter((c) => c.method === 'POST')
+        .map((c) => c.path),
+    ).toEqual(['/api/v2/events/101/orders/approve']);
+  });
+
+  test('입장 완료 티켓 상세의 [입장 취소] → 확인 → Q-3, 입장 전으로', async ({ page, mockApi }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto(`${GUESTS}?tab=tickets`);
+    await page.getByTestId('ticket-row').filter({ hasText: 'T2000001' }).click();
+    const ticket = page.getByRole('dialog', { name: /T2000001/ });
+    await ticket.getByRole('button', { name: '입장 취소' }).click();
+    await page
+      .getByRole('alertdialog', { name: '입장 처리를 취소할까요?' })
+      .getByRole('button', { name: '입장 취소' })
+      .click();
+    await expect(ticket.getByTestId('ticket-detail-entrance')).toHaveText('입장 전');
+    expect(
+      mockApi
+        .calls()
+        .filter((c) => c.method === 'POST')
+        .map((c) => c.path),
+    ).toEqual([`/api/v2/events/101/issued-tickets/${GUEST_ORDER.approved}-t1/entrance/cancel`]);
+  });
+
+  test('일반 멤버에게는 [입장 취소]가 없다', async ({ page }) => {
+    actAsRole(11, 'GUEST');
+    await setMockSession(page, 'loggedIn');
+    await page.goto(`${GUESTS}?tab=tickets`);
+    await page.getByTestId('ticket-row').filter({ hasText: 'T2000001' }).click();
+    await expect(page.getByTestId('ticket-detail-entrance')).toHaveText('입장 완료');
+    await expect(page.getByRole('button', { name: '입장 취소' })).toHaveCount(0);
+  });
+});
+
 test.describe('권한 · 엑셀', () => {
   test('일반 멤버: 엑셀 버튼 없음, 검색 칸 완전 일치 안내, 상세의 가린 연락처 그대로, 처리 버튼 없음', async ({
     page,

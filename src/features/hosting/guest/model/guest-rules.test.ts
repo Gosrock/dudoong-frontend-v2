@@ -7,6 +7,7 @@ import {
   GIFT_PENDING_CHECK_IN_MESSAGE,
   guestsHref,
   guestsSearch,
+  hasCancelBlockingTicket,
   isDudoongOrder,
   isEventStarted,
   isGiftPending,
@@ -15,6 +16,10 @@ import {
   parseOrderParam,
   refundConfirmCopy,
   REFUSE_ERRORS,
+  SEARCH_EMPTY_EXACT_MESSAGE,
+  SEARCH_EMPTY_MESSAGE,
+  searchEmptyMessageOf,
+  showsDepositUnconfirmedNote,
   toCancelBody,
   toRefuseBody,
   validateRefuse,
@@ -64,8 +69,40 @@ describe('검색 안내 — 일반 멤버의 연락처·입금자명은 완전 �
     ['MANAGER', 'PHONE', null],
     ['MASTER', 'DEPOSITOR_NAME', null],
     ['UNKNOWN', 'PHONE', EXACT_MATCH_HINT],
+    // 주문 번호 · 티켓 번호는 개인정보가 아니라 부분 일치(#929 B36)
+    ['GUEST', 'ORDER_NO', null],
+    ['GUEST', 'TICKET_NO', null],
   ] as const)('%s · %s → %s', (role, type, hint) => {
     expect(exactMatchHintOf(role, type)).toBe(hint);
+  });
+
+  it('결과가 없을 때 — 일반 멤버의 연락처·입금자명 검색이면 전체 값 안내', () => {
+    expect(searchEmptyMessageOf('GUEST', 'PHONE')).toBe(SEARCH_EMPTY_EXACT_MESSAGE);
+    expect(searchEmptyMessageOf('GUEST', 'ORDER_NO')).toBe(SEARCH_EMPTY_MESSAGE);
+    expect(searchEmptyMessageOf('MANAGER', 'DEPOSITOR_NAME')).toBe(SEARCH_EMPTY_MESSAGE);
+  });
+});
+
+describe('승인 후 취소를 막는 티켓(#929 B35 — 입장 또는 선물)', () => {
+  it.each([
+    [[{ entrance: 'DONE', giftState: 'NONE' }], true],
+    [[{ entrance: 'BEFORE', giftState: 'PENDING' }], true],
+    [[{ entrance: 'BEFORE', giftState: 'ACCEPTED' }], true],
+    [[{ entrance: 'BEFORE', giftState: 'UNKNOWN' }], true],
+    [[{ entrance: 'BEFORE', giftState: 'NONE' }], false],
+    // 운영 2.5.3 — giftState가 없으면 입장만 본다
+    [[{ entrance: 'BEFORE' }], false],
+    [[{ entrance: 'DONE' }], true],
+    // 취소된 티켓은 보지 않는다
+    [[{ entrance: 'CANCELED', giftState: 'ACCEPTED' }], false],
+  ])('%j → %s', (tickets, blocked) => {
+    expect(hasCancelBlockingTicket(tickets)).toBe(blocked);
+  });
+
+  it('입금 미확인 거절 안내는 그 사유일 때만', () => {
+    expect(showsDepositUnconfirmedNote('DEPOSIT_UNCONFIRMED')).toBe(true);
+    expect(showsDepositUnconfirmedNote('SOLD_OUT')).toBe(false);
+    expect(showsDepositUnconfirmedNote(null)).toBe(false);
   });
 });
 
