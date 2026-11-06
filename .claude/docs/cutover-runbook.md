@@ -464,7 +464,7 @@ v2는 컷오버 때 `/home` · `/history/*` · `/ticket/*` · `/admin/*` 등에 
 | 무엇 | 선택지 |
 |---|---|
 | 프리즈 윈도우 날짜 · 시각 | §1 표. 정해지면 백엔드에 알린다 — PR ② · 롤백 nginx 이미지를 그때 같이 준비하고, 프리즈 · 백엔드 담당 대기 시간도 그때 맞춘다(#905 §1-3) |
-| 307 → 308로 바꾸는 시점 | **정함(Backend #939 답, 2026-11-06)**: 컷오버는 **307(임시)로 시작**(#142 — `next.config.ts`의 두 `permanent: false`). 컷오버 뒤 **일주일쯤 안정되면 308로** — 두 `permanent: false`를 `true`로 바꾼 패치 버전(`v2.0.x`, §6) + e2e `legacy-urls.spec` · `hosting.spec` "리다이렉트" · QA `integration` REG-4 기대값 307 → 308. 남은 결정은 "안정"을 언제로 볼지(사람). 308로 바꾼 뒤의 롤백은 §5-3 끝 |
+| 307 → 308로 바꾸는 시점 | **정함(Backend #939 답, 2026-11-06)**: 컷오버는 **307(임시)로 시작**(#143 — `next.config.ts`의 두 `permanent: false`). 컷오버 뒤 **일주일쯤 안정되면 308로** — 두 `permanent: false`를 `true`로 바꾼 패치 버전(`v2.0.x`, §6) + e2e `legacy-urls.spec` · `hosting.spec` "리다이렉트" · QA `integration` REG-4 기대값 307 → 308. 남은 결정은 "안정"을 언제로 볼지(사람). 308로 바꾼 뒤의 롤백은 §5-3 끝 |
 | CSP 강제 전환(`CSP_ENFORCE=1`) | 리허설 때 스테이징 `csp.violation` 0 확인 뒤. 업로드 한 번으로 S3 presigned 실제 호스트를 확인한다(아래) |
 
 ## 정해진 것(2026-11-01, Backend #905)
