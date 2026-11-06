@@ -19,6 +19,7 @@ const TABLE: Row[] = [
   ['manageMembers', false, true, true, true],
   ['manageManagers', false, false, true, false],
   ['manageOrders', false, true, true, true],
+  ['cancelEvent', false, false, true, true],
   ['changeMemberRole', false, false, true, true],
   ['transferMaster', false, false, true, false],
 ];

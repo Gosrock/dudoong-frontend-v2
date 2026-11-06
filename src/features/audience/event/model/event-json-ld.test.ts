@@ -37,6 +37,14 @@ describe('공연 구조화 데이터(schema.org/Event)', () => {
     expect(JSON.stringify(eventJsonLd(event101, urls))).not.toMatch(/offers|price|remaining/);
   });
 
+  it('호스트가 취소한 공연(canceledAt, E-11)은 EventCancelled — 필드가 없거나 null이면 예정', () => {
+    expect(ld({ canceledAt: '2026.11.07 14:30', cancelReason: '공연장 사정' }).eventStatus).toBe(
+      'https://schema.org/EventCancelled',
+    );
+    expect(ld({ canceledAt: null }).eventStatus).toBe('https://schema.org/EventScheduled');
+    expect(ld({ canceledAt: undefined }).eventStatus).toBe('https://schema.org/EventScheduled');
+  });
+
   it('종료가 없으면 시작 + 러닝타임(분), 둘 다 없거나 0분이면 endDate 없음', () => {
     expect(ld({ endAt: null, runTime: 90 }).endDate).toBe('2026-11-21T20:30:00+09:00');
     expect(ld({ endAt: null, runTime: null })).not.toHaveProperty('endDate');

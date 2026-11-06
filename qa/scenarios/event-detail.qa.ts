@@ -1,5 +1,7 @@
 import { setMockSession } from '../../e2e/support/auth';
 import { eventDetailHandlers } from '../../src/api/__mocks__/event-detail.handlers';
+import { saveStoredEvent, storedEvent } from '../../src/api/__mocks__/event-store';
+import { resetHostingStore } from '../../src/api/__mocks__/hosting.handlers';
 import { envelope, expect, scenario } from '../scenario';
 
 /**
@@ -336,3 +338,35 @@ scenario.manual('EVT-10', '실기기에서 카카오톡 공유창이 열리고 �
   basis: ['plan P5b 완료 기준 L 카카오 공유 디버거(D2 뒤)', 'patterns §14'],
   how: 'D2 스테이징에서 공연 상세 [공유하기] → [카카오톡]을 눌러 카카오톡 공유창이 뜨는지, [다른 앱으로 공유]가 기본 공유 시트를 여는지, 카카오 공유 디버거에 공개 URL을 넣어 제목·이미지를 본다.',
 });
+
+scenario(
+  'EVT-10',
+  '호스트가 취소한 공연(E-11) — 취소 안내 · 사유, 티켓 옵션 · [티켓 구매하기] 없음',
+  {
+    kind: '빈 상태',
+    summary:
+      'GP-3 `canceledAt` · `cancelReason`(Api 2.5.8)이 있으면 제목 아래 회색 상자 "호스트가 취소한 공연이에요" + 사유. 티켓 카드 · 구매 버튼을 그리지 않는다(문의는 남는다). 디자인 없음 — design-requests Q125.',
+    basis: ['이슈 #136 §7', '백엔드 #932 V2EventDetailResponse', 'design-requests Q125'],
+  },
+  async ({ page, step }) => {
+    resetHostingStore();
+    const e = storedEvent(101)!;
+    saveStoredEvent({
+      ...e,
+      canceledAt: '2026.11.07 14:30',
+      cancelReason: '공연장 사정으로 공연을 취소합니다',
+    });
+    try {
+      await step('취소 안내와 사유가 보이고 구매 버튼 · 티켓 옵션이 없다', async () => {
+        await page.goto(EVENT);
+        const notice = page.getByTestId('event-canceled');
+        await expect(notice).toContainText('호스트가 취소한 공연이에요');
+        await expect(notice).toContainText('취소 사유: 공연장 사정으로 공연을 취소합니다');
+        await expect(page.getByRole('button', { name: '티켓 구매하기' })).toHaveCount(0);
+        await expect(page.getByRole('heading', { name: '티켓 옵션' })).toHaveCount(0);
+      });
+    } finally {
+      resetHostingStore();
+    }
+  },
+);

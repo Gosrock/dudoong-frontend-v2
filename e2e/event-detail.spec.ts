@@ -2,7 +2,9 @@ import type { Page } from '@playwright/test';
 import { http } from 'msw';
 
 import { eventDetailHandlers } from '@/api/__mocks__/event-detail.handlers';
+import { saveStoredEvent, storedEvent } from '@/api/__mocks__/event-store';
 import { MISSING_EVENT_ID } from '@/api/__mocks__/fixtures/event';
+import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 
 import { setMockSession } from './support/auth';
 import { KAKAO_SCRAP_UA, MOCK_ORIGIN } from './support/env';
@@ -267,4 +269,27 @@ test.describe('공연 상세 — 문의처(사용자별 값)', () => {
     await expect(contacts.getByRole('link', { name: /\*/ })).toHaveCount(0);
     expect(seen).toEqual([{ from: 'server', cookie: false }]);
   });
+});
+
+test.describe('취소된 공연(E-11 canceledAt) — 공연 상세', () => {
+  test.beforeEach(resetHostingStore);
+  test.afterEach(resetHostingStore);
+
+  for (const width of [390, 1440]) {
+    test(`${width}: "호스트가 취소한 공연" 안내 · 사유, 티켓 옵션 · [티켓 구매하기] 없음, 구조화 데이터 EventCancelled`, async ({
+      page,
+    }) => {
+      const e = storedEvent(101)!;
+      saveStoredEvent({ ...e, canceledAt: '2026.11.07 14:30', cancelReason: '공연장 사정' });
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/events/101');
+      const notice = page.getByTestId('event-canceled');
+      await expect(notice).toContainText('호스트가 취소한 공연이에요');
+      await expect(notice).toContainText('취소 사유: 공연장 사정');
+      await expect(page.getByRole('button', { name: '티켓 구매하기' })).toHaveCount(0);
+      await expect(page.getByRole('heading', { name: '티켓 옵션' })).toHaveCount(0);
+      const ld = await page.locator('script[type="application/ld+json"]').first().textContent();
+      expect(ld).toContain('https://schema.org/EventCancelled');
+    });
+  }
 });

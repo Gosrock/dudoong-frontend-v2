@@ -27,6 +27,11 @@ export const HOST_ACTIONS = {
   manageManagers: 'MASTER',
   /** 주문 승인·거절·승인 후 취소·환불 완료 */
   manageOrders: 'MANAGER',
+  /**
+   * 공연 취소(E-11 — 남은 주문 일괄 거절 · 취소, 백엔드 #932 · 이슈 #136 §7). `@HostRolesAllowed(MASTER)`라 매니저 이하는 403
+   * `HOST_400_4`. SUPER_ADMIN은 건너뛴다(도메인 규칙이 요청자를 다시 보지 않는다 — `V2CancelEventUseCase`)
+   */
+  cancelEvent: 'MASTER',
   /** 역할 변경(일반 ↔ 매니저) */
   changeMemberRole: 'MASTER',
   /** 마스터 양도 */

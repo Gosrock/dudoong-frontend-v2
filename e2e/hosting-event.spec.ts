@@ -348,3 +348,45 @@ test.describe('공연 삭제 — 준비중 카드 ⋮', () => {
     await expect(page.getByRole('button', { name: '공연 메뉴' })).toHaveCount(0);
   });
 });
+
+test.describe('공연 취소 E-11(Api 2.5.8) — 대시보드 맨 아래', () => {
+  test('마스터: 사유 없이는 보내지 않고, 사유를 넣어 취소하면 "취소된 공연" 안내 · 결과', async ({
+    page,
+    mockApi,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/events/101/dashboard');
+    const section = page.getByTestId('event-cancel');
+    await section.getByRole('button', { name: '공연 취소하기' }).click();
+    const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
+    await expect(dialog).toContainText('되돌릴 수 없어요');
+    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+    await expect(dialog).toContainText('취소 사유를 입력해 주세요.');
+    expect(mockApi.calls().filter((c) => c.method === 'POST')).toEqual([]);
+
+    await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
+    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    const notice = page.getByTestId('event-canceled');
+    await expect(notice).toContainText('취소된 공연이에요.');
+    await expect(notice).toContainText('취소 사유: 공연장 사정');
+    await expect(page.getByTestId('event-cancel-result')).toContainText('건을 거절하고');
+    await expect(section).toHaveCount(0);
+    // 남은 주문이 없으면 [남은 주문 다시 처리]를 숨긴다
+    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+    expect(
+      mockApi
+        .calls()
+        .filter((c) => c.method === 'POST')
+        .map((c) => [c.path, c.status]),
+    ).toEqual([['/api/v2/events/101/cancel', 200]]);
+  });
+
+  test('매니저 · 일반 멤버에게는 [공연 취소하기]가 없다', async ({ page }) => {
+    actAsRole(11, 'MANAGER');
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/events/101/dashboard');
+    await expect(page.getByTestId('dashboard-registered')).toBeVisible();
+    await expect(page.getByTestId('event-cancel')).toHaveCount(0);
+  });
+});

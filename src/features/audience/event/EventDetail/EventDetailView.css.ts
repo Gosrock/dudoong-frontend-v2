@@ -2,6 +2,7 @@ import { style } from '@vanilla-extract/css';
 
 import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
+import { colors } from '@/ui/theme/colors';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -215,4 +216,17 @@ export const tabList = style({
   overflowY: 'hidden',
   scrollbarWidth: 'none',
   selectors: { '&::-webkit-scrollbar': { display: 'none' } },
+});
+
+/**
+ * 취소된 공연 안내(E-11 — 이슈 #136 §7). 디자인 · 와이어 없음(design-requests Q125) — 회색 상자 + 빨간 제목 한 줄 + 사유.
+ * 제목 아래, 모바일 · PC 같은 DOM
+ */
+export const canceledNotice = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[1],
+  padding: vars.space[4],
+  borderRadius: vars.radius[2],
+  background: colors.surfaceContainer,
 });

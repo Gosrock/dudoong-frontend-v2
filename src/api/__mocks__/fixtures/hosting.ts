@@ -72,6 +72,7 @@ export const toMyEvent = (e: MockEvent, myRole: MockMembership['myRole']): MyEve
   status: e.status,
   displayStatus: e.displayStatus,
   dDay: e.dDay,
+  canceledAt: e.canceledAt ?? null,
 });
 
 /** PH-2로 만든 호스트가 받는 id의 시작값(fixture id와 겹치지 않게) */

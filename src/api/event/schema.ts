@@ -109,6 +109,22 @@ export const EventListItemSchema = z.object({
 export const EventListPageSchema = pageSchema(EventListItemSchema);
 export type EventListItem = z.infer<typeof EventListItemSchema>;
 
+// ─── 공연 취소 표시 (E-11, Api 2.5.8) ─────────────────────────
+
+/**
+ * 호스트가 취소한 공연(E-11, 백엔드 #932 · 이슈 #136 §7). **상태(`status`)는 OPEN 그대로**이고 `canceledAt`이 있으면 취소된 공연이다.
+ * GP-3 · GE-3에 둘 다, GE-1 카드에는 `canceledAt`만 온다. 운영 2.5.3에는 없는 필드라 `optional`(없으면 취소 안 됨으로 본다).
+ */
+const eventCancelFields = {
+  /** 처음 취소한 시각. 취소 안 됐으면 null(2.5.3은 필드 없음) */
+  canceledAt: kstDateTime.nullable().optional(),
+  /** 취소 사유(1~100자). 취소 안 됐으면 null */
+  cancelReason: z.string().nullable().optional(),
+};
+
+/** 취소된 공연인지 — `canceledAt`만 본다(상태는 OPEN 그대로) */
+export const isEventCanceled = (event: { canceledAt?: string | null }) => !!event.canceledAt;
+
 // ─── 공연 상세 (GP-3) ────────────────────────────────────────
 
 export const EventHostSummarySchema = z.object({
@@ -134,6 +150,7 @@ export const EventDetailSchema = z.object({
   /** 공연 문의처. 없으면 호스트 연락처 */
   contacts: z.array(ContactSchema),
   displayStatus: EventDisplayStatusSchema,
+  ...eventCancelFields,
 });
 export type EventDetail = z.infer<typeof EventDetailSchema>;
 
@@ -178,6 +195,8 @@ export const MyEventSchema = z.object({
   displayStatus: EventDisplayStatusSchema,
   /** D-n의 n(당일 0). UPCOMING일 때만, 아니면 null */
   dDay: z.number().int().nullable(),
+  /** 공연 취소 시각(E-11, 2.5.8 — 상태는 OPEN 그대로). 취소 안 됐으면 null, 2.5.3은 필드 없음 */
+  canceledAt: eventCancelFields.canceledAt,
 });
 export const MyEventPageSchema = pageSchema(MyEventSchema);
 export type MyEvent = z.infer<typeof MyEventSchema>;
@@ -250,6 +269,7 @@ export const EventManageSchema = z.object({
   /** 최초 등록 시각(#802). 준비중이거나 2026-10 이전 오픈이면 null(design-requests Q43) */
   openedAt: kstDateTime.nullable(),
   checklist: EventChecklistSchema,
+  ...eventCancelFields,
 });
 export type EventManage = z.infer<typeof EventManageSchema>;
 
@@ -323,3 +343,31 @@ export const EventStatusResultSchema = z.object({
   status: EventStatusSchema,
   displayStatus: EventDisplayStatusSchema,
 });
+
+// ─── 공연 취소 (E-11, Api 2.5.8) ─────────────────────────────
+
+/** 취소 사유 길이(`V2CancelEventRequest` — 앞뒤 공백 제외 1~100자, 아니면 `Event_400_31`) */
+export const EVENT_CANCEL_REASON_MAX = 100;
+
+/** E-11 `POST /events/{eventId}/cancel` 본문 */
+export type CancelEventRequest = { reason: string };
+
+/**
+ * E-11 응답(`V2EventCancelResponse`). 개수는 **이번 호출**에서 처리한 것이다. `remaining`(아직 남은 거절·취소 대상 — 실패 +
+ * 한 번에 처리하는 상한 100건을 넘은 주문)이나 `failed`가 0보다 크면 같은 API를 다시 부른다(멱등 — 남은 주문만 처리).
+ */
+export const EventCancelResultSchema = z.object({
+  eventId: z.number().int(),
+  canceledAt: kstDateTime.nullable(),
+  cancelReason: z.string().nullable(),
+  /** 이번에 거절한 승인 대기 주문 수 */
+  refused: z.number().int(),
+  /** 이번에 취소한 승인·결제 완료 주문 수 */
+  canceled: z.number().int(),
+  /** 이번에 처리하지 못한 주문 수 */
+  failed: z.number().int(),
+  failedOrderUuids: z.array(z.string()),
+  /** 아직 남은 대상 주문 수 */
+  remaining: z.number().int(),
+});
+export type EventCancelResult = z.infer<typeof EventCancelResultSchema>;

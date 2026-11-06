@@ -1,6 +1,7 @@
 import { http } from 'msw';
 
 import {
+  EVENT_CANCEL_REASON_MAX,
   EVENT_CONTACT_VALUE_MAX,
   EVENT_CONTACTS_MAX,
   EVENT_NAME_MAX,
@@ -18,6 +19,7 @@ import { isKstDateTime } from '../shared/date';
 import {
   checklistOf,
   createStoredEvent,
+  eventCancelScenario,
   hasValidTicketOf,
   isChecklistFilled,
   mockNow,
@@ -28,6 +30,7 @@ import {
 } from './event-store';
 import { knownTagIds, tagGroups } from './fixtures/event';
 import { hosts } from './fixtures/host';
+import { withdrawGuestOrdersForEventCancel } from './guest-store';
 import { mockUserRoleIn } from './host-store';
 import { createdHostOf } from './hosting.handlers';
 import { errors, fail, MOCK_IMAGE_ORIGIN, ok, readId, requireAuth } from './respond';
@@ -49,6 +52,8 @@ const notMember = (request: Request) =>
   fail(request, 403, 'HOST_400_2', '해당 호스트에 대한 접근 권한이 없습니다.');
 const notManager = (request: Request) =>
   fail(request, 403, 'HOST_400_1', '매니저 권한이 없는 유저입니다.');
+const notMaster = (request: Request) =>
+  fail(request, 403, 'HOST_400_4', '마스터 호스트 권한이 없는 유저입니다.');
 
 /** 공연 에러 코드(`EventErrorCode`, 432cce4) */
 export const EVENT_ERROR_REASONS = {
@@ -66,6 +71,11 @@ export const EVENT_ERROR_REASONS = {
   Event_400_23: '태그가 올바르지 않습니다.',
   Event_400_24: '등록된 공연의 시작 시각은 현재 이후여야 합니다.',
   Event_400_25: '티켓이 있는 공연은 티켓 없음으로 바꿀 수 없습니다.',
+  // E-11 공연 취소(Api 2.5.8, 백엔드 #932)
+  Event_400_28: '준비중인 공연은 취소 대신 삭제해 주세요.',
+  Event_400_29: '이미 시작했거나 끝난 공연은 취소할 수 없습니다.',
+  Event_400_30: '취소된 공연입니다.',
+  Event_400_31: '취소 사유는 1~100자로 입력해 주세요.',
 } as const;
 export type EventErrorCode = keyof typeof EVENT_ERROR_REASONS;
 const eventError = (request: Request, code: EventErrorCode) =>
@@ -107,7 +117,48 @@ export function toManage(e: StoredEvent, myRole: HostRole | null): EventManage {
     dDay: e.dDay,
     openedAt: e.openedAt,
     checklist: checklistOf(e),
+    canceledAt: e.canceledAt ?? null,
+    cancelReason: e.cancelReason ?? null,
   };
+}
+
+// ─── E-11 공연 취소(Api 2.5.8, 백엔드 #932) ──────────────────
+
+/**
+ * E-11 — 검사 순서(`V2EventCancelDomainService.markCanceled`): 권한(MASTER) → 이미 취소면 표시 · 사유 검사를 건너뜀(멱등) →
+ * 준비중 `Event_400_28` → 시작 · 정산중 · 지난 공연 `Event_400_29` → 사유(trim 1~100) `Event_400_31` → 표시. 그다음 주문 처리
+ */
+async function cancelEvent(request: Request, cookies: Record<string, string>, raw: unknown) {
+  const g = guard(request, cookies, raw, 'GUEST');
+  if ('response' in g) return g.response;
+  if (g.myRole !== 'MASTER') return notMaster(request);
+  const body = (await request.json().catch(() => null)) as { reason?: unknown } | null;
+  let event = g.event;
+  if (!event.canceledAt) {
+    if (event.status === 'PREPARING') return eventError(request, 'Event_400_28');
+    if (event.status !== 'OPEN' || !event.startAt || event.startAt <= mockNow()) {
+      return eventError(request, 'Event_400_29');
+    }
+    const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+    if (reason.length < 1 || reason.length > EVENT_CANCEL_REASON_MAX) {
+      return eventError(request, 'Event_400_31');
+    }
+    event = { ...event, canceledAt: mockNow(), cancelReason: reason };
+    saveStoredEvent(event);
+  }
+  const result = withdrawGuestOrdersForEventCancel(event.eventId, event.cancelReason ?? '', {
+    ...eventCancelScenario(),
+  });
+  return ok({
+    eventId: event.eventId,
+    canceledAt: event.canceledAt ?? null,
+    cancelReason: event.cancelReason ?? null,
+    refused: result.refused,
+    canceled: result.canceled,
+    failed: result.failed.length,
+    failedOrderUuids: result.failed,
+    remaining: result.remaining,
+  });
 }
 
 /**
@@ -425,6 +476,11 @@ export const hostingEventHandlers = [
     return ok({ eventId: e.eventId, status: 'OPEN', displayStatus: 'UPCOMING' });
   }),
 
+  // E-11
+  http.post('*/api/v2/events/:eventId/cancel', ({ request, params, cookies }) =>
+    cancelEvent(request, cookies, params.eventId),
+  ),
+
   // DE-9
   http.delete('*/api/v2/events/:eventId', ({ request, params, cookies }) => {
     const g = guard(request, cookies, params.eventId, 'MANAGER');
@@ -462,6 +518,16 @@ export const hostingEventSets = {
   /** DE-9가 이 코드로 실패한다 */
   deleteFails: (eventId: number, code: EventErrorCode) => [
     http.delete(eventPath(eventId), ({ request }) => eventError(request, code)),
+  ],
+  /** E-11이 이 코드로 실패한다(저장소는 그대로) */
+  cancelFails: (eventId: number, code: EventErrorCode) => [
+    http.post(eventPath(eventId, '/cancel'), ({ request }) => eventError(request, code)),
+  ],
+  /** E-11이 없다(운영 2.5.3 — 404) */
+  cancelUnsupported: (eventId: number) => [
+    http.post(eventPath(eventId, '/cancel'), ({ request }) =>
+      fail(request, 404, 'NOT_FOUND', 'Not Found'),
+    ),
   ],
   /** GE-3 5xx */
   manageServerError: (eventId: number) => [

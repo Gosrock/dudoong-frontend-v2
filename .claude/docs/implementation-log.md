@@ -2903,3 +2903,31 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2577개 + 새 테스트(host-invitation-api 12 · invitation-rules 12 · useHostInvitation 10) 통과. e2e(빌드) host-invitation 16 · hosting-host · security · legal · legacy-urls · hosting · seo · a11y · a11y-keyboard · checkout · event-detail · home · host-home · mypage · notifications · hosting-event 모두 통과. QA host-invitation 14 · host-settings 34 · hosting-home 18 · mypage 33 · checkout 31 · event-detail 18 — 실패 0.
 
 **ego-browser 확인(2026-11-04, dev:mock 3093 · `localhost`)**: 멤버 390(초대 대기 3줄 · [취소]) → 초대 팝업 미가입 사유 + [초대 링크 만들기] → "초대 링크를 만들었어요"(전체 주소 · 만료 · [링크 복사]) · 수락 화면 390 · 1440(주소창 `/host-invitations` — 토큰 없음) → [수락하기] → "소음공작소에 합류했어요 · 내 역할: 일반 멤버" · 주문상세 1440 취소 시트(새 본문, 계좌 칸 위 임시 줄 없음). 발견: 없음.
+
+## 이슈 #136 §7 공연 취소 E-11(2026-11-07, `backend-136-cancel`)
+
+근거: 이슈 #136 §7과 팀원 댓글(2026-11-06 — Api 2.5.8 스테이징, Deploy#104), 백엔드 PR #932(`ed8a23c` — `V2CancelEventUseCase` · `V2CancelEventRequest` · `V2EventCancelResponse` · `V2EventDetailResponse` · `V2EventManageResponse` · `V2MyEventResponse` · `EventErrorCode`)의 코드. **운영은 2.5.3**(컷오버 때) — 새 필드는 zod `optional`, E-11이 404면 안내만. 병렬 세션 `backend-142-copy`와 파일을 나눴다.
+
+**바꾼 것**
+
+- API — `event/schema`: GP-3 · GE-3 `canceledAt?` · `cancelReason?`, GE-1 `canceledAt?`, `isEventCanceled`(상태는 OPEN 그대로 — `canceledAt`만 본다), `EVENT_CANCEL_REASON_MAX` 100, `EventCancelResultSchema`. `event/mutations`: `cancelEventMutation`(시간 제한 60초 — 서버가 주문마다 락 · 비동기 큐 대기).
+- 권한 — `can`에 `cancelEvent: 'MASTER'`(SUPER_ADMIN 통과 — 유스케이스가 요청자를 다시 보지 않는다).
+- 호스팅 — `features/hosting/event/model/event-cancel.ts`(`canCancelEvent` = 마스터 + OPEN + `displayStatus` UPCOMING + 취소 안 됨, 사유 검사, 코드 문구, `cancelResultSummary`), `useEventCancel`(간단한 폼 `useState` + 순수 함수, 결과 · 다시 처리, 에러: 403 → GE-3 다시 읽기, `Event_400_28`·`_29` → 안내 + GE-3, `_31` → 칸 오류, 404 → 안내, 응답 없음 → GE-3 다시 읽기 + [다시 처리] 안내. 캐시: GE-3에 `canceledAt` 먼저 넣고 `['events', id]` 접두(관리 · 대시보드 · 주문 · 환불 · 발급 티켓 · 공개 상세 · 재고) · GP-1 · GP-2 · GE-1 · 내 주문 · 내 티켓 무효화). V: `ui/EventCancelSection` — 대시보드(등록 후) 머리 아래 `CanceledEventNotice`(노란 안내 · 결과 · [남은 주문 다시 처리]) + 맨 아래 [공연 취소하기] → `ResponsiveOverlay`(안내 + `TextArea` 100자 + [돌아가기][공연 취소]) → 토스트 "공연을 취소했어요.". 상태 칩 `eventChipOf` — `canceledAt`이면 "취소됨"(grey fill — 공연준비 홈 카드 · 사이드바 · 대시보드 포스터).
+- 관객 — 공연 상세: `canceledAt`이면 제목 아래 "호스트가 취소한 공연이에요" + 사유, 티켓 옵션 카드(모바일) · `TicketSelector`(PC) · [티켓 구매하기](둘 다) · 시트를 그리지 않는다(문의는 남김). JSON-LD `eventStatus` `EventCancelled`. 체크아웃 `CHECKOUT_ERROR_TABLE`에 `Event_400_30`(공연 상세로 + 토스트 "호스트가 취소한 공연이라 예매할 수 없어요.").
+- 가짜 백엔드 — E-11(검사 순서: 마스터 아님 403 `HOST_400_4` → 이미 취소면 표시 · 사유 건너뜀 → 준비중 `_28` → 시작 · 정산 · 지난 `_29` → 사유 `_31`), 주문 처리 `withdrawGuestOrdersForEventCancel`(guest-store 끝에 덧붙임 — 오래된 순 · 상한 · 한 번 실패), 시나리오 `setEventCancelScenario({limit, failOnce})`(event-store, `seed()`가 되돌림), 세트 `cancelFails` · `cancelUnsupported`, GE-3 · GP-3 · GE-1 필드, GP-1 · GP-2에서 취소 공연 빼기, GP-5 `isPurchasable=false`, O-1 `Event_400_30`(order.handlers에 한 줄).
+- 문서 — api-contract(E-11 표 · 절), error-codes(`Event_400_28`~`_31`), backend-questions(B33① 답 · B44), design-requests Q122~Q125, gui-screens(대시보드 등록 후 줄), progress.
+
+**🤖 판단**
+
+- 자리: 대시보드(등록 후) 맨 아래 — 공연 하나를 다루는 첫 화면이고 GUI · 와이어 모두 없다(두 파일 텍스트 검색 0건). 되돌리려면 `RegisteredWithCancel`에서 두 컴포넌트를 빼면 된다.
+- 확인은 `openConfirm`이 아니라 사유 입력 오버레이 하나(이슈가 허용한 "사유 입력 오버레이") — 안내 문구를 오버레이 위에.
+- 취소된 공연에서 마스터에게 [남은 주문 다시 처리]를 늘 보인다(GE-3에 남은 수가 없어서 — B44). 이 화면에서 받은 결과가 "남은 것 없음"이면 숨긴다.
+- 응답을 받지 못하면(TIMEOUT · NETWORK) 오버레이를 닫고 GE-3을 다시 읽어 [남은 주문 다시 처리]로 잇게 했다(같은 API가 멱등).
+- "취소됨" 칩은 grey fill(지난 공연 grey weak와 구분), 관객 안내는 회색 상자 + 빨간 제목.
+- 범위 밖: 선물 보내기/받기 `Event_400_30` 문구(마이페이지 · 티켓탭 — 병렬 세션 소유)는 공용 토스트(`reason` "취소된 공연입니다.")로 둔다.
+
+**Figma 코멘트(디자인 없음, 2026-11-07)**: GUI `748:33140`(등록 후 유의사항 — 공연 취소 자리 · 확인 창 · 취소 표시 · 칩) · 와이어 `121:1216`(공연 상세 — 취소 표시 · 구매 버튼).
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2677개 통과(새 `event-cancel.test` 20 · `useEventCancel.test` 9 · `event-manage-api.test` E-11 5 · json-ld · can · checkout 표). e2e(빌드) `hosting-event` · `event-detail` · `checkout` 87 통과(새 5 — 취소 흐름 · 매니저 버튼 없음 · 상세 390/1440 · 체크아웃 `Event_400_30`). QA `hosting-event` 24(새 HE-12 · HE-13) · `event-detail` 20(새 EVT-10) · `checkout` 31 — 실패 0.
+
+**ego-browser 확인(2026-11-07, dev:mock 3095 · `localhost`)**: 대시보드 101 1440(맨 아래 "공연 취소" · [공연 취소하기]) → 모바일 폭 시트(빈 사유 칸 오류 → 사유 입력 → 취소) → 머리 아래 노란 안내 · 결과 줄 · 포스터 칩 "취소됨" · 통계 카드 갱신 · 토스트, 새로 열면 [남은 주문 다시 처리]. 공연준비 홈 카드 칩 "취소됨". 관객 공연 상세 390 · 1440(취소 안내 · 사유, 티켓 옵션 · 구매 버튼 없음). 발견: 없음.

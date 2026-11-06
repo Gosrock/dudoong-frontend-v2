@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useId, useLayoutEffect, useState } from 'react';
 
-import type { EventDetail } from '@/api/event/schema';
+import { type EventDetail, isEventCanceled } from '@/api/event/schema';
 import { eventWeek } from '@/features/audience/event/model/week-calendar';
 import { hostHref } from '@/features/shared/routes';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
@@ -47,6 +47,9 @@ export function EventDetailView({ eventId }: { eventId: string }) {
   const mobileTicketsId = `${ids}-tickets-m`;
   const desktopTicketsId = `${ids}-tickets-d`;
   const hasContacts = event.contacts.length > 0;
+  // 호스트가 취소한 공연(E-11 `canceledAt`)은 티켓 옵션 · [티켓 구매하기]를 그리지 않는다(이슈 #136 §7 — 상세는 열린다)
+  const canceled = isEventCanceled(event);
+  const sellsTickets = event.hasTicket && !canceled;
   const openContacts = () => openEventContacts(eventId, event.host);
   const share = () => shareEvent(event);
   const router = useRouter();
@@ -93,6 +96,8 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               <Txt as="h1" typography="headingXl">
                 {title}
               </Txt>
+
+              {canceled && <CanceledNotice reason={event.cancelReason ?? null} />}
 
               {/* 모바일 — 해시태그 칩 + 아이콘 행(와이어 121:1216) */}
               <div className={`${s.infoRows} ${s.mobileOnly}`}>
@@ -180,7 +185,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
             </div>
           </section>
 
-          {event.hasTicket && (
+          {sellsTickets && (
             <section className={`${s.card} ${s.mobileOnly}`} aria-labelledby={mobileTicketsId}>
               <Txt as="h2" typography="headingSmEmphasized">
                 <span id={mobileTicketsId}>티켓 옵션</span>
@@ -210,7 +215,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
         {/* PC 오른쪽 고정 카드(와이어 640:1957) */}
         <aside className={s.aside} aria-label="예매">
           <WeekCalendar startAt={event.startAt} />
-          {event.hasTicket && (
+          {sellsTickets && (
             <>
               <Txt as="h2" typography="headingMdEmphasized">
                 <span id={desktopTicketsId}>티켓 옵션</span>
@@ -226,7 +231,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               aria-label="공유하기"
               onClick={share}
             />
-            {event.hasTicket && (
+            {sellsTickets && (
               <Button
                 variant="primary"
                 size="lg"
@@ -242,7 +247,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
       </div>
 
       {/* 모바일 하단 고정 바 — PC에서는 CSS로 숨긴다 */}
-      {(hasContacts || event.hasTicket) && (
+      {(hasContacts || sellsTickets) && (
         <>
           <div className={s.bottomSpacer} aria-hidden />
           <div className={s.bottomBar}>
@@ -255,7 +260,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
                 onClick={openContacts}
               />
             )}
-            {event.hasTicket && (
+            {sellsTickets && (
               <Button
                 variant="primary"
                 size="lg"
@@ -271,7 +276,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
         </>
       )}
 
-      {sheet !== 'closed' && (
+      {sheet !== 'closed' && sellsTickets && (
         <TicketSheet
           open={sheet === 'open'}
           onOpenChange={setSheetOpen}
@@ -281,6 +286,25 @@ export function EventDetailView({ eventId }: { eventId: string }) {
         />
       )}
     </Container>
+  );
+}
+
+/** 취소된 공연 안내 — 디자인 없음(Q125). 사유는 호스트가 입력한 값(1~100자) */
+function CanceledNotice({ reason }: { reason: string | null }) {
+  return (
+    <div className={s.canceledNotice} role="status" data-testid="event-canceled">
+      <Txt as="p" typography="headingSmEmphasized" color={colors.textDangerLabel}>
+        호스트가 취소한 공연이에요
+      </Txt>
+      {reason && (
+        <Txt as="p" typography="bodyMd">
+          취소 사유: {reason}
+        </Txt>
+      )}
+      <Txt as="p" typography="bodyMd" color={colors.textSecondary}>
+        티켓을 판매하지 않아요. 예매한 주문은 모두 거절·취소돼요.
+      </Txt>
+    </div>
   );
 }
 

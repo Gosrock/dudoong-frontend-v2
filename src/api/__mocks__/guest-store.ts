@@ -1009,3 +1009,54 @@ export function dashboardOf(eventId: number): Dashboard | null {
     openedAt: e.openedAt,
   };
 }
+
+/**
+ * E-11 공연 취소의 주문 처리(백엔드 `V2EventCancelDomainService.withdrawOrder`, #932). 남은 주문(승인 대기 · 승인)을 오래된 순으로
+ * `limit`건까지: 승인 대기 → 거절(기타, "공연 취소: {사유}"), 승인 → 호스트 취소(같은 문구). 결제 금액이 있으면 환불 요청.
+ * PR-5와 달리 입장 · 선물 티켓이 있어도 취소하고 시작 시각 · 공연 상태는 보지 않는다. `failOnce`에 든 주문은 이번에 실패로 남긴다
+ * (시나리오 — 다시 처리). 돌려주는 것은 이번 호출의 개수와 남은 대상 수
+ */
+export function withdrawGuestOrdersForEventCancel(
+  eventId: number,
+  reason: string,
+  options: { limit: number; failOnce: Set<string> },
+) {
+  const text = `공연 취소: ${reason}`.slice(0, 100);
+  const targets = () =>
+    guestOrdersOf(eventId)
+      .filter((o) => o.status === 'PENDING_APPROVE' || o.status === 'APPROVED')
+      .sort((a, b) => a.seq - b.seq);
+  let refused = 0;
+  let canceled = 0;
+  const failed: string[] = [];
+  for (const o of targets().slice(0, options.limit)) {
+    if (options.failOnce.delete(o.orderUuid)) {
+      failed.push(o.orderUuid);
+      continue;
+    }
+    const now = mockNow();
+    const paid = o.totalAmount > 0;
+    const pending = o.status === 'PENDING_APPROVE';
+    const next: StoredGuestOrder = {
+      ...o,
+      status: pending ? 'REFUSED' : 'CANCELED',
+      canceledBy: 'HOST',
+      refuseReasonType: pending ? 'ETC' : o.refuseReasonType,
+      reasonText: text,
+      withdrawnAt: now,
+      refundStatus: paid ? 'REQUESTED' : 'NONE',
+      refundStatusChangedAt: paid ? now : o.refundStatusChangedAt,
+      issuedTickets: o.issuedTickets.map((t) => ({ ...t, entrance: 'CANCELED' })),
+    };
+    if (!pending) {
+      const item = storedTicket(o.ticketItemId);
+      if (item) saveTicket({ ...item, quantity: item.quantity + o.quantity });
+      if (o.audience) recordHostCanceledOrder(o.orderUuid);
+    }
+    orders.set(o.orderUuid, next);
+    notify(next);
+    if (pending) refused++;
+    else canceled++;
+  }
+  return { refused, canceled, failed, remaining: targets().length };
+}

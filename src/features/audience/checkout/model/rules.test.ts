@@ -153,6 +153,7 @@ describe('주문 생성 에러 분기 — patterns §24 P7 행', () => {
     ['Ticket_Item_400_10', 'NOT_ON_SALE', true, 'event'],
     ['Ticket_Item_404_1', 'NOT_ON_SALE', true, 'event'],
     ['Event_404_1', 'NOT_ON_SALE', false, 'event'],
+    ['Event_400_30', 'EVENT_CLOSED', false, 'event'],
     ['Order_400_22', 'DEPOSITOR_NAME', false, null],
     ['Order_400_23', 'OPTION_ANSWERS', false, null],
     ['Order_400_26', 'DUPLICATE_IN_PROGRESS', false, null],
