@@ -12,11 +12,11 @@
 | A | **스테이징을 v2로**(D2 — deploy-plan §6 1 · 2 · 3 · 4 · 8번) — **끝남(2026-11-01, Deploy #93 · #94)**. 스테이징은 평소 꺼져 있다(매일 02:00 자동 종료) — 리허설할 때 Deploy Actions → **Staging Power → start**(최신 `:dev`를 다시 배포) | Deploy PR ①, `Nginx-v1.9.6` 태그 | PR ① 되돌림 |
 | B | 스테이징 리허설(§4 체크리스트 전부) | 사람 · 스테이징 | — |
 | C | 첫 버전 태그 `v2.0.0`(§6) — `:dev` 승격 | 프론트 저장소 관리자 | 태그는 덮어쓸 수 없다 — 다음 패치 버전으로 |
-| D | 롤백용 nginx 이미지 미리 만들기(§5-3) — 컷오버 날짜가 정해지면 백엔드가 PR ②와 같이(#905 §1-3) | Deploy, `Nginx-v1.9.7` 태그 | — |
+| D | 롤백용 nginx 이미지 미리 만들기(§5-3) — 컷오버 날짜가 정해지면 백엔드가 PR ②와 같이(#905 §1-3) | Deploy, **`Nginx-v1.9.8` 이후 번호** 태그(1.9.7은 B43 스테이징 변경에 썼다 — Backend #939 답 2026-11-06) | — |
 | E | **운영 컷오버**(deploy-plan §6 5 · 6 · 9번) — 프리즈 윈도우 안에서. 그 시간대에는 백엔드를 배포하지 않는다(#905 §1-3) | Deploy PR ②, `Nginx-v1.10.0` 태그, Deployment(운영 승인) | §5 롤백 |
 | F | 컷오버 뒤 확인 · 검색 등록(§7) | 사람 | — |
 
-nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `nginx.conf`를 복사). 설정을 바꾸면 **`Nginx-vX.Y.Z` 태그 → `nginx-build.yml`이 ECR에 올린 뒤** compose의 nginx 태그를 올리는 순서다. 버전 번호(1.9.6 · 1.9.7 · 1.10.0)는 예시다 — 그때 최신 다음 번호를 쓴다.
+nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `nginx.conf`를 복사). 설정을 바꾸면 **`Nginx-vX.Y.Z` 태그 → `nginx-build.yml`이 ECR에 올린 뒤** compose의 nginx 태그를 올리는 순서다. 버전 번호(1.9.6 · 1.10.0)는 예시다 — 그때 최신 다음 번호를 쓴다. 이미 쓴 번호: `1.9.6`(PR ①) · `1.9.7`(B43 — 초대 화면 `no-referrer` · 초대 토큰 로그 가림, 스테이징 2026-11-06). 롤백용은 `1.9.8` 이후.
 
 ## 1. 프리즈 윈도우(사람이 정할 칸)
 
@@ -178,7 +178,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 
 ### 3-2. PR ② — 운영 컷오버(단계 E)
 
-**`nginx/site.conf`** — `/admin/` 블록 삭제(6번 → `/admin/*`이 front로 가고 v2 `redirects()`가 308로 `/hosting/*` 등으로 보낸다), `/_next/image` 블록 삭제(9번 → `location /`로 간다).
+**`nginx/site.conf`** — `/admin/` 블록 삭제(6번 → `/admin/*`이 front로 가고 v2 `redirects()`가 307로 `/hosting/*` 등으로 보낸다 — 안정되면 308, 아래 "결정 대기"), `/_next/image` 블록 삭제(9번 → `location /`로 간다).
 
 ```diff
 -# Next.js 13(v1 티켓) 이미지 최적화 경로는 원격 코드 실행 취약점이 있어 막는다 (Deploy #73).
@@ -329,9 +329,9 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 
 **URL 연속성**
 
-- [ ] v1 관객 주소 → 308: `curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' 'https://staging.dudoong.com/history/<주문uuid>?utm_source=kakao'` → `308 …/orders/<주문uuid>?utm_source=kakao`. `/home` · `/ticket/qr` · `/events/<id>/book/order` · `/pay/success`도
+- [ ] v1 관객 주소 → 307: `curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' 'https://staging.dudoong.com/history/<주문uuid>?utm_source=kakao'` → `307 …/orders/<주문uuid>?utm_source=kakao`. `/home` · `/ticket/qr` · `/events/<id>/book/order` · `/pay/success`도
 - [ ] 그대로인 주소 200: `/events/<id>` · `/mypage` · `/login` · `/meta/term` · `/meta/privacy`
-- [ ] `/admin/*` → 308은 **PR ① 상태에서는 v1 어드민이 받는다**(nginx `/admin/` 블록이 남아 있다). 컷오버 뒤 운영에서 확인(§7) — 미리 보려면 스테이징에 PR ②의 site.conf만 먼저 넣는다
+- [ ] `/admin/*` → 307은 **PR ① 상태에서는 v1 어드민이 받는다**(nginx `/admin/` 블록이 남아 있다). 컷오버 뒤 운영에서 확인(§7) — 미리 보려면 스테이징에 PR ②의 site.conf만 먼저 넣는다
 - [ ] 전수 표는 tech-decisions §22, e2e `legacy-urls.spec.ts` · `hosting.spec.ts` "리다이렉트"(로컬에서 이미 통과)
 
 **기능 한 바퀴**(실기기 — progress "사용자 대기" 표의 스테이징 줄을 여기서 같이 닫는다)
@@ -367,7 +367,7 @@ nginx 설정은 이미지에 구워진다(`nginx/Dockerfile`이 `site.conf` · `
 
 ### 5-2. 정확한 단계
 
-1. Deploy 저장소에서 PR ②를 **되돌리는 PR**(`git revert <PR ② 머지 커밋>`)을 만든다. 결과: `docker-compose.prod.yml`이 `dudoong-ticket:1.4.3` · `admin` 서비스(`dudoong-admin:1.4.0`) · nginx `1.9.7`(§5-3 롤백용 — 되돌림 커밋에서 `1.9.6` → `1.9.7`로 한 줄 고친다)로 돌아간다
+1. Deploy 저장소에서 PR ②를 **되돌리는 PR**(`git revert <PR ② 머지 커밋>`)을 만든다. 결과: `docker-compose.prod.yml`이 `dudoong-ticket:1.4.3` · `admin` 서비스(`dudoong-admin:1.4.0`) · nginx `1.9.8` 이후 번호(§5-3 롤백용 — 되돌림 커밋에서 nginx 태그를 그 번호로 한 줄 고친다)로 돌아간다
 2. 머지 → `Deployment`가 돈다. **급하면 스테이징을 기다리지 않는 `Deployment-live`(수동 실행, 운영 승인)를 쓴다**
 3. 운영 승인 → SSM으로 `remote-deploy.sh prod` → `compose pull` → `up -d` → 백엔드 헬스체크(front 헬스체크는 compose가 v1이라 건너뛴다)
 4. 확인: `https://dudoong.com/` v1 화면, `/admin` v1 어드민, `curl -s -o /dev/null -w '%{http_code}' https://dudoong.com/_next/image` → 404(차단 복귀)
@@ -377,23 +377,11 @@ v1 이미지는 ECR에 남아 있다(수명 정책은 저장소마다 최근 10�
 
 ### 5-3. 롤백용 nginx 이미지 미리 만들기(단계 D)
 
-v2가 `/home` · `/history/*` · `/ticket/*` · `/admin/*` 등에 **308(영구)** 을 낸다. 브라우저는 308을 기억하므로, 롤백한 뒤에도 그 사이 옛 주소를 연 사람은 v2 주소(`/orders` · `/tickets` · `/hosting` …)로 가고 **v1에는 그 주소가 없어 404**다. 그래서 롤백할 nginx 이미지에는 v2 주소 → v1 주소 되돌림을 넣어 둔다. PR ① 판(`1.9.6`)의 `site.conf`에 아래를 `location /` 위에 더한 것을 `Nginx-v1.9.7`로 미리 올린다(컷오버 전, compose에는 넣지 않는다).
+v2는 컷오버 때 `/home` · `/history/*` · `/ticket/*` · `/admin/*` 등에 **307(임시)** 을 낸다(Backend #939 답, 2026-11-06 — 아래 "결정 대기"). 브라우저는 307을 기억하지 않으므로, 롤백하면 옛 주소는 다시 v1이 받는다. 그래서 **롤백 nginx에는 v2 주소 → v1 주소 되돌림 규칙을 넣지 않는다.**
 
-```nginx
-# 롤백 전용 (FE cutover-runbook §5-3): v2 의 영구 리다이렉트(308)를 기억한 브라우저를 v1 주소로 돌린다
-location = /orders { return 302 /history$is_args$args; }
-location ~ ^/orders/([^/]+)$ { return 302 /history/$1$is_args$args; }
-location = /tickets { return 302 /ticket$is_args$args; }
-location = /hosting { return 302 /admin$is_args$args; }
-location ~ ^/hosting/events/([0-9]+)/(dashboard|info|detail|guests|qr|tickets)$ { return 302 /admin/events/$1/$2$is_args$args; }
-location ~ ^/hosting/hosts/([0-9]+)/settings$ { return 302 /admin/hosts/$1/info$is_args$args; }
-location ~ ^/hosting/hosts/([0-9]+)/members$ { return 302 /admin/hosts/$1/member$is_args$args; }
-location = /hosting/new/hosts { return 302 /admin/new/hosts$is_args$args; }
-location = /hosting/new/events { return 302 /admin/new/events/1$is_args$args; }
-location ~ ^/hosts/([0-9]+)$ { return 302 /admin/hosts/$1/dashboard$is_args$args; }
-```
+롤백용 이미지는 PR ② 직전 판(`Nginx-v1.9.7` — PR ①의 v1 경로 + B43 초대 토큰 가림)의 `site.conf`에서 시작해 **`Nginx-v1.9.8` 이후 번호**로 백엔드가 컷오버 날짜가 정해질 때 PR ②와 같이 올린다(Backend #939 답 — 컷오버 전, compose에는 넣지 않는다). 1.9.7은 B43 스테이징 변경에 썼다. 되돌림 규칙이 없으므로 PR ② 직전 판과 달라지는 것은 그때 백엔드가 정한 운영 설정뿐이다.
 
-`/home` → `/`(v1에도 `/`가 있다) · `/admin/login` → `/login`(v1에도 있다)은 되돌릴 필요가 없다. `/hosts/:id`는 v2의 공개 호스트 홈이라 v1 어드민으로 보내는 것이 맞는지는 롤백 때 판단(빼도 된다 — v1엔 그 주소가 없어 어차피 404).
+308로 바꾼 뒤(컷오버 뒤 일주일쯤, 아래 "결정 대기")에 롤백하면 사정이 다르다 — 브라우저가 308을 기억해 롤백 뒤에도 v2 주소(`/orders` · `/tickets` · `/hosting` …)로 가고 v1에는 그 주소가 없어 404다. 그때는 롤백 nginx에 되돌림 규칙(옛 판 — git 기록의 이 절, `/orders` → `/history` 등 302)을 넣는다.
 
 ### 5-4. 걸리는 시간 예상
 
@@ -452,7 +440,7 @@ location ~ ^/hosts/([0-9]+)$ { return 302 /admin/hosts/$1/dashboard$is_args$args
   - [ ] `https://dudoong.com/healthz` 200
   - [ ] 공연홈 · 공연 상세 · 티켓탭 · 공연준비(`/hosting`) — 모바일 · PC
   - [ ] 포스터가 `/_next/image`로 온다(상세 `<img>` `currentSrc`)
-  - [ ] `curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://dudoong.com/admin` → `308 https://dudoong.com/hosting`, `/admin/events/<id>/guests` → `/hosting/events/<id>/guests`, `/history` → `/orders`
+  - [ ] `curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://dudoong.com/admin` → `307 https://dudoong.com/hosting`, `/admin/events/<id>/guests` → `/hosting/events/<id>/guests`, `/history` → `/orders`
   - [ ] `og:url` = `https://dudoong.com/events/<id>`(§4의 curl)
   - [ ] **운영 쿠키 `SameSite=Strict`**: 로그인 상태로 카카오톡 메시지의 링크 → `/tickets` 진입 유지, 카카오 로그인 복귀 유지
   - [ ] 주문 1회(무료 공연이 있으면 무료로), 호스트 QR 화면 열림
@@ -476,7 +464,7 @@ location ~ ^/hosts/([0-9]+)$ { return 302 /admin/hosts/$1/dashboard$is_args$args
 | 무엇 | 선택지 |
 |---|---|
 | 프리즈 윈도우 날짜 · 시각 | §1 표. 정해지면 백엔드에 알린다 — PR ② · 롤백 nginx 이미지를 그때 같이 준비하고, 프리즈 · 백엔드 담당 대기 시간도 그때 맞춘다(#905 §1-3) |
-| 308로 출시할지, 안정될 때까지 307 | 이 PR은 plan P15대로 308(영구). 롤백 가능성이 크다고 보면 `next.config.ts`의 두 `permanent: true`를 `false`로 되돌린 패치 버전으로 출시하고 일주일 뒤 308로 — §5-3 되돌림 nginx가 필요 없어진다 |
+| 307 → 308로 바꾸는 시점 | **정함(Backend #939 답, 2026-11-06)**: 컷오버는 **307(임시)로 시작**(#142 — `next.config.ts`의 두 `permanent: false`). 컷오버 뒤 **일주일쯤 안정되면 308로** — 두 `permanent: false`를 `true`로 바꾼 패치 버전(`v2.0.x`, §6) + e2e `legacy-urls.spec` · `hosting.spec` "리다이렉트" · QA `integration` REG-4 기대값 307 → 308. 남은 결정은 "안정"을 언제로 볼지(사람). 308로 바꾼 뒤의 롤백은 §5-3 끝 |
 | CSP 강제 전환(`CSP_ENFORCE=1`) | 리허설 때 스테이징 `csp.violation` 0 확인 뒤. 업로드 한 번으로 S3 presigned 실제 호스트를 확인한다(아래) |
 
 ## 정해진 것(2026-11-01, Backend #905)

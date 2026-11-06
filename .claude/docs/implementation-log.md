@@ -2903,3 +2903,19 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2577개 + 새 테스트(host-invitation-api 12 · invitation-rules 12 · useHostInvitation 10) 통과. e2e(빌드) host-invitation 16 · hosting-host · security · legal · legacy-urls · hosting · seo · a11y · a11y-keyboard · checkout · event-detail · home · host-home · mypage · notifications · hosting-event 모두 통과. QA host-invitation 14 · host-settings 34 · hosting-home 18 · mypage 33 · checkout 31 · event-detail 18 — 실패 0.
 
 **ego-browser 확인(2026-11-04, dev:mock 3093 · `localhost`)**: 멤버 390(초대 대기 3줄 · [취소]) → 초대 팝업 미가입 사유 + [초대 링크 만들기] → "초대 링크를 만들었어요"(전체 주소 · 만료 · [링크 복사]) · 수락 화면 390 · 1440(주소창 `/host-invitations` — 토큰 없음) → [수락하기] → "소음공작소에 합류했어요 · 내 역할: 일반 멤버" · 주문상세 1440 취소 시트(새 본문, 계좌 칸 위 임시 줄 없음). 발견: 없음.
+
+## 백엔드 #938 · #939 답 반영 — 환불 안내 문구(B42) · 리다이렉트 307(2026-11-07, `backend-142-copy`)
+
+근거: 이슈 #142(팀원이 Gosrock/DuDoong-Backend #938 · #939 답을 정리, 2026-11-06). 서버 변경 없음. 병렬 세션 `backend-136-cancel`(공연 취소)과 파일이 겹치지 않게 나눴다.
+
+**1 환불 안내 문구(B42 확정본)** — legal-copy "B42 확정 문구"(출처 B42 · 백엔드 #938 · 2026-11-06), `agreementVersion` 그대로.
+- A-9 취소 확인 시트 제목(`OrderOverlays` `CANCEL_COPY.paidTitle`): "취소 후 직접 환불을 요청해야 해요" → "취소하면 입력한 계좌로 호스트가 환불해요".
+- A-8 ④ 뒤 문장(`OrderCancelNotice`): "호스트는 지체 없이 환불해야 하며, 연락처는 [공연 상세 페이지]…" → "호스트 연락처는 [공연 상세 페이지]에서 확인할 수 있습니다."(링크 그대로).
+- 범위 밖이라 그대로: A-7 ④ 체크아웃 환불 규정(`refund-policy.ts` — "지체 없이" 문장이 없다, B28 그대로), C-1 호스팅 환불 의무 안내(`RefundObligationField` — 호스트 의무 고지, 다른 세션 소유).
+- 테스트: `e2e/legal.spec.ts`(A-9 제목 · A-8 ④ 전체 문장 · 링크 · "지체 없이" 없음), QA `mypage` 취소 시트 제목.
+
+**2 옛 주소 리다이렉트 307(Backend #939 §4 답)** — `next.config.ts` `adminRedirects` · `audienceRedirects`를 `permanent: false`(307)로. 컷오버 직후 롤백하면 v1이 옛 주소를 다시 받아야 하는데 308은 브라우저가 기억한다 — 307이면 롤백 nginx에 되돌림 규칙이 필요 없다. 컷오버 뒤 일주일쯤 안정되면 308로(cutover-runbook "결정 대기", progress "사용자 대기"). 기대값 308 → 307: `e2e/legacy-urls.spec.ts` · `e2e/hosting.spec.ts` "리다이렉트"(`/admin/*`) · QA `integration` REG-4. 런북: §3-2 · §4 · §7 기대값 307, §5-3 롤백 nginx는 되돌림 규칙 없음 + 번호 `1.9.8` 이후(1.9.7은 B43), 단계 D 번호.
+
+**3 확인만** — B43(nginx 1.9.7 스테이징 — 초대 화면 `no-referrer` · 토큰 로그 가림; 프론트 `replaceState` · 메타 · noindex 그대로) · #939 §1 동의 칸 세 가지 운영 승인(바꿀 것 없음, 강제 리허설 날짜 미정) → backend-questions B16 · B42 · B43, legal-copy B절 · api-contract 동의 필드 "운영 승인 2026-11-06".
+
+**🤖 판단**: ① 파일 소유 목록 밖이지만 308을 기대하던 `e2e/hosting.spec.ts` "리다이렉트" 블록과 QA `integration` REG-4도 307로 고쳤다(안 고치면 CI · 회귀가 깨진다 — `src/features/hosting/**`는 건드리지 않음) ② 롤백용 nginx는 되돌림 규칙이 없어도 백엔드가 1.9.8 이후 번호로 만든다고 해 런북에 그대로 적었다(내용은 PR ② 직전 판 기준).

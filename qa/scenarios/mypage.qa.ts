@@ -296,10 +296,10 @@ scenario(
     reset();
     await setMockSession(page, 'loggedIn');
     await page.goto(detail(P9_ORDER.approvedPaid));
-    await step('[주문취소]를 누르면 "취소 후 직접 환불을 요청해야 해요" 시트', async () => {
+    await step('[주문취소]를 누르면 "취소하면 입력한 계좌로 호스트가 환불해요" 시트', async () => {
       await page.getByRole('button', { name: '주문취소' }).click();
       await expect(
-        dialog(page).getByRole('heading', { name: '취소 후 직접 환불을 요청해야 해요' }),
+        dialog(page).getByRole('heading', { name: '취소하면 입력한 계좌로 호스트가 환불해요' }),
       ).toBeVisible();
     });
     await step('칸을 비운 채 [확인했어요, 취소할게요]를 누르면 칸마다 오류', async () => {

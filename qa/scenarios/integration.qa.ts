@@ -30,7 +30,7 @@ import { expect, scenario } from '../scenario';
  * | REG-1 호스트 공연 만들기 → 등록 → 관객 상세 | S3 공연 상세·섹션 |
  * | REG-2 관객 주문 → 호스트 승인 → 티켓탭 → 선물 → 셀프 체크인 · 호스트 QR → 예매자 관리 | S1 · S2 · S4 · S5 |
  * | REG-3 호스트 판매 중단 · 재개 → 관객 상세 티켓 상태 | S1 |
- * | REG-4 v1 주소 308 → v2 목적지(쿼리 유지) · 포스터 원본 그대로(P15 #88) | 컷오버 URL 연속성 |
+ * | REG-4 v1 주소 307 → v2 목적지(쿼리 유지) · 포스터 원본 그대로(P15 #88) | 컷오버 URL 연속성 |
  *
  * 남긴 것(mock 한계): 새로 만든 공연(7001)의 티켓을 관객이 주문하는 흐름은 없다 — mock 체크아웃(O-0·O-1)과 티켓탭 공연 정보가
  * 공연 fixture(`findPublicEvent`)만 읽어서다. 주문 이후는 fixture 공연 101로 잇는다. S7(알림)·S8(호스트 홈)·S9(공지)는
@@ -372,11 +372,11 @@ scenario(
 
 scenario(
   'REG-4',
-  'v1 주소로 들어오면 308로 v2 목적지에 닿는다(쿼리 유지)',
+  'v1 주소로 들어오면 307로 v2 목적지에 닿는다(쿼리 유지)',
   {
     kind: '정상',
     summary:
-      'P15 컷오버(#88) — v1 관객 주소는 영구 308(`next.config.ts` redirects). 카카오로 퍼진 예매 단계 주소 · 결제 결과 · 티켓 주소가 v2 화면으로 이어진다. 전수는 e2e `legacy-urls.spec`.',
+      'P15 컷오버(#88) — v1 관객 주소는 임시 307로 시작(백엔드 #939 답 2026-11-06 — 컷오버 뒤 안정되면 308, `next.config.ts` redirects). 카카오로 퍼진 예매 단계 주소 · 결제 결과 · 티켓 주소가 v2 화면으로 이어진다. 전수는 e2e `legacy-urls.spec`.',
     basis: [
       'tech-decisions §22 v1 라우트와 리다이렉트',
       'P15 URL 연속성(#88)',
@@ -386,7 +386,7 @@ scenario(
   async ({ page, request, step, note }) => {
     await setUp(page);
     await step(
-      'v1 주소를 리다이렉트 없이 요청하면 308과 v2 목적지(쿼리 그대로)',
+      'v1 주소를 리다이렉트 없이 요청하면 307과 v2 목적지(쿼리 그대로)',
       async () => {
         const cases: [string, string][] = [
           ['/events/101/book/option?utm_source=kakao', '/events/101?utm_source=kakao'],
@@ -397,7 +397,7 @@ scenario(
         for (const [from, to] of cases) {
           const res = await request.get(from, { maxRedirects: 0 });
           await note(`${from} → ${res.status()} ${res.headers()['location']}`);
-          expect(res.status()).toBe(308);
+          expect(res.status()).toBe(307);
           expect(res.headers()['location']).toBe(to);
         }
       },
