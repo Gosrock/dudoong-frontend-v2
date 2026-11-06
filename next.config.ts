@@ -18,9 +18,11 @@ const devApiOrigin = process.env.DEV_API_ORIGIN;
 /**
  * v1 호스트 앱(`/admin/*`) → v2 호스팅 센터(tech-decisions §22 "v1 라우트와 리다이렉트" 표, plan P10a).
  * 표에 있는 경로만 받는다 — 표에 없는 `/admin/*`은 404다. `/admin/kakao/callback`은 받지 않는다(표 — 카카오 `redirect_uri`를
- * `/kakao/callback` 하나로 정리). 영구(`permanent: true` → **308**, P15 URL 연속성): 검색엔진이 옛 주소를 새 주소로 옮기고
- * 브라우저가 기억한다. 301이 아니라 308인 이유는 implementation-log "P15 — 컷오버 준비"(설치본 redirects.md — 308은 메서드를
- * 지키고, 검색엔진은 301과 같게 다룬다). 표를 고치면 이미 기억한 브라우저는 옛 목적지로 간다 — 목적지는 지우지 말고 v2 안에서 다시 보낸다.
+ * `/kakao/callback` 하나로 정리). **임시(`permanent: false` → 307)로 시작한다**(백엔드 #939 답, 2026-11-06): 컷오버 직후 롤백하면
+ * 옛 주소를 v1이 다시 받아야 하는데, 308은 브라우저가 기억해 롤백 뒤에도 v2 주소로 보낸다 — 307이면 롤백 nginx에 되돌림 규칙이
+ * 필요 없다. 컷오버 뒤 일주일쯤 안정되면 `permanent: true`(308)로 바꾼다(cutover-runbook "결정 대기"). 그때도 301이 아니라
+ * 308인 이유는 implementation-log "P15 — 컷오버 준비"(설치본 redirects.md — 308은 메서드를 지키고, 검색엔진은 301과 같게 다룬다).
+ * 308로 바꾼 뒤 표를 고치면 이미 기억한 브라우저는 옛 목적지로 간다 — 목적지는 지우지 말고 v2 안에서 다시 보낸다.
  * 쿼리는 Next가 그대로 넘긴다.
  */
 const adminRedirects = [
@@ -45,11 +47,11 @@ const adminRedirects = [
     destination: '/hosting/events/:eventId/tickets',
   },
   { source: '/admin/login', destination: '/login' },
-].map((r) => ({ ...r, permanent: true }));
+].map((r) => ({ ...r, permanent: false }));
 
 /**
  * v1 관객 앱 주소 → v2(tech-decisions §22 표 — P14 레거시 URL). 표의 "그대로"인 주소(`/events/:id`·`/mypage`·`/login`·
- * `/login/expired`·`/kakao/callback`·`/meta/*`)는 v2 라우트·rewrite가 그대로 받는다. 308(영구)은 `/admin/*`과 같은 이유(P15).
+ * `/login/expired`·`/kakao/callback`·`/meta/*`)는 v2 라우트·rewrite가 그대로 받는다. 307(임시, 안정되면 308)은 `/admin/*`과 같은 이유.
  * PG 결과 주소(`/pay/*`)는 v1의 결제 복귀에서만 생겼고 v2에는 PG가 없다 — 주문내역으로 보낸다(쿼리는 Next가 넘기지만 읽지 않는다).
  */
 const audienceRedirects = [
@@ -63,7 +65,7 @@ const audienceRedirects = [
   { source: '/history/:orderUuid', destination: '/orders/:orderUuid' },
   // v1 `/ticket/:id`의 `id`는 주문 uuid라 티켓탭 하나로 받는다(묶음 카드가 주문 단위)
   { source: '/ticket/:rest*', destination: '/tickets' },
-].map((r) => ({ ...r, permanent: true }));
+].map((r) => ({ ...r, permanent: false }));
 
 /**
  * CSP(P14 보안, `src/utils/csp.ts`). 기본은 Report-Only — `CSP_ENFORCE=1`로 빌드하면 강제.
