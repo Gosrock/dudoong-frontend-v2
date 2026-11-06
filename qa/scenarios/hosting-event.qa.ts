@@ -2,6 +2,7 @@ import type { Page, TestInfo } from '@playwright/test';
 
 import { setMockSession } from '../../e2e/support/auth';
 import { goEventMenu, pickFakeAddress, routeEventSdks } from '../../e2e/support/event-scope';
+import { setEventCancelScenario } from '../../src/api/__mocks__/event-store';
 import { resetHostMockState } from '../../src/api/__mocks__/host.handlers';
 import { actAsRole } from '../../src/api/__mocks__/host-store';
 import { resetHostingStore } from '../../src/api/__mocks__/hosting.handlers';
@@ -445,3 +446,86 @@ scenario.manual('HE-11', '실제 카카오맵 · 우편번호 SDK로 주소 검�
   ],
   how: '스테이징(카카오 앱에 도메인 등록 + 실제 키)에서 기본 정보 → 주소 칸 → 우편번호 창에서 주소 선택 → 지도에 마커가 그 위치로 나오는지, 저장 뒤 다시 열어도 지도가 보이는지 본다. 모바일 Safari·카카오톡 인앱에서 우편번호 창이 시트 안에서 스크롤되는지도.',
 });
+
+scenario(
+  'HE-12',
+  '공연 취소(E-11) — 마스터: 사유 입력 → 취소, 남은 주문이 있으면 [남은 주문 다시 처리]',
+  {
+    kind: '정상',
+    summary:
+      '대시보드(등록 후) 맨 아래 "공연 취소" + [공연 취소하기](마스터 · 시작 전 OPEN). 오버레이(PC 모달 · 모바일 시트)에 되돌릴 수 없다는 안내 + 사유(1~100자). 취소하면 머리 아래 "취소된 공연이에요" · 사유 · 처리 결과, 포스터 칩 "취소됨". 한 번에 다 처리하지 못하면 [남은 주문 다시 처리](같은 API — 멱등). 디자인 · 와이어 없음 — design-requests Q122 · Q123 · Q124.',
+    basis: [
+      '이슈 #136 §7',
+      '백엔드 #932(E-11 응답 remaining · failed)',
+      'design-requests Q122~Q124',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    // 한 번에 1건만 처리하게 해 남은 주문을 만든다(서버 상한 100건 흉내)
+    setEventCancelScenario({ limit: 1 });
+    const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
+    await step('등록된 공연(101) 대시보드 맨 아래 [공연 취소하기]', async () => {
+      await page.goto('/hosting/events/101/dashboard');
+      await expect(page.getByTestId('event-cancel')).toContainText('되돌릴 수 없어요');
+    });
+    await step('누르면 안내 + 취소 사유 칸 — 비우고 누르면 칸 오류', async () => {
+      await page.getByRole('button', { name: '공연 취소하기' }).click();
+      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+      await expect(dialog).toContainText('취소 사유를 입력해 주세요.');
+    });
+    await step('사유를 넣고 취소하면 "취소된 공연" 안내 · 결과 · 남은 주문 안내', async () => {
+      await dialog
+        .getByRole('textbox', { name: '취소 사유' })
+        .fill('공연장 사정으로 공연을 취소합니다');
+      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+      await expect(page.getByTestId('event-cancel-result')).toContainText(
+        '아직 처리하지 못한 주문이',
+      );
+      await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toBeVisible();
+    });
+    await step('[남은 주문 다시 처리]를 다 끝날 때까지 누르면 버튼이 사라진다', async () => {
+      setEventCancelScenario({ limit: 100 });
+      await page.getByRole('button', { name: '남은 주문 다시 처리' }).click();
+      await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+      await expect(page.getByTestId('event-cancel-result')).not.toContainText('아직 처리하지 못한');
+    });
+  },
+);
+
+scenario(
+  'HE-13',
+  '공연 취소 — 매니저에게는 버튼이 없고, 시작한 공연(Event_400_29)이면 오버레이 안 안내',
+  {
+    kind: '권한',
+    summary:
+      '[공연 취소하기]는 마스터만(`can(role, "cancelEvent")`). 그사이 시작했으면 서버 `Event_400_29` → 오버레이에 "이미 시작했거나 끝난 공연은 취소할 수 없어요." + GE-3 다시 읽기.',
+    basis: ['이슈 #136 §7', 'patterns §22 · §11', 'error-codes Event_400_29'],
+    mocks: [
+      http.post('*/api/v2/events/101/cancel', () =>
+        HttpResponse.json(envelope.error(400, 'Event_400_29'), { status: 400 }),
+      ),
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('마스터: 시작한 공연 응답이면 오버레이에 안내가 남는다', async () => {
+      await page.goto('/hosting/events/101/dashboard');
+      await page.getByRole('button', { name: '공연 취소하기' }).click();
+      const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
+      await dialog.getByRole('textbox', { name: '취소 사유' }).fill('사유');
+      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+      await expect(dialog.getByRole('alert')).toHaveText(
+        '이미 시작했거나 끝난 공연은 취소할 수 없어요.',
+      );
+    });
+    await step('매니저: [공연 취소하기]가 없다', async () => {
+      actAsRole(11, 'MANAGER');
+      await page.goto('/hosting/events/101/dashboard');
+      await expect(page.getByTestId('dashboard-registered')).toBeVisible();
+      await expect(page.getByTestId('event-cancel')).toHaveCount(0);
+    });
+  },
+);

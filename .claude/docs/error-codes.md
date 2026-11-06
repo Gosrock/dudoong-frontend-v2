@@ -116,6 +116,10 @@
 | `Event_400_25` | 400 | 티켓이 있는 공연은 티켓 없음으로 바꿀 수 없습니다. | `CANNOT_DISABLE_TICKET_WITH_TICKETS` |
 | `Event_400_26` | 400 | 유효하지 않은 체크인 QR 입니다. | `INVALID_CHECK_IN_TOKEN` |
 | `Event_400_27` | 400 | 입장 처리를 할 수 없는 공연 상태입니다. | `CANNOT_CHECK_IN_EVENT_STATUS` |
+| `Event_400_28` | 400 | 준비중인 공연은 취소 대신 삭제해 주세요. | `CANNOT_CANCEL_PREPARING_EVENT` — E-11(Api 2.5.8, #932) |
+| `Event_400_29` | 400 | 이미 시작했거나 끝난 공연은 취소할 수 없습니다. | `CANNOT_CANCEL_STARTED_EVENT` — E-11 |
+| `Event_400_30` | 400 | 취소된 공연입니다. | `EVENT_CANCELED` — 취소된 공연에 주문 · 장바구니 · 승인 · 결제 확정 · 선물(v1 · v2 공통). 체크아웃 `CHECKOUT_ERROR_TABLE` |
+| `Event_400_31` | 400 | 취소 사유는 1~100자로 입력해 주세요. | `INVALID_EVENT_CANCEL_REASON` — E-11 |
 | `Event_400_8` | 400 | 잘못된 접근입니다. | `USE_OTHER_API` |
 
 ## TicketGiftErrorCode

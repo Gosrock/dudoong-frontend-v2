@@ -2,14 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { installLoggedInFetch } from '@/test/login-fetch';
 
-import { setStoredStatus, setStoredValidTicket } from '../__mocks__/event-store';
+import {
+  setEventCancelScenario,
+  setStoredStatus,
+  setStoredValidTicket,
+} from '../__mocks__/event-store';
+import { GUEST_ORDER, guestOrdersOf, storedGuestOrder } from '../__mocks__/guest-store';
 import { resetHostMockState } from '../__mocks__/host.handlers';
 import { actAsRole } from '../__mocks__/host-store';
 import { resetHostingStore } from '../__mocks__/hosting.handlers';
 import { MOCK_IMAGE_ORIGIN } from '../__mocks__/respond';
 import { ApiError } from '../errors';
+import { eventTicketItemsQuery } from '../ticket-item/queries';
 import { uploadImage } from '../upload';
 import {
+  cancelEventMutation,
   createEventMutation,
   deleteEventMutation,
   openEventMutation,
@@ -19,6 +26,7 @@ import {
 import {
   eventChecklistQuery,
   eventDetailQuery,
+  eventListQuery,
   eventManageQuery,
   eventSectionsManageQuery,
   eventSectionsQuery,
@@ -27,6 +35,10 @@ import {
 } from './queries';
 import {
   CreateEventRequestSchema,
+  EVENT_CANCEL_REASON_MAX,
+  type EventCancelResult,
+  EventCancelResultSchema,
+  type EventManage,
   EventManageSchema,
   UpdateEventBasicRequestSchema,
   UpdateEventSectionsRequestSchema,
@@ -381,5 +393,98 @@ describe('PE-8 등록 · DE-9 삭제', () => {
     actAsRole(11, 'MASTER');
     expect(await call(deleteEventMutation(), PREPARING)).toMatchObject({ status: 'DELETED' });
     expect(await codeOf(get(eventManageQuery(PREPARING)))).toEqual([404, 'Event_404_1']);
+  });
+});
+
+describe('E-11 공연 취소(Api 2.5.8 — 백엔드 #932)', () => {
+  /** 남은 대상 주문(오래된 순 — 서버가 처리하는 순서) */
+  const targets = () =>
+    guestOrdersOf(OPEN)
+      .filter((o) => o.status === 'PENDING_APPROVE' || o.status === 'APPROVED')
+      .sort((x, y) => x.seq - y.seq);
+  const cancel = (eventId: number, reason: string) =>
+    call(cancelEventMutation(eventId), { reason }) as Promise<EventCancelResult>;
+
+  it('마스터 · 시작 전 OPEN: 승인 대기는 거절(기타 "공연 취소: 사유"), 승인은 취소 — 결제 금액이 있으면 환불 요청', async () => {
+    const pending = targets().filter((o) => o.status === 'PENDING_APPROVE').length;
+    const approved = targets().filter((o) => o.status === 'APPROVED').length;
+    expect(pending + approved).toBeGreaterThan(0);
+    const r = await cancel(OPEN, '  공연장 사정  ');
+    expect(EventCancelResultSchema.parse(r)).toMatchObject({
+      eventId: OPEN,
+      cancelReason: '공연장 사정',
+      refused: pending,
+      canceled: approved,
+      failed: 0,
+      failedOrderUuids: [],
+      remaining: 0,
+    });
+    expect(r.canceledAt).not.toBeNull();
+    const refused = storedGuestOrder(GUEST_ORDER.pendingTransfer)!;
+    expect(refused).toMatchObject({
+      status: 'REFUSED',
+      refuseReasonType: 'ETC',
+      reasonText: '공연 취소: 공연장 사정',
+      canceledBy: 'HOST',
+    });
+    expect(storedGuestOrder(GUEST_ORDER.approved)).toMatchObject({ status: 'CANCELED' });
+    // 상태는 OPEN 그대로, GE-3 · GP-3에 canceledAt · cancelReason
+    const manage = await get<EventManage>(eventManageQuery(OPEN));
+    expect(manage).toMatchObject({ status: 'OPEN', cancelReason: '공연장 사정' });
+    expect(manage.canceledAt).toBe(r.canceledAt);
+    expect(await get(eventDetailQuery(OPEN))).toMatchObject({ cancelReason: '공연장 사정' });
+  });
+
+  it('멱등: 다시 부르면 사유를 보지 않고 남은 주문만 — 처음 시각 · 사유 그대로', async () => {
+    const first = await cancel(OPEN, '처음 사유');
+    const again = await cancel(OPEN, '');
+    expect(again).toMatchObject({
+      canceledAt: first.canceledAt,
+      cancelReason: '처음 사유',
+      refused: 0,
+      canceled: 0,
+      remaining: 0,
+    });
+  });
+
+  it('한 번에 처리하는 상한 · 실패한 주문은 remaining · failed로 남고 다시 부르면 처리된다', async () => {
+    const all = targets();
+    expect(all.length).toBeGreaterThan(1);
+    setEventCancelScenario({ limit: 1, failOnce: [all[0]!.orderUuid] });
+    const first = await cancel(OPEN, '사유');
+    expect(first).toMatchObject({ failed: 1, failedOrderUuids: [all[0]!.orderUuid] });
+    expect(first.remaining).toBe(all.length);
+    setEventCancelScenario({ limit: 100 });
+    const second = await cancel(OPEN, '사유');
+    expect(second.refused + second.canceled).toBe(all.length);
+    expect(second).toMatchObject({ failed: 0, remaining: 0 });
+  });
+
+  it('검사 순서: 마스터 아님 403 HOST_400_4 → 준비중 Event_400_28 → 지난 공연 Event_400_29 → 사유 Event_400_31', async () => {
+    actAsRole(11, 'MANAGER');
+    expect(await codeOf(cancel(OPEN, '사유'))).toEqual([403, 'HOST_400_4']);
+    actAsRole(11, 'MASTER');
+    expect(await codeOf(cancel(PREPARING, '사유'))).toEqual([400, 'Event_400_28']);
+    expect(await codeOf(cancel(OPEN, '   '))).toEqual([400, 'Event_400_31']);
+    expect(await codeOf(cancel(OPEN, 'a'.repeat(EVENT_CANCEL_REASON_MAX + 1)))).toEqual([
+      400,
+      'Event_400_31',
+    ]);
+    setStoredStatus(OPEN, 'CLOSED');
+    expect(await codeOf(cancel(OPEN, '사유'))).toEqual([400, 'Event_400_29']);
+  });
+
+  it('취소된 공연은 GP-5 isPurchasable=false, GP-2 목록에서 빠진다', async () => {
+    await cancel(OPEN, '사유');
+    const tickets = await get<{ isPurchasable: boolean }[]>(eventTicketItemsQuery(OPEN));
+    expect(tickets.length).toBeGreaterThan(0);
+    expect(tickets.every((t) => !t.isPurchasable)).toBe(true);
+    const listFn = eventListQuery({ includePast: true }).queryFn as unknown as (c: {
+      pageParam: number;
+      signal: AbortSignal;
+    }) => Promise<{ content: { eventId: number }[] }>;
+    const page = await listFn({ pageParam: 0, signal: new AbortController().signal });
+    expect(page.content.length).toBeGreaterThan(0);
+    expect(page.content.map((e) => e.eventId)).not.toContain(OPEN);
   });
 });

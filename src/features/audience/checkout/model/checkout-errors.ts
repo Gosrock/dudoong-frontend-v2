@@ -7,7 +7,7 @@
 import { AGREEMENT_REJECTED_MESSAGE } from '@/api/shared/agreement';
 
 export type CheckoutErrorKind =
-  /** 오픈 전·시작 후 — 구매 버튼 비활성 + 상세로 돌려보냄 */
+  /** 오픈 전·시작 후·취소된 공연 — 구매 버튼 비활성 + 상세로 돌려보냄 */
   | 'EVENT_CLOSED'
   /** 판매 중 아님·다른 공연 티켓·비공개 공연 — 티켓 선택으로 돌려보냄 */
   | 'NOT_ON_SALE'
@@ -66,6 +66,8 @@ const DUPLICATE_IN_PROGRESS = row(
 export const CHECKOUT_ERROR_TABLE = {
   Event_400_5: row('EVENT_CLOSED', '지금은 예매할 수 없는 공연이에요.', false, 'event'),
   Event_400_6: row('EVENT_CLOSED', '공연이 시작되어 예매할 수 없어요.', false, 'event'),
+  // 호스트가 취소한 공연(E-11, Api 2.5.8 — 백엔드 #932). 공연 상세로 돌려보내면 "취소한 공연" 안내가 보이고 구매 버튼이 없다
+  Event_400_30: row('EVENT_CLOSED', '호스트가 취소한 공연이라 예매할 수 없어요.', false, 'event'),
   Ticket_Item_400_10: row('NOT_ON_SALE', '지금은 판매 중인 티켓이 아니에요.', true, 'event'),
   Ticket_Item_404_1: row('NOT_ON_SALE', '판매 중인 티켓을 찾을 수 없어요.', true, 'event'),
   Event_404_1: row('NOT_ON_SALE', '공연을 찾을 수 없어요.', false, 'event'),

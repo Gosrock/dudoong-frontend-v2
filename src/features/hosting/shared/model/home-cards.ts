@@ -26,8 +26,14 @@ const ROLE_CHIP: Record<HostRole, ChipLook | null> = {
 
 export const roleChipOf = (role: HostRole): ChipLook | null => ROLE_CHIP[role];
 
-/** 공연 카드 상태 칩. 모르는 표시 상태는 칩 없음 */
-export function eventChipOf(event: Pick<MyEvent, 'displayStatus' | 'dDay'>): ChipLook | null {
+/**
+ * 공연 카드 상태 칩. 모르는 표시 상태는 칩 없음. 호스트가 취소한 공연(E-11 `canceledAt`, 상태는 OPEN 그대로)은 표시 상태보다 먼저
+ * "취소됨"(grey fill — 지난 공연 grey weak와 구분, 디자인 없음 Q124)
+ */
+export function eventChipOf(
+  event: Pick<MyEvent, 'displayStatus' | 'dDay' | 'canceledAt'>,
+): ChipLook | null {
+  if (event.canceledAt) return { label: '취소됨', color: 'grey', theme: 'fill' };
   switch (event.displayStatus) {
     case 'PREPARING':
       return { label: '준비중', color: 'green', theme: 'weak' };

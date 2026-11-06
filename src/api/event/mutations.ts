@@ -2,8 +2,10 @@ import { mutationOptions } from '@tanstack/react-query';
 
 import { api } from '../http';
 import {
+  type CancelEventRequest,
   type CreateEventRequest,
   CreateEventResponseSchema,
+  EventCancelResultSchema,
   EventManageSchema,
   EventSectionsSchema,
   EventStatusResultSchema,
@@ -67,4 +69,26 @@ export const openEventMutation = (eventId: string | number) =>
 export const deleteEventMutation = () =>
   mutationOptions({
     mutationFn: (eventId: number) => api.delete(eventPath(eventId), EventStatusResultSchema),
+  });
+
+/**
+ * E-11 공연 취소의 시간 제한. 서버가 한 번에 100건까지 주문마다 락 · 트랜잭션을 따로 잡고, 비동기 큐가 차면 주문 앞에서 최대 3초
+ * 기다린다(`V2CancelEventUseCase`) — 다른 변경보다 길게 둔다. 넘으면 TIMEOUT이고 서버는 처리했을 수 있다(같은 API로 다시 — 멱등)
+ */
+export const CANCEL_EVENT_TIMEOUT_MS = 60_000;
+
+/**
+ * E-11 공연 취소(호스트 **마스터만**, Api 2.5.8 — 백엔드 #932 · 이슈 #136 §7). 등록(OPEN) · 시작 전 공연만.
+ * 공연에 취소 표시(새 주문 · 장바구니 `Event_400_30`, 홈 · 목록 · 검색에서 빠짐) → 남은 주문을 오래된 순으로 처리(승인 대기는 거절,
+ * 승인은 호스트 취소 — 입장 · 선물 티켓이 있어도, 결제 금액이 있으면 환불 요청). 응답 `remaining`·`failed`가 있으면 다시 부른다(멱등,
+ * 이미 취소된 공연이면 표시 · 사유 검사를 건너뛰고 시작 시각이 지나도 된다).
+ * - `Event_400_28` 준비중(→ DE-9 삭제) · `Event_400_29` 시작했거나 정산중 · 지난 공연 · `Event_400_31` 사유 1~100자 아님
+ * - 마스터가 아니면 403(`HOST_400_4`) — 운영 2.5.3에는 API가 없다(404)
+ */
+export const cancelEventMutation = (eventId: string | number) =>
+  mutationOptions({
+    mutationFn: (body: CancelEventRequest) =>
+      api.post(`${eventPath(eventId)}/cancel`, EventCancelResultSchema, body, {
+        timeout: CANCEL_EVENT_TIMEOUT_MS,
+      }),
   });

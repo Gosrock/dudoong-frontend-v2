@@ -34,7 +34,9 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './EventDashboardView.css';
+import { useEventCancel } from './model/useEventCancel';
 import { useEventDashboard } from './model/useEventDashboard';
+import { CanceledEventNotice, EventCancelSection } from './ui/EventCancelSection';
 
 type Dashboard = ReturnType<typeof useEventDashboard>;
 
@@ -55,7 +57,7 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
       <DashboardNotices d={dashboard} />
       <EventHead event={dashboard.event} eventId={eventId} />
       {dashboard.mode === 'registered' ? (
-        <RegisteredSection d={dashboard} />
+        <RegisteredWithCancel d={dashboard} eventId={eventId} />
       ) : (
         <ChecklistSection d={dashboard} />
       )}
@@ -266,6 +268,18 @@ const STAT_ICON = {
   refused: 'dashboard-rejected',
   refundRequested: 'dashboard-refund',
 } as const;
+
+/** 등록 후 — 공연 취소(E-11) 안내 · 본문 · 맨 아래 [공연 취소](마스터). 취소는 등록된(OPEN) 공연만이라 등록 후 모드에만 둔다 */
+function RegisteredWithCancel({ d, eventId }: { d: Dashboard; eventId: string }) {
+  const cancel = useEventCancel(eventId);
+  return (
+    <>
+      <CanceledEventNotice cancel={cancel} />
+      <RegisteredSection d={d} />
+      <EventCancelSection cancel={cancel} />
+    </>
+  );
+}
 
 /** 등록 후 본문 — 통계 카드 4개 → 판매 · 입장 두 칸 → 유의사항(GUI `712:1699`·`712:1705`·`748:33135`) */
 function RegisteredSection({ d }: { d: Dashboard }) {

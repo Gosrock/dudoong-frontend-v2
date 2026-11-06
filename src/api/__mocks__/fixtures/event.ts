@@ -398,6 +398,9 @@ export const toDetail = (e: MockEvent): EventDetail => ({
   host: e.host,
   contacts: e.contacts,
   displayStatus: e.displayStatus,
+  // E-11(2.5.8) — 취소 안 됐으면 null
+  canceledAt: e.canceledAt ?? null,
+  cancelReason: e.cancelReason ?? null,
 });
 
 /**

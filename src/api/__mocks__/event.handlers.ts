@@ -24,6 +24,9 @@ import {
 } from './respond';
 import { publicTicketsOf } from './ticket-store';
 
+/** 저장소에서 취소된 공연(E-11)인지 — 목록 fixture는 저장소와 따로라 id로 본다 */
+const isStoredCanceled = (eventId: number) => !!storedEvent(eventId)?.canceledAt;
+
 const eventNotFound = (request: Request) =>
   fail(request, 404, 'Event_404_1', '이벤트를 찾을 수 없습니다.');
 
@@ -38,7 +41,10 @@ function readTagIds(url: URL) {
 export const eventHandlers = [
   http.get('*/api/v2/tags', () => ok(tagGroups)),
 
-  http.get('*/api/v2/home', () => ok({ events: homeEvents() })),
+  // 취소된 공연(E-11)은 홈 · 목록 · 검색에서 빠진다(`V2EventConditions.active`, 지난 공연 포함 검색도)
+  http.get('*/api/v2/home', () =>
+    ok({ events: homeEvents().filter((e) => !isStoredCanceled(e.eventId)) }),
+  ),
 
   http.get('*/api/v2/events', ({ request }) => {
     const url = new URL(request.url);
@@ -62,6 +68,7 @@ export const eventHandlers = [
     const matched = events
       .filter((e) => e.status !== 'PREPARING' && e.status !== 'DELETED')
       .filter((e) => includePast || e.displayStatus !== 'PAST')
+      .filter((e) => !isStoredCanceled(e.eventId))
       .filter(
         (e) =>
           !keyword ||
@@ -94,7 +101,10 @@ export const eventHandlers = [
     if (id === null) return publicIdMismatch(request, cookies);
     // 티켓 저장소(P12)를 읽는다 — 판매 중단·재개·만들기·수정·삭제가 바로 반영된다
     const event = storedPublicEvent(id);
-    return event ? ok(publicTicketsOf(id, event)) : eventNotFound(request);
+    if (!event) return eventNotFound(request);
+    const tickets = publicTicketsOf(id, event);
+    // 취소된 공연은 티켓을 팔지 않는다(P-5 `isPurchasable=false`, 백엔드 #932)
+    return ok(event.canceledAt ? tickets.map((t) => ({ ...t, isPurchasable: false })) : tickets);
   }),
 
   http.get('*/api/v2/events/:eventId/sections', ({ request, params, cookies }) => {

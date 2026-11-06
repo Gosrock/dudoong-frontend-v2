@@ -1,6 +1,8 @@
 import { http } from 'msw';
 
+import { saveStoredEvent, storedEvent } from '@/api/__mocks__/event-store';
 import { CHECKOUT_TICKET } from '@/api/__mocks__/fixtures/order';
+import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { orderHandlers } from '@/api/__mocks__/order.handlers';
 import { errors } from '@/api/__mocks__/respond';
 import { AGREEMENT_VERSION } from '@/api/shared/agreement';
@@ -189,5 +191,45 @@ test.describe('체크아웃 → 주문 완료', () => {
       agreementVersion: AGREEMENT_VERSION,
     });
     await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
+  });
+});
+
+test.describe('취소된 공연(E-11) — 주문 Event_400_30', () => {
+  test.beforeEach(resetHostingStore);
+  test.afterEach(resetHostingStore);
+
+  test('그사이 호스트가 공연을 취소했으면 공연 상세로 돌려보내고 안내 — 상세에는 취소 안내, 구매 버튼 없음', async ({
+    page,
+    mockApi,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto(href);
+    await page
+      .getByRole('radiogroup', { name: /뒤풀이 참석/ })
+      .getByRole('radio', { name: '예' })
+      .click();
+    await page.getByRole('textbox', { name: '응원하는 멤버' }).fill('보컬');
+    await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
+    await page.getByRole('checkbox', { name: '(필수) 호스트에게 개인정보 제공 동의' }).click();
+    await page.getByRole('button', { name: '결제하기' }).click();
+    const dialog = page.getByRole('alertdialog', { name: '주문 완료하기' });
+    await dialog
+      .getByRole('checkbox', { name: '(필수) 위 내용을 확인했으며 이에 동의합니다' })
+      .click();
+    // 호스트가 공연을 취소한다(E-11 — 상태는 OPEN 그대로, canceledAt만)
+    const e = storedEvent(101)!;
+    saveStoredEvent({ ...e, canceledAt: '2026.11.07 14:30', cancelReason: '공연장 사정' });
+    await dialog.getByRole('button', { name: '주문 완료하기' }).click();
+
+    await expect(page).toHaveURL(/\/events\/101$/);
+    await expect(page.getByText('호스트가 취소한 공연이라 예매할 수 없어요.')).toBeVisible();
+    await expect(page.getByTestId('event-canceled')).toBeVisible();
+    await expect(page.getByRole('button', { name: '티켓 구매하기' })).toHaveCount(0);
+    expect(
+      mockApi
+        .calls()
+        .filter((c) => c.method === 'POST' && c.path === '/api/v2/me/orders')
+        .map((c) => c.status),
+    ).toEqual([400]);
   });
 });

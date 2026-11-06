@@ -40,6 +40,8 @@ export const ORDER_ERROR_REASONS = {
   Event_404_1: [404, '이벤트를 찾을 수 없습니다.'],
   Event_400_5: [400, '아직 오픈되지 않은 이벤트에는 접근할 수 없습니다.'],
   Event_400_6: [400, '이벤트 시작시간이 지나 티켓팅을 할 수 없습니다.'],
+  // 호스트가 취소한 공연(E-11, Api 2.5.8 — 백엔드 #932)
+  Event_400_30: [400, '취소된 공연입니다.'],
   Ticket_Item_404_1: [404, '티켓 아이템을 찾을 수 없습니다.'],
   Ticket_Item_400_1: [
     400,
@@ -172,6 +174,8 @@ async function createOrder(request: Request) {
   const { event, ticket } = findCheckoutTicket(eventId, ticketItemId);
   if (!event) return orderError(request, 'Event_404_1');
   if (!ticket) return orderError(request, 'Ticket_Item_404_1');
+  // 취소된 공연(E-11 — `Event.validateNotCanceled`, 상태는 OPEN 그대로라 저장소의 `canceledAt`을 본다)
+  if (storedEvent(eventId)?.canceledAt) return orderError(request, 'Event_400_30');
   if (event.displayStatus === 'PAST') return orderError(request, 'Event_400_6');
   if (ticket.payType !== 'DUDOONG' && ticket.payType !== 'FREE') {
     return orderError(request, 'Order_400_20');

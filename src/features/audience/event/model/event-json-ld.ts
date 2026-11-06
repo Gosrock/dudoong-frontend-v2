@@ -1,4 +1,4 @@
-import type { EventDetail } from '@/api/event/schema';
+import { type EventDetail, isEventCanceled } from '@/api/event/schema';
 import { formatKstDateTime, parseKstDateTime, toKstIso } from '@/api/shared/date';
 
 import { eventSchedule } from './event-schedule';
@@ -11,7 +11,7 @@ import { eventSummary, eventTitle } from './event-summary';
  * - `startDate`/`endDate`: KST 벽시계 값을 `+09:00` 오프셋 ISO 8601로. 종료는 서버 `endAt`(= 시작 + 러닝타임, 백엔드
  *   `Event.getEndAt`), 없으면 시작 + `runTime`분. 러닝타임을 모르거나 0분이면 넣지 않는다(`eventSchedule`과 같은 규칙).
  * - `location`: 장소 이름·주소(`PostalAddress`)·좌표. 장소가 없으면 넣지 않는다(리치 결과는 `location`이 필수라 그 공연은 오류로 남는다).
- * - `organizer`: 호스트 이름과 호스트 홈 주소. `eventStatus`는 언제나 예정(취소·연기 상태가 공개 응답에 없다 — 삭제 공연은 404).
+ * - `organizer`: 호스트 이름과 호스트 홈 주소. `eventStatus`는 예정, 호스트가 취소한 공연(`canceledAt`, E-11)만 취소(연기 상태는 공개 응답에 없다 — 삭제 공연은 404).
  */
 
 /** `'2026.10.17 19:30'`(KST) → `'2026-10-17T19:30:00+09:00'` — 공용 `toKstIso`(코드 패턴 점검 A19) */
@@ -61,7 +61,10 @@ export function eventJsonLd(
     ...(description && { description }),
     ...(start && { startDate: toIso(start) }),
     ...(end && { endDate: toIso(end) }),
-    eventStatus: 'https://schema.org/EventScheduled',
+    // 호스트가 취소한 공연(E-11 `canceledAt`, Api 2.5.8) — 검색 결과에 "취소됨"으로(schema.org EventStatusType)
+    eventStatus: isEventCanceled(event)
+      ? 'https://schema.org/EventCancelled'
+      : 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     ...(location && { location }),
     ...(event.posterImageUrl && { image: [event.posterImageUrl] }),
