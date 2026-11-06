@@ -42,10 +42,11 @@ test.describe('약관 경로', () => {
 });
 
 /**
- * 화면의 약관 근거 문구 — 운영 확정본(B28 · 백엔드 #928, 2026-11-04). legal-copy A-1 · A-8 ④ · A-9 · A-11.
+ * 화면의 약관 근거 문구 — 운영 확정본(B28 · 백엔드 #928, 2026-11-04 / B42 · 백엔드 #938, 2026-11-06).
+ * legal-copy A-1 · A-8 ④ · A-9 · A-11.
  * 문구를 바꿀 때는 이 테스트와 legal-copy를 같이 고친다.
  */
-test.describe('약관 근거 문구(B28 확정본)', () => {
+test.describe('약관 근거 문구(B28 · B42 확정본)', () => {
   const REFUND_SENTENCE =
     '취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요.';
 
@@ -68,9 +69,20 @@ test.describe('약관 근거 문구(B28 확정본)', () => {
     await page.goto(`/orders/${P9_ORDER.approvedPaid}`);
     await expect(page.getByText(`환불 방법 : ${REFUND_SENTENCE}`, { exact: false })).toBeVisible();
     await expect(page.getByText('환불받을 계좌를 알려주세요', { exact: false })).toHaveCount(0);
+    // A-8 ④ 뒤 문장(B42) — "호스트는 지체 없이 환불해야 하며"를 뺐다. [공연 상세 페이지] 링크는 그대로
+    const refundItem = page.getByText(`환불 방법 : ${REFUND_SENTENCE}`, { exact: false });
+    await expect(refundItem).toHaveText(
+      `환불 방법 : ${REFUND_SENTENCE} 호스트 연락처는 공연 상세 페이지에서 확인할 수 있습니다.`,
+    );
+    await expect(refundItem.getByRole('link', { name: '공연 상세 페이지' })).toBeVisible();
+    await expect(page.getByText('지체 없이 환불해야', { exact: false })).toHaveCount(0);
 
     await page.getByRole('button', { name: '주문취소' }).click();
     const dialog = page.getByRole('dialog');
+    // A-9 제목(B42)
+    await expect(
+      dialog.getByRole('heading', { name: '취소하면 입력한 계좌로 호스트가 환불해요' }),
+    ).toBeVisible();
     await expect(dialog.getByText(REFUND_SENTENCE, { exact: false })).toBeVisible();
     // 계좌 칸 위 임시 안내 줄(#105)은 확정본과 겹쳐 뺐다
     await expect(dialog.getByText('여기에 입력한 계좌는', { exact: false })).toHaveCount(0);

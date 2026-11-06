@@ -27,9 +27,9 @@ import { useOrderHostContacts } from '../model/useOrderHostContacts';
 const ACCOUNT_HOLDER_MAX = 20;
 const ACCOUNT_NUMBER_MAX = 30;
 
-/** 취소 확인 문구 — legal-copy A-9(두둥) · A-10(무료). 빼거나 바꾸지 않는다. A-9 본문 둘째 문장은 운영 확정본(B28 · 백엔드 #928) */
+/** 취소 확인 문구 — legal-copy A-9(두둥) · A-10(무료). 빼거나 바꾸지 않는다. A-9 본문 둘째 문장은 운영 확정본(B28 · 백엔드 #928), 제목은 B42 · 백엔드 #938(2026-11-06) */
 export const CANCEL_COPY = {
-  paidTitle: '취소 후 직접 환불을 요청해야 해요',
+  paidTitle: '취소하면 입력한 계좌로 호스트가 환불해요',
   paidBody:
     '두둥티켓은 호스트 계좌로 입금한 티켓이라 자동으로 환불되지 않아요. 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요. 호스트가 공연 상세에 별도 환불 기준을 안내했다면, 직접 취소할 때는 그 기준에 따라 환불이 제한될 수 있어요.',
   paidContacts: '호스트 연락처 확인하기',

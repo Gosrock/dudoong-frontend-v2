@@ -28,7 +28,7 @@ export function OrderCancelNotice({ detail }: { detail: OrderDetailState }) {
           '두둥티켓은 호스트 계좌로 입금한 티켓이라, 예매를 취소해도 자동으로 환불되지 않습니다.',
           <>
             환불 방법 : 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게
-            연락해 주세요. 호스트는 지체 없이 환불해야 하며, 연락처는{' '}
+            연락해 주세요. 호스트 연락처는{' '}
             {eventId !== null ? (
               <Link href={eventHref(eventId)}>공연 상세 페이지</Link>
             ) : (

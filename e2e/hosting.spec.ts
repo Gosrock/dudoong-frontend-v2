@@ -148,7 +148,7 @@ test.describe('리다이렉트(next.config redirects)', () => {
     expect(res.headers()['location']).toBe('/hosting/events/101/dashboard');
   });
 
-  // v1 호스트 앱 주소 — 영구(308, P15 URL 연속성)
+  // v1 호스트 앱 주소 — 컷오버 때는 임시(307, 백엔드 #939 답 2026-11-06). 안정되면 308로(cutover-runbook)
   const cases: [string, string][] = [
     ['/admin', '/hosting'],
     ['/admin/new/hosts', '/hosting/new/hosts'],
@@ -170,9 +170,9 @@ test.describe('리다이렉트(next.config redirects)', () => {
     ['/admin/login', '/login'],
   ];
   for (const [from, to] of cases) {
-    test(`${from} → ${to} (308)`, async ({ request }) => {
+    test(`${from} → ${to} (307)`, async ({ request }) => {
       const res = await request.get(from, { maxRedirects: 0 });
-      expect(res.status()).toBe(308);
+      expect(res.status()).toBe(307);
       expect(res.headers()['location']).toBe(to);
     });
   }
