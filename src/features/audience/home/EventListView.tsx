@@ -3,10 +3,12 @@
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useId } from 'react';
 
+import type { EventListItem } from '@/api/event/schema';
 import { NO_SEARCH_ATTR } from '@/features/audience/shell/AudienceShell.css';
 import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { eventHref } from '@/features/shared/routes';
 import { Button } from '@/ui/components/Button/Button';
+import { Chip } from '@/ui/components/Chip/Chip';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { FilterChip } from '@/ui/components/FilterChip/FilterChip';
@@ -23,6 +25,7 @@ import { colors } from '@/ui/theme/colors';
 import * as s from './EventListView.css';
 import { concertCardDate, concertCardPrice } from './model/card-date';
 import { useEventList } from './model/useEventList';
+import { useRecommendedEvents } from './model/useRecommendedEvents';
 import { ScrollTopButton } from './ui/ScrollTopButton';
 import { TagPanel } from './ui/TagPanel';
 
@@ -37,7 +40,11 @@ const SKELETON_COUNT = 6;
 export function EventListView() {
   const list = useEventList();
   const pastLabelId = useId();
+  const recommendedTitleId = useId();
   const { events } = list;
+  // 검색어 · 태그로 찾은 결과가 없을 때만 추천을 부른다(GUI `1184:33829`)
+  const noResult = events.status === 'empty' && list.hasConditions;
+  const recommended = useRecommendedEvents(noResult);
   // 이동 뒤 숨은 Activity로 남아도 다른 화면의 검색 아이콘을 숨기지 않게(fix-qa-1101)
   const markerRef = useActivityMarker<HTMLElement>();
   return (
@@ -116,19 +123,26 @@ export function EventListView() {
             />
           </div>
         )}
-        {events.status === 'empty' && (
+        {noResult && (
+          // 검색 결과 없음(GUI `1184:33829`, #158) — 그림 100 · 문구 둘, [검색 조건 지우기]는 GUI에 없어 뺐다(Q91)
+          <div className={s.noResult}>
+            <Illustration name="no-search-result" width={100} />
+            <div className={s.noResultTexts}>
+              <Txt as="p" typography="headingMd2" color={colors.textPrimary}>
+                검색된 공연이 없습니다.
+              </Txt>
+              <Txt as="p" typography="bodyMd" color={colors.textTertiary}>
+                다른 검색어를 입력해보세요.
+              </Txt>
+            </div>
+          </div>
+        )}
+        {events.status === 'empty' && !list.hasConditions && (
           <div className={s.state}>
             <EmptyState
               illustration={<Illustration name="no-search-result" />}
+              // 조건 없이 0건(공연이 하나도 없음) — 디자인 없음(Figma 코멘트 759:7993)
               description="조건에 맞는 공연이 없어요."
-              action={
-                // 결과 없음 다음 행동(#106 §3) — 목록 상태는 디자인 없음(DS로만). 추천(태그·다가오는 공연)은 design-requests Q91
-                list.hasConditions ? (
-                  <Button variant="secondary" size="sm" onClick={list.clearConditions}>
-                    검색 조건 지우기
-                  </Button>
-                ) : undefined
-              }
             />
           </div>
         )}
@@ -136,13 +150,7 @@ export function EventListView() {
           <ul className={s.grid}>
             {events.items.map((e) => (
               <li key={e.eventId}>
-                <ConcertCard
-                  href={eventHref(e.eventId)}
-                  title={e.name ?? UNNAMED_EVENT}
-                  date={concertCardDate(e.startAt)}
-                  price={concertCardPrice(e)}
-                  posterUrl={e.posterImageUrl}
-                />
+                <EventCard event={e} />
               </li>
             ))}
           </ul>
@@ -150,7 +158,47 @@ export function EventListView() {
         {events.status === 'success' && <LoadMoreSentinel list={events} />}
       </section>
 
+      {noResult && recommended.items.length > 0 && (
+        <section aria-labelledby={recommendedTitleId} className={s.recommended}>
+          <Txt as="h2" typography="headingMd2Emphasized" color={colors.textPrimary}>
+            <span id={recommendedTitleId}>이런 공연은 어때요?</span>
+          </Txt>
+          <ul className={s.grid}>
+            {recommended.items.map((e) => (
+              <li key={e.eventId} className={s.recommendedItem}>
+                <EventCard event={e} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <ScrollTopButton />
     </main>
+  );
+}
+
+/**
+ * 목록 카드 하나. 지난 공연(`displayStatus` PAST — 종료 · 정산중 · 지난 공연)은 GUI `939:34039`(#159)대로
+ * 포스터 흐림 + 왼쪽 위 "공연종료" 칩(DS `tag_v2` small · round · grey · weak)이고 가격 줄을 그리지 않는다
+ */
+function EventCard({ event: e }: { event: EventListItem }) {
+  const ended = e.displayStatus === 'PAST';
+  return (
+    <ConcertCard
+      href={eventHref(e.eventId)}
+      title={e.name ?? UNNAMED_EVENT}
+      date={concertCardDate(e.startAt)}
+      price={ended ? null : concertCardPrice(e)}
+      posterUrl={e.posterImageUrl}
+      ended={ended}
+      badge={
+        ended ? (
+          <Chip size="sm" shape="round" color="grey" theme="weak">
+            공연종료
+          </Chip>
+        ) : undefined
+      }
+    />
   );
 }

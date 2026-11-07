@@ -70,3 +70,32 @@ export const skeletonCard = style({ display: 'flex', flexDirection: 'column', ga
 export const skeletonPoster = style({ aspectRatio: '163 / 231' });
 
 export const state = style({ paddingBlock: vars.space[8] });
+
+/** 검색 결과 없음(GUI `1184:33951` — 위아래 40, 그림 100, 그림 · 문구 간격 12, 문구 둘 간격 4, 가운데) */
+export const noResult = style({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: vars.space[3],
+  paddingBlock: vars.space[7],
+  textAlign: 'center',
+});
+
+export const noResultTexts = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[1],
+});
+
+/** "이런 공연은 어때요?" 묶음(GUI `1184:33998` — 결과 없음 묶음과 간격 16(main gap), 문구 · 카드 간격 16) */
+export const recommended = style({ display: 'flex', flexDirection: 'column', gap: vars.space[4] });
+
+/**
+ * 추천 카드 칸. 6장(모바일 2열 3줄 · 600~ 3열 2줄)인데 PC 4열에서는 둘째 줄이 2장만 남아 앞 4장(한 줄)만 보인다.
+ * 🤖 Claude 판단(PC 추천은 디자인 없음 — 2026-11-07). 되돌리려면 이 `selectors`를 지운다
+ */
+export const recommendedItem = style({
+  '@media': {
+    [media.desktop]: { selectors: { '&:nth-child(n + 5)': { display: 'none' } } },
+  },
+});

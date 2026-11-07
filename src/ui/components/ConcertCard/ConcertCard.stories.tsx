@@ -100,3 +100,21 @@ export const WithBadge: Story = {
     await expect(box.bottom).toBeLessThan(poster.bottom);
   },
 };
+
+/** 지난 공연(GUI `939:34039` 예매하기(2줄), #159) — 포스터 흐림 + "공연종료" 칩, 날짜 tertiary · 제목 secondary */
+export const Ended: Story = {
+  args: {
+    ended: true,
+    price: null,
+    badge: (
+      <Chip size="sm" shape="round" color="grey" theme="weak">
+        공연종료
+      </Chip>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByText('공연종료')).toBeVisible();
+    await expect(canvasElement.querySelector('a')).toHaveAttribute('data-ended', 'true');
+    await expect(getComputedStyle(canvasElement.querySelector('img')!).opacity).toBe('0.8');
+  },
+};
