@@ -474,6 +474,26 @@ describe('E-11 공연 취소(Api 2.5.8 — 백엔드 #932)', () => {
     expect(await codeOf(cancel(OPEN, '사유'))).toEqual([400, 'Event_400_29']);
   });
 
+  it('GE-3 cancelRemainingCount · cancelRetryable(Api 2.5.9 — B44): 취소 전 null, 남은 수 = 응답 remaining, 정산 기록이 생기면 다시 처리 불가', async () => {
+    expect(await get(eventManageQuery(OPEN))).toMatchObject({
+      cancelRemainingCount: null,
+      cancelRetryable: null,
+    });
+    setEventCancelScenario({ limit: 1 });
+    const r = await cancel(OPEN, '사유');
+    expect(r.remaining).toBeGreaterThan(0);
+    expect(await get(eventManageQuery(OPEN))).toMatchObject({
+      cancelRemainingCount: r.remaining,
+      cancelRetryable: true,
+    });
+    setEventCancelScenario({ settled: [OPEN] });
+    expect(await get(eventManageQuery(OPEN))).toMatchObject({
+      cancelRemainingCount: r.remaining,
+      cancelRetryable: false,
+    });
+    expect(await codeOf(cancel(OPEN, '사유'))).toEqual([400, 'Event_400_29']);
+  });
+
   it('취소된 공연은 GP-5 isPurchasable=false, GP-2 목록에서 빠진다', async () => {
     await cancel(OPEN, '사유');
     const tickets = await get<{ isPurchasable: boolean }[]>(eventTicketItemsQuery(OPEN));

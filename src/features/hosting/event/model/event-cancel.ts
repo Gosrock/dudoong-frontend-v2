@@ -28,6 +28,33 @@ export function canCancelEvent(
   );
 }
 
+/**
+ * 취소된 공연의 남은 주문을 마스터에게 어떻게 보일지(Api 2.5.9 GE-3 `cancelRemainingCount` · `cancelRetryable` — 백엔드 #940 B44).
+ * - `retry`: [남은 주문 다시 처리] — 서버가 "다시 부르면 통과(`true`) + 남은 주문 > 0"이라고 할 때만
+ * - `contact`: 다시 불러도 `Event_400_29`(`false`) + 남은 주문 > 0 → 버튼 대신 고객센터 안내(운영자가 따로 처리)
+ * - `none`: 남은 주문 0
+ * - `unknown`: 서버 값이 없다(운영 2.5.3 · 취소 직후 GE-3을 다시 읽기 전) — 화면이 이 결과로 판단한다(`useEventCancel`)
+ */
+export type CancelRemainingState =
+  | { kind: 'retry'; count: number }
+  | { kind: 'contact'; count: number }
+  | { kind: 'none' }
+  | { kind: 'unknown' };
+
+export function cancelRemainingState(
+  event: Pick<EventManage, 'cancelRemainingCount' | 'cancelRetryable'>,
+): CancelRemainingState {
+  const count = event.cancelRemainingCount;
+  const retryable = event.cancelRetryable;
+  if (typeof count !== 'number' || typeof retryable !== 'boolean') return { kind: 'unknown' };
+  if (count <= 0) return { kind: 'none' };
+  return retryable ? { kind: 'retry', count } : { kind: 'contact', count };
+}
+
+/** 다시 처리할 수 없는 남은 주문 안내(🤖 기본안 — 이슈 #150 예시 문구, 디자인 · 운영 확인 design-requests Q165) */
+export const cancelContactMessage = (count: number) =>
+  `처리하지 못한 주문 ${count}건이 있어요. 두둥 고객센터로 문의해 주세요.`;
+
 /** 취소 확인 안내 — 이슈 #136 §7 문구(되돌릴 수 없음) */
 export const CANCEL_EVENT_NOTICE =
   '남은 주문이 모두 거절·취소되고, 결제한 주문은 환불 요청이 생겨요. 되돌릴 수 없어요.';

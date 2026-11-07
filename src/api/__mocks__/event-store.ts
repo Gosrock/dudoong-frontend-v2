@@ -48,20 +48,34 @@ function seed() {
   nextEventId = CREATED_EVENT_ID_START;
   cancelLimit = 100;
   cancelFailOnce.clear();
+  cancelSettled.clear();
 }
 
 // E-11 공연 취소 시나리오(Api 2.5.8) — 한 번에 처리하는 주문 상한(`V2CancelEventUseCase.MAX_ORDERS_PER_CALL` 100)과
 // 다음 호출에서 한 번 실패로 남길 주문. `seed()`가 되돌린다
 let cancelLimit = 100;
 const cancelFailOnce = new Set<string>();
+// 정산 기록이 생긴 공연(Api 2.5.9 `cancelRetryable` false — 다시 불러도 `Event_400_29`)
+const cancelSettled = new Set<number>();
 
 /** E-11 핸들러가 읽는 시나리오 값 */
 export const eventCancelScenario = () => ({ limit: cancelLimit, failOnce: cancelFailOnce });
 
-/** E-11 시나리오: 한 번에 `limit`건만 처리하고(→ `remaining`), `failOnce` 주문은 다음 호출에서 한 번 실패한다(→ [다시 처리]) */
-export function setEventCancelScenario(options: { limit?: number; failOnce?: string[] }) {
+/** 정산 기록이 생긴 공연인지(시나리오 값) */
+export const isCancelSettled = (eventId: number) => cancelSettled.has(eventId);
+
+/**
+ * E-11 시나리오: 한 번에 `limit`건만 처리하고(→ `remaining`), `failOnce` 주문은 다음 호출에서 한 번 실패한다(→ [다시 처리]).
+ * `settled` 공연은 정산 기록이 생긴 것으로 본다(→ GE-3 `cancelRetryable` false, E-11 `Event_400_29`)
+ */
+export function setEventCancelScenario(options: {
+  limit?: number;
+  failOnce?: string[];
+  settled?: number[];
+}) {
   if (options.limit !== undefined) cancelLimit = options.limit;
   for (const uuid of options.failOnce ?? []) cancelFailOnce.add(uuid);
+  for (const id of options.settled ?? []) cancelSettled.add(id);
 }
 
 seed();

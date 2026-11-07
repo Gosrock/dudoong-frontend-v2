@@ -20,6 +20,7 @@ import {
   CANCEL_EVENT_UNSUPPORTED_MESSAGE,
   type CancelEventErrorCode,
   cancelReasonError,
+  cancelRemainingState,
   cancelResultSummary,
 } from './event-cancel';
 
@@ -35,6 +36,10 @@ async function applyEventCanceled(qc: QueryClient, eventId: string, result: Even
           ...prev,
           canceledAt: result.canceledAt ?? prev.canceledAt ?? null,
           cancelReason: result.cancelReason ?? prev.cancelReason ?? null,
+          // 2.5.9: 남은 수는 응답 `remaining`과 같은 조건이다 — GE-3을 다시 읽기 전에도 맞춰 둔다(2.5.3 응답이면 필드를 만들지 않는다)
+          ...(prev.cancelRemainingCount !== undefined && {
+            cancelRemainingCount: result.remaining,
+          }),
         }
       : prev,
   );
@@ -55,8 +60,10 @@ async function applyEventCanceled(qc: QueryClient, eventId: string, result: Even
  *
  * - [공연 취소]: 마스터 + OPEN + 시작 전 + 아직 취소 안 됨(`canCancelEvent`). 사유는 간단한 폼(`useState` + 순수 함수, patterns §23)
  * - 결과(`result`): 이번 호출의 거절 · 취소 수와 남은 주문. `remaining > 0 || failed > 0`이면 [남은 주문 다시 처리](같은 API — 멱등)
- * - 취소된 공연에서 마스터는 [남은 주문 다시 처리]를 늘 볼 수 있다 — 새로고침하면 남은 수를 알 길이 없다(GE-3에 없음, 🤖 판단).
- *   이 화면에서 처리한 결과가 "남은 주문 없음"이면 숨긴다
+ * - 취소된 공연의 남은 주문(Api 2.5.9 GE-3 `cancelRemainingCount` · `cancelRetryable`, `cancelRemainingState`): 다시 부르면 통과하고
+ *   남은 주문이 있을 때만 [남은 주문 다시 처리], 다시 불러도 안 되면(`false`) 버튼 대신 고객센터 안내(`contact`), 0이면 숨김.
+ *   서버 값이 없으면(운영 2.5.3) 예전처럼 마스터에게 늘 보이고, 이 화면에서 처리한 결과가 "남은 주문 없음"이면 숨긴다
+ * - E-11 응답 뒤에는 GE-3을 다시 읽는다(`applyEventCanceled`의 `['events', id]` 접두 무효화) — 처리 중에 연 값은 중간 값이라
  * - 에러(patterns §4-5 · §11): 403(마스터 아님) → GE-3 다시 읽기 + 안내, `Event_400_28`·`_29` → GE-3 다시 읽기 + 안내,
  *   `Event_400_31` → 사유 칸 오류, 404(운영 2.5.3 — API 없음) → 안내, 응답 없음(TIMEOUT · NETWORK) → 처리됐을 수 있어 GE-3을 다시 읽고
  *   [다시 처리] 안내. 그 밖은 공용 토스트
@@ -174,6 +181,12 @@ export function useEventCancel(eventId: string) {
   }, [event.cancelReason, reason, result?.cancelReason, run]);
 
   const summary = result ? cancelResultSummary(result) : null;
+  const remaining = canceled ? cancelRemainingState(event) : ({ kind: 'unknown' } as const);
+  const canRetry =
+    isMaster &&
+    (remaining.kind === 'unknown'
+      ? (canceled || uncertain) && (summary === null || summary.needsRetry)
+      : remaining.kind === 'retry');
 
   return {
     /** 취소된 공연인지(GE-3 `canceledAt`) */
@@ -182,8 +195,13 @@ export function useEventCancel(eventId: string) {
     cancelReason: event.cancelReason ?? null,
     /** [공연 취소]를 보일지 */
     canCancel: canCancelEvent(event, role),
-    /** [남은 주문 다시 처리]를 보일지 — 마스터 + (취소된 공연 또는 응답을 못 받음) + 마지막 결과가 "남은 것 없음"이 아님 */
-    canRetry: isMaster && (canceled || uncertain) && (summary === null || summary.needsRetry),
+    /**
+     * [남은 주문 다시 처리]를 보일지 — 마스터 + 서버가 "다시 처리 가능 · 남은 주문 > 0"(2.5.9). 서버 값이 없으면(2.5.3) (취소된 공연
+     * 또는 응답을 못 받음) + 마지막 결과가 "남은 것 없음"이 아님
+     */
+    canRetry,
+    /** 다시 처리할 수 없는 남은 주문 수(마스터 — 버튼 대신 고객센터 안내). 없으면 null */
+    contactCount: isMaster && remaining.kind === 'contact' ? remaining.count : null,
     reason,
     setReason,
     reasonError,

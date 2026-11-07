@@ -206,7 +206,7 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 
 GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by(DESC, "id")` @fe423ed4). 공연 시작일 순이 아니다.
 
-**공연 취소 E-11**(Api **2.5.8**, 백엔드 #932 — 이슈 #136 §7, B33①. 운영 2.5.3에는 없음 — 404). 마스터만(`@HostRolesAllowed(MASTER)`, SUPER_ADMIN 통과), **등록(OPEN) · 시작 전**만(준비중 `Event_400_28` → DE-9 삭제, 시작 · 정산중 · 지난 공연 `Event_400_29`, 사유 앞뒤 공백 제외 1~100자 `Event_400_31`). **새 상태 값이 없다** — `status`는 OPEN 그대로이고 `canceledAt`(+ `cancelReason`)이 있으면 취소된 공연. 표시 뒤 남은 주문을 오래된 순으로 한 번에 최대 100건(비동기 큐가 차면 더 일찍 멈춤): 승인 대기 → 거절(기타, "공연 취소: {사유}"), 승인 → 호스트 취소(입장 · 선물 티켓이 있어도, 입장한 티켓도 철회), 결제 금액이 있으면 환불 요청. `remaining`(실패 포함)·`failed`가 있으면 **같은 API를 다시**(멱등 — 이미 취소된 공연이면 표시 · 사유 검사를 건너뛰고 시작 시각이 지나도 된다). 취소 뒤: 새 주문 · 장바구니 · 승인 · 결제 확정 · 선물 보내기/받기 `Event_400_30`, 홈 · 목록 · 검색(지난 공연 포함) · 관심 호스트 대표 공연 · 비멤버 호스트 공개 공연 · 리마인더에서 빠짐, GP-3 · GE-3은 열리고 `canceledAt` · `cancelReason`, GE-1 카드에 `canceledAt`, GP-5 `isPurchasable=false`. 관객 알림은 기존 주문 거절 · 취소 알림(전용 알림 없음). 프론트: 새 필드는 zod `optional`, 시간 제한 60초(`CANCEL_EVENT_TIMEOUT_MS`).
+**공연 취소 E-11**(Api **2.5.8**, 백엔드 #932 — 이슈 #136 §7, B33①. 운영 2.5.3에는 없음 — 404). 마스터만(`@HostRolesAllowed(MASTER)`, SUPER_ADMIN 통과), **등록(OPEN) · 시작 전**만(준비중 `Event_400_28` → DE-9 삭제, 시작 · 정산중 · 지난 공연 `Event_400_29`, 사유 앞뒤 공백 제외 1~100자 `Event_400_31`). **새 상태 값이 없다** — `status`는 OPEN 그대로이고 `canceledAt`(+ `cancelReason`)이 있으면 취소된 공연. 표시 뒤 남은 주문을 오래된 순으로 한 번에 최대 100건(비동기 큐가 차면 더 일찍 멈춤): 승인 대기 → 거절(기타, "공연 취소: {사유}"), 승인 → 호스트 취소(입장 · 선물 티켓이 있어도, 입장한 티켓도 철회), 결제 금액이 있으면 환불 요청. `remaining`(실패 포함)·`failed`가 있으면 **같은 API를 다시**(멱등 — 이미 취소된 공연이면 표시 · 사유 검사를 건너뛰고 시작 시각이 지나도 된다). 취소 뒤: 새 주문 · 장바구니 · 승인 · 결제 확정 · 선물 보내기/받기 `Event_400_30`, 홈 · 목록 · 검색(지난 공연 포함) · 관심 호스트 대표 공연 · 비멤버 호스트 공개 공연 · 리마인더에서 빠짐, GP-3 · GE-3은 열리고 `canceledAt` · `cancelReason`(**Api 2.5.9** — GE-3 · PE-4 응답에 `cancelRemainingCount: number | null` = 아직 처리하지 못한 주문 수(E-11 `remaining`과 같은 조건 — 승인 대기 · 승인 · 결제 완료) · `cancelRetryable: boolean | null` = 지금 E-11을 다시 부르면 통과하는지(지난 공연 CLOSED이거나 정산 기록이 생기면 false — 다시 불러도 `Event_400_29`). 취소 안 된 공연이면 둘 다 null, 운영 2.5.3에는 없음 — 백엔드 #940 B44 · 이슈 #150), GE-1 카드에 `canceledAt`, GP-5 `isPurchasable=false`. 관객 알림은 기존 주문 거절 · 취소 알림(전용 알림 없음). 프론트: 새 필드는 zod `optional`, 시간 제한 60초(`CANCEL_EVENT_TIMEOUT_MS`).
 
 **미가입자 초대 링크 H-16~H-20**(Api **2.5.7**, 백엔드 #933 — 이슈 #136 §8, B33②. 스테이징 DDL V024 뒤에만 동작 — 그 전 500, 운영 2.5.3은 없음 — 404). PH-7은 그대로이고, 프론트는 PH-7이 `HOST_400_13`(미가입)일 때만 H-16을 부른다.
 - H-16 응답 `{invitationId, token, inviteUrlPath, expiresAt, mailSent}` — `inviteUrlPath`는 경로만(`/host-invitations/{token}`), origin은 프론트가 붙인다. 토큰은 base64url 43자 · 1회용 · 7일, 이 응답에서만 받는다. 같은 이메일에 대기 초대가 있으면 새 링크로 바꾼다(옛 링크 무효). `mailSent=false` = 같은 이메일 10분 안 재초대(메일 재발송 안 함). 이미 멤버인 계정의 이메일 `HOST_400_15`, 발급 한도(호스트 24시간 20건 · 초대한 사람 50건) `HOST_400_21`. 서버가 링크 메일을 보내지만 실패해도 발급은 성공 → 화면은 [링크 복사]
@@ -220,7 +220,7 @@ GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by
 |---|---|---|
 | GE-1 | GET `/me/events?sort=SCHEDULE` | U |
 | PE-2 | POST `/events` | M+ |
-| GE-3 | GET `/events/{eventId}/manage` | G+ |
+| GE-3 | GET `/events/{eventId}/manage` — PE-4 응답도 같은 모양. 취소된 공연이면 `cancelRemainingCount` · `cancelRetryable`(**Api 2.5.9**, B44) | G+ |
 | PE-4 | PATCH `/events/{eventId}/basic` | M+ |
 | GE-5 | GET `/events/{eventId}/sections` | P (준비중은 멤버만) |
 | PE-6 | PUT `/events/{eventId}/sections` | M+ |

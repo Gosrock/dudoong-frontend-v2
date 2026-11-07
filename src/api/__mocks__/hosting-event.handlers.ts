@@ -21,6 +21,7 @@ import {
   createStoredEvent,
   eventCancelScenario,
   hasValidTicketOf,
+  isCancelSettled,
   isChecklistFilled,
   mockNow,
   runTimeOf,
@@ -30,7 +31,7 @@ import {
 } from './event-store';
 import { knownTagIds, tagGroups } from './fixtures/event';
 import { hosts } from './fixtures/host';
-import { withdrawGuestOrdersForEventCancel } from './guest-store';
+import { guestOrdersOf, withdrawGuestOrdersForEventCancel } from './guest-store';
 import { mockUserRoleIn } from './host-store';
 import { createdHostOf } from './hosting.handlers';
 import { errors, fail, MOCK_IMAGE_ORIGIN, ok, readId, requireAuth } from './respond';
@@ -119,8 +120,28 @@ export function toManage(e: StoredEvent, myRole: HostRole | null): EventManage {
     checklist: checklistOf(e),
     canceledAt: e.canceledAt ?? null,
     cancelReason: e.cancelReason ?? null,
+    ...cancelRemainingOf(e),
   };
 }
+
+/**
+ * GE-3 · PE-4 `cancelRemainingCount` · `cancelRetryable`(Api 2.5.9 — 백엔드 #940 B44). 취소 안 된 공연이면 둘 다 null.
+ * 남은 수는 E-11 `remaining`과 같은 조건(mock은 승인 대기 · 승인 주문), 다시 처리는 지난 공연(CLOSED)이거나 정산 기록이 있으면 false
+ */
+function cancelRemainingOf(e: StoredEvent) {
+  if (!e.canceledAt) return { cancelRemainingCount: null, cancelRetryable: null };
+  return {
+    cancelRemainingCount: cancelTargetsOf(e.eventId),
+    cancelRetryable: isCancelRetryable(e),
+  };
+}
+
+const cancelTargetsOf = (eventId: number) =>
+  guestOrdersOf(eventId).filter((o) => o.status === 'PENDING_APPROVE' || o.status === 'APPROVED')
+    .length;
+
+const isCancelRetryable = (e: StoredEvent) =>
+  e.status !== 'CLOSED' && e.status !== 'CALCULATING' && !isCancelSettled(e.eventId);
 
 // ─── E-11 공연 취소(Api 2.5.8, 백엔드 #932) ──────────────────
 
@@ -145,6 +166,9 @@ async function cancelEvent(request: Request, cookies: Record<string, string>, ra
     }
     event = { ...event, canceledAt: mockNow(), cancelReason: reason };
     saveStoredEvent(event);
+  } else if (!isCancelRetryable(event)) {
+    // 이미 취소된 공연이라도 지난 공연이거나 정산 기록이 생기면 다시 처리하지 못한다(2.5.9 `cancelRetryable` false)
+    return eventError(request, 'Event_400_29');
   }
   const result = withdrawGuestOrdersForEventCancel(event.eventId, event.cancelReason ?? '', {
     ...eventCancelScenario(),
@@ -528,6 +552,17 @@ export const hostingEventSets = {
     http.post(eventPath(eventId, '/cancel'), ({ request }) =>
       fail(request, 404, 'NOT_FOUND', 'Not Found'),
     ),
+  ],
+  /** GE-3이 운영 2.5.3 모양(`cancelRemainingCount` · `cancelRetryable` 없음 — Api 2.5.9 전) */
+  manageWithoutCancelRemaining: (eventId: number) => [
+    http.get(eventPath(eventId, '/manage'), ({ request, cookies }) => {
+      const g = guard(request, cookies, String(eventId), 'GUEST');
+      if ('response' in g) return g.response;
+      const legacy: Partial<EventManage> = toManage(g.event, g.myRole);
+      delete legacy.cancelRemainingCount;
+      delete legacy.cancelRetryable;
+      return ok(legacy);
+    }),
   ],
   /** GE-3 5xx */
   manageServerError: (eventId: number) => [

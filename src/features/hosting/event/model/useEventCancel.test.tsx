@@ -1,4 +1,4 @@
-import { QueryClientProvider } from '@tanstack/react-query';
+import { type QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,6 +43,7 @@ function setup(queryClient = createTestQueryClient()) {
   return { ...renderHook(() => useEventCancel(EVENT), { wrapper }), queryClient };
 }
 type Hook = ReturnType<typeof setup>['result'];
+const queryOf = (qc: QueryClient) => qc.getQueryData(eventManageQuery(EVENT).queryKey);
 const loaded = (result: Hook) => waitFor(() => expect(result.current).not.toBeNull());
 const targets = () =>
   guestOrdersOf(Number(EVENT)).filter(
@@ -126,21 +127,76 @@ describe('공연 취소 E-11 — useEventCancel', () => {
     expect(result.current.canRetry).toBe(false);
   });
 
-  it('취소된 공연을 새로 열면(결과 모름) 마스터는 [다시 처리]를 본다 — 일반 멤버는 안내만', async () => {
+  it('운영 2.5.3(GE-3에 남은 수 없음): 취소된 공연을 새로 열면 마스터는 [다시 처리]를 본다 — 일반 멤버는 안내만', async () => {
     const { result: first } = setup();
     await loaded(first);
     act(() => first.current.setReason('사유'));
     await act(async () => void (await first.current.cancel()));
 
+    server.use(...hostingEventSets.manageWithoutCancelRemaining(Number(EVENT)));
     const fresh = setup();
     await waitFor(() => expect(fresh.result.current.canceled).toBe(true));
     expect(fresh.result.current.canRetry).toBe(true);
+    expect(fresh.result.current.contactCount).toBeNull();
 
     actAsRole(11, 'GUEST');
     const guest = setup();
     await waitFor(() => expect(guest.result.current.canceled).toBe(true));
     expect(guest.result.current.canRetry).toBe(false);
     expect(guest.result.current.canCancel).toBe(false);
+  });
+
+  it('2.5.9: 취소된 공연을 새로 열면 GE-3 남은 수로 — 남은 주문이 있으면 [다시 처리], 0이면 숨김', async () => {
+    setEventCancelScenario({ limit: 1 });
+    const { result: first } = setup();
+    await loaded(first);
+    act(() => first.current.setReason('사유'));
+    await act(async () => void (await first.current.cancel()));
+    const left = targets().length;
+    expect(left).toBeGreaterThan(0);
+
+    const fresh = setup();
+    await waitFor(() => expect(fresh.result.current.canceled).toBe(true));
+    expect(queryOf(fresh.queryClient)).toMatchObject({
+      cancelRemainingCount: left,
+      cancelRetryable: true,
+    });
+    expect(fresh.result.current.canRetry).toBe(true);
+    expect(fresh.result.current.contactCount).toBeNull();
+
+    // 다 처리하면 E-11 뒤 GE-3을 다시 읽어 0 → 숨김
+    setEventCancelScenario({ limit: 100 });
+    await act(async () => void (await fresh.result.current.retry()));
+    await waitFor(() =>
+      expect(queryOf(fresh.queryClient)).toMatchObject({ cancelRemainingCount: 0 }),
+    );
+    expect(fresh.result.current.canRetry).toBe(false);
+
+    const reopened = setup();
+    await waitFor(() => expect(reopened.result.current.canceled).toBe(true));
+    expect(reopened.result.current.canRetry).toBe(false);
+    expect(reopened.result.current.contactCount).toBeNull();
+  });
+
+  it('2.5.9: 다시 처리할 수 없는 공연(cancelRetryable false)이면 버튼 대신 고객센터 안내 — 마스터만', async () => {
+    setEventCancelScenario({ limit: 1 });
+    const { result: first } = setup();
+    await loaded(first);
+    act(() => first.current.setReason('사유'));
+    await act(async () => void (await first.current.cancel()));
+    const left = targets().length;
+    setEventCancelScenario({ settled: [Number(EVENT)] });
+
+    const fresh = setup();
+    await waitFor(() => expect(fresh.result.current.canceled).toBe(true));
+    expect(fresh.result.current.canRetry).toBe(false);
+    expect(fresh.result.current.contactCount).toBe(left);
+
+    actAsRole(11, 'MANAGER');
+    const manager = setup();
+    await waitFor(() => expect(manager.result.current.canceled).toBe(true));
+    expect(manager.result.current.contactCount).toBeNull();
+    expect(manager.result.current.canRetry).toBe(false);
   });
 
   it.each([

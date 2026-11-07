@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import type { EventCancelResult } from '@/api/event/schema';
 
-import { canCancelEvent, cancelReasonError, cancelResultSummary } from './event-cancel';
+import {
+  canCancelEvent,
+  cancelReasonError,
+  cancelRemainingState,
+  cancelResultSummary,
+} from './event-cancel';
 
 const OPEN_UPCOMING = { status: 'OPEN', displayStatus: 'UPCOMING', canceledAt: null } as const;
 
@@ -73,5 +78,35 @@ describe('cancelResultSummary — remaining > 0 또는 failed > 0이면 다시 �
     const s = cancelResultSummary(result({ refused: 1, ...patch }));
     expect(s.needsRetry).toBe(true);
     expect(s.leftover).toContain(`${left}건`);
+  });
+});
+
+describe('cancelRemainingState — GE-3 cancelRemainingCount · cancelRetryable(Api 2.5.9, B44)', () => {
+  it.each([
+    [
+      '다시 처리 가능 · 남은 3',
+      { cancelRemainingCount: 3, cancelRetryable: true },
+      { kind: 'retry', count: 3 },
+    ],
+    ['남은 0이면 숨김', { cancelRemainingCount: 0, cancelRetryable: true }, { kind: 'none' }],
+    [
+      '다시 처리 불가 · 남은 2 → 고객센터',
+      { cancelRemainingCount: 2, cancelRetryable: false },
+      { kind: 'contact', count: 2 },
+    ],
+    [
+      '다시 처리 불가 · 남은 0',
+      { cancelRemainingCount: 0, cancelRetryable: false },
+      { kind: 'none' },
+    ],
+    ['2.5.3(필드 없음)', {}, { kind: 'unknown' }],
+    [
+      '취소 안 된 공연(null)',
+      { cancelRemainingCount: null, cancelRetryable: null },
+      { kind: 'unknown' },
+    ],
+    ['한쪽만 있음', { cancelRemainingCount: 3 }, { kind: 'unknown' }],
+  ] as const)('%s', (_, event, expected) => {
+    expect(cancelRemainingState(event)).toEqual(expected);
   });
 });

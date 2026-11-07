@@ -17,6 +17,7 @@ import {
   CANCEL_EVENT_DONE_TOAST,
   CANCEL_EVENT_NOTICE,
   CANCEL_REASON_HELPER,
+  cancelContactMessage,
 } from '../model/event-cancel';
 import { useEventCancel } from '../model/useEventCancel';
 import * as s from './EventCancelSection.css';
@@ -58,9 +59,12 @@ export function CanceledEventNotice({ cancel }: { cancel: EventCancel }) {
   );
 }
 
-/** 처리 결과 줄 + 오류 + [남은 주문 다시 처리](마스터) */
+/**
+ * 처리 결과 줄 + 오류 + [남은 주문 다시 처리](마스터) 또는 다시 처리할 수 없는 남은 주문 안내(마스터, Api 2.5.9 `cancelRetryable`
+ * false). 안내는 디자인 없음 — 결과 줄과 같은 빨간 글자(Q165 · Q166)
+ */
 function CancelProgress({ cancel }: { cancel: EventCancel }) {
-  const { summary } = cancel;
+  const { summary, contactCount } = cancel;
   return (
     <>
       {summary && (
@@ -68,7 +72,8 @@ function CancelProgress({ cancel }: { cancel: EventCancel }) {
           <Txt as="p" typography="bodyMd">
             {summary.processed}
           </Txt>
-          {summary.leftover && (
+          {/* 다시 처리할 수 없으면 "[다시 처리]를 눌러 주세요"는 맞지 않다 — 아래 고객센터 안내로 */}
+          {summary.leftover && contactCount === null && (
             <Txt as="p" typography="bodyMd" color={colors.textDangerLabel}>
               {summary.leftover}
             </Txt>
@@ -79,6 +84,13 @@ function CancelProgress({ cancel }: { cancel: EventCancel }) {
         <p role="alert">
           <Txt typography="bodySm" color={colors.textDangerLabel}>
             {cancel.error}
+          </Txt>
+        </p>
+      )}
+      {contactCount !== null && (
+        <p data-testid="event-cancel-contact">
+          <Txt typography="bodyMd" color={colors.textDangerLabel}>
+            {cancelContactMessage(contactCount)}
           </Txt>
         </p>
       )}
