@@ -6,6 +6,9 @@ import { vars } from '@/ui/theme/tokens.css';
 /** 시트 본문 — 칸 묶음 사이 24(GUI `932:1567` 간격 24) */
 export const body = style({ display: 'flex', flexDirection: 'column', gap: vars.space[5] });
 
+/** 옵션 고르기 — 목록 → [새 옵션 직접 만들기] 8(GUI `931:1314` 옵션 목록 간격 8 — O24) */
+export const pickBody = style({ display: 'flex', flexDirection: 'column', gap: vars.space[2] });
+
 /** 옵션 고르기 목록 — 항목 사이 8 */
 export const pickList = style([
   sprinkles({ listStyle: 'none' }),

@@ -5,8 +5,6 @@ import type { ReactNode } from 'react';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { toast } from '@/ui/components/Toast/Toast';
 import { Divider } from '@/ui/primitives/Divider';
-import { Txt } from '@/ui/primitives/Txt';
-import { colors } from '@/ui/theme/colors';
 
 /**
  * 체크아웃과 주문상세가 같이 쓰는 결제정보 · 결제금액 행(코드 패턴 점검 A17, 2026-11-02).
@@ -83,17 +81,11 @@ export function AmountRows({
       <InfoRow label="티켓금액" value={format.ticket(ticketAmount)} />
       <InfoRow label="옵션금액" value={format.option(optionAmount)} />
       <Divider inset={5} />
+      {/* 총액 값 Label/lg-emphasized 보라(GUI `567:7913` — R1c) */}
       <InfoRow
-        label={
-          <Txt typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
-            총 결제금액
-          </Txt>
-        }
-        value={
-          <Txt typography="headingSmEmphasized" color={colors.textBrandLabel}>
-            <span data-testid={totalTestId}>{format.total(total)}</span>
-          </Txt>
-        }
+        total
+        label="총 결제금액"
+        value={<span data-testid={totalTestId}>{format.total(total)}</span>}
       />
     </section>
   );

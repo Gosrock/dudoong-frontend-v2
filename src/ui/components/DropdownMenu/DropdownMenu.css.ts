@@ -3,14 +3,12 @@ import { style } from '@vanilla-extract/css';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
-export const content = style({
-  minWidth: 140,
-  padding: vars.space[1],
-});
+/** GUI `958:20518` "dropdown open" 116폭(항목 100 + 좌우 8) — 면은 `theme/surface.css` `dropdownSurface` */
+export const content = style({ minWidth: 116 });
 
 /**
- * Figma dropdown item `284:1777` — 모서리 4, Label/md(14·500). Figma 28h(안쪽 4)는 손가락으로 누르기 작아
- * 안쪽 8 · 12(최소 36h)로 키웠다. 선택·hover 배경은 dropdown item selected의 surface.container.
+ * Figma dropdown item `284:1777`(GUI `958:20518` 안) — 28h · 안쪽 4 · 모서리 4 · Label/md(14·500).
+ * 28h는 WCAG 2.5.8(24 이상)을 넘는다(2026-11-08 O19 — 옛 36h에서 Figma대로). hover · 키보드 이동 배경은 dropdown item selected의 surface.container.
  */
 export const item = style([
   typography.labelMd,
@@ -18,8 +16,8 @@ export const item = style([
     display: 'flex',
     alignItems: 'center',
     gap: vars.space[2],
-    minHeight: 36,
-    padding: `${vars.space[2]} ${vars.space[3]}`,
+    minHeight: 28,
+    padding: vars.space[1],
     borderRadius: vars.radius[1],
     color: vars.color.text.primary,
     cursor: 'pointer',

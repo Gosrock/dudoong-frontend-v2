@@ -45,20 +45,17 @@ export const value = style({
 export const icon = style({ display: 'inline-flex', flexShrink: 0 });
 
 /**
- * 열린 목록. Figma에는 컴포넌트가 없고 예시 프레임(`284:1755`, `318:5749`)뿐이라 테두리·그림자는 Toast 규칙을 빌렸다.
- * 시트·모달 안에서도 위에 떠야 해서 modal보다 한 단계 위.
+ * 열린 목록. 면은 `theme/surface.css` `dropdownSurface`(DS `dropdown` — 안쪽 12/8 · 항목 사이 4 · 그림자 없음, GUI `1029:6014` ·
+ * `1030:8703`, 2026-11-08 O20). 시트·모달 안에서도 위에 떠야 해서 modal보다 한 단계 위(popover).
  */
 export const content = style({
-  zIndex: vars.zIndex.popover,
   minWidth: 'var(--radix-select-trigger-width)',
   maxHeight: 'var(--radix-select-content-available-height)',
   overflow: 'hidden',
-  padding: vars.space[1],
-  border: `1px solid ${vars.color.surface.defaultBorder}`,
-  borderRadius: vars.radius[2],
-  background: vars.color.background.normal,
-  boxShadow: vars.shadow.drop,
 });
+
+/** 항목 사이 4(Radix Viewport가 항목을 감싼다) */
+export const viewport = style({ display: 'flex', flexDirection: 'column', gap: vars.space[1] });
 
 /**
  * Figma dropdown item(`284:1777`): 36h(2026-10-31, 옛 28), 여백 4, 선택은 배경 `surface/container` + 모서리 4 + check 12.

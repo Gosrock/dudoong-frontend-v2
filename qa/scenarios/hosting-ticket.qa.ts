@@ -213,7 +213,8 @@ scenario(
       await expect(detail.getByLabel('옵션 이름')).toBeDisabled();
       // '네' 추가금은 천 단위 쉼표(GUI 943:2200 "1,000" — I-h6)
       await expect(detail.getByLabel("'네' 추가 금액")).toHaveValue('10,000');
-      await expect(detail.getByRole('button', { name: '수정' })).toBeVisible();
+      // [✎ 수정]은 머리 줄 ✕ 왼쪽(GUI 943:2221 — O5)
+      await expect(page.getByRole('dialog').getByRole('button', { name: '수정' })).toBeVisible();
     });
     await step('[수정]을 누르면 이름·설명만 고칠 수 있다', async () => {
       await page.getByRole('button', { name: '수정' }).click();

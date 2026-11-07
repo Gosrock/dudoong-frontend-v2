@@ -4,6 +4,7 @@ import * as Select from '@radix-ui/react-select';
 import type { ReactNode, Ref } from 'react';
 
 import { Icon } from '../../icons/Icon';
+import { dropdownSurface } from '../../theme/surface.css';
 import { describedBy, Field, fieldIds, useControlId } from '../Input/Field';
 import * as f from '../Input/Input.css';
 import * as s from './Dropdown.css';
@@ -105,8 +106,12 @@ export function Dropdown({
           </Select.Icon>
         </Select.Trigger>
         <Select.Portal>
-          <Select.Content className={s.content} position="popper" sideOffset={4}>
-            <Select.Viewport>
+          <Select.Content
+            className={`${dropdownSurface} ${s.content}`}
+            position="popper"
+            sideOffset={4}
+          >
+            <Select.Viewport className={s.viewport}>
               {options.map((o) => (
                 <Select.Item key={o.value} value={o.value} disabled={o.disabled} className={s.item}>
                   <Select.ItemText>{o.label}</Select.ItemText>

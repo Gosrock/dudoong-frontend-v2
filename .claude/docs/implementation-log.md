@@ -3191,3 +3191,30 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **Figma 코멘트(2026-11-08)**: 답글 `1989708671`(연필) · `1989715585`(FAB) "[개발 · 고침 2026-11-08] Figma대로 맞췄습니다", DS 확인 요청 새 코멘트 `693:761`(border 40% ↔ Ready 100%) · `198:1638`(Badge 숫자 색).
 
 **검사**: typecheck · 바꾼 파일 lint · vitest related(스토리 포함) 통과 — 스토리 기대값 고침(ConcertCard 230), 새 스토리 `Button/TonalMedium` · `Button/Round` · `Fab/Brand`. QA `hosting-event` 26/0 · `hosting-ticket` 30/0 · `hosting-guests` 35/0 · `shell` 18/0 · `events` 23/0. e2e `shell` · `hosting-event` · `hosting-ticket` · `hosting-guests` · `hosting` · `home` · `event-list` · `host-home` 186/0.
+
+## Figma 동일화 M-1 — 공용 오버레이(2026-11-08, `fm-ds-overlays` #172)
+
+**범위**: `figma-deviations-2026-11-07.md` §4 `fm-ds-overlays` — O1~O11 · O13~O17 · O19 · O20 · O22 · O24 · R1c~R1f · A19 · A21(판정 칸 "→ 고침(#172)"). 확인 필요 O12 · O21 · O25는 그대로. Ready 재확인(GUI `2419107657661780989`): 근거 41프레임 Ready 그대로, 태그 패널 `759:11869` Ready 밖.
+
+**한 것**
+- 공용 부품: `BottomSheet` `variant`(default · flat · raised) · `titleSize` · `descriptionStyle` · `showClose` · `headerStart`, `Modal` md 기본값 흰 판 · 24 · 사이 24 + 같은 prop, `ResponsiveOverlay` 전달, `Popup` `size` · `variant="summary"`, `openConfirm` `popupSize` · responsive 시트 `raised`, `DropdownMenu` · `Dropdown` 면 = 새 `dropdownSurface`(메뉴 항목 28h), `Toast` `tone` · `position`, `InfoRow` `valueEmphasized` · `total`, `EmptyState` `actionGap`, 새 `theme/overlay-text`(.ts · .css.ts). 값은 design-system §8 그 절.
+- 화면: 예매자 주문 · 사유 · 표 거절 · 발급 티켓 상세(flat · 18 · Body/md), 입장 취소 확인 PC 480 / 티켓 옵션 가이드 · 추가 · 상세(flat, 설명 caption, [✎ 수정] 머리 줄, 목록 → 버튼 8), 티켓 · 옵션 확인 창 PC 520, 티켓 없음 18 / 선물 시트 3 + 랜딩 확인 2(raised), 링크 복사 성공 토스트 / 체크아웃 결제정보 안내 굵게 · 총액 `total` · 입금 확인 창 summary + 흰 카드 둘(카드 → 두둥 확인 체크 16).
+- `FIGMA-CUSTOM:` 주석을 "→ DS"에서 "Figma대로 …(2026-11-08 fm-ds-overlays O…)"로 고침(주문 상세 · 옵션 시트 · 선물 시트 3 · 거절 확인 · 입금 확인 요약).
+- QA 선택자: HT-6 [수정]을 `dialog` 안에서(머리 줄로 옮김), CHK-4 [취소] → ✕(단계 문구 · basis 같이).
+
+**결정(🤖 Claude 판단)**
+- 시트는 기본값을 바꾸지 않고 `variant`로 — 범위 밖 시트(공연 상세 티켓 시트 · 연락처 · 가입 · 마이페이지 주문 · 공연 스코프 메뉴)는 옛 모양. 되돌리기: 호출의 `variant`/`sheetVariant`.
+- Modal md 기본값은 분류표대로 바꿈 — md를 쓰는 다른 PC 모달도 흰 판 · 24. 되돌리기: `Modal.css.ts` `contentMedium`.
+- raised 시트 위 여백 16(Figma 4장 중 3장. 선물하기 시트만 24), ✕ 없는 막대 시트는 화면 읽기용 숨은 [닫기].
+- 입금 확인 창 [취소] → ✕(Figma 버튼 하나), 카드 안 결제정보 안내 12/600 → `Label/sm` 12/500(600 프리셋 없음).
+- 성공 토스트 위 93 = 머리 64 + 29(Figma 140 − 상태 바 47), 600 이하 sonner 꽉 채움 규칙을 더 구체적인 선택자로 덮음.
+
+**Figma 코멘트(답글 — `--date 2026-11-08-fix`)**: `[개발 · 고침 2026-11-08]` `1991107716` · `1989715589` · `1989731045` · `1989727899` · `1989731046` · `1989731049` · `1989720505` · `1998893130`, `[개발 · 정정 2026-11-08]` `1989724388`(태그 패널 "그림자 없음" 바로잡음 — Ready 밖이라 미수정).
+
+**검사**: typecheck · lint · prettier, vitest related 274/0, test:stories(오버레이 8부품) 53/0, QA hosting-guests 35/0 · hosting-ticket 30/0 · gift 14/0 · tickets 20/0 · checkout 33/0, e2e 9 spec 278/0.
+
+**ego-browser 확인(2026-11-08, dev:mock 3131 · Storybook 6131)**: 예매자 주문 상세 시트 390 · 모달 1440, 거절 사유 시트 390, 티켓 ⋮ 메뉴 · 옵션 상세 · 옵션 추가 390, 판매 중단 확인 1440(520), 티켓 없음 390, 체크아웃 입금 확인 창 390, Storybook `BottomSheet/Raised` · `Toast/Success` 390 — 성공 토스트가 600 이하에서 꽉 차고 16 밀린 것을 찾아 고침(중심 x 195 · 위 93 확인).
+
+**추가(관제탑 — 사용자 결정 2026-11-08)**: O21 태그 패널 상자를 Ready 밖이어도 Figma대로 — `floatingSurface`(Popover — 태그 패널만 씀) 테두리 `surface/default-border` · 모서리 8, 그림자 drop 그대로. 분류표 O21 판정 "맞춤(사용자 결정 11-08)". QA `events` · e2e `event-list` 확인.
+
+**남은 것**: O12 · O25(확인 필요), 모달 폭 Q100(주문 상세 390/432/480 · 발급 티켓 상세 Figma 390).

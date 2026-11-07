@@ -41,6 +41,23 @@ export const valueText = styleVariants({
   third: [typography.labelMd, { color: vars.color.text.secondary }],
 });
 
+/** 총액 줄(`total`) — 라벨 진한색 · 값 보라, 둘 다 `Label/lg-emphasized` 16/700(GUI `567:7913`) */
+export const totalLabel = style([
+  typography.labelLgEmphasized,
+  { color: vars.color.text.primaryLabel },
+]);
+export const totalValue = style([
+  typography.labelLgEmphasized,
+  { color: vars.color.text.brandLabel },
+]);
+
+/** `valueEmphasized` — 같은 색, 글자만 `Label/md-emphasized` */
+export const valueTextEmphasized = styleVariants({
+  first: [typography.labelMdEmphasized, { color: vars.color.text.brandLabel }],
+  second: [typography.labelMdEmphasized, { color: vars.color.text.secondaryLabel }],
+  third: [typography.labelMdEmphasized, { color: vars.color.text.secondary }],
+});
+
 export const labelCell = style({ minWidth: 0, flexShrink: 0, margin: 0 });
 
 export const value = style({

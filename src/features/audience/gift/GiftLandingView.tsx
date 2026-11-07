@@ -120,7 +120,8 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
                 disabled={landing.receiveMode !== 'enabled'}
                 onClick={() =>
                   // 거절 확인 — GUI `939:26858`(시트 `939:26914`) "선물을 거절하시겠습니까?" [아니오] [예]
-                  // FIGMA-CUSTOM: 거절 확인 시트(gui 939:26914 "Frame 1707480354") 커스텀 → DS 확인 창(EasyOverlay responsive — 모바일 BottomSheet). Figma 코멘트 2026-11-01
+                  // FIGMA-CUSTOM: 거절 확인 시트(gui 939:26914 "Frame 1707480354") Figma대로 — 확인 창 responsive(모바일 BottomSheet raised: 막대 · 제목 24 ·
+                  // 가운데 · 버튼 사이 12, 2026-11-08 fm-ds-overlays O15~O17). Figma 코멘트 2026-11-01 · 고침 2026-11-08
                   void openConfirm({
                     variant: 'responsive',
                     title: '선물을 거절하시겠습니까?',
