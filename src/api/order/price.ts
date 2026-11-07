@@ -51,6 +51,16 @@ export function optionAdditionalPrice(
   return answer === 'YES' ? (yesAdditionalPrice ?? 0) : 0;
 }
 
+/**
+ * 티켓 i(0..quantity-1)의 옵션 추가금 합(원). 모든 티켓 동일이면 모두 같은 값.
+ * 체크아웃 티켓 줄의 금액 칩(GUI `567:9316` "+ 1,000원")용 — 총액은 `orderTotalAmount`.
+ */
+export function ticketAdditionalAmounts({ quantity, options }: OrderAmountInput): number[] {
+  return Array.from({ length: quantity }, (_, i) =>
+    sumAdditional(options.applyToAll ? options.answers : (options.perTicket[i] ?? [])),
+  );
+}
+
 /** 주문 총액(원). 수량은 1..100 정수. 범위를 벗어난 입력은 프로그램 오류라 `RangeError`. */
 export function orderTotalAmount({ price, quantity, options }: OrderAmountInput): number {
   assertWon(price, 'price');

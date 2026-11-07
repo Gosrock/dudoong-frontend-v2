@@ -9,6 +9,7 @@ import { Accordion } from '@/ui/components/Accordion/Accordion';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
+import { Chip, formatOptionAmount } from '@/ui/components/Chip/Chip';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Popup } from '@/ui/components/Popup/Popup';
@@ -237,6 +238,14 @@ function TicketsSection({
           key={t}
           label={ticketName}
           meta={`(${t + 1}/${c.quantity})`}
+          trailing={
+            c.ticketOptionAmounts[t] ? (
+              // GUI 567:9316 — 유료 옵션을 고른 티켓 줄의 금액 칩(DS tag_v2 small · square · violet · fill)
+              <Chip color="violet" theme="fill">
+                {formatOptionAmount(c.ticketOptionAmounts[t])}
+              </Chip>
+            ) : undefined
+          }
           className={collapseTopLine}
           open={openTickets[t] ?? false}
           onOpenChange={(open) => setTicketOpen(t, open)}
@@ -274,7 +283,7 @@ function AgreeRefundPolicyField({ c }: { c: CheckoutState }) {
             onBlur={field.onBlur}
             aria-invalid={fieldState.error ? true : undefined}
             label={
-              <Txt typography="labelSm" color={colors.textSecondaryLabel}>
+              <Txt typography="labelSm" color={colors.textPrimaryLabel}>
                 {AGREE_LABEL}
               </Txt>
             }
