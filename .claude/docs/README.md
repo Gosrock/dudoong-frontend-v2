@@ -32,6 +32,7 @@
 | [`patterns.md`](./patterns.md) | 구현 패턴(§1~§10 공통, §11~§23 화면, §24 화면별 에러 처리) |
 | [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) | 코드 패턴 점검(2026-11-02) — **채택 결정**(확인 창 계약 · es-toolkit · 폼 방식) · ①② 결과(만든 공용 부품) · 리포트 원문(제안 A1~A46 · 문서 D1~D12 · 하지 않을 것 · 묶음 ①~⑥). 묶음 ③~⑥ 세션의 근거 |
 | [`figma-structure.md`](./figma-structure.md) | Figma 관측 캐시 |
+| [`figma-audit-2026-11-07-audience.md`](./figma-audit-2026-11-07-audience.md) | Figma 전수조사 ① 관객 · 디자인 시스템(2026-11-07, GUI 판 `2417503630213468518`) — 맡은 9페이지 프레임별 판정(같음 · 고침 · 의도된 차이 · 참고), DS 파일 변수 · 컴포넌트 대조, 고친 것 · 작업 줄 후보 · Q130~Q132 · B50 |
 | [`implementation-log.md`](./implementation-log.md) | Phase별 구현 기록 |
 
 **디자인 변경 트래킹**: [`../../tools/figma-plugin/README.md`](../../tools/figma-plugin/README.md) — 디자이너가 Figma 플러그인으로 프레임별 변경을 GitHub 이슈(`Design Sync` 라벨, 본문에 `node-id` 링크·노드 번호)로 남긴다. Figma를 전수조사하기 전에 열린 `Design Sync` 이슈부터 본다(2026-10-31).

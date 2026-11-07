@@ -9,8 +9,9 @@ import { DELETED_EVENT } from '@/features/shared/event-labels';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { button } from '@/ui/components/Button/Button.css';
 import { Chip } from '@/ui/components/Chip/Chip';
-import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { Illustration } from '@/ui/illustrations/Illustration';
+import { Flex } from '@/ui/primitives/Flex';
+import { Spacing } from '@/ui/primitives/Spacing';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -150,10 +151,14 @@ function TicketTabContent() {
 
         {tab.empty ? (
           <div className={s.empty}>
-            <EmptyState
-              illustration={<Illustration name="no-ticket" />}
-              description="이용 가능한 티켓이 없어요"
-            />
+            {/* GUI 908:3137 — 일러스트 170 + 40 + "이용 가능한 티켓이 없어요"(Heading/md2 18 · 회색 #B8B7B3). 다른 빈 화면(EmptyState — Body/lg 보조색)과 글자가 달라 따로 둔다 */}
+            <Flex direction="column" align="center">
+              <Illustration name="no-ticket" />
+              <Spacing size={7} />
+              <Txt as="p" typography="headingMd2" color={colors.textTertiary}>
+                이용 가능한 티켓이 없어요
+              </Txt>
+            </Flex>
             <Link href="/" className={button({ variant: 'primary', size: 'lg', fullWidth: true })}>
               공연 둘러보기
             </Link>
