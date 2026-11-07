@@ -30,7 +30,7 @@ export function useMyOrders() {
   return {
     orders,
     empty: orders.length === 0,
-    sortLabel: '최근주문순',
+    sortLabel: '최신순',
     ...infiniteListControls(list),
   };
 }
