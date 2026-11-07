@@ -130,7 +130,11 @@ function EventHead({ event, eventId }: { event: EventManage; eventId: string }) 
         )}
       </div>
       <div className={s.info}>
-        {event.hostName && <Txt typography="headingSm">{event.hostName}</Txt>}
+        {event.hostName && (
+          <Txt typography="labelLg" className={s.hostName}>
+            {event.hostName}
+          </Txt>
+        )}
         <Txt as="p" typography="title">
           {event.name ?? UNNAMED_EVENT}
         </Txt>

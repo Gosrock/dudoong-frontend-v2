@@ -19,15 +19,18 @@ export const preLine = style({ whiteSpace: 'pre-line' });
 
 export const fieldError = style({ margin: 0 });
 
-/** 하단 고정 바 — 화면(가운데 영역) 아래에 붙는다. 모바일 위아래 36(→ 32) · 좌우 24, PC 24 · 위 테두리 */
+/**
+ * 하단 고정 바 — 화면(가운데 영역) 아래에 붙는다. 모바일 위아래 36 · 좌우 24(GUI 기본 정보 `748:33447` · `748:33553`, 상세 정보
+ * `767:39603` — 36은 토큰에 없는 값 그대로, 분류표 H25 M-5 2026-11-08), PC 24 · 위 테두리(`748:34686` · `767:40055`)
+ */
 export const bottomBar = style({
   position: 'sticky',
   bottom: 0,
   zIndex: 1,
   marginTop: 'auto',
   background: vars.color.background.normal,
-  padding: `${vars.space[4]} ${vars.space[5]}`,
-  paddingBottom: `calc(${vars.space[4]} + env(safe-area-inset-bottom))`,
+  padding: `36px ${vars.space[5]}`,
+  paddingBottom: 'calc(36px + env(safe-area-inset-bottom))',
   '@media': {
     [media.desktop]: {
       padding: vars.space[5],

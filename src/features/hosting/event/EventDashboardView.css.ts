@@ -3,6 +3,7 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { media } from '@/ui/theme/breakpoints';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
+import { typographySpecs } from '@/ui/theme/typography.css';
 
 /**
  * 공연 대시보드(등록 전) — GUI Ready 모바일 `727:23088`·`745:32167`(390) · PC `727:23210`(1440, 가운데 1172, 우측 패널 없음).
@@ -90,6 +91,25 @@ export const info = style({
       gap: vars.space[1],
       padding: 0,
       textAlign: 'left',
+    },
+  },
+});
+
+/**
+ * 호스트 이름 — 모바일 `Label/lg`(GUI `669:2799` · `727:23101` · `745:32176`, 16/120% 400), PC `Heading/sm`(`727:23247`, 16/130% 500).
+ * `<Txt typography="labelLg">`에 PC만 덮어쓴다(분류표 H22, M-5 2026-11-08)
+ */
+const hostPc = typographySpecs.headingSm;
+export const hostName = style({
+  selectors: {
+    '&&': {
+      '@media': {
+        [media.desktop]: {
+          fontWeight: hostPc.weight,
+          lineHeight: hostPc.lineHeight,
+          letterSpacing: hostPc.letterSpacing,
+        },
+      },
     },
   },
 });
