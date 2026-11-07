@@ -3112,6 +3112,25 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(2026-11-07, dev:mock 3119 · `localhost`, 선물 대기는 커밋하지 않은 임시 mock 수정)**: 예매자 관리 발급된 티켓 1440 · 390 — 표 아이콘 · 대기 행 입장 전 칩, 선물 대기 상세(선물한 사람 · 안내 + 비활성 버튼), 선물 받음 상세(받는 분 · 받는 분 연락처), 입장 취소 → 토스트. 발견: 입장 취소 뒤 상세가 열린 채(GUI는 닫힘) → 고침. 모바일 토스트가 Figma보다 34 낮은 것은 Figma 프레임의 홈 표시줄 영역이라 그대로.
 
+## GUI 반영 — 주문내역 · 주문상세 · 관심 호스트(Ready 2026-11-07, `p9-gui-orders` #165)
+
+근거: GUI Ready for dev(2026-11-07, 페이지 `331:9383` ↳알림창, 주문 상세, 모바일 390) `1047:32381` 주문내역 · `1175:19046` 주문내역 - 상세내역 · `1175:19358` 상세내역(선물) · `1175:19628` 승인거절 · `1175:20346` 관심호스트. GUI 판 `2419089267708529753`(2026-11-07T14:10:21Z). Design Sync 이슈 없음(관제탑이 Ready 목록 대조로 찾음). PC 프레임은 없어 PC는 와이어 때 가운데 열 그대로. 지금 동작(#105~#151 — 취소 시트 · 환불 계좌 · B18 · B28 · B42 문구 · 마케팅 설정)은 그대로 두고 모양만.
+
+- **주문내역**(`OrdersView`): 정렬 고정 라벨 "최근주문순" → **"최신순"**(DS SortButton, Label/md · ⌄ 없음 — 공연 리스트와 같게). 카드 = 공용 `OrderSummaryCard`(새, `ui/OrderParts`): 날짜 Body/md · [상세내역 ›] Label/md + chevron 12 · DS `example poster` mobile 94×133(모서리 4) · 공연 이름 Heading/md-emphasized · 티켓 · 수량 Body/md `text/secondary-label` · 금액 Heading/md-emphasized · 상태 칩 `tag_v2` small **round**. 카드 여백 위 12 · 아래 16 · 좌우 24(+ 구분선 묶음 4). **포스터 배지(D-n · 공연 종료) 뺌** — GUI에 없다(와이어에만 있던 것). 쓰는 곳이 없어 `orderPosterBadge`(model) 지움.
+- **주문상세**(`OrderDetailView` · `ui/OrderDetail*`): 머리 줄 DS `list` First "주문상세" + 주문 일시(값만 `text/secondary-label` — gui override) · 요약 카드(주문내역과 같은 카드, "공연 일시" 줄 뺌, 공연 이름 → 공연 상세) · 승인거절사유(First — 오른쪽 사유 Label/md 브랜드 색, 아래 설명 Label/md + DS Button primary 2(`tonal`) Large 아이콘만 말풍선 = 호스트 문의, 아래 선) · 옵션 적용(라벨 "옵션 적용", second-radio 체크는 읽기 전용 `Checkbox` checked disabled) · 예매정보 아코디언 **첫 장만 펼침**(와이어 때 모두 펼침) · 옵션 답 회색 판(질문 Label/md-emphasized `text/secondary-label` + 추가금 "(+1,000원)" 브랜드 색 · 설명 Label/md `text/tertiary-label` · 답 = 읽기 전용 `input Field` · 답 사이 선) · 티켓상태는 칩 대신 글자(선물 중이면 "승인완료(선물중)") · 결제정보 순서 입금자명 → 입금은행 → 결제계좌[복사] → 예금주 → 결제방식, 머리 줄 입금자명 안내 뺌 · 예매번호 값 글자 크기를 다른 값과 같게(Label/md) · 맨 위로(공연 리스트 `ScrollTopButton` 재사용 — gui `1175:19825`).
+- **관심 호스트**(`FollowingHostsView`): 상태 필터 드롭다운 → 고정 라벨 **"최신공연순"**(GUI가 정렬 버튼으로 바꿈 — 훅의 `status`는 그대로 둬 되돌리기 쉽다). 행: DS Avatar 60 + 오른쪽 아래 ♥(`ic_favorite` filled 24, `brand/accent` — 그림 24 · 누르는 칸 44 = 관심 해제 버튼) · 호스트명 Heading/md2-emphasized · 대표 공연 Heading/sm · 오른쪽 `tag_v2` small round 배지(D-n violet weak · D-day violet fill · 공연종료 grey weak). 행 여백 위아래 16 · 좌우 24 · 간격 16.
+- 매핑: Top app bar(셸) · SortButton · list(InfoRow · Accordion) · example poster · tag_v2(Chip) · input Field(Input) · Button(primary 2 · round) · Avatar · ic_favorite · ic_chevron-right — 전부 Figma DS. 로컬 `Check Button`(객관식 [예][아니오])은 데이터가 없어 그리지 않음(Q177). 직접 그린 상자 2(옵션 판 `1175:19185` 채움 `surface/container` · 거절 설명 `1175:19927` 아래 선) → `OrderDetail.css.ts`. 스타일 없는 글자 0 — FIGMA-CUSTOM 새로 없음.
+
+**🤖 판단**(디자인 Q176~Q180, 서버 B67 · B68): ① GUI에 없는 동작(취소 시트 · 환불 계좌 · 예매취소 안내 A-8 · 선물 안내 · [호스트 문의] · [목록] · "환불 대기" 보조 칩)은 그대로, [주문취소]는 머리 줄이 "주문상세 + 일시"가 되어 아래 버튼 묶음 맨 위로(Q176) ② 옵션 답은 종류를 몰라 모두 읽기 전용 입력칸, 선물메모 줄은 O-3에 메모가 없어 그리지 않음(Q177 · B67) ③ 거절 사유 기타는 오른쪽 "기타" + 아래에 호스트 글, 사유 이름 띄어쓰기는 호스트 화면과 같게(Q178) ④ 입금은행 줄 남김 · 입금자명 안내 뺌 · 금액 "18,000원" 붙임(Q179) ⑤ 관심 호스트 필터 뺌 · 공연 중 배지 violet fill · plan P9 완료 기준 V "status 3값 표시"는 GUI로 바뀜(Q180 · B68) ⑥ SortButton ⌄는 그리지 않음(design-system §3 — 누를 것이 없다) ⑦ 승인대기 GUI의 티켓번호 · 티켓상태 줄은 서버에 없어 그리지 않음(Q15 그대로) ⑧ 토큰 반올림: 정렬 줄 위아래 10 → 12.
+
+**Figma 코멘트(디자인 없음, 2026-11-07)**: GUI `1047:32431` 주문 카드(상태 칩 종류 · 환불 진행 칩 · 정렬 버튼 · PC) · `1175:19180` 주문상세 동작 자리(+ 답글: 승인대기 티켓 줄) · `1175:19185` 옵션 답 모양 · `1175:19207` 결제정보(입금은행 · 안내 · 띄어쓰기) · `1175:19650` 승인거절사유 다른 사유 · `1175:20350` 관심호스트 정렬 · 필터 · 공연 중. 디자이너 코멘트 `1998950723`(`1175:19358` "선물줄때 받는 사람 입력시 여기 나타남")에 선물메모 답글.
+
+**범위 밖**: 주문상세 Top app bar 제목이 GUI는 공연 이름("콘서트 제목"), 지금은 "주문상세" — 헤더 제목은 셸(`features/shared/routes`) 몫이라 그대로. 아카이빙(`/mypage/archive`)은 Ready 없음 — 와이어 그대로.
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest related 32 통과(`sortLabel` "최신순"). QA `mypage` 37/0(MY-4 · MY-6 · MY-14 · MY-17 고침). e2e `mypage` · `a11y` · `a11y-keyboard` · `legacy-urls` · `legal` · `checkout` · `notifications` 230/0(건너뜀 38).
+
+**ego-browser 확인(2026-11-07, dev:mock 3121 · `localhost`)**: `/orders` · `/orders/<승인대기 옵션 주문>` · 선물 대기 주문 · 입금 미확인 거절 주문 · `/mypage/following` 390 · 1440. 발견: 티켓 · 수량 두 줄이 한 줄로 붙음(Txt가 inline) → 세로 Flex로 고침. 주문 일시 · "입금 미확인" 값이 노드라 InfoRow 글자 모양을 못 받음(브랜드 색 · 큰 글자) → Txt로 색 · 크기 지정. 예매번호 값도 같은 이유로 커 보여 같이 고침.
+
 ## 디자인 시스템 11-07 판 반영 — 선물 아이콘(2026-11-07, `ds-sync-1107` #166)
 
 근거: 디자인 시스템 판 `2416898429564738752`(11-01T15:47Z) → `2419085329203428681`(11-07T13:35Z), `Design: 디자인 시스템` 이슈 없음(관제탑이 판 비교로 찾음). `ds_diff.py` — 바뀐 것은 아이콘뿐(design-system §8 "2026-11-07 — … `ds-sync-1107`"). 쓰는 곳은 GUI 파일 지금 판(`2419089267708529753`, 11-07T14:18Z)을 REST로 훑었다.

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { isNotFound, isSessionLost } from '@/api/errors';
+import { ScrollTopButton } from '@/features/audience/home/ui/ScrollTopButton';
 import {
   AsyncBoundary,
   type ErrorFallbackProps,
@@ -24,14 +25,14 @@ import { OrderSummary, OrderTopLine } from './ui/OrderDetailHeader';
 import { CancelReason, RefundAccount, RefuseReason } from './ui/OrderDetailNotices';
 import { OrderAmountInfo, OrderPaymentInfo } from './ui/OrderDetailPayment';
 import { OrderOptionMode, OrderTickets } from './ui/OrderDetailTickets';
-import { openHostInquiry } from './ui/OrderOverlays';
+import { openCancelOrder, openHostInquiry } from './ui/OrderOverlays';
 
 /**
- * `/orders/[orderUuid]` 주문상세(P9-V, 와이어 근거 — 모바일 승인대기 `128:2263` · 승인완료/선물 `498:703` · 거절 3종
- * `128:2583`·`128:2646`·`128:2709`, PC `668:5805`). GUI `331:11010` 등은 Ready가 아니라 모양을 가져오지 않는다.
- * 순서: 주문 일시 + [주문취소] / 주문 요약 / 거절 사유 / 환불 계좌 / 옵션적용 / 예매정보(아코디언 — 기본 모두 펼침, 와이어 코멘트) /
- * 결제정보 / 결제금액 / 예매취소 안내 / [호스트 문의] [목록].
- * - [주문취소]는 `canCancel`, 환불 계좌 입구는 `canEditRefundAccount`로만 연다(GUI·와이어에 입구가 없다 — Q11, 디자인 없음 코멘트)
+ * `/orders/[orderUuid]` 주문상세 — GUI(2026-11-07 Ready, 모바일 390) `1175:19046` 상세내역(승인대기) · `1175:19358` 상세내역(선물) ·
+ * `1175:19628` 승인거절. PC 프레임은 없어 PC는 와이어 때 가운데 좁은 열 그대로.
+ * 순서(GUI): 주문상세 + 주문 일시 / 주문 요약 / 승인거절사유 / 옵션 적용 / 예매정보(첫 아코디언만 펼침) / 결제정보 / 결제금액 / ↑.
+ * GUI에 없는 지금 동작은 그대로 둔다(디자인 Q176): 선물 안내 · 취소 사유 · 환불 계좌 · 예매취소 안내(약관 A-8 — legal-copy 원문) ·
+ * [주문취소](`canCancel` — 머리 줄 대신 아래 버튼 묶음 맨 위, 🤖) · [호스트 문의] · [목록].
  * - 승인 대기 주문은 발급 티켓이 없어 옵션 답(`lines`)만 그리고 티켓번호 · 티켓상태 줄이 없다(서버와 일치, Q15)
  * - 금액은 티켓금액 · 옵션금액 · 총액(v2에 할인 없음 — Q12). 결제방식은 `paymentChannel` 하나
  * 남의 주문·없는 주문(404)은 공용 404 안내.
@@ -54,7 +55,7 @@ function OrderDetail({ orderUuid }: { orderUuid: string }) {
   const { order, cancel, contactsEventId } = detail;
   return (
     <>
-      <OrderTopLine detail={detail} orderUuid={orderUuid} />
+      <OrderTopLine detail={detail} />
       <OrderSummary detail={detail} />
       {cancel.kind === 'giftNotice' && (
         <div className={s.warningNotice} role="status" data-testid="gift-blocks-cancel">
@@ -78,6 +79,16 @@ function OrderDetail({ orderUuid }: { orderUuid: string }) {
       {cancel.kind !== 'none' && <OrderCancelNotice detail={detail} />}
       <Spacing size={5} />
       <Flex direction="column" gap={2} paddingX={5}>
+        {cancel.kind === 'cancel' && contactsEventId !== null && (
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onClick={() => openCancelOrder(orderUuid, contactsEventId, cancel.refundAccount)}
+          >
+            주문취소
+          </Button>
+        )}
         {contactsEventId !== null && (
           <Button
             variant="secondary"
@@ -93,6 +104,8 @@ function OrderDetail({ orderUuid }: { orderUuid: string }) {
           목록
         </Link>
       </Flex>
+      {/* 맨 위로(gui `1175:19825` DS Button primary · round · 아이콘) — 공연 리스트와 같은 버튼 */}
+      <ScrollTopButton />
     </>
   );
 }

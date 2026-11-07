@@ -4,55 +4,64 @@ import { Button } from '@/ui/components/Button/Button';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Icon } from '@/ui/icons/Icon';
 import { Divider } from '@/ui/primitives/Divider';
-import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import { REFUSE_REASON_DESCRIPTION } from '../model/order-card';
 import type { OrderDetailState } from '../model/useOrderDetail';
 import * as s from './mypage.css';
+import * as p from './OrderDetail.css';
 import { openHostInquiry, openRefundAccountSheet } from './OrderOverlays';
 
-/** 거절 사유 박스(와이어 `128:2583` — "승인거절사유 <사유>" + 설명 + 말풍선 버튼 = 호스트 문의) */
+/**
+ * 승인거절 사유(gui `1175:19650` DS `list` First · text — 오른쪽 사유는 브랜드 색 · `1175:19927` 설명 + [말풍선] = 호스트 문의).
+ * 말풍선은 DS `Button` primary 2(tonal) · Large · 아이콘만(56).
+ */
 export function RefuseReason({ detail }: { detail: OrderDetailState }) {
   const type = detail.order.refuseReasonType ?? '';
-  const description = REFUSE_REASON_DESCRIPTION[type];
+  const fixed = REFUSE_REASON_DESCRIPTION[type];
+  // 고정 사유(3종)는 오른쪽에 사유 이름 + 아래 고정 설명. ETC · 모르는 값은 호스트가 쓴 글이 길 수 있어(100자) 오른쪽은 "기타",
+  // 글은 아래 설명 자리에(🤖 — GUI는 입금미확인 한 장뿐, 디자인 Q178)
+  const hostText = fixed ? null : (detail.order.refuseReason ?? null);
   const { contactsEventId } = detail;
   return (
     <>
       <Divider variant="section" />
       <section aria-label="승인거절 사유">
-        <Flex gap={3} align="center" paddingX={5} paddingY={4}>
-          <Flex direction="column" gap={2} className={s.grow}>
-            <Flex gap={2} align="center" wrap>
-              <Txt typography="headingSmEmphasized">승인거절사유</Txt>
-              <span data-testid="refuse-reason">
-                <Txt typography="headingSmEmphasized" color={colors.textDangerLabel}>
-                  {detail.refuseReason}
-                </Txt>
-              </span>
-            </Flex>
-            {description && (
-              <Txt
-                as="p"
-                typography="bodySm"
-                color={colors.textSecondaryLabel}
-                className={s.preLine}
-              >
-                {description}
+        <InfoRow
+          hierarchy="first"
+          label="승인거절사유"
+          value={
+            fixed ? (
+              <Txt typography="labelMd" color={colors.textBrandLabel}>
+                <span data-testid="refuse-reason">{detail.refuseReason}</span>
               </Txt>
+            ) : (
+              '기타'
+            )
+          }
+        />
+        {(fixed || hostText || contactsEventId !== null) && (
+          <div className={p.refuseBody}>
+            <Txt
+              as="p"
+              typography="labelMd"
+              color={colors.textSecondaryLabel}
+              className={`${s.grow} ${s.preLine}`}
+            >
+              {hostText ? <span data-testid="refuse-reason">{hostText}</span> : fixed}
+            </Txt>
+            {contactsEventId !== null && (
+              <Button
+                variant="tonal"
+                size="lg"
+                icon={<Icon name="chat" />}
+                aria-label="호스트에게 문의"
+                onClick={() => openHostInquiry(contactsEventId)}
+              />
             )}
-          </Flex>
-          {contactsEventId !== null && (
-            <Button
-              variant="dark"
-              size="md"
-              icon={<Icon name="chat" />}
-              aria-label="호스트에게 문의"
-              onClick={() => openHostInquiry(contactsEventId)}
-            />
-          )}
-        </Flex>
+          </div>
+        )}
       </section>
     </>
   );
