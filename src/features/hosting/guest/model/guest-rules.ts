@@ -289,10 +289,9 @@ export const hasCancelBlockingTicket = (
 /**
  * 선물 대기(수락 전, `giftState: PENDING`) 티켓은 서버가 입장시키지 않는다 — PQ-2가 200 + `GIFT_PENDING`(입장 안 함). QR 스캔 ·
  * 셀프 체크인과 같은 규칙(백엔드 `V2CheckInDomainService.classify` dev f45882e, #719). 그래서 [입장 처리] 대신 이 문구를 보인다
- * (QR 스캔 결과 문구 `checkin-result` host GIFT_PENDING과 같은 말). 선물 받음(`ACCEPTED`)은 받은 사람 티켓으로 입장할 수 있다
+ * (티켓 상세 안내 + 비활성 버튼 — GUI #160 `1182:10514` · `1182:10057` 문구 그대로). 선물 받음(`ACCEPTED`)은 받은 사람 티켓으로 입장할 수 있다
  */
-export const GIFT_PENDING_CHECK_IN_MESSAGE =
-  '선물 대기 중인 티켓이에요. 보낸 분이 선물을 취소해야 입장할 수 있어요';
+export const GIFT_PENDING_CHECK_IN_MESSAGE = '받는 분이 선물을 수락하면 입장 처리할 수 있어요.';
 export const isGiftPending = (t: { giftState: string }) => t.giftState === 'PENDING';
 
 /**
