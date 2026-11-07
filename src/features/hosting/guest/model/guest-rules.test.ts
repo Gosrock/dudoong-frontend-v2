@@ -245,6 +245,6 @@ describe('선물 대기 티켓 입장 처리(PQ-2 GIFT_PENDING)', () => {
     expect(isGiftPending({ giftState: 'PENDING' })).toBe(true);
     expect(isGiftPending({ giftState: 'ACCEPTED' })).toBe(false);
     expect(isGiftPending({ giftState: 'NONE' })).toBe(false);
-    expect(GIFT_PENDING_CHECK_IN_MESSAGE).toContain('선물 대기 중인 티켓');
+    expect(GIFT_PENDING_CHECK_IN_MESSAGE).toBe('받는 분이 선물을 수락하면 입장 처리할 수 있어요.');
   });
 });

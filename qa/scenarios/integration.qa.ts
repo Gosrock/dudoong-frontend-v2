@@ -306,7 +306,10 @@ scenario(
       await page.goto('/hosting/events/101/guests?tab=tickets');
       const row = (no: string) => page.getByTestId('ticket-row').filter({ hasText: no });
       await expect(row(kept().issuedTicketNo!)).toBeVisible();
-      await expect(row(giftedNo).getByTestId('ticket-gift')).toHaveText('선물 대기');
+      await expect(row(giftedNo).getByTestId('ticket-gift')).toHaveAttribute(
+        'aria-label',
+        '선물 대기',
+      );
     });
   },
 );

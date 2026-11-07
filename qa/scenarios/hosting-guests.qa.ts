@@ -1,4 +1,4 @@
-import type { Page, TestInfo } from '@playwright/test';
+import type { Locator, Page, TestInfo } from '@playwright/test';
 
 import { setMockSession } from '../../e2e/support/auth';
 import { resetTicketStore as resetMyTicketStore } from '../../src/api/__mocks__/fixtures/my-ticket';
@@ -276,9 +276,9 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI 표(PC 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인 ›, 모바일 주문자 · 티켓 · 체크인 ›). 입장 전은 [입장 처리](GUI대로 확인 없이 → "입장 처리했어요."), 입장 완료는 초록 칩. 행 → 티켓 상세. 입장 완료 상세의 [입장 취소] → 확인 → 입장 전(Q-3, 매니저 이상).',
+      'GUI 표(PC 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인 ›, 모바일 주문자 · 티켓 · 체크인 ›). 입장 전은 [입장 처리](GUI대로 확인 없이 → "입장 처리했어요."), 입장 완료는 초록 칩. 행 → 티켓 상세. 입장 완료 상세의 [입장 취소] → 확인 → 상세가 닫히고 목록 위에 "입장 처리를 취소했어요." 토스트, 행은 입장 전(Q-3, 매니저 이상 · GUI #161 `1228:10719` · `1228:10669`).',
     basis: [
-      'GUI 1030:8054 · 1030:8448 · 1030:8955 · 1030:9136 · 1030:9318',
+      'GUI 1030:8054 · 1030:8448 · 1030:8955 · 1030:9136 · 1030:9318 · 1228:10719 · 1228:10669(#161 입장 취소 완료)',
       '백엔드 #929 B37(Q-3 입장 취소 — 수동 입장 확인 팝업은 GUI대로 뺀다)',
     ],
   },
@@ -322,7 +322,7 @@ scenario(
       await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 3');
     });
     await step(
-      '[입장 취소] → "입장 처리를 취소할까요?" 확인 → 입장 전으로 돌아가고 [입장 처리]가 다시 보인다',
+      '[입장 취소] → "입장 처리를 취소할까요?" 확인 → 상세가 닫히고 토스트, 행은 [입장 처리]로 돌아간다',
       async () => {
         const detail = page.getByRole('dialog', { name: /T2000003/ });
         await detail.getByRole('button', { name: '입장 취소' }).click();
@@ -332,8 +332,9 @@ scenario(
         );
         await confirm.getByRole('button', { name: '입장 취소' }).click();
         await expect(page.getByText('입장 처리를 취소했어요.')).toBeVisible();
-        await expect(detail.getByTestId('ticket-detail-entrance')).toHaveText('입장 전');
-        await expect(detail.getByRole('button', { name: '입장 처리' })).toBeVisible();
+        await expect(page.getByRole('dialog')).toHaveCount(0);
+        const row = page.getByTestId('ticket-row').filter({ hasText: 'T2000003' });
+        await expect(row.getByRole('button', { name: '입장 처리' })).toBeVisible();
         await expect(page.getByTestId('entrance-DONE')).toHaveText('입장 완료 2');
       },
     );
@@ -342,14 +343,14 @@ scenario(
 
 scenario(
   'HG-17',
-  '발급된 티켓 탭 — 선물 상태 칩(선물 대기 · 선물 받음), 선물 대기 티켓은 [입장 처리] 대신 안내',
+  '발급된 티켓 탭 — 선물 상태 아이콘(선물 대기 · 선물 받음), 선물 대기 티켓은 입장 전 칩 · 상세 안내 + 비활성 [입장 처리]',
   {
     kind: '정상',
     summary:
-      '선물 대기(수락 전) 티켓은 서버 PQ-2가 GIFT_PENDING으로 입장시키지 않는다 — 행은 입장 전 칩, 상세는 버튼 대신 안내 문구. 선물 받음 티켓은 소유자 줄과 칩, [입장 처리] 그대로. GUI에 자리가 없어 🤖 최소안(Q110).',
+      'GUI #160 — 표 티켓 이름 옆 선물 아이콘(대기 회색 · 받음 진한 색). 선물 대기(수락 전) 티켓은 서버 PQ-2가 GIFT_PENDING으로 입장시키지 않는다 — 행은 입장 전 칩, 상세는 "받는 분이 선물을 수락하면 입장 처리할 수 있어요." + 비활성 [입장 처리]. 상세 티켓 정보는 "선물한 사람"(주문자), 선물 받음이면 받는 분 · 받는 분 연락처. 선물 대기의 받는 분(Q173) · 수락 일시(B66)는 서버 값이 없어 그리지 않는다.',
     basis: [
       '백엔드 V2CheckInDomainService.classify(dev f45882e) — giftPending → GIFT_PENDING',
-      'design-requests Q110(표 티켓 칸 선물 칩 · 상세 소유자 줄)',
+      'GUI 1182:9802 · 1182:9618 · 1182:10514 · 1182:10057 · 1182:10899 · 1182:10284(#160)',
       'integration REG-2(#129 회귀)',
     ],
   },
@@ -361,23 +362,48 @@ scenario(
       issuedTickets: free.issuedTickets.map((t) => ({ ...t, giftState: 'PENDING' as const })),
     });
     const row = (no: string) => page.getByTestId('ticket-row').filter({ hasText: no });
-    await step('선물 대기 행에 "선물 대기" 칩, [입장 처리] 대신 입장 전 칩', async () => {
-      await page.goto(`${GUESTS}?tab=tickets`);
-      await expect(row('T2000003').getByTestId('ticket-gift')).toHaveText('선물 대기');
-      await expect(row('T2000003').getByRole('button', { name: '입장 처리' })).toHaveCount(0);
-      await expect(row('T2000003').getByTestId('ticket-entrance')).toHaveText('입장 전');
-    });
-    await step('선물 받음 행은 "선물 받음" 칩과 [입장 처리]', async () => {
-      await expect(row('T2000002').getByTestId('ticket-gift')).toHaveText('선물 받음');
+    const gift = (scope: Locator) => scope.getByTestId('ticket-gift');
+    await step(
+      '선물 대기 행 — 티켓 이름 옆 선물 대기 아이콘, [입장 처리] 대신 입장 전 칩',
+      async () => {
+        await page.goto(`${GUESTS}?tab=tickets`);
+        await expect(gift(row('T2000003'))).toHaveAttribute('aria-label', '선물 대기');
+        await expect(gift(row('T2000003'))).toHaveAttribute('data-gift-state', 'PENDING');
+        await expect(row('T2000003').getByRole('button', { name: '입장 처리' })).toHaveCount(0);
+        await expect(row('T2000003').getByTestId('ticket-entrance')).toHaveText('입장 전');
+        await expect(gift(row('T2000001'))).toHaveCount(0);
+      },
+    );
+    await step('선물 받음 행 — 선물 받음 아이콘과 [입장 처리]', async () => {
+      await expect(gift(row('T2000002'))).toHaveAttribute('aria-label', '선물 받음');
       await expect(row('T2000002').getByRole('button', { name: '입장 처리' })).toBeVisible();
     });
-    await step('선물 대기 티켓 상세 — 소유자 줄 · 버튼 대신 선물 대기 안내', async () => {
-      await row('T2000003').click();
+    await step(
+      '선물 대기 티켓 상세 — 제목 아이콘 · 선물한 사람 · 안내 + 비활성 [입장 처리]',
+      async () => {
+        await row('T2000003').click();
+        const detail = page.getByRole('dialog');
+        await expect(page.getByTestId('ticket-detail')).toBeVisible();
+        await expect(gift(detail)).toHaveAttribute('aria-label', '선물 대기');
+        const info = detail.getByRole('region', { name: '티켓 정보' });
+        await expect(info).toContainText('선물한 사람');
+        await expect(info).not.toContainText('주문자');
+        await expect(info).not.toContainText('받는 분');
+        await expect(detail).toContainText('받는 분이 선물을 수락하면 입장 처리할 수 있어요.');
+        await expect(detail.getByRole('button', { name: '입장 처리' })).toBeDisabled();
+      },
+    );
+    await step('선물 받음 티켓 상세 — 받는 분 · 받는 분 연락처, [입장 처리]', async () => {
+      await page.keyboard.press('Escape');
+      await expect(page.getByRole('dialog')).toHaveCount(0);
+      await row('T2000002').click();
       const detail = page.getByRole('dialog');
-      await expect(page.getByTestId('ticket-detail')).toBeVisible();
-      await expect(detail.getByTestId('ticket-gift')).toHaveText('선물 대기');
-      await expect(detail).toContainText('선물 대기 중인 티켓이에요');
-      await expect(detail.getByRole('button', { name: '입장 처리' })).toHaveCount(0);
+      await expect(gift(detail)).toHaveAttribute('aria-label', '선물 받음');
+      const info = detail.getByRole('region', { name: '티켓 정보' });
+      await expect(info).toContainText('선물한 사람박지훈');
+      await expect(info).toContainText('받는 분최유진');
+      await expect(info).toContainText('받는 분 연락처');
+      await expect(detail.getByRole('button', { name: '입장 처리' })).toBeEnabled();
     });
   },
 );
@@ -626,7 +652,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '발급 티켓 카드(입장 완료 칩 · 선물 칩) 아래 "입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요." + 비활성 [주문 취소]. 판정은 entrance == DONE 또는 giftState != NONE(GR-2), 서버도 Order_400_30. 취소된 주문은 "취소한 사람: 호스트/예매자".',
+      '발급 티켓 카드(입장 완료 칩 · 선물 아이콘(GUI #160과 같은 아이콘)) 아래 "입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요." + 비활성 [주문 취소]. 판정은 entrance == DONE 또는 giftState != NONE(GR-2), 서버도 Order_400_30. 취소된 주문은 "취소한 사람: 호스트/예매자".',
     basis: ['GUI 1029:7706 · 1000:1793 · 1029:8522', '#112', '백엔드 #929 B35'],
   },
   async ({ page, step, testInfo }) => {
@@ -642,18 +668,24 @@ scenario(
       );
       await expect(detail(page).getByRole('button', { name: '주문 취소' })).toBeDisabled();
     });
-    await step('선물만 한(입장 전) 무료 주문도 취소가 막히고 카드에 선물 칩이 보인다', async () => {
-      const free = storedGuestOrder(GUEST_ORDER.approvedFree)!;
-      patchGuestOrder(GUEST_ORDER.approvedFree, {
-        issuedTickets: free.issuedTickets.map((t) => ({ ...t, giftState: 'PENDING' as const })),
-      });
-      await page.goto(`${GUESTS}?order=${GUEST_ORDER.approvedFree}`);
-      await expect(detail(page).getByTestId('ticket-gift')).toHaveText('선물 대기');
-      await expect(detail(page).getByTestId('blocked')).toHaveText(
-        '입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요.',
-      );
-      await expect(detail(page).getByRole('button', { name: '주문 취소' })).toBeDisabled();
-    });
+    await step(
+      '선물만 한(입장 전) 무료 주문도 취소가 막히고 카드에 선물 대기 아이콘이 보인다',
+      async () => {
+        const free = storedGuestOrder(GUEST_ORDER.approvedFree)!;
+        patchGuestOrder(GUEST_ORDER.approvedFree, {
+          issuedTickets: free.issuedTickets.map((t) => ({ ...t, giftState: 'PENDING' as const })),
+        });
+        await page.goto(`${GUESTS}?order=${GUEST_ORDER.approvedFree}`);
+        await expect(detail(page).getByTestId('ticket-gift')).toHaveAttribute(
+          'aria-label',
+          '선물 대기',
+        );
+        await expect(detail(page).getByTestId('blocked')).toHaveText(
+          '입장했거나 선물한 티켓이 있어 주문을 취소할 수 없어요.',
+        );
+        await expect(detail(page).getByRole('button', { name: '주문 취소' })).toBeDisabled();
+      },
+    );
     await step('취소된 주문 상세에 "취소한 사람"이 보인다', async () => {
       await page.goto(`${GUESTS}?order=${GUEST_ORDER.hostCanceled}`);
       await expect(detail(page).getByTestId('detail-canceled-by')).toHaveText('호스트');

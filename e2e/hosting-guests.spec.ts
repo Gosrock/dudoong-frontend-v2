@@ -154,7 +154,10 @@ test.describe('백엔드 #929 반영 — 일괄 API · 입장 취소', () => {
     ).toEqual(['/api/v2/events/101/orders/approve']);
   });
 
-  test('입장 완료 티켓 상세의 [입장 취소] → 확인 → Q-3, 입장 전으로', async ({ page, mockApi }) => {
+  test('입장 완료 티켓 상세의 [입장 취소] → 확인 → Q-3, 상세가 닫히고 토스트 · 행은 입장 전으로(GUI #161)', async ({
+    page,
+    mockApi,
+  }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto(`${GUESTS}?tab=tickets`);
     await page.getByTestId('ticket-row').filter({ hasText: 'T2000001' }).click();
@@ -164,7 +167,14 @@ test.describe('백엔드 #929 반영 — 일괄 API · 입장 취소', () => {
       .getByRole('alertdialog', { name: '입장 처리를 취소할까요?' })
       .getByRole('button', { name: '입장 취소' })
       .click();
-    await expect(ticket.getByTestId('ticket-detail-entrance')).toHaveText('입장 전');
+    await expect(page.getByText('입장 처리를 취소했어요.')).toBeVisible();
+    await expect(ticket).toHaveCount(0);
+    await expect(
+      page
+        .getByTestId('ticket-row')
+        .filter({ hasText: 'T2000001' })
+        .getByRole('button', { name: '입장 처리' }),
+    ).toBeVisible();
     expect(
       mockApi
         .calls()
