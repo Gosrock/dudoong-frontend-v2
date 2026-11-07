@@ -10,6 +10,7 @@ import { Flex } from '@/ui/primitives/Flex';
 
 import { PAY_TYPE_LABEL } from '../model/ticket-rules';
 import type { useTicketForm } from '../model/useTicketForm';
+import { MoneyInput } from './MoneyInput';
 import type { TicketSectionProps } from './ticket-form-props';
 import * as s from './TicketFormSections.css';
 
@@ -80,15 +81,14 @@ export function PriceSupplySection({ form, readOnly, err }: TicketSectionProps) 
     <div className={s.priceSupply}>
       {v.payType === 'DUDOONG' && (
         <FormSection title="티켓 가격" required>
-          <Input
+          <MoneyInput
             aria-label="가격"
             className={s.narrow}
-            inputMode="numeric"
             placeholder="0"
             trailing="원"
             value={v.price}
             readOnly={readOnly || form.locks.locked}
-            onChange={(e) => form.set.price(e.target.value)}
+            onValueChange={form.set.price}
             error={err('price')}
           />
         </FormSection>

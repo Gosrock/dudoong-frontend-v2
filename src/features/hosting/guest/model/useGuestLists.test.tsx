@@ -60,13 +60,13 @@ describe('주문 탭(GR-1)', () => {
     ]);
     expect([result.current.rows.length, result.current.pagination.totalPages]).toEqual([20, 2]);
     act(() => result.current.pagination.setPage(1));
-    await waitFor(() => expect(result.current.rows).toHaveLength(14));
+    await waitFor(() => expect(result.current.rows).toHaveLength(15));
     const sent = recordRequests();
     act(() => result.current.setStatus('REFUSED'));
-    await waitFor(() => expect(result.current.rows).toHaveLength(2));
+    await waitFor(() => expect(result.current.rows).toHaveLength(3));
     expect(result.current.pagination.page).toBe(0);
     expect((await sent.list()).map((r) => r.query)).toEqual([{ status: 'REFUSED' }]);
-    expect(result.current.statusTabs[0]!.count).toBe(34);
+    expect(result.current.statusTabs[0]!.count).toBe(35);
   });
 
   it('검색: 적용해야 보내고, 기준·검색어가 요청에 실린다', async () => {
@@ -230,19 +230,19 @@ describe('환불 탭(GF-1 · PF-2)', () => {
     const { result } = setup(() => useRefundList('101'));
     await waitFor(() => expect(result.current?.status).toBe('success'));
     expect(result.current.rows.map((r) => [r.refund.orderUuid, r.canComplete])).toEqual([
+      [GUEST_ORDER.refusedNoAccount, true],
       [GUEST_ORDER.userRefunded, true],
       [GUEST_ORDER.hostCanceled, true],
       [GUEST_ORDER.refusedEtc, false],
-      [GUEST_ORDER.refusedDeposit, true],
     ]);
     await act(async () => {
       await result.current.complete(GUEST_ORDER.userRefunded);
     });
     // 다시 읽기를 기다리지 않아도 행은 응답으로 바로 바뀐다(#106 §5 — 누른 뒤 목록이 그대로이던 것)
-    expect(result.current.rows[0]!.refund.refundStatus).toBe('COMPLETED');
-    expect(result.current.rows[0]!.canComplete).toBe(false);
+    expect(result.current.rows[1]!.refund.refundStatus).toBe('COMPLETED');
+    expect(result.current.rows[1]!.canComplete).toBe(false);
     expect(result.current.pendingUuid).toBeNull();
-    await waitFor(() => expect(result.current.rows[0]!.refund.refundStatus).toBe('COMPLETED'));
+    await waitFor(() => expect(result.current.rows[1]!.refund.refundStatus).toBe('COMPLETED'));
     const sent = recordRequests();
     act(() => result.current.setStatus('REQUESTED'));
     await waitFor(() => expect(result.current.rows).toHaveLength(2));

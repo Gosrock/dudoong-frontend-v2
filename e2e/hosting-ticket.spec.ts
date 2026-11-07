@@ -75,6 +75,8 @@ const REFUND_AGREE = '위 내용을 확인했고 환불 의무를 지키는 데 
 async function fillDudoongForm(page: Page, name: string) {
   await page.getByLabel('티켓 이름').fill(name);
   await page.getByLabel('가격').fill('15000');
+  // 칸은 천 단위 쉼표(Figma 767:* — I-h6), 본문은 숫자 그대로(아래 POST price: 15000)
+  await expect(page.getByLabel('가격')).toHaveValue('15,000');
   await pickOption(page, '은행', '신한은행');
   await expect(page.getByRole('combobox', { name: '은행' })).toHaveText(/신한은행/);
   await page.getByLabel('예금주').fill('고스락');
