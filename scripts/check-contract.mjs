@@ -5,10 +5,15 @@
 // - id가 필요한 경로는 GP-1·GP-2 응답에서 실제 id를 고른다
 // - GG-3(선물 랜딩)은 실제 토큰이 있어야 한다: CONTRACT_GIFT_TOKEN=<토큰> pnpm check:contract. 없으면 "미확인"
 // - 출력에는 값을 넣지 않는다(개인정보·토큰). 실패는 zod issue의 경로, 모르는 enum은 UNKNOWN이 된 필드 경로만 남긴다
-// - 대상 바꾸기: CONTRACT_BASE_URL=https://staging.dudoong.com/api/v2 pnpm check:contract
+// - 스키마에 없는 응답 필드(zod가 버리는 키)는 "스키마에 없는 필드"로 경로만 보인다 — 실패가 아니다(새 선택 필드·이름이 바뀐 필드를 찾는 용도)
+// - 대상 바꾸기: CONTRACT_BASE_URL=https://staging.dudoong.com/api/v2 pnpm check:contract (또는 첫 인자로 주소)
 import './ts-import.mjs';
 
-const BASE = (process.env.CONTRACT_BASE_URL ?? 'https://dudoong.com/api/v2').replace(/\/+$/, '');
+const BASE = (
+  process.argv[2] ??
+  process.env.CONTRACT_BASE_URL ??
+  'https://dudoong.com/api/v2'
+).replace(/\/+$/, '');
 const TIMEOUT_MS = 15_000;
 
 const event = await import('../src/api/event/schema.ts');
@@ -37,6 +42,19 @@ function unknownEnumPaths(value, segments = [], out = new Set()) {
     value.forEach((v, i) => unknownEnumPaths(v, [...segments, i], out));
   else if (value && typeof value === 'object') {
     for (const [k, v] of Object.entries(value)) unknownEnumPaths(v, [...segments, k], out);
+  }
+  return out;
+}
+
+/** 원본 응답에는 있는데 파싱 결과에는 없는 키(zod가 버린 키)의 경로. 배열은 원소마다 같은 인덱스끼리 비교한다 */
+function extraKeyPaths(raw, parsed, segments = [], out = new Set()) {
+  if (Array.isArray(raw) && Array.isArray(parsed)) {
+    raw.forEach((v, i) => extraKeyPaths(v, parsed[i], [...segments, i], out));
+  } else if (raw && typeof raw === 'object' && parsed && typeof parsed === 'object') {
+    for (const [k, v] of Object.entries(raw)) {
+      if (!(k in parsed)) out.add(pathOf([...segments, k]));
+      else extraKeyPaths(v, parsed[k], [...segments, k], out);
+    }
   }
   return out;
 }
@@ -87,11 +105,15 @@ async function check(id, label, path, schema) {
     return null;
   }
   const unknown = [...unknownEnumPaths(parsed.data)];
+  const extra = [...extraKeyPaths(r.data, parsed.data)];
   results.push({
     id,
     label,
     ok: true,
-    detail: unknown.length ? unknown.map((p) => `모르는 enum 값(UNKNOWN): ${p}`) : [],
+    detail: [
+      ...unknown.map((p) => `모르는 enum 값(UNKNOWN): ${p}`),
+      ...extra.map((p) => `스키마에 없는 필드: ${p}`),
+    ],
   });
   return parsed.data;
 }
@@ -105,7 +127,7 @@ const notices = await check('GA-1', '공지 목록', 'notices?size=50', notice.N
 await check('GA-3', '공지 배너', 'notices/banners', notice.NoticeBannersSchema);
 const noticeId = notices?.content[0]?.noticeId;
 if (noticeId) await check('GA-2', '공지 상세', `notices/${noticeId}`, notice.NoticeDetailSchema);
-else skip('GA-2', '공지 상세', '운영에 공지가 없다');
+else skip('GA-2', '공지 상세', '대상 서버에 공지가 없다');
 const home = await check('GP-1', '공연홈', 'home', event.HomeSchema);
 const list = await check(
   'GP-2',

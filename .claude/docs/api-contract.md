@@ -32,8 +32,8 @@
 ### 응답과 에러
 
 - 성공은 **항상 HTTP 200**(생성도 201 아님, 삭제도 204 아님). 본문 `{success: true, status: 200, data, timeStamp}`.
-- 예외: 엑셀 GR-6·GI-3은 래퍼 없는 xlsx 파일.
-- **`Void` 응답도 래퍼다**(#905 §2-4 — 운영에서 받은 바이트): `POST /api/v1/auth/logout` → `{"status":200,"data":null,"success":true,"timeStamp":"…"}`. 탈퇴 `DELETE /api/v1/auth/me`도 같다(`ResponseEntity.ok().body(null)` + `SuccessResponseAdvice`). FE는 래퍼를 벗겨 `null`을 받는다(`src/api/http.test.ts`).
+- 예외: 엑셀 GR-6·GI-3은 래퍼 없는 xlsx 파일. 실패는 JSON 에러 래퍼다 — 일반 멤버는 403 `HOST_400_1`(`V2ErrorPolicy`가 v2 핸들러의 호스트 권한 코드를 403으로 — 소스 추론), 익명은 `Accept`가 xlsx여도 401 JSON(스테이징 실측 2026-11-07, deploy-plan §9 14).
+- **`Void` 응답도 래퍼다**(#905 §2-4 — 운영에서 받은 바이트): `POST /api/v1/auth/logout` → `{"status":200,"data":null,"success":true,"timeStamp":"…"}`. 탈퇴 `DELETE /api/v1/auth/me`도 같다(`ResponseEntity.ok().body(null)` + `SuccessResponseAdvice`). FE는 래퍼를 벗겨 `null`을 받는다(`src/api/http.test.ts`). **스테이징 Api 2.5.8 실측(2026-11-07, deploy-plan §9 12)**: 로그아웃은 쿠키 없이 · 낡은 쿠키로 모두 200 + 같은 래퍼 + 쿠키 삭제. 탈퇴는 부르지 않았고 소스로 같다고 본다(추론).
 - 변경 응답은 화면을 다시 그릴 값이다. 수정은 수정된 리소스, 목록에서 지우면 남은 목록, 상태 전이는 전이 결과.
 - 필드는 항상 키가 있고 값이 없으면 `null`. 그 역할에게 안 보이는 값도 `null`.
 - 에러 `{success: false, status, code, reason, timeStamp, path}`. `code` = `{도메인}_{HTTP}_{번호}`(예: `Order_400_24`). 도메인 접두는 대소문자가 섞여 있다(`HOST_`, `USER_`, `Order_`, `Event_`, `Ticket_Item_`, `Option_Group_`, `IssuedTicket_`, `Gift_`).
@@ -525,6 +525,7 @@ v2에는 인증 API가 없어 v1을 그대로 쓴다. 백엔드 코드(`dev` `24
 | CORS 허용 출처 | `https://dudoong.com`, `https://internal-admin.dudoong.com` | `https://staging.dudoong.com`, `http://localhost:3000`, `http://localhost:5173` | 운영 + 스테이징 목록 전부 |
 | 카카오 콜백 기준 주소 | 운영 목록 | 스테이징 + 로컬 | 로컬 + 스테이징 |
 
+- 스테이징 실측(2026-11-07, Api 2.5.8 — deploy-plan §9 15): 로그아웃의 삭제 `Set-Cookie`가 `accessToken` · `refreshToken`(이름 접두사 없음), `Domain` 없음 · `Path=/` · `Secure` · `SameSite=Lax` · HttpOnly 없음. 발급 · 재발급 쿠키는 같은 `CookieHelper.buildCookie`(추론). 로그인 쿠키 실측은 사용자 대기.
 - 로컬 개발은 **포트 3000**을 쓴다. 5173은 백엔드가 v1 호스트 어드민으로 보고 콜백을 `/admin/kakao/callback`으로 잡는다. Origin 검사(`AUTH_403_3`)의 허용 목록도 이 표를 따르므로 다른 포트는 enforce가 켜지면 변경 요청이 막힌다.
 - 로컬에서 rewrite 대상을 dev ↔ staging으로 바꾸면 서명 키가 다른 액세스 쿠키(local 수명 86400초)가 남는다. #792 뒤로는 로그인·로그아웃·재발급은 통과하고, 보호 API가 401 `GLOBAL_401_1`과 함께 `accessToken` 쿠키를 지우므로 다음 요청부터 "토큰 없음"으로 수렴한다(운영 서명 키 교체도 같다 — [`backend-questions.md`](./backend-questions.md) B6 해결).
 - 운영·스테이징에서 API는 프론트와 **같은 출처**다(nginx가 `/api`를 백엔드로 보낸다). 브라우저는 상대 경로 `/api/v2/…`로 부른다.
