@@ -87,10 +87,7 @@ export const Colors: Story = {
     await expect(style('fill').backgroundColor).toBe('rgb(99, 62, 231)');
     await expect(style('fill').color).toBe('rgb(242, 238, 255)');
     await expect(style('border').backgroundColor).toBe('rgba(0, 0, 0, 0)');
-    // 테두리는 진한 색 40%(`693:761` stroke opacity 0.4) — color-mix 결과는 srgb 표기로 읽힌다
-    await expect(style('border').borderTopColor).toMatch(
-      /^color\(srgb 0\.388\d* 0\.243\d* 0\.905\d* \/ 0\.4\)$/,
-    );
+    await expect(style('border').borderTopColor).toBe('rgb(99, 62, 231)');
     await expect(style('border').height).toBe('25px');
   },
 };

@@ -8,8 +8,9 @@ import { typography } from '../../theme/typography.css';
  * Concert state chip·money option chip)은 2026-10-31 사용자 결정으로 이걸로 바꿨다(design-system §3 대응표).
  * - size: sm 22h `Label/sm`(12) · lg 25h `Label/md`(14). 좌우 패딩 sm 8(`Space/2` — 2026-11-07 판에서 Figma도 10 → 8) · lg 12(`Space/3`).
  * - shape(Figma `variant`): square 모서리 8(`Radius/2`) · round 알약.
- * - theme: weak 옅은 배경 + 진한 글자 · fill 진한 배경 + 옅은 글자 · border 배경 없음 + 진한 글자, 테두리는 진한 색 40%
- *   (Figma `693:761` 등 stroke opacity 0.4 — 세트 설명에도 적힘, M-2 2026-11-08).
+ * - theme: weak 옅은 배경 + 진한 글자 · fill 진한 배경 + 옅은 글자 · border 배경 없음 + 진한 테두리·글자.
+ *   DS 메인(`693:761` 등)은 테두리 stroke opacity 0.4지만 Ready 화면 인스턴스(`767:50048` · `975:10756` · `1182:10899` ·
+ *   `1029:7706`)는 모두 100%라 화면대로 100%를 둔다(M-2 2026-11-08, 분류표 A1 — 디자이너 확인).
  */
 const palette = {
   violet: { strong: vars.color.brand.primary, subtle: vars.color.brand.primarySubtle },
@@ -31,11 +32,7 @@ const themeStyle = (c: (typeof palette)[ChipColor], t: ChipTheme) =>
     ? { background: c.subtle, color: c.strong }
     : t === 'fill'
       ? { background: c.strong, color: c.subtle }
-      : {
-          background: 'transparent',
-          borderColor: `color-mix(in srgb, ${c.strong} 40%, transparent)`,
-          color: c.strong,
-        };
+      : { background: 'transparent', borderColor: c.strong, color: c.strong };
 
 export const chip = recipe({
   base: {
