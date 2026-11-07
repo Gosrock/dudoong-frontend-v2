@@ -52,7 +52,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | # | 워크트리 | Phase | V 선행 | 상태 | 그룹 |
 |---|---|---|---|---|---|
-| M-0 | `figma-deviation-audit` | Figma와 다르게 만든 곳 전수 정리(사용자 지시 2026-11-07 ①) — 코멘트 149 · `FIGMA-CUSTOM` 49 · `src/ui` 55 → [`figma-deviations-2026-11-07.md`](./figma-deviations-2026-11-07.md): 맞춤 47 · 유지 28 · 디자인 없음 18 · 확인 필요 25(R1 규칙 충돌 7) · 진행 중 11, 작업 줄 M-1~M-4, 2단계 후보 · DS 파일 규칙. 문서만 | — | 끝(#PR) | M Figma 동일화 |
+| M-0 | `figma-deviation-audit` | Figma와 다르게 만든 곳 전수 정리(사용자 지시 2026-11-07 ①) — 코멘트 149 · `FIGMA-CUSTOM` 49 · `src/ui` 55 → [`figma-deviations-2026-11-07.md`](./figma-deviations-2026-11-07.md): 맞춤 47 · 유지 28 · 디자인 없음 18 · 확인 필요 25(R1 규칙 충돌 7) · 진행 중 11, 작업 줄 M-1~M-4, 2단계 후보 · DS 파일 규칙. 문서만 | — | 끝(#167) | M Figma 동일화 |
 | M-1 | `fm-ds-overlays` | 공용 오버레이를 Ready 화면대로([`figma-deviations-2026-11-07.md`](./figma-deviations-2026-11-07.md) §3-1 O1~O11 · O13~O17 · O19 · O20 · O22 · O24): BottomSheet 호스팅형(위 모서리 16 · 막대 손잡이 · ✕ · 여백 12/24 · 구분선 · 그림자 없음) · 선물형(가운데 · 제목 24) · Modal md(흰 바탕 · 24 · 제목 18) · 머리 앞 슬롯 · EasyOverlay 시트 모양 · DropdownMenu · Dropdown 목록 = DS `dropdown` 면 · EmptyState 18. 태그 패널 정정 답글("그림자 없음" 틀림) 바로잡기. L-m `figma-match-overlays` 흡수 | ds-sync-1107 | 대기 | M Figma 동일화 |
 | M-2 | `fm-ds-components` ∥ M-1 | DS 컴포넌트 기본값을 DS 파일대로(§3-2 A1 · A4 · A5 · A7 · A9~A18 · A22~A24 · A27 · O23): `tag_v2` border 40% · Schedule · SalesCard PC 여백 · "20 묶음" 값 그대로 · SearchField 아이콘 20 · Toggle · Spinner · Radio · Badge 등 + design-system §3 · §4-2 · §7 낡은 문구 | ds-sync-1107 | 대기 | M Figma 동일화 |
 | M-3 | `fm-audience` ∥ M-1 · M-2 | 관객 화면 값(§3 U3 · U14 · A19 · A21): 히어로 #5B85FF · 티켓탭 공지 바 색 · 결제 요약 판(모서리 10 · 간격 8 · 총액 Body/lg) | ds-sync-1107 | 대기 | M Figma 동일화 |
