@@ -90,8 +90,8 @@ export function IssuedTicketDetailOverlay({
               {list.checkIn.blockMessage}
             </Txt>
           ) : giftPending ? (
-            // GUI `1182:10514` · `1182:10057` — 안내 문구 + 비활성 [입장 처리](받는 분이 수락해야 입장, 서버 PQ-2 GIFT_PENDING)
-            <Flex direction="column" gap={6}>
+            // GUI `1182:10514` · `1182:10057` — 안내 문구 + 사이 24 + 비활성 [입장 처리](받는 분이 수락해야 입장, 서버 PQ-2 GIFT_PENDING)
+            <Flex direction="column" gap={5}>
               <Txt
                 as="p"
                 typography="bodyMd"

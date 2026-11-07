@@ -11,7 +11,8 @@ export const card = style({
   display: 'flex',
   flexDirection: 'column',
   minWidth: 0,
-  padding: `${vars.space[5]} ${vars.space[5]} ${vars.space[1]}`,
+  // 위 · 좌우 20 — DS `606:1922`, 화면 `767:37454` · `727:17817` 모두 20(토큰에 없는 값 그대로 — 분류표 H23, M-5 2026-11-08)
+  padding: `20px 20px ${vars.space[1]}`,
   boxSizing: 'border-box',
   borderRadius: vars.radius[6],
   background: vars.color.surface.container,

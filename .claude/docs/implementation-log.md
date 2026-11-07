@@ -3249,3 +3249,26 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · prettier, vitest related 8/0. QA `hosting-event` 26/0 · `hosting-guests` 35/0 · `hosting-ticket` 30/0. e2e hosting-event · hosting-guests · hosting-ticket · hosting · a11y · a11y-keyboard 249 통과 · 2 실패(위 a11y /tickets — 범위 밖).
 
 **ego-browser 확인(dev:mock 3137)**: 대시보드 등록 전 390 · 1440, 등록 후 390 · 1440, 기본 정보 1440 · 390, 예매자 1440 — `figma_nodes.py shot`과 나란히, 배치 같음(점검 공지 띠 49px만큼 아래로).
+
+## Figma 동일화 M-5 — 1단계 마무리(2026-11-08, `fm-followup` #177)
+
+**범위**: Design Sync #173 · e2e `a11y` /tickets 회귀(공지 바 대비) · #174가 넘긴 차이 4개(분류표 §3-5에 H22~H25로 더함). Ready 재확인(GUI `2419126113699057836`, 16:08Z — `figma_nodes.py ready --contains`와 같은 판정을 받은 파일 한 벌로): `1182:10057` · `1182:10514` · `908:3276`(`939:29784`) · `669:2787` · `727:23088` · `745:32167` · `727:23210` · `712:1646` · `748:33351` · `748:33451` · `748:34006` · `767:39585` — 모두 Ready.
+
+**한 것**
+- #173(분류표 H18): Figma가 선물 대기 상세에서 "받는 분 · 받는 분 연락처"를 뺐다 — 코드는 #163부터 그렇게 그림(Q173). 티켓 정보 세 줄(선물한 사람 · 주문 번호 · 발급 일시)과 안내 문구 · 비활성 [입장 처리] 같음. 다른 곳 하나: 안내 ↔ 버튼 32 → **24**(`IssuedTicketDetailOverlay.tsx` `gap={5}`). Q173 닫음.
+- 공지 바 대비(U14 뒤): Figma [티켓보기 →]는 `#e84230`(변수, 코드 `brand.accent`와 같음) on `#202020` = 4.08. 색은 Figma 그대로, `e2e/a11y.spec.ts` `CONTRAST_PENDING_DESIGN`에 `#e84230 #202020` 한 쌍 · design-requests **Q200**(색 대비 표) · Figma 코멘트 `939:29788`(`1998997599`).
+- H22 대시보드 호스트 이름: 모바일 `Label/lg`(GUI `669:2799` 등), PC는 `Heading/sm`(`727:23247`) 그대로 — `<Txt typography="labelLg">` + PC만 덮는 `hostName` 클래스.
+- H23 `SalesCard` · `EntranceCard`(`src/ui`): 안쪽 좌우 24 → **20**, 입장 현황 위 24 → 20. DS 메인(`605:1666` · `627:1863` · `606:1922`)과 대시보드 PC · 모바일 인스턴스가 모두 20이라 폭 구분 없이(design-system §4-3 H23).
+- H24 기본 정보 PC 일정 줄(`748:34487` 600): 날짜 308(채움) · 간격 10 · 시각 130 · 5 · "~" 12 · 5 · 130(전: 206 · 8 · 180). 프롬프트에 적힌 방향("Figma 206 · 180")은 #174 본문과 반대였고 원본 Figma는 308 · 130.
+- H25 하단 바(`EditorParts` `bottomBar`) 모바일 위아래 16 → **36**(높이 128 — 기본 정보 `748:33553` · `748:33447`, 상세 정보 `767:39603` 모두 36).
+
+**결정(🤖 Claude 판단)**
+1. `EditorBottomBar`는 호스트 설정(P10b — 와이어 근거)도 써서 그 화면도 36이 된다. 같은 부품의 Ready 화면 셋이 모두 36이라 기본값을 바꿈. 되돌리기: `HostSettingsView`에만 16을 주는 prop.
+2. `SalesCard` · `EntranceCard`는 PC도 Figma 20이라(넘긴 메모는 "모바일"만) PC까지 같이 고침.
+3. a11y 예외 목록에 주석 한 줄 + 색 쌍 한 줄(기존 항목처럼 근거 주석을 붙임).
+
+**Figma 코멘트**: `1195:10680`(`1998976501`)에 답글 `1998997597` "[개발 · 확인 2026-11-08] Figma 수정과 같음…", 새 코멘트 `939:29788` `1998997599` "[개발 · 디자인 확인] 티켓탭 공지 바 '티켓보기 →' 글자 대비". H22~H25에 걸린 개발 코멘트는 없음(분류표 "코멘트" 칸 없음 — 열린 코멘트 목록에서 확인).
+
+**검사**: typecheck · 바꾼 파일 lint · prettier, vitest related 15/0. QA `hosting-guests` 35/0 · `hosting-event` 26/0 · `tickets` 20/0. e2e a11y · hosting-guests · hosting-event · tickets 169/0(건너뜀 35 — a11y /tickets 2건 다시 통과). `pnpm test:stories` 275/0.
+
+**ego-browser 확인(dev:mock 3139 · Storybook 6139)**: 대시보드 등록 후 390 · 1440, 기본 정보 390 · 1440, 예매자 관리 선물 대기 티켓 상세 390 · 1440(확인용으로 mock 시드를 잠깐 바꿨다가 되돌림), Storybook `SalesCard` · `EntranceCard` — `figma_nodes.py shot`과 나란히 같음.

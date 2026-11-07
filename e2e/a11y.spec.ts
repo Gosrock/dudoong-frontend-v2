@@ -41,6 +41,8 @@ const CONTRAST_PENDING_DESIGN = new Set([
   '#e84230 #feedec',
   '#e84230 #ffffff',
   '#e84230 #232220',
+  // 티켓탭 공지 바 "티켓보기 →"(GUI `939:29784` 외 — 바 #202020 직접 값 위 coral-red 400, 4.08:1 · Q200)
+  '#e84230 #202020',
   '#feedec #e84230',
   // green 400 — Chip green weak · border
   '#28a82e #edfaee',
