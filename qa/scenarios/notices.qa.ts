@@ -206,7 +206,7 @@ scenario(
 
 scenario(
   'NTC-6',
-  '메뉴의 "서비스 업데이트 노트"가 공지 목록으로 간다(모바일 햄버거 · PC 아바타 메뉴)',
+  '메뉴의 "공지사항"이 공지 목록으로 간다(모바일 햄버거 · PC 아바타 메뉴)',
   {
     kind: '반응형',
     summary:
@@ -216,7 +216,7 @@ scenario(
   async ({ page, step, testInfo }) => {
     const isMobile = testInfo.project.name === 'mobile';
     await setMockSession(page, 'loggedIn');
-    await step('관객 메뉴에서 "서비스 업데이트 노트"를 누르면 공지 목록으로 간다', async () => {
+    await step('관객 메뉴에서 "공지사항"을 누르면 공지 목록으로 간다', async () => {
       await page.goto('/');
       if (isMobile) {
         await page.getByRole('button', { name: '메뉴 열기' }).click();
@@ -225,7 +225,7 @@ scenario(
         await page.getByRole('button', { name: '내 메뉴' }).click();
       }
       const entry = page.getByRole(isMobile ? 'link' : 'menuitem', {
-        name: '서비스 업데이트 노트',
+        name: '공지사항',
       });
       await expect(entry).toBeVisible();
       await entry.click();
@@ -240,7 +240,7 @@ scenario(
         await page.getByRole('button', { name: '내 메뉴' }).click();
       }
       await expect(
-        page.getByRole(isMobile ? 'link' : 'menuitem', { name: '서비스 업데이트 노트' }),
+        page.getByRole(isMobile ? 'link' : 'menuitem', { name: '공지사항' }),
       ).toHaveAttribute('href', '/hosting/notices');
     });
   },

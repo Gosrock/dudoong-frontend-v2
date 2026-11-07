@@ -26,7 +26,8 @@ export const spinnerSize = styleVariants({
   md: { width: 24, height: 24 },
 });
 
-export const track = style({ opacity: 0.25 });
+/** 바탕 원 투명도 0.3 — `772:1178` track 값 그대로(M-2 2026-11-08) */
+export const track = style({ opacity: 0.3 });
 
 export const screen = style({
   display: 'flex',

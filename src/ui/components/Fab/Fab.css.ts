@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 
 import { vars } from '../../theme/tokens.css';
 
@@ -32,6 +32,24 @@ export const fab = style({
       cursor: 'not-allowed',
       background: vars.color.interaction.disabledBg,
       color: vars.color.interaction.disabledText,
+    },
+  },
+});
+
+/**
+ * 색 변형. `dark`는 위 기본(검정).
+ * FIGMA-CUSTOM: `brand` — 티켓 목록 FAB(gui `793:2469`)가 DS round Primary 채움을 `brand/Primary`(#633ee7, 변수)로
+ * 덮어쓴 것을 Figma대로(R1b, 사용자 결정 2026-11-07 "화면대로"). DS 세트에는 아직 없다 — 2단계 후보(figma-deviations §5).
+ * Hover · Pressed는 Figma에 없어 DS Button Primary 상태 색을 쓴다.
+ */
+export const tone = styleVariants({
+  dark: {},
+  brand: {
+    background: vars.color.brand.primary,
+    color: vars.color.text.onBrand,
+    selectors: {
+      '&:hover:not(:disabled)': { background: vars.color.brand.primaryHover },
+      '&:active:not(:disabled)': { background: vars.color.brand.primaryPressed },
     },
   },
 });

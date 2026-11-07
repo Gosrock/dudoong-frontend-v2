@@ -16,7 +16,7 @@ test.describe('셸 메뉴 — 미로그인 항목', () => {
     expect(bell.href).toBe(`/login?redirect=${encodeURIComponent('/mypage/notifications')}`);
     await setMockSession(page, 'anonymous');
     await page.goto(bell.href);
-    await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
+    await page.getByRole('button', { name: '카카오 로그인하기' }).click();
     await expect(page.getByRole('heading', { name: '가짜 카카오 로그인' })).toBeVisible();
     await page.getByRole('link', { name: '기존 사용자로 로그인', exact: true }).click();
     await expect(page).toHaveURL('/mypage/notifications');
@@ -26,7 +26,7 @@ test.describe('셸 메뉴 — 미로그인 항목', () => {
     const hosting = shellMenu(null).shortcuts.find((l) => l.key === 'hosting')!;
     await setMockSession(page, 'anonymous');
     await page.goto(hosting.href);
-    await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
+    await page.getByRole('button', { name: '카카오 로그인하기' }).click();
     await page.getByRole('link', { name: '기존 사용자로 로그인', exact: true }).click();
     await expect(page).toHaveURL('/hosting');
   });

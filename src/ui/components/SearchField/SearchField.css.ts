@@ -29,3 +29,10 @@ export const clear = style({
   },
 });
 globalStyle(`${clear} > svg`, { width: 20, height: 20 });
+
+/**
+ * 오른쪽 검색 아이콘 — Figma `73:6` 20 틀에 24 아이콘을 20으로(획 약 15). icon input의 앞 아이콘 16 규칙
+ * (`Input.css.ts` adornment)보다 앞서야 해서 선택자를 한 단계 높인다(M-2 2026-11-08).
+ */
+export const searchIcon = style({});
+globalStyle(`span${searchIcon} > svg`, { width: 20, height: 20, margin: 0 });

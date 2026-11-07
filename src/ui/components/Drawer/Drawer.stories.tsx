@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
+import { expect, waitFor } from 'storybook/test';
 
 import { Icon } from '../../icons/Icon';
 import { Flex } from '../../primitives/Flex';
@@ -65,5 +66,20 @@ export const LongContent: Story = {
         ))}
       </Flex>
     ),
+  },
+};
+
+/** GUI 햄버거(`1047:19428`, Ready 2026-11-07) 여백 — ✕가 왼쪽에서 24, 본문 좌우 24 · 위 0 */
+export const MenuVariant: Story = {
+  args: { defaultOpen: true, variant: 'menu' },
+  play: async ({ canvasElement }) => {
+    const body = canvasElement.ownerDocument.body;
+    const close = await waitFor(() => {
+      const el = body.querySelector<HTMLElement>('[role=dialog] [aria-label="닫기"]');
+      if (!el) throw new Error('드로어가 아직 없다');
+      return el;
+    });
+    // 슬롯 40의 왼쪽 끝 16 → 아이콘 24
+    await waitFor(() => expect(Math.round(close.getBoundingClientRect().left)).toBe(16));
   },
 };

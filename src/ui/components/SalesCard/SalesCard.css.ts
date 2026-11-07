@@ -18,12 +18,12 @@ export const card = style({
   background: vars.color.surface.container,
 });
 
-/** 도넛 + 범례 줄 — 위 20(→ 24) · 아래 16 · 왼쪽 8 */
+/** 도넛 + 범례 줄 — 위 20(`605:1388`, 토큰에 없는 값 그대로 — M-2 2026-11-08) · 아래 16 · 왼쪽 8 */
 export const chartRow = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.space[6],
-  padding: `${vars.space[5]} 0 ${vars.space[4]} ${vars.space[2]}`,
+  padding: `20px 0 ${vars.space[4]} ${vars.space[2]}`,
 });
 
 export const donut = style({ display: 'block', flexShrink: 0, width: 104, height: 104 });
@@ -68,11 +68,14 @@ export const totals = style({
 
 export const total = style({ display: 'inline-flex', alignItems: 'baseline', gap: vars.space[2] });
 
-/** 판매 전 — 가운데 문구(Figma 위 47 · 아래 56 → 48 · 48 토큰, 남는 높이는 가운데로) */
+/**
+ * 판매 전 — 가운데 문구. Figma `627:1860` 위 47 · 아래 56 값 그대로(M-2 2026-11-08 — 전에는 `space[8]`이라 PC에서 64로
+ * 커졌다). 남는 높이는 가운데로.
+ */
 export const empty = style({
   flex: '1 0 auto',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  padding: `${vars.space[8]} 0`,
+  padding: '47px 0 56px',
 });

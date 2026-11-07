@@ -38,3 +38,13 @@ export const StateColors: Story = {
     );
   },
 };
+
+/** 보라 Primary — 티켓 목록 FAB(gui `793:2469`가 round Primary 채움을 `brand/Primary`로 덮어씀, R1b) */
+export const Brand: Story = {
+  args: { tone: 'brand' },
+  play: async ({ canvasElement }) => {
+    const button = within(canvasElement).getByRole('button', { name: '새 공연 만들기' });
+    await expect(getComputedStyle(button).backgroundColor).toBe('rgb(99, 62, 231)');
+    await expect(pseudoStyle(button, ':hover', 'background')).toBe(vars.color.brand.primaryHover);
+  },
+};

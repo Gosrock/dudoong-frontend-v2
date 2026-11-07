@@ -19,7 +19,7 @@ test.describe('셀프 체크인', () => {
     await expect(page).toHaveURL(`/login?redirect=${encodeURIComponent(href)}`);
     expect(selfCalls(mockApi.calls())).toEqual([]);
 
-    await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
+    await page.getByRole('button', { name: '카카오 로그인하기' }).click();
     await page.getByRole('link', { name: '기존 사용자로 로그인', exact: true }).click();
     await expect(page).toHaveURL(href);
     // 확인 단계(이슈 #106 §6) — [입장하기] 전에는 요청이 없다

@@ -21,7 +21,7 @@ const here = (page: Page) => new URL(page.url());
 
 /** 로그인 화면에서 [카카오 로그인] → 가짜 카카오에서 고른다 */
 async function loginWithKakao(page: Page, choice: string) {
-  await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
+  await page.getByRole('button', { name: '카카오 로그인하기' }).click();
   await expect(page.getByRole('heading', { name: '가짜 카카오 로그인' })).toBeVisible();
   await page.getByRole('link', { name: choice, exact: true }).click();
 }
@@ -145,7 +145,7 @@ test.describe('카카오 로그인 콜백', () => {
     await loginWithKakao(page, 'state 불일치');
 
     await expect(page).toHaveURL(/\/login\?redirect=%2Fgate-check$/);
-    await expect(page.getByRole('button', { name: '카카오 로그인/회원가입' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: '카카오 로그인하기' })).toBeEnabled();
     const exchange = mockApi.calls().filter((c) => c.path.startsWith('/api/v1/auth/oauth/kakao?'));
     expect(exchange.map((c) => c.status)).toEqual([400]);
     expect(await readSessionFlag(page)).toBeNull();
@@ -317,7 +317,7 @@ test.describe('SameSite=Strict(운영 쿠키) 재현', () => {
     await expect(page).toHaveURL(/\/login\?redirect=%2Fgate-check$/);
 
     // 2) 카카오(다른 사이트)에서 복귀 → 콜백 → 로그인 → 원래 화면
-    await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
+    await page.getByRole('button', { name: '카카오 로그인하기' }).click();
     await expect(page.getByText(LOGGED_IN_TEXT)).toBeVisible();
     await expect(page).toHaveURL(/\/gate-check$/);
     const tokenCookies = (await page.context().cookies(MOCK_ORIGIN)).filter((c) =>

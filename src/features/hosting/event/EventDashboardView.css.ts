@@ -231,11 +231,14 @@ export const salesRow = style({
   },
 });
 
-/** 우측 일정 패널 본문 — 위아래 28(→ 24) · 좌우 24, 주간 줄 아래 19(→ 16), 단계 사이 12 */
+/**
+ * 우측 일정 패널 본문(DS `일정 패널` `605:1951`) — 위아래 28(→ 24, H2 M-4 몫) · 좌우 24, 주간 줄 아래 19(값 그대로 —
+ * A14 M-2 2026-11-08), 단계 사이 12
+ */
 export const panel = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.space[4],
+  gap: 19,
   padding: `${vars.space[5]} ${vars.space[5]}`,
 });
 

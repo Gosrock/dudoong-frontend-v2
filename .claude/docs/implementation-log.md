@@ -3146,3 +3146,48 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · prettier 통과. vitest related 257/0, 스토리 `Icon.stories` 6/0. QA `hosting-guests` 35/0 · 수동 1(빌드가 webServer 240초를 넘겨 한 번 시간 초과 — 같은 env로 따로 빌드한 뒤 `E2E_SKIP_BUILD=1`). e2e `hosting-guests` · `a11y` 131/0.
 
 **ego-browser 확인(2026-11-07, Storybook 6125 · `localhost`)**: `Icon/AddedIn20261107` 390 · 1440 — 대기 회색 상자 + 점 셋 · 받음 검정 상자 + 체크, 24 · 16 모두 DS PNG(`811:32` · `811:68`)와 같음. `Icon/Gallery` 1440 — svg 87개. QA 캡처 `HG-17` 모바일과 GUI `1182:9618` 나란히 — 표 티켓 칸 아이콘 모양 · 색 같음.
+
+## GUI 반영 — 로그인 · 햄버거 드로어(Ready 2026-11-07, `shell-login-gui` #169)
+
+근거: GUI Ready for dev(페이지 `331:9383` ↳알림창, 주문 상세, 모바일 390) `1175:16950` 로그인 · `1047:19428` 햄버거바 - 로그인 · `1174:15071` 햄버거바 - 미로그인. GUI 판 `2419107657661780989`(2026-11-07T14:52:25Z — 관제탑이 준 13:47Z 판 뒤에 한 번 더 바뀜, Ready 목록 141줄). 로그인 상태 드로어 `1047:19428`(전수조사 I-a3 · Q131의 "초안")도 이 판에서 Ready라 둘 다 반영했다. Design Sync 이슈 없음. 동의 칸(Q42) · 카카오 흐름 · 세션 만료 · 콜백 · 약관 문구는 그대로.
+
+- **로그인**(`LoginView`): 와이어 말풍선(`TooltipBubble`)을 빼고 GUI 묶음 — DS `img_login`(285×273 원본을 170으로, GUI 인스턴스 크기) · 안내 "두둥에 로그인하고 다양한 공연을 즐겨보세요!"(Label/md `text/secondary-label`) · DS Button **Primary** Large "카카오 로그인하기"(폭 254 — 채움 override는 Primary 색 그대로, 좌우 70 override는 폭으로), 간격 24. 묶음은 가운데보다 위(GUI 헤더 아래 150 · 아래 299) — 남는 높이를 위 1 : 아래 2로 나눠 비율을 지킨다(`::before` · `::after`). 버튼 문구가 바뀌어 e2e 6개 · QA 4개 선택자만 고침.
+- **드로어**(`ShellDrawer` — 관객 · 호스팅이 같은 본문): `Drawer`에 `variant="menu"`(GUI 여백 — ✕ · 벨이 가장자리에서 24, 본문 좌우 24 · 위 0, 머리 줄 56으로 아바타가 GUI와 같은 높이). 프로필 줄 위아래 12 · 아바타 60 ↔ 글자 22 · 이름 Label/lg-emphasized · 이메일 Label/sm · 연필 배지 20(연필 14, 아바타 오른쪽 끝에서 4 밖). 미로그인 "로그인 ›"(간격 8). 메뉴 세 줄(주문내역 · 관심 호스트 · **지난 관람 아카이빙** — 미로그인도 셋, 모두 로그인으로) 아이콘 24 + 8 + 글자 16 · 500 · 간격 16. 구분선은 8 높이 묶음(위아래 4). "공연 둘러보기 ↗" · "**호스팅 센터** ↗"(Heading/md-emphasized + `diagonal`). 호스트 줄 아바타 60 · 이름 Label/sm 두 줄 가운데 · 간격 16 · 위아래 8, 0개면 회색 칸(높이 60 · 모서리 12 · `background/grey` · Label/md `text/tertiary-label` "아직 두둥에서 호스트가 없어요"). 새 호스트 · 새 공연 만들기(새 DS 아이콘 `add-host` · `add-concert`, 두 칸 사이 43). 공지사항(`settings`) · 로그아웃.
+- **아이콘**: DS `ic_add host`(`805:1168`) · `ic_add concert`(`805:1183`) outline 24 — `src/ui/icons/README.md` 절차(REST SVG → `black`을 `#141413`으로 → `generate.mjs`, #166 선물 아이콘 둘과 함께 89개 62종). ds-sync-1107(#166)이 "반영 대기"로 남긴 것.
+- **"서비스 업데이트 노트" → "공지사항"**(디자이너 답 2026-11-07, Q88 닫음): `SHELL_NOTICES_LABEL` 하나 — 드로어 · PC 아바타 메뉴 모두. e2e `shell-activity` · QA `shell` · `notices` 기대값.
+- 매핑: Top app bar(→ `Drawer` 머리 줄 — 코드에만 있는 부품, GUI 여백으로 변형 추가) · Avatar 60 · ic 10종 · Button(Primary Large) · img_login — 전부 Figma DS. 직접 그린 상자: 연필 배지(`1047:31894`) · 빈 호스트 칸(`1175:15425`) → `ShellDrawer.css.ts`, Buy me a coffee(`1175:15449`)는 그리지 않음. 스타일 없는 글자 8(메뉴 글자) → `labelLg` + 굵기 500(FIGMA-CUSTOM 주석).
+
+**🤖 판단**(디자인 Q181~Q184): ① Buy me a coffee · AD 칸은 그리지 않음 — 후원 주소 없음 · 광고 사용자 대기(Q181) ② 미로그인 프레임의 로그아웃 · 빨간 점 벨은 그리지 않음(Q182) ③ 세션 만료는 GUI 배치에 안내 문구만 바꿈, 카카오 실패 안내는 버튼 아래 그대로(Q183) ④ 드로어만 GUI 구성(티켓 줄 뺌 · 라벨 · 아이콘 · 빈 문구), PC 아바타 메뉴(DS `My`)는 그대로 — 근거가 다르다. 호스팅 드로어도 같은 본문이라 티켓 줄이 빠진다(Q184) ⑤ "공연 준비 ↗" 옆 말풍선은 GUI에서 빠져 지움 — 모델 `startHint`는 남김(되돌리기 쉽게) ⑥ 머리 줄 높이 56 · 아바타 위치는 GUI 프레임(상태 표시줄 포함)에서 본문이 Top app bar 아래 끝보다 9 위에서 시작하는 것을 맞춘 값 ⑦ `src/ui`는 아이콘 둘 + `Drawer` `menu` 변형(스토리 `MenuVariant`)만 — 기본값은 그대로라 호스팅 공연 메뉴 드로어(`EventScopeNav`)는 바뀌지 않는다.
+
+**Figma 코멘트(2026-11-07-impl)**: `1175:15449`("[개발 · 디자인 없음] 햄버거 메뉴 "Buy me a coffee" 배너") · `1174:15132`("[개발 · 디자인 없음] 미로그인 메뉴의 "로그아웃" · 알림 빨간 점") · `1175:16956`("[개발 · 디자인 없음] 로그인 — 로그인이 만료됐을 때 · 로그인 실패했을 때") · `1047:31799`("[개발 · 디자인 없음] 햄버거 메뉴 항목 글자 스타일").
+
+**범위 밖**: 로그인 화면 PC(1440) 프레임 없음 — 같은 묶음을 가운데에. 관객 로고 헤더 · PC 상단 바는 와이어 그대로(GUI 로그인 프레임의 헤더 `Title` 로컬 컴포넌트는 지금 로고 헤더와 같은 구성).
+
+## Figma 동일화 M-3 — 관객 화면 값(2026-11-08, `fm-audience` #170)
+
+근거: `figma-deviations-2026-11-07.md` §3-4 U3 · U14(판정 맞춤 — 값 그대로), GUI 판 `2419107657661780989`(11-07T14:52Z). `figma_nodes.py ready --contains`로 `759:22391` · `908:3276` 모두 Ready 안 — 근거 그대로.
+
+- **U3 공연홈 히어로 바탕**: 원시 색 `blue300` #5B8FF5 → Figma `759:22587` "Rectangle 14930" 값 #5B85FF(변수 없음) 그대로. 600 이상에서 그림 양옆을 채우는 색도 같은 값이라 그림 가장자리와 이어진다. 넓은 화면 배치는 여전히 디자인 없음(Figma 코멘트 `1989724411` 열어 둠).
+- **U14 티켓탭 공지 바**: `surface.inverseHover`(Neutral 700 #232220) → Figma #202020(공지 바 `939:29784` 외 13곳 모두 같은 직접 값). **이웃 카드 #DDDCDA는 고치지 않음** — REST로 다시 보니 `908:11562` 등 10곳이 변수에 묶여 있고 값이 Neutral 200 = 코드 `interaction.disabled`와 같다(분류표의 "직접 값"은 공지 바에만 맞음 — 분류표 줄을 바로잡음).
+- 토큰은 더하지 않았다 — 화면 css 상수(`HERO_BG` · `NOTICE_BG`) + `FIGMA-CUSTOM:` "Figma대로". design-system §1 "화면이 직접 값을 쓰는 곳" 표, 2단계 후보.
+- 추가 줄 점검: §3-4에서 맞춤은 U3 · U14뿐. §3-1 · §3-2 맞춤 줄도 모두 §4 작업 줄(`fm-ds-overlays` · `fm-ds-components`)에 들어가 있다(A25는 진행 중) — 이 세션이 더 고칠 줄 없음.
+
+**Figma 코멘트**: `1989724411`(공연홈 히어로 — 넓은 화면, "Blue 300으로 채움")에 "[개발 · 고침 2026-11-08] Figma대로 맞췄습니다" 답글(`1998987956`). 공지 바 색에 걸린 개발 코멘트는 없다.
+
+**검사**: typecheck · 바꾼 파일 lint 통과, vitest related 해당 없음. QA `home` · `tickets`, e2e `home` · `tickets` — PR 본문.
+
+**ego-browser 확인(2026-11-08, dev:mock 3135 · `localhost`)**: `/` 390 · 1440 — 히어로 판 계산 색 rgb(91,133,255), 1440에서 양옆 바탕과 그림 가장자리가 이어짐. `/tickets`(로그인 mock) 390 · 1440 — 공지 바 rgb(32,32,32), Figma `939:29784` 내보내기와 나란히 봐 같음. 발견 · 처리 없음.
+
+## Figma 동일화 M-2 — DS 컴포넌트 기본값 · R1a · R1b(2026-11-08, `fm-ds-components` #171)
+
+근거: [`figma-deviations-2026-11-07.md`](./figma-deviations-2026-11-07.md) §3-2 · §3-3 · §4 `fm-ds-components` 줄. 근거 프레임(`712:1646` · `745:32726` · `727:23210` · `767:50048` · `748:33451` 등 17장)이 지금 GUI 파일에서 모두 Ready인지 `figma_nodes.py ready`로 다시 확인. 값은 DS 메인(REST) **과 Ready 화면 인스턴스(REST)를 같이** 쟀다.
+
+- **고침(값 그대로 — 새 토큰 없음)**: A4 Header ▾ 원 16 → 12 · A5 Toggle 손잡이 19.5 / 2.25 · A7 primary 2 medium 글자만 45h · A9 medium 아이콘 + 글자 5 · A10 SearchField 아이콘 20 · A11 SalesCard 판매 전 47 / 56 · A12 Schedule 현재 일정 아래 64 · A13 체크 ↔ 글자 가운데 · A14 주간 줄 9 · 제목–날짜 3 · 패널 주간 줄 아래 19 · A15 StatCard PC 20 · A16 도넛 줄 위 20 · A17 TopBar 오른쪽 20 · 아바타 ▾(10 · 0, 끝 24) · A18 My 20 · 22 · 14 · A22 Spinner 바탕 0.3 · A23 Radio 채움 없음 · A27 포스터 163/230 · O23 태그 칸 · 줄 10. 표는 design-system §4-3.
+- **R1a · R1b(사용자 결정 2026-11-07 "화면대로")**: `Button round`(원 34 · 아이콘 24) → 대시보드 연필(`EventDashboardView.tsx`), `Fab tone="brand"`(보라 Primary) → 티켓 목록 FAB(`TicketListView.tsx`). 두 곳 `FIGMA-CUSTOM:` 주석을 "Figma대로"로 고침. 2단계 후보(분류표 §5-1)에 이미 있음.
+- **design-system.md**: §3 Button · Top bar_Host · My 문구, §4-2 "Figma와 다르게 한 것"(Tabs 44/48 · dropdown item 36 · 칩 모서리 8 · Header 40 · Toggle 색은 지금 같음, 간격 10 되돌림), 새 §4-3 표.
+
+**🤖 판단**: ① **A1(`tag_v2` border 40%) · A24(Badge 숫자 #FFFFFF)는 고치지 않음** — DS 메인 값은 분류표대로지만 Ready 화면 인스턴스가 모두 옛 값(테두리 100% — `767:50048` · `975:10756` · `1182:10899` · `1029:7706`, Badge 숫자 #F7F7F6 — `669:2350` · `712:1646`)이다. 목표가 "Ready 화면과 100% 동일"이고 R1(화면이 이긴다)이라 화면대로 두고, DS에 확인 요청 코멘트(`693:761` · `198:1638`). 디자이너가 화면 파일에서 라이브러리 업데이트를 받으면 바꾼다(되돌리기: 한 줄씩 — `Chip.css.ts` border `color-mix(… 40%)`, `Badge.css.ts` `palette.common.white`). ② A14의 패널 위아래 28은 H2(M-4 `fm-hosting`) 몫이라 19만 고침. ③ A22 Spinner는 Ready 화면에 인스턴스가 없어(분류표가 든 `971:21949`에 Spinner 없음) DS 값 0.3대로. ④ A17 Figma 닉네임 글자 상자가 50 고정폭이라 ▾ 앞에 빈 틈이 보이는데, 코드는 닉네임 길이가 바뀌므로 내용 폭 + 간격 0.
+
+**Figma 코멘트(2026-11-08)**: 답글 `1989708671`(연필) · `1989715585`(FAB) "[개발 · 고침 2026-11-08] Figma대로 맞췄습니다", DS 확인 요청 새 코멘트 `693:761`(border 40% ↔ Ready 100%) · `198:1638`(Badge 숫자 색).
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related(스토리 포함) 통과 — 스토리 기대값 고침(ConcertCard 230), 새 스토리 `Button/TonalMedium` · `Button/Round` · `Fab/Brand`. QA `hosting-event` 26/0 · `hosting-ticket` 30/0 · `hosting-guests` 35/0 · `shell` 18/0 · `events` 23/0. e2e `shell` · `hosting-event` · `hosting-ticket` · `hosting-guests` · `hosting` · `home` · `event-list` · `host-home` 186/0.

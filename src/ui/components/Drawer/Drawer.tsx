@@ -22,6 +22,11 @@ export type DrawerProps = {
   closeOnBack?: boolean;
   /** 닫힘 애니메이션 뒤. overlay-kit의 `unmount`를 넘긴다 */
   onExited?: () => void;
+  /**
+   * 여백. `default` — 와이어 값(머리 줄 아이콘 쪽 8, 본문 위 8 · 좌우 24). `menu` — GUI 햄버거 `1047:19428` · `1174:15071`
+   * (Ready 2026-11-07): ✕ · 벨이 가장자리에서 24(Top app bar 패딩 16 + 슬롯 40), 본문 좌우 24 · 위 0
+   */
+  variant?: 'default' | 'menu';
 };
 
 /**
@@ -38,6 +43,7 @@ export function Drawer({
   headerTrailing,
   closeOnBack = true,
   onExited,
+  variant = 'default',
 }: DrawerProps) {
   useCloseOnBack(open, () => onOpenChange(false), { enabled: closeOnBack });
   useOnExited(open, onExited, 550); // vaul 기본 전환 0.5s
@@ -51,13 +57,13 @@ export function Drawer({
           <VisuallyHidden asChild>
             <Vaul.Title>{title}</Vaul.Title>
           </VisuallyHidden>
-          <div className={s.header}>
+          <div className={s.header[variant]}>
             <Vaul.Close className={s.iconButton} aria-label="닫기">
               <Icon name="close" />
             </Vaul.Close>
             <div className={s.trailing}>{headerTrailing}</div>
           </div>
-          <div className={s.body}>{children}</div>
+          <div className={s.body[variant]}>{children}</div>
         </Vaul.Content>
       </Vaul.Portal>
     </Vaul.Root>

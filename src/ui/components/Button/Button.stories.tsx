@@ -71,6 +71,39 @@ export const MediumHeight: Story = {
   },
 };
 
+/** primary 2 medium 글자만은 45h(`754:2529`), 아이콘 있는 판은 46 · 아이콘 + 글자 간격 5(`36:68`) */
+export const TonalMedium: Story = {
+  render: () => (
+    <Flex gap={3} align="center">
+      <Button variant="tonal">글자만</Button>
+      <Button variant="tonal" icon={<Icon name="add" size={24} />}>
+        아이콘
+      </Button>
+    </Flex>
+  ),
+  play: async ({ canvas }) => {
+    await expect(
+      canvas.getByRole('button', { name: '글자만' }).getBoundingClientRect().height,
+    ).toBe(45);
+    const withIcon = canvas.getByRole('button', { name: '아이콘' });
+    await expect(withIcon.getBoundingClientRect().height).toBe(46);
+    await expect(getComputedStyle(withIcon).columnGap).toBe('5px');
+  },
+};
+
+/** 원형 34 아이콘 버튼 — 대시보드 머리 연필(gui `727:23261`, R1a). 검정 · 아이콘 24 · 안쪽 5 */
+export const Round: Story = {
+  render: () => (
+    <Button variant="dark" round icon={<Icon name="edit" size={24} />} aria-label="수정" />
+  ),
+  play: async ({ canvas }) => {
+    const btn = canvas.getByRole('button', { name: '수정' });
+    const box = btn.getBoundingClientRect();
+    await expect([box.width, box.height]).toEqual([34, 34]);
+    await expect(getComputedStyle(btn).backgroundColor).toBe('rgb(20, 20, 19)');
+  },
+};
+
 /**
  * 상태 색(design-system §3 "Button 상태 색"). Hover·Pressed는 CSS 상태라 화면에서는 마우스로 확인하고,
  * play는 규칙 값을 Figma 변형과 맞춘다 — Secondary Hover `650:1200`·Pressed `438:1793`,
