@@ -40,10 +40,10 @@ export function OptionFields({
           <Flex key={option.optionId} direction="column" gap={3} fullWidth>
             {i > 0 && <Divider />}
             <Flex direction="column" gap={1}>
-              <Txt typography="labelLgEmphasized" color={colors.textSecondaryLabel}>
+              <Txt typography="labelMdEmphasized" color={colors.textSecondaryLabel}>
                 <span id={titleId}>{optionName}</span>
                 {option.type === 'YES_NO' && option.yesAdditionalPrice ? (
-                  <Txt typography="labelLgEmphasized" color={colors.textBrandLabel}>
+                  <Txt typography="labelMdEmphasized" color={colors.textBrandLabel}>
                     {` (+${formatWon(option.yesAdditionalPrice)})`}
                   </Txt>
                 ) : null}

@@ -10,7 +10,7 @@ import { isApiError, isNotFound, isSessionLost } from '@/api/errors';
 import { handleError, handlersFrom } from '@/api/handle-error';
 import { meQuery } from '@/api/me/queries';
 import { createOrderMutation, newIdempotencyKey } from '@/api/order/mutations';
-import { orderTotalAmount } from '@/api/order/price';
+import { orderTotalAmount, ticketAdditionalAmounts } from '@/api/order/price';
 import { checkoutQuery, MY_ORDERS_INFINITE_KEY, myOrderQuery } from '@/api/order/queries';
 import type { Checkout } from '@/api/order/schema';
 import { eventTicketItemsQuery } from '@/api/ticket-item/queries';
@@ -156,10 +156,11 @@ export function useCheckout({
   const paymentChannel = useWatch({ control: form.control, name: 'paymentChannel' });
   const mode = hasOptions(ticket) ? effectiveMode(optionValues.mode, quantity) : 'same';
 
-  const amount =
-    quantity >= 1
-      ? orderTotalAmount(toAmountInput({ options: optionValues }, ticket, quantity))
-      : 0;
+  const amountInput =
+    quantity >= 1 ? toAmountInput({ options: optionValues }, ticket, quantity) : null;
+  const amount = amountInput ? orderTotalAmount(amountInput) : 0;
+  /** 티켓 줄마다 옵션 추가금(GUI `567:9316` 칩 "+ 1,000원") */
+  const ticketOptionAmounts = amountInput ? ticketAdditionalAmounts(amountInput) : [];
 
   // ─── 모드 · 수량 ───
   const setMode = useCallback(
@@ -320,6 +321,7 @@ export function useCheckout({
     setQuantity,
     /** 화면 총액 = 서버 `totalAmount`(주문 완료 화면의 입금 금액·토스 송금 금액도 그 값) */
     amount,
+    ticketOptionAmounts,
     paymentChannel,
     /** 입금자명(닉네임 고정, 읽기 전용) */
     depositorName,

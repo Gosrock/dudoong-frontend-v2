@@ -5,6 +5,7 @@ import {
   maxOrderQuantity,
   optionAdditionalPrice,
   orderTotalAmount,
+  ticketAdditionalAmounts,
 } from './price';
 
 const yes = (additionalPrice: number) => ({ additionalPrice });
@@ -128,5 +129,27 @@ describe('maxOrderQuantity', () => {
     expect(maxOrderQuantity({ purchaseLimit: 500, remaining: 300 })).toBe(100);
     expect(maxOrderQuantity({ purchaseLimit: 5, remaining: 0 })).toBe(0);
     expect(maxOrderQuantity({ purchaseLimit: 5, remaining: -3 })).toBe(0);
+  });
+});
+
+describe('ticketAdditionalAmounts — 티켓 줄 금액 칩', () => {
+  it('모든 티켓 동일이면 티켓마다 같은 추가금', () => {
+    expect(
+      ticketAdditionalAmounts({
+        price: 18000,
+        quantity: 3,
+        options: { applyToAll: true, answers: [yes(1000), yes(0)] },
+      }),
+    ).toEqual([1000, 1000, 1000]);
+  });
+
+  it('티켓별이면 각자의 추가금, 답이 모자란 티켓은 0', () => {
+    expect(
+      ticketAdditionalAmounts({
+        price: 18000,
+        quantity: 3,
+        options: { applyToAll: false, perTicket: [[yes(1000), yes(500)], [yes(0)]] },
+      }),
+    ).toEqual([1500, 0, 0]);
   });
 });
