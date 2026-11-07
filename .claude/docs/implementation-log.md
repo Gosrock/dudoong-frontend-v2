@@ -3021,7 +3021,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(2026-11-07, dev:mock 3105 · `localhost`)**: 공연홈 390 · 1440(푸터), 공연 상세 101 390 · 1440(판매정보 펼침), 체크아웃 두둥 390(하단 바 문장), 마이페이지(로그인 — 토글 켬 → 토스트 "마케팅 정보 수신에 동의했어요 (2026.11.07, 두둥)"). 발견: ① 판매정보 펼친 본문이 트리거 라벨보다 24 왼쪽에 붙음 → 본문에 트리거와 같은 좌우 24 · ② PC 푸터 글자가 본문 선(120)보다 24 안쪽(144) → 공연홈 `edge`와 같은 식으로 맞춤(120). 둘 다 e2e · QA 뒤 패딩만 고쳤다.
 
-## Figma 전수조사 후속 — DS Modal 큰 판 · Toast 자리 · Dropdown · Radio · DataTable(I-h1~I-h5, 2026-11-07, `ds-audit-hosting` #PR)
+## Figma 전수조사 후속 — DS Modal 큰 판 · Toast 자리 · Dropdown · Radio · DataTable(I-h1~I-h5, 2026-11-07, `ds-audit-hosting` #153)
 
 근거: `figma-audit-2026-11-07-hosting.md` 작업 줄 후보 ①~⑤. GUI Ready 노드의 크기 · 간격은 REST(`/nodes`)로 읽었고, Dropdown은 DS `dropdown item`(`284:1777`)도 봤다. DS 파일 판은 기준 판 그대로(`2416898429564738752`). 기록은 `design-system.md` §3(Dropdown · Radio · Toast popup 줄 · DataTable) · §8 "2026-11-07".
 
