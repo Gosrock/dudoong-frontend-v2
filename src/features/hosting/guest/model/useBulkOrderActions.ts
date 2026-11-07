@@ -29,16 +29,72 @@ export type BulkKind = 'approve' | 'refuse';
 export type BulkResult = {
   kind: BulkKind;
   succeeded: number;
-  /** 실패한 주문과 그 이유(코드 문구 → 없으면 서버 `reason`, 둘 다 없으면 null) */
-  failed: { orderUuid: string; message: string | null }[];
+  /** 실패한 주문과 그 이유 — `code`는 서버 에러 코드, `message`는 코드 문구 → 없으면 서버 `reason`(둘 다 없으면 null) */
+  failed: { orderUuid: string; code: string | null; message: string | null }[];
 };
 
-/** 결과 토스트 문구(GUI `1029:5720` "2건을 승인했어요." · 백엔드 #929 B34 "n건을 승인했어요. m건은 승인하지 못했어요.") */
+/**
+ * 결과 토스트 문구(GUI `1029:5720` "2건을 승인했어요." · 일부 실패 `1268:11543` "1건을 승인했어요. 2건은 승인하지 못했어요." ·
+ * 전부 실패 `1268:11544` "2건 모두 승인하지 못했어요." — #175)
+ */
 export function bulkResultMessage({ kind, succeeded, failed }: BulkResult): string {
   const verb = kind === 'approve' ? '승인' : '거절';
   if (failed.length === 0) return `${succeeded}건을 ${verb}했어요.`;
   if (succeeded === 0) return `${failed.length}건 모두 ${verb}하지 못했어요.`;
   return `${succeeded}건을 ${verb}했어요. ${failed.length}건은 ${verb}하지 못했어요.`;
+}
+
+/**
+ * 실패 이유를 짧게 묶는 이름(GUI `1269:28457` "재고 부족 1건 · 1인 구매 제한 초과 1건") — 코드로 나눈다.
+ * GUI에 있는 것은 재고 부족 · 1인 구매 제한 초과 둘뿐이고 나머지 이름은 🤖 Claude 판단(design-requests Q204)
+ */
+const FAILURE_LABEL: Record<string, string> = {
+  Ticket_Item_400_1: '재고 부족',
+  Ticket_Item_400_6: '1인 구매 제한 초과',
+  Order_400_14: '탈퇴한 주문자',
+  Order_400_3: '이미 처리된 주문',
+  Order_400_5: '이미 처리된 주문',
+  Order_400_30: '입장·선물한 티켓 있음',
+  Order_400_9: '시작된 공연',
+  Order_400_18: '기타 사유 길이 초과',
+  Event_400_5: '판매 중이 아닌 공연',
+  Event_400_6: '시작된 공연',
+  ORDER_BULK_NOT_PROCESSED: '시간 초과',
+};
+/** 주문이 승인 대기로 남아 거절로 정리해야 하는 실패(GUI 문구 "주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요.") */
+const LEFT_PENDING = new Set(['Ticket_Item_400_1', 'Ticket_Item_400_6', 'Order_400_14']);
+/** 그 사이 처리돼 목록을 다시 읽은 실패 */
+const ALREADY_DONE = new Set(['Order_400_3', 'Order_400_5', 'Order_400_30']);
+
+/**
+ * 표 위 실패 안내(GUI `1268:11182` 일부 실패 · `1268:11544` 전부 실패 — #175):
+ * "{m}건을 승인하지 못했어요." / "{m}건 모두 승인하지 못했어요." + "재고 부족 1건 · 1인 구매 제한 초과 1건." + 뒷일 안내.
+ * 거절 실패는 GUI가 없어 같은 모양에 동사만 바꾼다(🤖 Claude 판단 — Q204). 실패가 없으면 null
+ */
+export function bulkFailureNotice({ kind, succeeded, failed }: BulkResult): string | null {
+  if (failed.length === 0) return null;
+  const verb = kind === 'approve' ? '승인' : '거절';
+  const head =
+    succeeded === 0
+      ? `${failed.length}건 모두 ${verb}하지 못했어요.`
+      : `${failed.length}건을 ${verb}하지 못했어요.`;
+  const counts = new Map<string, number>();
+  for (const f of failed) {
+    const label = (f.code && FAILURE_LABEL[f.code]) || '기타';
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  const breakdown = `${[...counts].map(([label, n]) => `${label} ${n}건`).join(' · ')}.`;
+  const codes = failed.map((f) => f.code);
+  const tails: string[] = [];
+  if (codes.some((c) => c && LEFT_PENDING.has(c))) {
+    tails.push('주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요.');
+  }
+  if (codes.some((c) => c && ALREADY_DONE.has(c))) tails.push('최신 상태를 불러왔어요.');
+  if (codes.some((c) => c === BULK_NOT_PROCESSED)) tails.push('다시 시도해 주세요.');
+  // 이름이 없는 실패(예상 못 한 오류 · 네트워크)는 그 이유 문구를 한 번 붙인다(코드 문구 → 서버 reason 폴백)
+  const unknown = failed.find((f) => !(f.code && FAILURE_LABEL[f.code]) && f.message)?.message;
+  if (unknown) tails.push(/[.!?]$/.test(unknown) ? unknown : `${unknown}.`);
+  return [head, breakdown, ...tails].join(' ');
 }
 
 /** 시간 상한으로 끝내 처리하지 못한 주문(다시 보내도 하나도 처리되지 않았을 때) */
@@ -91,9 +147,11 @@ export async function runBulkOrders(
       const [, error] = await sendOne(uuid);
       if (isSessionLost(error)) return null;
       if (error) {
+        const code = getErrorCode(error);
         result.failed.push({
           orderUuid: uuid,
-          message: bulkFailureMessage(kind, getErrorCode(error), null),
+          code,
+          message: bulkFailureMessage(kind, code, null),
         });
       } else {
         result.succeeded += 1;
@@ -111,7 +169,7 @@ export async function runBulkOrders(
       }
       const code = getErrorCode(error);
       const message = bulkFailureMessage(kind, code, null) ?? errorMessageOf(error);
-      result.failed.push(...queue.map((orderUuid) => ({ orderUuid, message })));
+      result.failed.push(...queue.map((orderUuid) => ({ orderUuid, code, message })));
       break;
     }
     const notProcessed: string[] = [];
@@ -124,6 +182,7 @@ export async function runBulkOrders(
       } else {
         result.failed.push({
           orderUuid: r.orderUuid,
+          code: r.errorCode,
           message: bulkFailureMessage(kind, r.errorCode, r.reason),
         });
       }
@@ -134,6 +193,7 @@ export async function runBulkOrders(
       result.failed.push(
         ...[...notProcessed, ...rest].map((orderUuid) => ({
           orderUuid,
+          code: BULK_NOT_PROCESSED,
           message: BULK_NOT_PROCESSED_MESSAGE,
         })),
       );

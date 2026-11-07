@@ -8,6 +8,7 @@ import { APPROVE_ERROR_MESSAGE } from './guest-rules';
 import {
   BULK_NOT_PROCESSED_MESSAGE,
   bulkFailureMessage,
+  bulkFailureNotice,
   bulkResultMessage,
   runBulkOrders,
 } from './useBulkOrderActions';
@@ -52,8 +53,12 @@ describe('runBulkOrders', () => {
     );
     const out = await runBulkOrders('approve', ['a', 'b', 'c'], send, never);
     expect(out?.result.failed).toEqual([
-      { orderUuid: 'b', message: APPROVE_ERROR_MESSAGE.Ticket_Item_400_1 },
-      { orderUuid: 'c', message: '서버 오류' },
+      {
+        orderUuid: 'b',
+        code: 'Ticket_Item_400_1',
+        message: APPROVE_ERROR_MESSAGE.Ticket_Item_400_1,
+      },
+      { orderUuid: 'c', code: 'GLOBAL_500_1', message: '서버 오류' },
     ]);
     expect(bulkResultMessage(out!.result)).toBe('1건을 승인했어요. 2건은 승인하지 못했어요.');
   });
@@ -73,7 +78,9 @@ describe('runBulkOrders', () => {
     const out = await runBulkOrders('refuse', ['a', 'b', 'c'], send, never);
     expect(send.mock.calls.map(([c]) => c)).toEqual([['a', 'b', 'c'], ['b', 'c'], ['c']]);
     expect(out?.result.succeeded).toBe(2);
-    expect(out?.result.failed).toEqual([{ orderUuid: 'c', message: BULK_NOT_PROCESSED_MESSAGE }]);
+    expect(out?.result.failed).toEqual([
+      { orderUuid: 'c', code: 'ORDER_BULK_NOT_PROCESSED', message: BULK_NOT_PROCESSED_MESSAGE },
+    ]);
   });
 
   it('일괄 API가 없으면(404 · 405) 단건을 차례로', async () => {
@@ -88,7 +95,7 @@ describe('runBulkOrders', () => {
     expect(order).toEqual(['a', 'b']);
     expect(out?.result.succeeded).toBe(1);
     expect(out?.result.failed).toEqual([
-      { orderUuid: 'b', message: APPROVE_ERROR_MESSAGE.Order_400_3 },
+      { orderUuid: 'b', code: 'Order_400_3', message: APPROVE_ERROR_MESSAGE.Order_400_3 },
     ]);
   });
 
@@ -99,5 +106,54 @@ describe('runBulkOrders', () => {
       bulkFailureMessage('refuse', 'Order_400_18', null),
       bulkFailureMessage('refuse', 'Order_400_18', null),
     ]);
+  });
+});
+
+/** 표 위 실패 안내(GUI `1268:11182` · `1268:11544` — #175) */
+describe('bulkFailureNotice', () => {
+  const f = (code: string | null, message: string | null = null) => ({
+    orderUuid: 'x',
+    code,
+    message,
+  });
+
+  it('실패가 없으면 없다', () => {
+    expect(bulkFailureNotice({ kind: 'approve', succeeded: 2, failed: [] })).toBeNull();
+  });
+
+  it('일부 실패 — 이유별 건수 + 거절로 정리 안내(GUI 문구 그대로)', () => {
+    expect(
+      bulkFailureNotice({
+        kind: 'approve',
+        succeeded: 1,
+        failed: [f('Ticket_Item_400_1'), f('Ticket_Item_400_6')],
+      }),
+    ).toBe(
+      '2건을 승인하지 못했어요. 재고 부족 1건 · 1인 구매 제한 초과 1건. 주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요.',
+    );
+  });
+
+  it('전부 실패 — "모두"', () => {
+    expect(
+      bulkFailureNotice({
+        kind: 'approve',
+        succeeded: 0,
+        failed: [f('Ticket_Item_400_1'), f('Ticket_Item_400_1')],
+      }),
+    ).toBe(
+      '2건 모두 승인하지 못했어요. 재고 부족 2건. 주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요.',
+    );
+  });
+
+  it('이미 처리됨 · 시간 초과 · 모르는 코드(서버 reason 폴백) — 거절도 같은 모양', () => {
+    expect(
+      bulkFailureNotice({
+        kind: 'refuse',
+        succeeded: 0,
+        failed: [f('Order_400_5'), f('ORDER_BULK_NOT_PROCESSED'), f('GLOBAL_500_1', '서버 오류')],
+      }),
+    ).toBe(
+      '3건 모두 거절하지 못했어요. 이미 처리된 주문 1건 · 시간 초과 1건 · 기타 1건. 최신 상태를 불러왔어요. 다시 시도해 주세요. 서버 오류.',
+    );
   });
 });

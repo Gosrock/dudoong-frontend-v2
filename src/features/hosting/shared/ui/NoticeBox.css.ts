@@ -1,5 +1,6 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { media } from '@/ui/theme/breakpoints';
 import { colors } from '@/ui/theme/colors';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -29,3 +30,30 @@ export const noticeButton = style([
     cursor: 'pointer',
   },
 ]);
+
+/**
+ * 닫기 있는 변형 — GUI "일부 실패 안내"(`1269:27557` 342×76, 위 맞춤 · PC 인스턴스 `1269:28457` 1124×40, 가운데 맞춤).
+ * 패딩 8 · 간격 4 · 모서리 8 · Yellow/50, 문구 14/19.6 primary, 닫기 ic close 16(primary)
+ */
+export const dismissible = style([
+  notice,
+  {
+    alignItems: 'flex-start',
+    '@media': { [media.desktop]: { alignItems: 'center' } },
+  },
+]);
+
+export const dismissibleText = style({ flex: '1 1 auto', minWidth: 0 });
+
+export const dismiss = style({
+  display: 'inline-flex',
+  flexShrink: 0,
+  padding: 0,
+  border: 0,
+  background: 'none',
+  color: vars.color.text.primaryLabel,
+  cursor: 'pointer',
+  borderRadius: vars.radius[1],
+});
+
+globalStyle(`${dismiss} > svg`, { width: 16, height: 16 });

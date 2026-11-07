@@ -609,6 +609,78 @@ scenario(
   },
 );
 
+/**
+ * 선택 바 [승인] 응답에서 고른 주문 중 `failUuids`만 실패로 바꾼다(재고 부족 `Ticket_Item_400_1`) — 나머지는 가짜 백엔드가 실제로 승인한다
+ */
+async function failBulkApprove(page: Page, failUuids: readonly string[]) {
+  await page.route(/\/api\/v2\/events\/101\/orders\/approve$/, async (route) => {
+    const { orderUuids } = route.request().postDataJSON() as { orderUuids: string[] };
+    const okUuids = orderUuids.filter((u) => !failUuids.includes(u));
+    const failed = orderUuids
+      .filter((u) => failUuids.includes(u))
+      .map((orderUuid) => ({
+        orderUuid,
+        success: false,
+        errorCode: 'Ticket_Item_400_1',
+        reason: '재고가 부족합니다.',
+      }));
+    if (okUuids.length === 0) {
+      await route.fulfill({
+        json: envelope.ok({ succeeded: 0, failed: failed.length, results: failed }),
+      });
+      return;
+    }
+    const res = await route.fetch({ postData: JSON.stringify({ orderUuids: okUuids }) });
+    const body = await res.json();
+    body.data.results.push(...failed);
+    body.data.failed += failed.length;
+    await route.fulfill({ response: res, json: body });
+  });
+}
+
+scenario(
+  'HG-21',
+  '여러 개 선택 승인 — 일부 · 전부 실패',
+  {
+    kind: '에러',
+    summary:
+      '선택 바 [승인]에서 일부가 실패하면 토스트 "1건을 승인했어요. 1건은 승인하지 못했어요." + 표 위 노란 안내 "1건을 승인하지 못했어요. 재고 부족 1건. 주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요."(× 닫기), 실패한 주문은 선택된 채 남는다. 전부 실패면 "2건 모두 승인하지 못했어요."',
+    basis: ['GUI 1268:11182 · 1268:11544 · 1268:11906 · 1268:12128', '#175'],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('2건 중 1건이 재고 부족이면 안내가 보이고 그 주문은 선택된 채 남는다', async () => {
+      await failBulkApprove(page, [GUEST_ORDER.pendingToss]);
+      await page.goto(GUESTS);
+      await page.getByRole('checkbox', { name: '승인 대기 주문 모두 선택' }).click();
+      await page.getByTestId('selection-bar').getByRole('button', { name: '승인' }).click();
+      await expect(page.getByText('1건을 승인했어요. 1건은 승인하지 못했어요.')).toBeVisible();
+      await expect(page.getByTestId('bulk-failure-notice')).toHaveText(
+        '1건을 승인하지 못했어요. 재고 부족 1건. 주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요.',
+      );
+      await expect(page.getByTestId('selection-bar')).toContainText('1개 선택 됨');
+      await expect(page.getByTestId('status-APPROVED')).toHaveText('승인 완료 3');
+    });
+    await step('× 를 누르면 안내가 닫힌다', async () => {
+      await page.getByRole('button', { name: '안내 닫기' }).click();
+      await expect(page.getByTestId('bulk-failure-notice')).toHaveCount(0);
+    });
+    await step('2건 모두 실패하면 "2건 모두 승인하지 못했어요."', async () => {
+      await page.unrouteAll({ behavior: 'ignoreErrors' });
+      reset();
+      await failBulkApprove(page, [GUEST_ORDER.pendingTransfer, GUEST_ORDER.pendingToss]);
+      await page.goto(GUESTS);
+      await page.getByRole('checkbox', { name: '승인 대기 주문 모두 선택' }).click();
+      await page.getByTestId('selection-bar').getByRole('button', { name: '승인' }).click();
+      await expect(page.getByText('2건 모두 승인하지 못했어요.', { exact: true })).toBeVisible();
+      await expect(page.getByTestId('bulk-failure-notice')).toHaveText(
+        '2건 모두 승인하지 못했어요. 재고 부족 2건. 주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요.',
+      );
+      await expect(page.getByTestId('selection-bar')).toContainText('2개 선택 됨');
+    });
+  },
+);
+
 scenario(
   'HG-15',
   '행 [거절] — 사유를 골라 표에서 바로 거절',
