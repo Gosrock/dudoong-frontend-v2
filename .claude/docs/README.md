@@ -46,6 +46,8 @@
 
 **스킬**: [`../skills/gui-implement/SKILL.md`](../skills/gui-implement/SKILL.md) — 화면(V) 구현·디자인 이슈 반영 절차: 열린 `Design Sync` 이슈 → 근거 판정(`figma_nodes.py ready`) → 노드 → DS 매핑 표(`figma_nodes.py map`, DS 파일 컴포넌트 key 대조) · 디자인 시스템 변경(`ds_diff.py` 버전 비교 → `design-system.md` §8) → 구현 → 주석·코멘트 → QA 캡처와 Figma 비교(`figma_nodes.py shot`) → `gui-screens.md` §0 갱신·`Closes #n`([`design-workflow.md`](./design-workflow.md)). 반대 방향(개발이 정한 것 → 디자이너)은 [`../skills/figma-dev-sync/SKILL.md`](../skills/figma-dev-sync/SKILL.md).
 
+**스킬**: [`../skills/design-context/SKILL.md`](../skills/design-context/SKILL.md) — **디자이너용 Q&A**(읽기 전용, 2026-11-07): 디자이너가 Claude Code에서 묻는 것에 디스코드 #프론트 스레드(`discord_read.py`) · Figma 코멘트 · 개발 싱크 카드 · Ready(`figma_read.py`) · 이 문서들 · 프론트/백엔드 코드를 찾아 출처와 확정/잠정 표시를 붙여 답한다. 답이 없거나 결정이 필요하면 확인 뒤 질문 이슈(프론트 `Design: 질문` · 백엔드 `design` 라벨). 디자이너 준비는 [`README.md`](../skills/design-context/README.md).
+
 ## 충돌할 때 우선순위
 
 1. **Swagger** — 필드 이름·타입

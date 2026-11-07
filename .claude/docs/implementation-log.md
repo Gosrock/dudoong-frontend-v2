@@ -3131,13 +3131,29 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(2026-11-07, dev:mock 3121 · `localhost`)**: `/orders` · `/orders/<승인대기 옵션 주문>` · 선물 대기 주문 · 입금 미확인 거절 주문 · `/mypage/following` 390 · 1440. 발견: 티켓 · 수량 두 줄이 한 줄로 붙음(Txt가 inline) → 세로 Flex로 고침. 주문 일시 · "입금 미확인" 값이 노드라 InfoRow 글자 모양을 못 받음(브랜드 색 · 큰 글자) → Txt로 색 · 크기 지정. 예매번호 값도 같은 이유로 커 보여 같이 고침.
 
+## 디자인 시스템 11-07 판 반영 — 선물 아이콘(2026-11-07, `ds-sync-1107` #166)
+
+근거: 디자인 시스템 판 `2416898429564738752`(11-01T15:47Z) → `2419085329203428681`(11-07T13:35Z), `Design: 디자인 시스템` 이슈 없음(관제탑이 판 비교로 찾음). `ds_diff.py` — 바뀐 것은 아이콘뿐(design-system §8 "2026-11-07 — … `ds-sync-1107`"). 쓰는 곳은 GUI 파일 지금 판(`2419089267708529753`, 11-07T14:18Z)을 REST로 훑었다.
+
+- **반영**: ic_v2 새 세트 `ic_gift_waiting` · `ic_gift_done` filled 24 → `src/ui/icons/svg/gift-waiting-filled-24.svg` · `gift-done-filled-24.svg`, `registry.ts` 다시 생성(87개 60종, 둘 다 단색 → `currentColor`). `GiftIcon`(예매자 관리 표 · 상세 · 주문 상세 발급 티켓 카드)이 `gift` filled 대신 상태별 DS 아이콘을 쓴다 — 크기 16 · 색(대기 text tertiary · 받음 text primary)은 그대로, FIGMA-CUSTOM 주석 지움. Q174 닫음. 스토리 `Icon/AddedIn20261107`(24 · 16, play로 4개 · viewBox 확인). `src/ui/icons/README.md` 절차에 두 노드를 더함.
+- **반영 대기**: `ic_add host` · `ic_add concert` outline 24 — 이번 GUI 판에서 Ready가 된 햄버거 드로어(`1047:19428` · `1174:15071`)만 쓰는데 관객 셸 드로어는 "와이어로 구현됨"(Q131). gui-screens §0 관객 셸 줄에 Ready가 된 것을 적어 둠.
+- **PR 직전 다시 본 판**(`2419099227210134517`, 14:23Z): `tag_v2` small 좌우 10 → 8(`Space/2`), large 패딩이 변수로(숫자 그대로). 코드 `Chip`은 2026-10-31부터 8이라 모양은 그대로 — `Chip.css.ts` TODO · 주석과 design-system §7 TODO를 닫음. 기준 판을 14:23Z로 올림.
+- **코드 영향 없음**: `ic_gift` filled 채움이 변수에 묶임(코드는 이미 `currentColor`) · Icons 페이지의 컴포넌트 아닌 프레임 4개 삭제.
+- **확인 못 함**: 변수 값 — REST 403, Desktop Bridge 연결 없음. 텍스트 스타일 29개는 REST 노드로 두 판 값을 대조해 같음.
+
+**🤖 판단**: ① `ic_add *`는 SVG만 넣으면 끝나는 일이지만 분기 규칙(사용자 결정 2026-11-01 — `GUI 구현됨` 화면이 쓸 때만 반영)대로 반영 대기(되돌리기: README 절차로 `805:1168` · `805:1183`을 내보내 `black`을 `#141413`으로 맞추고 `generate.mjs`) ② GUI 인스턴스가 24 원본을 16으로 줄여 쓰므로 코드도 24 그림을 CSS 16으로 그린다(16 변형을 따로 만들지 않음).
+
+**검사**: typecheck · 바꾼 파일 lint · prettier 통과. vitest related 257/0, 스토리 `Icon.stories` 6/0. QA `hosting-guests` 35/0 · 수동 1(빌드가 webServer 240초를 넘겨 한 번 시간 초과 — 같은 env로 따로 빌드한 뒤 `E2E_SKIP_BUILD=1`). e2e `hosting-guests` · `a11y` 131/0.
+
+**ego-browser 확인(2026-11-07, Storybook 6125 · `localhost`)**: `Icon/AddedIn20261107` 390 · 1440 — 대기 회색 상자 + 점 셋 · 받음 검정 상자 + 체크, 24 · 16 모두 DS PNG(`811:32` · `811:68`)와 같음. `Icon/Gallery` 1440 — svg 87개. QA 캡처 `HG-17` 모바일과 GUI `1182:9618` 나란히 — 표 티켓 칸 아이콘 모양 · 색 같음.
+
 ## GUI 반영 — 로그인 · 햄버거 드로어(Ready 2026-11-07, `shell-login-gui` #169)
 
 근거: GUI Ready for dev(페이지 `331:9383` ↳알림창, 주문 상세, 모바일 390) `1175:16950` 로그인 · `1047:19428` 햄버거바 - 로그인 · `1174:15071` 햄버거바 - 미로그인. GUI 판 `2419107657661780989`(2026-11-07T14:52:25Z — 관제탑이 준 13:47Z 판 뒤에 한 번 더 바뀜, Ready 목록 141줄). 로그인 상태 드로어 `1047:19428`(전수조사 I-a3 · Q131의 "초안")도 이 판에서 Ready라 둘 다 반영했다. Design Sync 이슈 없음. 동의 칸(Q42) · 카카오 흐름 · 세션 만료 · 콜백 · 약관 문구는 그대로.
 
 - **로그인**(`LoginView`): 와이어 말풍선(`TooltipBubble`)을 빼고 GUI 묶음 — DS `img_login`(285×273 원본을 170으로, GUI 인스턴스 크기) · 안내 "두둥에 로그인하고 다양한 공연을 즐겨보세요!"(Label/md `text/secondary-label`) · DS Button **Primary** Large "카카오 로그인하기"(폭 254 — 채움 override는 Primary 색 그대로, 좌우 70 override는 폭으로), 간격 24. 묶음은 가운데보다 위(GUI 헤더 아래 150 · 아래 299) — 남는 높이를 위 1 : 아래 2로 나눠 비율을 지킨다(`::before` · `::after`). 버튼 문구가 바뀌어 e2e 6개 · QA 4개 선택자만 고침.
 - **드로어**(`ShellDrawer` — 관객 · 호스팅이 같은 본문): `Drawer`에 `variant="menu"`(GUI 여백 — ✕ · 벨이 가장자리에서 24, 본문 좌우 24 · 위 0, 머리 줄 56으로 아바타가 GUI와 같은 높이). 프로필 줄 위아래 12 · 아바타 60 ↔ 글자 22 · 이름 Label/lg-emphasized · 이메일 Label/sm · 연필 배지 20(연필 14, 아바타 오른쪽 끝에서 4 밖). 미로그인 "로그인 ›"(간격 8). 메뉴 세 줄(주문내역 · 관심 호스트 · **지난 관람 아카이빙** — 미로그인도 셋, 모두 로그인으로) 아이콘 24 + 8 + 글자 16 · 500 · 간격 16. 구분선은 8 높이 묶음(위아래 4). "공연 둘러보기 ↗" · "**호스팅 센터** ↗"(Heading/md-emphasized + `diagonal`). 호스트 줄 아바타 60 · 이름 Label/sm 두 줄 가운데 · 간격 16 · 위아래 8, 0개면 회색 칸(높이 60 · 모서리 12 · `background/grey` · Label/md `text/tertiary-label` "아직 두둥에서 호스트가 없어요"). 새 호스트 · 새 공연 만들기(새 DS 아이콘 `add-host` · `add-concert`, 두 칸 사이 43). 공지사항(`settings`) · 로그아웃.
-- **아이콘**: DS `ic_add host`(`805:1168`) · `ic_add concert`(`805:1183`) outline 24 — `src/ui/icons/README.md` 절차(REST SVG → `black`을 `#141413`으로 → `generate.mjs`, 85 → 87개). ds-sync-1107(#166)이 "반영 대기"로 남긴 것.
+- **아이콘**: DS `ic_add host`(`805:1168`) · `ic_add concert`(`805:1183`) outline 24 — `src/ui/icons/README.md` 절차(REST SVG → `black`을 `#141413`으로 → `generate.mjs`, #166 선물 아이콘 둘과 함께 89개 62종). ds-sync-1107(#166)이 "반영 대기"로 남긴 것.
 - **"서비스 업데이트 노트" → "공지사항"**(디자이너 답 2026-11-07, Q88 닫음): `SHELL_NOTICES_LABEL` 하나 — 드로어 · PC 아바타 메뉴 모두. e2e `shell-activity` · QA `shell` · `notices` 기대값.
 - 매핑: Top app bar(→ `Drawer` 머리 줄 — 코드에만 있는 부품, GUI 여백으로 변형 추가) · Avatar 60 · ic 10종 · Button(Primary Large) · img_login — 전부 Figma DS. 직접 그린 상자: 연필 배지(`1047:31894`) · 빈 호스트 칸(`1175:15425`) → `ShellDrawer.css.ts`, Buy me a coffee(`1175:15449`)는 그리지 않음. 스타일 없는 글자 8(메뉴 글자) → `labelLg` + 굵기 500(FIGMA-CUSTOM 주석).
 

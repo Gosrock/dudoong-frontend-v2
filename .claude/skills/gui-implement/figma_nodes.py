@@ -31,10 +31,21 @@ LEAF = {'RECTANGLE', 'ELLIPSE', 'VECTOR', 'LINE', 'POLYGON', 'STAR', 'BOOLEAN_OP
 
 
 def token():
-    cfg = json.load(open(os.path.expanduser('~/.claude.json')))
+    # 환경 변수 → 디자이너 설정(~/.dudoong-design-context.env, 스킬 design-context) → figma-console MCP env
+    if os.environ.get('FIGMA_ACCESS_TOKEN'):
+        return os.environ['FIGMA_ACCESS_TOKEN']
+    p = os.environ.get('DESIGN_CONTEXT_ENV') or os.path.expanduser('~/.dudoong-design-context.env')
+    if os.path.exists(p):
+        for line in open(p, encoding='utf-8'):
+            if line.strip().startswith('FIGMA_ACCESS_TOKEN='):
+                return line.split('=', 1)[1].strip().strip('"').strip("'")
+    try:
+        cfg = json.load(open(os.path.expanduser('~/.claude.json')))
+    except (OSError, ValueError):
+        cfg = {}
     t = cfg.get('mcpServers', {}).get('figma-console', {}).get('env', {}).get('FIGMA_ACCESS_TOKEN')
     if not t:
-        sys.exit('FIGMA_ACCESS_TOKEN이 ~/.claude.json mcpServers.figma-console.env에 없다')
+        sys.exit('FIGMA_ACCESS_TOKEN이 없다 — 환경 변수, ~/.dudoong-design-context.env, ~/.claude.json figma-console env 중 하나에 둔다')
     return t
 
 
