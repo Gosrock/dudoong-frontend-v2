@@ -12,7 +12,7 @@ import { formatWon } from '@/utils/money';
 
 import { CANCELED_BY_LABEL, isDudoongOrder, REFUND_NO_ACCOUNT_MESSAGE } from '../model/guest-rules';
 import type { OrderDetailState } from '../model/useOrderDetail';
-import { GiftChip } from './GiftChip';
+import { GiftIcon } from './GiftIcon';
 import { dateText, dateTimeText, entranceChipOf, NOT_ISSUED_CHIP, text } from './guest-labels';
 import * as s from './OrderDetailOverlay.css';
 import { Line, Section, TicketCard } from './OrderDetailParts';
@@ -71,9 +71,10 @@ function OrderTickets({ detail }: { detail: HostOrderDetail }) {
                 name={text(t.ticketName)}
                 dudoong={dudoong}
                 end={
-                  // 선물 칩은 발급된 티켓 표 · 티켓 상세와 같은 DS Chip(#134 — 🤖 Q110). GR-2 `giftState`(#929)가 없으면 그리지 않는다
+                  // 선물 아이콘은 발급된 티켓 표 · 티켓 상세(GUI #160)와 같은 것 — 주문 상세 카드에는 GUI 자리가 없어 🤖 같은 아이콘으로 맞춤
+                  // (예전 Q110 칩 자리). GR-2 `giftState`(#929)가 없으면 그리지 않는다
                   <Flex as="span" gap={1} align="center">
-                    {t.giftState && <GiftChip giftState={t.giftState} />}
+                    {t.giftState && <GiftIcon giftState={t.giftState} />}
                     <Chip shape="round" color={chip.color} theme={chip.theme}>
                       {chip.label}
                     </Chip>

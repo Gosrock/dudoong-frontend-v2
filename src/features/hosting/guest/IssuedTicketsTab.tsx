@@ -11,7 +11,7 @@ import * as s from './GuestsView.css';
 import { CANCEL_ENTRANCE_CONFIRM, isGiftPending } from './model/guest-rules';
 import { useIssuedTicketList } from './model/useIssuedTicketList';
 import { DetailCell } from './ui/DetailCell';
-import { NameWithGift } from './ui/GiftChip';
+import { NameWithGift } from './ui/GiftIcon';
 import { dateTimeText, entranceChipOf, text } from './ui/guest-labels';
 import {
   Empty,
@@ -30,7 +30,8 @@ import { IssuedTicketDetailOverlay } from './ui/IssuedTicketDetailOverlay';
 /**
  * 발급된 티켓 탭(GI-1 · GI-2 · GI-3 · 수동 입장 PQ-2) — GUI `1030:8054`(PC) · `1003:3143`(모바일) · 입장 처리 완료 `1030:8448` ·
  * 검색 기준 열림 `1030:8703` · 티켓 상세 입장 전 `1030:8955` · 입장 완료 `1030:9136`.
- * 입장 취소(`1030:9318`)는 티켓 상세 [입장 취소](Q-3, 백엔드 #929 B37). 검색 기준 "주문 번호 · 입금자명 · 티켓 번호"도 #929(B36)
+ * 입장 취소(`1030:9318`)는 티켓 상세 [입장 취소](Q-3, 백엔드 #929 B37) → 토스트 "입장 처리를 취소했어요."(#161 `1228:10719` · `1228:10669`).
+ * 검색 기준 "주문 번호 · 입금자명 · 티켓 번호"도 #929(B36). 선물 티켓(#160): 티켓 이름 옆 선물 아이콘, 선물 대기는 [입장 처리] 대신 입장 전 칩
  */
 export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   const list = useIssuedTicketList(eventId);
@@ -47,13 +48,16 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   };
 
   const cancelEntrance = async (ticketUuid: string) => {
-    // 확인 창 계약(patterns §6): 실패면(`false`) 열린 채, 성공하면 닫히고 토스트
+    // 확인 창 계약(patterns §6): 실패면(`false`) 열린 채, 성공하면 닫히고 토스트.
+    // 티켓 상세도 닫고 목록 위에 토스트(GUI #161 `1228:10719` · `1228:10669` — 목록만 보이고 아래 토스트)
     const ok = await openConfirm({
       ...CANCEL_ENTRANCE_CONFIRM,
       cancelLabel: '돌아가기',
       onConfirm: () => list.entranceCancel.run(ticketUuid),
     });
-    if (ok) toast('입장 처리를 취소했어요.');
+    if (!ok) return;
+    list.closeTicket();
+    toast('입장 처리를 취소했어요.');
   };
 
   const columns = nowrapColumns<HostIssuedTicket>([
@@ -67,7 +71,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
       width: 128,
       cell: (r) => text(r.issuedTicketNo),
     },
-    // 티켓 이름 옆 선물 칩은 GUI에 없다(🤖 Q110 — 모바일 · PC가 같이 쓰는 칸이라 DOM에 한 번만)
+    // 티켓 이름 옆 선물 아이콘(GUI #160 `1182:9802` · `1182:9618` — 모바일 · PC가 같이 쓰는 칸이라 DOM에 한 번만)
     {
       id: 'name',
       header: '티켓',
