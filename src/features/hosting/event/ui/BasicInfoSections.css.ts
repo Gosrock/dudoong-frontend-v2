@@ -46,12 +46,15 @@ export const posterButton = style({
   },
 });
 
-/** 일정 — 모바일: 날짜 한 줄 + 시작 ~ 종료 한 줄 / PC: 날짜 · 시작 ~ 종료가 한 줄(GUI `748:34487` 600×44) */
+/**
+ * 일정 — 모바일: 날짜 한 줄 + 시작 ~ 종료 한 줄 / PC: 날짜 · 시작 ~ 종료가 한 줄(GUI `748:34487` 600×44 —
+ * 날짜 308(채움) · 간격 10 · 시각 묶음 282 = 시각 130 · 5 · "~" 12 · 5 · 130). 10 · 5 · 130은 토큰에 없는 값 그대로(분류표 H24, M-5 2026-11-08)
+ */
 export const schedule = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.space[2],
-  '@media': { [media.desktop]: { flexDirection: 'row', alignItems: 'center' } },
+  '@media': { [media.desktop]: { flexDirection: 'row', alignItems: 'center', gap: 10 } },
 });
 
 export const date = style({ selectors: { '&&': { flex: '1 1 auto', minWidth: 0 } } });
@@ -60,7 +63,7 @@ export const times = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.space[2],
-  '@media': { [media.desktop]: { flex: '0 0 auto' } },
+  '@media': { [media.desktop]: { flex: '0 0 auto', gap: 5 } },
 });
 
 export const time = style({
@@ -68,9 +71,14 @@ export const time = style({
     '&&': {
       flex: '1 1 0',
       minWidth: 0,
-      '@media': { [media.desktop]: { width: 180, flex: '0 0 auto' } },
+      '@media': { [media.desktop]: { width: 130, flex: '0 0 auto' } },
     },
   },
+});
+
+/** "~" — PC 12 폭 가운데(GUI `748:34489`) */
+export const tilde = style({
+  '@media': { [media.desktop]: { width: 12, flex: '0 0 auto', textAlign: 'center' } },
 });
 
 /** 공연장 이름 · 상세주소 — 모바일 위아래, PC 한 줄 두 칸(GUI `748:34829`) */

@@ -139,7 +139,7 @@ export function ScheduleSection({
             readOnly={readOnly}
             {...register('schedule.startTime')}
           />
-          <Txt typography="bodyLg" aria-hidden>
+          <Txt typography="bodyLg" aria-hidden className={s.tilde}>
             ~
           </Txt>
           <TimePicker
