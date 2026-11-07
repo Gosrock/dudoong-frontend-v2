@@ -50,7 +50,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | # | 워크트리 | Phase | V 선행 | 상태 | 그룹 |
 |---|---|---|---|---|---|
-| I-h | `figma-audit-hosting` ∥ `figma-audit-audience` | Figma 전수조사 ② 호스팅(GUI 판 2026-11-03, 사용자 요청 2026-11-07) — 맡은 8페이지 최상위 노드 전부 판정([`figma-audit-2026-11-07-hosting.md`](./figma-audit-2026-11-07-hosting.md)): Ready 111 모두 구현됨, 작은 차이 ⑩ 고침(티켓 PC 글자 · 가이드 간격 · 빈 새 옵션 비활성 · 새 티켓 머리 간격 · 예매자 칸 폭 · 제목 간격 · 빈/실패 페이지 줄 · 취소 정보 줄 순서 · 입장 완료 칩). 디자인 Q140~Q147 | — | 끝(#PR) | I Figma 전수조사 |
+| I-h | `figma-audit-hosting` ∥ `figma-audit-audience` | Figma 전수조사 ② 호스팅(GUI 판 2026-11-03, 사용자 요청 2026-11-07) — 맡은 8페이지 최상위 노드 전부 판정([`figma-audit-2026-11-07-hosting.md`](./figma-audit-2026-11-07-hosting.md)): Ready 111 모두 구현됨, 작은 차이 ⑩ 고침(티켓 PC 글자 · 가이드 간격 · 빈 새 옵션 비활성 · 새 티켓 머리 간격 · 예매자 칸 폭 · 제목 간격 · 빈/실패 페이지 줄 · 취소 정보 줄 순서 · 입장 완료 칩). 디자인 Q140~Q147 | — | 끝(#147) | I Figma 전수조사 |
 | I-h1 | `ds-modal-wide` | DS Modal 큰 판(520 · 안쪽 24 · 간격 24) — 호스팅 PC 모달(티켓 옵션 13장, gui `956:3264` 등). 전수조사 ② 작업 줄 후보 ① | I-h | 대기 | I Figma 전수조사 |
 | I-h2 | `ds-toast-position` | DS Toast 자리 — 모바일 FAB 위 · PC 본문 영역 가운데(gui `958:20841` · `975:8897`). 후보 ② | I-h | 대기 | I Figma 전수조사 |
 | I-h3 | `ds-dropdown-check` ∥ I-h4 · I-h5 | DS Dropdown 고른 항목 ✓ 오른쪽 끝(gui `1029:6014` · `1030:8703`). 후보 ③ | I-h | 대기 | I Figma 전수조사 |
