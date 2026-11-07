@@ -3147,7 +3147,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(2026-11-07, Storybook 6125 · `localhost`)**: `Icon/AddedIn20261107` 390 · 1440 — 대기 회색 상자 + 점 셋 · 받음 검정 상자 + 체크, 24 · 16 모두 DS PNG(`811:32` · `811:68`)와 같음. `Icon/Gallery` 1440 — svg 87개. QA 캡처 `HG-17` 모바일과 GUI `1182:9618` 나란히 — 표 티켓 칸 아이콘 모양 · 색 같음.
 
-## Figma 동일화 M-3 — 관객 화면 값(2026-11-08, `fm-audience` #PR-M3)
+## Figma 동일화 M-3 — 관객 화면 값(2026-11-08, `fm-audience` #170)
 
 근거: `figma-deviations-2026-11-07.md` §3-4 U3 · U14(판정 맞춤 — 값 그대로), GUI 판 `2419107657661780989`(11-07T14:52Z). `figma_nodes.py ready --contains`로 `759:22391` · `908:3276` 모두 Ready 안 — 근거 그대로.
 
