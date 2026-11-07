@@ -3146,3 +3146,17 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · prettier 통과. vitest related 257/0, 스토리 `Icon.stories` 6/0. QA `hosting-guests` 35/0 · 수동 1(빌드가 webServer 240초를 넘겨 한 번 시간 초과 — 같은 env로 따로 빌드한 뒤 `E2E_SKIP_BUILD=1`). e2e `hosting-guests` · `a11y` 131/0.
 
 **ego-browser 확인(2026-11-07, Storybook 6125 · `localhost`)**: `Icon/AddedIn20261107` 390 · 1440 — 대기 회색 상자 + 점 셋 · 받음 검정 상자 + 체크, 24 · 16 모두 DS PNG(`811:32` · `811:68`)와 같음. `Icon/Gallery` 1440 — svg 87개. QA 캡처 `HG-17` 모바일과 GUI `1182:9618` 나란히 — 표 티켓 칸 아이콘 모양 · 색 같음.
+
+## Figma 동일화 M-2 — DS 컴포넌트 기본값 · R1a · R1b(2026-11-08, `fm-ds-components` #M2PR)
+
+근거: [`figma-deviations-2026-11-07.md`](./figma-deviations-2026-11-07.md) §3-2 · §3-3 · §4 `fm-ds-components` 줄. 근거 프레임(`712:1646` · `745:32726` · `727:23210` · `767:50048` · `748:33451` 등 17장)이 지금 GUI 파일에서 모두 Ready인지 `figma_nodes.py ready`로 다시 확인. 값은 DS 메인(REST) **과 Ready 화면 인스턴스(REST)를 같이** 쟀다.
+
+- **고침(값 그대로 — 새 토큰 없음)**: A4 Header ▾ 원 16 → 12 · A5 Toggle 손잡이 19.5 / 2.25 · A7 primary 2 medium 글자만 45h · A9 medium 아이콘 + 글자 5 · A10 SearchField 아이콘 20 · A11 SalesCard 판매 전 47 / 56 · A12 Schedule 현재 일정 아래 64 · A13 체크 ↔ 글자 가운데 · A14 주간 줄 9 · 제목–날짜 3 · 패널 주간 줄 아래 19 · A15 StatCard PC 20 · A16 도넛 줄 위 20 · A17 TopBar 오른쪽 20 · 아바타 ▾(10 · 0, 끝 24) · A18 My 20 · 22 · 14 · A22 Spinner 바탕 0.3 · A23 Radio 채움 없음 · A27 포스터 163/230 · O23 태그 칸 · 줄 10. 표는 design-system §4-3.
+- **R1a · R1b(사용자 결정 2026-11-07 "화면대로")**: `Button round`(원 34 · 아이콘 24) → 대시보드 연필(`EventDashboardView.tsx`), `Fab tone="brand"`(보라 Primary) → 티켓 목록 FAB(`TicketListView.tsx`). 두 곳 `FIGMA-CUSTOM:` 주석을 "Figma대로"로 고침. 2단계 후보(분류표 §5-1)에 이미 있음.
+- **design-system.md**: §3 Button · Top bar_Host · My 문구, §4-2 "Figma와 다르게 한 것"(Tabs 44/48 · dropdown item 36 · 칩 모서리 8 · Header 40 · Toggle 색은 지금 같음, 간격 10 되돌림), 새 §4-3 표.
+
+**🤖 판단**: ① **A1(`tag_v2` border 40%) · A24(Badge 숫자 #FFFFFF)는 고치지 않음** — DS 메인 값은 분류표대로지만 Ready 화면 인스턴스가 모두 옛 값(테두리 100% — `767:50048` · `975:10756` · `1182:10899` · `1029:7706`, Badge 숫자 #F7F7F6 — `669:2350` · `712:1646`)이다. 목표가 "Ready 화면과 100% 동일"이고 R1(화면이 이긴다)이라 화면대로 두고, DS에 확인 요청 코멘트(`693:761` · `198:1638`). 디자이너가 화면 파일에서 라이브러리 업데이트를 받으면 바꾼다(되돌리기: 한 줄씩 — `Chip.css.ts` border `color-mix(… 40%)`, `Badge.css.ts` `palette.common.white`). ② A14의 패널 위아래 28은 H2(M-4 `fm-hosting`) 몫이라 19만 고침. ③ A22 Spinner는 Ready 화면에 인스턴스가 없어(분류표가 든 `971:21949`에 Spinner 없음) DS 값 0.3대로. ④ A17 Figma 닉네임 글자 상자가 50 고정폭이라 ▾ 앞에 빈 틈이 보이는데, 코드는 닉네임 길이가 바뀌므로 내용 폭 + 간격 0.
+
+**Figma 코멘트(2026-11-08)**: 답글 `1989708671`(연필) · `1989715585`(FAB) "[개발 · 고침 2026-11-08] Figma대로 맞췄습니다", DS 확인 요청 새 코멘트 `693:761`(border 40% ↔ Ready 100%) · `198:1638`(Badge 숫자 색).
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related(스토리 포함) 통과 — 스토리 기대값 고침(ConcertCard 230), 새 스토리 `Button/TonalMedium` · `Button/Round` · `Fab/Brand`. QA `hosting-event` 26/0 · `hosting-ticket` 30/0 · `hosting-guests` 35/0 · `shell` 18/0 · `events` 23/0. e2e `shell` · `hosting-event` · `hosting-ticket` · `hosting-guests` · `hosting` · `home` · `event-list` · `host-home` 186/0.
