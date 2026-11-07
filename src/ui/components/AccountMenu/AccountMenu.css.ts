@@ -15,8 +15,8 @@ export const content = style({
   width: 263,
   maxHeight: 'var(--radix-dropdown-menu-content-available-height)',
   overflowY: 'auto',
-  // Figma 패딩 20은 Space 토큰이 없어 16(design-system §4 "토큰만 쓴다")
-  padding: vars.space[4],
+  // Figma 패딩 20 — Space 토큰에 없는 값 그대로("20 묶음", M-2 2026-11-08)
+  padding: 20,
   boxSizing: 'border-box',
   background: vars.color.background.normal,
   color: vars.color.text.primaryLabel,
@@ -29,12 +29,12 @@ const divided = {
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
 } as const;
 
-/** 프로필 줄 — 위아래 12, Avatar 45 + 간격 22 + 닉네임·이메일. 누르면 프로필 편집 */
+/** 프로필 줄 — 위아래 12, Avatar 45 + 간격 22(`538:4922` 값 그대로) + 닉네임·이메일. 누르면 프로필 편집 */
 export const profile = style({
   ...divided,
   display: 'flex',
   alignItems: 'center',
-  gap: vars.space[5],
+  gap: 22,
   padding: `${vars.space[3]} 0`,
   color: 'inherit',
   textDecoration: 'none',
@@ -89,13 +89,13 @@ export const lastSection = style({
 
 export const sectionTitle = style({ padding: 0 });
 
-/** 항목 — 줄 높이 20(호스트 줄은 Avatar 24라 24), 아이콘 20 + 간격 14 + Label/md-emphasized. 14는 토큰이 없어 `space[3]` 12 */
+/** 항목 — 줄 높이 20(호스트 줄은 Avatar 24라 24), 아이콘 20 + 간격 14(`585:800` 값 그대로) + Label/md-emphasized */
 export const item = style([
   typography.labelMdEmphasized,
   {
     display: 'flex',
     alignItems: 'center',
-    gap: vars.space[3],
+    gap: 14,
     minHeight: 20,
     color: vars.color.text.primaryLabel,
     textDecoration: 'none',
@@ -123,17 +123,18 @@ export const ellipsis = style({
 });
 
 /**
- * 상단 바 오른쪽 아바타 ▾ — Avatar 32 + 간격 10 + 닉네임 + ▾ 12(GUI `712:1648`).
+ * 상단 바 오른쪽 아바타 ▾ — Avatar 32 + 간격 10 + 닉네임 + ▾ 12(닉네임 ↔ ▾ 0), GUI `712:1648` · DS `538:4222`
+ * 값 그대로(M-2 2026-11-08 — 전에는 둘 다 8).
  * 호버·누름 영역은 디자인이 없다(Figma 코멘트 `[개발 · 디자인 없음]`, fix-qa-1101) — 벨(40 원)과 어울리게 높이 40 · 좌우 12의 알약.
- * 좌우 여백이 4 → 12로 늘어난 8만큼 바깥 여백을 음수로 두어 아바타·▾ 자리(오른쪽 끝 정렬)는 그대로 둔다.
+ * 좌우 여백 12만큼 바깥 여백을 음수로 두어 아바타 · ▾ 자리는 Figma와 같다(벨 ↔ 아바타 20, ▾ ↔ 바 오른쪽 끝 24).
  */
 export const trigger = style({
   display: 'inline-flex',
   alignItems: 'center',
-  gap: vars.space[2],
+  gap: 0,
   maxWidth: 216,
   height: 40,
-  margin: `0 calc(${vars.space[2]} * -1)`,
+  margin: `0 calc(${vars.space[3]} * -1)`,
   padding: `0 ${vars.space[3]}`,
   border: 0,
   borderRadius: vars.radius.full,
@@ -147,3 +148,4 @@ export const trigger = style({
 });
 
 globalStyle(`${trigger} > img, ${trigger} > svg`, { flexShrink: 0 });
+globalStyle(`${trigger} > :first-child`, { marginRight: 10 });

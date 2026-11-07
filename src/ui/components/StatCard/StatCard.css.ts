@@ -37,8 +37,8 @@ export const card = style({
     [media.desktop]: {
       flexDirection: 'column',
       alignItems: 'flex-start',
-      // 아이콘 ↔ 글자 사이 20 → 24(토큰)
-      gap: vars.space[5],
+      // 아이콘 ↔ 글자 사이 20(`538:1581` 값 그대로 — M-2 2026-11-08)
+      gap: 20,
       padding: `${vars.space[4]} ${vars.space[4]} ${vars.space[3]}`,
     },
   },

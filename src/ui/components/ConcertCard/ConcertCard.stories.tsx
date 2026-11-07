@@ -34,7 +34,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** Figma 기본 — 포스터 163×231 */
+/** Figma 기본 — 포스터 163×230(A27) */
 export const Default: Story = {
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
@@ -43,7 +43,7 @@ export const Default: Story = {
     const img = canvasElement.querySelector('img') as HTMLImageElement;
     const box = img.parentElement!.getBoundingClientRect();
     await expect(Math.round(box.width)).toBe(163);
-    await expect(Math.round(box.height)).toBe(231);
+    await expect(Math.round(box.height)).toBe(230);
   },
 };
 

@@ -70,11 +70,11 @@ export const navLink = style([
   },
 ]);
 
-/** 오른쪽 — 벨(40) + 간격 20 + 아바타 ▾. 20은 Space 토큰이 없어 `space[4]` 16 + 아이콘 칸 여백으로 맞춘다 */
+/** 오른쪽 — 벨(40) + 간격 20 + 아바타 ▾(`538:4220` 간격 20 — 토큰에 없는 값 그대로, M-2 2026-11-08) */
 export const end = style({
   display: 'flex',
   alignItems: 'center',
-  gap: vars.space[4],
+  gap: 20,
   flexShrink: 0,
 });
 

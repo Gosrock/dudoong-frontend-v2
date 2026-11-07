@@ -9,6 +9,8 @@ export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'childre
   /** 앱이 정하는 선택 상태(Secondary). Hover·Pressed·Disabled는 CSS 상태다(design-system §4) */
   selected?: boolean;
   fullWidth?: boolean;
+  /** 원형 34 아이콘 버튼(대시보드 머리 연필 `727:23261`) — 아이콘만 쓴다. `size`는 무시된다 */
+  round?: boolean;
   /** 앞쪽 아이콘. 아이콘만 있으면 aria-label을 준다 */
   icon?: ReactNode;
   /** 진행 중 — 라벨 폭을 유지한 채 스피너를 겹치고 누를 수 없게 한다(접근성 이름은 유지) */
@@ -21,6 +23,7 @@ export function Button({
   size,
   selected,
   fullWidth,
+  round,
   icon,
   loading,
   disabled,
@@ -29,14 +32,18 @@ export function Button({
   children,
   ...rest
 }: ButtonProps) {
-  const iconOnly = Boolean(icon) && !children;
+  const iconOnly = Boolean(icon) && !children && !round;
+  const textOnly = !icon && !round;
   return (
     <button
       type={type}
       data-selected={selected ? 'true' : undefined}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={[button({ variant, size, iconOnly, fullWidth, loading }), className]
+      className={[
+        button({ variant, size, iconOnly, textOnly, round, fullWidth, loading }),
+        className,
+      ]
         .filter(Boolean)
         .join(' ')}
       {...rest}

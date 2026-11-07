@@ -255,7 +255,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 
 | Figma | 동작 | 참고할 shadcn | 코드 props(제안)·메모 | Phase |
 |---|---|---|---|---|
-| **Button** — `Color` Primary/Secondary/primary 2 × `type` small 32 · medium 46(2026-10-25, 옛 45) · Large 56 · round × `Icon` × `Text` × `Interaction` Normal/Hover/Pressed/Disabled/Selected, 텍스트 속성 `Label` | `<button>` | Button | `variant: 'primary' \| 'secondary' \| 'tonal'`(primary 2 = 배경 `brand/Primary container`, 글자 `text/brand-label`. 토큰 `brand/primary-subtle`과 다른 색이라 `subtle`로 부르지 않는다), `size: 'sm' \| 'md' \| 'lg'`, `icon?`, 아이콘만 있는 버튼은 `iconOnly`. 모서리 8/10/12. **변형이 듬성듬성했다**(2026-10-15 240개 조합 중 27개 → **2026-10-25 68개**, 아래 "Button 상태 색"). Selected는 여전히 Secondary medium에만 있다. 코드는 빈 조합을 같은 규칙으로 채운다. Secondary 글자색이 크기마다 다르다(small `text/primary`, medium·Large `text/secondary-label`, Large 아이콘형 `text/secondary`) — 코드는 하나로 통일. medium은 2026-10-25에 **모두 46h**다(옛 판은 아이콘형만 46h, 아이콘 없는 것은 45h). Selected는 배경 #EEEEED(변수 `197:4875`) + 글자 `text/primary-label` + 테두리 `strong-border`. Hover·Pressed·Disabled는 CSS 상태, Selected만 prop **2026-10-31**: Secondary 아이콘만(`Text=false`) small 32×32(아이콘 16, `text/primary`)·medium 46×46(아이콘 18, `text/secondary-label`) × Normal/Hover/Pressed/Disabled 8개가 생겨 76변형. Secondary Normal 배경 변수가 `Background/normal 3`(값 흰색 그대로). primary 2 **Large 아이콘만**은 배경이 `brand/secondary` 계열(Normal Violet 50 · Hover Violet 100 · Pressed Violet 200)로 바뀌어 글자 있는 primary 2(Violet 100·200·300)와 달라졌다(§8) **2026-11-01**: primary 2 **글자만**(`Icon=False`) medium·Large × Normal/Hover/Pressed/Disabled 8개가 생겨 84변형(색은 아이콘형 글자 있는 primary 2와 같다 — 글자 `brand/on Primary container` Violet 400. medium 글자만은 45h, 코드는 46). 아이콘 있는 변형의 아이콘 자리가 `ic` 인스턴스에서 스왑용 `ic_blank`로 바뀌었다 — 코드는 `icon` prop이라 영향 없음 | P2 |
+| **Button** — `Color` Primary/Secondary/primary 2 × `type` small 32 · medium 46(2026-10-25, 옛 45) · Large 56 · round × `Icon` × `Text` × `Interaction` Normal/Hover/Pressed/Disabled/Selected, 텍스트 속성 `Label` | `<button>` | Button | `variant: 'primary' \| 'secondary' \| 'tonal'`(primary 2 = 배경 `brand/Primary container`, 글자 `text/brand-label`. 토큰 `brand/primary-subtle`과 다른 색이라 `subtle`로 부르지 않는다), `size: 'sm' \| 'md' \| 'lg'`, `icon?`, 아이콘만 있는 버튼은 `iconOnly`. 모서리 8/10/12. **변형이 듬성듬성했다**(2026-10-15 240개 조합 중 27개 → **2026-10-25 68개**, 아래 "Button 상태 색"). Selected는 여전히 Secondary medium에만 있다. 코드는 빈 조합을 같은 규칙으로 채운다. Secondary 글자색이 크기마다 다르다(small `text/primary`, medium·Large `text/secondary-label`, Large 아이콘형 `text/secondary`) — 코드는 하나로 통일. medium은 2026-10-25에 **모두 46h**다(옛 판은 아이콘형만 46h, 아이콘 없는 것은 45h). Selected는 배경 #EEEEED(변수 `197:4875`) + 글자 `text/primary-label` + 테두리 `strong-border`. Hover·Pressed·Disabled는 CSS 상태, Selected만 prop **2026-10-31**: Secondary 아이콘만(`Text=false`) small 32×32(아이콘 16, `text/primary`)·medium 46×46(아이콘 18, `text/secondary-label`) × Normal/Hover/Pressed/Disabled 8개가 생겨 76변형. Secondary Normal 배경 변수가 `Background/normal 3`(값 흰색 그대로). primary 2 **Large 아이콘만**은 배경이 `brand/secondary` 계열(Normal Violet 50 · Hover Violet 100 · Pressed Violet 200)로 바뀌어 글자 있는 primary 2(Violet 100·200·300)와 달라졌다(§8) **2026-11-01**: primary 2 **글자만**(`Icon=False`) medium·Large × Normal/Hover/Pressed/Disabled 8개가 생겨 84변형(색은 아이콘형 글자 있는 primary 2와 같다 — 글자 `brand/on Primary container` Violet 400. medium 글자만은 45h — 코드도 45(2026-11-08 M-2, 아이콘 있는 판은 46 · 아이콘 + 글자 간격 5). **2026-11-08 M-2 코드 변형**: `round`(원형 34 · 아이콘 24 — 대시보드 머리 연필 GUI `727:23261`이 직접 그린 원, R1a. DS 세트에 아직 없다 — 2단계 후보)). 아이콘 있는 변형의 아이콘 자리가 `ic` 인스턴스에서 스왑용 `ic_blank`로 바뀌었다 — 코드는 `icon` prop이라 영향 없음 | P2 |
 | Button `round` | `<button>` | — | 56 원형 아이콘 버튼(FAB). Primary 배경이 `text/primary`(검정). `variant`가 아니라 별도 `Fab` 컴포넌트로 둔다. 2026-10-25: Primary에 Hover·Pressed·Disabled가, 흰 판 `Color=Secondary`(Normal·Hover·Pressed)가 생겼다(아래 표) | P2 |
 | **numbering** — minus/plus × default/pressed, 20×20 | `<button>` | — | 수량 스테퍼(P6)의 부품 | P2 |
 | **Input** 3종 — input field · text input(단위 접미사 "원") · icon input, `State` Default/Focus/Filled/disabled | `<input>` | Input | `leading?`(아이콘), `trailing?`(단위). 44h, 모서리 8, 포커스는 보라 테두리. Focus·Filled는 CSS 상태 **2026-10-31**: icon input의 앞 아이콘이 20×20 틀(패딩 2) 안 16px로 바뀌었다(옛 24). disabled 테두리는 `interaction/disabled` 값이 바뀌어 Neutral 200 | P2 |
@@ -322,11 +322,11 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 
 | Figma(이 파일 노드 · GUI 원격 노드) | 구성 · 크기 · 토큰 | 코드 | Phase |
 |---|---|---|---|
-| **`Top bar_Host`** `538:4262` · GUI `727:23925` | 1440×58, 배경 #FFFFFF(새 변수 `606:1921`), 아래 선 1px #F7F7F6(`120:982`), 좌우 패딩 24. 왼쪽 로고(dudoong, "host" 글자 없음) + 글자 메뉴 "공연 둘러보기"(`text/tertiary-label`)·"공연 준비하기"(`text/primary-label`), 둘 다 `Heading/sm - emphasized` 16 Bold, 메뉴 칸 높이 58. 오른쪽 `ic/notification` 24 + 간격 20 + Avatar 32 grey + 닉네임 `Label/md` + `ic/chevron-down` 12. 옛 `Top app bar` 사본 `495:457`은 지워졌다 | 호스팅 셸 전역 상단 바(plan P4s). **코드 `TopBar`**(`src/ui/components/TopBar`, 2026-10-31 P4s-V) — 관객 PC 상단 바도 같은 컴포넌트(`plainNav` — 지금 있는 곳 표시 없이 메뉴 모두 검정, 와이어 `626:19888`·사용자 결정). 오른쪽 간격 20은 `space[4]` 16, 이름–▾ 0은 8(토큰 반올림). hover·안 읽은 벨(`notification-on`)은 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
+| **`Top bar_Host`** `538:4262` · GUI `727:23925` | 1440×58, 배경 #FFFFFF(새 변수 `606:1921`), 아래 선 1px #F7F7F6(`120:982`), 좌우 패딩 24. 왼쪽 로고(dudoong, "host" 글자 없음) + 글자 메뉴 "공연 둘러보기"(`text/tertiary-label`)·"공연 준비하기"(`text/primary-label`), 둘 다 `Heading/sm - emphasized` 16 Bold, 메뉴 칸 높이 58. 오른쪽 `ic/notification` 24 + 간격 20 + Avatar 32 grey + 닉네임 `Label/md` + `ic/chevron-down` 12. 옛 `Top app bar` 사본 `495:457`은 지워졌다 | 호스팅 셸 전역 상단 바(plan P4s). **코드 `TopBar`**(`src/ui/components/TopBar`, 2026-10-31 P4s-V) — 관객 PC 상단 바도 같은 컴포넌트(`plainNav` — 지금 있는 곳 표시 없이 메뉴 모두 검정, 와이어 `626:19888`·사용자 결정). 오른쪽 간격 20 · 아바타–이름 10 · 이름–▾ 0은 Figma 값 그대로(2026-11-08 M-2 — 전에는 16 · 8 · 8로 토큰 반올림), ▾는 바 오른쪽 끝에서 24. hover·안 읽은 벨(`notification-on`)은 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
 | **`host title`** `619:2116` · GUI `727:23982` | 390×64, 좌우 패딩 24. 왼쪽 `ic/menu` 24 + 로고("dudoong" + "host" 판). 벨 없음. GUI 로컬 `467:3169`가 이 파일로 옮겨졌다 | `Header` `logo="host"`(P2에 있음) | P2 · P10a |
 | **`사이드바 메뉴`** `91:913`(`true` `91:912` / `false` `91:766` / **`alert` `538:2786`** 새로 생김) · GUI `727:25256`~`727:25258` | 옛 Sample GUI 로컬 `Component 1`이 이름을 바꿔 Menu 페이지로 왔다. 행 249×47, 패딩 12, 아이콘 20 + 간격 16, 글자 #F7F7F6(`606:1920`) 18(`Heading/md2`, 선택은 `- emphasized`). 선택 배경은 #F7F7F6 10%(변수 없음, 모서리 12 `36:50`) — 옛 판은 `brand/primary`. `alert`는 오른쪽에 Badge large(빨강, 숫자) | 공연 사이드바 `SidebarMenu`·`SidebarMenuItem`(`src/ui/components/SidebarMenu`) | P4s |
 | **`공연 리스트_Desktop`** `585:753` · GUI `741:28246` | 1196×205. `example poster` desktop 145×205 + 간격 24 + Concert state chip large + 공연명 `Heading/md - emphasized` 20 + 호스트·날짜·시각·장소 4줄 `Body/lg` `text/secondary-label`(각 1줄 말줄임) | 공연준비 홈 PC 목록 행 | P10a |
-| **`My`** `585:752` | 263×494, 배경 `Background/normal`, 모서리 20(`161:3481`), 패딩 20, 그림자 `drop shadow2`. 프로필(Avatar 45 + 닉네임 `Label/lg-emphasized` + 이메일 `Label/sm` + 검정 원 안 `ic/edit`) / 티켓·주문내역·관심 호스트·지난 공연 아카이빙(아이콘 20 `ticket`·`order detail`·`favorite`·`archiving` + `Label/md-emphasized`) / "내 호스트" + 호스트 줄(Avatar 24) + 새 호스트 만들기 / 서비스 업데이트 노트(`update`) · 로그아웃(`log out`). 구획 사이 `surface/default-border` 선. GUI 파일은 아직 이 컴포넌트를 쓰지 않는다. 항목은 와이어 관객 PC 상단 바 드롭다운(figma-structure 2026-10-25 절)과 같다 | PC 아바타 ▾ 메뉴(Radix `DropdownMenu`). **코드 `AccountMenu`·`AccountMenuTrigger`**(`src/ui/components/AccountMenu`, 2026-10-31 P4s-V). 업데이트 노트 뺌(Q4). 패딩 20 → `space[4]` 16, 아이콘–글자 14 → 12, 아이콘 20은 24를 CSS로 줄임(코드에 20 크기 없음), 그림자 새 토큰 `shadow.drop2`. 항목 선택 상태·호스트 0개/10개 초과는 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
+| **`My`** `585:752` | 263×494, 배경 `Background/normal`, 모서리 20(`161:3481`), 패딩 20, 그림자 `drop shadow2`. 프로필(Avatar 45 + 닉네임 `Label/lg-emphasized` + 이메일 `Label/sm` + 검정 원 안 `ic/edit`) / 티켓·주문내역·관심 호스트·지난 공연 아카이빙(아이콘 20 `ticket`·`order detail`·`favorite`·`archiving` + `Label/md-emphasized`) / "내 호스트" + 호스트 줄(Avatar 24) + 새 호스트 만들기 / 서비스 업데이트 노트(`update`) · 로그아웃(`log out`). 구획 사이 `surface/default-border` 선. GUI 파일은 아직 이 컴포넌트를 쓰지 않는다. 항목은 와이어 관객 PC 상단 바 드롭다운(figma-structure 2026-10-25 절)과 같다 | PC 아바타 ▾ 메뉴(Radix `DropdownMenu`). **코드 `AccountMenu`·`AccountMenuTrigger`**(`src/ui/components/AccountMenu`, 2026-10-31 P4s-V). 업데이트 노트는 P9c-V에서 넣었다(Q4 — 글자 `SHELL_NOTICES_LABEL` "서비스 업데이트 노트", 디자이너 답 "공지사항"은 `shell-login-gui` 몫). 패딩 20 · 프로필 간격 22 · 아이콘–글자 14는 Figma 값 그대로(2026-11-08 M-2 — 전에는 16 · 24 · 12로 토큰 반올림), 아이콘 20은 24를 CSS로 줄임(코드에 20 크기 없음), 그림자 새 토큰 `shadow.drop2`. 항목 선택 상태·호스트 0개/10개 초과는 Figma에 없어 정함 — Figma 코멘트 2026-10-31 | P4s ✓ |
 | **`승인 메뉴_desktop`** `538:2562` · GUI `727:23999` | 112×123, 배경 #F7F7F6(`120:982`), 모서리 20(`161:3481`), 패딩 12·16. `ic_대시보드` 36 + 라벨 `Label/md` `text/secondary-label` + "0건" `Heading/md - emphasized` + 오른쪽 위 `ic/diagonal` 24 | 대시보드 통계 카드(↗ 링크형) | P13a(V) 코드: `src/ui/components/StatCard`(P13a-V #58 — 데스크탑·모바일 한 컴포넌트). |
 | **`승인 메뉴_mobile`** `605:1665` | 155×61, 같은 배경, 모서리 20(직접 값), 패딩 12, `ic_대시보드` 36 + 라벨 `Label/sm` + "0건" `Heading/md2 - emphasized` | 모바일 통계 카드 | P13a(V) 코드: `src/ui/components/StatCard`(P13a-V #58). |
 | **`ic_대시보드`** `538:2072`(승인대기·승인완료·승인거절·환불요청, 36×36) · GUI `727:14604`~`727:14607` | GUI 로컬 `illust_dashboard`(`14:1529`, 지워짐)를 대체. 칠한 색 구성(#1C7CE9·#27AF59·#FA5E6C·#FD5432·#FCBC2C·#FD8708)이 옛 것과 같다 — 코드 `dashboard-*.svg`와 같은 색이다(모양은 비교하지 않았다) | `<Illustration name="dashboard-*" />`(P2에 있음) | P2 |
@@ -512,11 +512,42 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 
 예제: `src/ui/stories/FormWithRHF.stories.tsx`(zod + 제출 play).
 
-**Figma와 다르게 한 것**: SearchField 아이콘은 Figma대로 오른쪽(지우기 버튼은 그 왼쪽). Tabs 높이 44 통일(모바일 `md`만 — 2026-10-25 Figma 모바일도 44 통일, 데스크탑 `lg`는 48 통일). 칩 모서리 6 → 8, 고정 폭 72 → 최소 폭. 토큰에 없는 간격 10 → 8. dropdown item 28h → 최소 36h(터치 영역). Header 제목 1줄 말줄임, 아이콘 버튼 누르는 영역 40. 바텀시트 모서리 0(Figma 그대로)·데스크탑 최대 폭 600, Modal 최대 폭 480(디자인 없음). Toggle 손잡이 Common/100 → `background.normal`(라이트 같은 값).
+**Figma와 다르게 한 것**(2026-10-17 기록 — 2026-11-08 M-2에서 다시 봄): 아래는 **지금 Figma와 값이 같다** — SearchField 아이콘 오른쪽(지우기 버튼은 그 왼쪽, 아이콘 크기 20도 2026-11-08에 맞춤), Tabs 44(모바일 `md`) · 48(데스크탑 `lg`)(Figma도 2026-10-25부터 같은 값), 칩 모서리 8 · 내용 폭(Figma `tag_v2`도 8 · 내용 폭), dropdown item 36h(Figma 2026-10-31 판부터 36h — §8), Header 아이콘 영역 40(Figma 슬롯 40×40), Toggle 손잡이 색(원시 색 Common/100 대신 `background.normal` — 값 같음). "토큰에 없는 간격 10 → 8"은 TagButton 칸 · 줄 사이를 Figma대로 10으로 되돌렸다(2026-11-08, 분류표 O23). 남은 차이: Header 제목 1줄 말줄임(분류표 A3 — 확인 필요), 바텀시트 · Modal 모양(공용 오버레이 — M-1 `fm-ds-overlays` 몫).
 
 **디자이너 확인**: 일러스트 벡터 단순화(가능하면 SVG로 — 2026-10-25 해결, SVG 전환), 칩 모서리 6과 neutral·danger 색, 딤 색·투명도 통일과 시트 모서리 0, dropdown item hover 색, Toggle·Radio·SelectButton·TagButton disabled 모양, 간격 10, Tabs 높이, 날짜·시간 placeholder 문구, 403·404 문구·일러스트, Avatar 사진 변형, Header 제목 줄 수.
 
 **미확인(실기기)**: iOS Safari 바텀시트 스크롤 잠금·키보드 회피(vaul `repositionInputs` 켬 — BottomSheet 스토리 `WithInput`·`LongContent`로 확인), 안드로이드 하드웨어 백·iOS 스와이프 백으로 오버레이 닫힘, DatePicker의 iOS placeholder·`showPicker`.
+
+
+### 4-3. Figma 동일화 M-2 — 디자인 시스템 컴포넌트 기본값(2026-11-08, `fm-ds-components`)
+
+분류표 [`figma-deviations-2026-11-07.md`](./figma-deviations-2026-11-07.md) §3-2 · §3-3의 **맞춤** 줄. 토큰에 없는 값은 분류표 판정대로 **값 그대로**(원시 px · 색) 넣었다 — 새 토큰은 없다. 이 값들("20 묶음" — 20 · 22 · 14 · 19 · 9 · 3 · 47 · 56)을 DS 쪽에서 `Space` 변수로 고칠지는 2단계(분류표 §5-2 "올리기 전에 정할 것").
+
+| # | 컴포넌트 | 전 | 지금(Figma대로) | DS 노드 |
+|---|---|---|---|---|
+| A1 | `Chip`(tag_v2) `theme=border` 테두리 | 진한 색 100% | 진한 색 **40%**(`color-mix`) | `693:761` 등 stroke opacity 0.4 |
+| A4 | `Header` 공연 전환 ▾ 원 | 16 | 12(아이콘 12와 같은 틀) | `510:1994` |
+| A5 | `Toggle` 손잡이 | 20 · 안쪽 2 | 19.5 · 안쪽 2.25 | `77:4` |
+| A7 | `Button` primary 2(`tonal`) medium 글자만 | 46h | 45h(아이콘 있는 판 46 그대로) | `754:2529` |
+| A9 | `Button` medium 아이콘 + 글자 간격 | 6 | 5 | `36:68` |
+| A10 | `SearchField` 검색 아이콘 | 16(icon input 규칙) | 20 | `73:6` |
+| A11 | `SalesCard` 판매 전 여백 | `space[8]`(PC 64 · 모바일 48) | 위 47 · 아래 56 | `627:1860` |
+| A12 | `Schedule` 현재 일정 아래 | `space[9]`(PC 80) | 64 | `605:1783` |
+| A13 | `Schedule` 체크 ↔ 글자 | 위 정렬 | 세로 가운데 | `605:1848` |
+| A14 | `Schedule` 주간 줄 위아래 · 제목–날짜 · 패널 주간 줄 아래 | 8 · 4 · 16 | 9 · 3 · 19 | `605:1852` · `605:1761` · `605:1951` |
+| A15 | `StatCard` PC 아이콘 – 글자 | 24 | 20 | `538:1581` |
+| A16 | `SalesCard` 도넛 줄 위 | 24 | 20 | `605:1388` |
+| A17 | `TopBar` 오른쪽 간격 · 아바타 ▾(`AccountMenuTrigger`) | 16 · 아바타–이름 8 · 이름–▾ 8 | 20 · 10 · 0, ▾는 바 끝에서 24 | `538:4220` · `538:4222` |
+| A18 | `AccountMenu`(My) | 패딩 16 · 프로필 24 · 항목 12 | 20 · 22 · 14 | `585:752` |
+| A22 | `Loader`(Spinner) 바탕 원 | 투명도 0.25 | 0.3 | `772:1178` |
+| A23 | `Radio` 바탕 | 흰색 | 채움 없음(transparent) | `295:1851` |
+| A24 | `Badge` 숫자 색 | `text.onBrand` #F7F7F6 | #FFFFFF(`palette.common.white` — Figma도 변수 없음) | `198:1638` |
+| A27 | `ConcertCard` 포스터 비율 | 163/231 | 163/230 | `121:1008` |
+| O23 | `TagButtonGroup` 열 배치 칸 · 줄 사이 | 8 | 10 | GUI `748:33526` · `748:33535` |
+
+**더한 변형(R1 — 사용자 결정 2026-11-07 "화면대로", `FIGMA-CUSTOM:` 주석, 2단계 후보 — 분류표 §5-1)**
+- `Button round`(R1a) — 원형 34 · 패딩 0 · 아이콘 24, 색은 `variant`대로(대시보드는 `dark`). GUI `727:23261`이 직접 그린 원(r17 · 안쪽 5 · `#141413`). `iconOnly`와 같이 쓰지 않는다(컴포넌트가 막는다).
+- `Fab tone="brand"`(R1b) — 배경 `brand.primary` · 아이콘 `text.onBrand`, Hover · Pressed는 Button Primary 상태 색. GUI `793:2469`(티켓 목록)가 round Primary 채움을 `brand/Primary`로 덮어쓴 것. 기본은 `tone="dark"`(검정).
 
 ---
 

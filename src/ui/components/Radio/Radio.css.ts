@@ -14,7 +14,7 @@ export const group = style({
 /**
  * Figma Radio(`295:1858`): 20, 테두리 1.25 가운데 정렬(바깥 지름 20 — 2026-11-01, 옛 판은 바깥 정렬이라 21.25),
  * 테두리 `surface/strong-border`(선택·미선택 같음 — 2026-11-01 미선택이 `surface/default-border`에서 바뀜),
- * 가운데 점 10 `text/primary-label`. `disabled?=true`(2026-11-01 새로)는 테두리·점 `interaction/disabled`, 채움 없음.
+ * 가운데 점 10 `text/primary-label`. 바탕은 채움 없음(`295:1851` fills 없음 — M-2 2026-11-08). `disabled?=true`(2026-11-01 새로)는 테두리·점 `interaction/disabled`, 채움 없음.
  */
 export const item = style({
   display: 'inline-flex',
@@ -26,7 +26,7 @@ export const item = style({
   padding: 0,
   border: `1.25px solid ${vars.color.surface.strongBorder}`,
   borderRadius: vars.radius.full,
-  background: vars.color.background.normal,
+  background: 'transparent',
   cursor: 'pointer',
   selectors: {
     '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },

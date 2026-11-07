@@ -116,8 +116,9 @@ function TicketList({ eventId }: { eventId: string }) {
       )}
 
       {list.canAdd && !list.empty && list.status === 'success' && (
-        // FIGMA-CUSTOM: 새 티켓 FAB(gui 793:2469 "Button" round Primary, 채움을 보라로 덮어씀) 커스텀 → DS Fab(round Primary 검정). Figma 코멘트 2026-11-01
+        // FIGMA-CUSTOM: 새 티켓 FAB(gui 793:2469 "Button" round Primary, 채움을 보라 Primary로 덮어씀) — Figma대로 보라(Fab `tone="brand"`, R1b 2026-11-08)
         <Fab
+          tone="brand"
           className={s.fab}
           icon={<Icon name="add" />}
           aria-label="새 티켓 만들기"

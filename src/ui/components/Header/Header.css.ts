@@ -89,13 +89,14 @@ export const titleButton = style({
   },
 });
 
+/** 공연 전환 ▾ — Figma `510:1994` 원 바탕 12 안에 아이콘 12(원과 아이콘이 같은 틀, M-2 2026-11-08) */
 export const switchMark = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
   flexShrink: 0,
-  width: 16,
-  height: 16,
+  width: 12,
+  height: 12,
   borderRadius: vars.radius.full,
   background: vars.color.surface.container,
 });
