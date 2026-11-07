@@ -3118,6 +3118,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 - **반영**: ic_v2 새 세트 `ic_gift_waiting` · `ic_gift_done` filled 24 → `src/ui/icons/svg/gift-waiting-filled-24.svg` · `gift-done-filled-24.svg`, `registry.ts` 다시 생성(87개 60종, 둘 다 단색 → `currentColor`). `GiftIcon`(예매자 관리 표 · 상세 · 주문 상세 발급 티켓 카드)이 `gift` filled 대신 상태별 DS 아이콘을 쓴다 — 크기 16 · 색(대기 text tertiary · 받음 text primary)은 그대로, FIGMA-CUSTOM 주석 지움. Q174 닫음. 스토리 `Icon/AddedIn20261107`(24 · 16, play로 4개 · viewBox 확인). `src/ui/icons/README.md` 절차에 두 노드를 더함.
 - **반영 대기**: `ic_add host` · `ic_add concert` outline 24 — 이번 GUI 판에서 Ready가 된 햄버거 드로어(`1047:19428` · `1174:15071`)만 쓰는데 관객 셸 드로어는 "와이어로 구현됨"(Q131). gui-screens §0 관객 셸 줄에 Ready가 된 것을 적어 둠.
+- **PR 직전 다시 본 판**(`2419099227210134517`, 14:23Z): `tag_v2` small 좌우 10 → 8(`Space/2`), large 패딩이 변수로(숫자 그대로). 코드 `Chip`은 2026-10-31부터 8이라 모양은 그대로 — `Chip.css.ts` TODO · 주석과 design-system §7 TODO를 닫음. 기준 판을 14:23Z로 올림.
 - **코드 영향 없음**: `ic_gift` filled 채움이 변수에 묶임(코드는 이미 `currentColor`) · Icons 페이지의 컴포넌트 아닌 프레임 4개 삭제.
 - **확인 못 함**: 변수 값 — REST 403, Desktop Bridge 연결 없음. 텍스트 스타일 29개는 REST 노드로 두 판 값을 대조해 같음.
 

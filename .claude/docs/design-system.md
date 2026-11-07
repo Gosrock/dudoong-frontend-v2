@@ -18,7 +18,9 @@
 >
 > **2026-11-07 갱신(`ds-sync-1107`)**: 지금 판(버전 `2419085329203428681`, 2026-11-07T13:35Z)을 11-01T15:47Z 판과 비교했다 — 이슈 없음. 컴포넌트 변화는 아이콘뿐: ic_v2 새 세트 `ic_gift_waiting` · `ic_gift_done` filled 24(예매자 관리 GUI가 씀 — **반영함**, Q174 닫음) · `ic_add host` · `ic_add concert` outline 24(새로 Ready가 된 GUI 햄버거 드로어만 씀 — 반영 대기), `ic_gift` filled 채움이 변수에 묶임(그림 같음). 텍스트 스타일은 REST로 값까지 같음, 변수는 Desktop Bridge가 없어 **확인 못 함**. §8.
 >
-> **동기화 기준 버전: `2419085329203428681`(2026-11-07T13:35Z).** 다음 갱신은 이 버전과 비교한다. 디자인 시스템이 바뀌면 디자이너가 `Design: 디자인 시스템` 이슈(Figma 플러그인)를 남기고, 개발은 그 이슈를 화면 이슈보다 먼저 반영한다 — 이 문서 + 토큰·`src/ui` 컴포넌트·스토리를 고치고 PR `Closes #n`, 기준 버전을 올린다([`design-workflow.md`](./design-workflow.md) §4). 이슈 없이 바뀐 것도 잡도록 화면 작업을 시작할 때 버전 목록을 본다(스킬 `gui-implement` "디자인 시스템 변경").
+> 같은 PR에서 그 뒤 판(`2419099227210134517`, 14:23Z — 공개 14:23:00Z)도 비교했다: `tag_v2` 72변형의 패딩이 변수에 묶였고 small 좌우 10 → 8(`Space/2`) — 코드는 이미 8이라 주석만(§7 TODO 닫음). §8.
+>
+> **동기화 기준 버전: `2419099227210134517`(2026-11-07T14:23Z).** 다음 갱신은 이 버전과 비교한다. 디자인 시스템이 바뀌면 디자이너가 `Design: 디자인 시스템` 이슈(Figma 플러그인)를 남기고, 개발은 그 이슈를 화면 이슈보다 먼저 반영한다 — 이 문서 + 토큰·`src/ui` 컴포넌트·스토리를 고치고 PR `Closes #n`, 기준 버전을 올린다([`design-workflow.md`](./design-workflow.md) §4). 이슈 없이 바뀐 것도 잡도록 화면 작업을 시작할 때 버전 목록을 본다(스킬 `gui-implement` "디자인 시스템 변경").
 >
 > 관련 문서: 스타일링 방식 [`tech-decisions.md`](./tech-decisions.md) §6, 반응형·텍스트·레이아웃 패턴 [`patterns.md`](./patterns.md) §1~§3, Phase [`plan.md`](./plan.md) P1·P2, 와이어프레임 관측 [`figma-structure.md`](./figma-structure.md).
 
@@ -270,7 +272,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | **Avatar** — 9개 변형: 24(grey만) · 32 · 40 × teal/orange/indigo/grey | — | Avatar | 캐릭터 일러스트. `size=40` 변형의 실제 크기는 **45px**, 호스트 행에서는 60px로 늘려 쓴다. 사진 변형이 없다 — 프로필 이미지(PM-3)를 어디에 보여 줄지는 디자인 확인 | P2 |
 | **Filter Chip** — selected/open 4상태 + number 2(2026-11-01) | Radix `Popover`(펼칠 때) | — | 선택 여부는 숫자 Badge가 붙는 것뿐이다. 공연 리스트(P5a)가 쓰고, 예매자 관리(P13a) 필터에도 쓸 것으로 본다(추정 — P13a 필터 디자인은 아직 없다). "태그" 문구가 고정이라 텍스트 속성이 필요하다 **2026-11-01(#61, 19:01Z 판)**: `state` `selected/number`(`776:2019`)·`deselected/number`(`776:2030`)가 생김 — "예매자 관리페이지에서 쓰일 필터칩". 32h · 패딩 6·12 · 간격 4 · 모서리 8(`Radius/2`) · 흰 배경(`Background/normal`), 글자 + 개수(둘 다 `Label/sm` `text/primary-label`), **chevron·Badge 없음**. 선택은 테두리 `text/primary-label`(검정), 미선택은 `surface/default-border`. 펼침 없이 누르면 그 값으로 거르는 단일 선택 필터로 보인다(GUI `↳예매자관리` `724:5256`의 "필터_전체" 등 — 상태별 개수). **2026-11-03 반영함**(§8, `p13a-gui-guests`) — 개수형은 `CountFilterChip`(`label` · `count` · `selected`, 0·null이면 숫자 없음, `aria-pressed`). 예매자 관리 주문 · 발급된 티켓 · 환불 상태 필터 | P2 · P13a |
 | **Tag** 5종 — Ticket state chip(승인완료·선물대기·선물완료·승인대기), tag(공연 태그·티켓 수, 텍스트 속성), role chip(마스터·매니저), Concert state chip(D-day·준비중·지난 공연), money option chip(`amount`) | — | Badge | 상태 값은 서버 enum과 매핑하고, 모르는 값은 기본 모양(tech-decisions §4). **Ticket state chip은 서버 티켓 상태 11가지 중 4가지만 있다**(아래 "없는 상태"). **Concert state chip**(2026-10-25 변경): `Property 1` ready/d-day/past에 **`ing`(공연중 — 배경 `brand/accent`, 글자 `brand/accent-subtle`)** 이 더해졌고, `size` 축이 생겼다 — small 22h·좌우 10·모서리 6(직접 값)·`Label/sm`, large 25h·좌우 12·모서리 8(변수 `35:177`)·`Label/md`. 색은 §1 "원시 색에서 벗어난 것". 공연준비 홈 PC 목록(`공연 리스트_Desktop`)이 large를 쓴다. 코드(2026-10-25): Chip `tone` `ing` 추가(small 모양), large는 쓰는 화면(P10a-V)에서. role chip에 GUEST가 없다(호스트 행의 `Role tag=false`가 그 경우로 보인다). 다른 enum(사용자 주문 상태 × `refundStatus`, 호스트 주문 상태, `entrance`, `giftState`)의 칩 매핑은 쓰는 Phase에서 정한다. Concert state chip "D-7"은 텍스트 속성이 없다 **2026-10-31**: 페이지 이름이 "┗ Chip"이 됐다. Ticket state chip·Concert state chip small·money option chip 모서리 6 → **8**(코드는 이미 8), Ticket state chip은 고정 72 → 내용 폭(좌우 12, 66), tag 좌우 패딩 12(`Space/3`에 묶임, 공연 태그 72 → 내용 폭 45). 새 칩 세트 `tag_v2`·`Ticket state chip_host`는 아래 줄 | P2(공용 칩), 매핑은 사용 Phase |
-| **tag_v2**(2026-10-31 새로, `693:668`, 페이지 ┗ Chip) — `size` small 22h(좌우 10, `Label/sm` 12) · large 25h(좌우 12, `Label/md` 14) × `variant` square(모서리 8) · round(999 — 알약) × `color` violet · red · green · grey · cyan · purple × `theme` weak(옅은 배경 + 진한 글자) · fill(진한 배경 + 옅은 글자) · border(배경 없음 + 진한 테두리·글자), 텍스트 속성 `label` — 72변형 | — | Badge | **새 범용 칩.** 색: violet `brand/primary`·`primary-subtle`, red `brand/accent`·`accent-subtle`, green `status/success`·`success-subtle`, grey `surface/strong-border`·`interaction/disabled-bg`, **cyan Teal 400·50, purple Purple 400·50(원시 색 직접)**. GUI에서 63곳(Ready 프레임 안 12 — 티켓 관리의 판매 상태·옵션 칩: green/round/border, grey/square/weak, grey/round/border). **코드(2026-10-31, 사용자 결정): 옛 Tag 5종을 없애고 `Chip` 하나를 `tag_v2`로 바꿨다** — `<Chip size shape color theme>`(Figma `variant` → `shape`), 기본 sm·square·grey·weak. 옛 칩 대응은 아래 "옛 Tag → tag_v2". small 좌우 10은 Space 토큰이 아니라 `space[2]` 8(§5) | P2(2026-10-31 코드) |
+| **tag_v2**(2026-10-31 새로, `693:668`, 페이지 ┗ Chip) — `size` small 22h(좌우 10 → **8**(2026-11-07 14:23Z 판, `Space/2`), `Label/sm` 12) · large 25h(좌우 12(`Space/3` 변수로 묶음, 2026-11-07), `Label/md` 14) × `variant` square(모서리 8) · round(999 — 알약) × `color` violet · red · green · grey · cyan · purple × `theme` weak(옅은 배경 + 진한 글자) · fill(진한 배경 + 옅은 글자) · border(배경 없음 + 진한 테두리·글자), 텍스트 속성 `label` — 72변형 | — | Badge | **새 범용 칩.** 색: violet `brand/primary`·`primary-subtle`, red `brand/accent`·`accent-subtle`, green `status/success`·`success-subtle`, grey `surface/strong-border`·`interaction/disabled-bg`, **cyan Teal 400·50, purple Purple 400·50(원시 색 직접)**. GUI에서 63곳(Ready 프레임 안 12 — 티켓 관리의 판매 상태·옵션 칩: green/round/border, grey/square/weak, grey/round/border). **코드(2026-10-31, 사용자 결정): 옛 Tag 5종을 없애고 `Chip` 하나를 `tag_v2`로 바꿨다** — `<Chip size shape color theme>`(Figma `variant` → `shape`), 기본 sm·square·grey·weak. 옛 칩 대응은 아래 "옛 Tag → tag_v2". small 좌우는 처음부터 `space[2]` 8 — 2026-11-07 Figma도 8이 되어 같아졌다 | P2(2026-10-31 코드) |
 | **Ticket state chip_host**(2026-10-31 새로, `678:2237`) — `state` 승인완료("판매중" 보라 옅은 배경) · state2("판매 예정" 흰 배경 + `interaction/inactive-bg` 테두리 + `text/secondary`) · state3("판매 종료" Coral-red 50 배경 + `brand/accent`), 21h, 모서리 4, `Label/xs` 11 | — | — | **GUI에서 쓰는 곳이 없다**(티켓 관리 Ready 프레임은 `tag_v2`를 쓴다). 변형 이름이 정리되지 않았다(§5). 구현하지 않는다 | — |
 | **list** — 10개 변형(`Hierarchy` First/second-closed/second-open/second-radio/third × `value type` text/badge/none/account/text+money 중 일부), 텍스트 속성 `label`·`value text` | 펼침형은 Radix `Collapsible` | Collapsible | 정보 행. `second-radio`는 이름과 달리 체크박스(`Box`)를 쓴다. `account`에 컴포넌트가 아닌 "복사" 버튼이 들어 있다 | P2 |
 | **List**(호스트 행) — Role tag × Default/add | — | — | 도메인. 아바타 60px | P10a |
@@ -569,7 +571,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | Top app bar | `profile` 값 Default/true/false 중 Default가 하나뿐, 제목이 텍스트 속성 아님, 긴 제목 말줄임이 1줄(`Title+Backward`)·2줄(사본 — 2026-10-25 지워짐)·없음(나머지)으로 제각각 | 축 정리, 말줄임 1줄·2줄 중 하나로 통일, Slot에 뒤로가기·액션 아이콘 예시 |
 | Button Secondary | 글자색이 크기마다 다름(`text/primary`·`secondary-label`·`secondary`) | 하나로 |
 | Card list ⋮ | 지난 공연 카드에도 ⋮가 그려져 있다 | 준비중 + 매니저 이상일 때만 보이는지 확인 |
-| 칩 체계(2026-10-31) | 새 범용 칩 `tag_v2`(6색 × 3테마 × 2크기 × 2모양)와 옛 Tag 5종(Ticket state chip·tag·role chip·Concert state chip·money option chip)이 같이 있다. cyan·purple은 원시 색(Teal·Purple) 직접. `Ticket state chip_host`는 변형 이름이 `state2`·`state3`이고 GUI에서 안 쓴다 | 코드는 2026-10-31 `tag_v2`로 바꿨다(§3) — Figma 화면의 옛 칩(Ready 대시보드의 Concert state chip 등)을 `tag_v2`로 바꿔 주기, cyan·purple 의미 색, small 좌우 10을 토큰 값(8 또는 12)으로, `Ticket state chip_host` 정리·삭제 |
+| 칩 체계(2026-10-31) | 새 범용 칩 `tag_v2`(6색 × 3테마 × 2크기 × 2모양)와 옛 Tag 5종(Ticket state chip·tag·role chip·Concert state chip·money option chip)이 같이 있다. cyan·purple은 원시 색(Teal·Purple) 직접. `Ticket state chip_host`는 변형 이름이 `state2`·`state3`이고 GUI에서 안 쓴다 | 코드는 2026-10-31 `tag_v2`로 바꿨다(§3) — Figma 화면의 옛 칩(Ready 대시보드의 Concert state chip 등)을 `tag_v2`로 바꿔 주기, cyan·purple 의미 색, ~~small 좌우 10을 토큰 값(8 또는 12)으로~~(2026-11-07 8로 됨), `Ticket state chip_host` 정리·삭제 |
 | 아이콘 세트 두 벌(2026-10-31, 2026-11-01 갱신) | `ic` 세트와 섹션 "ic_v2 (인스턴스 스왑용)"의 `ic_<이름>` 세트 56개가 같이 있다. 2026-11-01 ic_v2도 공개됐고 새 그림(gift filled 등)은 ic_v2에만 들어간다 | 어느 쪽이 정본이 되는지, `ic` 세트를 지울 때 알려 주기(코드 아이콘 이름이 달라진다). 코드는 이름만 `ic` 체계로 두고 그림은 둘 다에서 가져온다 |
 | 없는 상태 | §3 "없는 상태" 표 | 우선순위: Input 에러, Button 로딩, Ticket 거절·환불 칩 |
 | 없는 컴포넌트 | §3 "없는 컴포넌트" 목록 | 우선순위: 모달·바텀시트·날짜 입력 |
@@ -615,7 +617,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | 브레이크포인트 확정 | P1(2026-10-25 GUI 스펙으로 다시 — 호스팅 1133, 관객 1024는 Q38. → 2026-10-31 사용자 결정: 관객·호스팅 모두 1024, 토큰 나누기 없음) |
 | 실제 화면 디자인 페이지(디자인 시스템 파일 밖) | 받는 대로 |
 | ~~새로 쓰인 변수 12개의 이름(§1)~~ | 2026-10-31 확인 — 닫음 |
-| TODO: `tag_v2` small 좌우 여백 — Figma 10(토큰 아님), 코드 `space[2]` 8. 디자이너 답이 오면 `Chip.css.ts` `size.sm` 한 줄만 고친다(Figma 코멘트 2026-10-31, `693:668`) | 디자이너 답 |
+| ~~TODO: `tag_v2` small 좌우 여백~~ — **닫음(2026-11-07 `ds-sync-1107`)**: 디자인 시스템 14:23Z 판에서 small 좌우가 `Space/2` 8로 묶여 코드 `space[2]` 8과 같아졌다 | 끝 |
 | TODO: Ready 대시보드 9장의 옛 Concert state chip → `tag_v2` 교체(디자이너 쪽). 코드는 이미 `tag_v2` 같은 색이라 바뀌어도 고칠 것 없음 — 색이 달라지면 쓰는 화면의 color·theme만(Figma 코멘트 2026-10-31, `300:1067`) | 디자이너 답 |
 | 스토리 테스트에 a11y 자동 검사가 없다(결정 요약) — 대비·라벨은 사람 검토로만 본다. `@storybook/addon-a11y`를 넣을지 | 정하지 않음 |
 
@@ -653,6 +655,13 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | `ic_add host`(`805:1167`) · `ic_add concert`(`805:1182`) | 새 세트, outline 24 하나씩(사람 · 음표 + 오른쪽 위 ＋) | GUI 햄버거바 `1047:19428`(로그인) · `1174:15071`(미로그인) — **이번 판에서 Ready**지만 관객 셸 드로어는 "와이어로 구현됨"(Q131) | **반영 대기** — 드로어 GUI 반영 때 넣는다. 잉크가 `#141413`과 `black` 두 값이라 내보내면 다색으로 잡힌다 — 넣을 때 `black`을 `#141413`으로 맞춘다 |
 | `ic_gift` filled 24(`739:1928`) | 채움 `#000000` → `text/primary-label`(#141413, 변수) | 티켓페이지 선물 · 알림함 | 없음 — 코드는 이미 `currentColor` |
 | 페이지 ┗ Icons | 최상위 노드 23 → 19 — 컴포넌트 아닌 프레임 `Frame 1707480211`(`422:652`) · `Icon`(`321:1558`) · `icon/chevron-down` 둘(`198:1511` · `198:1536`) 삭제 | — | 없음 |
+
+같은 PR에서 PR 직전 다시 본 판 — `2419085329203428681`(13:35Z) → `2419099227210134517`(14:23Z, 공개 14:23:00Z). 바뀐 것은 `tag_v2` 하나:
+
+| 영역 | 바뀐 것 | 쓰는 GUI 화면 | 분기 · 코드 |
+|---|---|---|---|
+| `tag_v2`(`693:668`) small 36변형 | 좌우 패딩 10 → **8**(`Space/2` `35:152`), 위아래 4(`35:150`) 변수로. 폭 51 → 47 | GUI 구현됨 화면 다수(티켓 관리 · 예매자 관리 · 공연 리스트 등 — `Chip` 기본 크기) | **반영함 — 코드는 처음부터 `space[2]` 8**(2026-10-31 토큰 반올림, §7 TODO). `Chip.css.ts` 주석 · TODO만 지움, 모양 그대로 |
+| `tag_v2` large 36변형 | 패딩 12 · 4가 변수(`Space/3` `35:153` · `35:150`)로 묶임, 숫자 그대로 | 같음 | 없음 |
 
 ### 2026-11-07 — 판 그대로(`2416898429564738752`) · Figma 전수조사 호스팅 후속 `ds-audit-hosting`(I-h1~I-h5)
 

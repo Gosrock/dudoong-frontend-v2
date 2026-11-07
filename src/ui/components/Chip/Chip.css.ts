@@ -6,7 +6,7 @@ import { typography } from '../../theme/typography.css';
 /**
  * Figma `tag_v2`(`693:668`, 페이지 ┗ Chip, 2026-10-31) — 범용 칩 하나. 옛 Tag 5종(Ticket state chip·tag·role chip·
  * Concert state chip·money option chip)은 2026-10-31 사용자 결정으로 이걸로 바꿨다(design-system §3 대응표).
- * - size: sm 22h `Label/sm`(12) · lg 25h `Label/md`(14). Figma 좌우 패딩은 sm 10(토큰 아님 → `space[2]` 8, §5 요청) · lg 12.
+ * - size: sm 22h `Label/sm`(12) · lg 25h `Label/md`(14). 좌우 패딩 sm 8(`Space/2` — 2026-11-07 판에서 Figma도 10 → 8) · lg 12(`Space/3`).
  * - shape(Figma `variant`): square 모서리 8(`Radius/2`) · round 알약.
  * - theme: weak 옅은 배경 + 진한 글자 · fill 진한 배경 + 옅은 글자 · border 배경 없음 + 진한 테두리·글자.
  */
@@ -44,7 +44,6 @@ export const chip = recipe({
   },
   variants: {
     size: {
-      // TODO(디자이너 답 대기): Figma small 좌우 10은 토큰이 아니라 8로 둠 — design-system §7
       sm: [typography.labelSm, { height: 22, padding: `0 ${vars.space[2]}` }],
       lg: [typography.labelMd, { height: 25, padding: `0 ${vars.space[3]}` }],
     },
