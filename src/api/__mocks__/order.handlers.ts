@@ -11,7 +11,7 @@ import {
 import type { PublicTicketItem } from '../ticket-item/schema';
 import { storedEvent } from './event-store';
 import { banks } from './fixtures/bank';
-import { markRefusedRead } from './fixtures/my-ticket';
+import { markRefusedRead, readMyTicketOrder } from './fixtures/my-ticket';
 import {
   buildMockOrder,
   findCheckoutTicket,
@@ -279,7 +279,8 @@ const create = http.post('*/api/v2/me/orders', ({ request, cookies }) => {
 const detail = http.get('*/api/v2/me/orders/:orderUuid', ({ request, params, cookies }) => {
   const denied = requireAuth(request, cookies);
   if (denied) return denied;
-  const order = orders.get(String(params.orderUuid));
+  // 티켓탭 시드 주문(`mock-order-tickets-*`)은 티켓탭 저장소에서 만든다 — O-2 목록에는 없다
+  const order = orders.get(String(params.orderUuid)) ?? readMyTicketOrder(String(params.orderUuid));
   if (!order) return orderError(request, 'Order_404_1');
   // 서버는 응답 전에 그 주문의 거절 알림을 읽음 처리한다 — 다음 T-3에서 빠진다(#905 §2-2)
   markRefusedRead(order.orderUuid);

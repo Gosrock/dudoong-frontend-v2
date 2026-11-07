@@ -157,3 +157,37 @@ scenario.manual('HOME-4', '카카오톡 인앱 브라우저에서 공연홈이 �
   basis: ['README 실제 환경에서 확인할 것', 'plan P4b'],
   how: '스테이징 배포 뒤(P4b) 실기기 카카오톡에서 링크를 연다. 가짜 백엔드로는 인앱 WebView를 재현할 수 없다.',
 });
+
+scenario(
+  'HOME-6',
+  '맨 아래 푸터 — 회사 사업자 정보 · 중개자 한 줄 · 약관 링크',
+  {
+    kind: '정상',
+    summary:
+      '약관 제3조③(서비스 첫 화면 중개자 지위) · 제4조①(회사 사업자 정보). 디자인 없음(Q150) — DS 프리미티브로 단순하게.',
+    basis: ['legal-copy A-3', 'v1-additions C-1', 'design-requests Q150'],
+  },
+  async ({ page, step }) => {
+    await page.goto('/');
+    await step(
+      '맨 아래로 내리면 사업자 정보 세 줄 · 중개자 한 줄 · [개인정보 처리방침] [서비스 이용약관]',
+      async () => {
+        const footer = page.getByRole('contentinfo');
+        await footer.scrollIntoViewIfNeeded();
+        await expect(footer).toContainText('두둥스튜디오 | 서울시 강서구 강서로 266 129동 503호');
+        await expect(footer).toContainText(
+          '사업자 번호 : 469-21-01595 | 통신판매업 신고번호 : 2022-서울강서-3669',
+        );
+        await expect(footer).toContainText('두둥은 통신판매중개자로서 공연의 당사자가 아니며');
+        await expect(footer.getByRole('link', { name: '개인정보 처리방침' })).toHaveAttribute(
+          'target',
+          '_blank',
+        );
+        await expect(footer.getByRole('link', { name: '서비스 이용약관' })).toHaveAttribute(
+          'href',
+          '/meta/term',
+        );
+      },
+    );
+  },
+);

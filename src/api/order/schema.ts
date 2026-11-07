@@ -233,7 +233,7 @@ export type OrderAnswer = z.infer<typeof OrderAnswerSchema>;
  * - 두둥티켓은 `BANK_TRANSFER`·`TOSS_TRANSFER` + 입금자명, 무료는 `FREE`(입금자명 무시)
  * - 동의 기록(#840, 모두 선택): `hostProvisionAgreed`·`dudoongTicketNoticeConfirmed`(두둥만)·`agreementVersion`.
  *   사용자가 체크했을 때만 `true`로 싣고(`src/api/shared/agreement.ts`), `agreementVersion`은 동의 필드가 하나라도 있을 때만.
- *   TODO(Q42): 두 동의를 만들 화면 칸이 v2 체크아웃 계획에 없어 지금 화면은 보내지 않는다
+ *   칸은 체크아웃 동의 영역 · 주문 확인 다이얼로그(#101, 2026-11-01 — design-requests Q42 답 전 잠정 위치)
  */
 export const CreateOrderRequestSchema = z
   .strictObject({

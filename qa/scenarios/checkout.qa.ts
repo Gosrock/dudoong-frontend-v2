@@ -706,3 +706,30 @@ scenario(
     );
   },
 );
+
+scenario(
+  'CHK-21',
+  '하단 바 — 동의 줄 바로 위 중개자 문장',
+  {
+    kind: '정상',
+    summary:
+      '약관 제24조① · 제3조③ 예매 확인 화면 중개자 지위. 디자인 없음(Q151) — 작은 회색 글자 한 줄.',
+    basis: ['legal-copy A-5', 'v1-additions C-3', 'design-requests Q151'],
+  },
+  async ({ page, step }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto(
+      checkoutHref(101, { ticketItemId: CHECKOUT_TICKET.paidNoOptions, quantity: 1 }),
+    );
+    await step('동의 줄 위에 "두둥은 통신판매중개자로서 … 호스트에게 있습니다."', async () => {
+      await expect(
+        page.getByText(
+          '두둥은 통신판매중개자로서 공연의 당사자가 아니며, 공연에 관한 의무와 책임은 호스트에게 있습니다.',
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('checkbox', { name: /주문내용과 환불\/취소 규정/ }),
+      ).toBeVisible();
+    });
+  },
+);

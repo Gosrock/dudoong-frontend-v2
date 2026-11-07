@@ -7,7 +7,7 @@ import type {
   MyTicketGroup,
   MyTicketState,
 } from '../../my-ticket/schema';
-import type { MyOrderStatus } from '../../order/schema';
+import type { MyOrderDetail, MyOrderStatus } from '../../order/schema';
 import { findPublicEvent, type MockEvent } from './event';
 import { me } from './me';
 
@@ -876,4 +876,84 @@ export function revertMyTicketEntrance(ticketUuid: string) {
 export function myTicketGiftStateOf(ticketUuid: string): 'PENDING' | null {
   const t = store.tickets.find((x) => x.uuid === ticketUuid);
   return t && latestGiftOf(t)?.status === 'PENDING' ? 'PENDING' : null;
+}
+
+// ─── 티켓탭 주문 → O-3 상세 ───────────────────────────────────
+
+/**
+ * 티켓탭 시드 주문(`mock-order-tickets-*`, 내 주문만)의 G11/O-3 상세 — 티켓탭 [주문상세]가 404였던 것을 맞춘다
+ * (implementation-log P8-L "남음", 2026-11-07). O-2 목록(P9 시나리오)에는 넣지 않는다 — 목록 개수·순서 시나리오를 건드리지 않게.
+ * 값은 이 저장소에서 계산한다(상태 · 발급 티켓 · 선물). 취소 · 환불 계좌 같은 변경 플래그는 끈다(P9 주문이 맡는다).
+ * 결제 수단: 유료 = 두둥 `BANK_TRANSFER`, 0원 = 무료 `FREE`.
+ */
+export function readMyTicketOrder(orderUuid: string): MyOrderDetail | null {
+  const o = store.orders.find((x) => x.orderUuid === orderUuid && x.buyer === 'me');
+  if (!o) return null;
+  const e = eventOf(o.eventId);
+  const tickets = store.tickets.filter((t) => t.orderUuid === o.orderUuid);
+  // 선물로 넘긴 티켓(주인이 바뀜)도 주문의 티켓이다
+  const unitPrice = tickets[0]?.unitPrice ?? (o.ticketName === '일반 예매' ? 15000 : 0);
+  const optionAmount = tickets.reduce((sum, t) => sum + t.optionAmount, 0);
+  const quantity = tickets.length || o.quantity;
+  const free = unitPrice === 0;
+  const giftOf = (t: MockTicket) => {
+    const state = giftStateOf(t);
+    const g = latestGiftOf(t);
+    return {
+      giftState: state === 'RECEIVED' ? ('NONE' as const) : state,
+      isGiftExpired: false,
+      giftId: state === 'NONE' ? null : (g?.giftId ?? null),
+    };
+  };
+  const issued = o.status === 'APPROVED' || o.status === 'REFUNDED' || o.status === 'CANCELED';
+  return {
+    orderUuid: o.orderUuid,
+    orderNo: o.orderNo,
+    status: o.status,
+    refundStatus: o.refundStatus,
+    orderedAt: '2026.10.10 12:00',
+    approvedAt: issued ? '2026.10.11 10:00' : null,
+    withdrawnAt: o.status === 'REFUSED' || o.status === 'REFUNDED' ? '2026.10.12 11:00' : null,
+    refundStatusChangedAt: o.refundStatus === 'NONE' ? null : '2026.10.12 11:00',
+    event: eventSummary(e),
+    ticket: {
+      ticketItemId: null,
+      name: o.ticketName,
+      payType: free ? 'FREE' : 'DUDOONG',
+      unitPrice,
+    },
+    approvalRequired: o.approvalRequired,
+    quantity,
+    paymentChannel: free ? 'FREE' : 'BANK_TRANSFER',
+    depositorName: free ? null : me.name,
+    payment: free
+      ? null
+      : {
+          ticketAmount: unitPrice * quantity,
+          optionAmount,
+          discountAmount: 0,
+          totalAmount: unitPrice * quantity + optionAmount,
+          account: null,
+        },
+    lines: [{ quantity, linePrice: unitPrice * quantity + optionAmount, optionAnswers: [] }],
+    refuseReasonType: o.refuseReasonType,
+    refuseReason: o.refuseReason,
+    cancelReason: null,
+    refundAccount: null,
+    canEditRefundAccount: false,
+    refundAccountRequired: false,
+    issuedTickets: issued
+      ? tickets.map((t, i) => ({
+          // 선물 완료(SENT) 행은 uuid가 없다(O-3 계약)
+          ticketUuid: giftStateOf(t) === 'SENT' ? null : t.uuid,
+          issuedTicketNo: `T${o.orderNo.slice(1)}${i + 1}`,
+          ticketName: t.ticketName,
+          entrance: t.status,
+          enteredAt: t.enteredAt,
+          optionAnswers: [],
+          ...giftOf(t),
+        }))
+      : [],
+    canCancel: false,
+  };
 }

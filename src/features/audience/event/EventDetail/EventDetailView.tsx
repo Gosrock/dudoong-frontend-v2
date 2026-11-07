@@ -24,6 +24,7 @@ import { useEventDetail } from '../model/useEventDetail';
 import { useTicketSelection } from '../model/useTicketSelection';
 import { openEventContacts } from './EventContactsOverlay';
 import * as s from './EventDetailView.css';
+import { SaleInfo } from './SaleInfo';
 import { shareEvent } from './shareEvent';
 import { TicketOptionList } from './TicketOptionList';
 import { TicketSelector } from './TicketSelector';
@@ -210,6 +211,9 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               ))}
             </Tabs>
           )}
+
+          {/* 판매정보(legal-copy A-2 — 약관 제19조③ 굵은 문단 · 청약철회 제한). 탭은 호스트가 정한 섹션이라 그 아래 고정 */}
+          <SaleInfo />
         </article>
 
         {/* PC 오른쪽 고정 카드(와이어 640:1957) */}

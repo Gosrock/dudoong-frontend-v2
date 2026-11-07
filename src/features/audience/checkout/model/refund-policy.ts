@@ -1,9 +1,8 @@
-import { isPreApprovalCancelTermsEffective } from '@/api/shared/agreement';
 import type { TicketPayType } from '@/api/ticket-item/schema';
 
 /**
  * 체크아웃 환불 규정 — legal-copy **A-7 원문**(약관 제27조②). 빼거나 바꾸지 않는다(정본은 legal-copy A-7).
- * - 두둥 ⑤는 v1 문구를 쓰지 않고 "B18 확정 문구"(A-7 ⑤, 백엔드 #897) — 개정 약관 제27조③ 시행(2026-11-07 KST) 뒤에만. 그 전에는 뺀다
+ * - 두둥 ⑤는 v1 문구를 쓰지 않고 "B18 확정 문구"(A-7 ⑤, 백엔드 #897) — 개정 약관 제27조③이 2026-11-07 시행돼 늘 보인다(시행일 분기는 지웠다)
  * - ④는 운영 확정본(B28 · 백엔드 #928, 2026-11-04) — v1 "예매취소 후 호스트에게 연락해 환불받을 계좌를 알려주세요"를
  *   "취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요."로 바꿨다
  * - v1 운영에서 이 목록은 체크아웃 "판매정보" 아코디언에 있었다. v2 체크아웃 GUI(`564:4156`)에는 자리가 없어 이슈 #105로 붙였다(design-requests Q79)
@@ -17,7 +16,7 @@ const DUDOONG_BEFORE_5 = [
   '환불 방법 : 취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요. 연락처는 공연 상세 페이지에서 확인할 수 있습니다.',
 ] as const;
 
-/** A-7 ⑤ — B18 확정 문구(2026-11-07 시행 뒤) */
+/** A-7 ⑤ — B18 확정 문구(2026-11-07 시행) */
 const DUDOONG_5 =
   '입금 후 승인 전에도 취소할 수 있습니다. 이미 입금했다면 취소할 때 입력한 환불 계좌로 호스트가 환불합니다.';
 
@@ -33,15 +32,8 @@ const FREE_ITEMS = [
 /** 고른 티켓의 환불 규정 목록. 두둥·무료 밖(v2에 없는 PG 유료 등)은 null — 그리지 않는다 */
 export function refundPolicyItems(
   payType: TicketPayType | null | undefined,
-  now: number = Date.now(),
 ): readonly string[] | null {
-  if (payType === 'DUDOONG') {
-    return [
-      ...DUDOONG_BEFORE_5,
-      ...(isPreApprovalCancelTermsEffective(now) ? [DUDOONG_5] : []),
-      DUDOONG_6,
-    ];
-  }
+  if (payType === 'DUDOONG') return [...DUDOONG_BEFORE_5, DUDOONG_5, DUDOONG_6];
   if (payType === 'FREE') return FREE_ITEMS;
   return null;
 }
