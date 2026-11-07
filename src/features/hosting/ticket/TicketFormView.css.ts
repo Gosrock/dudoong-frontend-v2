@@ -22,17 +22,13 @@ export const body = style({
   '@media': { [media.desktop]: { padding: `${vars.space[5]} ${vars.space[5]} ${vars.space[7]}` } },
 });
 
-/** PC 머리 — "< 티켓 관리" + 제목. 모바일은 헤더가 제목을 맡는다 */
+/**
+ * PC 머리 — "< 티켓 관리". 바로 아래 제목(`title`)과 간격 0, 제목 아래 24(GUI `821:25145` 세로 간격 0 · 아래 24 —
+ * Figma 전수조사 2026-11-07에 여기 아래 24를 뺐다). 모바일은 헤더가 제목을 맡는다
+ */
 export const desktopHead = style({
   display: 'none',
-  '@media': {
-    [media.desktop]: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: vars.space[1],
-      paddingBottom: vars.space[5],
-    },
-  },
+  '@media': { [media.desktop]: { display: 'flex' } },
 });
 
 export const crumb = style({

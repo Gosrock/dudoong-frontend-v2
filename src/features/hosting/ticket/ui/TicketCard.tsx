@@ -19,7 +19,7 @@ import { OptionDetailOverlay } from './OptionDetailOverlay';
 import * as s from './TicketCard.css';
 import { OptionRow } from './TicketParts';
 
-/** 판매 상태 칩 색(GUI tag_v2 round border — 판매 중 green · 판매 예정 cyan · 판매 종료 grey). 판매 중단은 GUI에 없어 red(🤖) */
+/** 판매 상태 칩 색(GUI tag_v2 round border — 판매 중 green · 판매 예정 cyan · 판매 종료 grey). 판매 중단 red는 GUI `958:20841`과 같다(2026-11-07 확인) */
 const CHIP_COLOR: Record<TicketSaleChip, ChipColor> = {
   onSale: 'green',
   upcoming: 'cyan',
