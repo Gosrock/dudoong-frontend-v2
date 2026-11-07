@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 
+import { setEventCancelScenario } from '@/api/__mocks__/event-store';
 import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { actAsRole } from '@/api/__mocks__/host-store';
 import { hostingSets, resetHostingStore } from '@/api/__mocks__/hosting.handlers';
@@ -380,6 +381,48 @@ test.describe('공연 취소 E-11(Api 2.5.8) — 대시보드 맨 아래', () =>
         .filter((c) => c.method === 'POST')
         .map((c) => [c.path, c.status]),
     ).toEqual([['/api/v2/events/101/cancel', 200]]);
+  });
+
+  test('2.5.9 GE-3 남은 수: 새로고침해도 남은 주문이 있으면 [다시 처리], 다시 처리할 수 없으면 고객센터 안내', async ({
+    page,
+  }) => {
+    setEventCancelScenario({ limit: 1 });
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/events/101/dashboard');
+    await page.getByTestId('event-cancel').getByRole('button', { name: '공연 취소하기' }).click();
+    const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
+    await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
+    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+    await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+
+    // 새로 열면 이 화면의 결과는 없다 — GE-3 cancelRemainingCount > 0 · cancelRetryable true로 버튼
+    await page.reload();
+    await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toBeVisible();
+    await expect(page.getByTestId('event-cancel-contact')).toHaveCount(0);
+
+    // 정산 기록이 생기면(cancelRetryable false) 버튼 대신 안내
+    setEventCancelScenario({ settled: [101] });
+    await page.reload();
+    await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+    await expect(page.getByTestId('event-cancel-contact')).toContainText(
+      /처리하지 못한 주문 \d+건이 있어요\. 두둥 고객센터로 문의해 주세요\./,
+    );
+    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+  });
+
+  test('2.5.9 GE-3 남은 수 0이면 새로 열어도 [다시 처리]가 없다', async ({ page }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/events/101/dashboard');
+    await page.getByTestId('event-cancel').getByRole('button', { name: '공연 취소하기' }).click();
+    const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
+    await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
+    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+    await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+    await page.reload();
+    await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+    await expect(page.getByTestId('event-cancel-contact')).toHaveCount(0);
   });
 
   test('매니저 · 일반 멤버에게는 [공연 취소하기]가 없다', async ({ page }) => {

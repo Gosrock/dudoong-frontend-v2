@@ -270,6 +270,16 @@ export const EventManageSchema = z.object({
   openedAt: kstDateTime.nullable(),
   checklist: EventChecklistSchema,
   ...eventCancelFields,
+  /**
+   * 공연 취소(E-11)가 아직 처리하지 못한 주문 수(Api 2.5.9 — 백엔드 #940 B44). E-11 응답 `remaining`과 같은 조건(승인 대기 · 승인 ·
+   * 결제 완료). 취소되지 않은 공연이면 null, 운영 2.5.3은 필드 없음
+   */
+  cancelRemainingCount: z.number().int().nullable().optional(),
+  /**
+   * 지금 E-11을 다시 부르면 통과하는지(2.5.9). 지난 공연(CLOSED)이거나 정산 기록이 생기면 false(다시 불러도 `Event_400_29`).
+   * 취소되지 않은 공연이면 null, 운영 2.5.3은 필드 없음
+   */
+  cancelRetryable: z.boolean().nullable().optional(),
 });
 export type EventManage = z.infer<typeof EventManageSchema>;
 

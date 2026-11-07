@@ -3042,3 +3042,21 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest related 147 통과. 스토리 테스트(Modal · Toast · Radio · Dropdown · DataTable · BottomSheet · Fab) 통과 — 새 스토리 `Modal/Large` · `Toast/AboveFab` · `Toast/HiddenFab` · `Radio/Small` · `DataTable/MobileWidth`, `Dropdown/Open`에 ✓ 자리 검사. QA `hosting-ticket` 30(HT-3 PC 모달 520 · 판매 중단 토스트 자리 검사 추가) · `hosting-guests` 35 · `checkout` 31 — 실패 0. e2e `hosting-ticket` · `hosting-guests` · `a11y` · `shell-activity` 160 통과.
 
 **ego-browser 확인(2026-11-07, dev:mock 3111 · Storybook 6111)**: 티켓 관리 1440 — 가이드 · 옵션 상세 · 옵션 추가 모달 폭 520 · 안쪽 24 · 흰 판, 묶음 사이 24(가이드는 Figma `956:3157`과 나란히 봄). 판매 중단 토스트 1440 — 가운데 x 854 · 아래 48. 390 — 판매 재개 토스트가 FAB 위 16. 예매자 390 — 검색 기준 드롭다운 ✓ 오른쪽 끝(안쪽 4), 환불 표 주문자 124 · 88 · 96 · 32, 발급된 티켓은 "선물 받음" 칩 행 때문에 티켓 칸 125(🤖 ③). 1440 거절 사유 — 글자 14 · 줄 사이 32. Storybook Modal Large 1440(520), Toast AboveFab 390(아래 96), DataTable MobileWidth · Radio Small · Dropdown Open 390. 발견: 위 🤖 ③ 말고 없음.
+
+## 백엔드 #940 답 반영 — 취소된 공연 남은 주문 수(이슈 #150, Api 2.5.9, 2026-11-07, `backend-150-cancel-remaining` #PR)
+
+근거: 이슈 #150(백엔드 #940 B44 답 — Api 2.5.9 스테이징 Deploy#109). 운영은 2.5.3이라 새 필드는 zod `optional().nullable()`.
+
+- **스키마**: `EventManageSchema`(GE-3 · PE-4 응답)에 `cancelRemainingCount: number | null` · `cancelRetryable: boolean | null`.
+- **규칙**(`event-cancel.ts` `cancelRemainingState`): 둘 다 값이 있을 때만 판단 — `retry`(다시 처리 가능 + 남은 > 0) → [남은 주문 다시 처리], `contact`(불가 + 남은 > 0) → 버튼 대신 "처리하지 못한 주문 n건이 있어요. 두둥 고객센터로 문의해 주세요.", `none`(0) → 숨김, `unknown`(필드 없음 — 2.5.3, 또는 null) → 예전 동작(마스터에게 늘 보이고 이 화면 결과가 "남은 것 없음"이면 숨김).
+- **훅**(`useEventCancel`): `canRetry`가 위 규칙을 따르고 `contactCount`(마스터만)를 더 돌려준다. E-11 응답 뒤 `['events', id]` 접두 무효화로 GE-3을 다시 읽는 것은 이미 하고 있었다(확인만). 다시 읽기 전 깜빡임이 없게 `setQueryData`에서 `cancelRemainingCount`를 응답 `remaining`으로 맞춘다(2.5.3 응답이면 필드를 만들지 않음).
+- **화면**(`EventCancelSection`): `contactCount`가 있으면 빨간 본문 글자 안내, 결과 줄의 "[남은 주문 다시 처리]를 눌러 주세요"는 숨긴다.
+- **가짜 백엔드**: `toManage`가 취소된 공연이면 남은 수(승인 대기 · 승인 주문)와 다시 처리 가능(CLOSED · CALCULATING · 정산 시나리오면 false)을 채운다. `setEventCancelScenario({ settled })`(정산 기록 흉내) — 이미 취소된 공연이라도 다시 처리 불가면 E-11 `Event_400_29`. `hostingEventSets.manageWithoutCancelRemaining`(2.5.3 모양 GE-3).
+
+**🤖 판단**: ① 안내는 마스터에게만(버튼과 같은 대상, Q166) ② 고객센터 링크 없음 — 화면에 정해진 고객센터 주소가 없다(Q166) ③ 모양은 결과 줄과 같은 빨간 본문 글자(디자인 없음 — Q165) ④ 한쪽 필드만 오거나 null이면 서버 값을 믿지 않고 예전 동작.
+
+**Figma 코멘트(디자인 없음, 2026-11-07)**: GUI `748:33140` 기존 공연 취소 코멘트에 답글 — "[개발 · 디자인 없음] 취소된 공연의 남은 주문 안내(이어서)".
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2699 통과(새 — `cancelRemainingState` 7 · 훅 2.5.9 두 경우 · 2.5.3 모양 · mock GE-3 필드 · 정산 `Event_400_29`). e2e `hosting-event` 32/0(새 4 — desktop · mobile × 2). QA `hosting-event` 26/0 · 수동 1(새 HE-14).
+
+**ego-browser 확인(2026-11-07, dev:mock 3113 · `localhost`, 남은 주문을 만들려고 커밋하지 않는 임시 환경 값으로 mock 상한 1건 · 정산 공연 지정)**: 대시보드 101 1440 — 취소 뒤 새로고침해도 [남은 주문 다시 처리](GE-3 남은 3건), 세 번 누르면 사라짐. 390 — 정산 공연이면 취소 직후부터 결과 줄 아래 고객센터 안내만(“[다시 처리]를 눌러” 줄 없음), 새로고침해도 안내만. 발견 없음.

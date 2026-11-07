@@ -529,3 +529,47 @@ scenario(
     });
   },
 );
+
+scenario(
+  'HE-14',
+  '취소된 공연을 다시 열면 GE-3 남은 수로 — [남은 주문 다시 처리] 또는 고객센터 안내(Api 2.5.9)',
+  {
+    kind: '정상',
+    summary:
+      '취소된 공연을 새로 열면 이 화면의 처리 결과가 없다. GE-3 `cancelRemainingCount > 0` · `cancelRetryable true`면 마스터에게 [남은 주문 다시 처리], `cancelRetryable false`(지난 공연 · 정산 기록)면 버튼 대신 "처리하지 못한 주문 n건이 있어요. 두둥 고객센터로 문의해 주세요.", 0이면 둘 다 없다. 디자인 없음 — design-requests Q165 · Q166.',
+    basis: [
+      '이슈 #150 · 백엔드 #940(B44)',
+      'api-contract GE-3 cancelRemainingCount · cancelRetryable(2.5.9)',
+      'design-requests Q165 · Q166',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    setEventCancelScenario({ limit: 1 });
+    await step('공연(101)을 취소하되 남은 주문을 남긴다', async () => {
+      await page.goto('/hosting/events/101/dashboard');
+      await page.getByRole('button', { name: '공연 취소하기' }).click();
+      const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
+      await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
+      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+      await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+    });
+    await step('새로고침 — 결과 줄은 없고 GE-3 남은 수로 [남은 주문 다시 처리]', async () => {
+      await page.reload();
+      await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+      await expect(page.getByTestId('event-cancel-result')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toBeVisible();
+    });
+    await step(
+      '정산 기록이 생긴 공연(cancelRetryable false) — 버튼 대신 고객센터 안내',
+      async () => {
+        setEventCancelScenario({ settled: [101] });
+        await page.reload();
+        await expect(page.getByTestId('event-cancel-contact')).toContainText(
+          '두둥 고객센터로 문의해 주세요.',
+        );
+        await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+      },
+    );
+  },
+);
