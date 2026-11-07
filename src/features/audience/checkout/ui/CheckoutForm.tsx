@@ -333,6 +333,8 @@ function OrderConfirmPopup({
         if (!next && !c.submission.pending) onClose();
       }}
       closeOnBack={false}
+      // 모양 = 입금 확인 창(R1e — GUI `567:9756`): 342 · 회색 판 · ✕ · 흰 카드 둘 · 버튼 하나(✕가 취소). 문구 · 버튼 이름은 U11 유지
+      variant="summary"
       title="주문 완료하기"
       // FIGMA-CUSTOM: GUI 567:9468은 "입금 하셨나요?" + [결제완료](입금 뒤 주문). B23(사용자 결정 2026-11-02)으로 주문을 입금 전에
       // 먼저 만든다 — 같은 DS Popup에 문구·버튼만 바꿨다. 계좌·금액 안내는 주문 완료 화면. 🤖 Claude 판단, design-requests Q97. Figma 코멘트 2026-11-02
@@ -348,8 +350,11 @@ function OrderConfirmPopup({
       loading={c.submission.pending}
       confirmDisabled={c.agreementFields.dudoongNotice && !noticeConfirmed}
     >
-      <DepositSummary c={c} />
-      {c.agreementFields.dudoongNotice && <DudoongNoticeField c={c} />}
+      {/* 카드 → 두둥 확인 체크 16(카드 사이와 같게 — 체크는 U11 유지, 디자인 없음) */}
+      <Flex direction="column" gap={4}>
+        <DepositSummary c={c} />
+        {c.agreementFields.dudoongNotice && <DudoongNoticeField c={c} />}
+      </Flex>
     </Popup>
   );
 }

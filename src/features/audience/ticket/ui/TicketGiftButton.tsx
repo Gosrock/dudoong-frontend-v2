@@ -190,16 +190,19 @@ function CancelGiftSheet({
       onDone();
     }
   }, [cancel.done, onClose, onDone]);
-  // FIGMA-CUSTOM: 선물 취소 확인 시트(gui 908:21340 "Frame 1707480354") 커스텀 → DS BottomSheet. Figma 코멘트 2026-11-01
+  // FIGMA-CUSTOM: 선물 취소 확인 시트(gui 908:21340 "Frame 1707480354") Figma대로 — BottomSheet raised(막대 · 제목 24 · 설명 가운데 ·
+  // 버튼 사이 12 · 구분선 없음, 2026-11-08 fm-ds-overlays O11 · O15 · O16). Figma 코멘트 2026-11-01 · 고침 2026-11-08
   return (
     <BottomSheet
+      variant="raised"
       open={open}
       onOpenChange={(next) => !next && !cancel.pending && onClose()}
       title={`선물을 ${verb}하시겠습니까?`}
       description={`확인을 누르시면 해당 티켓 선물이 ${verb}됩니다.`}
       footer={
         // FIGMA-CUSTOM: GUI 908:21252는 [선물 취소하기] 하나 + X — 이슈 #106 §1로 [아니요]를 더했다(선물 랜딩 거절 시트 939:26914의 두 버튼 배치). 🤖 Q81
-        <Flex gap={2} fullWidth>
+        // 버튼 사이 12는 시트 버튼 줄이 준다(raised)
+        <>
           <Button
             variant="secondary"
             size="lg"
@@ -218,7 +221,7 @@ function CancelGiftSheet({
           >
             {`선물 ${verb}하기`}
           </Button>
-        </Flex>
+        </>
       }
     >
       {/* 대기 중 선물의 링크·메모를 다시 볼 곳(이슈 #106 §1 ⭐ — 링크 화면을 벗어나면 되찾을 수 없었다). 디자인 없음 → DS Button. 🤖 Q80 */}
@@ -272,9 +275,11 @@ function ReturnGiftSheet({
       onDone(giveBack.done);
     }
   }, [giveBack.done, giveBack.gone, onClose, onDone]);
-  // FIGMA-CUSTOM: 선물 반환 확인 시트(gui 908:23151 "Frame 1707480354") 커스텀 → DS BottomSheet. Figma 코멘트 2026-11-01
+  // FIGMA-CUSTOM: 선물 반환 확인 시트(gui 908:23151 "Frame 1707480354") Figma대로 — BottomSheet raised(막대 · 제목 24 · 설명 가운데 ·
+  // 구분선 없음, 2026-11-08 fm-ds-overlays O11 · O15 · O16). Figma 코멘트 2026-11-01 · 고침 2026-11-08
   return (
     <BottomSheet
+      variant="raised"
       open={open}
       onOpenChange={(next) => !next && !giveBack.pending && onClose()}
       title="선물을 돌려주시겠습니까?"

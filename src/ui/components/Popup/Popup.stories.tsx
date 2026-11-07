@@ -94,3 +94,45 @@ export const ConfirmDisabled: Story = {
     await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
   },
 };
+
+/** 데스크탑 폭 520(`size="lg"` — GUI 티켓 삭제 확인 `975:8593`, R1f). 모바일은 310 */
+export const SizeLarge: Story = {
+  args: {
+    defaultOpen: true,
+    size: 'lg',
+    title: '[얼리버드] 티켓을 삭제할까요?',
+    description: '삭제한 티켓은 복구할 수 없어요.',
+  },
+};
+
+/**
+ * 입금 확인 창 `variant="summary"`(GUI `567:9756`, R1e): 342 · 회색 판 · 안쪽 16 · ✕ · 버튼 하나(Large).
+ * 본문에는 화면이 흰 카드를 넣는다
+ */
+export const Summary: Story = {
+  args: {
+    variant: 'summary',
+    confirmLabel: '주문 완료하기',
+    children: (
+      <div
+        style={{
+          height: 120,
+          borderRadius: 12,
+          background: '#ffffff',
+          border: '1px solid #dddcda',
+        }}
+      />
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '열기' }));
+    const dialog = await screen.findByRole('alertdialog', { name: '주문 완료하기' });
+    await waitFor(() => expect(dialog).toBeVisible());
+    await expect(within(dialog).queryByRole('button', { name: '취소' })).toBeNull();
+    const css = getComputedStyle(dialog);
+    await expect(css.paddingTop).toBe('16px');
+    await expect(css.maxWidth).toBe('342px');
+    await userEvent.click(within(dialog).getByRole('button', { name: '닫기' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+  },
+};

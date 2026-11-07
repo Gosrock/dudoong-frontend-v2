@@ -18,6 +18,14 @@ function Demo() {
       >
         같은 id 토스트
       </Button>
+      <Button
+        variant="secondary"
+        onClick={() =>
+          toast('링크가 클립보드에 복사되었습니다!', { tone: 'success', position: 'top' })
+        }
+      >
+        성공 토스트
+      </Button>
       <Toaster />
     </Flex>
   );
@@ -80,5 +88,18 @@ export const HiddenFab: Story = {
     await userEvent.click(within(canvasElement).getByRole('button', { name: '토스트' }));
     await screen.findByText('티켓 판매를 다시 시작했어요.');
     if (window.innerWidth <= 600) await waitFor(() => expect(toasterBottom()).toBe('16px'));
+  },
+};
+
+/** 성공 토스트(R1d — GUI `908:21601`): 연두 판 · 초록 Heading/sm · 모서리 16 · 글자 폭 · 머리 아래(위 93) */
+export const Success: Story = {
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '성공 토스트' }));
+    const item = await screen.findByText('링크가 클립보드에 복사되었습니다!');
+    const el = item.closest('[data-sonner-toast]') as HTMLElement;
+    await waitFor(() => expect(el.getAttribute('data-y-position')).toBe('top'));
+    const css = getComputedStyle(el);
+    await expect(css.backgroundColor).toBe('rgb(237, 250, 238)');
+    await expect(css.borderTopLeftRadius).toBe('16px');
   },
 };

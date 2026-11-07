@@ -41,6 +41,8 @@ export const HostEmpty: Story = {
 /** GUI `579:2210` — 일러스트 + 문구 + 버튼 */
 export const TicketEmpty: Story = {
   args: {
+    // 문구 → 버튼 18(GUI `793:20840` — O22)
+    actionGap: 'sm',
     illustration: <Placeholder />,
     description: '만든 티켓이 없어요',
     action: (

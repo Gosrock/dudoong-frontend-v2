@@ -1,13 +1,11 @@
 'use client';
 
-import { type ReactNode, useId } from 'react';
+import { useId } from 'react';
 import { Controller } from 'react-hook-form';
 
 import type { PaymentChannel } from '@/api/order/schema';
-import { CopyButton } from '@/ui/components/InfoRow/CopyButton';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { SelectButton } from '@/ui/components/SelectButton/SelectButton';
-import { toast } from '@/ui/components/Toast/Toast';
 import { Divider } from '@/ui/primitives/Divider';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
@@ -31,16 +29,11 @@ const CHANNEL_LABEL: Record<'BANK_TRANSFER' | 'TOSS_TRANSFER', string> = {
 /** 금액 — GUI `564:4156`·`567:9468`(Ready for dev) 글자 그대로 숫자와 "원"을 띄어 쓴다(`18,000 원`). 다른 화면은 `formatWon`(붙여 씀) */
 const won = (n: number) => `${formatCount(n)} 원`;
 
-const copyToast = {
-  onCopied: () => toast('계좌번호를 복사했어요', { id: 'checkout:copy' }),
-  onCopyError: () =>
-    toast('복사하지 못했어요. 계좌번호를 직접 입력해 주세요', { id: 'checkout:copy' }),
-};
-
 export function PaymentInfo({ c }: { c: CheckoutState }) {
   return (
     <section aria-label="결제정보">
-      <InfoRow hierarchy="first" label="결제정보" value={DEPOSITOR_NOTICE} />
+      {/* 안내 값은 굵게(GUI `564:4156` Label/md-emphasized — R1c) */}
+      <InfoRow hierarchy="first" label="결제정보" value={DEPOSITOR_NOTICE} valueEmphasized />
       {/* 서비스 운영자 결정(이슈 #106 §4, 2026-11-01) — 닉네임 = 입금자명은 의도. 다르면 닉네임을 바꾸도록 안내 + 마이페이지 링크.
           마이페이지는 새 탭 — 고른 옵션을 잃지 않게. 바꾼 뒤 이 화면을 새로 고치면 새 닉네임이 입금자명이 된다 */}
       <div className={s.depositorHint}>
@@ -110,56 +103,40 @@ export function PaymentChannelField({ c }: { c: CheckoutState }) {
   );
 }
 
-function SummaryRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className={s.summaryRow}>
-      <Txt typography="labelMd" color={colors.textSecondaryLabel}>
-        {label}
-      </Txt>
-      <span className={s.summaryValue}>{children}</span>
-    </div>
-  );
-}
-
-/** 주문 확인 다이얼로그 안 결제 요약 */
+/**
+ * 입금 확인 창 본문 — 흰 카드 둘(R1e — GUI `567:9756`, Ready `567:9468`): 결제정보(입금자명 · 결제방식 · 입금은행 · 결제계좌[복사] · 예금주) ·
+ * 결제금액(티켓금액 · 옵션금액 · 선 · 총 결제금액). 카드 = 흰 판 · 테두리 `surface/default-border` · 모서리 12 · 사이 16, 줄은 DS `list`(InfoRow).
+ * 입금은행 줄은 유지(U7 — 토스 송금 · 입금에 은행이 필요). A19 · A21(옛 DS `다이얼로그 - 결제 요약` 판)은 이 카드로 흡수.
+ */
 export function DepositSummary({ c }: { c: CheckoutState }) {
   const { ticketAmount, optionAmount, total } = amounts(c);
-  const account = c.account;
   const channel = c.paymentChannel === 'TOSS_TRANSFER' ? 'TOSS_TRANSFER' : 'BANK_TRANSFER';
-  const value = (v: ReactNode) => (
-    <Txt typography="labelMd" color={colors.textSecondary}>
-      {v}
-    </Txt>
-  );
   return (
-    // FIGMA-CUSTOM: 입금 확인 결제 요약(gui 567:9756 "Frame 1707480412" 회색 판 + 흰 카드 둘) 커스텀 → DS 다이얼로그 - 결제 요약(772:1195, Popup children). Figma 코멘트 2026-11-01
-    <div className={s.summaryBox}>
-      <SummaryRow label="입금자명">{value(c.depositorName ?? '—')}</SummaryRow>
-      <SummaryRow label="결제방식">{value(CHANNEL_LABEL[channel])}</SummaryRow>
-      <SummaryRow label="입금은행">{value(account?.bankName ?? '—')}</SummaryRow>
-      <SummaryRow label="결제계좌">
-        {account?.accountNumber ? (
-          <>
-            <CopyButton text={account.accountNumber} aria-label="계좌번호 복사" {...copyToast} />
-            {value(account.accountNumber)}
-          </>
-        ) : (
-          value('—')
-        )}
-      </SummaryRow>
-      <SummaryRow label="예금주">{value(account?.accountHolder ?? '—')}</SummaryRow>
-      <Divider />
-      <SummaryRow label="티켓금액">{value(won(ticketAmount))}</SummaryRow>
-      <SummaryRow label="옵션금액">{value(won(optionAmount))}</SummaryRow>
-      <Divider />
-      <div className={s.summaryRow}>
-        <Txt typography="labelLgEmphasized" color={colors.textPrimaryLabel}>
-          총 결제금액
-        </Txt>
-        <Txt typography="headingSmEmphasized" color={colors.textBrandLabel}>
-          {won(total)}
-        </Txt>
-      </div>
+    // FIGMA-CUSTOM: 입금 확인 결제 요약(gui 567:9756 "Frame 1707480412" 회색 판 + 흰 카드 둘) Figma대로 — Popup summary + 흰 카드 둘(InfoRow).
+    // 옛 DS 다이얼로그 - 결제 요약(772:1195)에서 바꿈(2026-11-08 fm-ds-overlays R1e). Figma 코멘트 2026-11-01 · 고침 2026-11-08
+    <div className={s.summaryCards}>
+      <section aria-label="결제정보" className={s.summaryCard}>
+        <InfoRow
+          hierarchy="first"
+          label="결제정보"
+          value={
+            // 카드 안 안내는 12(`567:9756` value 12/600 — 600 프리셋이 없어 `Label/sm` 500)
+            <Txt typography="labelSm" color={colors.textBrandLabel}>
+              {DEPOSITOR_NOTICE}
+            </Txt>
+          }
+        />
+        <InfoRow label="입금자명" value={c.depositorName ?? '—'} />
+        <InfoRow label="결제방식" value={CHANNEL_LABEL[channel]} />
+        <DepositAccountRows account={c.account} toastId="checkout:copy" />
+      </section>
+      <section aria-label="결제금액" className={s.summaryCard}>
+        <InfoRow hierarchy="first" label="결제금액" />
+        <InfoRow label="티켓금액" value={won(ticketAmount)} />
+        <InfoRow label="옵션금액" value={won(optionAmount)} />
+        <Divider />
+        <InfoRow total label="총 결제금액" value={won(total)} />
+      </section>
     </div>
   );
 }

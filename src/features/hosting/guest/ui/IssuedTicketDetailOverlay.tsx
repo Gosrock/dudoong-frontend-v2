@@ -63,6 +63,10 @@ export function IssuedTicketDetailOverlay({
         )
       }
       description={t ? text(t.ticket.ticketName) : undefined}
+      // GUI `1030:9114` · `1023:4560` — 티켓 번호 18 · 티켓 이름 `Body/md` 진한색, 시트 flat(위 모서리 16 · 막대 · ✕)
+      titleSize="md2"
+      descriptionStyle="body"
+      sheetVariant="flat"
       footer={
         t && t.ticket.entrance === 'DONE' && t.ticket.ticketUuid && list.entranceCancel.can ? (
           // GUI `1030:9136` — 입장 완료 상세 하단 [입장 취소](secondary 큰 버튼) → 확인 `1030:9318`

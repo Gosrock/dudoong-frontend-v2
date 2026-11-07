@@ -60,6 +60,8 @@ export function OptionDetailOverlay({
     const name = editor.option?.name ?? '';
     // 확인 창 계약(patterns §6): 실패(`false`)면 열린 채
     const done = await openConfirm({
+      // PC 520(GUI `956:6693` — R1f)
+      popupSize: 'lg',
       title: `[${name}] 옵션을 삭제할까요?`,
       description: '이 옵션이 붙은 모든 티켓에서 빠지고, 삭제한 옵션은 되돌릴 수 없어요.',
       confirmLabel: '삭제',
@@ -91,8 +93,22 @@ export function OptionDetailOverlay({
       onOpenChange={(next) => !next && void requestClose()}
       // PC 모달 520 · 안쪽 24 · 간격 24(GUI 956:* 티켓 옵션 모달, I-h1)
       modalSize="lg"
+      sheetVariant="flat"
       title={editing ? '옵션 수정하기' : '옵션 상세'}
       hideTitle={!editing}
+      // 상세 머리 한 줄 = [✎ 수정] 왼쪽 + ✕ 오른쪽(GUI `943:2221` · `956:5913` — O5)
+      headerStart={
+        !editing && fields && !editor.missing && editor.canEdit && allowEdit ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={<Icon name="edit" />}
+            onClick={() => setMode('edit')}
+          >
+            수정
+          </Button>
+        ) : undefined
+      }
       footer={
         editing ? (
           <Button
@@ -113,18 +129,6 @@ export function OptionDetailOverlay({
         </Txt>
       ) : fields ? (
         <div className={s.body} data-testid="option-detail">
-          {!editing && editor.canEdit && allowEdit && (
-            <Flex justify="flex-start">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Icon name="edit" />}
-                onClick={() => setMode('edit')}
-              >
-                수정
-              </Button>
-            </Flex>
-          )}
           {editing && editor.priceLocked && (
             <NoticeBox icon="important">
               판매가 시작돼서 옵션 이름과 설명만 바꿀 수 있어요.

@@ -256,11 +256,11 @@ scenario(
 
 scenario(
   'CHK-4',
-  '입금 확인 다이얼로그는 뒤로가기·[취소]로 닫히고 주문을 보내지 않는다',
+  '입금 확인 다이얼로그는 뒤로가기·✕로 닫히고 주문을 보내지 않는다',
   {
     kind: '정상',
     summary: '오버레이는 뒤로가기가 닫는다(patterns §6). 닫아도 체크아웃 주소 그대로.',
-    basis: ['patterns §6', 'GUI 567:9468'],
+    basis: ['patterns §6', 'GUI 567:9468', 'GUI 567:9756(✕ — R1e)'],
   },
   async ({ page, mockApi, step }) => {
     await setMockSession(page, 'loggedIn');
@@ -273,9 +273,9 @@ scenario(
       await expect(confirmDialog(page)).toBeHidden();
       await expect(page).toHaveURL(/\/checkout\?/);
     });
-    await step('다시 열고 [취소]를 눌러도 닫히고 주문 요청은 없다', async () => {
+    await step('다시 열고 ✕를 눌러도 닫히고 주문 요청은 없다', async () => {
       await page.getByRole('button', { name: '결제하기' }).click();
-      await confirmDialog(page).getByRole('button', { name: '취소' }).click();
+      await confirmDialog(page).getByRole('button', { name: '닫기' }).click();
       await expect(confirmDialog(page)).toBeHidden();
       expect(mockApi.calls().filter((c) => c.method === 'POST')).toEqual([]);
     });

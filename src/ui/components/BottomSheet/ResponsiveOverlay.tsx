@@ -4,8 +4,9 @@ import type { ReactNode } from 'react';
 
 import { useCloseOnBack } from '../../hooks/useCloseOnBack';
 import { useMediaQueries } from '../../hooks/useMediaQueries';
+import type { OverlayDescriptionStyle, OverlayTitleSize } from '../../theme/overlay-text';
 import { Modal } from '../Modal/Modal';
-import { BottomSheet } from './BottomSheet';
+import { BottomSheet, type BottomSheetVariant } from './BottomSheet';
 
 export type ResponsiveOverlayProps = {
   open: boolean;
@@ -21,6 +22,14 @@ export type ResponsiveOverlayProps = {
   onExited?: () => void;
   /** PC 모달 크기(`Modal` `size`). 모바일 시트에는 영향 없음. 기본 `md` */
   modalSize?: 'md' | 'lg';
+  /** 모바일 시트 모양(`BottomSheet` `variant`). PC 모달에는 영향 없음. 기본 `default` */
+  sheetVariant?: BottomSheetVariant;
+  /** 제목 크기(모달 · 시트 둘 다). 없으면 각자 기본 */
+  titleSize?: OverlayTitleSize;
+  /** 설명 글자(모달 · 시트 둘 다). 없으면 각자 기본 */
+  descriptionStyle?: OverlayDescriptionStyle;
+  /** 머리 줄 앞쪽 슬롯(모달 · 시트 둘 다) */
+  headerStart?: ReactNode;
 };
 
 /**
@@ -31,6 +40,7 @@ export type ResponsiveOverlayProps = {
 export function ResponsiveOverlay({
   closeOnBack = true,
   modalSize,
+  sheetVariant,
   ...props
 }: ResponsiveOverlayProps) {
   const viewport = useMediaQueries();
@@ -39,6 +49,6 @@ export function ResponsiveOverlay({
   return viewport === 'desktop' ? (
     <Modal {...props} size={modalSize} closeOnBack={false} />
   ) : (
-    <BottomSheet {...props} closeOnBack={false} />
+    <BottomSheet {...props} variant={sheetVariant} closeOnBack={false} />
   );
 }

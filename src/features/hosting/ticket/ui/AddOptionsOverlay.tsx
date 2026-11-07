@@ -17,7 +17,8 @@ import { OptionFields } from './OptionFields';
 import { OptionPickItem } from './OptionPickItem';
 import * as s from './OptionSheets.css';
 
-// FIGMA-CUSTOM: 옵션 시트(gui 931:1291 "바텀시트_티켓 옵션 추가" · PC 956:3281) 직접 그린 시트 → DS ResponsiveOverlay(BottomSheet · Modal). Figma 코멘트 2026-11-01
+// FIGMA-CUSTOM: 옵션 시트(gui 931:1314 "바텀시트_티켓 옵션 추가" · PC 956:3281) Figma대로 — ResponsiveOverlay(시트 flat · Modal lg),
+// 설명 Label/sm 보조색 · 제목 아래 8, 목록 → [새 옵션 직접 만들기] 8(2026-11-08 fm-ds-overlays O4 · O6~O11 · O14 · O24). Figma 코멘트 2026-11-01 · 고침 2026-11-08
 /**
  * 티켓 옵션 추가 시트 — GUI `931:1291` 기본 · `931:1356` 선택됨("n개 추가하기") · `940:13011` 이미 추가된 경우, PC `956:3281`·`956:3403`·`956:3525`(#50).
  * [새 옵션 직접 만들기]는 같은 시트 안에서 만들기 화면으로(`932:1544` 주관식 · `932:1621` 네/아니오 + 가격, #51) — 만들면 생성 + 지정 두 번 호출(L).
@@ -86,6 +87,8 @@ export function AddOptionsOverlay({
       onOpenChange={(next) => !next && void requestClose()}
       // PC 모달 520 · 안쪽 24 · 간격 24(GUI 956:* 티켓 옵션 모달, I-h1)
       modalSize="lg"
+      sheetVariant="flat"
+      descriptionStyle="caption"
       title={
         view === 'pick' ? (
           '티켓 옵션 추가하기'
@@ -150,7 +153,7 @@ export function AddOptionsOverlay({
         </p>
       )}
       {view === 'pick' ? (
-        <div className={s.body} data-testid="option-pick">
+        <div className={s.pickBody} data-testid="option-pick">
           {options.poolStatus === 'error' ? (
             <InlineError
               layout="row"

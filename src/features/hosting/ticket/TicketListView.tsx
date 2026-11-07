@@ -76,6 +76,8 @@ function TicketList({ eventId }: { eventId: string }) {
       {list.empty ? (
         <EmptyState
           className={s.empty}
+          // 문구 → [+ 새 티켓 만들기] 18(GUI `793:20840` — O22)
+          actionGap="sm"
           illustration={<Illustration name="no-ticket" className={s.emptyIllustration} />}
           description={
             <span data-testid="tickets-empty">
