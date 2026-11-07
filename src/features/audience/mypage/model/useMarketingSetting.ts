@@ -55,6 +55,8 @@ export function useMarketingSetting(now: () => Date = () => new Date()) {
     [mutation, value, now],
   );
 
+  const dismiss = useCallback(() => setNotice(null), []);
+
   return {
     /** 현재 값(세션 전이면 undefined) */
     value,
@@ -62,6 +64,6 @@ export function useMarketingSetting(now: () => Date = () => new Date()) {
     pending: mutation.isPending,
     /** 처리 결과(성공 통지 또는 실패). 화면이 토스트로 띄우고 `dismiss` */
     notice,
-    dismiss: () => setNotice(null),
+    dismiss,
   };
 }

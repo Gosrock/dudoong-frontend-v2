@@ -33,6 +33,14 @@ import { RefundPolicy } from './RefundPolicy';
 const AGREE_LABEL = '주문내용과 환불/취소 규정을 확인하였으며 이에 동의합니다.';
 
 /**
+ * 예매 확인 화면 중개자 문장 — legal-copy A-5 첫 줄 원문(약관 제24조① · 제3조③ "결제(예매) 확인 화면"). 바꾸거나 빼지 않는다.
+ * v1은 CTA 바로 위 — 같은 자리(하단 바, 동의 줄 위). A-5 둘째 줄 "위 내용을 확인하였으며 {결제|예매}에 동의합니다"는 GUI 동의 줄
+ * (`AGREE_LABEL`)이 같은 역할이라 넣지 않았다(🤖 Claude 판단 2026-11-07 — 동의 두 줄이 겹친다). FIGMA-CUSTOM: 디자인 없음(Q151)
+ */
+const CHECKOUT_INTERMEDIARY_NOTICE =
+  '두둥은 통신판매중개자로서 공연의 당사자가 아니며, 공연에 관한 의무와 책임은 호스트에게 있습니다.';
+
+/**
  * 체크아웃 폼 — 순서(GUI `564:4156`): 폼 위 안내 / 옵션적용 / 예매정보(티켓 아코디언) / 결제정보 · 결제금액 · 결제방식(두둥만) /
  * 호스트 제공 동의 / 취소·환불 규정 / 하단 동의 + CTA. 두둥은 CTA 뒤 주문 확인 다이얼로그(요약 + 입금 전 확인)를 거친다.
  */
@@ -121,6 +129,9 @@ export function CheckoutForm({
       <RefundPolicy c={c} eventId={props.eventId} startAt={eventStartAt} />
 
       <div className={s.bottomBar}>
+        <Txt as="p" typography="labelSm" color={colors.textTertiaryLabel} className={s.notice}>
+          {CHECKOUT_INTERMEDIARY_NOTICE}
+        </Txt>
         <AgreeRefundPolicyField c={c} />
         <Button type="submit" size="lg" fullWidth disabled={c.submission.pending}>
           {c.ctaLabel}

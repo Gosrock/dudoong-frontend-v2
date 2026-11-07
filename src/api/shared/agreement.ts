@@ -4,9 +4,8 @@
  * `true`가 아닐 때 400 `Agreement_400_1`(api-contract §4·§6·§9).
  *
  * 규칙: **사용자가 화면에서 체크한 값만 보낸다.** 화면 칸 없이 `true`를 만들어 보내지 않는다(동의 위조).
- * 칸이 아직 없는 필드(만 14세·호스트 제공 동의·두둥티켓 고지·환불 의무 — design-requests Q42)는 모델에 상태만 있고, 칸 플래그
- * (`AGE_OVER_14_FIELD`·`HOST_PROVISION_FIELD`·`DUDOONG_NOTICE_FIELD`·`REFUND_OBLIGATION_FIELD`, 기본 false)를 켜면 필수가 된다.
- * 강제는 v1 호스트 어드민 가입 수정 배포 직후 켜진다(v1 Front #384, 2026-10-31) — 칸보다 먼저 켜지면 v2 가입·주문·두둥티켓 생성이 400.
+ * 만 14세·호스트 제공 동의·두둥티켓 고지·환불 의무 칸은 #101(2026-11-01)로 붙었다(위치는 design-requests Q42 답 전 잠정).
+ * 칸 플래그(`AGE_OVER_14_FIELD` 등)가 켜져 있으면 필수다.
  */
 
 /**
@@ -21,18 +20,6 @@ export const AGREEMENT_VERSION = '2026-11';
  */
 export const AGREEMENT_REJECTED_MESSAGE = '필수 동의를 다시 확인하고 체크해 주세요.';
 export const AGREEMENT_REJECTED_CODE = 'Agreement_400_1';
-
-/**
- * 이용약관 일부 개정(제19조②·제27조③·제29조③1호 — 두둥티켓 승인 전 셀프 취소 허용) 시행 시각: **2026-11-07 00:00 KST**
- * (부칙 제1조②, v1 Front #385). 승인 전 취소 안내(legal-copy A-2 ⑤ · A-7 ⑤ · A-8 ⑤-b, 백엔드 #897 확정 문구)는 이 시각부터만
- * 보인다 — "v2를 11-07 전에 출시하면 ⑤는 빼 주세요"(백엔드 #897 · #905 §2-1). 시각이 지나면 상수와 분기를 지워도 된다.
- * 동의 칸 문구가 아니라서 `AGREEMENT_VERSION`과 무관하다(#897 §3).
- */
-export const PRE_APPROVAL_CANCEL_TERMS_EFFECTIVE_AT = Date.parse('2026-11-07T00:00:00+09:00');
-
-/** 승인 전 취소 개정 약관이 시행됐는지(`now`는 epoch ms) */
-export const isPreApprovalCancelTermsEffective = (now: number = Date.now()) =>
-  now >= PRE_APPROVAL_CANCEL_TERMS_EFFECTIVE_AT;
 
 /** `AgreementLog.VERSION_MAX_LENGTH` */
 export const AGREEMENT_VERSION_MAX = 50;

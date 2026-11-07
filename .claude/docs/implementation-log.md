@@ -2967,3 +2967,32 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 - 문서: deploy-plan §9 12~16, api-contract §1(Void 실측 · 엑셀 실패 모양) · §9 환경별 설정(스테이징 쿠키 실측), progress.
 
 **🤖 판단**: ① 탈퇴 엔드포인트를 익명으로 한 번 불렀다(401 `AUTH_401_2` — 인증 전에 막혀 아무 일도 없다). 이후에는 부르지 않았다 ② 13 · 14 · 15의 로그인 필요 칸은 백엔드 소스 · 테스트로 "추론"을 적고 실측은 사용자 대기로 남겼다(ego-browser에 스테이징 세션 없음 — `/api/v2/me` 401) ③ 스크립트 보조 함수에 단위 테스트를 두지 않았다 — 네트워크 스크립트라 게이트 밖이고 실제 두 서버 실행 결과로 확인했다.
+
+## 약관 표시 의무 · 마케팅 수신 설정 — 계획 누락 정리(2026-11-07, `legal-display`)
+
+근거: 계획 문서 점검(2026-11-07)에서 찾은 누락 — legal-copy "약관 표시 의무 — v2 계획에 위치 없음(위험)" · v1-additions C-1 · C-3 · C-5 · E-1. **사용자 결정(2026-11-07): 디자인 없이 DS 컴포넌트로 가장 단순하게.** 문구는 legal-copy 원문(A-2 · A-3 · A-5 · B-6 · B-7, ⑤는 B18 확정본) 글자 그대로. 회사 사업자 정보는 v1 운영 전역 푸터 원문(`shared/ui/src/components/Footer/index.tsx` — `feda26a` · `release/ticket` 같음, Front #345). 상호 · 대표 · 전화 · 이메일은 이용약관 머리말 · 제35조② · 처리방침 11장과도 맞다. 서버 변경 없음 · `agreementVersion` 그대로(동의 체크 문구가 아니다).
+
+**바꾼 것**
+
+- 공연홈 — `home/ui/LegalFooter`: 맨 아래 `<footer>` — 사업자 정보 세 줄 → A-3 중개자 한 줄 → [개인정보 처리방침] [서비스 이용약관](새 창). 약관 제3조③ · 제4조①.
+- 공연 상세 — `event/EventDetail/SaleInfo`: 섹션 탭 아래 늘 있는 DS Accordion "판매정보"(접힘) — A-2 티켓 종류 · 수령 · 환불 안내(굵은 문단 `<strong>`, 청약철회 제한, ⑤ B18 확정본). 약관 제19조③ · 제27조②.
+- 체크아웃 — 하단 바 동의 줄 바로 위 A-5 첫 줄(`CHECKOUT_INTERMEDIARY_NOTICE`). 제24조① · 제3조③.
+- 마이페이지 — `mypage/ui/MarketingSetting`: 메뉴 아래 "알림 설정" + DS Toggle(`useMarketingSetting` — 이미 있던 L), `notice`를 DS 토스트로(B-7 처리 결과 통지 · 실패 문구), 실패면 토글은 서버 값 그대로. `dismiss`를 `useCallback`으로(효과 의존성).
+- B18 시행(2026-11-07) — `PRE_APPROVAL_CANCEL_TERMS_EFFECTIVE_AT` · `isPreApprovalCancelTermsEffective()` 지움(legal-copy "시행 뒤에는 상수와 분기를 지워도 된다"). `refundPolicyItems(payType)` · `cancelNotice(order)`에서 `now` 인자 · 분기 뺌, `refund-policy.test` · `mypage-rules.test` · QA `MY-6`(⑤-b 늘 보임) 맞춤.
+- 덤 — 낡은 주석 `TODO(Q42)` 두 곳(`api/order/schema` · `api/auth/schema`)과 `agreement.ts` 머리 주석을 #101 뒤 상태로. P8-L "남음"의 티켓탭 fixture 404가 아직 맞아서(`mock-order-tickets-*`가 O-3 저장소에 없음) `readMyTicketOrder`(티켓탭 저장소 → O-3 상세, 내 주문만)를 O-3 mock의 대체 조회로 붙였다 — O-2 목록에는 넣지 않았다(P9 목록 시나리오 그대로). `my-ticket-api.test`에 6주문 + SENT · 남의 주문 404.
+- 테스트 — e2e `legal.spec` "약관 표시 의무"(푸터 · 판매정보 · 체크아웃 문장 · 알림 설정 성공 · 실패). QA HOME-6 · EVT-11 · CHK-21 · MY-18 · MY-19.
+- 문서 — legal-copy(A-2 · A-3 · A-5 · B-6 · B-7 "반영됨", B18 시행 · 분기 지움), v1-additions(C-1 · C-3 · C-4 · C-5 · E-1 완료, D-2), plan(P4s · P5b · P7 · P9 해당 줄), design-requests Q150~Q153, backend-questions B60, progress.
+
+**🤖 판단**
+
+- 푸터는 공연홈에만(약관 자리 "서비스 첫 화면"). 셸 전역 푸터는 디자인 뒤 — 셸을 건드리지 않아 `shell` QA · e2e 영향 없음. v1의 로고 · SNS · 저작권 줄은 약관 근거가 아니라 뺐다.
+- A-5 둘째 줄("위 내용을 확인하였으며 {결제|예매}에 동의합니다")은 GUI 동의 줄("주문내용과 환불/취소 규정을 확인하였으며 이에 동의합니다.")과 역할이 같아 넣지 않았다.
+- A-2: v2에 없는 유료(PG) 항목(티켓 종류 "유료티켓" · 환불 ②)은 뺐다(legal-copy 읽는 법). 문장 안의 "유료티켓"(굵은 문단 끝)과 ③ "취소 후 호스트에게 연락해 환불받을 계좌를 알려주세요"는 확정본이 없어 원문 그대로 — B60으로 묻는다.
+- 판매정보는 접힘이 기본(탭 본문이 길어 늘 펼치면 아래가 길다). 굵은 문단은 펼치면 바로 보인다.
+- 마이페이지 알림 설정 자리는 메뉴와 로그아웃 사이.
+
+**Figma 코멘트(디자인 없음, 2026-11-07)**: GUI `759:22391`(공연홈 — 푸터) · GUI `564:4156`(체크아웃 — 하단 바 중개자 문장) · 와이어 `121:1216`(공연 상세 — 판매정보) · 와이어 `128:2875`(마이페이지 — 알림 설정).
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2684개 통과(`refund-policy.test` · `mypage-rules.test` 맞춤, `my-ticket-api.test` 티켓탭 주문 O-3 7개 새로). e2e(빌드) `legal` · `home` · `event-detail` · `checkout` · `mypage` · `tickets` · `a11y` · `a11y-keyboard` 224 통과 · 0 실패(건너뜀 38, 새 6). QA `home` 10 · `event-detail` 22 · `checkout` 33 · `mypage` 37 · `tickets` 20 통과(`tickets` 첫 실행은 TIX-5 mobile 스크린샷 시간 초과 1 — 알려진 흔들림, 다시 돌려 20/0). 셸은 바꾸지 않아 `shell` QA · e2e는 돌리지 않았다.
+
+**ego-browser 확인(2026-11-07, dev:mock 3105 · `localhost`)**: 공연홈 390 · 1440(푸터), 공연 상세 101 390 · 1440(판매정보 펼침), 체크아웃 두둥 390(하단 바 문장), 마이페이지(로그인 — 토글 켬 → 토스트 "마케팅 정보 수신에 동의했어요 (2026.11.07, 두둥)"). 발견: ① 판매정보 펼친 본문이 트리거 라벨보다 24 왼쪽에 붙음 → 본문에 트리거와 같은 좌우 24 · ② PC 푸터 글자가 본문 선(120)보다 24 안쪽(144) → 공연홈 `edge`와 같은 식으로 맞춤(120). 둘 다 e2e · QA 뒤 패딩만 고쳤다.

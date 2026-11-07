@@ -17,6 +17,7 @@ import { colors } from '@/ui/theme/colors';
 
 import { useProfileEdit } from './model/useProfileEdit';
 import * as p from './MyPageView.css';
+import { MarketingSetting } from './ui/MarketingSetting';
 import * as s from './ui/mypage.css';
 import { openWithdraw } from './ui/WithdrawPopup';
 
@@ -28,7 +29,7 @@ const SHORTCUTS = [
 ] as const;
 
 /**
- * `/mypage` — 프로필(사진 · 닉네임 · 이메일) · 바로가기 · 로그아웃 · 회원 탈퇴(P9-V).
+ * `/mypage` — 프로필(사진 · 닉네임 · 이메일) · 바로가기 · 알림 설정(마케팅 수신 — E-1, 디자인 없음 Q153) · 로그아웃 · 회원 탈퇴(P9-V).
  * 근거: 와이어 햄버거 `128:2875`의 프로필 줄(아바타 + 연필 배지 · 닉네임 · 이메일)과 메뉴. 프로필 편집 화면 · 탈퇴는 GUI·와이어에 없어
  * DS 컴포넌트로만 만들었다(Figma 코멘트 — 디자인 없음). 사진을 바꾸면 세션 키가 바뀌어 헤더 · 햄버거 아바타도 같이 바뀐다.
  * 보호 레이아웃(게이트)이 세션을 확정한 뒤에만 그려진다.
@@ -154,6 +155,10 @@ export function MyPageView() {
           ))}
         </ul>
       </nav>
+
+      <Divider />
+
+      <MarketingSetting />
 
       <Divider />
 
