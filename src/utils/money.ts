@@ -16,3 +16,16 @@ export const formatPrice = (amount: number) => (amount === 0 ? '무료' : format
 /** 추가금·증감 — `1000` → `'+1,000원'`, `-500` → `'-500원'`, `0` → `'+0원'` */
 export const formatSignedWon = (amount: number) =>
   `${amount < 0 ? '-' : '+'}${formatWon(Math.abs(amount))}`;
+
+/**
+ * 금액 입력 칸 — 사람이 친 글자 → 숫자 글자만(`'1,0a00'` → `'1000'`). 폼 값·서버 본문은 이 숫자 글자 그대로 둔다.
+ * 앞의 0은 지운다(`'0050'` → `'50'`, `'0'`은 `'0'`).
+ */
+export const parseAmountInput = (raw: string) => {
+  const digits = raw.replace(/\D/g, '');
+  return digits === '' ? '' : digits.replace(/^0+(?=\d)/, '');
+};
+
+/** 금액 입력 칸 표시 — 숫자 글자 → 천 단위 쉼표(`'10000'` → `'10,000'`, `''` → `''`). 큰 수도 글자로 다룬다 */
+export const formatAmountInput = (digits: string) =>
+  parseAmountInput(digits).replace(/\B(?=(\d{3})+(?!\d))/g, ',');

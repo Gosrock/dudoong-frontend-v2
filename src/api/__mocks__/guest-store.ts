@@ -123,6 +123,8 @@ export const GUEST_ORDER = {
   hostCanceled: 'guest-order-101-g',
   userRefunded: 'guest-order-101-h',
   failed: 'guest-order-101-i',
+  /** 결제 금액 오류 거절 — 환불 요청인데 구매자가 계좌를 아직 넣지 않음(GUI `1029:8117` 계좌 입력 전) */
+  refusedNoAccount: 'guest-order-101-j',
 } as const;
 
 const person = (userId: number, name: string, phone: string, email: string): MockPerson => ({
@@ -140,6 +142,7 @@ export const GUEST_BUYERS = {
   doyun: person(56, '한도윤', '010-7890-1234', 'doyun@example.com'),
   sehun: person(57, '오세훈', '010-8901-2345', 'sehun@example.com'),
   nari: person(58, '윤나리', '010-9012-3456', 'nari@example.com'),
+  jiwoo: person(59, '강지우', '010-1234-5670', 'jiwoo@example.com'),
 } as const;
 
 /** mock 사용자(두둥이)의 구매자 정보 — 관객 O-1 주문 */
@@ -242,6 +245,13 @@ const ACCOUNT_SEHUN: HostRefundAccount = {
   accountNumber: '123456-78-901234',
   updatedAt: '2026.10.20 10:00',
 };
+const ACCOUNT_SEOYEON: HostRefundAccount = {
+  bankName: '우리은행',
+  bankCode: '020',
+  accountHolder: '이서연',
+  accountNumber: '1002-345-678901',
+  updatedAt: '2026.10.18 15:00',
+};
 const ACCOUNT_NARI: HostRefundAccount = {
   bankName: '신한은행',
   bankCode: '088',
@@ -332,8 +342,7 @@ function seed() {
       reasonText: REFUSE_REASON_LABELS.DEPOSIT_UNCONFIRMED,
       canceledBy: 'HOST',
       withdrawnAt: '2026.10.17 10:00',
-      refundStatus: 'REQUESTED',
-      refundStatusChangedAt: '2026.10.17 10:00',
+      // 입금 미확인 거절은 받은 돈이 없어 환불 요청이 생기지 않는다(B35 · GUI `1029:8322`)
     }),
   );
   list.push(
@@ -345,6 +354,8 @@ function seed() {
       withdrawnAt: '2026.10.18 10:00',
       refundStatus: 'COMPLETED',
       refundStatusChangedAt: '2026.10.19 10:00',
+      // 환불 완료는 구매자가 넣은 계좌로 보낸 뒤다 — 계좌 없이 완료는 없다(I-h7)
+      refundAccount: ACCOUNT_SEOYEON,
     }),
   );
   const canceled = base(GUEST_ORDER.hostCanceled, b.sehun, {
@@ -381,6 +392,17 @@ function seed() {
       orderMethod: 'PAYMENT',
       depositorName: null,
       lines: [],
+    }),
+  );
+  list.push(
+    base(GUEST_ORDER.refusedNoAccount, b.jiwoo, {
+      status: 'REFUSED',
+      refuseReasonType: 'AMOUNT_MISMATCH',
+      reasonText: REFUSE_REASON_LABELS.AMOUNT_MISMATCH,
+      canceledBy: 'HOST',
+      withdrawnAt: '2026.10.21 12:00',
+      refundStatus: 'REQUESTED',
+      refundStatusChangedAt: '2026.10.21 12:00',
     }),
   );
   orders = new Map(list.map((o) => [o.orderUuid, o]));

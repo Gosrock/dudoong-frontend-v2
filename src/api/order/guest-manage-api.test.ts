@@ -104,14 +104,17 @@ describe('GR-1 주문 목록', () => {
   it('최신 순 + 상태별 건수(전체에 주문 실패 포함), 상태 필터는 건수에 영향 없음', async () => {
     const all = await orders();
     expect(all.counts).toEqual({
-      all: 9,
+      all: 10,
       pendingApprove: 2,
       approved: 2,
-      refused: 2,
+      refused: 3,
       canceled: 2,
       failed: 1,
     });
-    expect(all.orders.content[0]!.orderUuid).toBe(GUEST_ORDER.failed);
+    expect(all.orders.content.map((o) => o.orderUuid).slice(0, 2)).toEqual([
+      GUEST_ORDER.refusedNoAccount,
+      GUEST_ORDER.failed,
+    ]);
     const pending = await orders({ status: 'PENDING_APPROVE' });
     expect(pending.counts).toEqual(all.counts);
     expect(pending.orders.content.map((o) => o.orderUuid)).toEqual([
@@ -349,12 +352,17 @@ describe('GF-1 환불 목록', () => {
   it('환불 상태가 NONE이 아닌 주문만, 상태 필터, 계좌는 매니저 이상에게만', async () => {
     const all = await get<{ content: RefundElement[] }>(refundsQuery(EVENT));
     expect(all.content.map((r) => [r.orderUuid, r.refundStatus])).toEqual([
+      [GUEST_ORDER.refusedNoAccount, 'REQUESTED'],
       [GUEST_ORDER.userRefunded, 'REQUESTED'],
       [GUEST_ORDER.hostCanceled, 'REQUESTED'],
       [GUEST_ORDER.refusedEtc, 'COMPLETED'],
-      [GUEST_ORDER.refusedDeposit, 'REQUESTED'],
     ]);
-    expect(all.content[0]!.refundAccount?.accountNumber).toBe('110-987-654321');
+    // 입금 미확인 거절은 환불 요청이 없어 목록에 없다(B35)
+    expect(all.content.map((r) => r.orderUuid)).not.toContain(GUEST_ORDER.refusedDeposit);
+    expect(all.content[0]!.refundAccount).toBeNull();
+    expect(all.content[1]!.refundAccount?.accountNumber).toBe('110-987-654321');
+    // 환불 완료는 계좌가 있다(I-h7)
+    expect(all.content[3]!.refundAccount?.accountNumber).toBe('1002-345-678901');
     actAsRole(11, 'GUEST');
     const g = await get<{ content: RefundElement[] }>(refundsQuery(EVENT, { status: 'COMPLETED' }));
     expect(g.content.map((r) => r.refundAccount)).toEqual([null]);
@@ -423,7 +431,7 @@ describe('GR-6 · GI-3 엑셀', () => {
 describe('GD-1 대시보드', () => {
   it('건수·판매금액·입장 현황(분모 = 발급 수) + openedAt', async () => {
     const d = DashboardSchema.parse(await get(eventDashboardQuery(EVENT)));
-    expect(d.orders).toEqual({ pendingApprove: 2, approved: 2, refused: 2, refundRequested: 3 });
+    expect(d.orders).toEqual({ pendingApprove: 2, approved: 2, refused: 3, refundRequested: 3 });
     expect(d.salesAmount).toBe(30000);
     expect(d.entranceStats).toMatchObject({ issuedCount: 3, enteredCount: 1 });
     expect(d.tickets.items.map((i) => [i.ticketItemId, i.soldCount, i.supplyCount])).toEqual([

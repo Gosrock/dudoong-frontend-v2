@@ -251,7 +251,7 @@ describe('대시보드 — 등록 후 통계(GD-1, P13a)', () => {
     expect(st.cards.map((c) => [c.label, c.count])).toEqual([
       ['승인 대기', 2],
       ['승인 완료', 2],
-      ['승인 거절', 2],
+      ['승인 거절', 3],
       ['환불 요청', 3],
     ]);
     expect([st.sales.state, st.sales.salesAmount]).toEqual(['selling', 30000]);

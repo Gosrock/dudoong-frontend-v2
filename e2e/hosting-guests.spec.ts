@@ -37,7 +37,7 @@ test.describe('?tab= · ?order= 주소 상태', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto(GUESTS);
     await expect(page.getByRole('tab', { name: '주문' })).toHaveAttribute('aria-selected', 'true');
-    await expect(page.getByTestId('order-row')).toHaveCount(9);
+    await expect(page.getByTestId('order-row')).toHaveCount(10);
     await page.getByRole('tab', { name: '환불' }).click();
     await expect(page).toHaveURL(`${GUESTS}?tab=refunds`);
     await expect(page.getByTestId('refund-row')).toHaveCount(4);
@@ -75,7 +75,7 @@ test.describe('?tab= · ?order= 주소 상태', () => {
     await page.goBack();
     await expect(page).toHaveURL(GUESTS);
     await expect(detail(page)).toHaveCount(0);
-    await expect(page.getByTestId('order-row')).toHaveCount(9);
+    await expect(page.getByTestId('order-row')).toHaveCount(10);
 
     await row(page, '김민수').first().click();
     await expect(detail(page)).toBeVisible();
@@ -90,7 +90,7 @@ test.describe('?tab= · ?order= 주소 상태', () => {
     await page.goto(`${GUESTS}?order=no-such-order`);
     await expect(page.getByText('주문을 찾을 수 없어요. 목록을 다시 불러왔어요')).toBeVisible();
     await expect(page).toHaveURL(GUESTS);
-    await expect(page.getByTestId('order-row')).toHaveCount(9);
+    await expect(page.getByTestId('order-row')).toHaveCount(10);
   });
 });
 
@@ -190,7 +190,7 @@ test.describe('권한 · 엑셀', () => {
     actAsRole(11, 'GUEST');
     await setMockSession(page, 'loggedIn');
     await page.goto(GUESTS);
-    await expect(page.getByTestId('order-row')).toHaveCount(9);
+    await expect(page.getByTestId('order-row')).toHaveCount(10);
     await expect(page.getByRole('button', { name: '주문 엑셀로 다운로드' })).toHaveCount(0);
     await expect(page.getByTestId('exact-hint')).toHaveCount(0);
     await page.getByRole('combobox', { name: '검색 기준' }).click();
@@ -208,7 +208,7 @@ test.describe('권한 · 엑셀', () => {
   test('매니저 이상은 엑셀(래퍼 없는 xlsx)을 내려받는다', async ({ page }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto(GUESTS);
-    await expect(page.getByTestId('order-row')).toHaveCount(9);
+    await expect(page.getByTestId('order-row')).toHaveCount(10);
     const download = page.waitForEvent('download');
     await page.getByRole('button', { name: '주문 엑셀로 다운로드' }).click();
     expect((await download).suggestedFilename()).toBe('orders-101.xlsx');
