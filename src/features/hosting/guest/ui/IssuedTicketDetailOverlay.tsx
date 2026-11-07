@@ -32,7 +32,8 @@ export function IssuedTicketDetailOverlay({
   onCancelEntrance: (ticketUuid: string) => Promise<void>;
 }) {
   const t = list.detail;
-  const entranceChip = t ? entranceChipOf(t.ticket.entrance, 'border') : null;
+  // 머리 "입장 완료"는 green weak(GUI `1030:9296` · `1023:4639`, Figma 전수조사 2026-11-07). 입장 전 · 취소는 함수 안에서 border
+  const entranceChip = t ? entranceChipOf(t.ticket.entrance, 'weak') : null;
   const payType = t ? PAY_TYPE_CHIP_LABEL[t.ticket.payType ?? 'UNKNOWN'] : null;
   const blockMessage =
     list.checkIn.blockMessage ??

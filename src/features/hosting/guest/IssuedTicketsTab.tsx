@@ -174,7 +174,8 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
         pageIndex={list.pagination.page}
         pageCount={list.pagination.totalPages ?? 1}
         onPageChange={list.pagination.setPage}
-        alwaysShowPagination
+        // 행이 있을 때만 페이지 줄(빈 · 결과 없음 · 실패에는 없다 — GUI `1029:4849` · `1029:5135` · `1031:9948`, Figma 전수조사 2026-11-07)
+        alwaysShowPagination={!failed && list.rows.length > 0}
         loading={list.status === 'pending' ? <ListLoading /> : undefined}
         empty={
           failed ? (

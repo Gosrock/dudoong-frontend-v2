@@ -117,7 +117,13 @@ export function AddOptionsOverlay({
           <Button
             size="lg"
             fullWidth
-            disabled={!options.canChange || !options.canAttachMore}
+            // 이름 · 설명이 비면 비활성(GUI `932:1544` · `956:3753`, Figma 전수조사 2026-11-07). 그 밖의 칸 오류는 눌러서 보인다
+            disabled={
+              !options.canChange ||
+              !options.canAttachMore ||
+              !form.values.name.trim() ||
+              !form.values.description.trim()
+            }
             loading={busy}
             onClick={() => void create()}
           >

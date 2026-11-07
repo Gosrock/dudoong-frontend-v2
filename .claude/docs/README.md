@@ -31,6 +31,7 @@
 | [`storyboard.md`](./storyboard.md) | 화면 흐름 + 호출 API + Phase |
 | [`patterns.md`](./patterns.md) | 구현 패턴(§1~§10 공통, §11~§23 화면, §24 화면별 에러 처리) |
 | [`pattern-audit-2026-11-02.md`](./pattern-audit-2026-11-02.md) | 코드 패턴 점검(2026-11-02) — **채택 결정**(확인 창 계약 · es-toolkit · 폼 방식) · ①② 결과(만든 공용 부품) · 리포트 원문(제안 A1~A46 · 문서 D1~D12 · 하지 않을 것 · 묶음 ①~⑥). 묶음 ③~⑥ 세션의 근거 |
+| [`figma-audit-2026-11-07-hosting.md`](./figma-audit-2026-11-07-hosting.md) | **Figma 전수조사 ② 호스팅**(2026-11-07, GUI 판 2026-11-03) — 맡은 8페이지 최상위 노드 전부의 판정 표(Ready 111 · 근거 아님), 고친 것 ⑩ · 작업 줄 후보 ⑧(DS 6) · 디자이너 확인 Q140~Q147 |
 | [`figma-structure.md`](./figma-structure.md) | Figma 관측 캐시 |
 | [`figma-audit-2026-11-07-audience.md`](./figma-audit-2026-11-07-audience.md) | Figma 전수조사 ① 관객 · 디자인 시스템(2026-11-07, GUI 판 `2417503630213468518`) — 맡은 9페이지 프레임별 판정(같음 · 고침 · 의도된 차이 · 참고), DS 파일 변수 · 컴포넌트 대조, 고친 것 · 작업 줄 후보 · Q130~Q132 · B50 |
 | [`implementation-log.md`](./implementation-log.md) | Phase별 구현 기록 |

@@ -6,6 +6,7 @@ import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
@@ -29,7 +30,7 @@ export function openOptionGuide() {
         </Button>
       }
     >
-      <div className={s.stack} data-testid="option-guide">
+      <div className={s.guideBody} data-testid="option-guide">
         <div>
           <Txt as="p" typography="bodyMd">
             티켓을 구매할 때 필요한 정보를 받거나, 추가 상품을 팔 수 있는 기능이에요. 옵션은
@@ -49,14 +50,25 @@ export function openOptionGuide() {
             </li>
           </ul>
         </div>
-        <Txt as="p" typography="labelSm" color={colors.textSecondaryLabel}>
-          주관식 질문으로 정보 받기
-        </Txt>
-        <OptionRow name="예시1) 학번을 입력해 주세요" type="SUBJECTIVE" yesAdditionalPrice={null} />
-        <Txt as="p" typography="labelSm" color={colors.textSecondaryLabel}>
-          선택형 질문으로 추가 상품 팔기
-        </Txt>
-        <OptionRow name="예시2) 뒤풀이 참석" type="YES_NO" yesAdditionalPrice={1000} />
+        {/* 예시 두 묶음 사이 16, 묶음 안 라벨 → 행 8(GUI `924:1311` · `956:3270`) */}
+        <Flex direction="column" gap={4}>
+          <Flex direction="column" gap={2}>
+            <Txt as="p" typography="labelSm" color={colors.textSecondaryLabel}>
+              주관식 질문으로 정보 받기
+            </Txt>
+            <OptionRow
+              name="예시1) 학번을 입력해 주세요"
+              type="SUBJECTIVE"
+              yesAdditionalPrice={null}
+            />
+          </Flex>
+          <Flex direction="column" gap={2}>
+            <Txt as="p" typography="labelSm" color={colors.textSecondaryLabel}>
+              선택형 질문으로 추가 상품 팔기
+            </Txt>
+            <OptionRow name="예시2) 뒤풀이 참석" type="YES_NO" yesAdditionalPrice={1000} />
+          </Flex>
+        </Flex>
         <NoticeBox icon="important">판매가 시작되면 옵션 이름과 설명만 바꿀 수 있어요.</NoticeBox>
       </div>
     </ResponsiveOverlay>

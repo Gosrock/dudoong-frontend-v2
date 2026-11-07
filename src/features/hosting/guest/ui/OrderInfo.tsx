@@ -28,13 +28,14 @@ export function OrderInfo({ state, detail }: { state: OrderDetailState; detail: 
         <dl className={s.lines}>
           <Line label="주문 일시">{dateTimeText(order.orderedAt)}</Line>
           <Line label="결제 금액">{formatWon(order.totalAmount)}</Line>
-          {order.refuseReason && <Line label="거절 사유">{order.refuseReason}</Line>}
-          {order.cancelReason && <Line label="취소 사유">{order.cancelReason}</Line>}
+          {/* 결제 금액 → 취소한 사람 → 사유(GUI `1029:8522` · `1029:8733`, Figma 전수조사 2026-11-07) */}
           {canceledByLabel && (
             <Line label="취소한 사람">
               <span data-testid="detail-canceled-by">{canceledByLabel}</span>
             </Line>
           )}
+          {order.refuseReason && <Line label="거절 사유">{order.refuseReason}</Line>}
+          {order.cancelReason && <Line label="취소 사유">{order.cancelReason}</Line>}
         </dl>
       </Section>
       <Section title="주문자">
