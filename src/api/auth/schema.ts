@@ -48,7 +48,7 @@ export type RegisterBody = {
   profileImage: string | null;
   name: string;
   marketingAgree: boolean;
-  /** 만 14세 이상 확인(#840). TODO(Q42): v2 가입 계획에 칸이 없어 지금은 보내지 않는다 */
+  /** 만 14세 이상 확인(#840). 가입 폼의 만 14세 체크 값(#101, 2026-11-01 — `AGE_OVER_14_FIELD`) */
   ageOver14Confirmed?: true;
   /** 서비스 이용약관 동의(#850) — 가입 폼의 이용약관 체크 값 */
   termsAgreed?: true;

@@ -157,6 +157,32 @@ describe('G11/T-1 · T-2 · T-3', () => {
   });
 });
 
+describe('티켓탭 주문 → O-3(implementation-log P8-L "남음" — 2026-11-07 맞춤)', () => {
+  it.each([
+    ['mock-order-tickets-a', 'APPROVED', 3],
+    ['mock-order-tickets-b', 'PENDING_APPROVE', 0],
+    ['mock-order-tickets-c', 'REFUSED', 0],
+    ['mock-order-tickets-d', 'APPROVED', 2],
+    ['mock-order-tickets-e', 'REFUNDED', 1],
+    ['mock-order-tickets-i', 'APPROVED', 1],
+  ] as const)(
+    '%s — 티켓탭 [주문상세]가 404가 아니다(%s, 발급 %i장)',
+    async (uuid, status, issued) => {
+      const order = await client().fetchQuery(myOrderQuery(uuid));
+      expect(order.orderUuid).toBe(uuid);
+      expect(order.status).toBe(status);
+      expect(order.issuedTickets).toHaveLength(issued);
+    },
+  );
+
+  it('선물 완료(SENT) 티켓은 uuid 없이, 남의 주문은 404', async () => {
+    const order = await client().fetchQuery(myOrderQuery('mock-order-tickets-a'));
+    expect(order.issuedTickets.find((t) => t.giftState === 'SENT')?.ticketUuid).toBeNull();
+    const e = await rejection(client().fetchQuery(myOrderQuery('mock-order-other-g')));
+    expect((e as ApiError).status).toBe(404);
+  });
+});
+
 describe('선물 저장소가 이어진다', () => {
   it('PG-1로 만든 링크를 익명은 AVAILABLE, 보낸 나는 OWN_LINK로 본다', async () => {
     const created = await createGiftMutation(TICKET_UUID.approved).mutationFn!(

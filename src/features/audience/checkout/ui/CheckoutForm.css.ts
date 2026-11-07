@@ -21,6 +21,9 @@ export const errorBanner = style({
 });
 
 /** 하단 동의 + CTA(GUI 프레임 맨 아래). 길어도 늘 보이게 붙여 둔다 */
+/** 하단 바 중개자 문장(legal-copy A-5) — 동의 줄과 같이 가운데 */
+export const notice = style({ margin: 0, textAlign: 'center' });
+
 export const bottomBar = style({
   position: 'sticky',
   bottom: 0,

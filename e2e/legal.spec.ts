@@ -1,5 +1,9 @@
+import { http } from 'msw';
+
 import { P9_ORDER } from '@/api/__mocks__/fixtures/order';
+import { resetMeStore } from '@/api/__mocks__/me.handlers';
 import { resetOrderStore } from '@/api/__mocks__/order.handlers';
+import { errors } from '@/api/__mocks__/respond';
 
 import { setMockSession } from './support/auth';
 import { expect, test } from './support/fixtures';
@@ -93,5 +97,101 @@ test.describe('약관 근거 문구(B28 · B42 확정본)', () => {
     await dialog.getByRole('textbox', { name: /계좌번호/ }).fill('123-456-7890');
     await page.getByRole('button', { name: '확인했어요, 취소할게요' }).click();
     await expect(page.getByText(`예매가 취소되었어요. ${REFUND_SENTENCE}`)).toBeVisible();
+  });
+});
+
+/**
+ * 약관 표시 의무(2026-11-07 — 계획 누락 정리, 디자인 없음 Q150~Q153). legal-copy A-2 · A-3 · A-5 · B-6 · B-7 원문,
+ * 사업자 정보는 v1 운영 푸터 원문. 문구를 바꿀 때는 이 테스트와 legal-copy를 같이 고친다.
+ */
+test.describe('약관 표시 의무(제3조③ · 제4조① · 제19조③ · 제24조① · 처리방침 10장)', () => {
+  test('공연홈 푸터 — 사업자 정보 · 중개자 한 줄(A-3) · 처리방침 · 이용약관 링크', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const footer = page.getByRole('contentinfo');
+    for (const line of [
+      '두둥스튜디오 | 서울시 강서구 강서로 266 129동 503호',
+      '대표 : 이찬진 | TEL : 0507-0177-0711 | Email : support@dudoong.com',
+      '사업자 번호 : 469-21-01595 | 통신판매업 신고번호 : 2022-서울강서-3669',
+      '두둥은 통신판매중개자로서 공연의 당사자가 아니며, 공연의 개최·내용 등에 관한 의무와 책임은 각 공연의 호스트에게 있습니다.',
+    ]) {
+      await expect(footer).toContainText(line);
+    }
+    await expect(footer.getByRole('link', { name: '개인정보 처리방침' })).toHaveAttribute(
+      'href',
+      '/meta/privacy',
+    );
+    await expect(footer.getByRole('link', { name: '서비스 이용약관' })).toHaveAttribute(
+      'href',
+      '/meta/term',
+    );
+  });
+
+  test('공연 상세 판매정보(A-2) — 굵은 문단 · 청약철회 제한 · ⑤ B18 확정본, 유료(PG)·v1 ⑤ 없음', async ({
+    page,
+  }) => {
+    await page.goto('/events/101');
+    const region = page.getByRole('region', { name: '판매정보' });
+    await region.getByRole('button', { name: '판매정보' }).click();
+    await expect(
+      region.locator('strong', {
+        hasText:
+          '두둥티켓은 호스트가 공연 상세에 별도의 취소·환불 기준(예: 공연 당일 환불 불가)을 안내한 경우, 구매자가 예매를 취소할 때의 환불은 그 기준이 아래 내용보다 우선합니다.',
+      }),
+    ).toBeVisible();
+    await expect(region).toContainText(
+      '공연은 시작과 함께 상품 가치가 소멸하므로, 공연 시작 이후에는 취소와 환불이 어렵습니다.',
+    );
+    await expect(region).toContainText(
+      '두둥티켓은 입금한 뒤 호스트가 승인하기 전에도 공연 시작 전까지 예매를 취소할 수 있습니다. 두둥은 입금 여부를 확인하지 않으므로, 이미 입금했다면 취소할 때 입력한 환불 계좌로 호스트가 환불합니다.',
+    );
+    await expect(region).not.toContainText('승인 전에는 앱에서 취소할 수 없습니다');
+    await expect(region).not.toContainText('두둥이 제공하는 결제 서비스로 결제');
+  });
+
+  test('체크아웃 하단 바 — 중개자 문장(A-5)이 동의 줄 위에', async ({ page }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/events/101/checkout?ticketItemId=501&quantity=1');
+    await expect(
+      page.getByText(
+        '두둥은 통신판매중개자로서 공연의 당사자가 아니며, 공연에 관한 의무와 책임은 호스트에게 있습니다.',
+      ),
+    ).toBeVisible();
+  });
+
+  test('마이페이지 알림 설정(B-6) — 켜면 처리 결과 통지(B-7), 끄면 거부 통지', async ({ page }) => {
+    resetMeStore();
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/mypage');
+    const toggle = page.getByRole('switch', { name: '이벤트·혜택 정보 받기' });
+    await expect(toggle).not.toBeChecked();
+    await expect(page.getByText('예매·취소·환불 안내는 설정과 관계없이 보내드려요.')).toBeVisible();
+    await toggle.click();
+    await expect(
+      page.getByText(/^마케팅 정보 수신에 동의했어요 \(\d{4}\.\d{2}\.\d{2}, 두둥\)$/),
+    ).toBeVisible();
+    await expect(toggle).toBeChecked();
+    await toggle.click();
+    await expect(
+      page.getByText(/^마케팅 정보 수신을 거부했어요 \(\d{4}\.\d{2}\.\d{2}, 두둥\)$/),
+    ).toBeVisible();
+    await expect(toggle).not.toBeChecked();
+  });
+
+  test('마이페이지 알림 설정 — 실패하면 B-7 실패 문구, 토글은 원래 값', async ({
+    page,
+    mockApi,
+  }) => {
+    resetMeStore();
+    await setMockSession(page, 'loggedIn');
+    mockApi.use(http.patch('*/api/v2/me', ({ request }) => errors.serverError(request)));
+    await page.goto('/mypage');
+    const toggle = page.getByRole('switch', { name: '이벤트·혜택 정보 받기' });
+    await toggle.click();
+    await expect(
+      page.getByText('설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요.'),
+    ).toBeVisible();
+    await expect(toggle).not.toBeChecked();
   });
 });

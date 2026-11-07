@@ -6,7 +6,6 @@ import { resetMeStore } from '../../src/api/__mocks__/me.handlers';
 import { orderHandlers, resetOrderStore } from '../../src/api/__mocks__/order.handlers';
 import { MOCK_S3_ORIGIN } from '../../src/api/__mocks__/upload-handlers';
 import { userHandlers } from '../../src/api/__mocks__/user.handlers';
-import { isPreApprovalCancelTermsEffective } from '../../src/api/shared/agreement';
 import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
@@ -265,21 +264,13 @@ scenario(
         await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
       },
     );
-    // 승인 전 취소 안내(⑤-b, 백엔드 #897 확정 문구)는 개정 약관 제27조③ 시행(2026-11-07 KST) 뒤에만 보인다
-    const effective = isPreApprovalCancelTermsEffective();
-    await step(
-      effective
-        ? '아래 예매취소 안내에 승인 전 취소 문구(⑤-b)가 있다'
-        : '개정 약관 시행(2026-11-07) 전이라 예매취소 안내에 승인 전 취소 문구(⑤-b)가 없다',
-      async () => {
-        const notice = page.getByRole('region', { name: '예매취소 안내' });
-        await notice.scrollIntoViewIfNeeded();
-        await expect(notice).toContainText('두둥티켓은 호스트 계좌로 입금한 티켓이라');
-        const preApproval = notice.getByText('아직 호스트가 승인하기 전이에요');
-        if (effective) await expect(preApproval).toBeVisible();
-        else await expect(preApproval).toHaveCount(0);
-      },
-    );
+    // 승인 전 취소 안내(⑤-b, 백엔드 #897 확정 문구) — 개정 약관 제27조③ 2026-11-07 시행
+    await step('아래 예매취소 안내에 승인 전 취소 문구(⑤-b)가 있다', async () => {
+      const notice = page.getByRole('region', { name: '예매취소 안내' });
+      await notice.scrollIntoViewIfNeeded();
+      await expect(notice).toContainText('두둥티켓은 호스트 계좌로 입금한 티켓이라');
+      await expect(notice.getByText('아직 호스트가 승인하기 전이에요')).toBeVisible();
+    });
   },
 );
 
@@ -610,6 +601,81 @@ scenario(
         page.getByTestId('archive-event').filter({ hasText: '여름밤 재즈' }),
       ).toHaveCount(0);
       await expect(page.getByTestId('archive-event').first()).toContainText('2025.');
+    });
+  },
+);
+
+// ─── 알림 설정(마케팅 수신 — legal-copy B-6 · B-7, v1-additions E-1, 디자인 없음 Q153) ───
+
+scenario(
+  'MY-18',
+  '알림 설정 — 켜고 끄면 처리 결과 토스트(전송자 · 일자 · 처리 내용)',
+  {
+    kind: '정상',
+    summary:
+      '처리방침 10장① 언제든 철회 · 정보통신망법 제50조⑧ 처리 결과 통지. PM-2 `{marketingAgree}` 값 지정, 성공 응답으로 토글이 바뀐다.',
+    basis: [
+      'legal-copy B-6 · B-7',
+      'v1-additions E-1',
+      'plan P9 마케팅 수신 설정',
+      'design-requests Q153',
+    ],
+  },
+  async ({ page, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/mypage');
+    const toggle = page.getByRole('switch', { name: '이벤트·혜택 정보 받기' });
+    await step('"알림 설정" — 꺼진 토글 · 거래 안내는 설정과 무관하다는 줄', async () => {
+      await toggle.scrollIntoViewIfNeeded();
+      await expect(toggle).not.toBeChecked();
+      await expect(
+        page.getByText('예매·취소·환불 안내는 설정과 관계없이 보내드려요.'),
+      ).toBeVisible();
+    });
+    await step('켜면 "마케팅 정보 수신에 동의했어요 (YYYY.MM.DD, 두둥)"', async () => {
+      await toggle.click();
+      await expect(
+        page.getByText(/마케팅 정보 수신에 동의했어요 \(\d{4}\.\d{2}\.\d{2}, 두둥\)/),
+      ).toBeVisible();
+      await expect(toggle).toBeChecked();
+    });
+    await step('끄면 "마케팅 정보 수신을 거부했어요 (…)"', async () => {
+      await toggle.click();
+      await expect(
+        page.getByText(/마케팅 정보 수신을 거부했어요 \(\d{4}\.\d{2}\.\d{2}, 두둥\)/),
+      ).toBeVisible();
+      await expect(toggle).not.toBeChecked();
+    });
+  },
+);
+
+scenario(
+  'MY-19',
+  '알림 설정 — 바꾸지 못하면 실패 문구, 토글은 원래 값',
+  {
+    kind: '에러',
+    summary:
+      'PM-2 5xx → "설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요." 낙관 갱신이 없어 토글은 꺼진 그대로.',
+    basis: ['legal-copy B-7', 'v1-additions E-1'],
+  },
+  async ({ page, mockApi, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    mockApi.use(
+      http.patch('*/api/v2/me', () =>
+        HttpResponse.json(envelope.error(500, 'GLOBAL_500_1', '서버 오류'), { status: 500 }),
+      ),
+    );
+    await page.goto('/mypage');
+    const toggle = page.getByRole('switch', { name: '이벤트·혜택 정보 받기' });
+    await step('토글을 누르면 실패 문구, 토글은 꺼진 그대로', async () => {
+      await toggle.scrollIntoViewIfNeeded();
+      await toggle.click();
+      await expect(
+        page.getByText('설정을 바꾸지 못했어요. 잠시 후 다시 시도해주세요.'),
+      ).toBeVisible();
+      await expect(toggle).not.toBeChecked();
     });
   },
 );

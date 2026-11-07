@@ -370,3 +370,36 @@ scenario(
     }
   },
 );
+
+scenario(
+  'EVT-11',
+  '판매정보 — 섹션 탭 아래 접힌 행을 펼치면 티켓 종류 · 수령 · 환불 안내(굵은 문단 · 청약철회 제한)',
+  {
+    kind: '정상',
+    summary:
+      '약관 제19조③(호스트 환불 기준 우선 굵은 문단) · 제27조②(청약철회 제한). ⑤는 B18 확정본(2026-11-07 시행), 유료(PG) 항목 없음. 디자인 없음(Q152).',
+    basis: ['legal-copy A-2 · B18 확정 문구', 'v1-additions C-4 · C-5', 'design-requests Q152'],
+  },
+  async ({ page, step }) => {
+    await page.goto('/events/101');
+    const region = page.getByRole('region', { name: '판매정보' });
+    await step('처음에는 접혀 있다', async () => {
+      await region.scrollIntoViewIfNeeded();
+      await expect(region.getByRole('button', { name: '판매정보' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+    });
+    await step('펼치면 소제목 세 개 · 굵은 문단 · ⑤ 승인 전 취소 안내', async () => {
+      await region.getByRole('button', { name: '판매정보' }).click();
+      for (const h of ['두둥 서비스 티켓 종류 안내', '티켓 수령 안내', '티켓 환불 안내']) {
+        await expect(region.getByRole('heading', { name: h })).toBeVisible();
+      }
+      await expect(region.locator('strong').first()).toContainText(
+        '그 기준이 아래 내용보다 우선합니다.',
+      );
+      await expect(region).toContainText('두둥티켓은 입금한 뒤 호스트가 승인하기 전에도');
+      await expect(region).not.toContainText('두둥이 제공하는 결제 서비스로 결제');
+    });
+  },
+);
