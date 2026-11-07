@@ -16,7 +16,7 @@
 >
 > **2026-11-03 갱신(`p13a-gui-guests`)**: 지금 판(버전 `2416898429564738752`, 2026-11-01T15:47Z)을 19:15Z 판과 비교했다 — 컴포넌트 변화는 `ic_favorite` filled 24 하나(쓰는 화면 없음 — 반영 대기). 이슈 #61 Filter Chip 개수형(예매자 관리 GUI가 Ready가 되어 **반영함** — `CountFilterChip`) · #109 Search Field placeholder 띄어쓰기 "검색어를 입력해 주세요"(글자만 — `ds_diff`가 잡지 않아 노드 글자로 확인, **반영함** — `SearchField` 기본 placeholder). 표는 GUI 예매자 관리 표(직접 그린 상자)로 `DataTable` 모양을 맞췄다. §8.
 >
-> **2026-11-07 갱신(`ds-sync-1107`)**: 지금 판(버전 `2419085329203428681`, 2026-11-07T13:35Z)을 11-01T15:47Z 판과 비교했다 — 이슈 없음. 컴포넌트 변화는 아이콘뿐: ic_v2 새 세트 `ic_gift_waiting` · `ic_gift_done` filled 24(예매자 관리 GUI가 씀 — **반영함**, Q174 닫음) · `ic_add host` · `ic_add concert` outline 24(새로 Ready가 된 GUI 햄버거 드로어만 씀 — 반영 대기), `ic_gift` filled 채움이 변수에 묶임(그림 같음). 텍스트 스타일은 REST로 값까지 같음, 변수는 Desktop Bridge가 없어 **확인 못 함**. §8.
+> **2026-11-07 갱신(`ds-sync-1107`)**: 지금 판(버전 `2419085329203428681`, 2026-11-07T13:35Z)을 11-01T15:47Z 판과 비교했다 — 이슈 없음. 컴포넌트 변화는 아이콘뿐: ic_v2 새 세트 `ic_gift_waiting` · `ic_gift_done` filled 24(예매자 관리 GUI가 씀 — **반영함**, Q174 닫음) · `ic_add host` · `ic_add concert` outline 24(새로 Ready가 된 GUI 햄버거 드로어만 씀 — 반영 대기 → **반영함(#169)**), `ic_gift` filled 채움이 변수에 묶임(그림 같음). 텍스트 스타일은 REST로 값까지 같음, 변수는 Desktop Bridge가 없어 **확인 못 함**. §8.
 >
 > 같은 PR에서 그 뒤 판(`2419099227210134517`, 14:23Z — 공개 14:23:00Z)도 비교했다: `tag_v2` 72변형의 패딩이 변수에 묶였고 small 좌우 10 → 8(`Space/2`) — 코드는 이미 8이라 주석만(§7 TODO 닫음). §8.
 >
@@ -661,7 +661,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | 영역 | 바뀐 것 | 쓰는 GUI 화면 | 분기 · 코드 |
 |---|---|---|---|
 | `ic_gift_waiting`(`811:20`) · `ic_gift_done`(`811:60`) | ic_v2 새 세트, filled 24 하나씩(`811:32` · `811:68`). 대기 = 선물 상자 + 점 셋(채움 `Neutral 300` #B8B7B3) · 받음 = 선물 상자 + 체크(#141413, 숨긴 초록 레이어) | 예매자 관리(**GUI 구현됨**) — 선물 티켓 `1182:9618` · `1182:9802`, 티켓 상세 `1182:10057` · `1182:10514` · `1182:10284` · `1182:10899`의 8곳(모두 16으로 줄인 인스턴스) | **반영함** — `src/ui/icons/svg/gift-waiting-filled-24.svg` · `gift-done-filled-24.svg`(단색 → `currentColor`, 87개 60종). `GiftIcon`이 상태별로 두 아이콘을 쓴다(16으로 그림, 색은 그대로 text tertiary · text primary). Q174 닫음. 스토리 `Icon/AddedIn20261107` |
-| `ic_add host`(`805:1167`) · `ic_add concert`(`805:1182`) | 새 세트, outline 24 하나씩(사람 · 음표 + 오른쪽 위 ＋) | GUI 햄버거바 `1047:19428`(로그인) · `1174:15071`(미로그인) — **이번 판에서 Ready**지만 관객 셸 드로어는 "와이어로 구현됨"(Q131) | **반영 대기** — 드로어 GUI 반영 때 넣는다. 잉크가 `#141413`과 `black` 두 값이라 내보내면 다색으로 잡힌다 — 넣을 때 `black`을 `#141413`으로 맞춘다 |
+| `ic_add host`(`805:1167`) · `ic_add concert`(`805:1182`) | 새 세트, outline 24 하나씩(사람 · 음표 + 오른쪽 위 ＋) | GUI 햄버거바 `1047:19428`(로그인) · `1174:15071`(미로그인) — 이번 판에서 Ready, 드로어 GUI 구현됨(#169) | **반영함(#169)** — `src/ui/icons/svg/add-{host,concert}-outline-24.svg`(잉크 `black`을 `#141413`으로 맞춰 단색 → currentColor), 드로어 새 호스트 · 새 공연 만들기가 씀 |
 | `ic_gift` filled 24(`739:1928`) | 채움 `#000000` → `text/primary-label`(#141413, 변수) | 티켓페이지 선물 · 알림함 | 없음 — 코드는 이미 `currentColor` |
 | 페이지 ┗ Icons | 최상위 노드 23 → 19 — 컴포넌트 아닌 프레임 `Frame 1707480211`(`422:652`) · `Icon`(`321:1558`) · `icon/chevron-down` 둘(`198:1511` · `198:1536`) 삭제 | — | 없음 |
 

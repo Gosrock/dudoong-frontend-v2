@@ -3,6 +3,8 @@
 
 export type IconName =
   | 'add'
+  | 'add-concert'
+  | 'add-host'
   | 'archiving'
   | 'backward'
   | 'blank'
@@ -68,6 +70,8 @@ export type IconSize = 12 | 16 | 20 | 24;
 
 /** Figma에 있는 (name, variant, size) 조합만 허용한다. variant 기본값 'outline', size 기본값 24. */
 export type IconSpec =
+  | { name: 'add-concert'; variant?: 'outline'; size?: 24 }
+  | { name: 'add-host'; variant?: 'outline'; size?: 24 }
   | { name: 'add'; variant?: 'outline'; size: 12 }
   | { name: 'add'; variant?: 'outline'; size?: 24 }
   | { name: 'archiving'; variant?: 'outline'; size?: 24 }
@@ -166,6 +170,14 @@ export type IconEntry = {
 };
 
 export const icons: Record<string, IconEntry> = {
+  'add-concert/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<g clip-path="url(#add-concert-outline-24-clip0_805_1183)"><path d="M19 7V5H17C16.4477 5 16 4.55228 16 4C16 3.44772 16.4477 3 17 3H19V1C19 0.447715 19.4477 0 20 0C20.5523 0 21 0.447715 21 1V3H23C23.5523 3 24 3.44772 24 4C24 4.55228 23.5523 5 23 5H21V7C21 7.55229 20.5523 8 20 8C19.4477 8 19 7.55229 19 7Z" fill="currentColor"/><path d="M15.8359 6.51367C16.1258 6.46546 16.4223 6.54737 16.6465 6.7373C16.8706 6.9273 17 7.2062 17 7.5V17.5L16.9951 17.6797C16.9014 19.529 15.3726 21 13.5 21C11.5671 21 10.0001 19.4329 10 17.5C10 15.567 11.567 14 13.5 14C14.0367 14 14.5454 14.12 15 14.3359V11.6807L8 12.8467V18.5C7.99986 20.4329 6.43291 22 4.5 22C2.56709 22 1.00014 20.4329 1 18.5C1 16.567 2.567 15 4.5 15C5.0367 15 5.54543 15.12 6 15.3359V9C6 8.51118 6.35377 8.09405 6.83594 8.01367L15.8359 6.51367ZM4.5 17C3.67157 17 3 17.6716 3 18.5C3.00014 19.3283 3.67166 20 4.5 20C5.32834 20 5.99986 19.3283 6 18.5C6 17.6716 5.32843 17 4.5 17ZM13.5 16C12.6716 16 12 16.6716 12 17.5C12.0001 18.3283 12.6717 19 13.5 19C14.3283 19 14.9999 18.3283 15 17.5C15 16.6716 14.3284 16 13.5 16ZM8 9.84668V10.8193L15 9.65332V8.68066L8 9.84668Z" fill="currentColor"/></g><defs><clipPath id="add-concert-outline-24-clip0_805_1183"><rect width="24" height="24" fill="currentColor"/></clipPath></defs>',
+  },
+  'add-host/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<g clip-path="url(#add-host-outline-24-clip0_805_1168)"><path d="M19 7V5H17C16.4477 5 16 4.55228 16 4C16 3.44772 16.4477 3 17 3H19V1C19 0.447715 19.4477 0 20 0C20.5523 0 21 0.447715 21 1V3H23C23.5523 3 24 3.44772 24 4C24 4.55228 23.5523 5 23 5H21V7C21 7.55229 20.5523 8 20 8C19.4477 8 19 7.55229 19 7Z" fill="currentColor"/><path d="M14 9C14 6.79086 12.2091 5 10 5C7.79086 5 6 6.79086 6 9C6 11.2091 7.79086 13 10 13V15C6.68629 15 4 12.3137 4 9C4 5.68629 6.68629 3 10 3C13.3137 3 16 5.68629 16 9C16 12.3137 13.3137 15 10 15V13C12.2091 13 14 11.2091 14 9Z" fill="currentColor"/><path d="M17 21C17 17.8075 13.9956 15 10 15C6.0044 15 3 17.8075 3 21C3 21.5523 2.55228 22 2 22C1.44772 22 1 21.5523 1 21C1 16.4605 5.15904 13 10 13C14.841 13 19 16.4605 19 21C19 21.5523 18.5523 22 18 22C17.4477 22 17 21.5523 17 21Z" fill="currentColor"/></g><defs><clipPath id="add-host-outline-24-clip0_805_1168"><rect width="24" height="24" fill="currentColor"/></clipPath></defs>',
+  },
   'add/outline/12': {
     viewBox: '0 0 12 12',
     body: '<path d="M2.5 6H9.5M6 2.5V9.5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -527,6 +539,8 @@ export const icons: Record<string, IconEntry> = {
 };
 
 export const iconList = [
+  { name: 'add-concert', variant: 'outline', size: 24 },
+  { name: 'add-host', variant: 'outline', size: 24 },
   { name: 'add', variant: 'outline', size: 12 },
   { name: 'add', variant: 'outline', size: 24 },
   { name: 'archiving', variant: 'outline', size: 24 },

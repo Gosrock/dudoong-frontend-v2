@@ -1,7 +1,7 @@
 # 아이콘
 
 Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 세트 밖 낱개 `ic/ticket/filled/24`(`183:1130`)에서
-뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-07 판 기준 60종 87개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 5종·`link` 포함).
+뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-07 판 기준 62종 89개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 5종·`link` 포함, 새 세트 `ic_add host` · `ic_add concert` outline 24).
 `lucide-react`는 쓰지 않는다(`.claude/docs/design-system.md` §4). 라이선스 고지는 루트 `THIRD_PARTY_NOTICES.md`.
 
 ```tsx

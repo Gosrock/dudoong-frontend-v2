@@ -101,7 +101,7 @@ describe('로그인 화면 마크업(훅 상태를 그대로 보여 준다)', ()
     server.use(...authHandlers.kakaoLinkServerError);
     const { user } = renderWithProviders(<LoginView />);
     expect(screen.getByRole('heading', { name: '로그인' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: '카카오 로그인/회원가입' }));
+    await user.click(screen.getByRole('button', { name: '카카오 로그인하기' }));
     await waitFor(() =>
       expect(screen.getByRole('alert')).toHaveTextContent(
         '로그인하지 못했어요. 다시 시도해 주세요.',
@@ -114,6 +114,6 @@ describe('로그인 화면 마크업(훅 상태를 그대로 보여 준다)', ()
     search.value = new URLSearchParams();
     renderWithProviders(<LoginView expired />);
     expect(screen.getByRole('heading', { name: '로그인이 만료됐어요' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '카카오 로그인/회원가입' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '카카오 로그인하기' })).toBeEnabled();
   });
 });
