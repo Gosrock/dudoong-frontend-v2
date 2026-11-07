@@ -3130,3 +3130,19 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest related 32 통과(`sortLabel` "최신순"). QA `mypage` 37/0(MY-4 · MY-6 · MY-14 · MY-17 고침). e2e `mypage` · `a11y` · `a11y-keyboard` · `legacy-urls` · `legal` · `checkout` · `notifications` 230/0(건너뜀 38).
 
 **ego-browser 확인(2026-11-07, dev:mock 3121 · `localhost`)**: `/orders` · `/orders/<승인대기 옵션 주문>` · 선물 대기 주문 · 입금 미확인 거절 주문 · `/mypage/following` 390 · 1440. 발견: 티켓 · 수량 두 줄이 한 줄로 붙음(Txt가 inline) → 세로 Flex로 고침. 주문 일시 · "입금 미확인" 값이 노드라 InfoRow 글자 모양을 못 받음(브랜드 색 · 큰 글자) → Txt로 색 · 크기 지정. 예매번호 값도 같은 이유로 커 보여 같이 고침.
+
+## 디자인 시스템 11-07 판 반영 — 선물 아이콘(2026-11-07, `ds-sync-1107` #166)
+
+근거: 디자인 시스템 판 `2416898429564738752`(11-01T15:47Z) → `2419085329203428681`(11-07T13:35Z), `Design: 디자인 시스템` 이슈 없음(관제탑이 판 비교로 찾음). `ds_diff.py` — 바뀐 것은 아이콘뿐(design-system §8 "2026-11-07 — … `ds-sync-1107`"). 쓰는 곳은 GUI 파일 지금 판(`2419089267708529753`, 11-07T14:18Z)을 REST로 훑었다.
+
+- **반영**: ic_v2 새 세트 `ic_gift_waiting` · `ic_gift_done` filled 24 → `src/ui/icons/svg/gift-waiting-filled-24.svg` · `gift-done-filled-24.svg`, `registry.ts` 다시 생성(87개 60종, 둘 다 단색 → `currentColor`). `GiftIcon`(예매자 관리 표 · 상세 · 주문 상세 발급 티켓 카드)이 `gift` filled 대신 상태별 DS 아이콘을 쓴다 — 크기 16 · 색(대기 text tertiary · 받음 text primary)은 그대로, FIGMA-CUSTOM 주석 지움. Q174 닫음. 스토리 `Icon/AddedIn20261107`(24 · 16, play로 4개 · viewBox 확인). `src/ui/icons/README.md` 절차에 두 노드를 더함.
+- **반영 대기**: `ic_add host` · `ic_add concert` outline 24 — 이번 GUI 판에서 Ready가 된 햄버거 드로어(`1047:19428` · `1174:15071`)만 쓰는데 관객 셸 드로어는 "와이어로 구현됨"(Q131). gui-screens §0 관객 셸 줄에 Ready가 된 것을 적어 둠.
+- **PR 직전 다시 본 판**(`2419099227210134517`, 14:23Z): `tag_v2` small 좌우 10 → 8(`Space/2`), large 패딩이 변수로(숫자 그대로). 코드 `Chip`은 2026-10-31부터 8이라 모양은 그대로 — `Chip.css.ts` TODO · 주석과 design-system §7 TODO를 닫음. 기준 판을 14:23Z로 올림.
+- **코드 영향 없음**: `ic_gift` filled 채움이 변수에 묶임(코드는 이미 `currentColor`) · Icons 페이지의 컴포넌트 아닌 프레임 4개 삭제.
+- **확인 못 함**: 변수 값 — REST 403, Desktop Bridge 연결 없음. 텍스트 스타일 29개는 REST 노드로 두 판 값을 대조해 같음.
+
+**🤖 판단**: ① `ic_add *`는 SVG만 넣으면 끝나는 일이지만 분기 규칙(사용자 결정 2026-11-01 — `GUI 구현됨` 화면이 쓸 때만 반영)대로 반영 대기(되돌리기: README 절차로 `805:1168` · `805:1183`을 내보내 `black`을 `#141413`으로 맞추고 `generate.mjs`) ② GUI 인스턴스가 24 원본을 16으로 줄여 쓰므로 코드도 24 그림을 CSS 16으로 그린다(16 변형을 따로 만들지 않음).
+
+**검사**: typecheck · 바꾼 파일 lint · prettier 통과. vitest related 257/0, 스토리 `Icon.stories` 6/0. QA `hosting-guests` 35/0 · 수동 1(빌드가 webServer 240초를 넘겨 한 번 시간 초과 — 같은 env로 따로 빌드한 뒤 `E2E_SKIP_BUILD=1`). e2e `hosting-guests` · `a11y` 131/0.
+
+**ego-browser 확인(2026-11-07, Storybook 6125 · `localhost`)**: `Icon/AddedIn20261107` 390 · 1440 — 대기 회색 상자 + 점 셋 · 받음 검정 상자 + 체크, 24 · 16 모두 DS PNG(`811:32` · `811:68`)와 같음. `Icon/Gallery` 1440 — svg 87개. QA 캡처 `HG-17` 모바일과 GUI `1182:9618` 나란히 — 표 티켓 칸 아이콘 모양 · 색 같음.
