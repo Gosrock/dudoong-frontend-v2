@@ -3178,7 +3178,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(2026-11-08, dev:mock 3135 · `localhost`)**: `/` 390 · 1440 — 히어로 판 계산 색 rgb(91,133,255), 1440에서 양옆 바탕과 그림 가장자리가 이어짐. `/tickets`(로그인 mock) 390 · 1440 — 공지 바 rgb(32,32,32), Figma `939:29784` 내보내기와 나란히 봐 같음. 발견 · 처리 없음.
 
-## Figma 동일화 M-2 — DS 컴포넌트 기본값 · R1a · R1b(2026-11-08, `fm-ds-components` #M2PR)
+## Figma 동일화 M-2 — DS 컴포넌트 기본값 · R1a · R1b(2026-11-08, `fm-ds-components` #171)
 
 근거: [`figma-deviations-2026-11-07.md`](./figma-deviations-2026-11-07.md) §3-2 · §3-3 · §4 `fm-ds-components` 줄. 근거 프레임(`712:1646` · `745:32726` · `727:23210` · `767:50048` · `748:33451` 등 17장)이 지금 GUI 파일에서 모두 Ready인지 `figma_nodes.py ready`로 다시 확인. 값은 DS 메인(REST) **과 Ready 화면 인스턴스(REST)를 같이** 쟀다.
 
