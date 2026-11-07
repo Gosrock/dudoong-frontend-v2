@@ -54,7 +54,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '주문 건수(승인 대기 2 · 승인 완료 2 · 승인 거절 2 · 환불 요청 3), 판매 장수 · 총액, 입장 1/3(분모 = 발급 수). PC는 우측 일정 패널(주간 줄 + 단계).',
+      '주문 건수(승인 대기 2 · 승인 완료 2 · 승인 거절 3 · 환불 요청 3), 판매 장수 · 총액, 입장 1/3(분모 = 발급 수). PC는 우측 일정 패널(주간 줄 + 단계).',
     basis: [
       'plan P13a 완료 기준 V(주문·티켓·판매금액)',
       'GUI 669:2787 · 712:1646',
@@ -67,7 +67,7 @@ scenario(
       await page.goto('/hosting/events/101/dashboard');
       await expect(page.getByTestId('stat-pendingApprove')).toContainText('2건');
       await expect(page.getByTestId('stat-approved')).toContainText('2건');
-      await expect(page.getByTestId('stat-refused')).toContainText('2건');
+      await expect(page.getByTestId('stat-refused')).toContainText('3건');
       await expect(page.getByTestId('stat-refundRequested')).toContainText('3건');
     });
     await step(
@@ -171,15 +171,15 @@ scenario(
     await setUp(page, testInfo);
     await step('예매자 관리를 열면 주문 9건과 상태 칩 건수가 보인다', async () => {
       await page.goto(GUESTS);
-      await expect(page.getByTestId('order-row')).toHaveCount(9);
-      await expect(page.getByTestId('status-ALL')).toHaveText('전체 9');
+      await expect(page.getByTestId('order-row')).toHaveCount(10);
+      await expect(page.getByTestId('status-ALL')).toHaveText('전체 10');
       await expect(page.getByTestId('status-PENDING_APPROVE')).toHaveText('승인 대기 2');
     });
     await step('승인 대기 칩을 누르면 승인 대기 주문만 남는다', async () => {
       await page.getByTestId('status-PENDING_APPROVE').click();
       await expect(page.getByTestId('order-row')).toHaveCount(2);
       await page.getByTestId('status-ALL').click();
-      await expect(page.getByTestId('order-row')).toHaveCount(9);
+      await expect(page.getByTestId('order-row')).toHaveCount(10);
     });
     await step(
       '환불 요청 주문 행을 누르면 상세가 열리고 환불 계좌 · 계좌 수정일이 보인다',
@@ -406,7 +406,7 @@ scenario(
       await expect(page.getByTestId('refund-filter-ALL')).toHaveText('전체 4');
       await expect(page.getByTestId('refund-filter-REQUESTED')).toHaveText('환불 요청 3');
       await expect(
-        page.getByTestId('refund-row').filter({ hasText: '한도윤' }).getByTestId('refund-status'),
+        page.getByTestId('refund-row').filter({ hasText: '강지우' }).getByTestId('refund-status'),
       ).toHaveText('계좌 입력 전');
       if (isDesktop(testInfo)) {
         await expect(page.getByRole('columnheader', { name: '주문 일시' })).toBeVisible();
@@ -429,7 +429,7 @@ scenario(
       expect((await download).suggestedFilename()).toBe('refunds-101.xlsx');
     });
     await step('계좌 입력 전 주문 상세는 안내 문구와 비활성 [환불 완료]', async () => {
-      await page.getByTestId('refund-row').filter({ hasText: '한도윤' }).click();
+      await page.getByTestId('refund-row').filter({ hasText: '강지우' }).click();
       await expect(detail(page).getByTestId('refund-no-account')).toHaveText(
         '예매자가 아직 환불 계좌를 입력하지 않았어요.',
       );
@@ -471,7 +471,7 @@ scenario(
     actAsRole(11, 'GUEST');
     await step('일반 멤버로 열면 엑셀 버튼 · 체크박스 · 행 [승인]이 없다', async () => {
       await page.goto(GUESTS);
-      await expect(page.getByTestId('order-row')).toHaveCount(9);
+      await expect(page.getByTestId('order-row')).toHaveCount(10);
       await expect(page.getByRole('button', { name: '주문 엑셀로 다운로드' })).toHaveCount(0);
       await expect(page.getByRole('checkbox', { name: /주문 선택/ })).toHaveCount(0);
       await expect(page.getByRole('button', { name: '승인', exact: true })).toHaveCount(0);
@@ -510,7 +510,7 @@ scenario(
     await setUp(page, testInfo);
     await step('[엑셀로 다운로드]를 누르면 orders-101.xlsx를 받는다', async () => {
       await page.goto(GUESTS);
-      await expect(page.getByTestId('order-row')).toHaveCount(9);
+      await expect(page.getByTestId('order-row')).toHaveCount(10);
       const download = page.waitForEvent('download');
       await page.getByRole('button', { name: '주문 엑셀로 다운로드' }).click();
       expect((await download).suggestedFilename()).toBe('orders-101.xlsx');
@@ -659,6 +659,44 @@ scenario(
       await expect(detail(page).getByTestId('detail-canceled-by')).toHaveText('호스트');
       await page.goto(`${GUESTS}?order=${GUEST_ORDER.userRefunded}`);
       await expect(detail(page).getByTestId('detail-canceled-by')).toHaveText('예매자');
+    });
+  },
+);
+
+scenario(
+  'HG-20',
+  '승인 거절 상세 — 입금 미확인 거절은 환불 없음, 환불 완료는 계좌 · 환불 완료일',
+  {
+    kind: '정상',
+    summary:
+      '입금 미확인 거절(GUI 1029:8322)은 받은 돈이 없어 환불 요청이 생기지 않는다(B35) — 상세에 환불 칩 · 환불 정보가 없고 환불 탭에도 없다. 환불 완료(1029:8733)는 구매자가 넣은 계좌로 보낸 뒤라 계좌와 환불 완료일이 보이고 "계좌 입력 전" 안내가 없다(mock 101-e · 101-f, I-h7).',
+    basis: [
+      'GUI 1029:8322 · 1029:8733 · 1029:8117',
+      '백엔드 #929 B35',
+      'figma-audit 호스팅 후보 ⑧',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('입금 미확인 거절 상세에는 환불 칩 · 환불 정보가 없다', async () => {
+      await page.goto(`${GUESTS}?order=${GUEST_ORDER.refusedDeposit}`);
+      await expect(detail(page).getByTestId('detail-status')).toHaveText('승인 거절');
+      await expect(detail(page)).toContainText('입금 미확인');
+      await expect(detail(page).getByTestId('detail-refund-status')).toHaveCount(0);
+      await expect(detail(page).getByTestId('refund-account')).toHaveCount(0);
+      await expect(detail(page).getByRole('button', { name: '환불 완료' })).toHaveCount(0);
+    });
+    await step('환불 완료 주문 상세에는 계좌와 환불 완료일이 보이고 계좌 안내가 없다', async () => {
+      await page.goto(`${GUESTS}?order=${GUEST_ORDER.refusedEtc}`);
+      await expect(detail(page).getByTestId('detail-refund-status')).toHaveText('환불 완료');
+      await expect(detail(page).getByTestId('refund-account')).toContainText('우리은행');
+      await expect(detail(page).getByTestId('refund-completed-at')).not.toHaveText('—');
+      await expect(detail(page).getByTestId('refund-no-account')).toHaveCount(0);
+    });
+    await step('환불 탭에는 입금 미확인 거절 주문(한도윤)이 없다', async () => {
+      await page.goto(`${GUESTS}?tab=refunds`);
+      await expect(page.getByTestId('refund-row')).toHaveCount(4);
+      await expect(page.getByTestId('refund-row').filter({ hasText: '한도윤' })).toHaveCount(0);
     });
   },
 );

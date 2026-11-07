@@ -100,10 +100,10 @@ describe('주문 상세(GR-2) · 승인(PR-3)', () => {
     await loaded(result);
     expect(actionKeys(result)).toEqual(['approve:on', 'refuse:on']);
     expect(result.current.list.statusTabs.map((t) => [t.key, t.count])).toEqual([
-      ['ALL', 9],
+      ['ALL', 10],
       ['PENDING_APPROVE', 2],
       ['APPROVED', 2],
-      ['REFUSED', 2],
+      ['REFUSED', 3],
       ['CANCELED', 2],
     ]);
     const sent = recordRequests();

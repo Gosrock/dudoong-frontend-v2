@@ -10,6 +10,7 @@ import { Radio, RadioGroup } from '@/ui/components/Radio/Radio';
 import { Txt } from '@/ui/primitives/Txt';
 
 import type { OptionFormErrors, OptionFormValues } from '../model/option-form';
+import { MoneyInput } from './MoneyInput';
 import * as s from './OptionSheets.css';
 import { ToggleSection } from './TicketParts';
 import { dimmed as partsDimmed } from './TicketParts.css';
@@ -118,15 +119,14 @@ export function OptionFields({
           }}
         >
           {showPriceInput && (
-            <Input
+            <MoneyInput
               aria-label="'네' 추가 금액"
               className={s.price}
-              inputMode="numeric"
               placeholder="1,000"
               trailing="원"
               value={values.yesAdditionalPrice}
               disabled={priceLocked}
-              onChange={(e) => setPrice?.(e.target.value.replace(/[^\d]/g, ''))}
+              onValueChange={setPrice}
               error={errors.yesAdditionalPrice}
             />
           )}
