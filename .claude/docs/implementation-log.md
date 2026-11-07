@@ -3146,3 +3146,18 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · prettier 통과. vitest related 257/0, 스토리 `Icon.stories` 6/0. QA `hosting-guests` 35/0 · 수동 1(빌드가 webServer 240초를 넘겨 한 번 시간 초과 — 같은 env로 따로 빌드한 뒤 `E2E_SKIP_BUILD=1`). e2e `hosting-guests` · `a11y` 131/0.
 
 **ego-browser 확인(2026-11-07, Storybook 6125 · `localhost`)**: `Icon/AddedIn20261107` 390 · 1440 — 대기 회색 상자 + 점 셋 · 받음 검정 상자 + 체크, 24 · 16 모두 DS PNG(`811:32` · `811:68`)와 같음. `Icon/Gallery` 1440 — svg 87개. QA 캡처 `HG-17` 모바일과 GUI `1182:9618` 나란히 — 표 티켓 칸 아이콘 모양 · 색 같음.
+
+## Figma 동일화 M-3 — 관객 화면 값(2026-11-08, `fm-audience` #PR-M3)
+
+근거: `figma-deviations-2026-11-07.md` §3-4 U3 · U14(판정 맞춤 — 값 그대로), GUI 판 `2419107657661780989`(11-07T14:52Z). `figma_nodes.py ready --contains`로 `759:22391` · `908:3276` 모두 Ready 안 — 근거 그대로.
+
+- **U3 공연홈 히어로 바탕**: 원시 색 `blue300` #5B8FF5 → Figma `759:22587` "Rectangle 14930" 값 #5B85FF(변수 없음) 그대로. 600 이상에서 그림 양옆을 채우는 색도 같은 값이라 그림 가장자리와 이어진다. 넓은 화면 배치는 여전히 디자인 없음(Figma 코멘트 `1989724411` 열어 둠).
+- **U14 티켓탭 공지 바**: `surface.inverseHover`(Neutral 700 #232220) → Figma #202020(공지 바 `939:29784` 외 13곳 모두 같은 직접 값). **이웃 카드 #DDDCDA는 고치지 않음** — REST로 다시 보니 `908:11562` 등 10곳이 변수에 묶여 있고 값이 Neutral 200 = 코드 `interaction.disabled`와 같다(분류표의 "직접 값"은 공지 바에만 맞음 — 분류표 줄을 바로잡음).
+- 토큰은 더하지 않았다 — 화면 css 상수(`HERO_BG` · `NOTICE_BG`) + `FIGMA-CUSTOM:` "Figma대로". design-system §1 "화면이 직접 값을 쓰는 곳" 표, 2단계 후보.
+- 추가 줄 점검: §3-4에서 맞춤은 U3 · U14뿐. §3-1 · §3-2 맞춤 줄도 모두 §4 작업 줄(`fm-ds-overlays` · `fm-ds-components`)에 들어가 있다(A25는 진행 중) — 이 세션이 더 고칠 줄 없음.
+
+**Figma 코멘트**: `1989724411`(공연홈 히어로 — 넓은 화면, "Blue 300으로 채움")에 "[개발 · 고침 2026-11-08] Figma대로 맞췄습니다" 답글(`1998987956`). 공지 바 색에 걸린 개발 코멘트는 없다.
+
+**검사**: typecheck · 바꾼 파일 lint 통과, vitest related 해당 없음. QA `home` · `tickets`, e2e `home` · `tickets` — PR 본문.
+
+**ego-browser 확인(2026-11-08, dev:mock 3135 · `localhost`)**: `/` 390 · 1440 — 히어로 판 계산 색 rgb(91,133,255), 1440에서 양옆 바탕과 그림 가장자리가 이어짐. `/tickets`(로그인 mock) 390 · 1440 — 공지 바 rgb(32,32,32), Figma `939:29784` 내보내기와 나란히 봐 같음. 발견 · 처리 없음.

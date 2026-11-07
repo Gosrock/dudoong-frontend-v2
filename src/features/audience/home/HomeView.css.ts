@@ -1,7 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
-import { colors } from '@/ui/theme/colors';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
@@ -17,14 +16,20 @@ export const main = style({
 });
 
 /**
+ * 히어로 뒤 사각형 색(GUI `759:22587` "Rectangle 14930" — #5B85FF 직접 값, 변수 없음).
+ * 토큰(Blue 300 #5B8FF5)과 달라 Figma 값 그대로 쓴다(figma-deviations-2026-11-07 U3).
+ */
+const HERO_BG = '#5b85ff';
+
+/**
  * 히어로(GUI `759:22590` 390×390 — 이미지 + 뒤 사각형). 모바일은 화면 폭 정사각, 600부터는 600 정사각을 가운데 두고
- * 양옆을 그림 바탕색과 가장 가까운 원시 색으로 채운다(PC 히어로는 디자인 없음 — Figma 코멘트).
+ * 양옆을 그림 바탕색으로 채운다(600 이상 넓은 배치는 디자인 없음 — Figma 코멘트).
  */
 export const hero = style({
   display: 'flex',
   justifyContent: 'center',
-  // FIGMA-CUSTOM: 히어로 뒤 사각형(gui 759:22587 "Rectangle 14930" #5B85FF, 변수 없음) 커스텀 → 원시 색 blue300(#5B8FF5) 반올림. DS 후보(design-system §3)
-  background: colors.blue300,
+  // FIGMA-CUSTOM: 히어로 뒤 사각형(gui 759:22587, 변수 없는 직접 값) → Figma대로 #5B85FF. 2단계 후보(figma-deviations §5)
+  background: HERO_BG,
 });
 
 export const heroImage = style({
