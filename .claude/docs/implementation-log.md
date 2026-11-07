@@ -3074,3 +3074,19 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2699 통과(새 — `cancelRemainingState` 7 · 훅 2.5.9 두 경우 · 2.5.3 모양 · mock GE-3 필드 · 정산 `Event_400_29`). e2e `hosting-event` 32/0(새 4 — desktop · mobile × 2). QA `hosting-event` 26/0 · 수동 1(새 HE-14).
 
 **ego-browser 확인(2026-11-07, dev:mock 3113 · `localhost`, 남은 주문을 만들려고 커밋하지 않는 임시 환경 값으로 mock 상한 1건 · 정산 공연 지정)**: 대시보드 101 1440 — 취소 뒤 새로고침해도 [남은 주문 다시 처리](GE-3 남은 3건), 세 번 누르면 사라짐. 390 — 정산 공연이면 취소 직후부터 결과 줄 아래 고객센터 안내만(“[다시 처리]를 눌러” 줄 없음), 새로고침해도 안내만. 발견 없음.
+
+## Design Sync #158 · #159 — 공연 리스트 검색 결과 없음 · 지난 공연(2026-11-07, `design-158-159` #162)
+
+근거: GUI `1184:33829` 검색결과 없음(#158, 신규 화면 — Ready) · `939:34039` 예매하기(2줄)(#159, Ready). GUI 판 `2419082627685699415`(2026-11-07T13:47:29Z).
+
+- **검색 결과 없음**(`EventListView`): 검색어나 태그가 있는데 0건이면 그림(`no-search-result` 100) + "검색된 공연이 없습니다."(headingMd2 · primary) + "다른 검색어를 입력해보세요."(bodyMd · tertiary), 위아래 40 · 그림↔문구 12 · 문구 사이 4. 아래 "이런 공연은 어때요?"(headingMd2Emphasized) + ConcertCard 격자 — `model/useRecommendedEvents`(조건 없는 GP-2 첫 페이지 앞 6개, 결과 없음일 때만 부름 — 조건 없는 목록과 같은 쿼리 키). [검색 조건 지우기]와 훅의 `clearConditions`는 GUI에 없어 뺐다(Q91 닫음). 조건 없이 0건은 예전 잠정 빈 화면 그대로.
+- **지난 공연**(`src/ui` ConcertCard `ended`): 포스터 덮개 검정 40% + 이미지 80%(Figma 채움 그대로 — 흰 바탕 위에서 회색으로 바램) · 날짜 `text/tertiary` · 제목 `text/secondary`. 목록은 `displayStatus` PAST면 `ended` + `badge` DS `Chip`(tag_v2 sm · round · grey · weak) "공연종료", 가격 줄 없음(Q93 닫음). 공연홈은 지난 공연이 안 와서 그대로. 제목 2줄 말줄임은 원래 있었다.
+- 매핑: Search Field · Filter Chip · Toggle · SortButton · ConcertCard · Button(round ↑) — 전부 DS, 이미 구현. `img_검색 결과 없음` → `Illustration no-search-result`. tag_v2 → `Chip`. 직접 그린 상자 · 스타일 없는 글자 0 — FIGMA-CUSTOM 새로 없음.
+
+**🤖 판단**: ① 추천 = 조건 없는 공연임박순 앞 6개, PC는 한 줄 4장(둘째 줄이 2장만 남아서), 읽는 중 · 실패 · 0개면 묶음 숨김(Q170) ② 지난 공연 포스터 없으면 덮개만 남은 회색 상자 · 가격 줄 없음(Q171) ③ 태그만 골라도 GUI 문구 그대로, 조건 없이 0건은 예전 빈 화면(Q172) ④ 덮개 검정 40%는 의미 색이 없어 `palette.common.black` 그대로(`ConcertCard.css.ts`). 되돌리기: ① `RECOMMENDED_COUNT` · `recommendedItem` ② `EventCard`의 `price` ③ `EventListView` 빈 상태 분기.
+
+**Figma 코멘트(디자인 없음, 2026-11-07)**: GUI `1184:33998` "[개발 · 디자인 없음] 검색결과 없음 — "이런 공연은 어때요?"에 보일 공연" · `939:34059` "[개발 · 디자인 없음] 지난 공연 카드 — 포스터가 없을 때 · 가격 줄".
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest related 26 통과(`useEventList` 조건 판정 테스트를 `clearConditions` 대신 `hasConditions`로). QA `events` 23/0(EVL-5 고침 · 새 EVL-11 추천 · EVL-12 지난 공연) · `home` 10/0 · 수동 1. e2e `event-list` · `home` 18/0 · `a11y` · `a11y-keyboard` 111/0. 스토리 `ConcertCard/Ended` 새로.
+
+**ego-browser 확인(2026-11-07, dev:mock 3117 · `localhost`)**: `/events?keyword=zzzz` 390 · 1440 — 그림 · 문구 · 추천 6장(1440은 4열 6장이라 둘째 줄 2장 → PC 4장으로 고침). `/events?includePast=true` 390 · 1440 — 맨 아래 지난 공연 2장 회색 덮개 + "공연종료" 칩 · 흐린 날짜 · 제목, 가격 줄 없음. Figma `1184:33829` · `939:34039`와 나란히 봄 — 배치 · 문구 같음(mock 포스터가 없어 이미지 80% 흐림은 스토리 테스트 `ConcertCard/Ended`로 확인).

@@ -207,12 +207,14 @@ describe('공연 리스트 — 필터와 주소', () => {
     expect(search()).toBe('?keyword=락&includePast=true');
   });
 
-  it('검색 조건 지우기는 검색어·태그를 비우고 지난공연은 둔다(#106 §3)', async () => {
+  it('검색어나 태그가 있으면 조건이 걸린 것이다 — 지난공연만으로는 아니다(#158)', async () => {
     const { result } = await loaded('?keyword=락&tagIds=1,2&includePast=true');
     expect(result.current.hasConditions).toBe(true);
-    act(() => result.current.clearConditions());
+    act(() => result.current.resetTags());
+    expect(result.current.hasConditions).toBe(true);
+    act(() => result.current.setKeywordInput(''));
+    act(() => result.current.submitKeyword());
     expect(search()).toBe('?includePast=true');
-    expect(result.current.keywordInput).toBe('');
     expect(result.current.hasConditions).toBe(false);
   });
 

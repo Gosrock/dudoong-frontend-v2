@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { palette } from '../../theme/palette';
 import { vars } from '../../theme/tokens.css';
 
 /**
@@ -49,6 +50,16 @@ export const posterImage = style({
   height: '100%',
   objectFit: 'cover',
 });
+
+/**
+ * 지난 공연 포스터(GUI `939:34059` 채움 — 검정 40% 위에 이미지 80%). 흰 바탕 위에서 회색으로 바랜다.
+ * 의미 색 변수가 없어 원시 색(Common black) 그대로 — design-system §5 요청 거리
+ */
+export const posterEnded = style({
+  background: `color-mix(in srgb, ${palette.common.black} 40%, transparent)`,
+});
+
+export const posterImageEnded = style({ opacity: 0.8 });
 
 export const meta = style({
   display: 'flex',
