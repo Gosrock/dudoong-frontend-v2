@@ -48,8 +48,11 @@ export function ShellRetry({ state }: { state: ShellMenuState }) {
   );
 }
 
-/** 공지 목록 입구 문구 — DS `My` · 와이어 PC 드롭다운 · GUI 햄버거 `331:11622`의 글자 그대로(design-requests Q4 → P9c-V) */
-export const SHELL_NOTICES_LABEL = '서비스 업데이트 노트';
+/**
+ * 공지 목록 입구 문구(design-requests Q4 → P9c-V). 디자이너 답(2026-11-07, Q88 닫음)으로 "서비스 업데이트 노트" → "공지사항" —
+ * GUI 햄버거 `1047:32325`와 같다. PC 아바타 메뉴(DS `My`)도 같은 상수
+ */
+export const SHELL_NOTICES_LABEL = '공지사항';
 
 const linkProps = (l: ShellLink) => ({ key: l.key, label: l.label, href: l.href });
 
@@ -64,7 +67,7 @@ export function ShellAccountMenu({
 }: {
   menu: ShellMenu & { kind: 'session' };
   state: ShellMenuState & { status: 'ready' };
-  /** "서비스 업데이트 노트"가 갈 공지 목록(P9c-V). 없으면 그 항목을 두지 않는다 */
+  /** "공지사항"이 갈 공지 목록(P9c-V). 없으면 그 항목을 두지 않는다 */
   noticesHref?: string;
 }) {
   const { hostRow } = menu;
