@@ -1,7 +1,7 @@
 # 아이콘
 
 Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 세트 밖 낱개 `ic/ticket/filled/24`(`183:1130`)에서
-뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-01 판 기준 58종 85개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 3종·`link` 포함).
+뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-07 판 기준 60종 87개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 5종·`link` 포함).
 `lucide-react`는 쓰지 않는다(`.claude/docs/design-system.md` §4). 라이선스 고지는 루트 `THIRD_PARTY_NOTICES.md`.
 
 ```tsx
@@ -36,6 +36,9 @@ Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 
    - 섹션 "ic_v2 (인스턴스 스왑용)"(`740:1168`)의 `ic_<이름>` 세트는 2026-11-01 판에서 공개됐다. 그림은 `ic` 세트와 같고
      **새 그림만 ic_v2에 있다** — `ic_gift`·`ic_gift-return`·`ic_gift-cancle` filled 24(`739:1928`·`739:1917`·`739:1318`),
      `ic_link` 24(`760:2838`). 이 넷은 ic_v2에서 따로 내보내 `<key>-<type>-24.svg`로 저장한다(이름은 `ic` 체계 그대로).
+   - 2026-11-07 판에서 ic_v2에 `ic_gift_waiting`·`ic_gift_done` filled 24(`811:32`·`811:68`, 예매자 관리 선물 상태)가 생겼다 —
+     `gift-waiting-filled-24.svg`·`gift-done-filled-24.svg`로 저장한다(받음의 초록 레이어는 숨김이라 단색). 같은 판의
+     `ic_add host`·`ic_add concert` outline 24(`805:1168`·`805:1183`)는 쓰는 GUI 구현 화면이 없어 아직 넣지 않았다(design-system §8 반영 대기).
    - 세트 밖 낱개 `important` 24(`751:1654`, 다색)도 따로 내보내 `important-outline-24.svg`로 저장한다.
    - 세트 밖 낱개 프레임 `ic`(`662:722`·`662:726`)·`icon/music-4`(`662:730`)는 2026-10-31에 지워졌다.
 2. 파일을 `src/ui/icons/svg/`에 넣는다(같은 키의 기존 파일은 지운다).

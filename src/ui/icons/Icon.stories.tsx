@@ -101,3 +101,44 @@ export const AddedIn20261025: Story = {
     );
   },
 };
+
+/**
+ * 2026-11-07 판 ic_v2의 선물 상태 아이콘 2개(`811:32` 선물 대기 · `811:68` 선물 받음) — 24 원본과 예매자 관리 GUI 크기 16,
+ * DS 원본 색(대기 neutral 300 · 받음 #141413)
+ */
+export const AddedIn20261107: Story = {
+  render: () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span style={{ color: '#b8b7b3' }}>
+        <Icon name="gift-waiting" variant="filled" title="gift-waiting 24" />
+      </span>
+      <span style={{ color: '#141413' }}>
+        <Icon name="gift-done" variant="filled" title="gift-done 24" />
+      </span>
+      <span style={{ color: '#b8b7b3' }}>
+        <Icon
+          name="gift-waiting"
+          variant="filled"
+          title="gift-waiting 16"
+          style={{ width: 16, height: 16 }}
+        />
+      </span>
+      <span style={{ color: '#141413' }}>
+        <Icon
+          name="gift-done"
+          variant="filled"
+          title="gift-done 16"
+          style={{ width: 16, height: 16 }}
+        />
+      </span>
+    </div>
+  ),
+  play: async ({ canvas }) => {
+    const imgs = canvas.getAllByRole('img');
+    await expect(imgs).toHaveLength(4);
+    for (const img of imgs) {
+      await expect(img.childElementCount).toBeGreaterThan(0);
+      await expect(img).toHaveAttribute('viewBox', '0 0 24 24');
+    }
+  },
+};
