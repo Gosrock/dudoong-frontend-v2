@@ -314,7 +314,7 @@ scenario(
       await expect(page).toHaveURL(`/login?redirect=${encodeURIComponent(href)}`);
     });
     await step('로그인하면 같은 주소로 돌아와 [입장하기] → 입장 완료', async () => {
-      await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
+      await page.getByRole('button', { name: '카카오 로그인하기' }).click();
       await page.getByRole('link', { name: '기존 사용자로 로그인', exact: true }).click();
       await expect(page).toHaveURL(href);
       await enter(page);

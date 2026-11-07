@@ -36,14 +36,17 @@ export const noticeWrap = style({
   padding: `${vars.space[2]} ${vars.space[5]}`,
 });
 
+/** 공지 바 바탕(`939:29784` 외 같은 바 14곳 — #202020 직접 값, 변수 없음). 토큰(Neutral 700 #232220)과 달라 Figma 값 그대로(figma-deviations-2026-11-07 U14) */
+const NOTICE_BG = '#202020';
+
 export const noticeBar = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.space[2],
   padding: vars.space[3],
   borderRadius: vars.radius[5],
-  // Figma #202020 직접 값 → 가장 가까운 의미 색(Neutral 700 #232220)
-  background: vars.color.surface.inverseHover,
+  // FIGMA-CUSTOM: 공지 바(gui 939:29784, 변수 없는 직접 값) → Figma대로 #202020. 2단계 후보(figma-deviations §5)
+  background: NOTICE_BG,
   minWidth: 0,
 });
 
@@ -226,7 +229,7 @@ export const back = style({
   padding: 0,
   cursor: 'default',
   selectors: {
-    // 이웃 티켓(`908:11562` — #DDDCDA 빈 카드)
+    // 이웃 티켓(`908:11562` — #DDDCDA, Figma도 변수에 묶임 = interaction/disabled-bg)
     '&[data-active="false"]': { background: vars.color.interaction.disabled, cursor: 'pointer' },
   },
 });

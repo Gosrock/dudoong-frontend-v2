@@ -11,7 +11,7 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
  * 레이아웃 셸(plan P4s 완료 기준 V). 호스팅 PC는 GUI Ready(`712:1646` 1440 · `669:2972` 1280 · `680:672` 1133)와,
- * 나머지(호스팅 모바일·공연 밖, 관객 전체)는 와이어(`128:738` · `128:2875` · `128:2931` · `626:19888` · `640:17991`)와 캡처를 비교한다.
+ * 햄버거 드로어는 GUI(`1047:19428` 로그인 · `1174:15071` 미로그인, Ready 2026-11-07), 나머지(호스팅 모바일·공연 밖, 관객 헤더 · PC 상단 바)는 와이어(`128:738` · `626:19888` · `640:17991`)와 캡처를 비교한다.
  *
  * 범주 검토
  * - 에러: 404(셸 안, 상태 코드). 셸 메뉴(GM-1) 5xx는 useShellMenu 단위 테스트가 본다(셸은 [다시 시도]만)
@@ -119,7 +119,7 @@ scenario(
       'design-system §2 그리드',
       'DS host title 619:2116',
       'Q17 로고형(사용자 결정 2026-10-31)',
-      'design-requests Q4 → P9c-V "서비스 업데이트 노트" = 공지 목록(호스팅은 /hosting/notices)',
+      'design-requests Q4 → P9c-V "공지사항" = 공지 목록(호스팅은 /hosting/notices)',
     ],
   },
   async ({ page, step, note, testInfo }) => {
@@ -145,17 +145,17 @@ scenario(
         });
       }
       await step(
-        '아바타 ▾를 누르면 내 메뉴(My)가 열리고 로그아웃 위 "서비스 업데이트 노트"를 누르면 공지 목록으로 간다',
+        '아바타 ▾를 누르면 내 메뉴(My)가 열리고 로그아웃 위 "공지사항"을 누르면 공지 목록으로 간다',
         async () => {
           await page.setViewportSize({ width: 1440, height: 1024 });
           await page.getByRole('button', { name: '내 메뉴' }).click();
           const menu = page.getByRole('menu');
           await expect(menu.getByRole('menuitem', { name: '주문내역' })).toBeVisible();
           await expect(menu.getByRole('menuitem', { name: '로그아웃' })).toBeVisible();
-          // DS My 마지막 구획: 서비스 업데이트 노트(update) → 로그아웃(P9c-V — 호스팅 셸은 호스팅 공지 목록)
+          // DS My 마지막 구획: 공지사항(update) → 로그아웃(P9c-V — 호스팅 셸은 호스팅 공지 목록)
           const names = await menu.getByRole('menuitem').allTextContents();
-          expect(names.slice(-2)).toEqual(['서비스 업데이트 노트', '로그아웃']);
-          const notes = menu.getByRole('menuitem', { name: '서비스 업데이트 노트' });
+          expect(names.slice(-2)).toEqual(['공지사항', '로그아웃']);
+          const notes = menu.getByRole('menuitem', { name: '공지사항' });
           await expect(notes).toHaveAttribute('href', '/hosting/notices');
           await notes.click();
           await expect(page).toHaveURL('/hosting/notices');
@@ -166,20 +166,18 @@ scenario(
       await step('햄버거를 열면 벨이 드로어 머리 줄에 있고 같은 메뉴가 보인다', async () => {
         const drawer = await openDrawer(page);
         await expect(drawer.getByRole('link', { name: /^알림/ })).toBeVisible();
-        await expect(drawer.getByRole('link', { name: /공연 준비/ })).toBeVisible();
-        // 말풍선(포털로 드로어 밖)은 소속 호스트가 0개일 때만 — 이 계정은 호스트가 있다(이슈 #93 §3)
-        await expect(
-          page.getByRole('tooltip', { name: '두둥에서 공연을 시작해보세요!' }),
-        ).toHaveCount(0);
-        // 로그아웃 위 "서비스 업데이트 노트" — 호스팅 드로어는 호스팅 공지 목록(P9c-V · Q4)
-        await expect(drawer.getByRole('link', { name: '서비스 업데이트 노트' })).toHaveAttribute(
+        // GUI 햄버거(1047:19428, Ready 2026-11-07) — 섹션 이름 "호스팅 센터", 말풍선 없음(Q131 · Q184)
+        await expect(drawer.getByRole('link', { name: /호스팅 센터/ })).toBeVisible();
+        await expect(page.getByRole('tooltip')).toHaveCount(0);
+        // 로그아웃 위 "공지사항" — 호스팅 드로어는 호스팅 공지 목록(P9c-V · Q4)
+        await expect(drawer.getByRole('link', { name: '공지사항' })).toHaveAttribute(
           'href',
           '/hosting/notices',
         );
       });
-      await step('드로어의 "서비스 업데이트 노트"를 누르면 호스팅 공지 목록으로 간다', async () => {
+      await step('드로어의 "공지사항"을 누르면 호스팅 공지 목록으로 간다', async () => {
         const drawer = page.getByRole('dialog', { name: '메뉴' });
-        await drawer.getByRole('link', { name: '서비스 업데이트 노트' }).click();
+        await drawer.getByRole('link', { name: '공지사항' }).click();
         await expect(page).toHaveURL('/hosting/notices');
         await expect(page.getByTestId('notice').first()).toBeVisible();
       });
@@ -193,8 +191,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      '1024 미만 로고 헤더(☰ · 로고 · 검색 · 티켓), 이상은 상단 바(메뉴 둘 다 검정 · 검색 · [로그인]). 화면 문구에 "호스팅 센터"가 없다.',
-    basis: ['plan P4s 완료 기준 V 1·2·5', '와이어 128:738 · 128:2931 · 626:19888'],
+      '1024 미만 로고 헤더(☰ · 로고 · 검색 · 티켓), 이상은 상단 바(메뉴 둘 다 검정 · 검색 · [로그인]). 햄버거는 GUI 미로그인 드로어.',
+    basis: [
+      'plan P4s 완료 기준 V 1·2·5',
+      '와이어 128:738 · 626:19888',
+      'GUI 1174:15071 햄버거바 - 미로그인(Ready 2026-11-07)',
+    ],
   },
   async ({ page, step, testInfo }) => {
     await setMockSession(page, 'anonymous');
@@ -218,20 +220,34 @@ scenario(
       return;
     }
     await step(
-      '햄버거를 열면 [로그인 ›] · 주문내역 · 관심 호스트 · 공연 둘러보기 ↗ · 공연 준비 ↗가 보인다',
+      '햄버거를 열면 [로그인 ›] · 주문내역 · 관심 호스트 · 지난 관람 아카이빙 · 공연 둘러보기 ↗ · 호스팅 센터 ↗가 보이고 로그아웃은 없다',
       async () => {
         const drawer = await openDrawer(page);
         await expect(drawer.getByRole('link', { name: /로그인/ })).toBeVisible();
-        await expect(drawer.getByRole('link', { name: '주문내역' })).toHaveAttribute(
-          'href',
-          `/login?redirect=${encodeURIComponent('/orders')}`,
-        );
-        await expect(drawer.getByText('아직 두둥에서 호스트가 없어요.')).toBeVisible();
-        // 호스트가 없으면 "공연 준비 ↗" 옆 말풍선(GUI 331:11622)이 보인다(이슈 #93 §3)
+        // GUI 미로그인 햄버거(1174:15071) — 세 줄 모두 로그인으로 보낸다(Q16)
+        const rows: [string, string][] = [
+          ['주문내역', '/orders'],
+          ['관심 호스트', '/mypage/following'],
+          ['지난 관람 아카이빙', '/mypage/archive'],
+        ];
+        for (const [name, to] of rows) {
+          await expect(drawer.getByRole('link', { name })).toHaveAttribute(
+            'href',
+            `/login?redirect=${encodeURIComponent(to)}`,
+          );
+        }
+        await expect(drawer.getByRole('link', { name: /호스팅 센터/ })).toBeVisible();
+        // 호스트가 없으면 회색 칸 안내(1175:15425 — 마침표 없음). 말풍선은 GUI에서 빠졌다(Q184)
         await expect(
-          page.getByRole('tooltip', { name: '두둥에서 공연을 시작해보세요!' }),
+          drawer.getByText('아직 두둥에서 호스트가 없어요', { exact: true }),
         ).toBeVisible();
-        await expect(page.getByText('호스팅 센터')).toHaveCount(0);
+        await expect(page.getByRole('tooltip')).toHaveCount(0);
+        // 미로그인 프레임의 로그아웃 · Buy me a coffee · AD는 그리지 않는다(Q181 · Q182)
+        await expect(drawer.getByRole('button', { name: '로그아웃' })).toHaveCount(0);
+        await expect(drawer.getByRole('link', { name: '공지사항' })).toHaveAttribute(
+          'href',
+          '/notices',
+        );
       },
     );
   },
@@ -243,7 +259,11 @@ scenario(
   {
     kind: '정상',
     summary: 'GM-1 hosts(최대 10) + hostCount. 0개 문구, 10개 그대로, 초과면 "N개 더 보기".',
-    basis: ['plan P4s 완료 기준 V 3', 'P4s-L shellHostRow', '와이어 128:2875'],
+    basis: [
+      'plan P4s 완료 기준 V 3',
+      'P4s-L shellHostRow',
+      'GUI 1047:19428 햄버거바 - 로그인(Ready 2026-11-07)',
+    ],
     viewports: ['mobile'],
   },
   async ({ page, step, mockApi }) => {
@@ -260,7 +280,9 @@ scenario(
         const drawer = await openDrawer(page);
         const row = drawer.getByRole('list', { name: '내 호스트' });
         if (shown === 0) {
-          await expect(drawer.getByText('아직 두둥에서 호스트가 없어요.')).toBeVisible();
+          await expect(
+            drawer.getByText('아직 두둥에서 호스트가 없어요', { exact: true }),
+          ).toBeVisible();
         } else {
           await expect(row.getByRole('link')).toHaveCount(total > shown ? shown + 1 : shown);
           if (total > shown)
@@ -553,12 +575,12 @@ scenario(
 
 scenario(
   'SHELL-11',
-  '로그인 말풍선과 캐릭터가 한 묶음으로 스크롤된다',
+  '로그인 일러스트 · 안내 · 버튼이 한 묶음으로 스크롤된다',
   {
     kind: '반응형',
     summary:
-      '말풍선이 포털 fixed(Radix Tooltip)라 스크롤 · 오버스크롤 때 캐릭터와 따로 놀았다(이슈 #95). 이제 흐름 안 `TooltipBubble` — 스크롤해도 둘의 간격이 같다. 가로 모드(667×375)처럼 낮은 화면에서도 겹치지 않는다.',
-    basis: ['이슈 #95 §2', 'src/features/shared/auth/LoginView.tsx'],
+      '이슈 #95 — 전에는 말풍선이 포털 fixed라 캐릭터와 따로 놀았다. GUI 1175:16950(Ready 2026-11-07)에서 말풍선이 빠지고 일러스트 아래 안내 한 줄이 됐다 — 모두 흐름 안이라 스크롤해도 간격이 같고, 가로 모드(667×375)처럼 낮은 화면에서도 겹치지 않는다.',
+    basis: ['이슈 #95 §2', 'GUI 1175:16950', 'src/features/shared/auth/LoginView.tsx'],
   },
   async ({ page, step, note, testInfo }) => {
     resetStores();
@@ -568,27 +590,24 @@ scenario(
       desktop ? { width: 1440, height: 600 } : { width: 667, height: 375 },
     );
     await step(
-      '스크롤 전후로 말풍선 ↔ 캐릭터 간격이 같고, 말풍선이 캐릭터 위에 겹치지 않는다',
+      '스크롤 전후로 일러스트 ↔ 안내 간격이 같고, 안내가 일러스트에 겹치지 않는다',
       async () => {
         await page.goto('/login');
-        const bubble = page.getByText('두둥에 로그인하고 즐거운 공연 라이프를 즐겨보세요!');
-        await expect(bubble).toBeVisible();
+        const text = '두둥에 로그인하고 다양한 공연을 즐겨보세요!';
+        await expect(page.getByText(text)).toBeVisible();
         const gap = () =>
-          page.evaluate(() => {
-            // 묶음(hero)도 같은 글자라 가장 안쪽(마지막) div가 말풍선
-            const b = [...document.querySelectorAll('div')].findLast(
-              (d) => d.textContent === '두둥에 로그인하고 즐거운 공연 라이프를 즐겨보세요!',
-            )!;
+          page.evaluate((t) => {
+            const p = [...document.querySelectorAll('main p')].find((d) => d.textContent === t)!;
             const img = document.querySelector('main img')!;
             return {
-              pos: getComputedStyle(b).position,
-              gap: Math.round(img.getBoundingClientRect().top - b.getBoundingClientRect().bottom),
+              pos: getComputedStyle(p).position,
+              gap: Math.round(p.getBoundingClientRect().top - img.getBoundingClientRect().bottom),
             };
-          });
+          }, text);
         const before = await gap();
         await page.evaluate(() => window.scrollTo(0, 200));
         const after = await gap();
-        await note(`말풍선 position ${before.pos} · 간격 ${before.gap} → ${after.gap}`);
+        await note(`안내 position ${before.pos} · 간격 ${before.gap} → ${after.gap}`);
         expect(before.pos).not.toBe('fixed');
         expect(after.gap).toBe(before.gap);
         expect(before.gap).toBeGreaterThanOrEqual(0);

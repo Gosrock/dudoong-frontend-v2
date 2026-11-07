@@ -6,8 +6,8 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
  * 로그인 · 세션 만료 · 카카오 콜백 대기/실패 안내 · 회원가입 오버레이(plan P4b 완료 기준 V).
- * 근거: 로그인은 **와이어** `218:4792`("로그인" — GUI `331:11720`은 Ready for dev가 아니다). 세션 만료·콜백·가입 오버레이는
- * **디자인 없음**(DS 컴포넌트로만, Figma 코멘트로 물음). 캡처는 와이어와 구조·문구·동작만 비교한다.
+ * 근거: 로그인은 **GUI** `1175:16950`("로그인", Ready 2026-11-07 — 캡처를 같은 폭 Figma PNG와 비교). 세션 만료·콜백·가입
+ * 오버레이는 **디자인 없음**(DS 컴포넌트로만, Figma 코멘트로 물음 — 세션 만료는 GUI 배치에 안내 문구만 바꿈, Q183).
  * 카카오는 가짜 인증 화면(`/api/__mock/kakao/authorize`)에서 사용자·실패를 고른다.
  *
  * 범주 검토
@@ -17,7 +17,7 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
  * - 반응형: 모든 시나리오가 mobile(바텀시트)·desktop(모달)에서 돈다
  */
 
-const KAKAO_BUTTON = { name: '카카오 로그인/회원가입' } as const;
+const KAKAO_BUTTON = { name: '카카오 로그인하기' } as const;
 
 async function chooseKakao(page: Page, choice: string) {
   await page.getByRole('button', KAKAO_BUTTON).click();
@@ -27,20 +27,24 @@ async function chooseKakao(page: Page, choice: string) {
 
 scenario(
   'LOGIN-1',
-  '로그인 화면에 말풍선 · 캐릭터 · 카카오 버튼이 보이고, 누르면 카카오로 간다',
+  '로그인 화면에 일러스트 · 안내 · 카카오 버튼이 보이고, 누르면 카카오로 간다',
   {
     kind: '정상',
     summary:
-      '와이어 218:4792 그대로 — 말풍선(DS 툴팁, 늘 열림) + 캐릭터(DS img_login) + 검정 버튼.',
-    basis: ['plan P4b V 범위 · GUI', 'gui-screens §0 로그인 줄', '와이어 218:4792'],
+      'GUI 1175:16950 그대로 — DS img_login(170) + 안내 한 줄 + DS Button Primary Large [카카오 로그인하기](폭 254).',
+    basis: [
+      'plan P4b V 범위 · GUI',
+      'gui-screens §0 로그인 줄',
+      'GUI 1175:16950(Ready 2026-11-07)',
+    ],
   },
   async ({ page, step }) => {
     await setMockSession(page, 'anonymous');
-    await step('/login 을 열면 말풍선 문구와 [카카오 로그인/회원가입]이 보인다', async () => {
+    await step('/login 을 열면 안내 문구와 [카카오 로그인하기]가 보인다', async () => {
       await page.goto('/login?redirect=%2Fevents');
       await expect(page.getByRole('heading', { name: '로그인' })).toBeAttached();
       await expect(
-        page.getByText('두둥에 로그인하고 즐거운 공연 라이프를 즐겨보세요!').first(),
+        page.getByText('두둥에 로그인하고 다양한 공연을 즐겨보세요!').first(),
       ).toBeVisible();
       await expect(page.getByRole('button', KAKAO_BUTTON)).toBeEnabled();
     });
@@ -56,8 +60,7 @@ scenario(
   '세션 만료 화면은 같은 배치에 만료 문구가 보인다',
   {
     kind: '정상',
-    summary:
-      '와이어가 없어 로그인 화면 배치에 말풍선 문구만 바꿨다(implementation-log P4b-V 결정).',
+    summary: 'GUI가 없어 로그인 화면(GUI 1175:16950) 배치에 안내 문구만 바꿨다(Q183).',
     basis: ['plan P4b V 범위', 'gui-screens §0 로그인 · 세션 만료 줄', 'patterns §5-1 세션 상실'],
   },
   async ({ page, step }) => {

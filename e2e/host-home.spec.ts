@@ -105,7 +105,7 @@ test.describe('호스트 홈 — 조회 위치와 시점', () => {
     await page.getByRole('link', { name: '관심 호스트' }).click();
     await expect(page).toHaveURL(/\/login\?redirect=%2Fhosts%2F11$/);
 
-    await page.getByRole('button', { name: '카카오 로그인/회원가입' }).click();
+    await page.getByRole('button', { name: '카카오 로그인하기' }).click();
     await page.getByRole('link', { name: '기존 사용자로 로그인', exact: true }).click();
     await expect(page).toHaveURL(/\/hosts\/11$/);
 

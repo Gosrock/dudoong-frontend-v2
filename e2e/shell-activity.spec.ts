@@ -49,7 +49,7 @@ test('하위 헤더 화면(공지) → 뒤로(클라이언트 이동): 모바일
   await expect(logoMenu).toBeVisible();
 
   await logoMenu.click();
-  await page.getByRole('dialog').getByRole('link', { name: '서비스 업데이트 노트' }).click();
+  await page.getByRole('dialog').getByRole('link', { name: '공지사항' }).click();
   await expect(page).toHaveURL('/notices');
   await expect(logoMenu).toBeHidden();
 
