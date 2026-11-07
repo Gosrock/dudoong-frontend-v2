@@ -76,7 +76,7 @@ export const TonalMedium: Story = {
   render: () => (
     <Flex gap={3} align="center">
       <Button variant="tonal">글자만</Button>
-      <Button variant="tonal" icon={<Icon name="add" size={16} />}>
+      <Button variant="tonal" icon={<Icon name="add" size={24} />}>
         아이콘
       </Button>
     </Flex>
