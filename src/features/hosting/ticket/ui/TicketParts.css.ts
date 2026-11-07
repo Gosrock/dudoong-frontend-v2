@@ -1,7 +1,9 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
+
+import { textOf } from './text-style';
 
 /** PC 목록 머리의 "티켓 옵션이란?"은 내용 폭(오른쪽 12) */
 export const noticeInline = style({
@@ -9,6 +11,9 @@ export const noticeInline = style({
     [media.desktop]: { width: 'auto', alignSelf: 'flex-start', paddingRight: vars.space[3] },
   },
 });
+
+/** PC "티켓 옵션이란?" 글자는 `Heading/sm`(GUI `767:46943` · `821:26240`, Figma 전수조사 2026-11-07) */
+globalStyle(`${noticeInline} > span`, { '@media': { [media.desktop]: textOf('headingSm') } });
 
 /**
  * 옵션 행 — GUI 로컬 컴포넌트 `티켓 옵션 행`(`915:*`, 상태 기본 = ✕ · 판매 발생 = ›): 흰 배경 · 테두리 `surface/default-border` ·
@@ -80,6 +85,9 @@ export const chips = style({ display: 'flex', flexWrap: 'wrap', gap: vars.space[
 
 /** 칸 묶음 사이(옵션 시트·가이드) */
 export const stack = style({ display: 'flex', flexDirection: 'column', gap: vars.space[2] });
+
+/** 옵션 가이드 본문 — 설명 · 예시 · 안내 사이 24(GUI `924:1304` · `956:3264`) */
+export const guideBody = style({ display: 'flex', flexDirection: 'column', gap: vars.space[5] });
 
 export const preLine = style({ whiteSpace: 'pre-line' });
 

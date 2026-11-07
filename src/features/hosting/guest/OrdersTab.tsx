@@ -101,7 +101,14 @@ export function OrdersTab({
       cell: (o) => text(o.orderNo),
     },
     { id: 'buyer', header: '주문자', cell: (o) => text(o.buyerName) },
-    { id: 'quantity', header: '티켓 수', align: 'center', cell: (o) => o.quantity },
+    {
+      id: 'quantity',
+      header: '티켓 수',
+      align: 'center',
+      // GUI `1026:4550` 64 + 칸 간격 16(다른 칸과 같은 셈 — Figma 전수조사 2026-11-07)
+      width: 80,
+      cell: (o) => o.quantity,
+    },
     {
       id: 'amount',
       header: '결제 금액',
@@ -216,7 +223,8 @@ export function OrdersTab({
           clearPicked();
           list.pagination.setPage(n);
         }}
-        alwaysShowPagination
+        // 행이 있을 때만 페이지 줄(빈 · 결과 없음 · 실패에는 없다 — GUI `1029:4849` · `1029:5135` · `1031:9948`, Figma 전수조사 2026-11-07)
+        alwaysShowPagination={!failed && list.rows.length > 0}
         loading={list.status === 'pending' ? <ListLoading /> : undefined}
         empty={
           failed ? (

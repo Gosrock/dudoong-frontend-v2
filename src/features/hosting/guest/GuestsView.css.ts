@@ -35,6 +35,8 @@ export const desktopTitle = style({
       height: 'auto',
       overflow: 'visible',
       clip: 'auto',
+      // 글자 줄 상자만(h1 기본 글꼴의 줄 높이가 31을 62로 키워 탭이 11px 내려갔다 — Figma 전수조사 2026-11-07, `980:24296` 55)
+      display: 'flex',
       // GUI 제목 묶음 아래 24(`980:24296` paddingBottom)
       paddingBottom: vars.space[5],
     },

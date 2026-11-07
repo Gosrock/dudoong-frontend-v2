@@ -1,8 +1,10 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { fabBottom, fabClearance } from '@/ui/components/Fab/Fab.css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
+
+import { textOf } from './ui/text-style';
 
 /**
  * 티켓 관리 목록 — 모바일(GUI `767:50048`): 좌우 24 · 위아래 12, 안내 + "티켓 옵션이란?" 아래 16, 카드 사이 12.
@@ -23,6 +25,9 @@ export const page = style({
 export const head = style({ display: 'flex', flexDirection: 'column', gap: vars.space[4] });
 
 export const intro = style({ display: 'flex', flexDirection: 'column', gap: vars.space[1] });
+
+/** PC 안내 두 줄은 `Body/lg`(GUI `767:46943` · `821:26240`), 모바일은 `Body/md`(Figma 전수조사 2026-11-07) */
+globalStyle(`${intro} > p`, { '@media': { [media.desktop]: textOf('bodyLg') } });
 
 /** PC만 — 모바일은 공연 헤더 제목("티켓 관리 ▾")이 대신한다 */
 export const desktopTitle = style({

@@ -57,7 +57,7 @@ export function ticketMenuOf(
   return menu;
 }
 
-/** 목록 카드의 상태 칩(GUI `767:50048` — 판매 중 · 판매 종료(#46 띄어쓰기) · 판매 예정). 판매 중단은 GUI에 없어 따로 둔다(Claude 판단) */
+/** 목록 카드의 상태 칩(GUI `767:50048` — 판매 중 · 판매 종료(#46 띄어쓰기) · 판매 예정). 판매 중단 칩은 GUI `958:20841`(red) */
 export type TicketSaleChip = 'onSale' | 'upcoming' | 'ended' | 'suspended';
 
 export const TICKET_SALE_CHIP_LABEL: Record<TicketSaleChip, string> = {
