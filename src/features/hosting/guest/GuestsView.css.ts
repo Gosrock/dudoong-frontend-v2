@@ -4,7 +4,7 @@ import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
- * 예매자 관리 — GUI 모바일 `980:24474` "본문"(좌우 24 · 위 12, 간격 16), 데스크탑 `980:24295`(좌우 24 · 위아래 28, 제목 아래 24 + 간격 20).
+ * 예매자 관리 — GUI 모바일 `980:24474` "본문"(좌우 24 · 위 12, 간격 16), 데스크탑 `980:24295`(좌우 24 · 위아래 28, 제목 아래 24 + 간격 20 — 값 그대로, 분류표 H17 M-4 2026-11-08).
  * 아래 여백은 선택 바(모바일 하단 고정 93)가 표를 덮지 않게 넉넉히
  */
 export const page = style({
@@ -14,7 +14,7 @@ export const page = style({
   padding: `${vars.space[3]} ${vars.space[5]} ${vars.space[9]}`,
   '@media': {
     [media.desktop]: {
-      gap: vars.space[5],
+      gap: `calc(${vars.space[4]} + ${vars.space[1]})`,
       padding: `calc(${vars.space[5]} + ${vars.space[1]}) ${vars.space[5]} ${vars.space[9]}`,
     },
   },

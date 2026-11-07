@@ -18,6 +18,7 @@ import * as s from './TicketFormSections.css';
 export function PayTypeSection({ form, readOnly, err }: TicketSectionProps) {
   return (
     <FormSection
+      loose
       title="티켓 종류"
       description="계좌 송금 옵션을 통해 수수료 없이 티켓값을 받을 수 있어요."
     >

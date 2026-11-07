@@ -11,13 +11,13 @@ import { vars } from '@/ui/theme/tokens.css';
 
 export const posterColumn = style({ minWidth: 0 });
 
-/** 포스터 + 버튼 — 모바일 180 왼쪽 정렬, PC 두 열이면 270 가운데(GUI 270×381, 버튼 가운데) */
+/** 포스터 + 버튼 — 모바일 180 왼쪽 정렬, PC 두 열이면 270 가운데(GUI `748:34424` 270×381, 버튼 가운데, 안내 ↔ 포스터 ↔ 버튼 16) */
 export const posterBody = style({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'flex-start',
   gap: vars.space[4],
-  '@media': { [media.desktopS]: { alignItems: 'center', paddingTop: vars.space[3] } },
+  '@media': { [media.desktopS]: { alignItems: 'center' } },
 });
 
 export const poster = style({
@@ -30,7 +30,8 @@ export const poster = style({
       borderRadius: vars.radius[2],
       objectFit: 'cover',
       background: vars.color.surface.imageBg,
-      '@media': { [media.desktopS]: { width: 270 } },
+      // PC 270 폭은 모서리 15(GUI `748:34429` — 값 그대로)
+      '@media': { [media.desktopS]: { width: 270, borderRadius: 15 } },
     },
   },
 });
@@ -94,7 +95,8 @@ export const iconButton = style({
 });
 globalStyle(`${iconButton} > svg`, { width: 20, height: 20 });
 
-export const radios = style({ selectors: { '&&': { display: 'flex', gap: vars.space[6] } } });
+/** 티켓 있음 · 없음 — 사이 34(GUI `748:33499` — 값 그대로) */
+export const radios = style({ selectors: { '&&': { display: 'flex', gap: 34 } } });
 
 /** 문의처 줄 — 유형 116 + 값 + ✕ 24(GUI `748:33512`, 간격 8) */
 export const contactRow = style({ display: 'flex', alignItems: 'flex-start', gap: vars.space[2] });

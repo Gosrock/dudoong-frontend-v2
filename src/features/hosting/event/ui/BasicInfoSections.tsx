@@ -48,6 +48,7 @@ export function PosterSection({
   return (
     <div className={s.posterColumn} data-testid="poster">
       <FormSection
+        loose
         title="공연 포스터"
         description={
           '포스터 이미지는 표준 종이규격 (A,B)에 최적화되어 있어요.\n사진형식은 JPG, JPEG, PNG만 가능해요.'
@@ -257,6 +258,7 @@ export function HasTicketSection({
 }) {
   return (
     <FormSection
+      loose
       title="티켓 여부"
       required
       description={
