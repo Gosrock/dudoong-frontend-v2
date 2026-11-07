@@ -25,7 +25,10 @@ export function toast(message: string, options: ToastOptions = {}) {
 
 toast.dismiss = (id?: string) => sonnerToast.dismiss(id);
 
-/** 루트 Providers에 한 번 둔다. 화면 아래 가운데, 최대 3개 */
+/**
+ * 루트 Providers에 한 번 둔다. 화면 아래 가운데, 최대 3개.
+ * 자리는 화면이 정한다(`toastPosition` — 모바일 FAB 위 · 호스팅 PC 본문 영역 가운데, I-h2)
+ */
 export function Toaster() {
   return (
     <SonnerToaster
@@ -34,6 +37,8 @@ export function Toaster() {
       visibleToasts={3}
       gap={8}
       containerAriaLabel="알림"
+      offset={s.toastOffset}
+      mobileOffset={s.toastMobileOffset}
       // sonner 목록 폭 변수 — Figma 358
       style={{ '--width': '358px' } as CSSProperties}
       toastOptions={{ unstyled: true, classNames: { toast: s.toast, title: s.title } }}

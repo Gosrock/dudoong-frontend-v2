@@ -47,7 +47,13 @@ export function ReasonFields<K extends string>({
         onValueChange={(v) => onValueChange(v as K)}
       >
         {options.map((r) => (
-          <Radio key={r.key} value={r.key} label={r.key === 'ETC' ? '기타 - 직접 입력' : r.label} />
+          <Radio
+            key={r.key}
+            value={r.key}
+            // 사유 글자 14 · 줄 사이 12(GUI 1029:7095 · 1029:7509 · 1029:6920, I-h4)
+            size="sm"
+            label={r.key === 'ETC' ? '기타 - 직접 입력' : r.label}
+          />
         ))}
       </RadioGroup>
       {value === 'ETC' && (

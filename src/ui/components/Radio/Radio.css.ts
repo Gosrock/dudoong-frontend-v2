@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
@@ -42,9 +42,8 @@ export const dot = style({
   selectors: { '[data-disabled] > &': { background: vars.color.interaction.disabled } },
 });
 
-/** GUI 라디오 글자: 16 Regular `text/primary-label` */
+/** GUI 라디오 글자: `text/primary-label`, 크기는 `labelSize` */
 export const label = style([
-  typography.bodyLg,
   {
     display: 'inline-flex',
     alignItems: 'center',
@@ -59,3 +58,6 @@ export const label = style([
     },
   },
 ]);
+
+/** md — 16 Regular(Body/lg) · sm — 14 Regular(Body/md, GUI `1029:7095` 사유 목록, I-h4) */
+export const labelSize = styleVariants({ md: [typography.bodyLg], sm: [typography.bodyMd] });

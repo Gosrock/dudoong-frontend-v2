@@ -44,11 +44,13 @@ export function RefundsTab({
       width: 136,
       cell: ({ refund: r }) => text(r.orderNo),
     },
+    // 모바일은 주문자가 남은 폭, 환불 금액 80 · 상태 88 · 상세 20 고정(`1009:4318` — `mobileWidth`는 칸 사이 8 · 끝 8을 더한 값, I-h5)
     { id: 'buyer', header: '주문자', cell: ({ refund: r }) => text(r.buyerName) },
     {
       id: 'amount',
       header: '환불 금액',
       align: 'right',
+      mobileWidth: 88,
       cell: ({ refund: r }) => formatWon(r.totalAmount),
     },
     {
@@ -63,6 +65,7 @@ export function RefundsTab({
       id: 'refundStatus',
       header: '상태',
       width: 152,
+      mobileWidth: 96,
       cell: ({ refund: r }) => {
         const state = refundRowStateOf(r, list.canSeeRefundAccount);
         if (!state) return '—';
@@ -78,6 +81,7 @@ export function RefundsTab({
       id: 'detail',
       header: <span className={s.srOnly}>상세</span>,
       width: 40,
+      mobileWidth: 32,
       cell: () => <DetailCell />,
     },
   ]);

@@ -31,9 +31,14 @@ export type RadioProps = Omit<
 > & {
   /** 옆 글자. 없으면 `aria-label`을 준다 */
   label?: ReactNode;
+  /**
+   * 글자 크기. `md`(기본) — Body/lg 16. `sm` — Body/md 14(GUI 예매자 거절 · 취소 사유 `1029:7095` · `1029:7509` ·
+   * `1029:6920`, I-h4). 라디오 원(20)은 같다. 줄 사이 12는 묶음(`RadioGroup` 세로 간격)이 정한다
+   */
+  size?: 'md' | 'sm';
 };
 
-export function Radio({ label, className, disabled, ...rest }: RadioProps) {
+export function Radio({ label, size = 'md', className, disabled, ...rest }: RadioProps) {
   const item = (
     <RadixRadio.Item
       className={className ? `${s.item} ${className}` : s.item}
@@ -45,7 +50,10 @@ export function Radio({ label, className, disabled, ...rest }: RadioProps) {
   );
   if (!label) return item;
   return (
-    <label className={s.label} data-disabled={disabled ? 'true' : undefined}>
+    <label
+      className={`${s.label} ${s.labelSize[size]}`}
+      data-disabled={disabled ? 'true' : undefined}
+    >
       {item}
       {label}
     </label>

@@ -146,3 +146,40 @@ export const Loading: Story = {
     onPageChange: fn(),
   },
 };
+
+/**
+ * 모바일 칸 폭 `mobileWidth`(~1023) — 고정 칸에 주고, 주지 않은 칸(주문자)이 남은 폭을 채운다
+ * (GUI 발급된 티켓 모바일 `1003:3142` — 주문자 FILL · 티켓 88 · 체크인 92 · 상세 20, I-h5). 값은 칸 사이 간격을 더한 폭
+ */
+export const MobileWidth: Story = {
+  decorators: [
+    (Story) => (
+      <div style={{ width: 342 }}>
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    columns: [
+      { id: 'name', header: '주문자', cell: (o) => o.name },
+      { id: 'count', header: '티켓', cell: (o) => `${o.count}매`, mobileWidth: 96 },
+      {
+        id: 'state',
+        header: '체크인',
+        mobileWidth: 100,
+        cell: (o) => (o.paid ? <Chip color="green">입장 완료</Chip> : <Chip>입장 전</Chip>),
+      },
+      { id: 'detail', header: '', cell: () => '›', mobileWidth: 32 },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    if (window.innerWidth >= 1024) return;
+    const c = within(canvasElement);
+    const width = (name: string) =>
+      c.getByRole('columnheader', { name }).getBoundingClientRect().width;
+    await expect(width('티켓')).toBe(96);
+    await expect(width('체크인')).toBe(100);
+    // 342 - 테두리 2 - 96 - 100 - 32
+    await expect(width('주문자')).toBe(112);
+  },
+};

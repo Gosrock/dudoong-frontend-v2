@@ -72,9 +72,14 @@ export const edge = styleVariants({
   endDesktop: { '@media': { [media.desktop]: { paddingRight: vars.space[4] } } },
 });
 
-/** `width`는 PC에서만(모바일 표는 좁아 칸이 내용 폭) — 값은 `--dt-col-width` */
+/** `width`는 PC에서만 — 값은 `--dt-col-width` */
 export const desktopWidth = style({
   '@media': { [media.desktop]: { width: 'var(--dt-col-width)' } },
+});
+
+/** `mobileWidth`는 모바일에서만 — 값은 `--dt-col-width-m`(GUI `1003:3142` · `1009:4318` 고정 칸, I-h5) */
+export const mobileWidth = style({
+  '@media': { 'screen and (max-width: 1023.98px)': { width: 'var(--dt-col-width-m)' } },
 });
 
 export const align = styleVariants({

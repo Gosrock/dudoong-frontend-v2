@@ -60,3 +60,23 @@ export const Keyboard: Story = {
     await expect(paid).toHaveAttribute('aria-checked', 'true');
   },
 };
+
+/** 작은 글자 `size="sm"` — Body/md 14, 줄 사이 12(GUI 예매자 거절 · 취소 사유 `1029:7095`, I-h4) */
+export const Small: Story = {
+  args: { defaultValue: 'a', orientation: 'vertical', 'aria-label': '거절 사유' },
+  render: (args) => (
+    <RadioGroup {...args}>
+      <Radio size="sm" value="a" label="입금 미확인" />
+      <Radio size="sm" value="b" label="결제 금액 오류" />
+      <Radio size="sm" value="c" label="티켓 매진" />
+      <Radio size="sm" value="ETC" label="기타 - 직접 입력" />
+    </RadioGroup>
+  ),
+  play: async ({ canvasElement }) => {
+    const label = within(canvasElement).getByText('입금 미확인');
+    await expect(getComputedStyle(label).fontSize).toBe('14px');
+    const [first, second] = within(canvasElement).getAllByRole('radio');
+    const gap = second!.getBoundingClientRect().top - first!.getBoundingClientRect().bottom;
+    await expect(gap).toBe(12);
+  },
+};

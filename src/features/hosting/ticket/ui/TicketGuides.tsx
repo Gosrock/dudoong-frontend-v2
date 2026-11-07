@@ -22,6 +22,8 @@ export function openOptionGuide() {
     <ResponsiveOverlay
       open={isOpen}
       onOpenChange={(o) => !o && close()}
+      // PC 모달 520 · 안쪽 24 · 간격 24(GUI 956:* 티켓 옵션 모달, I-h1)
+      modalSize="lg"
       onExited={unmount}
       title="티켓 옵션이란?"
       footer={

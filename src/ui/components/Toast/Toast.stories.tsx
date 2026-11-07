@@ -1,8 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, screen, userEvent, waitFor, within } from 'storybook/test';
 
+import { Icon } from '../../icons/Icon';
 import { Flex } from '../../primitives/Flex';
 import { Button } from '../Button/Button';
+import { Fab } from '../Fab/Fab';
+import { FAB_HIDDEN_ATTR } from '../Fab/fab-attrs';
 import { toast, Toaster } from './Toast';
 
 function Demo() {
@@ -36,5 +39,46 @@ export const Default: Story = {
     await userEvent.click(c.getByRole('button', { name: '같은 id 토스트' }));
     await screen.findByText('잠시 후 다시 시도해 주세요');
     await expect(screen.getAllByText('잠시 후 다시 시도해 주세요')).toHaveLength(1);
+  },
+};
+
+function FabDemo({ hidden = false, message }: { hidden?: boolean; message: string }) {
+  return (
+    <>
+      <Button onClick={() => toast(message)}>토스트</Button>
+      <Fab
+        icon={<Icon name="add" />}
+        aria-label="새 티켓 만들기"
+        style={{ position: 'fixed', right: 24, bottom: 24 }}
+        {...(hidden ? { [FAB_HIDDEN_ATTR]: '' } : {})}
+      />
+      <Toaster />
+    </>
+  );
+}
+
+const toasterBottom = () =>
+  getComputedStyle(document.querySelector('[data-sonner-toaster]') as HTMLElement).bottom;
+
+/**
+ * 모바일(~1023)에 FAB가 있으면 토스트가 그 위 16으로(GUI `958:20841` — 아래 24 + FAB 56 + 16 = 96, I-h2).
+ * PC는 FAB가 오른쪽 끝이라 그대로
+ */
+export const AboveFab: Story = {
+  render: () => <FabDemo message="티켓 판매를 중단했어요." />,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '토스트' }));
+    await screen.findByText('티켓 판매를 중단했어요.');
+    if (window.innerWidth < 1024) await waitFor(() => expect(toasterBottom()).toBe('96px'));
+  },
+};
+
+/** 그려 두고 숨긴 FAB(`data-fab-hidden` — 맨 위로 버튼의 스크롤 전)는 토스트를 올리지 않는다 */
+export const HiddenFab: Story = {
+  render: () => <FabDemo hidden message="티켓 판매를 다시 시작했어요." />,
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '토스트' }));
+    await screen.findByText('티켓 판매를 다시 시작했어요.');
+    if (window.innerWidth <= 600) await waitFor(() => expect(toasterBottom()).toBe('16px'));
   },
 };

@@ -84,6 +84,8 @@ export function AddOptionsOverlay({
     <ResponsiveOverlay
       open={open}
       onOpenChange={(next) => !next && void requestClose()}
+      // PC 모달 520 · 안쪽 24 · 간격 24(GUI 956:* 티켓 옵션 모달, I-h1)
+      modalSize="lg"
       title={
         view === 'pick' ? (
           '티켓 옵션 추가하기'

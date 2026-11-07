@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { Fab } from '@/ui/components/Fab/Fab';
+import { FAB_HIDDEN_ATTR } from '@/ui/components/Fab/fab-attrs';
 import { Icon } from '@/ui/icons/Icon';
 
 import * as s from './ScrollTopButton.css';
@@ -23,6 +24,8 @@ export function ScrollTopButton() {
     <Fab
       className={s.root}
       data-visible={visible || undefined}
+      // 스크롤 전에는 숨겨 두므로 토스트를 이 버튼 위로 올리지 않는다(Toast I-h2)
+      {...{ [FAB_HIDDEN_ATTR]: visible ? undefined : '' }}
       icon={<Icon name="up" />}
       aria-label="맨 위로"
       onClick={() => {

@@ -256,13 +256,13 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | **numbering** — minus/plus × default/pressed, 20×20 | `<button>` | — | 수량 스테퍼(P6)의 부품 | P2 |
 | **Input** 3종 — input field · text input(단위 접미사 "원") · icon input, `State` Default/Focus/Filled/disabled | `<input>` | Input | `leading?`(아이콘), `trailing?`(단위). 44h, 모서리 8, 포커스는 보라 테두리. Focus·Filled는 CSS 상태 **2026-10-31**: icon input의 앞 아이콘이 20×20 틀(패딩 2) 안 16px로 바뀌었다(옛 24). disabled 테두리는 `interaction/disabled` 값이 바뀌어 Neutral 200 | P2 |
 | **Search Field** — Default/Focus/Filled(disabled 없음) | `<input type="search">` | Input | 검색 아이콘이 외부 `icon/search`다. 코드는 `ic/search`를 쓴다. **2026-11-03(#109)**: placeholder "검색어를 입력해 주세요"(띄어쓰기) — 기본값 `SEARCH_FIELD_PLACEHOLDER`, 화면이 주면 그 글자 | P2 |
-| **Dropdown** — 트리거(상태 1개) + dropdown item(selected) | Radix `Select` | Select / Combobox | 트리거 아이콘이 위아래 화살표(`ic/up down`)라 shadcn Combobox 모양에 가깝다. 열린 목록은 컴포넌트가 아닌 예시 프레임(`284:1755`)이다. placeholder·disabled·에러 상태 없음. placeholder 스타일은 Radix의 `[data-placeholder]`로 받는다 **2026-10-31**: dropdown item 높이 28 → **36** | P2 |
+| **Dropdown** — 트리거(상태 1개) + dropdown item(selected) | Radix `Select` | Select / Combobox | 트리거 아이콘이 위아래 화살표(`ic/up down`)라 shadcn Combobox 모양에 가깝다. 열린 목록은 컴포넌트가 아닌 예시 프레임(`284:1755`)이다. placeholder·disabled·에러 상태 없음. placeholder 스타일은 Radix의 `[data-placeholder]`로 받는다 **2026-10-31**: dropdown item 높이 28 → **36** **2026-11-07(I-h3)**: 고른 항목(`selected=true`)은 정렬 SPACE_BETWEEN — ✓가 항목 오른쪽 끝(GUI 예매자 검색 기준 `1029:6014` · `1007:4083`도 같음). 코드는 ✓ 글자 바로 뒤였다 → `itemIndicator` `margin-left: auto` | P2 |
 | **SortButton**(페이지 이름 Sort Dropdown) — 라벨이 변형(공연임박순/최신등록순) | — | — | 정렬값이 서버에 하나뿐이라 **고정 라벨**(patterns §13). Figma에 chevron-down 12가 붙어 있지만 코드는 chevron 없이 누를 수 없게 | P5a, P8 |
 | **Checkbox**(`Box`) — `checked` × `Status` default/disabled × `type` round/square(2026-11-01) | Radix `Checkbox` | Checkbox | 20px. 채움 색이 `text/primary-label`(검정)이다 — 브랜드색이 아니다 **2026-10-31**: disabled 채움·테두리가 Neutral 200(`interaction/disabled` 값 변경) **2026-11-01**(#23): `type=square`(모서리 4 `Space/1`)가 생겨 8변형. round 모서리 17 → 16(`Space/4`에 묶임 — 20의 원형 그대로). 코드 `<Checkbox shape="round" \| "square">`(기본 round — Figma `type`은 버튼 `type` 속성과 겹쳐 `shape`) **2026-11-01(3)**: 미선택 테두리 `text/primary-label` → `interaction/inactive`(#B8B7B3, §8) | P2 |
-| **Radio** — `selected` × `disabled?`(2026-11-01) | Radix `RadioGroup` | Radio Group | 20px, 점 10 검정. **2026-11-01**(#25·#26): 테두리 1.25가 바깥 → **가운데** 정렬(바깥 지름 21.25 → 20), 미선택 테두리 `surface/default-border` → **`surface/strong-border`**(선택과 같음), `disabled?=true`가 생김 — 테두리·점 `interaction/disabled`(Neutral 200), 채움 없음 | P2 |
+| **Radio** — `selected` × `disabled?`(2026-11-01) | Radix `RadioGroup` | Radio Group | 20px, 점 10 검정. **2026-11-01**(#25·#26): 테두리 1.25가 바깥 → **가운데** 정렬(바깥 지름 21.25 → 20), 미선택 테두리 `surface/default-border` → **`surface/strong-border`**(선택과 같음), `disabled?=true`가 생김 — 테두리·점 `interaction/disabled`(Neutral 200), 채움 없음 **2026-11-07(I-h4)**: DS Radio는 원만 있고 글자는 화면이 붙인다 — 코드 `<Radio size>` `md`(기본, Body/lg 16) · `sm`(Body/md 14 — GUI 예매자 거절 · 취소 사유 `1029:7095` · `1029:7509` · `1029:6920`, 줄 사이 12는 묶음 간격) | P2 |
 | **Toggle** — `State` Off/On × `disabled?`(2026-11-01) | Radix `Switch` | Switch | 45×24. **2026-11-01**(#27): `disabled?=true`가 생김 — 꺼짐 트랙 `interaction/disabled`(Neutral 200) · 켜짐 `brand/Primary container`(Violet 100), 손잡이 흰색 | P2 |
 | **Tabs** — `tab`(공연/호스트 2개 고정) + tab item(`selected` × `type` 모바일/데스크탑) | Radix `Tabs` | Tabs | 밑줄형. **2026-10-25 변경**: 선택 = 글자 `Label/lg-emphasized` + 아래 2px 모두 `text/primary-label`(검정, 옛 `brand/primary` 보라), 미선택 = `Label/lg`(16 Regular) `interaction/inactive`(회색, 옛 16 Bold `text/primary`). 모바일은 선택·미선택 모두 44h(옛 42h 차이 해소). `type=데스크탑`이 새로 생겼다 — 20px(`Heading/md` / `Heading/md - emphasized`), 선택 48h·미선택 44h. **코드(2026-10-25)**: `TabList`의 `size` — `md`(기본, `type=모바일` 16, 44h) · `lg`(`type=데스크탑` 20, **48h 하나로 통일** — Figma 선택 48·미선택 44와 다르다. 한 줄에서 밑줄 높이가 달라지지 않게). disabled 글자는 `interaction/disabled-text`(Neutral 300)라 미선택과 같은 색이다(§5 확인 요청). 탭 개수는 코드에서 자유롭게. 값은 URL과 묶을 수 있게 제어형(`?tab=`, tech-decisions §3) **2026-10-31**: 데스크탑 미선택 44 → **48** — 선택·미선택 모두 48이 됐다(개발 싱크 요청 `tabs-lg-48`이 반영됨, 코드는 이미 48) **2026-11-01(19:01Z 판)**: 견본 컴포넌트 `tab`(`271:1234`)에 미선택 "공연" tab item 2개가 더해져 4개(간격 24 그대로) — tab item 모양은 그대로라 코드 영향 없음(코드는 원래 탭 개수 자유) | P2 |
-| **Toast popup** — 1종 | `sonner` unstyled | Sonner | 358×54, 모서리 12, Body/lg 16 가운데 정렬, 아이콘·액션 없음. 성공·에러 구분 없음. 명령형 `toast()`(tech-decisions §13) | P2 |
+| **Toast popup** — 1종 | `sonner` unstyled | Sonner | 358×54, 모서리 12, Body/lg 16 가운데 정렬, 아이콘·액션 없음. 성공·에러 구분 없음. 명령형 `toast()`(tech-decisions §13) **2026-11-07(I-h2) 자리**: GUI 호스팅 화면 기준 — 모바일은 FAB가 있으면 FAB 위 16(`958:20841` — 아래 24 + 56 + 16 = 96), 없으면 아래 16. PC 공연 화면은 본문 영역(사이드바 268 뺀 곳) 가운데 · 아래 48(`975:8897` · `1029:5720`). 코드: `toastPosition` CSS 변수(`Toast.css.ts`) — FAB(`data-fab`, `Fab`이 단다)가 보이면 DS가, 사이드바는 `EventScopeFrame`이 값을 준다. 숨은 Activity 화면 · 숨겨 둔 FAB(`data-fab-hidden`)는 빼고 본다. 관객 PC는 화면 가운데 · 아래 24 그대로 | P2 |
 | **다이얼로그**(2026-11-01 새로, `758:1714`, 페이지 ┗Dialogue) — 단일 컴포넌트, 텍스트 속성 `타이틀`·`본문` | Radix `Dialog`(alertdialog) | Alert Dialog | 310폭(높이 내용), 모서리 16(`Radius/5`), 안쪽 24 · 간격 24(`Space/5`), 배경 `Background/normal`. 제목 `Heading/sm - emphasized` `text/primary-label` + 본문 `Label/sm` `text/secondary-label`(간격 8) / [취소 Button Secondary medium][확인 Primary medium] 같은 폭(간격 8). 설명: "삭제·판매 중단 등 되돌리기 어려운 작업 전 확인 창". **코드: 새 컴포넌트를 만들지 않고 기존 `Popup`(= `Modal compact`, `openConfirm`의 `variant: 'popup'`)을 이 모양으로 바꿨다**(#28) — 옛 근거 GUI `567:9468`(342폭 · Large 버튼 · 회색 배경)에서 | P2 |
 | **Badge** — large(숫자 20×20)/small(점 8) | — | — | 알림 배지. large는 고정 20×20이라 두 자리 숫자를 못 담는다. 코드는 최소 폭 20 + 좌우 패딩으로 늘린다 | P2 |
 | **Avatar** — 9개 변형: 24(grey만) · 32 · 40 × teal/orange/indigo/grey | — | Avatar | 캐릭터 일러스트. `size=40` 변형의 실제 크기는 **45px**, 호스트 행에서는 60px로 늘려 쓴다. 사진 변형이 없다 — 프로필 이미지(PM-3)를 어디에 보여 줄지는 디자인 확인 | P2 |
@@ -372,7 +372,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | 공연 전환 헤더 ▾ | 대시보드 헤더 | 헤더만 있고 전환 메뉴는 없다 |
 
 **여전히 없는 것**
-- 표(DataTable) — 예매자 관리(2026-11-03: DS 컴포넌트는 여전히 없고, GUI 예매자 관리 표 `1026:4526`(직접 그린 상자 — 머리글 44 · 행 56 · `Label/sm` 머리 · 칸 사이 16, 모바일 40 · 8)를 `DataTable` 모양으로 삼았다. 페이지 줄 지금 페이지는 배경 없이 진한 글자, `footerEnd`(엑셀) 슬롯 · 폭별 칸 `display` · PC에서만 `width` · 고른 행 배경. DS 후보 — 디자이너에게 표 컴포넌트 요청 Q104)
+- 표(DataTable) — 예매자 관리(2026-11-03: DS 컴포넌트는 여전히 없고, GUI 예매자 관리 표 `1026:4526`(직접 그린 상자 — 머리글 44 · 행 56 · `Label/sm` 머리 · 칸 사이 16, 모바일 40 · 8)를 `DataTable` 모양으로 삼았다. 페이지 줄 지금 페이지는 배경 없이 진한 글자, `footerEnd`(엑셀) 슬롯 · 폭별 칸 `display` · PC에서만 `width` · 고른 행 배경. DS 후보 — 디자이너에게 표 컴포넌트 요청 Q104. **2026-11-07(I-h5)**: 모바일 칸 폭 `mobileWidth` — GUI 모바일 표 행(`1003:3142` · `1009:4318`)은 주문자 칸이 남은 폭(FILL), 나머지는 고정이라 고정 칸에만 준다. 값은 칸 사이 간격을 더한 폭. 표는 자동 배치라 내용이 더 길면(선물 칩 Q110 등) 칸이 늘어난다)
 - 텍스트 영역 — GUI의 소개글·티켓 설명은 한 줄 Input + 글자 수 카운터다
 - 날짜·시간 피커(달력 팝업)
 - 스켈레톤·로더·스피너 — Button 로딩, 화면 로딩
@@ -640,6 +640,18 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 ## 8. 디자인 시스템 변경 반영 기록
 
 디자인 시스템 파일이 바뀔 때마다 절 하나를 위에 더한다. 받는 길은 둘이다 — 디자이너의 `Design: 디자인 시스템` 이슈, 그리고 화면 작업 시작 때 버전 목록 확인(이슈 없이 바뀐 것). 비교는 `python3 -I .claude/skills/gui-implement/ds_diff.py diff <기준 버전> --out <scratchpad>`, 변수 값은 Desktop Bridge(스킬 `gui-implement` "디자인 시스템 변경"). 끝나면 머리의 "동기화 기준 버전"을 올린다.
+
+### 2026-11-07 — 판 그대로(`2416898429564738752`) · Figma 전수조사 호스팅 후속 `ds-audit-hosting`(I-h1~I-h5)
+
+DS 파일 판은 바뀌지 않았다(`ds_diff.py versions` — 기준 판이 최신). 전수조사 ② 호스팅(`figma-audit-2026-11-07-hosting.md` 작업 줄 후보 ①~⑤)에서 GUI Ready 화면과 코드가 달랐던 DS 쪽 다섯 가지를 고쳤다. 근거는 GUI Ready 노드(REST로 크기 · 간격을 읽음)와 DS `dropdown item`(`284:1777`).
+
+| 바뀐 것 | 근거 | 코드 |
+|---|---|---|
+| Modal 큰 판 | GUI 호스팅 PC 티켓 옵션 모달 13장(`956:3157` 가이드 · `956:3281`~`956:3525` 추가 · `956:3753` · `956:3908` 새 옵션 · `956:5804` · `956:5957` 상세 · `956:6109` · `956:6264` 수정 등) — 520 · 안쪽 24 · 묶음 사이 24 · 흰 판, 제목 → 설명 8 | `Modal` `size: 'md' \| 'lg'`(기본 md — 최대 480 · 안쪽 16 · 회색 판 그대로), `ResponsiveOverlay` `modalSize`(모바일 시트는 그대로). 티켓 옵션 가이드 · 추가 · 상세/수정에 `lg`. 예매자 주문 상세(Figma 390)는 Q100대로 md, PC 확인 창(Popup 310)은 Q145 답 대기라 그대로 |
+| Toast 자리 | 모바일 `958:20841` · `958:20680` · `940:12677`(FAB 위 16), PC `975:8897` · `975:9788` · `956:3647` · `1029:5720`(가운데 x 854 = 268 + 1172/2, 아래 48) | §3 Toast popup 줄. `Fab`이 `'use client'`가 됐다(`useActivityMarker`) |
+| Dropdown ✓ | DS `284:1777` `selected=true` SPACE_BETWEEN · GUI `1029:6014` · `1030:8703` · `1007:4083` | ✓ 오른쪽 끝(안쪽 4) |
+| Radio 글자 14 | GUI `1029:7095` · `1029:7509` · `1029:6920` 사유 목록 — 글자 14/19.6 · 줄 20 · 사이 12 | `Radio` `size: 'md' \| 'sm'`, 예매자 거절 · 취소 사유(`ReasonFields`)가 `sm` |
+| DataTable 모바일 칸 폭 | GUI `1003:3142`(주문자 FILL · 티켓 88 · 체크인 92 · 상세 20) · `1009:4318`(주문자 FILL · 환불 금액 80 · 상태 88 · 상세 20) | 칸 `mobileWidth`. 발급된 티켓 96 · 100 · 32, 환불 88 · 96 · 32(칸 사이 8 · 끝 8 포함). 주문 탭은 전수조사에서 같다고 봐 그대로 |
 
 ### 2026-11-03 — `2416576694112599706`(10-31T19:15Z) → `2416898429564738752`(11-01T15:47Z) · `p13a-gui-guests`
 
