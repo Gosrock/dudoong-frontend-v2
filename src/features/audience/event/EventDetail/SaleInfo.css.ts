@@ -19,3 +19,6 @@ export const list = style({
   flexDirection: 'column',
   gap: vars.space[2],
 });
+
+/** 본문 안 글자 링크("티켓탭") — 중개자 고지 링크(`EventDetailView.css` `textLink`)와 같게 밑줄 */
+export const textLink = style({ color: 'inherit', textDecoration: 'underline' });

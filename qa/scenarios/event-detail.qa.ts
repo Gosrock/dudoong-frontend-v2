@@ -377,8 +377,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      '약관 제19조③(호스트 환불 기준 우선 굵은 문단) · 제27조②(청약철회 제한). ⑤는 B18 확정본(2026-11-07 시행), 유료(PG) 항목 없음. 디자인 없음(Q152).',
-    basis: ['legal-copy A-2 · B18 확정 문구', 'v1-additions C-4 · C-5', 'design-requests Q152'],
+      '약관 제19조③(호스트 환불 기준 우선 굵은 문단) · 제27조②(청약철회 제한). ⑤는 B18 확정본(2026-11-07 시행), 굵은 문단 끝 · ③ · 티켓탭은 B60 확정본, 유료(PG) 항목 없음. 디자인 없음(Q152).',
+    basis: [
+      'legal-copy A-2 · B18 · B60 확정 문구',
+      'v1-additions C-4 · C-5',
+      'design-requests Q152',
+    ],
   },
   async ({ page, step }) => {
     await page.goto('/events/101');
@@ -400,6 +404,15 @@ scenario(
       );
       await expect(region).toContainText('두둥티켓은 입금한 뒤 호스트가 승인하기 전에도');
       await expect(region).not.toContainText('두둥이 제공하는 결제 서비스로 결제');
+    });
+    await step('B60 확정 문구 — 두둥티켓 기준 · 환불 계좌 · 티켓탭 링크', async () => {
+      await expect(region).toContainText('무료티켓과 두둥티켓은 아래 기준대로 취소·환불됩니다.');
+      await expect(region).toContainText('취소할 때 입력한 환불 계좌로 호스트가 환불합니다.');
+      await expect(region.getByRole('link', { name: '티켓탭' })).toHaveAttribute(
+        'href',
+        '/tickets',
+      );
+      await expect(region).not.toContainText('내 예매내역');
     });
   },
 );
