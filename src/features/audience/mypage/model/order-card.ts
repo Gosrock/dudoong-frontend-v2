@@ -1,20 +1,4 @@
-import type { EventDisplayStatus } from '@/api/event/schema';
 import { isKstDateTime } from '@/api/shared/date';
-import { ddayOf, eventTimingLabel } from '@/api/shared/dday';
-
-/**
- * 주문 카드 포스터 위 배지(와이어 `128:2772` — "D-13" · "공연종료"). O-2·O-3 공연 응답에는 `dDay`가 없어 `startAt`(KST)으로 계산한다
- * (design-requests Q29 기본안 — 서버 `V2EventDisplayRule.dDayOf`와 같은 규칙: KST 날짜 차이, 당일 "D-day").
- * 글자는 공용 `eventTimingLabel`(코드 패턴 점검 A4) — 공연 중 "공연 중", 지난 공연 "공연 종료", 모르는 상태·시각 없음은 null(배지 없음).
- */
-export function orderPosterBadge(
-  event: { displayStatus: EventDisplayStatus; startAt: string | null } | null,
-  now: Date,
-): string | null {
-  if (!event) return null;
-  const dDay = event.displayStatus === 'UPCOMING' ? ddayOf(event.startAt, now) : null;
-  return eventTimingLabel({ displayStatus: event.displayStatus, dDay });
-}
 
 /** 주문 날짜(와이어 카드 왼쪽 위 "2026.03.05") — `orderedAt`의 날짜 부분 */
 export const orderDateLabel = (orderedAt: string | null) =>

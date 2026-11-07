@@ -64,7 +64,7 @@ describe('주문내역 — useMyOrders(G11/O-2)', () => {
     const reqs = (await sent.list()).filter((r) => r.path === '/api/v2/me/orders');
     expect(reqs).toMatchObject([{ method: 'GET', query: { page: '0' }, credentials: 'include' }]);
     expect(result.current.orders.length).toBeGreaterThan(10);
-    expect(result.current.sortLabel).toBe('최근주문순');
+    expect(result.current.sortLabel).toBe('최신순');
     for (const row of result.current.orders) {
       const detail = await queryClient.fetchQuery(myOrderQuery(row.orderUuid));
       expect(row.statusView).toEqual(orderStatusView(detail.status, detail.refundStatus));

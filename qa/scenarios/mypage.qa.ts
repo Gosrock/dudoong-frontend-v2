@@ -166,19 +166,23 @@ scenario(
 
 scenario(
   'MY-4',
-  '주문내역 카드 — 날짜 · 포스터 배지 · 금액 · 상태 칩, 누르면 주문상세',
+  '주문내역 카드 — 날짜 · 포스터 · 금액 · 상태 칩, 누르면 주문상세',
   {
     kind: '정상',
     summary:
-      '와이어 `128:2772` 구성. 상태 칩은 상세와 같은 매핑(승인대기 · 승인완료 · 승인거절 + 환불 대기 · 주문취소완료 …).',
-    basis: ['plan P9 V 범위 주문내역', '와이어 128:2772 · 668:5085', 'P9-L order-status'],
+      'GUI `1047:32381` 구성(정렬 라벨 "최신순"). 상태 칩은 tag_v2 round, 상세와 같은 매핑(승인대기 · 승인완료 · 승인거절 + 환불 대기 · 주문취소완료 …).',
+    basis: [
+      'plan P9 V 범위 주문내역',
+      'GUI 1047:32381 주문내역(2026-11-07 Ready)',
+      'P9-L order-status',
+    ],
   },
   async ({ page, step }) => {
     reset();
     await setMockSession(page, 'loggedIn');
-    await step('주문내역을 열면 "최근주문순"과 주문 카드가 보인다', async () => {
+    await step('주문내역을 열면 "최신순"과 주문 카드가 보인다', async () => {
       await page.goto('/orders');
-      await expect(page.getByText('최근주문순')).toBeVisible();
+      await expect(page.getByText('최신순', { exact: true })).toBeVisible();
       await expect(page.getByTestId('order-row').first()).toBeVisible();
     });
     await step('거절된 유료 주문 카드는 "승인거절" 옆에 "환불 대기"', async () => {
@@ -240,7 +244,7 @@ scenario(
     basis: [
       'plan P9 GUI "승인대기에 티켓 줄 없음"',
       'legal-copy A-8 · B18 잠정안',
-      '와이어 128:2263',
+      'GUI 1175:19046 주문내역 - 상세내역(2026-11-07 Ready)',
     ],
   },
   async ({ page, step }) => {
@@ -264,6 +268,11 @@ scenario(
         await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
       },
     );
+    await step('옵션 답은 읽기 전용 칸에 보이고, 머리 줄에 "주문상세"와 주문 일시', async () => {
+      const answer = page.getByRole('textbox', { name: /답$/ }).first();
+      await expect(answer).toHaveAttribute('readonly', '');
+      await expect(page.getByText('옵션 적용', { exact: true })).toBeVisible();
+    });
     // 승인 전 취소 안내(⑤-b, 백엔드 #897 확정 문구) — 개정 약관 제27조③ 2026-11-07 시행
     await step('아래 예매취소 안내에 승인 전 취소 문구(⑤-b)가 있다', async () => {
       const notice = page.getByRole('region', { name: '예매취소 안내' });
@@ -513,13 +522,13 @@ scenario(
   '삭제된 공연의 주문 — 공연 정보 없이, 취소 · 문의 입구 없음',
   {
     kind: '빈 상태',
-    summary: '`event: null`이면 "삭제된 공연이에요", [주문취소] · [호스트 문의] 없음.',
+    summary: '`event: null`이면 "삭제된 공연", [주문취소] · [호스트 문의] 없음.',
     basis: ['plan P9 완료 기준 L 삭제된 공연', 'api-contract §6 #789'],
   },
   async ({ page, step }) => {
     reset();
     await setMockSession(page, 'loggedIn');
-    await step('삭제된 공연 주문을 열면 공연 정보 대신 "삭제된 공연이에요"', async () => {
+    await step('삭제된 공연 주문을 열면 공연 정보 대신 "삭제된 공연"', async () => {
       await page.goto(detail(P9_ORDER.deletedEvent));
       await expect(page.getByTestId('event-removed')).toBeVisible();
       await expect(page.getByRole('button', { name: '주문취소' })).toHaveCount(0);
@@ -532,38 +541,28 @@ scenario(
 
 scenario(
   'MY-14',
-  '관심 호스트 — 필터 3값이 보이고, ♡를 누르면 목록에서 빠진다',
+  '관심 호스트 — 정렬 라벨 · 배지(D-n · 공연종료), ♥를 누르면 목록에서 빠진다',
   {
     kind: '정상',
     summary:
-      '와이어 "전체 상태 ⌄" → DS Dropdown(전체 / 공연 예정 / 지난 공연만 — 서버 status 3값). 해제는 PH-13 DELETE.',
-    basis: [
-      'plan P9 완료 기준 V "관심 호스트 status 3값이 표시됨"',
-      '와이어 249:554',
-      'P9-L FOLLOWING_TABS',
-    ],
+      'GUI `1175:20346` — 위 오른쪽 고정 라벨 "최신공연순"(와이어 때 상태 필터는 GUI에 없어 뺐다, 디자인 Q180). 배지는 tag_v2 round(예정 violet · 공연종료 grey). 해제는 PH-13 DELETE.',
+    basis: ['GUI 1175:20346 관심호스트(2026-11-07 Ready)', 'P9-L representativeBadge'],
   },
   async ({ page, step }) => {
     reset();
     await setMockSession(page, 'loggedIn');
     await page.goto('/mypage/following');
-    await step('필터를 열면 전체 · 공연 예정 · 지난 공연만 세 가지', async () => {
-      await page.getByRole('combobox', { name: '관심 호스트 필터' }).click();
-      for (const label of ['전체', '공연 예정', '지난 공연만']) {
-        await expect(page.getByRole('option', { name: label })).toBeVisible();
-      }
+    await step('정렬 라벨 "최신공연순"과 호스트 행이 보이고, 필터는 없다', async () => {
+      await expect(page.getByText('최신공연순')).toBeVisible();
+      await expect(page.getByTestId('following-host').first()).toBeVisible();
+      await expect(page.getByRole('combobox', { name: '관심 호스트 필터' })).toHaveCount(0);
     });
-    await step('"지난 공연만"을 고르면 공연 종료 배지인 호스트만', async () => {
-      const options = page.getByRole('option', { name: '지난 공연만' });
-      if (!(await options.isVisible())) {
-        await page.getByRole('combobox', { name: '관심 호스트 필터' }).click();
-      }
-      await options.click();
+    await step('예정 공연은 D-n, 지난 공연은 "공연종료" 배지', async () => {
       const rows = page.getByTestId('following-host');
-      await expect(rows.first()).toContainText('공연 종료');
-      await expect(rows.filter({ hasText: /D-\d+/ })).toHaveCount(0);
+      await expect(rows.filter({ hasText: /D-\d+/ }).first()).toBeVisible();
+      await expect(rows.filter({ hasText: '공연종료' }).first()).toBeVisible();
     });
-    await step('첫 호스트의 ♡를 누르면 목록에서 빠진다', async () => {
+    await step('첫 호스트의 ♥를 누르면 목록에서 빠진다', async () => {
       const first = page.getByTestId('following-host').first();
       const name = (await first.getByRole('link').nth(1).innerText()).trim();
       await first.getByRole('button', { name: /관심 해제/ }).click();
