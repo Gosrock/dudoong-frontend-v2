@@ -20,6 +20,7 @@
 | [`gui-screens.md`](./gui-screens.md) | Figma "GUI 화면" 파일 — **화면별 구현 상태(§0, 2026-10-31 기준 Ready for dev 23개)**, 관객·호스팅 화면 목록과 라우트·Phase 대응, 데스크탑 대시보드, GUI와 서버가 다른 것의 요약(원본은 design-requests §3) |
 | [`design-workflow.md`](./design-workflow.md) | **디자인 반영 규칙(디자인 → 코드)** — 근거 판정(Ready for dev → GUI / 아니면 와이어), `Design Sync` 이슈 처리 순서·닫는 규칙(`Closes #n`만), 커스텀 지양과 판단 표, `FIGMA-CUSTOM:` 주석·Figma 코멘트 형식, 완료 기준(QA 캡처 ↔ Figma 스크린샷), 상태표(2026-10-31) |
 | [`design-system.md`](./design-system.md) | 디자인 시스템(토큰·그리드·폰트·아이콘)과 컴포넌트 구현 결정(Radix + vanilla-extract, 컴포넌트별 출처·props) |
+| [`code-only-components.md`](./code-only-components.md) | 코드에만 있는 공용 컴포넌트(Figma 디자인 시스템에 없음) 목록 · Figma 디자인 시스템에 있는 것과 나눔 · 정정한 Figma 코멘트(2026-11-07). "DS 우선"의 DS는 Figma 디자인 시스템만 |
 | [`design-requests.md`](./design-requests.md) | 디자인·기획 요청 — 화면이 없는 것, 기획 질문(41건), **프론트가 정한 것(핸드오프 원본, 30건)**, 해결된 것 |
 | [`backend-questions.md`](./backend-questions.md) | 백엔드 질문(남은 것 B16 동의 강제 날짜 · B23~B27 — 2026-11-01 #905 답으로 B18 닫힘)과 지켜보는 변경 |
 | [`deploy-plan.md`](./deploy-plan.md) | 프론트 이미지 빌드와 배포 흐름, Deploy 저장소 변경 목록 |
