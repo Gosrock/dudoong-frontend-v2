@@ -15,24 +15,27 @@ import * as s from './EditorParts.css';
 
 /**
  * 폼 칸 묶음 — GUI 기본 정보(`748:33471` 등): 제목 `Heading/md2 - emphasized` + 필수 `*`(`text/danger-label`) + 안내 `Body/md`,
- * 위아래 16 · 칸 사이 10(→ 8). `legend`가 아니라 제목(h2) + 칸마다 aria-label
+ * 위아래 16 · 제목 ↔ 칸 10(`loose` — 라디오 줄 · 포스터는 16). `legend`가 아니라 제목(h2) + 칸마다 aria-label
  */
 export function FormSection({
   title,
   required,
   description,
+  loose,
   children,
   testId,
 }: {
   title: string;
   required?: boolean;
   description?: ReactNode;
+  /** 제목 ↔ 칸 16(라디오 줄 · 포스터). 기본은 10 */
+  loose?: boolean;
   children: ReactNode;
   testId?: string;
 }) {
   // 묶음 자체에는 이름을 달지 않는다 — 칸마다 같은 이름의 aria-label이 있어 겹친다
   return (
-    <div className={s.section} data-testid={testId}>
+    <div className={s.section} data-testid={testId} data-loose={loose ? '' : undefined}>
       <Flex direction="column" gap={1}>
         <Txt as="h2" typography="headingMd2Emphasized">
           {title}

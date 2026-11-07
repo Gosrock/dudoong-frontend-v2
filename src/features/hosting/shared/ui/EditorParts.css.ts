@@ -3,12 +3,16 @@ import { style } from '@vanilla-extract/css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
-/** 칸 묶음 — 위아래 16, 제목·칸 사이 10(→ 8) */
+/**
+ * 칸 묶음 — 위아래 16, 제목 ↔ 칸 10(입력 칸 — GUI 기본 정보 `748:34476` · `748:35283`, 새 티켓 `767:46584`) ·
+ * `loose`면 16(라디오 줄 · 포스터 — `748:34539` · `748:34424` · `767:46572`). 10은 토큰에 없는 값 그대로(분류표 H2, M-4 2026-11-08)
+ */
 export const section = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.space[2],
+  gap: 10,
   padding: `${vars.space[4]} 0`,
+  selectors: { '&[data-loose]': { gap: vars.space[4] } },
 });
 
 export const preLine = style({ whiteSpace: 'pre-line' });

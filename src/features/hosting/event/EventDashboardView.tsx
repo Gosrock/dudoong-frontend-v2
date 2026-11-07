@@ -348,7 +348,7 @@ function RegisteredSection({ d }: { d: Dashboard }) {
 /** 유의사항(등록 후) — GUI `748:33140`·`741:31934` 문구 그대로. 가운데 줄(*…)은 빨간 글자 */
 function RegisteredNotice() {
   return (
-    <div className={s.notice}>
+    <div className={`${s.notice} ${s.registeredNotice}`}>
       <span className={s.noticeIcon}>
         <Icon name="circle-request" />
       </span>
