@@ -5,7 +5,7 @@ import { vars } from '../../theme/tokens.css';
 
 // ─── `날짜`(`605:1875`) — 주간 줄 ──────────────────────────────────
 
-/** "26년 10월" `Label/lg-emphasized` + 7칸(위아래 9 → 8). 칸 = 요일 `Label/sm` + 간격 8 + 날짜 `Label/md` */
+/** "26년 10월" `Label/lg-emphasized` + 7칸(위아래 9 — `605:1852` 값 그대로, M-2 2026-11-08). 칸 = 요일 `Label/sm` + 간격 8 + 날짜 `Label/md` */
 export const week = style({ display: 'flex', flexDirection: 'column' });
 
 export const days = style([
@@ -14,7 +14,7 @@ export const days = style([
     display: 'grid',
     gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
     margin: 0,
-    padding: `${vars.space[2]} 0`,
+    padding: '9px 0',
   },
 ]);
 
@@ -54,11 +54,14 @@ globalStyle(`${dayState.future} ${date}`, {
 
 // ─── `일정`(`605:1848`) — 단계 한 칸 ──────────────────────────────
 
-/** 모서리 12 · 패딩 12 · 체크 20 + 간격 12 + 제목 `Label/lg-emphasized` · 간격 3(→ 4) · 날짜 `Label/md` */
+/**
+ * 모서리 12 · 패딩 12 · 체크 20 + 간격 12 + 제목 `Label/lg-emphasized` · 간격 3 · 날짜 `Label/md`.
+ * 체크 ↔ 글자는 세로 가운데(`605:1848` counterAxis CENTER), 간격 3은 `605:1761` 값 그대로(M-2 2026-11-08).
+ */
 export const step = style({
   position: 'relative',
   display: 'flex',
-  alignItems: 'flex-start',
+  alignItems: 'center',
   gap: vars.space[3],
   padding: vars.space[3],
   boxSizing: 'border-box',
@@ -68,11 +71,14 @@ export const step = style({
 export const stepVariant = styleVariants({
   /** 지난 일정 — 배경 #F7F7F6 + 회색 체크 */
   past: { background: vars.color.surface.container },
-  /** 현재 일정 — 배경 `brand/primary-subtle`, 보라 글자, 아래 64(→ 64) — 오른쪽 아래 일러스트 자리 */
+  /**
+   * 현재 일정 — 배경 `brand/primary-subtle`, 보라 글자, 아래 64(`605:1783` 값 그대로 — `space[9]`는 PC에서 80으로 커져
+   * 쓰지 않는다, M-2 2026-11-08) — 오른쪽 아래 일러스트 자리
+   */
   current: {
     background: vars.color.brand.primarySubtle,
     color: vars.color.brand.primary,
-    paddingBottom: vars.space[9],
+    paddingBottom: 64,
   },
   /** 미래 일정 — 흰 배경 + 테두리 Neutral 200 + 빈 체크 */
   upcoming: {
@@ -103,7 +109,7 @@ export const markVariant = styleVariants({
 export const stepText = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.space[1],
+  gap: 3,
   minWidth: 0,
 });
 

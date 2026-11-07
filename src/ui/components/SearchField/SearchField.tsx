@@ -85,8 +85,8 @@ export function SearchField({
           <Icon name="close" />
         </button>
       )}
-      {/* Figma Search Field의 검색 아이콘은 칸 오른쪽 끝 20 */}
-      <span className={f.adornment}>
+      {/* Figma Search Field의 검색 아이콘은 칸 오른쪽 끝 20(`73:6`) */}
+      <span className={`${f.adornment} ${s.searchIcon}`}>
         <Icon name="search" />
       </span>
     </div>

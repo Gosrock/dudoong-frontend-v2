@@ -149,11 +149,11 @@ function EventHead({ event, eventId }: { event: EventManage; eventId: string }) 
           </dl>
         )}
       </div>
-      {/* FIGMA-CUSTOM: 머리 연필 버튼(gui 727:23261 "Frame 34491") 커스텀 → DS Button(dark, small, 아이콘만). Figma 코멘트 2026-11-01 */}
+      {/* FIGMA-CUSTOM: 머리 연필 버튼(gui 727:23261 "Frame 34491") — Figma대로 원 34 · 검정 · 아이콘 24(Button `round`, R1a 2026-11-08) */}
       <Link
         href={eventHref(eventId, 'info')}
         aria-label="기본 정보 수정"
-        className={`${button({ variant: 'dark', size: 'sm', iconOnly: true })} ${s.edit}`}
+        className={`${button({ variant: 'dark', round: true })} ${s.edit}`}
       >
         <Icon name="edit" size={24} />
       </Link>

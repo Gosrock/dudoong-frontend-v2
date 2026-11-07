@@ -8,7 +8,8 @@ import { typography } from '../../theme/typography.css';
  * 상태 색은 2026-10-25 판(68개 변형, design-system §3 "Button 상태 색"). 빈 조합(Selected는 Secondary medium에만,
  * primary 2는 medium 아이콘형·Large에만)은 같은 규칙으로 채운다.
  * Disabled는 모든 색에서 배경 `interaction/disabled-bg` + 글자 `interaction/disabled-text`, 테두리 없음.
- * 2026-11-01: primary 2 글자만(`Icon=False`) medium·Large × 4상태가 생겼다 — 색은 아래 tonal과 같다(Figma medium 글자만은 45h, 코드는 46 하나).
+ * 2026-11-01: primary 2 글자만(`Icon=False`) medium·Large × 4상태가 생겼다 — 색은 아래 tonal과 같다. medium 글자만은 Figma대로 45h(`754:2529`, M-2 2026-11-08).
+ * medium 아이콘 + 글자 간격은 5(`36:68` — 글자만 `36:47`의 6은 자식이 하나라 화면에 안 보인다).
  * 아이콘 자리는 Figma에서 인스턴스 스왑(`ic_blank`)으로 바뀌었다 — 코드는 원래 `icon` prop이라 바뀌는 것 없음.
  * Secondary 글자색은 크기마다 달랐는데 `text.secondaryLabel` 하나로 통일했다(design-system §5 정리 요청).
  */
@@ -98,8 +99,8 @@ export const button = recipe({
       ],
       md: [
         typography.labelMdEmphasized,
-        // 2026-10-25: medium은 아이콘 유무와 관계없이 모두 46h(`36:47`·`36:68`)
-        { height: 46, padding: `0 ${vars.space[4]}`, gap: 6, borderRadius: vars.radius[3] },
+        // medium 46h(`36:47`·`36:68`) — primary 2 글자만은 아래 compound 45h. 아이콘 + 글자 간격 5(`36:68`, 토큰에 없는 값 그대로)
+        { height: 46, padding: `0 ${vars.space[4]}`, gap: 5, borderRadius: vars.radius[3] },
       ],
       lg: [
         typography.labelLgEmphasized,
@@ -108,6 +109,18 @@ export const button = recipe({
     },
     iconOnly: {
       true: { paddingLeft: 0, paddingRight: 0 },
+    },
+    /** 아이콘 없이 글자만 — 모양은 바꾸지 않고 compound(primary 2 medium 45h)에만 쓴다 */
+    textOnly: {
+      true: {},
+    },
+    /**
+     * FIGMA-CUSTOM: 원형 34 아이콘 버튼 — 대시보드 머리 연필(gui `727:23261` "Frame 34491")이 직접 그린 원 34 · 안쪽 5 ·
+     * 아이콘 24를 Figma대로(R1a, 사용자 결정 2026-11-07 "화면대로"). DS Button 세트에는 아직 없다 — 2단계 후보
+     * (figma-deviations §5). 크기 변형보다 뒤에 두어 높이 · 패딩을 덮는다 — `iconOnly`와 같이 주지 않는다.
+     */
+    round: {
+      true: { width: 34, height: 34, padding: 0, borderRadius: vars.radius.full },
     },
     fullWidth: {
       true: { width: '100%' },
@@ -120,6 +133,8 @@ export const button = recipe({
     { variants: { size: 'sm', iconOnly: true }, style: { width: 32 } },
     { variants: { size: 'md', iconOnly: true }, style: { width: 46 } },
     { variants: { size: 'lg', iconOnly: true }, style: { width: 56 } },
+    // primary 2 medium 글자만(`Icon=False`)은 45h(`754:2529` 등 4상태) — 아이콘 있는 판은 46 그대로
+    { variants: { variant: 'tonal', size: 'md', textOnly: true }, style: { height: 45 } },
     /**
      * primary 2 아이콘만(Figma Large `Text=false`, 2026-10-31)은 배경이 `brand/secondary` 계열 —
      * Normal Violet 50 · Hover Violet 100 · Pressed Violet 200. 아이콘 색은 글자 있는 판과 같다.

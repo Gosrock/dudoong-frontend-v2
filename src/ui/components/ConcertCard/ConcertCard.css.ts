@@ -28,7 +28,8 @@ export const poster = style({
   position: 'relative',
   display: 'block',
   width: '100%',
-  aspectRatio: '163 / 231',
+  // 포스터 163×230(DS `121:1008` 230.6 — 분류표 A27 값 그대로 230, M-2 2026-11-08)
+  aspectRatio: '163 / 230',
   overflow: 'hidden',
   borderRadius: vars.radius[2],
   background: vars.color.surface.imageBg,

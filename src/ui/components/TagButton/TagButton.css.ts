@@ -44,11 +44,11 @@ export const chip = style([
 
 export const columns = createVar();
 
-/** GUI는 4열 고정 폭 78, 간격 10 → 열 수만 받고 칸을 똑같이 나눈다(간격은 토큰 8) */
+/** GUI는 4열 고정 폭 78, 칸 · 줄 사이 10(`748:33526` · `748:33535` 값 그대로 — M-2 2026-11-08) → 열 수만 받고 칸을 똑같이 나눈다 */
 export const grid = style({
   display: 'grid',
   gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-  gap: vars.space[2],
+  gap: 10,
   width: '100%',
 });
 
