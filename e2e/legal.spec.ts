@@ -128,7 +128,7 @@ test.describe('약관 표시 의무(제3조③ · 제4조① · 제19조③ · �
     );
   });
 
-  test('공연 상세 판매정보(A-2) — 굵은 문단 · 청약철회 제한 · ⑤ B18 확정본, 유료(PG)·v1 ⑤ 없음', async ({
+  test('공연 상세 판매정보(A-2) — 굵은 문단 · 청약철회 제한 · ⑤ B18 · B60 확정본, 유료(PG)·v1 ⑤ 없음', async ({
     page,
   }) => {
     await page.goto('/events/101');
@@ -148,6 +148,16 @@ test.describe('약관 표시 의무(제3조③ · 제4조① · 제19조③ · �
     );
     await expect(region).not.toContainText('승인 전에는 앱에서 취소할 수 없습니다');
     await expect(region).not.toContainText('두둥이 제공하는 결제 서비스로 결제');
+    // B60 확정 문구(백엔드 #942, 2026-11-07)
+    await expect(region).toContainText('무료티켓과 두둥티켓은 아래 기준대로 취소·환불됩니다.');
+    await expect(region).toContainText(
+      '취소할 때 입력한 환불 계좌로 호스트가 환불합니다. 환불이 늦어지면 호스트에게 연락해 주세요.',
+    );
+    await expect(region).toContainText('티켓 QR코드는 티켓탭에서 조회할 수 있습니다.');
+    await expect(region.getByRole('link', { name: '티켓탭' })).toHaveAttribute('href', '/tickets');
+    await expect(region).not.toContainText('유료티켓');
+    await expect(region).not.toContainText('환불받을 계좌를 알려주세요');
+    await expect(region).not.toContainText('내 예매내역');
   });
 
   test('체크아웃 하단 바 — 중개자 문장(A-5)이 동의 줄 위에', async ({ page }) => {
