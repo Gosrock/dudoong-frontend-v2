@@ -15,7 +15,8 @@
 > - **맞춤** — Ready 노드가 있고 차이의 근거가 "코드 공용 부품 기본값" · "토큰에 없는 값이라 가까운 값" · "개발 판단"뿐 → Figma와 똑같이. 토큰에 없는 값은 판정 칸에 **값 그대로**(원시 px · 색)인지 **토큰 추가**인지 적었다.
 > - **유지** — 사용자 · 운영자 결정, 서버 계약, 약관 문구(`legal-copy.md`), 접근성 규칙, 디자이너 답으로 정해진 것(근거 · 날짜).
 > - **디자인 없음** — Ready 노드가 없거나 Figma에 그 상태가 없다(맞출 대상 없음). **와이어 근거 화면도 여기**(Ready가 없다) — 와이어와 다른 점은 적어 둔다. 2단계 후보면 표시.
-> - **확인 필요** — 위에 안 맞는 것(사용자 대기). 특히 **R1**(§3-3): Figma가 직접 그렸거나 DS 인스턴스를 덮어쓴 곳을 CLAUDE.md 규칙("DS로 + `FIGMA-CUSTOM:`")대로 DS 기본으로 만든 줄 — "Figma와 100% 동일"과 부딪힌다.
+> - **확인 필요** — 위에 안 맞는 것(사용자 대기).
+> - **R1**(§3-3): Figma가 직접 그렸거나 DS 인스턴스를 덮어쓴 곳을 옛 규칙("DS로 + `FIGMA-CUSTOM:`")대로 DS 기본으로 만든 줄. 처음엔 확인 필요로 뒀다가 **사용자 결정(2026-11-07) (가) 화면(Figma)을 따른다**로 맞춤이 됐다 — CLAUDE.md 규칙 요약 · design-workflow §5 판단 표도 같은 PR에서 고침.
 > - **진행 중** — 다른 세션이 고치는 화면(`p9-gui-orders` 주문내역 · 주문상세 · 관심 호스트, `ds-sync-1107` 디자인 시스템 11-07 판, `shell-login-gui` 로그인 · 드로어) → 그 PR 뒤 다시 확인. 집계는 따로.
 > - **확인** 칸: **확인함** = ego-browser(dev:mock `localhost:3127`)로 연 화면과 `figma_nodes.py shot`을 나란히 보고 값을 잼. **REST** = Figma 값은 REST로 재고 코드는 소스로 읽음(화면은 안 엶). **글 근거** = 코멘트 · 주석 · 문서 글로만.
 > - 코드 공용 부품의 이름 구분(Figma 디자인 시스템에 있는 것 A · 없는 것 B)은 [`code-only-components.md`](./code-only-components.md)(PR #164).
@@ -24,10 +25,10 @@
 
 | 판정 | 줄 수 | 대표 |
 |---|---|---|
-| **맞춤** | 47 | 시트 · 모달 모양(모서리 · 손잡이 · ✕ · 여백 · 바탕 · 제목 · 가운데 정렬 — 확인함), 티켓 ⋮ 메뉴 · 드롭다운 목록 면, `tag_v2` border 40%, Schedule · SalesCard PC 여백, "20 묶음" 값 그대로 |
-| **유지** | 28 | 주문 먼저(B23) · 약관 문구 · 서버 계약 · 운영자 결정(#106) · 디자이너 답(시트 높이 · 날짜 피커 · 예매자 Tabs) |
+| **맞춤** | 53 | 시트 · 모달 모양(모서리 · 손잡이 · ✕ · 여백 · 바탕 · 제목 · 가운데 정렬 — 확인함), 티켓 ⋮ 메뉴 · 드롭다운 목록 면, `tag_v2` border 40%, Schedule · SalesCard PC 여백, "20 묶음" 값 그대로 |
+| **유지** | 29 | 주문 먼저(B23) · 약관 문구 · 서버 계약 · 운영자 결정(#106) · 디자이너 답(시트 높이 · 날짜 피커 · 예매자 Tabs) |
 | **디자인 없음** | 18(와이어 근거 17 + Ready 밖 1, + §3-7 목록) | 와이어 근거 화면의 차이, Ready 밖 프레임(태그 칸) |
-| **확인 필요** | 25 | R1 규칙 충돌 7, Figma 프레임끼리 다름(Q100 · Q141~Q143 · 개별 옵션 여백), 팀 QA 제안(Q63 · Q74 · Q80~Q82), 태그 패널(Ready 풀림), 시트 아래 34 |
+| **확인 필요** | 18 | Figma 프레임끼리 다름(Q100 · Q141~Q143 · 개별 옵션 여백), 팀 QA 제안(Q63 · Q74 · Q80~Q82), 태그 패널(Ready 풀림), 시트 아래 34 |
 | 진행 중 | 11 | 드로어 · 로그인 · 주문내역 · 새 아이콘 · 선물 아이콘 |
 
 - **가장 큰 묶음은 공용 오버레이**(BottomSheet · Modal · EasyOverlay — §3-1): Ready 화면 30장 넘게가 같은 이유(공용 부품 기본값)로 다르다. 작업 줄 `fm-ds-overlays` 하나로 맞춘다.
@@ -39,7 +40,7 @@
 
 | 머리 줄 | 수 | 이 문서에서 |
 |---|---|---|
-| `[개발 · DS 컴포넌트로 구현]` | 17(GUI 11 · 와이어 6) | 차이의 중심. B(코드에만 있는 공용 부품)를 "디자인 시스템"이라 부른 7개는 11-07 정정 답글 → §3-1 맞춤. A(실제 DS)로 바꾼 것 → §3-3 R1 · 유지(예매자 Tabs — Nemin 승인 10-31) |
+| `[개발 · DS 컴포넌트로 구현]` | 17(GUI 11 · 와이어 6) | 차이의 중심. B(코드에만 있는 공용 부품)를 "디자인 시스템"이라 부른 7개는 11-07 정정 답글 → §3-1 맞춤. A(실제 DS)로 바꾼 것 → §3-3 R1(사용자 결정 (가) — 맞춤) · 유지(예매자 Tabs — Nemin 승인 10-31) |
 | `[개발 · 디자인 없음]`(동의 칸 Q42 포함) | 약 95 | §3-7 디자인 없음. 디자이너가 답한 것: `1003:3143` 머리글 "수정완료" · `1030:8098` · `1030:9120` 선물(→ #163 끝), `758:1714` 다이얼로그 3상태 "추가했어요"(반영 끝) |
 | `[개발 · 스테이징 QA …]` | 21 | Ready 문구 · 구성을 바꾼 것 — 운영자 결정이면 유지, 팀 제안뿐이면 확인 필요(§3-4) |
 | `[개발 · 레이아웃 고정 방식]` | 3 | 동작(상단 바 fixed · 말풍선 묶음 · 하단 바 질문) — 모양 차이 없음, 배너 자리는 디자인 없음 |
@@ -122,19 +123,19 @@
 
 이미 같음(문서만 낡음 — 줄 수에 넣지 않음): `tag_v2` small 좌우 8(DS가 10 → 8로 고침, Nemin 11-07 "다 수정 완료"), Tabs 44/48, dropdown item 36, 칩 모서리 8 · 내용 폭, Header 아이콘 영역 40, SearchField 아이콘 오른쪽, AccountMenu 업데이트 노트, Toggle 손잡이 색(값 같음 — 원시 색 금지 규칙). 차이 없음: Avatar · Checkbox · Filter Chip · Input 상자 · Dropdown 트리거 · Toast · Popup(다이얼로그) · Tabs 색 · TopBar 높이 · SidebarMenu · EntranceCard · Button 크기 · 모서리 · 상태 색 · Fab.
 
-### 3-3. R1 — Figma가 그린 것을 DS 기본으로 바꾼 곳(규칙 충돌)
+### 3-3. R1 — Figma가 그린 것을 DS 기본으로 바꾼 곳(사용자 결정 2026-11-07: 화면대로)
 
-CLAUDE.md "Figma가 커스텀으로 그렸지만 DS로 되는 것은 DS로 + `FIGMA-CUSTOM:` + Figma 코멘트", design-workflow §5 표 "DS 인스턴스 + 모양 덮어쓰기 → DS 기본"대로 만든 줄이다. 근거는 개발 판단이 아니라 규칙이지만, 사용자 지시 "Figma와 100% 동일"과 부딪힌다. 코멘트(10-31 ~ 11-07)에 디자이너 답은 없다. **사용자 결정 하나로 7줄이 함께 정해진다**: (가) 화면을 따른다 → 7줄 모두 맞춤(규칙 문장도 고침) / (나) 규칙 유지 → 7줄 유지, 디자이너에게 화면을 DS로 고쳐 달라고 한다.
+CLAUDE.md "Figma가 커스텀으로 그렸지만 DS로 되는 것은 DS로 + `FIGMA-CUSTOM:` + Figma 코멘트", design-workflow §5 표 "DS 인스턴스 + 모양 덮어쓰기 → DS 기본"대로 만든 줄이다. 근거가 규칙이라 "Figma와 100% 동일"과 부딪혀 확인 필요로 올렸고, **사용자 결정(2026-11-07, 관제탑 전달) = (가) 화면(Figma)을 따른다**. → R1a~R1f 맞춤(필요하면 DS 컴포넌트에 변형을 더함 — 그 변형은 2단계에서 디자인 시스템 Figma로 올림), R1g는 이미 화면대로라 유지. 규칙 문장(CLAUDE.md 규칙 요약 · design-workflow §5 판단 표 "DS 인스턴스 + 모양 override" · "커스텀인데 DS로 가능")도 고쳤다. 각 줄의 작업 줄은 판정 칸.
 
 | # | 화면 | 라우트 | Figma 노드 | Ready | Figma 모양 | 지금 코드 | 판정 | 확인 |
 |---|---|---|---|---|---|---|---|---|
-| R1a | 대시보드 머리 연필 | `/hosting/events/[id]/dashboard` | `727:23261` | `727:23210` | 직접 그린 원 34 · r17 · 안쪽 5 · `#141413` · `ic/edit` 24 | DS Button dark small 아이콘만 32 · r8 — `EventDashboardView.tsx:152` | **확인 필요**(R1) | REST |
-| R1b | 티켓 목록 FAB | tickets | `793:2469` | `767:50048` | DS round Primary에 채움 `#633ee7`(변수 Primary) 덮어씀 | DS Fab 검정 — `TicketListView.tsx:119` | **확인 필요**(R1) | REST |
-| R1c | 체크아웃 결제정보 줄 값 | `/events/[id]/checkout` | `567:7913` | `564:4156` | DS `list` 값을 `Label/lg-emphasized` 700으로 덮어씀 | DS 기본 500 | **확인 필요**(R1) | REST |
-| R1d | 링크 복사 토스트 | `/tickets` | `908:21601` | `908:3276` | 직접 그린 연두 `#edfaee` · 초록 `#28a82e` `Heading/sm` 500 · r16 · 그림자 · 위 | DS Toast(흰 판 · 아래 — #153 자리) | **확인 필요**(R1) | REST |
-| R1e | 입금 확인(주문 확인) 창 모양 | checkout | `567:9756` | `567:9468` | 342 · 회색 판 + 흰 카드 둘(r12 · 테두리) · X · 제목 `Label/lg-emphasized` | DS `다이얼로그 - 결제 요약` 310 + [취소][확인] — `CheckoutPayment.tsx:135` · `CheckoutForm.tsx:337`. 문구 · 버튼 이름 · 입금은행 줄은 유지(U9 · U11) | **확인 필요**(R1) | REST |
-| R1f | PC 확인 창 폭 | tickets · guests | `975:8593` 외 8장 · `956:4063` · `1030:9318` | `975:8593` 등 · `1030:9318` | 520(티켓) · 상세 모달 폭(입장 취소) | DS Popup 310 | **확인 필요**(R1 · Q145) | REST |
-| R1g | 대시보드 PC 통계 카드 위 여백(반대 방향) | dashboard | `712:1701`(GUI 덮어쓰기 16) · DS `538:2562` 12 | `712:1646` | GUI는 16으로 덮어씀, DS는 12 | 16(화면을 따름) — `StatCard.css.ts:42` | **확인 필요**(R1 — 이 줄만 화면을 따라 규칙과 반대. (가)면 그대로, (나)면 12) | REST |
+| R1a | 대시보드 머리 연필 | `/hosting/events/[id]/dashboard` | `727:23261` | `727:23210` | 직접 그린 원 34 · r17 · 안쪽 5 · `#141413` · `ic/edit` 24 | DS Button dark small 아이콘만 32 · r8 — `EventDashboardView.tsx:152` | **맞춤**(R1 (가) — Button에 원형 34 변형 · `M-2 fm-ds-components`. 호출 한 줄 `EventDashboardView.tsx` — M-4와 같은 파일이라 M-4는 M-2 뒤) | REST |
+| R1b | 티켓 목록 FAB | tickets | `793:2469` | `767:50048` | DS round Primary에 채움 `#633ee7`(변수 Primary) 덮어씀 | DS Fab 검정 — `TicketListView.tsx:119` | **맞춤**(R1 (가) — Fab에 `brand`(보라 Primary) 변형 · `M-2 fm-ds-components`, 호출 `TicketListView.tsx`) | REST |
+| R1c | 체크아웃 결제정보 줄 값 | `/events/[id]/checkout` | `567:7913` | `564:4156` | DS `list` 값을 `Label/lg-emphasized` 700으로 덮어씀 | DS 기본 500 | **맞춤**(R1 (가) — InfoRow 값 굵기 변형 · `M-1 fm-ds-overlays`(체크아웃 결제 파일을 같이 가짐)) | REST |
+| R1d | 링크 복사 토스트 | `/tickets` | `908:21601` | `908:3276` | 직접 그린 연두 `#edfaee` · 초록 `#28a82e` `Heading/sm` 500 · r16 · 그림자 · 위 | DS Toast(흰 판 · 아래 — #153 자리) | **맞춤**(R1 (가) — Toast `success`(연두 · 초록 `Heading/sm`) · 위 자리 변형 · `M-1 fm-ds-overlays`(선물 화면 소유)) | REST |
+| R1e | 입금 확인(주문 확인) 창 모양 | checkout | `567:9756` | `567:9468` | 342 · 회색 판 + 흰 카드 둘(r12 · 테두리) · X · 제목 `Label/lg-emphasized` | DS `다이얼로그 - 결제 요약` 310 + [취소][확인] — `CheckoutPayment.tsx:135` · `CheckoutForm.tsx:337`. 문구 · 버튼 이름 · 입금은행 줄은 유지(U9 · U11) | **맞춤**(R1 (가) — 342 · 회색 판 + 흰 카드 둘 · X. 문구 · 버튼 이름 · 입금은행 줄 · 두둥 확인 체크는 유지(U11 · U7) · `M-1 fm-ds-overlays`(Popup 폭 · 닫기 변형)) | REST |
+| R1f | PC 확인 창 폭 | tickets · guests | `975:8593` 외 8장 · `956:4063` · `1030:9318` | `975:8593` 등 · `1030:9318` | 520(티켓) · 상세 모달 폭(입장 취소) | DS Popup 310 | **맞춤**(R1 (가) — Popup 520 · 상세 모달 폭 변형(Q145 닫음) · `M-1 fm-ds-overlays`(EasyOverlay 소유)) | REST |
+| R1g | 대시보드 PC 통계 카드 위 여백(반대 방향) | dashboard | `712:1701`(GUI 덮어쓰기 16) · DS `538:2562` 12 | `712:1646` | GUI는 16으로 덮어씀, DS는 12 | 16(화면을 따름) — `StatCard.css.ts:42` | **유지**(R1 (가) — 이미 화면(16)대로. DS 12와 다른 점은 2단계에서 DS로 올림) | REST |
 
 같은 성격이지만 근거가 따로 있는 것: 예매자 관리 탭 세그먼트 → Tabs(와이어 `424:11713` — **유지**, Nemin 승인 10-31, 지금 Ready `994:1125`도 tab), QR 체크인 모드 세그먼트 → Tabs(와이어 `424:11950` — **디자인 없음**), 로그인 캐릭터 → `img_login`(진행 중).
 
@@ -250,14 +251,14 @@ CLAUDE.md "Figma가 커스텀으로 그렸지만 DS로 되는 것은 DS로 + `FI
 
 | 워크트리 | 범위(줄) | 소유 파일 | 근거 노드 | 선행 |
 |---|---|---|---|---|
-| `fm-ds-overlays` | O1~O11 · O13~O17 · O19 · O20 · O22 · O24(+ 확인 필요 O12 · O21 · O25는 답 오면) | `src/ui/components` `BottomSheet` · `Modal` · `ResponsiveOverlay` · `EasyOverlay` · `DropdownMenu` · `Dropdown`(열린 목록) · `EmptyState` · `theme/surface.css.ts` + 쓰는 화면 `hosting/guest/ui/OrderDetail*` · `hosting/ticket/ui/*Overlay*` · `audience/gift/*` · `audience/ticket/ui/TicketGiftButton.tsx` | `1029:6719` 계열 · `1060:20299`~`20302` · `1182:10057` · `931:1291` 계열 · `943:2200` · `956:3281` · `956:5804` · `908:3276`(`908:12096` · `908:21340` · `908:23151`) · `939:27148` · `958:20392` · `975:8299` · `1029:6014` · `767:46535` | `ds-sync-1107` · #164 |
-| `fm-ds-components` | A1 · A4 · A5 · A7 · A9~A18 · A22~A24 · A27 · O23 + 문서 정리(§1 "문서가 낡은 곳") | `src/ui/components` `Chip` · `Header` · `Toggle` · `Button` · `SearchField`/`Input` · `SalesCard` · `Schedule` · `StatCard` · `TopBar` · `AccountMenu` · `Loader` · `Radio` · `Badge` · `ConcertCard` · `TagButton`, `design-system.md` §3 · §4-2 · §7 | DS `693:668` · `510:1994` · `77:4` · `36:24` · `73:4` · `627:1860` · `605:1848` · `538:2562` · `538:4262` · `585:752` · `772:1178` · `295:1858` · `198:1638` · `121:1008` · GUI `712:1646` · `745:32726` · `748:33451` | `ds-sync-1107` · ∥ `fm-ds-overlays` |
-| `fm-audience` | U3 · U14 · A19 · A21 | `features/audience/home/HomeView.css.ts` · `audience/ticket/ui/TicketTab.css.ts` · `audience/checkout/ui/CheckoutPayment.*` | `759:22391` · `908:3276` · DS `772:1195` | ∥ |
-| `fm-hosting` | H1 · H2 · H17 | `features/hosting/event/*` 대시보드 · 기본 정보 css · `hosting/guest/GuestsView` 머리 | `669:2787` · `727:23088` · `745:32167` · `727:23210` · `748:34006` · `980:24267` | ∥ |
+| `fm-ds-overlays` | O1~O11 · O13~O17 · O19 · O20 · O22 · O24 · **R1c~R1f** · A19 · A21(R1e로 화면이 Figma 카드 모양이 되면 결제 요약 판은 거기에 흡수)(+ 확인 필요 O12 · O21 · O25는 답 오면) | `src/ui/components` `BottomSheet` · `Modal` · `ResponsiveOverlay` · `EasyOverlay` · `Popup` · `Toast` · `InfoRow` · `DropdownMenu` · `Dropdown`(열린 목록) · `EmptyState` · `theme/surface.css.ts` + 쓰는 화면 `hosting/guest/ui/OrderDetail*` · `hosting/ticket/ui/*Overlay*` · `audience/gift/*` · `audience/ticket/ui/TicketGiftButton.tsx` · `audience/checkout/ui/CheckoutPayment.*` · `CheckoutForm.tsx` | `1029:6719` 계열 · `1060:20299`~`20302` · `1182:10057` · `931:1291` 계열 · `943:2200` · `956:3281` · `956:5804` · `908:3276`(`908:12096` · `908:21340` · `908:23151`) · `939:27148` · `958:20392` · `975:8299` · `1029:6014` · `767:46535` · `567:9468`(`567:9756` · `567:7913`) · `908:21601` · `975:8593` · `1030:9318` | `ds-sync-1107` |
+| `fm-ds-components` | A1 · A4 · A5 · A7 · A9~A18 · A22~A24 · A27 · O23 · **R1a · R1b**(Button 원형 34 · Fab 보라 변형 + 호출 `EventDashboardView.tsx` · `TicketListView.tsx` 한 줄씩) + 문서 정리(§1 "문서가 낡은 곳") | `src/ui/components` `Chip` · `Header` · `Toggle` · `Button` · `SearchField`/`Input` · `SalesCard` · `Schedule` · `StatCard` · `TopBar` · `AccountMenu` · `Loader` · `Radio` · `Badge` · `ConcertCard` · `TagButton` · `Fab`, `design-system.md` §3 · §4-2 · §7 | DS `693:668` · `510:1994` · `77:4` · `36:24` · `73:4` · `627:1860` · `605:1848` · `538:2562` · `538:4262` · `585:752` · `772:1178` · `295:1858` · `198:1638` · `121:1008` · GUI `712:1646` · `745:32726` · `748:33451` · `727:23210`(`727:23261`) · `767:50048`(`793:2469`) | `ds-sync-1107` · ∥ `fm-ds-overlays` |
+| `fm-audience` | U3 · U14 | `features/audience/home/HomeView.css.ts` · `audience/ticket/ui/TicketTab.css.ts` | `759:22391` · `908:3276` | ∥ |
+| `fm-hosting` | H1 · H2 · H17 | `features/hosting/event/*` 대시보드 · 기본 정보 css · `hosting/guest/GuestsView` 머리 | `669:2787` · `727:23088` · `745:32167` · `727:23210` · `748:34006` · `980:24267` | `fm-ds-components` 뒤(`EventDashboardView.tsx` 겹침) |
 
 - 셸(`fm-shell`)은 따로 두지 않는다 — 맞출 줄이 모두 `shell-login-gui`(S1~S3 · O26 · O27) 안이다.
 - 고치기 세션이 할 일: 각 줄을 Figma와 같게 → QA 캡처 ↔ `figma_nodes.py shot` 비교 → `FIGMA-CUSTOM:` 주석 정리(→ DS가 아니라 Figma대로) → 정정 코멘트에 "고침" 답글(태그 패널 `759:11869` 정정 답글의 "그림자 없음"도 바로잡는다).
-- R1(§3-3)은 사용자 답에 따라: (가)면 R1a~R1f를 `fm-ds-overlays`(R1f · R1d) · `fm-ds-components`(R1a · R1b · R1c) · `fm-audience`(R1e)에 더한다. (나)면 디자이너에게 화면 수정 요청 코멘트.
+- R1(§3-3)은 사용자 결정 (가)(2026-11-07)로 위 표에 넣었다 — R1c~R1f는 `fm-ds-overlays`, R1a · R1b는 `fm-ds-components`. 더한 변형(Button 원형 · Fab 보라 · Toast success · Popup 폭 · InfoRow 굵기)은 §5 2단계 후보. 옛 `[개발 · DS 컴포넌트로 구현]` 코멘트(연필 · FAB · 토스트 · 입금 확인 창 · list 값)에는 고친 세션이 "화면대로 고침" 답글.
 
 ## 5. 2단계 준비 — 디자인 시스템으로 올릴 후보
 
@@ -279,6 +280,7 @@ CLAUDE.md "Figma가 커스텀으로 그렸지만 DS로 되는 것은 DS로 + `FI
 | `DatePicker` · `TimePicker` | `748:33480` icon input Field | — | 올리지 않음(A `icon input Field` + 표시 포맷) |
 | `DropZone` · `TextArea` · `Skeleton` · `InlineError` | Ready 없음(DropZone `748:33351` 업로드 칸) | 상태 | 디자인 먼저 — 디자이너에게 상태 정의 요청 |
 | `Tooltip` · `LoadMoreSentinel` · `LinkProgress` · `ListHeader` · `QrCode` · `UploadedImage` | 쓰는 곳이 사라지거나 모양 없음 | — | 올리지 않음 |
+| A 컴포넌트에 더하는 변형(R1 (가)) | `Button` 원형 34(`727:23261`) · `Fab` 보라(`793:2469`) · `Toast` success · 위 자리(`908:21601`) · `Popup` 520 · 342 + X(`975:8593` · `567:9756`) · `InfoRow` 값 굵게(`567:7913`) | 기존 세트에 변형 값 추가(`Color=…` · `type=…` 등 그 세트의 표기 그대로) | 새 페이지 없이 각 세트에 변형 추가 — 디자이너가 덮어쓴 값 그대로 |
 | 커스텀 → 커스텀 묶음(§3-7 끝) | `NoticeBox`(`793:11743`) · 판매 기간 상자 · 정보 줄(`1029:6899`) · 티켓 카드(`1029:6909`) · 일괄 처리 바 | — | 두 화면 이상 반복되는 것만(NoticeBox · 정보 줄) |
 
 ### 5-2. 디자인 시스템 파일 규칙(REST로 읽음 — `Button` `36:24` · `tag_v2` `693:668` · `다이얼로그` `758:1714`)
@@ -294,6 +296,6 @@ CLAUDE.md "Figma가 커스텀으로 그렸지만 DS로 되는 것은 DS로 + `FI
 
 ## 6. 고친 것 · 남은 것
 
-- 이 PR은 문서만(이 파일 · README 지도 · progress "다음 순서" M 그룹 · 사용자 대기 한 줄). 코드 · Figma(코멘트 포함)는 손대지 않았다.
-- 사용자 대기: **R1 (가)/(나)** · 확인 필요 25줄(디자이너 Q63 · Q74 · Q80~Q82 · Q100 · Q141~Q143 · Q145 · 시트 아래 34 · 태그 패널 Ready 여부).
+- 이 PR은 문서만(이 파일 · README 지도 · progress "다음 순서" M 그룹 · 사용자 대기 한 줄 · R1 결정으로 CLAUDE.md 규칙 요약 한 줄 · design-workflow §5 판단 표). 코드 · Figma(코멘트 포함)는 손대지 않았다.
+- 사용자 결정: **R1 = (가) 화면을 따른다**(2026-11-07) — 반영함. 사용자 대기: 확인 필요 18줄(디자이너 Q63 · Q74 · Q80~Q82 · Q100 · Q141~Q143 · 시트 아래 34 · 태그 패널 Ready 여부).
 - 다른 세션에 알릴 것: `shell-login-gui` — Ready 드로어에 말풍선이 없다 · 메뉴 "공지사항"(디자이너 답) · 머리 16. `p9-gui-orders` — 주문내역 `1047:32381`이 Ready다(정렬 라벨). `ds-sync-1107` — `tag_v2` border 40%가 같은 세트에 걸린다(A1을 거기서 같이 해도 된다).
