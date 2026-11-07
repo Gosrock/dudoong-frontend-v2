@@ -154,6 +154,41 @@ test.describe('백엔드 #929 반영 — 일괄 API · 입장 취소', () => {
     ).toEqual(['/api/v2/events/101/orders/approve']);
   });
 
+  test('선택 바 [승인] 일부 실패 — 토스트 · 표 위 실패 안내(이유별 건수) · 실패한 주문은 선택된 채(GUI #175)', async ({
+    page,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    // 고른 주문 중 pendingToss만 재고 부족으로 — 나머지는 가짜 백엔드가 실제로 승인한다
+    await page.route(/\/api\/v2\/events\/101\/orders\/approve$/, async (route) => {
+      const { orderUuids } = route.request().postDataJSON() as { orderUuids: string[] };
+      const res = await route.fetch({
+        postData: JSON.stringify({
+          orderUuids: orderUuids.filter((u) => u !== GUEST_ORDER.pendingToss),
+        }),
+      });
+      const body = await res.json();
+      body.data.results.push({
+        orderUuid: GUEST_ORDER.pendingToss,
+        success: false,
+        errorCode: 'Ticket_Item_400_1',
+        reason: '재고가 부족합니다.',
+      });
+      body.data.failed += 1;
+      await route.fulfill({ response: res, json: body });
+    });
+    await page.goto(GUESTS);
+    await page.getByRole('checkbox', { name: '승인 대기 주문 모두 선택' }).click();
+    await page.getByTestId('selection-bar').getByRole('button', { name: '승인' }).click();
+    await expect(page.getByText('1건을 승인했어요. 1건은 승인하지 못했어요.')).toBeVisible();
+    await expect(page.getByTestId('bulk-failure-notice')).toHaveText(
+      '1건을 승인하지 못했어요. 재고 부족 1건. 주문은 승인 대기로 남아 있어요. 거절로 정리해 주세요.',
+    );
+    await expect(page.getByTestId('selection-bar')).toContainText('1개 선택 됨');
+    await expect(page.getByRole('checkbox', { name: /주문 선택$/ })).toBeChecked();
+    await page.getByRole('button', { name: '안내 닫기' }).click();
+    await expect(page.getByTestId('bulk-failure-notice')).toHaveCount(0);
+  });
+
   test('입장 완료 티켓 상세의 [입장 취소] → 확인 → Q-3, 상세가 닫히고 토스트 · 행은 입장 전으로(GUI #161)', async ({
     page,
     mockApi,

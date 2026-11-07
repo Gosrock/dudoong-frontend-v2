@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import type { HostOrderElement } from '@/api/order/schema';
+import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { Button } from '@/ui/components/Button/Button';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { Chip } from '@/ui/components/Chip/Chip';
@@ -12,7 +13,11 @@ import { formatWon } from '@/utils/money';
 
 import * as s from './GuestsView.css';
 import { isDudoongOrder } from './model/guest-rules';
-import { bulkResultMessage, useBulkOrderActions } from './model/useBulkOrderActions';
+import {
+  bulkFailureNotice,
+  bulkResultMessage,
+  useBulkOrderActions,
+} from './model/useBulkOrderActions';
 import { useOrderList } from './model/useOrderList';
 import { DetailCell } from './ui/DetailCell';
 import { dateTimeText, orderStatusChipOf, text } from './ui/guest-labels';
@@ -59,9 +64,10 @@ export function OrdersTab({
   const report = (result: Awaited<ReturnType<typeof bulk.approveMany>>) => {
     if (!result) return false;
     toast(bulkResultMessage(result));
-    const reason = result.failed.find((f) => f.message)?.message;
-    setBulkNotice(result.failed.length > 0 ? (reason ?? null) : null);
-    clearPicked();
+    setBulkNotice(bulkFailureNotice(result));
+    // 처리한 주문은 선택에서 빼고 못 한 주문은 골라 둔다 — 바로 [거절]로 정리하게(GUI `1268:11182` · `1268:11906`, #175).
+    // 그 사이 처리돼 고를 수 없게 된 주문은 `selected`가 거른다
+    setPicked(new Set(result.failed.map((f) => f.orderUuid)));
     return true;
   };
   const approve = async (uuids: readonly string[]) => report(await bulk.approveMany(uuids));
@@ -207,7 +213,12 @@ export function OrdersTab({
       {list.excel.error && (
         <NoticeLine onDismiss={list.excel.dismissError}>{list.excel.error}</NoticeLine>
       )}
-      {bulkNotice && <NoticeLine onDismiss={() => setBulkNotice(null)}>{bulkNotice}</NoticeLine>}
+      {bulkNotice && (
+        // 일괄 처리 실패 안내 — GUI "일부 실패 안내"(`1269:27557` · PC `1269:28457`, #175)
+        <NoticeBox icon="important" onDismiss={() => setBulkNotice(null)}>
+          <span data-testid="bulk-failure-notice">{bulkNotice}</span>
+        </NoticeBox>
+      )}
       <DataTable
         caption="주문 목록"
         columns={columns}
