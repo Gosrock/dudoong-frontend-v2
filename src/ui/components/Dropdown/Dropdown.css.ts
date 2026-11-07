@@ -62,6 +62,7 @@ export const content = style({
 
 /**
  * Figma dropdown item(`284:1777`): 36h(2026-10-31, 옛 28), 여백 4, 선택은 배경 `surface/container` + 모서리 4 + check 12.
+ * 고른 항목은 글자 · ✓를 양 끝으로(`selected=true` 정렬 SPACE_BETWEEN — GUI `1029:6014` · `1007:4083`도 ✓가 오른쪽 끝, I-h3).
  * hover(키보드 이동 포함)와 disabled는 Figma에 없는 상태다(design-system §3).
  */
 export const item = style([
@@ -89,4 +90,5 @@ export const item = style([
   },
 ]);
 
-export const itemIndicator = style({ display: 'inline-flex' });
+/** ✓를 항목 오른쪽 끝으로(DS `selected=true` SPACE_BETWEEN) */
+export const itemIndicator = style({ display: 'inline-flex', flexShrink: 0, marginLeft: 'auto' });

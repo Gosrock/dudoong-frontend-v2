@@ -34,6 +34,11 @@ export type ModalProps = {
   role?: 'dialog' | 'alertdialog';
   /** @internal Popup이 쓴다 — 바깥 클릭으로 닫지 않는다 */
   closeOnOutsideClick?: boolean;
+  /**
+   * 크기. `md`(기본) — 최대 480 · 안쪽 16 · 회색 판(옛 GUI `567:9468`).
+   * `lg` — 520 · 안쪽 24 · 묶음 사이 24 · 흰 판(GUI 호스팅 PC 티켓 옵션 모달 `956:3157` 등 13장, 2026-11-07 I-h1)
+   */
+  size?: 'md' | 'lg';
   /** @internal Popup이 쓴다 */
   compact?: boolean;
 };
@@ -62,6 +67,7 @@ export function Modal({
   onExited,
   role = 'dialog',
   closeOnOutsideClick = true,
+  size = 'md',
   compact,
 }: ModalProps) {
   useCloseOnBack(open, () => onOpenChange(false), { enabled: closeOnBack });
@@ -86,7 +92,9 @@ export function Modal({
         <Dialog.Overlay className={s.overlay} />
         <Dialog.Content
           role={role}
-          className={[s.content, compact && s.contentCompact].filter(Boolean).join(' ')}
+          className={[s.content, size === 'lg' && s.contentLarge, compact && s.contentCompact]
+            .filter(Boolean)
+            .join(' ')}
           // 설명이 없으면 Radix의 aria-describedby 경고를 끈다
           {...(description ? {} : { 'aria-describedby': undefined })}
           {...focus}

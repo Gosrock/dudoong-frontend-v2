@@ -52,7 +52,17 @@ export const WithError: Story = {
   ],
 };
 /** 열린 목록 — selected · hover(키보드 하이라이트) · disabled item */
-export const Open: Story = { args: { defaultValue: 'phone', defaultOpen: true } };
+export const Open: Story = {
+  args: { defaultValue: 'phone', defaultOpen: true },
+  // 고른 항목의 ✓는 항목 오른쪽 끝(DS `selected=true` SPACE_BETWEEN · GUI `1029:6014`, I-h3) — 안쪽 4
+  play: async () => {
+    const item = await screen.findByRole('option', { name: '전화번호' });
+    const check = item.querySelector('svg')!;
+    await waitFor(() =>
+      expect(item.getBoundingClientRect().right - check.getBoundingClientRect().right).toBe(4),
+    );
+  },
+};
 
 /** 키보드: Enter로 열고 ↓로 이동, Enter로 선택. disabled 항목은 건너뛴다. Esc로 닫힌다 */
 export const Keyboard: Story = {

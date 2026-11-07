@@ -60,6 +60,17 @@ export const contentCompact = style({
   background: vars.color.background.normal,
 });
 
+/**
+ * 큰 판(`size="lg"`) — GUI 호스팅 PC 티켓 옵션 모달(`956:3157` 가이드 · `956:3281` 추가 · `956:3753` 새 옵션 ·
+ * `956:5804` 상세 · `956:6109` 수정 등 13장): 520폭, 안쪽 24(`Space/5`), 묶음(머리 · 본문 · 버튼) 사이 24, 모서리 16,
+ * 배경 `Background/normal`(흰색). 제목 → 설명은 8 그대로(`956:3281` 헤더 묶음 간격 8) — 간격 8 + 본문·footer 위 16.
+ */
+export const contentLarge = style({
+  maxWidth: 520,
+  padding: vars.space[5],
+  background: vars.color.background.normal,
+});
+
 export const header = style({
   display: 'flex',
   alignItems: 'flex-start',
@@ -90,6 +101,8 @@ export const footer = style({
 globalStyle(`${footer} > *`, { flex: 1 });
 
 globalStyle(`${contentCompact} > ${footer}`, { marginTop: vars.space[4] });
+
+globalStyle(`${contentLarge} > ${body}, ${contentLarge} > ${footer}`, { marginTop: vars.space[4] });
 
 export const closeButton = style({
   display: 'inline-flex',

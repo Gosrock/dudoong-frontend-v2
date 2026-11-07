@@ -19,6 +19,8 @@ export type ResponsiveOverlayProps = {
   /** 뒤로가기로 닫기. EasyOverlay가 직접 맡을 때 false. 기본 true */
   closeOnBack?: boolean;
   onExited?: () => void;
+  /** PC 모달 크기(`Modal` `size`). 모바일 시트에는 영향 없음. 기본 `md` */
+  modalSize?: 'md' | 'lg';
 };
 
 /**
@@ -26,12 +28,16 @@ export type ResponsiveOverlayProps = {
  * 판정 전(첫 렌더, `null`)에는 아무것도 그리지 않는다 — 한 프레임 뒤 열린다.
  * 뒤로가기 처리는 여기서 한 번만 한다(열린 채 화면 폭이 바뀌어 Modal ↔ Sheet가 바뀌어도 history 항목이 하나로 남게).
  */
-export function ResponsiveOverlay({ closeOnBack = true, ...props }: ResponsiveOverlayProps) {
+export function ResponsiveOverlay({
+  closeOnBack = true,
+  modalSize,
+  ...props
+}: ResponsiveOverlayProps) {
   const viewport = useMediaQueries();
   useCloseOnBack(props.open, () => props.onOpenChange(false), { enabled: closeOnBack });
   if (viewport === null) return null;
   return viewport === 'desktop' ? (
-    <Modal {...props} closeOnBack={false} />
+    <Modal {...props} size={modalSize} closeOnBack={false} />
   ) : (
     <BottomSheet {...props} closeOnBack={false} />
   );

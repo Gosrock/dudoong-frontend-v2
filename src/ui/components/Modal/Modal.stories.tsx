@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
+import { expect, screen, userEvent, waitFor, within } from 'storybook/test';
 
 import { Flex } from '../../primitives/Flex';
 import { Txt } from '../../primitives/Txt';
@@ -69,4 +70,26 @@ export const HiddenTitle: Story = {
   args: { hideTitle: true, title: '공연 포스터', description: undefined, footer: undefined },
   play: ({ canvasElement }) =>
     playOverlayBasics({ canvasElement, trigger: '열기', name: '공연 포스터' }),
+};
+
+/**
+ * 큰 판 `size="lg"` — GUI 호스팅 PC 티켓 옵션 모달(`956:3157` 등): 520폭 · 안쪽 24 · 묶음 사이 24 · 흰 판(I-h1).
+ * 제목 → 설명은 8 그대로
+ */
+export const Large: Story = {
+  args: {
+    size: 'lg',
+    title: '티켓 옵션 추가하기',
+    description: '추가할 옵션을 선택해 주세요.',
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '열기' }));
+    const dialog = await screen.findByRole('dialog', { name: '티켓 옵션 추가하기' });
+    await waitFor(() => expect(dialog).toBeVisible());
+    const css = getComputedStyle(dialog);
+    await expect(css.paddingTop).toBe('24px');
+    await expect(css.maxWidth).toBe('520px');
+    await expect(css.backgroundColor).toBe('rgb(255, 255, 255)');
+    await userEvent.keyboard('{Escape}');
+  },
 };

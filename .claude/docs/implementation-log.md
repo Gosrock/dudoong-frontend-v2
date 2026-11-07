@@ -2991,3 +2991,25 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2685개 통과(새 `MoneyInput.test` 4 · `money.test` 2). e2e(빌드) `hosting-ticket` · `hosting-guests` · `hosting-event` 78 통과. QA `hosting-guests` 35 · `hosting-ticket` 30 — 실패 0.
 
 **ego-browser 확인(2026-11-07, dev:mock 3109 · `localhost`)**: 새 티켓 390 · 1440 — "1000" 친 뒤 "1" 뒤에 "5" → "15,000", 커서 2. 옵션 상세(뒤풀이) 390 · 1440 "10,000". 예매자 상세 `101-e` 390 · 1440 — 승인 거절 · 거절 사유 입금 미확인, 환불 칩 · 환불 정보 없음(`1029:8322`와 같음). `101-f` — 환불 완료 칩 + 우리은행 계좌 · 환불 완료일, 계좌 안내 없음. 발견: 없음.
+
+## Figma 전수조사 후속 — DS Modal 큰 판 · Toast 자리 · Dropdown · Radio · DataTable(I-h1~I-h5, 2026-11-07, `ds-audit-hosting` #PR)
+
+근거: `figma-audit-2026-11-07-hosting.md` 작업 줄 후보 ①~⑤. GUI Ready 노드의 크기 · 간격은 REST(`/nodes`)로 읽었고, Dropdown은 DS `dropdown item`(`284:1777`)도 봤다. DS 파일 판은 기준 판 그대로(`2416898429564738752`). 기록은 `design-system.md` §3(Dropdown · Radio · Toast popup 줄 · DataTable) · §8 "2026-11-07".
+
+**I-h1 Modal 큰 판** — `Modal` `size="lg"`: 최대 520 · 안쪽 24 · 머리/본문/버튼 사이 24 · 흰 판(`background.normal`), 제목 → 설명 8 그대로(`956:3281` 헤더 묶음). `ResponsiveOverlay` `modalSize`로 PC에만. 티켓 옵션 가이드(`TicketGuides`) · 추가 · 새 옵션(`AddOptionsOverlay`) · 상세 · 수정(`OptionDetailOverlay`)에 붙였다. 예매자 주문 상세는 Q100대로 md, PC 확인 창(Popup 310)은 Q145 답 대기라 그대로.
+
+**I-h2 Toast 자리** — `Toast.css.ts` `toastPosition`(CSS 변수 bottom · mobileBottom · shiftX)을 sonner `offset` · `mobileOffset`의 bottom과 PC 가운데(`left: calc(50% + shiftX)`)에 넣었다. 값이 없으면 sonner 기본(PC 24 · 600 이하 16)·화면 가운데 그대로라 관객 화면은 바뀌지 않는다.
+- 모바일(~1023): 보이는 FAB가 있으면 bottom = 아래 24 + 56 + 16 + 안전 영역(`fabClearance.lg`) — FAB 위 16(`958:20841`). `Fab`이 `data-fab`를 달고 `useActivityMarker`로 숨은 Activity 화면을 뺀다(`Fab`이 `'use client'`가 됐다). 관객 홈 "맨 위로" FAB는 스크롤 전에 `data-fab-hidden`을 줘 토스트를 올리지 않는다.
+- PC 공연 화면: `EventScopeFrame.css.ts`가 `:root:has(공연 스코프)`에 shiftX 134(사이드바 268의 절반) · bottom 48(PC `space[7]`)을 준다 — 가운데 x 854 · 아래 48(`975:8897` · `1029:5720`).
+
+**I-h3 Dropdown ✓** — `itemIndicator` `margin-left: auto` — ✓가 항목 오른쪽 끝(안쪽 4, DS `selected=true` SPACE_BETWEEN).
+
+**I-h4 Radio 14** — `Radio` `size: 'md' | 'sm'`(글자 Body/lg 16 · Body/md 14, 원 20 같음). `ReasonFields`(거절 · 취소 사유)가 `sm` — 줄 사이 32(원 20 + 12).
+
+**I-h5 DataTable 모바일 칸 폭** — 칸 `mobileWidth`(~1023에서만 `--dt-col-width-m`). GUI 모바일 행은 주문자 FILL · 나머지 고정이라 고정 칸에만 준다. 발급된 티켓 티켓 96 · 체크인 100 · 상세 32, 환불 환불 금액 88 · 상태 96 · 상세 32(Figma 폭 + 칸 사이 8, 끝 칸은 4 + 8).
+
+**🤖 판단**: ① 토스트 PC 아래 48은 공연 화면(사이드바 있는 곳)에만 — GUI Ready가 거기에만 있고, 관객 · 호스팅 공연 밖 화면은 그대로 24 ② FAB 위로 올리는 것은 DS `Fab`만 — 호스팅 홈 · 호스트 홈의 하단 고정 버튼(`fabBottom`, Button)은 토스트 근거 화면이 없어 그대로 ③ 표는 자동 배치 그대로 두고 `mobileWidth`는 폭 값만 — 내용이 더 길면(발급된 티켓 "선물 받음" 칩, Q110 — GUI에 없음) 칸이 늘어나고 주문자 칸이 줄어든다. 고정 배치로 자르면 칩이 잘려서 ④ 주문 탭 모바일 칸은 전수조사에서 "같음"이라 `mobileWidth`를 주지 않았다 ⑤ 새 Figma 코멘트 · 디자인 Q 없음(Q160~Q164 쓰지 않음) — 다르게 한 것이 없다.
+
+**검사**: typecheck · 바꾼 파일 lint 통과. vitest related 147 통과. 스토리 테스트(Modal · Toast · Radio · Dropdown · DataTable · BottomSheet · Fab) 통과 — 새 스토리 `Modal/Large` · `Toast/AboveFab` · `Toast/HiddenFab` · `Radio/Small` · `DataTable/MobileWidth`, `Dropdown/Open`에 ✓ 자리 검사. QA `hosting-ticket` 30(HT-3 PC 모달 520 · 판매 중단 토스트 자리 검사 추가) · `hosting-guests` 35 · `checkout` 31 — 실패 0. e2e `hosting-ticket` · `hosting-guests` · `a11y` · `shell-activity` 160 통과.
+
+**ego-browser 확인(2026-11-07, dev:mock 3111 · Storybook 6111)**: 티켓 관리 1440 — 가이드 · 옵션 상세 · 옵션 추가 모달 폭 520 · 안쪽 24 · 흰 판, 묶음 사이 24(가이드는 Figma `956:3157`과 나란히 봄). 판매 중단 토스트 1440 — 가운데 x 854 · 아래 48. 390 — 판매 재개 토스트가 FAB 위 16. 예매자 390 — 검색 기준 드롭다운 ✓ 오른쪽 끝(안쪽 4), 환불 표 주문자 124 · 88 · 96 · 32, 발급된 티켓은 "선물 받음" 칩 행 때문에 티켓 칸 125(🤖 ③). 1440 거절 사유 — 글자 14 · 줄 사이 32. Storybook Modal Large 1440(520), Toast AboveFab 390(아래 96), DataTable MobileWidth · Radio Small · Dropdown Open 390. 발견: 위 🤖 ③ 말고 없음.

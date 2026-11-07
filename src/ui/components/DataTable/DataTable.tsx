@@ -19,8 +19,13 @@ export type DataTableColumn<T extends RowData> = {
   /** 셀 내용 */
   cell: (row: T, index: number) => ReactNode;
   align?: 'left' | 'center' | 'right';
-  /** CSS 폭(예: 120, '20%') — PC(1024~)에서만. 모바일 표는 칸이 내용 폭 */
+  /** CSS 폭(예: 120, '20%') — PC(1024~)에서만. 칸 사이 간격(양쪽 안쪽 여백)을 포함한 폭 */
   width?: number | string;
+  /**
+   * 모바일(~1023) CSS 폭 — 칸 사이 간격 포함(모바일 안쪽 여백 4씩, 양 끝 칸은 12 · 8). 없으면 내용 폭.
+   * 폭을 준 칸 밖의 칸이 남은 폭을 나눈다(GUI 모바일 표 — 주문자 칸 FILL, 나머지 FIXED, I-h5)
+   */
+  mobileWidth?: number | string;
   /** 이 폭에서만 보인다(모바일 표에서 칸을 줄일 때). 기본 둘 다 */
   display?: 'all' | 'desktop' | 'mobile';
 };
@@ -120,14 +125,19 @@ export function DataTable<T extends RowData>({
       s.display[m?.display ?? 'all'],
       edges(id),
       m?.width !== undefined && s.desktopWidth,
+      m?.mobileWidth !== undefined && s.mobileWidth,
     ]
       .filter(Boolean)
       .join(' ');
   };
   const widthStyle = (id: string) => {
-    const w = meta(id)?.width;
-    if (w === undefined) return undefined;
-    return { '--dt-col-width': typeof w === 'number' ? `${w}px` : w } as CSSProperties;
+    const m = meta(id);
+    if (m?.width === undefined && m?.mobileWidth === undefined) return undefined;
+    const css = (w: number | string | undefined) => (typeof w === 'number' ? `${w}px` : w);
+    return {
+      ...(m.width !== undefined && { '--dt-col-width': css(m.width) }),
+      ...(m.mobileWidth !== undefined && { '--dt-col-width-m': css(m.mobileWidth) }),
+    } as CSSProperties;
   };
 
   const onRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, row: T) => {

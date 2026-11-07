@@ -57,7 +57,8 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   };
 
   const columns = nowrapColumns<HostIssuedTicket>([
-    // 모바일은 주문자 · 티켓 · 체크인(`1003:3143`), PC는 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인(`1030:8054`).
+    // 모바일은 주문자 · 티켓 · 체크인(`1003:3143`) — 주문자가 남은 폭, 티켓 88 · 체크인 92 · 상세 20 고정(`1003:3142`,
+    // `mobileWidth`는 칸 사이 8 · 끝 8을 더한 값, I-h5). PC는 티켓 번호 · 티켓 · 주문자 · 주문 번호 · 발급 일시 · 체크인(`1030:8054`).
     { id: 'buyerMobile', header: '주문자', display: 'mobile', cell: (r) => text(r.buyerName) },
     {
       id: 'no',
@@ -70,6 +71,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
     {
       id: 'name',
       header: '티켓',
+      mobileWidth: 96,
       cell: (r) => <NameWithGift name={text(r.ticketName)} giftState={r.giftState} />,
     },
     {
@@ -97,6 +99,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
       id: 'entrance',
       header: '체크인',
       width: 152,
+      mobileWidth: 100,
       cell: (r) => {
         // 선물 대기 티켓은 서버가 입장시키지 않는다(GIFT_PENDING) — 버튼 대신 입장 전 칩, 이유는 상세에서
         if (r.entrance === 'BEFORE' && canCheckIn && r.ticketUuid && !isGiftPending(r)) {
@@ -125,6 +128,7 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
       id: 'detail',
       header: <span className={s.srOnly}>상세</span>,
       width: 40,
+      mobileWidth: 32,
       cell: () => <DetailCell />,
     },
   ]);

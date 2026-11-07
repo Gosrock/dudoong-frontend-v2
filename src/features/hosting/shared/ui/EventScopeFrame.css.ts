@@ -1,7 +1,14 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { toastPosition } from '@/ui/components/Toast/Toast.css';
+import { activeMarker } from '@/ui/hooks/activity-marker';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
+
+import { EVENT_SCOPE_ATTR } from './event-scope-attrs';
+
+/** PC 사이드바 폭 — GUI `712:1646` 등 */
+const SIDEBAR_WIDTH = 268;
 
 /**
  * 공연 스코프 3단(GUI Ready `712:1646`·`669:2972`·`680:672`, gui-screens §3). 상단 바 58 아래에
@@ -15,7 +22,22 @@ export const frame = style({
   '@media': {
     [media.desktop]: {
       display: 'grid',
-      gridTemplateColumns: '268px minmax(0, 1fr)',
+      gridTemplateColumns: `${SIDEBAR_WIDTH}px minmax(0, 1fr)`,
+    },
+  },
+});
+
+/**
+ * 토스트 자리(I-h2) — PC는 본문 영역(사이드바 뺀 곳) 가운데, 아래 48(GUI `975:8897` · `1029:5720` 토스트 가운데 x 854 = 268 + 1172/2,
+ * 화면 아래에서 48 = PC `space[7]`). 숨은 Activity 틀은 빼고 본다. 모바일은 사이드바가 없어 그대로(FAB 위로 올리는 것은 DS Toast).
+ */
+globalStyle(`:root:has(${activeMarker(EVENT_SCOPE_ATTR)})`, {
+  '@media': {
+    [media.desktop]: {
+      vars: {
+        [toastPosition.shiftX]: `${SIDEBAR_WIDTH / 2}px`,
+        [toastPosition.bottom]: vars.space[7],
+      },
     },
   },
 });

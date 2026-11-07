@@ -98,7 +98,7 @@ scenario(
     kind: '정상',
     summary:
       '본문의 "입금자명" 예시는 뺐다(약관 제19조⑥ 금지 규칙 — implementation-log P12-V 결정).',
-    basis: ['GUI 924:1281 · 956:3157', '#49', 'plan P12 L 금지 규칙'],
+    basis: ['GUI 924:1281 · 956:3157', '#49', 'plan P12 L 금지 규칙', 'I-h1 DS Modal 큰 판'],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -109,6 +109,11 @@ scenario(
       await expect(guide).toContainText('예시1) 학번을 입력해 주세요');
       await expect(guide).toContainText('판매가 시작되면 옵션 이름과 설명만 바꿀 수 있어요.');
       await expect(guide).not.toContainText('입금자명');
+      if (testInfo.project.name === 'desktop') {
+        // PC 모달 큰 판 — 520 · 안쪽 24(GUI 956:3157, I-h1). 열림 애니메이션(scale) 뒤에 잰다
+        const dialog = page.getByRole('dialog', { name: '티켓 옵션이란?' });
+        await expect(async () => expect((await dialog.boundingBox())?.width).toBe(520)).toPass();
+      }
     });
     await step('[확인]으로 닫힌다', async () => {
       await page.getByRole('button', { name: '확인' }).click();
@@ -329,6 +334,20 @@ scenario(
       await dialog.getByRole('button', { name: '중단' }).click();
       await expect(page.getByText('티켓의 판매를 중단했어요.')).toBeVisible();
       await expect(sold.getByTestId('ticket-chip')).toHaveText('판매 중단');
+      // 토스트 자리(I-h2) — PC는 본문 영역(사이드바 268 뺀 곳) 가운데 · 아래 48(GUI 975:9788), 모바일은 FAB 위 16(958:20841)
+      await expect(async () => {
+        const toast = (await page.locator('[data-sonner-toast]').first().boundingBox())!;
+        const viewport = page.viewportSize()!;
+        if (testInfo.project.name === 'desktop') {
+          expect(Math.round(toast.x + toast.width / 2)).toBe(
+            Math.round(268 + (viewport.width - 268) / 2),
+          );
+          expect(Math.round(viewport.height - toast.y - toast.height)).toBe(48);
+        } else {
+          const fab = (await page.getByRole('button', { name: '새 티켓 만들기' }).boundingBox())!;
+          expect(Math.round(fab.y - toast.y - toast.height)).toBe(16);
+        }
+      }).toPass();
     });
     await step('[판매 재개] → 확인하면 다시 "판매 중"', async () => {
       await sold.getByRole('button', { name: '일반 예매 메뉴' }).click();
