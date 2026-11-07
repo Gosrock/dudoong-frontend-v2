@@ -27,7 +27,7 @@ Next.js 동작은 설치된 버전의 문서(`node_modules/next/dist/docs/`)로 
 - 로그에 계좌번호·입금자명·토큰을 남기지 않는다. 약관 근거 문구는 빼거나 바꾸지 않고(`legal-copy.md`), 동의 문구가 바뀌면 `AGREEMENT_VERSION`(`src/api/shared/agreement.ts`)을 올린다.
 - 디자인 전에는 L(로직)만 — 훅·도메인 규칙은 `features/<track>/<feature>/model/`, UI 동작을 넣지 않는다(plan §0).
 - 화면(V)은 스킬 `gui-implement`로 — 근거는 GUI 화면 Figma의 Dev Mode **Ready for dev** 노드만, 없으면 와이어프레임으로 단순 와이어 수준(`.claude/docs/design-workflow.md`). 상태는 `gui-screens.md` §0.
-- 커스텀 구현은 지양하고 DS·`src/ui` 컴포넌트를 쓴다. Figma가 커스텀으로 그렸지만 DS로 되는 것은 DS로 + `FIGMA-CUSTOM:` 주석 + Figma 코멘트. 작업 시작·PR 직전에 열린 `Design Sync` 이슈를 보고, 반영 PR의 `Closes #n`으로만 닫는다.
+- 커스텀 구현은 지양하고 DS·`src/ui` 컴포넌트를 쓴다. 단 **Ready 화면이 DS를 덮어쓰거나 직접 그렸으면 화면대로**(필요하면 DS 컴포넌트에 변형을 더함 + `FIGMA-CUSTOM:` 주석), 2단계에서 그 변형을 디자인 시스템 Figma로 올린다 — 사용자 결정 2026-11-07(design-workflow §5). 작업 시작·PR 직전에 열린 `Design Sync` 이슈를 보고, 반영 PR의 `Closes #n`으로만 닫는다.
 - `main`에 넣는 PR은 **스쿼시 머지**(`gh pr merge <n> --squash`) — `main`에 PR 하나가 커밋 하나로 남는다. 머지는 관제탑(스킬 `main-phase`)이 CI 통과·검토 뒤 확인 없이 한다(사용자 결정 2026-11-01 — 전체 계획이 끝날 때까지 자율 진행). 그 밖의 세션은 머지하지 않는다. PR 브랜치에 최신 `main`을 합칠 때는 merge(리베이스 아님).
 
 ## 명령
