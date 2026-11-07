@@ -32,6 +32,39 @@ export const toast = style([
 export const title = style({ width: '100%' });
 
 /**
+ * 성공 토스트(R1d — GUI `908:21601`): 연두 `status/success-subtle` #edfaee · 초록 `status/success` #28a82e `Heading/sm` 16/500 ·
+ * 모서리 16 · 안쪽 16 · 테두리 없음 · 그림자 drop · 글자 폭만큼(가운데). `toast` 다음에 둬야 이긴다(같은 무게의 클래스)
+ */
+export const success = style([
+  typography.headingSm,
+  {
+    left: 0,
+    right: 0,
+    width: 'fit-content',
+    maxWidth: '100%',
+    minHeight: 0,
+    marginInline: 'auto',
+    borderRadius: vars.radius[5],
+    border: 'none',
+    background: vars.color.status.successSubtle,
+    color: vars.color.status.success,
+  },
+]);
+
+/** sonner 600 이하 규칙(`[data-sonner-toaster] [data-sonner-toast]` — 폭 꽉 채움)보다 구체적이게 — 성공 토스트는 글자 폭(241, `908:21601`) */
+globalStyle(`[data-sonner-toaster] [data-sonner-toast].${success}`, {
+  width: 'fit-content',
+  maxWidth: '100%',
+  '@media': {
+    // 600 이하 목록은 화면 폭 100%를 왼쪽 여백만큼 밀어 둔다 — 오른쪽도 여백 둘만큼 띄워야 화면 가운데
+    'screen and (max-width: 600px)': {
+      right: 'calc(var(--mobile-offset-left) * 2)',
+      maxWidth: 'calc(100% - var(--mobile-offset-left) * 2)',
+    },
+  },
+});
+
+/**
  * 토스트 자리(I-h2, GUI `958:20841` · `975:8897`). 화면 쪽이 `:root`에 값을 주면 바뀌고, 없으면 sonner 기본값 그대로.
  * - `bottom` — 화면 아래에서 토스트까지(sonner `offset`·`mobileOffset`의 bottom에 넣는다)
  * - `shiftX` — PC에서 가운데를 옮기는 양. 호스팅 공연 화면은 사이드바 268의 절반(본문 영역 가운데)
@@ -42,9 +75,17 @@ export const toastPosition = {
   shiftX: createVar(),
 };
 
+/**
+ * 위 자리(`position: 'top'`) — GUI `908:21508`에서 토스트가 화면 위 140(상태 바 47 빼면 93 — 머리 64 아래 29). 토큰에 없는 값 그대로
+ */
+const TOP = '93px';
+
 /** sonner 기본(PC 24 · 600 이하 16)을 대체값으로 */
-export const toastOffset = { bottom: fallbackVar(toastPosition.bottom, '24px') };
-export const toastMobileOffset = { bottom: fallbackVar(toastPosition.mobileBottom, '16px') };
+export const toastOffset = { bottom: fallbackVar(toastPosition.bottom, '24px'), top: TOP };
+export const toastMobileOffset = {
+  bottom: fallbackVar(toastPosition.mobileBottom, '16px'),
+  top: TOP,
+};
 
 /**
  * 모바일(~1023)에 FAB가 떠 있으면 토스트를 FAB 위 16으로(GUI `958:20841` — FAB 위 16).

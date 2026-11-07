@@ -33,6 +33,19 @@ export const SecondCheckbox: Story = {
   },
 };
 /** Figma `Hierarchy=third, value type=text` */
+/** 총액 줄(`total` — GUI `567:7913`, R1c): 라벨 · 값 Label/lg-emphasized, 값 보라 */
+export const Total: Story = { args: { label: '총 결제금액', value: '18,000 원', total: true } };
+
+/** 값 굵게(`valueEmphasized` — GUI `564:4156` 결제정보 줄, R1c) */
+export const FirstEmphasized: Story = {
+  args: {
+    hierarchy: 'first',
+    label: '결제정보',
+    value: '입금자명은 닉네임과 동일하게 해주세요',
+    valueEmphasized: true,
+  },
+};
+
 export const ThirdText: Story = { args: { hierarchy: 'third', value: 'value' } };
 /** Figma `Hierarchy=third, value type=badge` */
 export const ThirdBadge: Story = {

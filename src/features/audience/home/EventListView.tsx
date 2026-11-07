@@ -75,7 +75,8 @@ export function EventListView() {
 
       <div className={s.filters}>
         <div className={s.filtersStart}>
-          {/* FIGMA-CUSTOM: 태그 패널 상자(gui 759:12049 "Frame 1707480347" 흰 판 · 테두리 · 모서리 8) 커스텀 → DS Popover. Figma 코멘트 2026-11-01 */}
+          {/* FIGMA-CUSTOM: 태그 패널 상자(gui 759:12049 "Frame 1707480347" · 새 판 1231:2003) Figma대로 — Popover(흰 판 · 테두리 #dddcda · 모서리 8 · drop shadow,
+              2026-11-08 fm-ds-overlays O21 — Ready 밖이지만 사용자 결정 11-08). Figma 코멘트 2026-11-01 · 고침 2026-11-08 */}
           <Popover
             trigger={<FilterChip label="태그" count={list.tags.selectedCount} />}
             label="태그 고르기"

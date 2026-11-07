@@ -51,6 +51,8 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
     // 확인 창 계약(patterns §6): 실패면(`false`) 열린 채, 성공하면 닫히고 토스트.
     // 티켓 상세도 닫고 목록 위에 토스트(GUI #161 `1228:10719` · `1228:10669` — 목록만 보이고 아래 토스트)
     const ok = await openConfirm({
+      // PC 480 — 티켓 상세 모달 폭(GUI `1030:9318` — R1f)
+      popupSize: 'md',
       ...CANCEL_ENTRANCE_CONFIRM,
       cancelLabel: '돌아가기',
       onConfirm: () => list.entranceCancel.run(ticketUuid),

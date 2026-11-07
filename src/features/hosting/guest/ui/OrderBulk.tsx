@@ -92,6 +92,8 @@ export function RefuseOverlay({
   };
   return (
     <ResponsiveOverlay
+      // 거절 사유 시트 — 예매자 관리 시트 모양(flat, GUI `1000:*` · `1029:7093`)
+      sheetVariant="flat"
       open={open}
       onOpenChange={(v) => !v && close()}
       title={count > 1 ? `${count}건의 거절 사유를 선택해 주세요.` : '거절 사유를 선택해 주세요.'}

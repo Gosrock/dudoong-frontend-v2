@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
@@ -31,7 +31,12 @@ export const texts = style({
 export const actions = style({
   display: 'flex',
   gap: vars.space[2],
-  marginTop: vars.space[5],
+});
+
+/** 문구 → 버튼. sm 18은 토큰에 없는 Figma 값 그대로(`793:20840` 간격 8 + 버튼 틀 안쪽 10) */
+export const actionGap = styleVariants({
+  md: { marginTop: vars.space[5] },
+  sm: { marginTop: 18 },
 });
 
 /**

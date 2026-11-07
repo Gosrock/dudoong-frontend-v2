@@ -14,6 +14,10 @@ export type EmptyStateProps = {
   description?: ReactNode;
   /** 버튼 자리. 보통 `<EmptyStateAction>` */
   action?: ReactNode;
+  /**
+   * 문구 → 버튼 간격. `md` 24(기본) · `sm` 18(GUI 티켓 없음 `793:20840` — 간격 8 + 버튼 틀 10, 2026-11-08 O22)
+   */
+  actionGap?: 'md' | 'sm';
   className?: string;
 };
 
@@ -26,6 +30,7 @@ export function EmptyState({
   title,
   description,
   action,
+  actionGap = 'md',
   className,
 }: EmptyStateProps) {
   return (
@@ -43,7 +48,7 @@ export function EmptyState({
           </Txt>
         )}
       </div>
-      {action && <div className={s.actions}>{action}</div>}
+      {action && <div className={`${s.actions} ${s.actionGap[actionGap]}`}>{action}</div>}
     </div>
   );
 }

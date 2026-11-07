@@ -3,7 +3,7 @@
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import type { ReactNode } from 'react';
 
-import { floatingSurface } from '../../theme/surface.css';
+import { dropdownSurface } from '../../theme/surface.css';
 import * as s from './DropdownMenu.css';
 
 export type DropdownMenuItem = {
@@ -26,7 +26,7 @@ export type DropdownMenuProps = {
 /**
  * ⋮ 메뉴(Radix DropdownMenu) — 공연 카드(P11), 티켓 수정·삭제·판매 중단·재개(P12).
  * 방향키로 항목 이동, Enter·Space로 선택, Esc로 닫고 트리거로 포커스가 돌아온다.
- * 디자인이 없어 면은 Toast, 항목은 dropdown item 모양을 따른다.
+ * 면은 DS `dropdown`, 항목은 `dropdown item`(GUI 티켓 ⋮ 메뉴 `958:20518` — 116 · 항목 28h, 2026-11-08 O19).
  */
 export function DropdownMenu({
   trigger,
@@ -43,7 +43,7 @@ export function DropdownMenu({
           align={align}
           sideOffset={4}
           collisionPadding={16}
-          className={`${floatingSurface} ${s.content}`}
+          className={`${dropdownSurface} ${s.content}`}
         >
           {items.map((item, i) => (
             <RadixMenu.Item

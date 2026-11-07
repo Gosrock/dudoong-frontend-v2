@@ -4,6 +4,7 @@ import { overlay } from 'overlay-kit';
 import { type ReactNode, useState } from 'react';
 
 import { useCloseOnBack } from '../../hooks/useCloseOnBack';
+import type { BottomSheetVariant } from '../BottomSheet/BottomSheet';
 import { ResponsiveOverlay } from '../BottomSheet/ResponsiveOverlay';
 import { Button } from '../Button/Button';
 import { LoadingLabel } from '../Loader/Loader';
@@ -29,6 +30,15 @@ export type ConfirmOptions = {
   onConfirm?: () => Promise<unknown>;
   /** popup(기본) = 확인 팝업, responsive = PC 모달 · 모바일 바텀시트 */
   variant?: 'popup' | 'responsive';
+  /**
+   * popup의 데스크탑(1024~) 폭 — sm 310(기본) · md 480 · lg 520(`Popup` `size`, R1f). 모바일은 늘 310
+   */
+  popupSize?: 'sm' | 'md' | 'lg';
+  /**
+   * responsive의 모바일 시트 모양(`BottomSheet` `variant`). 기본 `raised` — 확인 시트(GUI 선물 거절 `939:26914`):
+   * 막대 손잡이 · 제목 24 · 설명 가운데 · 버튼 사이 12(O17, 2026-11-08)
+   */
+  sheetVariant?: BottomSheetVariant;
 };
 
 export type EasyOverlayProps = ConfirmOptions & {
@@ -56,6 +66,8 @@ export function EasyOverlay({
   cancelLabel = '취소',
   onConfirm,
   variant = 'popup',
+  popupSize,
+  sheetVariant = 'raised',
 }: EasyOverlayProps) {
   const [pending, setPending] = useState(false);
   const { release } = useCloseOnBack(open, () => onResult(false), { hold: pending });
@@ -96,6 +108,7 @@ export function EasyOverlay({
         loading={pending}
         closeOnBack={false}
         onExited={onExited}
+        size={popupSize}
       >
         {content}
       </Popup>
@@ -111,6 +124,7 @@ export function EasyOverlay({
       dismissible={!pending}
       closeOnBack={false}
       onExited={onExited}
+      sheetVariant={sheetVariant}
       footer={
         <>
           {cancelLabel !== null && (

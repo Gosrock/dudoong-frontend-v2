@@ -56,7 +56,7 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** GUI `567:9468` — 제목 + ✕, 설명, 본문, 하단 버튼 */
+/** 기본 `md` — 흰 판 · 안쪽 24 · 묶음 사이 24 · 최대 480(GUI `1029:6888`, 2026-11-08). 제목 + ✕, 설명, 본문, 하단 버튼 */
 export const Default: Story = {
   play: ({ canvasElement }) =>
     playOverlayBasics({ canvasElement, trigger: '열기', name: '주문 완료하기' }),
@@ -92,4 +92,43 @@ export const Large: Story = {
     await expect(css.backgroundColor).toBe('rgb(255, 255, 255)');
     await userEvent.keyboard('{Escape}');
   },
+};
+
+/** 제목 18 · 설명 Body/md(GUI 예매자 주문 상세 `1029:6888`) — md 판 값도 확인 */
+export const MediumOrderDetail: Story = {
+  args: {
+    title: '이찬진',
+    titleSize: 'md2',
+    description: 'R10000071',
+    descriptionStyle: 'body',
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '열기' }));
+    const dialog = await screen.findByRole('dialog', { name: '이찬진' });
+    await waitFor(() => expect(dialog).toBeVisible());
+    const css = getComputedStyle(dialog);
+    await expect(css.paddingTop).toBe('24px');
+    await expect(css.rowGap).toBe('24px');
+    await expect(css.maxWidth).toBe('480px');
+    await expect(css.backgroundColor).toBe('rgb(255, 255, 255)');
+    await userEvent.keyboard('{Escape}');
+  },
+};
+
+/** 머리 앞 슬롯 — 옵션 상세 PC(GUI `956:5913`): [✎ 수정] + ✕, 제목은 접근성 이름만 */
+export const HeaderStart: Story = {
+  args: {
+    size: 'lg',
+    title: '옵션 상세',
+    hideTitle: true,
+    description: undefined,
+    footer: undefined,
+    headerStart: (
+      <Button variant="secondary" size="sm">
+        수정
+      </Button>
+    ),
+  },
+  play: ({ canvasElement }) =>
+    playOverlayBasics({ canvasElement, trigger: '열기', name: '옵션 상세' }),
 };

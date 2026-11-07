@@ -104,3 +104,62 @@ export const WithInput: Story = {
     footer: <Button size="lg">보내기</Button>,
   },
 };
+
+/** flat — 호스팅 시트(GUI `994:1154` 주문 상세): 위 모서리 16 · 막대 손잡이 · ✕ · 사이 24 · 구분선 없음, 제목 18 · 설명 Body/md */
+export const Flat: Story = {
+  args: {
+    variant: 'flat',
+    hideTitle: false,
+    title: '이찬진',
+    titleSize: 'md2',
+    description: 'R10000071',
+    descriptionStyle: 'body',
+    footer: (
+      <>
+        <Button variant="secondary" size="lg">
+          거절
+        </Button>
+        <Button size="lg">승인</Button>
+      </>
+    ),
+  },
+  play: ({ canvasElement }) =>
+    playOverlayBasics({ canvasElement, trigger: '열기', name: '이찬진' }),
+};
+
+/** flat + 머리 앞 슬롯 — 옵션 상세(GUI `943:2221`): [✎ 수정] 왼쪽 + ✕ 오른쪽, 제목은 접근성 이름만 */
+export const FlatHeaderStart: Story = {
+  args: {
+    variant: 'flat',
+    title: '옵션 상세',
+    hideTitle: true,
+    headerStart: (
+      <Button variant="secondary" size="sm">
+        수정
+      </Button>
+    ),
+  },
+  play: ({ canvasElement }) =>
+    playOverlayBasics({ canvasElement, trigger: '열기', name: '옵션 상세' }),
+};
+
+/** raised — 선물 확인 시트(GUI `939:26914`): 막대 · 제목 24 가운데 · 설명 Label/md · 버튼 사이 12 */
+export const Raised: Story = {
+  args: {
+    variant: 'raised',
+    hideTitle: false,
+    title: '선물을 거절하시겠습니까?',
+    description: '확인을 누르시면 해당 티켓 선물이 반환됩니다.',
+    children: undefined,
+    footer: (
+      <>
+        <Button variant="secondary" size="lg">
+          아니오
+        </Button>
+        <Button size="lg">예</Button>
+      </>
+    ),
+  },
+  play: ({ canvasElement }) =>
+    playOverlayBasics({ canvasElement, trigger: '열기', name: '선물을 거절하시겠습니까?' }),
+};

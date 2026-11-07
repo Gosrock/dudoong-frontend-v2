@@ -49,9 +49,11 @@ export function SendGiftSheet({
     }
   }, [send.link, onLinked]);
 
-  // FIGMA-CUSTOM: 선물하기 시트(gui 908:12096 "Frame 1707480354") 커스텀 → DS BottomSheet. Figma 코멘트 2026-11-01
+  // FIGMA-CUSTOM: 선물하기 시트(gui 908:12096 "Frame 1707480354") Figma대로 — BottomSheet raised(막대 · 제목 24 · 설명 가운데 ·
+  // 구분선 없음, 2026-11-08 fm-ds-overlays O11 · O15 · O16). Figma 코멘트 2026-11-01 · 고침 2026-11-08
   return (
     <BottomSheet
+      variant="raised"
       open={open}
       onOpenChange={(next) => !send.pending && onOpenChange(next)}
       dismissible={!send.pending}
@@ -139,7 +141,9 @@ export function GiftLinkView({
     if (await gift.saveMemo(draft)) toast('메모를 저장했어요');
   };
   const copy = async () => {
-    toast((await copyText(gift.share.url)) ? COPIED : '링크를 복사하지 못했어요');
+    // 복사 성공은 연두 토스트 · 머리 아래(GUI `908:21601` — R1d)
+    if (await copyText(gift.share.url)) toast(COPIED, { tone: 'success', position: 'top' });
+    else toast('링크를 복사하지 못했어요');
   };
   const shareKakao = () => shareKakaoOrCopy(gift.share.kakao, copy);
 

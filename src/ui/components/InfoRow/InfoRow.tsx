@@ -25,6 +25,16 @@ export type InfoRowProps = {
     onCopied?: () => void;
     onCopyError?: (error: unknown) => void;
   };
+  /**
+   * 값 글자를 굵게(`Label/md-emphasized` 700, 색은 hierarchy 그대로) — R1c: GUI 결제 화면 결제정보 줄(`564:4156` · 코멘트 `567:7913`)이
+   * DS `list` 값 500을 700으로 덮어씀(2026-11-08). FIGMA-CUSTOM: DS에 없는 변형(2단계 후보)
+   */
+  valueEmphasized?: boolean;
+  /**
+   * 총액 줄 — 라벨 `Label/lg-emphasized` 진한색, 값 `Label/lg-emphasized` 보라(R1c — GUI 결제 화면 `567:7913` · 입금 확인 창 `567:9756`이
+   * DS `list` 값 500을 700으로 덮어씀, 2026-11-08). 선은 hierarchy를 따른다. FIGMA-CUSTOM: DS에 없는 변형(2단계 후보)
+   */
+  total?: boolean;
   className?: string;
 };
 
@@ -32,8 +42,21 @@ export type InfoRowProps = {
  * 라벨 + 값 정보 행(Figma `list`). 행 하나가 `<dl>` 하나(dt + dd)라 어디에 두어도 마크업이 맞다. 값이 없으면 `<div>`.
  * account의 복사 버튼만 클라이언트 컴포넌트다.
  */
-export function InfoRow({ hierarchy = 'third', label, value, account, className }: InfoRowProps) {
+export function InfoRow({
+  hierarchy = 'third',
+  label,
+  value,
+  account,
+  total,
+  valueEmphasized,
+  className,
+}: InfoRowProps) {
   const cls = [s.row, s.hierarchy[hierarchy], className].filter(Boolean).join(' ');
+  const valueTextCls = total
+    ? s.totalValue
+    : valueEmphasized
+      ? s.valueTextEmphasized[hierarchy]
+      : s.valueText[hierarchy];
   const valueNode = account ? (
     <>
       <CopyButton
@@ -42,14 +65,14 @@ export function InfoRow({ hierarchy = 'third', label, value, account, className 
         onCopied={account.onCopied}
         onCopyError={account.onCopyError}
       />
-      <span className={s.valueText[hierarchy]}>{account.number}</span>
+      <span className={valueTextCls}>{account.number}</span>
     </>
-  ) : typeof value === 'string' || typeof value === 'number' ? (
-    <span className={s.valueText[hierarchy]}>{value}</span>
+  ) : typeof value === 'string' || typeof value === 'number' || (total && value != null) ? (
+    <span className={valueTextCls}>{value}</span>
   ) : (
     value
   );
-  const labelCls = `${s.labelCell} ${s.label[hierarchy]}`;
+  const labelCls = `${s.labelCell} ${total ? s.totalLabel : s.label[hierarchy]}`;
   // 값이 없으면(value type=no — 묶음 머리) 정의 목록이 아니다: `<dl>`에 `<dt>`만 두면 화면 읽기 도구가 짝 없는 용어로 읽는다(P14 접근성)
   if (valueNode === undefined || valueNode === null) {
     return (

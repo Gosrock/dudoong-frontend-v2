@@ -25,6 +25,17 @@ export type PopupProps = {
   /** 뒤로가기로 닫기. EasyOverlay가 직접 맡을 때 false. 기본 true */
   closeOnBack?: boolean;
   onExited?: () => void;
+  /**
+   * 데스크탑(1024~) 폭 — sm 310(기본, DS `다이얼로그`) · md 480 · lg 520. 모바일은 늘 310.
+   * R1f(2026-11-08): Ready 화면이 덮어쓴 폭 — 티켓 관리 확인 `975:8593` 등 520(lg), 입장 취소 확인 `1030:9318` 480(md)
+   */
+  size?: 'sm' | 'md' | 'lg';
+  /**
+   * 모양. `dialog`(기본) = DS `다이얼로그`.
+   * `summary` = 입금 확인 창(R1e — GUI `567:9756`): 342 · 회색 판 · 안쪽 16 · 간격 8 · 오른쪽 위 ✕ · 제목 `Label/lg-emphasized` ·
+   * 설명 `Label/md` 진한색 · 버튼은 확인 하나를 꽉 차게(Large). 본문(children)에 흰 카드를 넣는다. `cancelLabel`은 쓰지 않는다(✕가 취소)
+   */
+  variant?: 'dialog' | 'summary';
 };
 
 /**
@@ -49,23 +60,27 @@ export function Popup({
   confirmDisabled,
   closeOnBack = true,
   onExited,
+  size = 'sm',
+  variant = 'dialog',
 }: PopupProps) {
+  const summary = variant === 'summary';
   return (
     <Modal
       open={open}
       onOpenChange={onOpenChange}
       title={title}
       description={description}
-      showClose={false}
+      showClose={summary}
       dismissible={!loading}
       closeOnBack={closeOnBack}
       closeOnOutsideClick={false}
       onExited={onExited}
       role="alertdialog"
-      compact
+      layout={summary ? 'summary' : 'popup'}
+      popupWidth={size}
       footer={
         <>
-          {cancelLabel !== null && (
+          {!summary && cancelLabel !== null && (
             <Button
               variant="secondary"
               size="md"
@@ -79,12 +94,12 @@ export function Popup({
             </Button>
           )}
           <Button
-            size="md"
+            size={summary ? 'lg' : 'md'}
             disabled={loading || confirmDisabled}
             aria-busy={loading || undefined}
             onClick={onConfirm}
           >
-            <LoadingLabel loading={loading} size="base">
+            <LoadingLabel loading={loading} size={summary ? 'md' : 'base'}>
               {confirmLabel}
             </LoadingLabel>
           </Button>

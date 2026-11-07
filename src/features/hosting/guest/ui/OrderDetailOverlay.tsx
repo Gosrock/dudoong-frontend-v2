@@ -27,7 +27,8 @@ import { CancelStep, RefuseStep } from './OrderReasonSteps';
  * 주문 취소 환불 요청 `1029:8522` · 환불 완료 `1029:8733`, 모바일 `994:1119` 등(시트).
  * 거절 사유·승인 후 취소 사유는 **같은 오버레이 안의 단계**(GUI도 ‹ 뒤로 + ✕) — 뒤로가기 항목이 하나로 남는다.
  */
-// FIGMA-CUSTOM: 주문 상세 모달(gui 1029:6888 "모달_주문 상세" — 흰 바탕 · 안쪽 24) 커스텀 → DS ResponsiveOverlay(Modal · BottomSheet). Figma 코멘트 2026-11-03
+// FIGMA-CUSTOM: 주문 상세 모달 · 시트(gui 1029:6888 "모달_주문 상세" · 994:1154 "바텀시트_주문 상세") Figma대로 — ResponsiveOverlay(Modal md 흰 판 · 24,
+// 시트 flat 위 모서리 16 · 막대 · ✕), 제목 18 · 설명 Body/md(2026-11-08 fm-ds-overlays O1~O3 · O6~O11 · O13). Figma 코멘트 2026-11-03 · 고침 2026-11-08
 export function OrderDetailOverlay({
   state,
   onClose,
@@ -63,6 +64,10 @@ export function OrderDetailOverlay({
       onOpenChange={(open) => !open && onClose()}
       title={title}
       description={step === 'detail' && detail?.order.orderNo ? detail.order.orderNo : undefined}
+      // 이름 제목 18(`Heading/md2 - emphasized`), 사유 단계 제목 16(`1029:7093`) · 주문 번호 `Body/md` 진한색 · 제목 아래 4
+      titleSize={step === 'detail' ? 'md2' : 'sm'}
+      descriptionStyle="body"
+      sheetVariant="flat"
       closeOnBack={false}
       footer={
         detail ? (
