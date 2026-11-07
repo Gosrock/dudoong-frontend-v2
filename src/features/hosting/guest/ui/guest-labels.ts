@@ -76,8 +76,7 @@ export const entranceTextOf = (entrance: EntranceState, enteredAt: string | null
   entrance === 'DONE' && enteredAt ? dateTimeText(enteredAt) : ENTRANCE_LABEL[entrance];
 
 /**
- * 발급 티켓 선물 상태 칩 글자(표 티켓 칸 · 티켓 상세 소유자 줄) — 선물이 없으면 빈 칸(칩 없음).
- * GUI(`1030:8054` · `1030:8955`)에 선물 상태 자리가 없어 🤖 최소안(design-requests Q110, fix-guests-gift-state)
+ * 발급 티켓 선물 상태 아이콘의 읽는 이름(`aria-label` — GUI #160은 글자 없이 아이콘만) — 선물이 없으면 빈 값(아이콘 없음)
  */
 export const GIFT_STATE_LABEL: Record<HostGiftState, string> = {
   NONE: '',
