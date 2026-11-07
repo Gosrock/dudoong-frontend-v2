@@ -24,6 +24,11 @@ export type ConcertCardProps = {
   posterUrl?: string | null;
   /** 포스터 왼쪽 위에 얹는 상태 표시(보통 `Chip` — 호스트 홈 "준비중"·"D-15", 와이어 `503:30867`). 없으면 그리지 않는다 */
   badge?: ReactNode;
+  /**
+   * 지난 공연 모양(GUI `939:34039` 예매하기(2줄) — 포스터 흐림 · 날짜 `text/tertiary` · 제목 `text/secondary`).
+   * 표시 칩("공연종료")은 부르는 쪽이 `badge`로 준다
+   */
+  ended?: boolean;
   className?: string;
 };
 
@@ -39,17 +44,26 @@ export function ConcertCard({
   price,
   posterUrl,
   badge,
+  ended = false,
   className,
 }: ConcertCardProps) {
   return (
-    <Link href={href} className={className ? `${s.root} ${className}` : s.root}>
+    <Link
+      href={href}
+      className={className ? `${s.root} ${className}` : s.root}
+      data-ended={ended || undefined}
+    >
       <span className={s.posterWrap}>
-        <Poster src={posterUrl ?? null} />
+        <Poster src={posterUrl ?? null} ended={ended} />
         {badge ? <span className={s.badge}>{badge}</span> : null}
       </span>
       <span className={s.meta}>
         <span className={s.dateRow}>
-          <Txt typography="labelSm" color={colors.textSecondary} className={s.date}>
+          <Txt
+            typography="labelSm"
+            color={ended ? colors.textTertiary : colors.textSecondary}
+            className={s.date}
+          >
             {date ?? ''}
           </Txt>
           <LinkProgress size="sm" />
@@ -59,7 +73,12 @@ export function ConcertCard({
             <span data-testid="card-price">{price}</span>
           </Txt>
         ) : null}
-        <Txt typography="headingMd2Emphasized" lines={2} className={s.title}>
+        <Txt
+          typography="headingMd2Emphasized"
+          lines={2}
+          color={ended ? colors.textSecondary : undefined}
+          className={s.title}
+        >
           {title}
         </Txt>
       </span>
@@ -67,14 +86,14 @@ export function ConcertCard({
   );
 }
 
-function Poster({ src }: { src: string | null }) {
+function Poster({ src, ended }: { src: string | null; ended: boolean }) {
   // 못 읽으면 `UploadedImage`가 아무것도 그리지 않아 회색 빈 상자만 남는다(#92-5 — 호스팅 카드도 같은 처리)
   return (
-    <span className={s.poster}>
+    <span className={ended ? `${s.poster} ${s.posterEnded}` : s.poster}>
       {src ? (
         // 서버 이미지(업로드 출처면 `/_next/image` 최적화 — P15). 목록 4열(PC, 최대 1280) · 3열(600~) · 2열
         <UploadedImage
-          className={s.posterImage}
+          className={ended ? `${s.posterImage} ${s.posterImageEnded}` : s.posterImage}
           src={src}
           alt=""
           width={163}

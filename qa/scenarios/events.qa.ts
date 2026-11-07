@@ -213,20 +213,32 @@ scenario(
 
 scenario(
   'EVL-5',
-  '조건에 맞는 공연이 없으면 빈 화면',
+  '검색 결과가 없으면 "검색된 공연이 없습니다.", 조건 없이 0건이면 잠정 빈 화면',
   {
     kind: '빈 상태',
     summary:
-      '문구는 디자인이 없어 잠정(Figma 코멘트 759:7993): "검색 결과 없음" 그림 + "조건에 맞는 공연이 없어요."',
-    basis: ['plan P5a', 'design-requests Q50 류(잠정 문구)'],
+      '검색어·태그가 있는데 0건 → GUI `1184:33829`(#158) 그림 + "검색된 공연이 없습니다." + "다른 검색어를 입력해보세요."([검색 조건 지우기] 없음). 추천도 0건이면 "이런 공연은 어때요?"를 숨긴다. 조건 없이 0건은 디자인이 없어 잠정(Figma 코멘트 759:7993) "조건에 맞는 공연이 없어요."',
+    basis: ['GUI 1184:33829', 'design-requests Q91', 'Figma 코멘트 1184:33998'],
     mocks: eventBrowseSets.listEmpty,
   },
   async ({ page, step }) => {
     await step(
-      '빈 문구가 보인다',
+      '검색어로 0건이면 "검색된 공연이 없습니다."',
       async () => {
         await page.goto('/events?keyword=없는공연');
+        await expect(page.getByText('검색된 공연이 없습니다.')).toBeVisible();
+        await expect(page.getByText('다른 검색어를 입력해보세요.')).toBeVisible();
+        await expect(page.getByRole('button', { name: '검색 조건 지우기' })).toHaveCount(0);
+        await expect(page.getByText('이런 공연은 어때요?')).toHaveCount(0);
+      },
+      { fullPage: false },
+    );
+    await step(
+      '조건 없이 0건이면 "조건에 맞는 공연이 없어요."',
+      async () => {
+        await page.goto('/events');
         await expect(page.getByText('조건에 맞는 공연이 없어요.')).toBeVisible();
+        await expect(page.getByText('검색된 공연이 없습니다.')).toHaveCount(0);
       },
       { fullPage: false },
     );
@@ -349,6 +361,78 @@ scenario(
         await page.goto('/events');
         await page.getByRole('link', { name: /고스락 제37회 정기공연/ }).click();
         await expect(page).toHaveURL(/\/events\/101$/);
+      },
+      { fullPage: false },
+    );
+  },
+);
+
+scenario(
+  'EVL-11',
+  '검색 결과가 없으면 아래에 "이런 공연은 어때요?" 추천 카드',
+  {
+    kind: '빈 상태',
+    summary:
+      'GUI `1184:33829`(#158). 추천은 조건 없는 공연임박순 앞 6개(서버 추천 API 없음 — Q91 🤖), 모바일 2열 3줄 · PC는 한 줄 4장. 카드를 누르면 공연 상세.',
+    basis: ['GUI 1184:33829', 'design-requests Q91', 'Figma 코멘트 1184:33998'],
+  },
+  async ({ page, step, testInfo }) => {
+    const desktop = testInfo.project.name === 'desktop';
+    if (desktop) await page.setViewportSize({ width: 1440, height: 1024 });
+    const recommended = page.getByRole('region', { name: '이런 공연은 어때요?' });
+    await step('없는 검색어면 결과 없음 + 추천', async () => {
+      await page.goto('/events?keyword=zzzz');
+      await expect(page.getByText('검색된 공연이 없습니다.')).toBeVisible();
+      // 6장을 받고 PC는 앞 4장만 보인다(숨긴 칸은 접근성 트리에서도 빠진다)
+      await expect(recommended.getByRole('listitem', { includeHidden: true })).toHaveCount(6);
+      await expect(recommended.getByRole('link')).toHaveCount(desktop ? 4 : 6);
+      await expect(cards(page)).toHaveCount(0);
+    });
+    await step(
+      '추천 카드를 누르면 공연 상세',
+      async () => {
+        await recommended.getByRole('link').first().click();
+        await expect(page).toHaveURL(/\/events\/\d+$/);
+      },
+      { fullPage: false },
+    );
+  },
+);
+
+scenario(
+  'EVL-12',
+  '지난공연보기를 켜면 지난 공연 카드는 흐리고 "공연종료" 칩',
+  {
+    kind: '정상',
+    summary:
+      'GUI `939:34039` 예매하기(2줄)(#159): 지난 공연(displayStatus PAST)은 포스터 흐림 + 왼쪽 위 DS tag_v2 grey round "공연종료", 날짜 tertiary · 제목 secondary, 가격 줄 없음(Figma 코멘트 939:34059). 다가오는 공연 카드는 그대로. 제목은 2줄 말줄임.',
+    basis: ['GUI 939:34039', 'design-requests Q93', 'api-contract GP-2 displayStatus'],
+  },
+  async ({ page, step }) => {
+    await step('지난공연을 켜고 끝까지 내리면 "공연종료" 카드', async () => {
+      await page.goto('/events?includePast=true');
+      await expect(cards(page).first()).toBeVisible();
+      const ended = cards(page).filter({ hasText: '공연종료' });
+      // 다가오는 공연 뒤에 붙는다 — 다음 페이지가 붙을 때까지 내린다
+      await expect(async () => {
+        await page.mouse.wheel(0, 20000);
+        await expect(ended.first()).toBeAttached({ timeout: 1000 });
+      }).toPass();
+      await expect(ended.first()).toHaveAttribute('data-ended', 'true');
+      await expect(ended.first().getByTestId('card-price')).toHaveCount(0);
+      await ended.first().scrollIntoViewIfNeeded();
+    });
+    await step(
+      '지난공연을 끄면 "공연종료" 카드가 없다',
+      async () => {
+        await page.goto('/events');
+        await expect(cards(page).first()).toBeVisible();
+        await expect(async () => {
+          await page.mouse.wheel(0, 20000);
+          await expect(page.getByText('더 불러오지 못했어요.')).toHaveCount(0);
+          await expect(cards(page)).toHaveCount(14, { timeout: 1000 });
+        }).toPass();
+        await expect(cards(page).filter({ hasText: '공연종료' })).toHaveCount(0);
       },
       { fullPage: false },
     );
