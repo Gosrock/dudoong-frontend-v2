@@ -2947,3 +2947,23 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint 통과. vitest related 2677개 통과(새 `event-cancel.test` 20 · `useEventCancel.test` 9 · `event-manage-api.test` E-11 5 · json-ld · can · checkout 표). e2e(빌드) `hosting-event` · `event-detail` · `checkout` 87 통과(새 5 — 취소 흐름 · 매니저 버튼 없음 · 상세 390/1440 · 체크아웃 `Event_400_30`). QA `hosting-event` 24(새 HE-12 · HE-13) · `event-detail` 20(새 EVT-10) · `checkout` 31 — 실패 0.
 
 **ego-browser 확인(2026-11-07, dev:mock 3095 · `localhost`)**: 대시보드 101 1440(맨 아래 "공연 취소" · [공연 취소하기]) → 모바일 폭 시트(빈 사유 칸 오류 → 사유 입력 → 취소) → 머리 아래 노란 안내 · 결과 줄 · 포스터 칩 "취소됨" · 통계 카드 갱신 · 토스트, 새로 열면 [남은 주문 다시 처리]. 공연준비 홈 카드 칩 "취소됨". 관객 공연 상세 390 · 1440(취소 안내 · 사유, 티켓 옵션 · 구매 버튼 없음). 발견: 없음.
+
+## 스테이징 계약 확인 — deploy-plan §9 12~16(2026-11-07, `staging-contract-check`)
+
+근거: 스테이징 `https://staging.dudoong.com`(Api 2.5.8, 프론트 `bbf0688` — healthz 200), 백엔드 dev `ed8a23ca`(`AuthController` · `SuccessResponseAdvice` · `CookieHelper` · `V2Excel` · `V2ReadOrdersUseCase` · `V2ReadIssuedTicketsUseCase` · `V2ErrorPolicy` · `GlobalExceptionHandler` · `HostErrorCode`, 테스트 `V2NotificationControllerTest` · `V2MyPageControllerTest`). 스테이징에는 로그아웃 · 익명 GET만 보냈다(쓰기 없음, 탈퇴 익명 401 한 번 — 동작 없음). 토큰 · 쿠키 값은 출력하지 않았다.
+
+| # | 결과 | 방법 |
+|---|---|---|
+| 16 | 스테이징 통과 11 · 실패 0 · 건너뜀 1(GG-3), 운영(2.5.3) 통과 10 · 건너뜀 2(GA-2 공지 없음 · GG-3). 스키마 밖 필드는 두 곳 같다 — GP-2 `content[].hostId` · `updatedAt`, GH-3 `members`(모두 문서에 있고 화면이 아직 안 씀). 모르는 enum 없음 | 실측 |
+| 12 | 로그아웃 200 + `{status:200, data:null, success:true, timeStamp}` + 쿠키 삭제 — 쿠키 없이 · 가짜 쿠키 모두. 탈퇴도 같은 래퍼 | 로그아웃 실측 · 탈퇴 **추론**(같은 `ok().headers(deleteCookies()).body(null)`) |
+| 13 | 공개 응답의 `is*` · `dDay` 이름 그대로(스키마 파싱 통과, GH-3 익명 `isFollowing` 키 있음). 로그인 전용 필드도 이름 그대로 | 공개 실측 · 로그인 전용 **추론**(백엔드 컨트롤러 테스트가 JSON `/isRead` · `/dDay`를 읽는다) — 실측 사용자 대기 |
+| 14 | 일반 멤버 엑셀 → 403 + JSON 에러 래퍼 `HOST_400_1`. 익명은 xlsx `Accept`로도 401 JSON | 403 **추론**(`@HostRolesAllowed(MANAGER)` → `V2ErrorPolicy`) · 401 실측 |
+| 15 | 스테이징 쿠키 `accessToken` · `refreshToken`, host-only · `Path=/` · `Secure` · `SameSite=Lax` · HttpOnly 없음. 낡은 쿠키 로그아웃 200 + 삭제(#793). 쿠키 없는 재발급 403 `AUTH_403_1` · `Set-Cookie` 없음 | 삭제 쿠키 실측 · 발급 쿠키 **추론**(`buildCookie` 하나) — 로그인 → 만료 → 재발급 실측 사용자 대기 |
+
+**바꾼 것**
+
+- `scripts/check-contract.mjs`: 대상 주소를 첫 인자로도 받는다(`node scripts/check-contract.mjs <주소>`, env `CONTRACT_BASE_URL`도 그대로). 통과한 응답에서 **스키마에 없는 필드**(zod가 버리는 키)의 경로를 보인다 — 실패가 아니라, 새 선택 필드나 이름이 바뀐 필드(예: `isFollowing` → `following`이면 실패 + 이 줄)를 찾는 용도. "운영에 공지가 없다" → "대상 서버에 공지가 없다".
+- zod 스키마 · 파서 · 가짜 백엔드: 바꿀 것 없음(어긋난 곳 없음). B63~B65: 서버에 물을 것 없음 — 쓰지 않았다.
+- 문서: deploy-plan §9 12~16, api-contract §1(Void 실측 · 엑셀 실패 모양) · §9 환경별 설정(스테이징 쿠키 실측), progress.
+
+**🤖 판단**: ① 탈퇴 엔드포인트를 익명으로 한 번 불렀다(401 `AUTH_401_2` — 인증 전에 막혀 아무 일도 없다). 이후에는 부르지 않았다 ② 13 · 14 · 15의 로그인 필요 칸은 백엔드 소스 · 테스트로 "추론"을 적고 실측은 사용자 대기로 남겼다(ego-browser에 스테이징 세션 없음 — `/api/v2/me` 401) ③ 스크립트 보조 함수에 단위 테스트를 두지 않았다 — 네트워크 스크립트라 게이트 밖이고 실제 두 서버 실행 결과로 확인했다.
