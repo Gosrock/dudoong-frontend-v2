@@ -51,7 +51,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | # | 워크트리 | Phase | V 선행 | 상태 | 그룹 |
 |---|---|---|---|---|---|
-| DS-1107 | `ds-sync-1107` | 디자인 시스템 11-07 판 반영(`2419085329203428681`) — 새 아이콘 `ic_gift_waiting` · `ic_gift_done`을 `src/ui/icons`에 넣고 예매자 관리 `GiftIcon`이 씀(Q174 닫음). `ic_add host` · `ic_add concert`는 반영 대기(햄버거 드로어 GUI가 11-07 Ready — 미반영). 14:23Z 판 `tag_v2` small 좌우 8 — 코드가 이미 8(TODO 닫음). 변수는 Bridge 없어 확인 못 함 | — | 끝(#PR) | L GUI Ready 2026-11-07 |
+| DS-1107 | `ds-sync-1107` | 디자인 시스템 11-07 판 반영(`2419085329203428681`) — 새 아이콘 `ic_gift_waiting` · `ic_gift_done`을 `src/ui/icons`에 넣고 예매자 관리 `GiftIcon`이 씀(Q174 닫음). `ic_add host` · `ic_add concert`는 반영 대기(햄버거 드로어 GUI가 11-07 Ready — 미반영). 14:23Z 판 `tag_v2` small 좌우 8 — 코드가 이미 8(TODO 닫음). 변수는 Bridge 없어 확인 못 함 | — | 끝(#166) | L GUI Ready 2026-11-07 |
 | L-160 | `design-160-161` | Design Sync #160 · #161 — 예매자 관리 선물 티켓 상태(표 · 상세 선물 아이콘, "선물한 사람" · 받는 분 줄, 선물 대기 안내 + 비활성 [입장 처리], 🤖 Q110 닫음) · 입장 취소 완료(상세 닫고 토스트). Q173 · Q174 · B66(Backend #949) | P13a-V | 끝(#163) | L GUI Ready 2026-11-07 |
 | DS-158 | `design-158-159` | Design Sync #158 · #159 — 공연 리스트(GUI 구현됨): 검색 결과 없음(`1184:33829` — 그림 + 문구 + "이런 공연은 어때요?" 추천 6장, [검색 조건 지우기] 뺌) · 지난 공연 표시(`939:34039` — ConcertCard `ended` + "공연종료" 칩). Q91 · Q93 닫음, 디자인 Q170~Q172. `Closes #158 #159` | — | 끝(#162) | L GUI Ready 2026-11-07 |
 | K-150 | `backend-150-cancel-remaining` | 이슈 #150 — 백엔드 #940 B44 답(Api 2.5.9): GE-3 · PE-4 `cancelRemainingCount` · `cancelRetryable`(zod optional · mock). [남은 주문 다시 처리]는 다시 처리 가능 · 남은 주문 > 0일 때만, 다시 처리 불가면 고객센터 안내, 0이면 숨김 · 필드 없으면(2.5.3) 예전대로. 디자인 Q165 · Q166. `Closes #150` | — | 끝(#157) | K 백엔드 답 2 |
