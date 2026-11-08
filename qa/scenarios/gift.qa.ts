@@ -144,18 +144,19 @@ scenario(
 
 scenario(
   'GIFT-3',
-  '받는 사람(로그인): 포스터 · 공연 · [거절하기] [선물받기] → 받으면 티켓탭',
+  '받는 사람(로그인): 보낸 사람 · 포스터 · 공연 · [거절하기] [선물받기] → 받으면 티켓탭',
   {
     kind: '정상',
-    summary: 'GUI 939:26721. PG-4 성공 → 티켓 쿼리 무효화 후 /tickets.',
+    summary: 'GUI 939:26721(#203 · #204 보낸 사람 줄). PG-4 성공 → 티켓 쿼리 무효화 후 /tickets.',
     basis: ['GUI 939:26721', 'plan P8b L 범위 수락(PG-4)'],
   },
   async ({ page, mockApi, step }) => {
     resetTicketStore();
     await setMockSession(page, 'loggedIn');
-    await step('랜딩을 열면 공연 요약과 버튼 둘', async () => {
+    await step('랜딩을 열면 보낸 사람(가린 이름) · 공연 요약과 버튼 둘', async () => {
       await page.goto(landing(GIFT_TOKEN.forMe));
       await expect(statusArea(page)).toHaveAttribute('data-view-state', 'AVAILABLE');
+      await expect(page.getByText('김*수 님이 보낸 티켓 선물', { exact: true })).toBeVisible();
       await expect(page.getByRole('heading', { name: '고스락 제37회 정기공연' })).toBeVisible();
       await expect(page.getByRole('button', { name: '거절하기' })).toBeEnabled();
       await expect(page.getByRole('button', { name: '선물받기' })).toBeEnabled();
@@ -170,7 +171,7 @@ scenario(
 
 scenario(
   'GIFT-4',
-  '미가입 수신자: 링크 → 선물 요약 + 로그인 안내 → [카카오 로그인하기] → 가입 → 같은 랜딩 → 다시 눌러 수락',
+  '미가입 수신자: 링크 → 보낸 사람 · 선물 요약 → [두둥에 로그인하고 선물 받기] → 가입 → 같은 랜딩 → 다시 눌러 수락',
   {
     kind: '정상',
     summary:
@@ -183,18 +184,18 @@ scenario(
     await setMockSession(page, 'anonymous');
     const url = landing(GIFT_TOKEN.forMe);
     await step(
-      '링크를 열면 보낸 사람(가린 이름) · 공연 요약 · "두둥에 로그인하면…" + [카카오 로그인하기], 수락 버튼은 없다(#106 §1)',
+      '링크를 열면 보낸 사람(가린 이름) · 공연 요약 · [두둥에 로그인하고 선물 받기], 수락 버튼은 없다(GUI 939:26412 · #202)',
       async () => {
         await page.goto(url);
         await expect(statusArea(page)).toHaveAttribute('data-view-state', 'AVAILABLE');
-        await expect(page.getByText(/님이 보낸 티켓 선물이에요$/)).toBeVisible();
+        await expect(page.getByText('김*수 님이 보낸 티켓 선물', { exact: true })).toBeVisible();
         await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('공연 정보 없음');
-        await expect(page.getByText('두둥에 로그인하면 선물을 받을 수 있어요')).toBeVisible();
+        await expect(page.getByText('두둥에 로그인하면 선물을 받을 수 있어요')).toHaveCount(0);
         await expect(page.getByRole('button', { name: '선물받기' })).toHaveCount(0);
       },
     );
-    await step('[카카오 로그인하기] → 로그인 화면(돌아올 주소 = 랜딩)', async () => {
-      await page.getByRole('link', { name: '카카오 로그인하기' }).click();
+    await step('[두둥에 로그인하고 선물 받기] → 로그인 화면(돌아올 주소 = 랜딩)', async () => {
+      await page.getByRole('link', { name: '두둥에 로그인하고 선물 받기' }).click();
       await expect(page).toHaveURL(`/login?redirect=${encodeURIComponent(url)}`);
     });
     await step('카카오 가입 → 같은 랜딩으로 돌아오고, 아직 수락하지 않았다', async () => {
@@ -420,5 +421,5 @@ scenario.manual('GIFT-10', '[카카오톡] 공유 · [메시지] 문자 앱이 �
 scenario.manual('GIFT-11', '실제 카카오 가입 왕복 뒤 랜딩으로 돌아와 수락', {
   kind: '정상',
   basis: ['plan P8b 완료 기준 L "카카오 가입 왕복은 스테이징에서"'],
-  how: 'D2 스테이징에서 미가입 카카오 계정으로 선물 링크를 열고 [카카오 로그인하기] → 가입 → 같은 랜딩 → [선물받기].',
+  how: 'D2 스테이징에서 미가입 카카오 계정으로 선물 링크를 열고 [두둥에 로그인하고 선물 받기] → [카카오 로그인하기] → 가입 → 같은 랜딩 → [선물받기].',
 });

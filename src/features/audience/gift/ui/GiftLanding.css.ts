@@ -14,6 +14,12 @@ export const page = style({
   paddingTop: `calc(${vars.space[8]} + ${vars.space[2]})`,
 });
 
+/**
+ * 보낸 사람 줄이 있는 받기 화면(`939:26412` · `939:26721`, 2026-11-08) — 글자가 헤더 아래 11(묶음 위 -5 + 패딩 16 → 12),
+ * 글자 21 + 간격 24 뒤 포스터가 예전 자리(헤더 아래 56)에 그대로 온다
+ */
+export const pageWithSender = style([page, { paddingTop: vars.space[3] }]);
+
 export const content = style({
   width: '100%',
   maxWidth: 342,

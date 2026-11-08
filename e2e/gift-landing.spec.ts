@@ -85,7 +85,7 @@ test.describe('선물 랜딩 — 사용자별 판정', () => {
     await expect(page.getByRole('button', { name: '선물 취소' })).toBeEnabled();
   });
 
-  test('미가입 수신자: 링크 → [카카오 로그인하기](로그인 링크) → 카카오 가입 → 같은 랜딩으로 복귀 → 다시 눌러 수락 → 티켓탭', async ({
+  test('미가입 수신자: 링크 → [두둥에 로그인하고 선물 받기](로그인 링크) → 카카오 가입 → 같은 랜딩으로 복귀 → 다시 눌러 수락 → 티켓탭', async ({
     page,
     mockApi,
   }) => {
@@ -94,7 +94,8 @@ test.describe('선물 랜딩 — 사용자별 판정', () => {
     await page.goto(landing);
     await expect(statusArea(page)).toHaveAttribute('data-view-state', 'AVAILABLE');
     await expect(page.getByRole('button', { name: '선물받기' })).toHaveCount(0);
-    await page.getByRole('link', { name: '카카오 로그인하기' }).click();
+    await expect(page.getByText('김*수 님이 보낸 티켓 선물', { exact: true })).toBeVisible();
+    await page.getByRole('link', { name: '두둥에 로그인하고 선물 받기' }).click();
     await expect(page).toHaveURL(`/login?redirect=${encodeURIComponent(landing)}`);
 
     await page.getByRole('button', { name: '카카오 로그인하기' }).click();
