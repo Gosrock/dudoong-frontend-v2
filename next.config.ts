@@ -78,6 +78,9 @@ const cspHeader = {
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // 글꼴 파일을 import하면 URL을 돌려준다(설치본 turbopack.md "Module types") — 카트라이더체 라우트별 preload에 쓴다
+  // (`src/ui/theme/font-preload.ts`). next/font가 내보낸 파일과 같은 URL이다.
+  turbopack: { rules: { '*.otf': { type: 'asset' } } },
   poweredByHeader: false,
   cacheComponents: true,
   partialPrefetching: true,

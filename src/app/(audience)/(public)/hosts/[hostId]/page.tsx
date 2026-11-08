@@ -6,6 +6,7 @@ import { Prefetch } from '@/api/server/Prefetch';
 import { serverQuery } from '@/api/server/serverQuery';
 import { HostHomeView } from '@/features/shared/host-home/HostHomeView';
 import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-rules';
+import { KartriderPreload } from '@/ui/theme/KartriderPreload';
 
 /** 서버 조회 페이지는 페이지마다 instant=false를 둔다(tech-decisions §2). 이 위에 Suspense·loading.tsx를 두지 않는다(404 상태 코드). */
 export const instant = false;
@@ -32,6 +33,7 @@ export default async function HostHomePage({ params }: Props) {
   const hostId = await readHostId(params);
   return (
     <Prefetch queries={[hostDetailQuery(hostId)]}>
+      <KartriderPreload />
       <HostHomeView hostId={hostId} />
     </Prefetch>
   );

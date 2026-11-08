@@ -1,6 +1,7 @@
 import { homeQuery } from '@/api/event/queries';
 import { Prefetch } from '@/api/server/Prefetch';
 import { HomeView } from '@/features/audience/home/HomeView';
+import { KartriderPreload } from '@/ui/theme/KartriderPreload';
 
 /** 서버 조회 페이지는 페이지마다 instant=false를 둔다(레이아웃만으로는 같은 그룹 안 이동이 검증된다 — tech-decisions §2). */
 export const instant = false;
@@ -12,6 +13,7 @@ export const instant = false;
 export default function HomePage() {
   return (
     <Prefetch queries={[homeQuery()]}>
+      <KartriderPreload />
       <HomeView />
     </Prefetch>
   );

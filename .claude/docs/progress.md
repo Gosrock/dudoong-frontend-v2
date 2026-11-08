@@ -53,6 +53,7 @@ P0~P4a 끝. **로직(L)은 19개 Phase 전부 끝**(2026-10-31, P4s-L이 마지�
 
 | # | 워크트리 | Phase | V 선행 | 상태 | 그룹 |
 |---|---|---|---|---|---|
+| FIX-FONT-PRELOAD | `fix-kartrider-preload` | 사용자 결정 2026-11-09 — 카트라이더체를 공연 카드가 첫 화면에 있는 라우트(`/` · `/events` · `/hosts/[hostId]`)만 미리 받기: 정의는 루트 `fonts.ts` 하나(`preload: false`) 그대로, page에 클라이언트 `KartriderPreload`(otf를 Turbopack `asset`으로 import → next/font와 같은 URL로 `<link rel="preload">`). `ReactDOM.preload()`는 prefetch만으로 다른 화면이 받아 뺌 🤖 · e2e `font-preload` | — | 작업 중 | Design Sync 2026-11-08 밤 |
 | FIX-FONT | `fix-kartrider-font` | 사용자 결정 2026-11-09 — 카트라이더체(넥슨 카트 고딕) 라이선스 확인(눈누 1284 · 넥슨 FAQ: 임베디드 허용, 수정 재배포 · 유료 판매 금지) → 공식 OTF ExtraBold(1.4MB, 원본 그대로)를 `next/font/local`로 직접 호스팅(`preload: false` · swap) · `font.display` = `--font-kartrider` · ConcertCard 제목 800 · Storybook `@font-face` · THIRD_PARTY_NOTICES | — | 끝(#212) | Design Sync 2026-11-08 밤 |
 | FM-INTRO | `fm-home-intro` | 사용자 결정 2026-11-09 — 공연홈 "두둥 소개"(GUI `759:22549`) 빈 카드로 그림(제목 + ↗ 누를 수 없음 + 파란 카드 342×258 · 모서리 12, PC 본문 1200 🤖) · 푸터 SNS 목적지 v1 코드(`feda26a`) 다시 대조 — 같음, Q221 닫음(코드 변경 없음) | — | 끝(#211) | Design Sync 2026-11-08 밤 |
 | FM-CHIP | `fm-ticket-chip` | 디자인 확인 요청(`1262:41`) 사용자 결정 2026-11-08 — 티켓탭 카드 상태 칩 하나 · 개수 없음(GUI `908:11275`대로, 섞인 주문은 지금 페이저로 보는 티켓 상태 🤖 Q223) · 맨 위로 ↑ 보이는 때 지금 코드대로(Q222 닫음, 코드 변경 없음) | — | 끝(#210) | Design Sync 2026-11-08 밤 |

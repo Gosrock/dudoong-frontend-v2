@@ -212,7 +212,7 @@ Light 값이 같은 의미 색이 있는 것도 있다(Coral-red/50 = `brand/acc
 | 폰트 | 쓰는 곳 | 라이선스·로딩 |
 |---|---|---|
 | Pretendard | 본문 전부 | OFL. npm `pretendard`의 가변 폰트 **동적 서브셋 CSS**를 루트 레이아웃에서 불러온다(화면에 나온 글자 조각만 받는다) |
-| Kartrider Kor ExtraBold | `Title` — 공연 제목과 강조 문구(디자이너 설명), ConcertCard 제목 | 넥슨 카트 고딕(NEXON Kart Gothic). **라이선스 확인됨 — 사용자 2026-11-09, 눈누 1284**(넥슨 브랜드 가이드 FAQ: 무료 · 상업 사용 · 저작권 안내를 포함한 임베디드 폰트 허용, 파일 수정 · 편집 재배포와 유료 판매 금지 — `src/ui/fonts/kartrider/LICENSE.md`). 공식 zip의 `OTF/Kor` ExtraBold 한 파일(1.4MB, 변환 · 서브셋 없음)을 `next/font/local`(`src/ui/theme/fonts.ts`)로 직접 호스팅 — `display: swap`, `preload: false`(이 글꼴로 그릴 글자가 있는 화면만 받는다), `<html>`의 `--font-kartrider`를 `font.display`가 읽는다. 받기 전 · 변수가 없는 곳은 Pretendard |
+| Kartrider Kor ExtraBold | `Title` — 공연 제목과 강조 문구(디자이너 설명), ConcertCard 제목 | 넥슨 카트 고딕(NEXON Kart Gothic). **라이선스 확인됨 — 사용자 2026-11-09, 눈누 1284**(넥슨 브랜드 가이드 FAQ: 무료 · 상업 사용 · 저작권 안내를 포함한 임베디드 폰트 허용, 파일 수정 · 편집 재배포와 유료 판매 금지 — `src/ui/fonts/kartrider/LICENSE.md`). 공식 zip의 `OTF/Kor` ExtraBold 한 파일(1.4MB, 변환 · 서브셋 없음)을 `next/font/local`(`src/ui/theme/fonts.ts`)로 직접 호스팅 — `display: swap`, `preload: false`(이 글꼴로 그릴 글자가 있는 화면만 받는다 — 공연 카드가 첫 화면에 있는 `/` · `/events` · `/hosts/[hostId]`만 page의 `KartriderPreload`로 미리 받는다, 2026-11-09 `fix-kartrider-preload`), `<html>`의 `--font-kartrider`를 `font.display`가 읽는다. 받기 전 · 변수가 없는 곳은 Pretendard |
 | Saira Condensed Bold | `Title_number` — Kartrider와 함께 쓰는 숫자 | **쓰지 않는다**(Q14 — 숫자도 Pretendard). 불러오지 않음(`next/font` 없음, P14 성능 2026-11-01 확인) |
 
 GUI 화면 파일에서 본 것(2026-10-15):
@@ -490,7 +490,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 | `illust_dashboard` 4종(36×36) | Figma | `src/ui/illustrations/dashboard-*.svg` | `<Illustration />` | P2 완료 |
 | 아바타 캐릭터(4색) | Figma Avatar("40" = 45px 변형) | `src/ui/illustrations/avatar-*.svg` | Avatar 컴포넌트가 색으로 고른다 | P2 완료 |
 | 로고(관객·호스팅) | GUI `logo` 페이지 | `src/ui/brand/Logo.tsx` | 인라인 SVG, `currentColor`(호스팅 "host" 글자는 evenodd로 뚫음) | P2 완료 |
-| 폰트 | npm `pretendard`(Saira Condensed는 Q14로 뺌 — 불러오지 않음) · Kartrider는 넥슨 공식 zip | Pretendard는 저장소에 파일 없음 · Kartrider `src/ui/fonts/kartrider/`(원본 그대로 + 저작권 안내) | 루트 레이아웃에서 적재. Kartrider는 `next/font/local`(`preload: false`, 2026-11-09 `fix-kartrider-font`) | P1 완료 |
+| 폰트 | npm `pretendard`(Saira Condensed는 Q14로 뺌 — 불러오지 않음) · Kartrider는 넥슨 공식 zip | Pretendard는 저장소에 파일 없음 · Kartrider `src/ui/fonts/kartrider/`(원본 그대로 + 저작권 안내) | 루트 레이아웃에서 적재. Kartrider는 `next/font/local`(`preload: false`, 2026-11-09 `fix-kartrider-font`) + 카드 라우트만 `KartriderPreload`(`fix-kartrider-preload`) | P1 완료 |
 | 사용자 업로드(포스터·프로필·호스트 이미지) | 백엔드 S3(presigned 업로드) | 저장소 밖 | `next/image` + `images.remotePatterns`에 업로드 도메인 | P5a |
 | 고정 주소가 필요한 파일 | — | `src/app/`(favicon, robots, 기본 OG 이미지), `public/`(약관 HTML) | 파일 규칙 그대로 | P0 완료 · P5b(OG) |
 
