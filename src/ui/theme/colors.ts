@@ -42,6 +42,7 @@ export const colors = {
   statusSuccessSubtle: vars.color.status.successSubtle,
   statusWarning: vars.color.status.warning,
   statusWarningSubtle: vars.color.status.warningSubtle,
+  statusWarning2: vars.color.status.warning2,
   statusError: vars.color.status.error,
   interactionInactive: vars.color.interaction.inactive,
   interactionInactiveBg: vars.color.interaction.inactiveBg,

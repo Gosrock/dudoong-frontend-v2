@@ -18,12 +18,13 @@ import { SearchField } from '@/ui/components/SearchField/SearchField';
 import { Skeleton, SkeletonText } from '@/ui/components/Skeleton/Skeleton';
 import { Toggle } from '@/ui/components/Toggle/Toggle';
 import { useActivityMarker } from '@/ui/hooks/useActivityMarker';
+import { Icon } from '@/ui/icons/Icon';
 import { Illustration } from '@/ui/illustrations/Illustration';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './EventListView.css';
-import { concertCardDate, concertCardPrice } from './model/card-date';
+import { concertCardDate } from './model/card-date';
 import { useEventList } from './model/useEventList';
 import { useRecommendedEvents } from './model/useRecommendedEvents';
 import { ScrollTopButton } from './ui/ScrollTopButton';
@@ -98,10 +99,14 @@ export function EventListView() {
             />
           </span>
         </div>
-        {/* DS SortButton — 서버 정렬이 하나라 고정 라벨, 누를 수 없다(design-system §3 · patterns §13) */}
-        <Txt typography="labelSm" color={colors.textPrimary}>
-          공연임박순
-        </Txt>
+        {/* DS SortButton(GUI `759:8031` — 라벨 + chevron-down 12, 간격 4). 서버 정렬이 하나라 고정 라벨, 누를 수 없다
+            (design-system §3 · patterns §13). ▾는 Figma대로 그린다 — 사용자 지정 근거 2026-11-08(옛: ▾ 없음) */}
+        <span className={s.sort}>
+          <Txt typography="labelSm" color={colors.textPrimary}>
+            공연임박순
+          </Txt>
+          <Icon name="chevron-down" size={12} />
+        </span>
       </div>
 
       <section aria-label="공연 목록" aria-busy={events.status === 'pending'}>
@@ -193,7 +198,8 @@ export function EventListView() {
 
 /**
  * 목록 카드 하나. 지난 공연(`displayStatus` PAST — 종료 · 정산중 · 지난 공연)은 GUI `939:34039`(#159)대로
- * 포스터 흐림 + 왼쪽 위 "공연종료" 칩(DS `tag_v2` small · round · grey · weak)이고 가격 줄을 그리지 않는다
+ * 포스터 흐림 + 왼쪽 위 "공연종료" 칩(DS `tag_v2` small · round · grey · weak). 가격 줄은 어느 카드에도 없다 —
+ * GUI `759:7895` · `939:34039`(사용자 지정 근거 2026-11-08)대로 날짜 + 제목만(옛 Q63 기본안을 뺌, 🤖 되돌리기: `price={concertCardPrice(e)}`)
  */
 function EventCard({ event: e }: { event: EventListItem }) {
   const ended = e.displayStatus === 'PAST';
@@ -202,7 +208,6 @@ function EventCard({ event: e }: { event: EventListItem }) {
       href={eventHref(e.eventId)}
       title={e.name ?? UNNAMED_EVENT}
       date={concertCardDate(e.startAt)}
-      price={ended ? null : concertCardPrice(e)}
       posterUrl={e.posterImageUrl}
       ended={ended}
       badge={

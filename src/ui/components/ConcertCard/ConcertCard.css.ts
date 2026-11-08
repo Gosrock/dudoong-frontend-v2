@@ -69,7 +69,17 @@ export const meta = style({
   minWidth: 0,
 });
 
-export const dateRow = style({ display: 'flex', alignItems: 'center', gap: vars.space[1] });
+/**
+ * 날짜 줄 — 높이를 글자 줄(Label/sm 12 × 1.2 = 14.4, GUI `121:1013`)에 맞춘다. 끝의 이동 표시(`LinkProgress` sm 16)가
+ * 줄을 16으로 키워 날짜 ↔ 제목 간격이 Figma(4)보다 벌어지던 것을 막는다 — 표시는 위아래로 넘쳐 그려진다(Design Sync 2026-11-08 밤)
+ */
+export const dateRow = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.space[1],
+  height: 14.4,
+  overflow: 'visible',
+});
 
 export const date = style({ flex: '1 1 auto', minWidth: 0 });
 

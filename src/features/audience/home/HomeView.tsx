@@ -16,7 +16,7 @@ import { colors } from '@/ui/theme/colors';
 import heroSmall from './assets/home-hero-780.jpg';
 import heroLarge from './assets/home-hero-1170.jpg';
 import * as s from './HomeView.css';
-import { concertCardDate, concertCardPrice } from './model/card-date';
+import { concertCardDate } from './model/card-date';
 import { LegalFooter } from './ui/LegalFooter';
 import { ScrollTopButton } from './ui/ScrollTopButton';
 
@@ -71,7 +71,6 @@ export function HomeView() {
                     href={eventHref(e.eventId)}
                     title={e.name ?? UNNAMED_EVENT}
                     date={concertCardDate(e.startAt)}
-                    price={concertCardPrice(e)}
                     posterUrl={e.posterImageUrl}
                   />
                 </li>

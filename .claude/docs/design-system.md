@@ -20,7 +20,7 @@
 >
 > 같은 PR에서 그 뒤 판(`2419099227210134517`, 14:23Z — 공개 14:23:00Z)도 비교했다: `tag_v2` 72변형의 패딩이 변수에 묶였고 small 좌우 10 → 8(`Space/2`) — 코드는 이미 8이라 주석만(§7 TODO 닫음). §8.
 >
-> **2026-11-08 밤 갱신(`design-198-205`)**: 지금 판(`2419464913593223537`, 13:32Z)을 09:28Z 판과 비교 — 새 `ic_github` filled 24 · `ic_instagram` `type=gray` 24(공연홈 푸터 #205 — 코드 반영), Button 변형 축 이름 `type` → `size`(값 같음, 코드 영향 없음), 새 `ic_camera` · `ic_camera_disable` outline 24(반영 대기), `img_login` 크기 0.4px 차이(무시). **#198 "warning 2 시멘틱 컬러"는 지금 파일에 없다**(변수 · `55:410` 프레임 모두 warning · warning-subtle · error뿐 — Desktop Bridge로 읽음) → 토큰 그대로, Figma 코멘트 `55:410`. §8.
+> **2026-11-08 밤 갱신(`design-198-205`)**: 지금 판(`2419464913593223537`, 13:32Z)을 09:28Z 판과 비교 — 새 `ic_github` filled 24 · `ic_instagram` `type=gray` 24(공연홈 푸터 #205 — 코드 반영), Button 변형 축 이름 `type` → `size`(값 같음, 코드 영향 없음), 새 `ic_camera` · `ic_camera_disable` outline 24(반영 대기), `img_login` 크기 0.4px 차이(무시). **#198 새 의미 색 `status/warning 2`**(`VariableID:862:612` — Light Yellow/300 `#F9CD3C` · Dark Yellow/200, `55:410` Status 줄 `862:615`) → 토큰 `status.warning2`(Light만). 처음 읽었을 때(22:30 KST)는 없었고 그 뒤 디자이너가 넣었다 — 코멘트 `55:410`에 정정 답글. §8.
 >
 > **2026-11-08 갱신(`ds-sync-1108`)**: 지금 판(버전 `2419385361681489603`, 2026-11-08T09:28Z)을 11-07T14:23Z 판과 비교했다 — `Design: 디자인 시스템` 이슈 #185(Button `Color=Warning` 28변형) · #186(Button 글자 있는 변형 min width) · #187(새 세트 `다이얼로그_데스크탑` `843:449`) · #188 · #189(ic_v2 `ic_list` · `ic_image` · `ic_trash` · `ic_edit_2`). 이슈 밖: Button medium 글자만 모든 색 45h · Primary small 아이콘형 Hover/Pressed 아이콘 18 → 16 · `img_검색 결과 없음` 선 2개 `#000` → `#141413`(코드 반영) · 새 `ic_expand`(반영 대기) · 개발이 올린 2단계 페이지 8개(`ds-upload-2026-11-08.md`). 변수는 Desktop Bridge로 읽음(Warning 채움 `brand/accent` · `accent-hover` · `accent-pressed`, 글자 `text/on-brand fixed` — 코드 토큰에 이미 있음). §8.
 >
@@ -93,6 +93,7 @@ lucide 원본 비교본은 unpkg `lucide-static@0.460.0`과 최신(v1.57)이다.
 | `brand/Primary container` · `on Primary container` | Violet 100 · Violet 400(2026-10-25 300 → 400) |
 | `text/primary` · `secondary` · `tertiary` · `inverse` · `on-brand` | Neutral 800 · 500 · 300 · 50 · 50 |
 | `status/success` · `warning` · `error` | Green 400 · Coral-red 400 · Coral-red 400 |
+| `status/warning 2`(2026-11-08 밤, #198 — `VariableID:862:612`) | Yellow 300 `#F9CD3C`(Dark 별칭 Yellow 200 — 다크 미지원이라 코드는 Light만). 코드 `vars.color.status.warning2` · `colors.statusWarning2`. 아직 쓰는 컴포넌트 · 화면 없음 |
 | `surface/default-border` · `strong-border` · `container` | Neutral 200 · 400 · 50 |
 | `Background/normal` · `grey` · `dark` | 흰색 · Neutral 100 · Neutral 900 |
 | `interaction/inactive` · `disabled-bg` | Neutral 300 · Neutral 100 |
@@ -274,7 +275,7 @@ GUI 화면 파일에서 본 것(2026-10-15):
 | **Input** 3종 — input field · text input(단위 접미사 "원") · icon input, `State` Default/Focus/Filled/disabled | `<input>` | Input | `leading?`(아이콘), `trailing?`(단위). 44h, 모서리 8, 포커스는 보라 테두리. Focus·Filled는 CSS 상태 **2026-10-31**: icon input의 앞 아이콘이 20×20 틀(패딩 2) 안 16px로 바뀌었다(옛 24). disabled 테두리는 `interaction/disabled` 값이 바뀌어 Neutral 200 | P2 |
 | **Search Field** — Default/Focus/Filled(disabled 없음) | `<input type="search">` | Input | 검색 아이콘이 외부 `icon/search`다. 코드는 `ic/search`를 쓴다. **2026-11-03(#109)**: placeholder "검색어를 입력해 주세요"(띄어쓰기) — 기본값 `SEARCH_FIELD_PLACEHOLDER`, 화면이 주면 그 글자 | P2 |
 | **Dropdown** — 트리거(상태 1개) + dropdown item(selected) | Radix `Select` | Select / Combobox | 트리거 아이콘이 위아래 화살표(`ic/up down`)라 shadcn Combobox 모양에 가깝다. 열린 목록은 컴포넌트가 아닌 예시 프레임(`284:1755`)이다. placeholder·disabled·에러 상태 없음. placeholder 스타일은 Radix의 `[data-placeholder]`로 받는다 **2026-10-31**: dropdown item 높이 28 → **36** **2026-11-07(I-h3)**: 고른 항목(`selected=true`)은 정렬 SPACE_BETWEEN — ✓가 항목 오른쪽 끝(GUI 예매자 검색 기준 `1029:6014` · `1007:4083`도 같음). 코드는 ✓ 글자 바로 뒤였다 → `itemIndicator` `margin-left: auto` | P2 |
-| **SortButton**(페이지 이름 Sort Dropdown) — 라벨이 변형(공연임박순/최신등록순) | — | — | 정렬값이 서버에 하나뿐이라 **고정 라벨**(patterns §13). Figma에 chevron-down 12가 붙어 있지만 코드는 chevron 없이 누를 수 없게 | P5a, P8 |
+| **SortButton**(페이지 이름 Sort Dropdown) — 라벨이 변형(공연임박순/최신등록순) | — | — | 정렬값이 서버에 하나뿐이라 **고정 라벨**(patterns §13) — 누를 수 없다. chevron-down 12는 **2026-11-08 밤부터 Figma대로 그린다**(공연 리스트 `759:8031`, 사용자 지정 근거 — 옛: chevron 없음) | P5a, P8 |
 | **Checkbox**(`Box`) — `checked` × `Status` default/disabled × `type` round/square(2026-11-01) | Radix `Checkbox` | Checkbox | 20px. 채움 색이 `text/primary-label`(검정)이다 — 브랜드색이 아니다 **2026-10-31**: disabled 채움·테두리가 Neutral 200(`interaction/disabled` 값 변경) **2026-11-01**(#23): `type=square`(모서리 4 `Space/1`)가 생겨 8변형. round 모서리 17 → 16(`Space/4`에 묶임 — 20의 원형 그대로). 코드 `<Checkbox shape="round" \| "square">`(기본 round — Figma `type`은 버튼 `type` 속성과 겹쳐 `shape`) **2026-11-01(3)**: 미선택 테두리 `text/primary-label` → `interaction/inactive`(#B8B7B3, §8) | P2 |
 | **Radio** — `selected` × `disabled?`(2026-11-01) | Radix `RadioGroup` | Radio Group | 20px, 점 10 검정. **2026-11-01**(#25·#26): 테두리 1.25가 바깥 → **가운데** 정렬(바깥 지름 21.25 → 20), 미선택 테두리 `surface/default-border` → **`surface/strong-border`**(선택과 같음), `disabled?=true`가 생김 — 테두리·점 `interaction/disabled`(Neutral 200), 채움 없음 **2026-11-07(I-h4)**: DS Radio는 원만 있고 글자는 화면이 붙인다 — 코드 `<Radio size>` `md`(기본, Body/lg 16) · `sm`(Body/md 14 — GUI 예매자 거절 · 취소 사유 `1029:7095` · `1029:7509` · `1029:6920`, 줄 사이 12는 묶음 간격) | P2 |
 | **Toggle** — `State` Off/On × `disabled?`(2026-11-01) | Radix `Switch` | Switch | 45×24. **2026-11-01**(#27): `disabled?=true`가 생김 — 꺼짐 트랙 `interaction/disabled`(Neutral 200) · 켜짐 `brand/Primary container`(Violet 100), 손잡이 흰색 | P2 |
@@ -696,7 +697,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 
 | 영역 | 바뀐 것 | 코드 |
 |---|---|---|
-| 색(#198) | 이슈는 "warning 2 시멘틱 컬러 추가"인데 **지금 파일에 없다** — `Sementic` 컬렉션의 status 변수는 `success` · `success-subtle` · `warning`(Coral-red 400) · `warning-subtle`(Coral-red 50) · `error` 다섯, `55:410` Status 줄도 같은 다섯, 페인트 스타일에도 없음(2026-11-08 22:30 KST 읽음) | **반영 안 함** — 토큰 그대로. Figma 코멘트 `55:410`(이름 · 값을 물음). 이슈는 PR에서 `Refs`만 — 색이 생기면 다시 받는다 |
+| 색(#198) | 새 의미 색 **`Color/status/warning 2`**(`VariableID:862:612`, `Sementic`) — Light → Yellow/300(`#F9CD3C`) · Dark → Yellow/200(별칭). `55:410` Status 줄에 `warning 2` 견본(`862:615`). 처음 확인(22:30 KST)에는 없었고 그 뒤 생김 | **반영함** — `vars.color.status.warning2` = `palette.yellow[300]`, `colors.statusWarning2`(Light만 — 다크 미지원). 쓰는 곳은 아직 없음 |
 | ic_github(새) | `863:48` `size=24, type=filled` 하나, 단색 `#5F5E5A` | **반영함** — `github` filled 24(`currentColor`) |
 | ic_instagram | `type=gray` 변형 추가(`863:10`) — 그라데이션 없는 단색 `#5F5E5A` | **반영함** — `instagram` `gray` 24. 생성기(`generate.mjs`) 파일 이름 규칙에 `gray`를 더함(`IconVariant`) |
 | Button | 변형 축 이름 `type` → `size`(값 small · medium · Large · round 그대로, 112변형 그대로) | 없음 — 코드는 `size` prop이 원래 이 축 |

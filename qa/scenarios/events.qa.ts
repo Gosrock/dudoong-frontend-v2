@@ -424,7 +424,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI `939:34039` 예매하기(2줄)(#159): 지난 공연(displayStatus PAST)은 포스터 흐림 + 왼쪽 위 DS tag_v2 grey round "공연종료", 날짜 tertiary · 제목 secondary, 가격 줄 없음(Figma 코멘트 939:34059). 다가오는 공연 카드는 그대로. 제목은 2줄 말줄임.',
+      'GUI `939:34039` 예매하기(2줄)(#159): 지난 공연(displayStatus PAST)은 포스터 흐림 + 왼쪽 위 DS tag_v2 grey round "공연종료", 날짜 tertiary · 제목 secondary. 가격 줄은 어느 카드에도 없다(GUI `759:7895` · `939:34039` 사용자 지정 근거 2026-11-08 — 날짜 + 제목만). 제목은 2줄 말줄임. 정렬 "공연임박순" 옆 ▾(DS SortButton).',
     basis: ['GUI 939:34039', 'design-requests Q93', 'api-contract GP-2 displayStatus'],
   },
   async ({ page, step }) => {
@@ -438,7 +438,7 @@ scenario(
         await expect(ended.first()).toBeAttached({ timeout: 1000 });
       }).toPass();
       await expect(ended.first()).toHaveAttribute('data-ended', 'true');
-      await expect(ended.first().getByTestId('card-price')).toHaveCount(0);
+      await expect(page.getByTestId('card-price')).toHaveCount(0);
       await ended.first().scrollIntoViewIfNeeded();
     });
     await step(
