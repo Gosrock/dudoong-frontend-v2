@@ -18,6 +18,7 @@ import { installLoggedInFetch } from '@/test/login-fetch';
 import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
+import { cardChip, headState } from './ticket-groups';
 import { useTicketDetail } from './useTicketDetail';
 import { useTicketTab } from './useTicketTab';
 
@@ -71,11 +72,13 @@ describe('티켓탭 — useTicketTab', () => {
     expect(received.orderHref).toBeNull();
     const mine = result.current.groups.find((g) => g.key === NEW_APPROVED_ORDER_UUID)!;
     expect(mine.orderHref).toBe(`/orders/${NEW_APPROVED_ORDER_UUID}`);
-    expect(mine.counts.map((c) => `${c.label} ${c.count}`)).toEqual([
-      '승인완료 1',
-      '선물 대기중 1',
-      '선물완료 1',
-    ]);
+    // 상태가 섞인 주문(승인완료 · 선물 대기중 · 선물완료) — 칩은 하나, 페이저로 보는 티켓을 따른다
+    const chip = () => cardChip(mine.group, result.current.selectedTicket(mine.key));
+    expect(chip()).toMatchObject({ kind: 'STATE', label: '승인완료' });
+    act(() => result.current.select(mine.key, 1));
+    expect(chip()).toMatchObject({ kind: 'STATE', label: '선물 대기중' });
+    act(() => result.current.select(mine.key, 2));
+    expect(chip()).toMatchObject({ kind: 'STATE', label: '선물완료' });
   });
 
   it('승인 대기·거절 주문은 티켓 없이 주문만 나온다', async () => {
@@ -83,7 +86,10 @@ describe('티켓탭 — useTicketTab', () => {
     const { result } = renderHook(() => useTicketTab(), { wrapper });
     await waitFor(() => expect(result.current).not.toBeNull());
     const orderOnly = result.current.groups.filter((g) => g.orderOnly);
-    expect(orderOnly.map((g) => g.counts[0]?.state).sort()).toEqual(['PENDING_APPROVE', 'REFUSED']);
+    expect(orderOnly.map((g) => headState(g.group.counts)).sort()).toEqual([
+      'PENDING_APPROVE',
+      'REFUSED',
+    ]);
     expect(orderOnly.every((g) => tabPager(result.current, g.key) === null)).toBe(true);
   });
 

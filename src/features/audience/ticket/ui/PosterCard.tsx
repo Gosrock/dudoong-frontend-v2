@@ -4,8 +4,8 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 
-import type { TicketGroupView } from '../model/ticket-groups';
-import { TicketStateChips } from './TicketChips';
+import type { CardChip, TicketGroupView } from '../model/ticket-groups';
+import { TicketStateChip } from './TicketChips';
 import * as s from './TicketTab.css';
 
 /**
@@ -15,10 +15,13 @@ import * as s from './TicketTab.css';
  */
 export function PosterCard({
   group,
+  chip,
   label,
   onPress,
 }: {
   group: TicketGroupView;
+  /** 오른쪽 위 칩 하나 — 지금 페이저로 보는 티켓의 상태(`cardChip`) */
+  chip: CardChip | null;
   label: string;
   onPress: (el: HTMLElement) => void;
 }) {
@@ -35,10 +38,7 @@ export function PosterCard({
       )}
       <span className={s.card}>
         <Poster key={poster ?? ''} src={poster} />
-        <TicketStateChips
-          counts={group.counts}
-          displayStatus={group.group.event?.displayStatus ?? null}
-        />
+        <TicketStateChip chip={chip} />
       </span>
     </button>
   );

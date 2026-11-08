@@ -120,8 +120,9 @@ const allStateMocks = [
 ];
 
 const CHIP: Record<MyTicketState, string> = {
-  PENDING_APPROVE: '승인대기 2',
-  REFUSED: '승인거절 2',
+  // 2매 주문도 칩 하나 · 개수 없음(GUI 908:11275 — 사용자 결정 2026-11-08)
+  PENDING_APPROVE: '승인대기',
+  REFUSED: '승인거절',
   APPROVED: '승인완료',
   GIFT_PENDING: '선물 대기중',
   GIFT_EXPIRED: '선물 만료',
@@ -170,7 +171,8 @@ scenario(
           : `${state} — 칩 "${CHIP[state]}", 티켓 없는 주문이라 QR 안내가 없다`,
         async () => {
           const group = await center(page, `qa-${state}`);
-          await expect(group.getByRole('listitem')).toHaveText([CHIP[state]]);
+          await expect(group.getByTestId('state-chip')).toHaveCount(1);
+          await expect(group.getByTestId('state-chip')).toHaveText(CHIP[state]);
           if (!back) {
             await expect(page.getByText('탭하여 입장 QR 보기')).toHaveCount(0);
             return;
@@ -219,7 +221,7 @@ scenario(
     await page.goto(TAB);
     await step('칩이 "발급 완료"다', async () => {
       const group = page.getByTestId('ticket-group').first();
-      await expect(group.getByRole('listitem')).toHaveText(['발급 완료']);
+      await expect(group.getByTestId('state-chip')).toHaveText('발급 완료');
     });
   },
 );
@@ -230,18 +232,19 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI 908:10027 · 939:25698(#30 승인대기 칩). 첫 묶음은 승인 대기 주문(티켓 없음)이라 칩 "승인대기 2"만. #29 — "공연임박순" 라벨과 유료옵션 금액 표시가 없다.',
+      'GUI 908:10027 · 939:25698(#30 승인대기 칩). 첫 묶음은 승인 대기 주문(2매 · 티켓 없음)이라 칩 "승인대기" 하나(개수 없음 — GUI 908:11275, 사용자 결정 2026-11-08). #29 — "공연임박순" 라벨과 유료옵션 금액 표시가 없다.',
     basis: ['GUI 908:10027 · 939:25698', 'issue #29 · #30', 'plan P8 V 범위 "공지 바"'],
   },
   async ({ page, step }) => {
     resetTicketStore();
     await setMockSession(page, 'loggedIn');
     await page.goto(TAB);
-    await step('NEW 공지 바와 첫 카드(승인대기 2)가 보인다', async () => {
+    await step('NEW 공지 바와 첫 카드(칩 "승인대기" 하나)가 보인다', async () => {
       await expect(page.getByRole('status')).toContainText('NEW 티켓 주문이 승인되었습니다!');
       const first = page.getByTestId('ticket-group').first();
       await expect(first).toHaveAttribute('data-active', 'true');
-      await expect(first.getByRole('listitem')).toHaveText(['승인대기 2']);
+      await expect(first.getByTestId('state-chip')).toHaveCount(1);
+      await expect(first.getByTestId('state-chip')).toHaveText('승인대기');
       await expect(
         page.getByTestId('ticket-info').getByRole('link', { name: '주문상세' }),
       ).toBeVisible();
@@ -255,12 +258,12 @@ scenario(
 
 scenario(
   'TIX-3',
-  '[티켓보기 →]를 누르면 새로 승인된 주문 카드로 넘어가고, 한 주문 2장 이상은 겹친 카드 + 상태별 개수',
+  '[티켓보기 →]를 누르면 새로 승인된 주문 카드로 넘어가고, 한 주문 2장 이상은 겹친 카드 + 칩 하나',
   {
     kind: '정상',
     summary:
-      'T-3 orderUuids[0] 묶음으로 캐러셀이 넘어간다. 그 주문은 3장(승인완료 1 · 선물 대기중 1 · 선물완료 1)이라 뒤에 기운 카드가 겹치고 칩에 개수가 붙는다(GUI 908:11275).',
-    basis: ['plan P8 V 범위 "카드 스와이프 · 상태별 개수 배지"', 'GUI 908:11275'],
+      'T-3 orderUuids[0] 묶음으로 캐러셀이 넘어간다. 그 주문은 3장(승인완료 · 선물 대기중 · 선물완료)이라 뒤에 기운 카드가 겹치고, 칩은 하나 · 개수 없이 지금 보는 티켓(1번째 — 승인완료)의 상태(GUI 908:11275, 사용자 결정 2026-11-08 — 개수 칩 여러 개였던 와이어 대신).',
+    basis: ['GUI 908:11275', '사용자 결정 2026-11-08(디자인 확인 요청 1262:286)'],
   },
   async ({ page, step }) => {
     resetTicketStore();
@@ -270,11 +273,8 @@ scenario(
       await page.getByRole('status').getByRole('link', { name: '티켓보기 →' }).click();
       const group = page.locator(`#group-${NEW_APPROVED_ORDER_UUID}`);
       await expect(group).toHaveAttribute('data-active', 'true');
-      await expect(group.getByRole('listitem')).toHaveText([
-        '승인완료 1',
-        '선물 대기중 1',
-        '선물완료 1',
-      ]);
+      await expect(group.getByTestId('state-chip')).toHaveCount(1);
+      await expect(group.getByTestId('state-chip')).toHaveText('승인완료');
       await expect(page.getByText('탭하여 입장 QR 보기')).toBeVisible();
     });
   },
@@ -282,7 +282,7 @@ scenario(
 
 scenario(
   'TIX-4',
-  '카드를 누르면 입장 QR 층(1/3) — 넘기면 (2/3) 선물중 · (3/3) 선물완료, 바깥을 누르면 닫힌다',
+  '카드를 누르면 입장 QR 층(1/3) — 넘기면 (2/3) 선물중 · (3/3) 선물완료, 바깥을 누르면 닫히고 카드 칩은 본 티켓 상태',
   {
     kind: '정상',
     summary:
@@ -318,15 +318,23 @@ scenario(
       await expect(layer.getByTestId('qr-notice')).toContainText('선물한 티켓이에요');
       await expect(layer.getByRole('button', { name: '선물하기' })).toBeDisabled();
     });
-    await step('바깥(공연명 아래 빈 곳)을 누르면 층이 닫힌다', async () => {
-      await page.mouse.click(10, 10);
-      await expect(page.getByRole('dialog', { name: '입장 QR' })).toHaveCount(0);
-      const details = mockApi
-        .calls()
-        .filter((c) => /^\/api\/v2\/me\/tickets\/(?!new-approved)/.test(c.path))
-        .map((c) => c.path);
-      expect(details).toContain(`/api/v2/me/tickets/${TICKET_UUID.approved}`);
-    });
+    await step(
+      '바깥(공연명 아래 빈 곳)을 누르면 층이 닫히고, 카드 칩은 마지막에 본 티켓(선물완료) 하나',
+      async () => {
+        await page.mouse.click(10, 10);
+        await expect(page.getByRole('dialog', { name: '입장 QR' })).toHaveCount(0);
+        const chip = page
+          .locator(`[id="group-${NEW_APPROVED_ORDER_UUID}"]`)
+          .getByTestId('state-chip');
+        await expect(chip).toHaveCount(1);
+        await expect(chip).toHaveText('선물완료');
+        const details = mockApi
+          .calls()
+          .filter((c) => /^\/api\/v2\/me\/tickets\/(?!new-approved)/.test(c.path))
+          .map((c) => c.path);
+        expect(details).toContain(`/api/v2/me/tickets/${TICKET_UUID.approved}`);
+      },
+    );
   },
 );
 
@@ -593,6 +601,13 @@ scenario(
     await page.goto(TAB);
     await step('승인 공지가 남아 있으면 승인 바가 먼저', async () => {
       await expect(page.getByRole('status')).toContainText('NEW 티켓 주문이 승인되었습니다!');
+    });
+    await step('진행 중 공연 카드는 승인완료 칩 대신 "공연중 ON AIR" 하나(939:25755)', async () => {
+      const chip = page
+        .locator(`[id="group-${NEW_APPROVED_ORDER_UUID}"]`)
+        .getByTestId('state-chip');
+      await expect(chip).toHaveCount(1);
+      await expect(chip).toHaveText('공연중 ON AIR');
     });
     await step('승인 공지가 풀리면(T-2를 열면) 공연 중 바', async () => {
       readMyTicket(TICKET_UUID.approved);

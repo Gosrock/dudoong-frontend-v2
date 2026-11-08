@@ -3502,3 +3502,17 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 - 검사: vitest related 391/0 · QA `home` 10/0 · `events` 23/0 · e2e `home` · `event-list` · `legal` · `a11y` · `shell` 159/0.
 - #198 정정: 관제탑 검토로 `Color/status/warning 2`(`VariableID:862:612`, Light Yellow/300)가 생긴 것을 확인 → 토큰 `status.warning2`, 코멘트 `55:410`에 정정 답글 `1999172444`(노이슈).
 
+
+## 티켓탭 상태 칩 하나(GUI대로) · 맨 위로 ↑ 지금 코드대로 확정(2026-11-08 밤, `fm-ticket-chip` #PR)
+
+디자인 확인 요청 페이지(GUI `1262:41`) 카드 두 장의 사용자 결정(2026-11-08).
+
+- **카드 `1262:286` 티켓탭 상태 칩 여러 개 → GUI대로.** GUI `908:11275`(한 주문 2장 이상) · `939:25755`(공연중)는 카드 오른쪽 위 칩 하나 · 개수 없음. 와이어(`455:8958`)를 따라 칩을 쌓고 "승인대기 2"처럼 개수를 붙였던 `TicketStateChips` → `TicketStateChip`(칩 하나). 고르는 규칙은 모델 `cardChip(group, selectedTicket)`(`ticket-groups.ts`) — `StateCount`/`stateCounts`와 `TicketGroupView.counts`는 다른 곳에서 안 써서 지우고, 티켓 없는 묶음용 `headState(counts)`만 남김. 목록 역할 · "상태별 개수" 이름은 뺐다(칩 글자가 카드 버튼 이름에 그대로 들어간다).
+- **카드 `1262:272` 맨 위로 ↑ 보이는 때 → 지금 코드대로**(화면 절반 넘게 — `ScrollTopButton` `SHOW_AFTER_VIEWPORT = 0.5`). 코드 변경 없음, design-requests Q222로 닫음, gui-screens 공연홈 · 공연 리스트 줄.
+
+**결정(🤖 Claude 판단)**
+1. 섞인 주문의 칩 = 지금 페이저로 보고 있는 티켓(`useTicketTab.selectedTicket`)의 상태 — GUI에 없음. 되돌리기 쉬운 쪽(규칙 한 함수). 공연 중이면 그 티켓이 승인완료일 때만 "공연중 ON AIR"(전에는 공연 중이면 늘 ON AIR + 나머지 칩). 되돌리기: `cardChip`. design-requests Q223.
+
+**Figma 코멘트**: GUI `908:22655` 스레드 `1989727894`에 답글 `1999179659` "[개발 · Figma대로 고침 2026-11-08] 여러 상태가 섞인 카드 … → 노이슈".
+
+**테스트**: unit `ticket-rules` (섞인 주문 칩 하나 · 티켓마다 바뀜 · ON AIR · 발급 완료 · `headState`) · `useTicketTab`(select 1 → 2 → 3에 칩이 승인완료 → 선물 대기중 → 선물완료). QA `tickets` TIX-1/1b/2/3(칩 하나 · 개수 없음) · TIX-4(2/3 → 3/3 넘기고 닫으면 칩 "선물완료") · TIX-12(공연중 ON AIR 하나). e2e `tickets` "섞인 주문도 칩 하나 — 페이저로 넘기면 바뀐다".

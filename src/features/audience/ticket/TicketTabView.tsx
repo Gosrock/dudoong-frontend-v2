@@ -15,7 +15,7 @@ import { Spacing } from '@/ui/primitives/Spacing';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import type { TicketNoticeBar } from './model/ticket-groups';
+import { cardChip, type TicketNoticeBar } from './model/ticket-groups';
 import { useTicketTab } from './model/useTicketTab';
 import { EventInfo } from './ui/EventInfo';
 import { PosterCard } from './ui/PosterCard';
@@ -187,6 +187,7 @@ function TicketTabContent() {
                   >
                     <PosterCard
                       group={g}
+                      chip={cardChip(g.group, tab.selectedTicket(g.key))}
                       label={
                         !isActive
                           ? `${g.group.event?.name ?? DELETED_EVENT} 카드로`
