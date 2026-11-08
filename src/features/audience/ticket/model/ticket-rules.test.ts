@@ -31,7 +31,7 @@ describe('티켓 state 11값 → 표시', () => {
     ['GIFT_PENDING', '선물 대기중', 'gift'],
     ['GIFT_EXPIRED', '선물 만료', 'negative'],
     ['GIFT_SENT', '선물완료', 'muted'],
-    ['RECEIVED', '받은 선물', 'gift'],
+    ['RECEIVED', '선물티켓', 'gift'],
     ['ENTERED', '입장 완료', 'muted'],
     ['CANCELED', '취소됨', 'negative'],
     ['REFUND_REQUESTED', '환불 요청', 'waiting'],

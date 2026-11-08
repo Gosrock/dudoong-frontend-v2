@@ -14,6 +14,7 @@ import { editInRhf } from '@/features/hosting/shared/model/rhf-test';
 import type { ActorRole } from '@/features/shared/permission/model/can';
 
 import {
+  basicInfoDefaultsOf,
   type BasicInfoValues,
   basicInfoValuesOf,
   changedBasicFields,
@@ -250,6 +251,65 @@ describe('장소 — 주소 → 좌표 → 공연장 이름 · 상세주소', ()
     [full, null],
   ])('칸 오류 %o → %s', (input, expected) => {
     expect(placeError(input)).toBe(expected);
+  });
+});
+
+describe('기본 정보 — 문의처 미리 채우기(Q76)', () => {
+  const HOST = [
+    { type: 'PHONE' as const, value: '01012345678' },
+    { type: 'UNKNOWN' as const, value: '알 수 없음' },
+    { type: 'EMAIL' as const, value: 'a@b.c' },
+  ];
+
+  it('문의처가 비었으면 호스트 연락처로 채운다 — 유형을 모르는 것은 뺀다', () => {
+    expect(basicInfoDefaultsOf(manage({ contacts: [] }), HOST).contacts).toEqual([
+      { type: 'PHONE', value: '01012345678' },
+      { type: 'EMAIL', value: 'a@b.c' },
+    ]);
+  });
+
+  it('문의처가 있거나 호스트 연락처가 없으면 GE-3 값 그대로', () => {
+    const own = manage({ contacts: [{ type: 'INSTAGRAM', value: '@x' }] });
+    expect(basicInfoDefaultsOf(own, HOST)).toEqual(basicInfoValuesOf(own));
+    const empty = manage({ contacts: [] });
+    expect(basicInfoDefaultsOf(empty, [])).toEqual(basicInfoValuesOf(empty));
+    expect(basicInfoDefaultsOf(empty, [{ type: 'UNKNOWN', value: '?' }])).toEqual(
+      basicInfoValuesOf(empty),
+    );
+  });
+
+  it('공연 문의처 상한(10개)까지만 채운다', () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ type: 'PHONE' as const, value: `0${i}` }));
+    expect(basicInfoDefaultsOf(manage({ contacts: [] }), many).contacts).toHaveLength(10);
+  });
+
+  it('미리 채운 값이 기준 — 그대로면 dirty 아님, 다른 칸을 저장하면 문의처도 같이 보낸다', () => {
+    const event = manage({ contacts: [] });
+    const saved = basicInfoValuesOf(event);
+    const base = basicInfoDefaultsOf(event, HOST);
+    expect(isBasicInfoDirty(base, base)).toBe(false);
+    expect(toUpdateEventBasicBody(base, base, undefined, saved)).toEqual({
+      contacts: [
+        { type: 'PHONE', value: '01012345678' },
+        { type: 'EMAIL', value: 'a@b.c' },
+      ],
+    });
+    const renamed = { ...base, name: '새 이름' };
+    expect(toUpdateEventBasicBody(base, renamed, new Set(['name']), saved)).toMatchObject({
+      name: '새 이름',
+      contacts: [{ type: 'PHONE' }, { type: 'EMAIL' }],
+    });
+  });
+
+  it('미리 채운 문의처를 지우면 서버 값과 같아 보내지 않는다(빈 채로)', () => {
+    const event = manage({ contacts: [] });
+    const saved = basicInfoValuesOf(event);
+    const base = basicInfoDefaultsOf(event, HOST);
+    const cleared = { ...base, name: '새 이름', contacts: [] };
+    expect(isBasicInfoDirty(base, cleared)).toBe(true);
+    expect(toUpdateEventBasicBody(base, cleared, new Set(['name']), saved)).toEqual({
+      name: '새 이름',
+    });
   });
 });
 

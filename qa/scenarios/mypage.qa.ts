@@ -604,6 +604,34 @@ scenario(
   },
 );
 
+scenario(
+  'MY-20',
+  '아카이빙 — 포스터를 누르면 크게 보기 + [이미지 저장]',
+  {
+    kind: '정상',
+    summary:
+      '포스터(CD 이미지)를 누르면 공연 이름 제목의 오버레이(모바일 시트 · PC 모달)에 포스터를 크게 보이고 [이미지 저장]으로 내려받는다. 디자인 없음(Q207).',
+    basis: [
+      '와이어 503:16328 Tomato 10-24 "이미지 크게 보이고 이미지 다운로드"',
+      'design-requests Q207',
+    ],
+  },
+  async ({ page, step }) => {
+    reset();
+    await routeImages(page);
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/mypage/archive');
+    await step('포스터를 누르면 크게 보기가 열린다', async () => {
+      await page.getByRole('button', { name: '고스락 제36회 정기공연 포스터 크게 보기' }).click();
+      const viewer = dialog(page);
+      await expect(
+        viewer.getByRole('img', { name: '고스락 제36회 정기공연 포스터' }),
+      ).toBeVisible();
+      await expect(viewer.getByRole('button', { name: '이미지 저장' })).toBeVisible();
+    });
+  },
+);
+
 // ─── 알림 설정(마케팅 수신 — legal-copy B-6 · B-7, v1-additions E-1, 디자인 없음 Q153) ───
 
 scenario(
