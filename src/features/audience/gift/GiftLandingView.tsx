@@ -26,8 +26,8 @@ type Landing = ReturnType<typeof useGiftLanding>;
 
 /**
  * 선물 랜딩(`/gifts/[giftToken]`) — GUI `939:27148` 티켓 선물 받기/거절하기(2026-11-01 Ready).
- * - 받을 수 있음(AVAILABLE) + 로그인 → 포스터 · 공연 · [거절하기] [선물받기](`939:26721`), [거절하기] → 확인 시트(`939:26858`)
- * - 받을 수 있음 + 익명 → 로그인 안내(`939:26412`) — [카카오 로그인하기]는 `/login?redirect=<랜딩>`(복귀 뒤 다시 눌러 수락)
+ * - 받을 수 있음(AVAILABLE) + 로그인 → 보낸 사람 · 포스터 · 공연 · [거절하기] [선물받기](`939:26721`), [거절하기] → 확인 시트(`939:26858`)
+ * - 받을 수 있음 + 익명 → 보낸 사람 · 포스터 · 공연 · [두둥에 로그인하고 선물 받기](`939:26412`, 2026-11-08 #202) — `/login?redirect=<랜딩>`(복귀 뒤 다시 눌러 수락)
  * - 방금 거절함 → 거절 완료(`939:26992`) · 취소된 선물(CANCELED) → `939:27058` · 보낸 사람이 방금 취소함 → 취소 완료(`908:21359`)
  * - 나머지 상태(이미 받음 · 반환됨 · 내 링크 · 만료 · 모름)는 디자인이 없다 — 같은 틀에 L 문구(design-requests §1 기본안)
  * 상태 영역은 사용자별 값이 확정된 뒤에만 그린다(그 전에는 자리표시) — 보낸 본인에게 수락 버튼이 잠깐도 보이지 않는다.
@@ -74,31 +74,28 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
     </p>
   );
 
+  // 보낸 사람 — GUI `939:26412` · `939:26721` "네민 님이 보낸 티켓 선물"(Heading/sm, 가운데, 포스터 위 24 — #202 · #203 · #204).
+  // 이름은 서버가 가린 값(GG-3 `senderName`). 없으면 줄을 그리지 않는다
+  const senderLine = landing.summary.senderName && (
+    <Txt as="p" typography="headingSm" color={colors.textPrimaryLabel} align="center">
+      {landing.summary.senderName} 님이 보낸 티켓 선물
+    </Txt>
+  );
+
   if (screen.viewState === 'AVAILABLE' && landing.receiveMode === 'login') {
-    // 익명 — GUI 939:26412(와이어 128:1854도 같음)는 로그인 안내만이라 누가 · 어떤 공연 티켓을 보냈는지 몰랐다(이슈 #106 §1 ⭐).
-    // FIGMA-CUSTOM: 받기 화면(939:26721)의 요약(포스터 · 공연 · 일시 · 티켓)을 그대로 쓰고 버튼 자리에 [카카오 로그인하기].
-    // 값은 공개 GG-3가 익명에게도 주는 것만(보낸 사람 이름은 서버가 가린 값). 🤖 Claude 판단 2026-11-02, design-requests Q82
-    const sender = landing.summary.senderName;
+    // 익명 — GUI `939:26412`(2026-11-08 Ready, #202): 보낸 사람 · 받는 티켓(포스터 · 공연 · 일시 · 티켓) · [두둥에 로그인하고 선물 받기].
+    // 버튼은 `/login?redirect=<랜딩>`(복귀 뒤 다시 눌러 수락). 값은 공개 GG-3가 익명에게도 주는 것만
     return (
-      <main className={s.page}>
+      <main className={s.pageWithSender}>
         <section {...region} className={s.content}>
           <Flex direction="column" align="center" gap={5}>
-            {sender && (
-              <Txt as="p" typography="labelLg" color={colors.textSecondaryLabel} align="center">
-                {sender}님이 보낸 티켓 선물이에요
-              </Txt>
-            )}
+            {senderLine}
             <Summary landing={landing} />
-            <Flex direction="column" align="center" gap={3} fullWidth>
-              <Txt as="p" typography="labelMd" color={colors.textSecondaryLabel} align="center">
-                두둥에 로그인하면 선물을 받을 수 있어요
-              </Txt>
-              <LoginRequiredLink
-                className={button({ variant: 'primary', size: 'lg', fullWidth: true })}
-              >
-                카카오 로그인하기
-              </LoginRequiredLink>
-            </Flex>
+            <LoginRequiredLink
+              className={button({ variant: 'primary', size: 'lg', fullWidth: true })}
+            >
+              두둥에 로그인하고 선물 받기
+            </LoginRequiredLink>
           </Flex>
         </section>
       </main>
@@ -107,9 +104,10 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
 
   if (screen.viewState === 'AVAILABLE') {
     return (
-      <main className={s.page}>
+      <main className={s.pageWithSender}>
         <section {...region} className={s.content}>
           <Flex direction="column" align="center" gap={5}>
+            {senderLine}
             <Summary landing={landing} />
             {error}
             <div className={s.actions}>
