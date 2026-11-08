@@ -10,8 +10,7 @@ export const CONTENT_MAX = 1200;
 const edge = `max(${vars.space[5]}, calc((100% - ${CONTENT_MAX}px) / 2))`;
 
 /**
- * 마지막 섹션 ↔ 푸터 — GUI `759:22572` 아래 안쪽 32 + 푸터 `1383:3429`까지 41(토큰 40으로) = 72.
- * "두둥 소개"는 그리지 않아 캐러셀 아래에 바로 이 간격이 온다(Design Sync 2026-11-08 밤, 옛 64)
+ * 마지막 섹션(두둥 소개) ↔ 푸터 — GUI `759:22572` 아래 안쪽 32 + 푸터 `1383:3429`까지 41(토큰 40으로) = 72.
  */
 export const main = style({
   display: 'flex',
@@ -94,3 +93,35 @@ export const carouselItem = style({
 });
 
 export const empty = style({ paddingInline: edge });
+
+/** 두둥 소개(GUI `759:22549` — 위 섹션과 간격 32(`759:22572` itemSpacing), 제목 ↔ 카드 16, 좌우 24 · PC 본문 1200) */
+export const intro = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[4],
+  width: '100%',
+  maxWidth: `calc(${CONTENT_MAX}px + ${vars.space[5]} * 2)`,
+  marginInline: 'auto',
+  paddingTop: vars.space[6],
+  paddingInline: vars.space[5],
+  '@media': { [media.desktop]: { gap: vars.space[5], paddingTop: vars.space[8] } },
+});
+
+/** "두둥 소개" + ↗(GUI `759:22544` 간격 12) — 링크가 아니다 */
+export const introHead = style({
+  display: 'flex',
+  alignItems: 'center',
+  gap: vars.space[3],
+  color: vars.color.text.primary,
+});
+
+/**
+ * 빈 파란 카드(GUI `759:22571` 342×258 · 모서리 12 · #5B85FF 직접 값 + 노이즈 효과). 높이는 모든 폭에서 258(🤖 PC 디자인 없음).
+ * 노이즈 효과는 CSS로 옮기지 않았다(🤖 — 내용이 들어올 때 디자인을 다시 받는다).
+ */
+export const introCard = style({
+  height: 258,
+  borderRadius: vars.radius[4],
+  // FIGMA-CUSTOM: 두둥 소개 카드(gui 759:22571, 변수 없는 직접 값) → 히어로 뒤 사각형과 같은 #5B85FF. 2단계 후보(figma-deviations §5)
+  background: HERO_BG,
+});
