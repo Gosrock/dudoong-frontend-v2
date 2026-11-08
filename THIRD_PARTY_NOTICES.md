@@ -94,3 +94,10 @@ SOFTWARE.
 ### zxing-cpp — Apache License 2.0
 
 Source: https://github.com/zxing-cpp/zxing-cpp/blob/master/LICENSE — 전문은 https://www.apache.org/licenses/LICENSE-2.0
+
+## 글꼴 — 넥슨 카트 고딕 (`src/ui/fonts/kartrider/`)
+
+표시 글꼴(공연 제목 · 공연 카드 제목)은 넥슨코리아의 **넥슨 카트 고딕**(NEXON Kart Gothic) ExtraBold다.
+모든 권리는 넥슨코리아에 있다. 무료로 사용·배포할 수 있고(상업적 용도 포함) 이 저작권 안내를 포함해 임베디드 폰트로 쓸 수 있으며,
+파일을 수정·편집해 재배포하거나 글꼴 자체를 유료로 판매할 수 없다. 공식 배포 파일을 그대로 두었다.
+저작권 안내 원문: `src/ui/fonts/kartrider/LICENSE.md` · 출처: https://brand.nexon.com/ko/ci-brand-guidelines/typeface

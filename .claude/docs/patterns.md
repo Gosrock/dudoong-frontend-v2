@@ -57,7 +57,7 @@
 <Txt typography="headingSmEmphasized" lines={2}>긴 공연 제목은 두 줄에서 말줄임</Txt>
 ```
 
-폰트: 본문은 Pretendard(가변, 동적 서브셋 CSS — 화면에 나온 글자 조각만 받는다), 숫자 전용 `titleNumber`는 Saira Condensed(`next/font/google`). `title`의 Kartrider는 웹 임베드 라이선스 확인 전이라 불러오지 않고 Pretendard로 대신한다(design-system §1).
+폰트: 본문은 Pretendard(가변, 동적 서브셋 CSS — 화면에 나온 글자 조각만 받는다), 숫자 전용 `titleNumber`는 Saira Condensed(`next/font/google`). `title`과 ConcertCard 제목의 Kartrider(넥슨 카트 고딕 ExtraBold)는 `next/font/local`로 직접 호스팅한다 — `preload: false`라 그 글자가 화면에 나올 때만 받는다(라이선스 확인 2026-11-09, design-system §1).
 
 ---
 

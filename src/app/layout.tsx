@@ -4,6 +4,8 @@ import '@/ui/theme/global.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import { kartrider } from '@/ui/theme/fonts';
+
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
@@ -24,7 +26,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={kartrider.variable}>
       <body>
         <Providers>{children}</Providers>
       </body>

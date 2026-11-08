@@ -1,0 +1,15 @@
+/*
+ * Storybook(Vite)에는 next/font가 없어 같은 파일을 @font-face로 직접 건다 — 앱은 `src/ui/theme/fonts.ts`(next/font/local).
+ * `--font-kartrider`는 `tokens.css.ts` `font.display`가 읽는다.
+ */
+@font-face {
+  font-family: 'Kartrider Storybook';
+  src: url('../src/ui/fonts/kartrider/NEXON Kart Gothic Kor OTF ExtraBold.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-kartrider: 'Kartrider Storybook';
+}

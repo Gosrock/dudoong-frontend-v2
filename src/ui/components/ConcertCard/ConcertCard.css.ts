@@ -83,5 +83,12 @@ export const dateRow = style({
 
 export const date = style({ flex: '1 1 auto', minWidth: 0 });
 
-/** 제목은 Kartrider Kor ExtraBold 18(Title 스타일 미연결 — design-system §1·§5 `titleSm` 요청). 크기·줄높이는 headingMd2Emphasized(18/130%) */
-export const title = style({ fontFamily: vars.font.display, wordBreak: 'keep-all' });
+/**
+ * 제목은 Kartrider Kor ExtraBold 18(Title 스타일 미연결 — design-system §1·§5 `titleSm` 요청). 크기·줄높이는
+ * headingMd2Emphasized(18/130%), 굵기는 Figma ExtraBold(800) — 적재한 Kartrider가 800 한 벌이다(`theme/fonts.ts`)
+ */
+export const title = style({
+  fontFamily: vars.font.display,
+  fontWeight: 800,
+  wordBreak: 'keep-all',
+});
