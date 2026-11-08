@@ -1,7 +1,7 @@
 # 아이콘
 
 Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 세트 밖 낱개 `ic/ticket/filled/24`(`183:1130`)에서
-뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-08 판 기준 66종 93개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 5종·`link` 포함, 새 세트 `ic_add host` · `ic_add concert` outline 24).
+뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-08 밤 판 기준 67종 95개 — `github` filled · `instagram` gray 더함. 그 전 66종 93개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 5종·`link` 포함, 새 세트 `ic_add host` · `ic_add concert` outline 24).
 `lucide-react`는 쓰지 않는다(`.claude/docs/design-system.md` §4). 라이선스 고지는 루트 `THIRD_PARTY_NOTICES.md`.
 
 ```tsx
@@ -44,6 +44,9 @@ Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 
      24 아이콘의 0.75배로 그려진 것으로 보고, scale 2 내보내기(36 좌표, 선 3)를 `<g transform="scale(0.6666667)">`로 24 틀에 넣었다(선 2 — 다른 24 아이콘과 같다).
      `ic_trash`는 Figma가 `brand/accent` 빨강이지만 단색이라 `currentColor` — 쓰는 곳이 색을 준다. 같은 판의 `ic_expand` outline 24(`857:567`, 24×28 틀)는
      이슈가 없고 쓰는 GUI 구현 화면이 없어 넣지 않았다(design-system §8 반영 대기).
+   - 2026-11-08 밤 판에서 새 세트 `ic_github`(`863:48`, filled 24)와 `ic_instagram`의 새 변형 `type=gray`(`863:10`, 단색)가 생겼다(공연홈 푸터) —
+     `github-filled-24.svg` · `instagram-gray-24.svg`. **변형 이름 `gray`** 는 생성기 파일 규칙에 더했다(`<Icon name="instagram" variant="gray" />`, 단색이라 `currentColor`).
+     같은 판의 `ic_camera` · `ic_camera_disable` outline 24는 쓰는 GUI 구현 화면이 없어 넣지 않았다(design-system §8 반영 대기).
    - 세트 밖 낱개 `important` 24(`751:1654`, 다색)도 따로 내보내 `important-outline-24.svg`로 저장한다.
    - 세트 밖 낱개 프레임 `ic`(`662:722`·`662:726`)·`icon/music-4`(`662:730`)는 2026-10-31에 지워졌다.
 2. 파일을 `src/ui/icons/svg/`에 넣는다(같은 키의 기존 파일은 지운다).

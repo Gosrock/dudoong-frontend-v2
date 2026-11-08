@@ -3425,3 +3425,41 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · vitest related 111/0. QA `hosting-event` 30/0(수동 1, HE-6 다시 씀 · HE-16 새로). e2e `hosting-event` · `a11y-keyboard` 38/0, `a11y` · `hosting-ticket` 129/0.
 
 **ego-browser 확인(dev:mock 3149 · `localhost`)**: `/hosting/events/101/detail` 1440 — 기본 · 탭 메뉴 · 탭 입력칸 · 삭제 확인 · 삭제 토스트 · 이탈 확인이 `767:39645` · `1316:383` · `1320:383` · `1325:14881` · `1325:15101` · `1331:838`과 같음, 키보드(Enter → 메뉴 첫 항목 포커스 · Esc → 탭으로) 확인. 390 — 기본 · 시트(탭 배경 포함) · 이름 창(글자 모두 고름 · 5/20) · 삭제 확인 · 토스트가 `767:39585` · `1336:957` · `1336:1015` · `1336:1073` · `1336:1131`과 같음, 시트 열고 뒤로가기 → 시트만 닫힘.
+
+## Design Sync #198 · #200 · #201 · #205 — 공연홈 푸터 · 예매하기 장소 삭제 · 태그 결과 없음 · warning 2(2026-11-08 밤, `design-198-205`)
+
+**근거**: GUI 지금 판(`2419462031680483939`, 11-08T13:42Z, REST `figma_nodes.py ready` — Ready 138) — 공연홈 `759:22391`(다시 Ready) · 예매하기(2줄) `939:34039` · 검색결과 없음 `1184:33829` · 태그선택 결과 없음 `1270:36348`(새 Ready, 신규 화면 #200). 예매하기 `759:7895`(#201 "Ready for dev 전환")는 지금 판에서 Ready 밖 — 같은 검색칸이 있는 Ready `939:34039`로 확인. DS 지금 판 `2419464913593223537`(13:32Z) — `ds_diff.py` + Desktop Bridge(변수 · `55:410`).
+
+**매핑**
+| Figma 노드 | 분류 | 코드 | 판단 |
+|---|---|---|---|
+| `1383:3429` 푸터 판(채움 `Background/grey` · 안쪽 24 · 간격 12) | 직접 그림 | `LegalFooter.css.ts` `footer` · `inner` | 커스텀(DS에 푸터 없음) — 판 · 여백 Figma대로 |
+| `1383:3440` 저작권 · `1383:3438` 사업자 정보 + 중개자 · `1383:3439` 처리방침 \| 이용약관(Body/sm `text/secondary`, 링크만 밑줄) | 글자(스타일 걸림) | `Txt bodySm textSecondary` | 문구는 legal-copy A-3 원문과 대조 — 같음 |
+| `1383:3435` ic_github · `1383:3436` ic_instagram(gray) · `1383:3437` ic_open-chat | DS | `Icon` `github` filled · `instagram` gray · `open-chat` filled 24 | 새 아이콘 2개를 DS에서 받아 넣음 |
+| `1383:7786` ic_diagonal(`text/primary-label`) | DS | `Icon name="diagonal"` | 옛 원형 → 버튼(Fab 30) 대신 |
+| `1383:7765` · `759:12102` Button round Primary 40 + effects(drop shadow) | DS + override | `ScrollTopButton` + `boxShadow: vars.shadow.drop` | 화면대로(`FIGMA-CUSTOM`, 2단계 후보) |
+| `1270:36366` "검색된 공연이 없습니다." · `1379:2080` Button Secondary small "필터 초기화" | DS | `Txt headingMd2` · `Button variant="secondary" size="sm"` | DS 그대로 |
+| `939:34039` Search Field placeholder "검색어를 입력해 주세요" | DS | `SearchField placeholder` | #201 — 공연장이 미리 보이던 안내 문구 삭제 |
+| `55:410` Status 색(warning 2) | — | 없음 | 지금 파일에 없음 → 반영 안 함, 코멘트 |
+
+**한 것**
+- 공연홈 푸터(#205): 회색 판 · 저작권 "© Dudoong All Rights Reserved" → 사업자 정보 세 줄 + 중개자 한 줄(한 덩어리) → "개인정보 처리방침 | 서비스 이용약관"(밑줄, 새 창) → SNS 아이콘 3(새 창). 위 가는 선(옛 Q150 잠정안) 뺌. 약관 근거 문구는 바꾸지 않음(Figma 글자 = legal-copy 원문).
+- 바로가기 아이콘(#205): "더 많은 공연 둘러보기" 옆 원형 검정 → 버튼 → `ic_diagonal` 24.
+- 맨 위로(#205): 이미 있던 버튼에 Figma `drop shadow`. 보이는 때(스크롤 뒤)는 그대로 — 디자이너 답 대기("디자인 확인 요청" 페이지 카드). "두둥 소개"는 여전히 빈 상자라 그리지 않음.
+- 예매하기(#201): 검색칸 안내 "공연명, 호스트, 공연장으로 검색" → "검색어를 입력해 주세요". 읽어 주는 이름(`aria-label`)은 검색 범위를 알리도록 그대로.
+- 태그 결과 없음(#200): 태그가 걸린 채 0건이면 "다른 검색어를 입력해보세요." 대신 [필터 초기화](태그만 지움, 주소 `?tagIds` 없어짐) + 추천 그대로.
+- DS(#198 · 이슈 밖): `ic_github` · `ic_instagram` gray 받음(생성기에 변형 `gray`), Button 축 이름 `type` → `size`(영향 없음), `ic_camera` · `ic_camera_disable` 반영 대기. design-system 기준 버전 `2419464913593223537`.
+- **관제탑 추가 요청(사용자 2026-11-08)**: 모바일 로고 헤더의 로고를 누르면 홈(`/`) — `src/ui` `Header`에 `logoHref`(+ `linkAs`) prop, 링크 이름 "두둥 홈", `titleAs="div"` 그대로. `AudienceShell` · `HostingShell` 모바일 헤더 둘 다 PC `TopBar`와 같은 `/`. 스토리 `LogoLink`, e2e `shell.spec` "모바일 로고 헤더 — 로고 → 홈" 2건.
+
+**결정(🤖 Claude 판단)**
+1. #201 "공연장소가 미리 보이는 것"을 검색칸 안내 문구로 봄 — 코드에서 공연장이 "미리" 보이던 곳은 이 안내뿐이고, Ready `939:34039`의 같은 칸이 "검색어를 입력해 주세요". 되돌리기: `EventListView` `placeholder`.
+2. Q220 검색어 + 태그가 같이 걸린 0건은 태그 판(버튼이 태그만 지움). 되돌리기: `tagNoResult`.
+3. Q221 SNS 목적지 = v1 운영 푸터 주소(GitHub Gosrock · 인스타그램 dudoong_official · 오픈채팅 아이콘 → 카카오톡 채널 `_xiaLWxj`). 되돌리기: `LegalFooter` `SNS_LINKS`.
+4. #198 warning 2는 DS 파일에 없어 토큰을 더하지 않고 PR에서 `Refs #198`(이슈를 열어 둠 — 색이 생기면 다시 받는다).
+5. 푸터 PC(1024~)는 디자인 없음 — 같은 세로 배치, 좌우는 공연홈 본문 1200 선.
+
+**Figma 코멘트**: GUI `1383:3434` `1999167395` "[개발 · 디자인 없음] 푸터 SNS 아이콘이 가는 곳" · DS `55:410` `1999167400` "[개발 · 디자인 없음] warning 2 시멘틱 색".
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related 275/0 · 40/0. QA `home` 10/0(수동 1) · `events` 23/0(EVL-5 태그 결과 없음 · 필터 초기화 단계 더함) · `shell` 18/0(수동 2). e2e `home` · `event-list` · `legal` · `a11y` · `seo` · `shell-activity` 154/0(건너뜀 36) · `shell` · `shell-activity` 23/0 · `a11y` · `a11y-keyboard` · `home` 119/0.
+
+**ego-browser 확인(dev:mock 3152 · `localhost`)**: `/` 390 — 푸터 · ↗가 `759:22391`과 같음 · 1440 — 푸터 본문 1200 선, ↑ 그림자. `/events?tagIds=1,5` 390 — `1270:36348`과 같음, [필터 초기화] → `/events`. 검색칸 안내 "검색어를 입력해 주세요". `/events` 390 모바일 로고 → `/`.

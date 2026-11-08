@@ -51,7 +51,7 @@ export const section = style({
 
 export const sectionHead = style({ paddingInline: edge });
 
-/** "더 많은 공연 둘러보기 →" — 글자 + 원형 화살표(GUI `759:22411` 간격 12)가 한 링크 */
+/** "더 많은 공연 둘러보기 ↗" — 글자 + ic_diagonal(GUI `759:22411` 간격 12)이 한 링크 */
 export const moreLink = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -63,9 +63,6 @@ export const moreLink = style({
     '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
   },
 });
-
-/** 원형 화살표 — DS Button round Primary(56)를 Figma 인스턴스 크기 30으로(GUI `759:22413`) */
-export const moreArrow = style({ width: 30, height: 30, pointerEvents: 'none' });
 
 /** 가로 캐러셀(GUI `759:22414` 카드 163 · 간격 16, 와이어 PC 카드 282 · 간격 24) */
 export const carousel = style([

@@ -14,6 +14,11 @@ export type HeaderProps = {
   /** 로고형 헤더(GUI `basic title` = audience, `host title` = host). 주면 제목 대신 로고를 가운데에 그린다 */
   logo?: 'audience' | 'host';
   /**
+   * 로고를 누르면 갈 곳(PC `TopBar` `logoHref`와 같은 자리). 주면 로고가 링크("두둥 홈")가 된다 — 사용자 요청 2026-11-08.
+   * `linkAs`로 next/link를 넘기면 클라이언트 이동
+   */
+  logoHref?: string;
+  /**
    * 공연 전환형(Figma `Default, leading icon=true, profile=false`): 제목 옆 ▾ + 아랫줄 공연 이름.
    * 전환 메뉴는 디자인이 없어 클릭 슬롯만 둔다.
    */
@@ -28,7 +33,7 @@ export type HeaderProps = {
   onBack?: () => void;
   /** 뒤로가기를 링크로. `linkAs`로 next/link를 넘기면 클라이언트 이동 */
   backHref?: string;
-  /** `backHref`를 그릴 링크 컴포넌트(기본 `<a>`). src/ui는 next/link에 묶이지 않는다 — Storybook에서 돌지 않아서 */
+  /** `backHref` · `logoHref`를 그릴 링크 컴포넌트(기본 `<a>`). src/ui는 next/link에 묶이지 않는다 — Storybook에서 돌지 않아서 */
   linkAs?: ElementType;
   /** 뒤로가기 접근성 이름. 기본 "뒤로 가기" */
   backLabel?: string;
@@ -48,6 +53,7 @@ export function Header({
   titleAs: TitleTag = 'h1',
   align = 'start',
   logo,
+  logoHref,
   switcher,
   onBack,
   backHref,
@@ -73,7 +79,13 @@ export function Header({
   if (logo) {
     center = (
       <TitleTag className={s.title}>
-        <Logo variant={logo} />
+        {logoHref ? (
+          <LinkTag href={logoHref} className={s.logoLink} aria-label="두둥 홈">
+            <Logo variant={logo} />
+          </LinkTag>
+        ) : (
+          <Logo variant={logo} />
+        )}
       </TitleTag>
     );
   } else if (title !== undefined && switcher) {

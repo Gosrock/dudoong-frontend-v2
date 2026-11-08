@@ -33,6 +33,7 @@ export type IconName =
   | 'gift-done'
   | 'gift-return'
   | 'gift-waiting'
+  | 'github'
   | 'home'
   | 'image'
   | 'image-add'
@@ -69,7 +70,7 @@ export type IconName =
   | 'up-down'
   | 'update';
 
-export type IconVariant = 'outline' | 'filled';
+export type IconVariant = 'outline' | 'filled' | 'gray';
 export type IconSize = 12 | 16 | 20 | 24;
 
 /** Figma에 있는 (name, variant, size) 조합만 허용한다. variant 기본값 'outline', size 기본값 24. */
@@ -126,6 +127,7 @@ export type IconSpec =
   | { name: 'gift-return'; variant: 'filled'; size?: 24 }
   | { name: 'gift-return'; variant?: 'outline'; size?: 24 }
   | { name: 'gift-waiting'; variant: 'filled'; size?: 24 }
+  | { name: 'github'; variant: 'filled'; size?: 24 }
   | { name: 'home'; variant: 'filled'; size?: 24 }
   | { name: 'home'; variant?: 'outline'; size?: 24 }
   | { name: 'image-add'; variant?: 'outline'; size?: 24 }
@@ -133,6 +135,7 @@ export type IconSpec =
   | { name: 'important'; variant?: 'outline'; size?: 24 }
   | { name: 'info'; variant?: 'outline'; size?: 24 }
   | { name: 'information'; variant?: 'outline'; size: 16 }
+  | { name: 'instagram'; variant: 'gray'; size?: 24 }
   | { name: 'instagram'; variant?: 'outline'; size?: 24 }
   | { name: 'lightbulb'; variant?: 'outline'; size?: 24 }
   | { name: 'link'; variant?: 'outline'; size?: 24 }
@@ -389,6 +392,10 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M15.999 2C17.3176 2 18.3641 2.46109 18.9453 3.31055C19.5165 4.14565 19.5051 5.17705 19.0654 5.98047C19.0618 5.98713 19.0574 5.99339 19.0537 6H20C21.3807 6 22 7.11929 22 8.5C22 9.88071 21.3807 11 20 11V13C20 16.7712 19.9997 18.6566 18.8281 19.8281C17.6566 20.9997 15.7712 21 12 21C8.22876 21 6.34345 20.9997 5.17188 19.8281C4.0003 18.6566 4 16.7712 4 13V11L3.75 10.9873C2.54428 10.8593 2 9.79442 2 8.5C2 7.11929 2.61929 6 4 6H4.94531C4.9416 5.9934 4.93723 5.98712 4.93359 5.98047C4.49398 5.17709 4.48257 4.14562 5.05371 3.31055C5.63484 2.46101 6.68138 2.00004 8 2C9.50915 2.00016 10.8607 2.98934 11.6416 3.91309C11.8246 4.12955 12.1744 4.12953 12.3574 3.91309C13.1382 2.98939 14.49 2.00033 15.999 2ZM8 13C7.44772 13 7 13.4477 7 14C7 14.5523 7.44772 15 8 15C8.55228 15 9 14.5523 9 14C9 13.4477 8.55228 13 8 13ZM12 13C11.4477 13 11 13.4477 11 14C11 14.5523 11.4477 15 12 15C12.5523 15 13 14.5523 13 14C13 13.4477 12.5523 13 12 13ZM16 13C15.4477 13 15 13.4477 15 14C15 14.5523 15.4477 15 16 15C16.5523 15 17 14.5523 17 14C17 13.4477 16.5523 13 16 13ZM8 4C7.12985 4.00003 6.807 4.28903 6.7041 4.43945C6.5915 4.60417 6.58028 4.82317 6.6875 5.01953C6.70272 5.04735 6.80776 5.18429 7.10156 5.3584C7.37564 5.52076 7.74512 5.67386 8.1748 5.77832C8.70834 5.90799 9.28705 5.95151 9.8457 5.87793C10.1815 5.8334 10.333 5.46289 10.1143 5.2041C9.52389 4.50575 8.67953 4.00019 8 4ZM15.999 4C15.3195 4.00038 14.475 4.50585 13.8848 5.2041C13.666 5.46302 13.8182 5.83367 14.1543 5.87793C14.7128 5.95142 15.2909 5.9079 15.8242 5.77832C16.2538 5.6739 16.6234 5.52072 16.8975 5.3584C17.1908 5.1846 17.296 5.04773 17.3115 5.01953C17.4188 4.82312 17.4076 4.60419 17.2949 4.43945C17.1919 4.28897 16.8689 4 15.999 4Z" fill="currentColor"/>',
   },
+  'github/filled/24': {
+    viewBox: '0 0 24 24',
+    body: '<g clip-path="url(#github-filled-24-clip0_863_49)"><path d="M12 2C6.475 2 2 6.475 2 12C2 16.425 4.8625 20.1625 8.8375 21.4875C9.3375 21.575 9.525 21.275 9.525 21.0125C9.525 20.775 9.5125 19.9875 9.5125 19.15C7 19.6125 6.35 18.5375 6.15 17.975C6.0375 17.6875 5.55 16.8 5.125 16.5625C4.775 16.375 4.275 15.9125 5.1125 15.9C5.9 15.8875 6.4625 16.625 6.65 16.925C7.55 18.4375 8.9875 18.0125 9.5625 17.75C9.65 17.1 9.9125 16.6625 10.2 16.4125C7.975 16.1625 5.65 15.3 5.65 11.475C5.65 10.3875 6.0375 9.4875 6.675 8.7875C6.575 8.5375 6.225 7.5125 6.775 6.1375C6.775 6.1375 7.6125 5.875 9.525 7.1625C10.325 6.9375 11.175 6.825 12.025 6.825C12.875 6.825 13.725 6.9375 14.525 7.1625C16.4375 5.8625 17.275 6.1375 17.275 6.1375C17.825 7.5125 17.475 8.5375 17.375 8.7875C18.0125 9.4875 18.4 10.375 18.4 11.475C18.4 15.3125 16.0625 16.1625 13.8375 16.4125C14.2 16.725 14.5125 17.325 14.5125 18.2625C14.5125 19.6 14.5 20.675 14.5 21.0125C14.5 21.275 14.6875 21.5875 15.1875 21.4875C19.1375 20.1625 22 16.4125 22 12C22 6.475 17.525 2 12 2Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></g><defs><clipPath id="github-filled-24-clip0_863_49"><rect width="20" height="20" fill="currentColor" transform="translate(2 2)"/></clipPath></defs>',
+  },
   'home/filled/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M11.3861 2.47751L4.15818 8.09919C3.42742 8.66756 3 9.54148 3 10.4673V20C3 20.5304 3.21071 21.0391 3.58579 21.4142C3.96086 21.7893 4.46957 22 5 22H7.5C8.32843 22 9 21.3284 9 20.5V13.5C9 12.6716 9.67157 12 10.5 12H13.5C14.3284 12 15 12.6716 15 13.5V20.5C15 21.3284 15.6716 22 16.5 22H19C19.5304 22 20.0391 21.7893 20.4142 21.4142C20.7893 21.0391 21 20.5304 21 20V10.4673C21 9.54148 20.5726 8.66756 19.8418 8.0992L12.6139 2.47751C12.2528 2.19665 11.7472 2.19665 11.3861 2.47751Z" fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -417,6 +424,10 @@ export const icons: Record<string, IconEntry> = {
   'information/outline/16': {
     viewBox: '0 0 16 16',
     body: '<g clip-path="url(#information-outline-16-clip0_513_2067)"><path d="M7.99999 10.6667L7.99999 8M7.99999 5.33333L7.99332 5.33333M1.33332 8C1.33332 4.3181 4.31809 1.33333 7.99999 1.33333C11.6819 1.33333 14.6667 4.3181 14.6667 8C14.6667 11.6819 11.6819 14.6667 7.99999 14.6667C4.31809 14.6667 1.33332 11.6819 1.33332 8Z" stroke="currentColor" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/></g><defs><clipPath id="information-outline-16-clip0_513_2067"><rect width="16" height="16" fill="currentColor"/></clipPath></defs>',
+  },
+  'instagram/gray/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M16.3086 2.00781C19.4789 2.16843 22 4.78979 22 8V16L21.9922 16.3086C21.8368 19.3767 19.3767 21.8368 16.3086 21.9922L16 22H8C4.78979 22 2.16843 19.4789 2.00781 16.3086L2 16V8C2 4.68629 4.68629 2 8 2H16L16.3086 2.00781ZM8 4C5.79086 4 4 5.79086 4 8V16C4 18.2091 5.79086 20 8 20H16C18.2091 20 20 18.2091 20 16V8C20 5.79086 18.2091 4 16 4H8ZM12 7C14.7614 7 17 9.23858 17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12C7 9.23858 9.23858 7 12 7ZM12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9ZM17 6C17.5523 6 18 6.44772 18 7C18 7.55228 17.5523 8 17 8C16.4477 8 16 7.55228 16 7C16 6.44772 16.4477 6 17 6Z" fill="currentColor"/>',
   },
   'instagram/outline/24': {
     viewBox: '0 0 24 24',
@@ -615,6 +626,7 @@ export const iconList = [
   { name: 'gift-return', variant: 'filled', size: 24 },
   { name: 'gift-return', variant: 'outline', size: 24 },
   { name: 'gift-waiting', variant: 'filled', size: 24 },
+  { name: 'github', variant: 'filled', size: 24 },
   { name: 'home', variant: 'filled', size: 24 },
   { name: 'home', variant: 'outline', size: 24 },
   { name: 'image-add', variant: 'outline', size: 24 },
@@ -622,6 +634,7 @@ export const iconList = [
   { name: 'important', variant: 'outline', size: 24 },
   { name: 'info', variant: 'outline', size: 24 },
   { name: 'information', variant: 'outline', size: 16 },
+  { name: 'instagram', variant: 'gray', size: 24 },
   { name: 'instagram', variant: 'outline', size: 24 },
   { name: 'lightbulb', variant: 'outline', size: 24 },
   { name: 'link', variant: 'outline', size: 24 },

@@ -143,3 +143,14 @@ export const trailingSlot = style({});
  */
 globalStyle(`${leadingSlot} > ${iconButton}:last-child`, { marginRight: 0 });
 globalStyle(`${trailingSlot} > ${iconButton}:first-child`, { marginLeft: 0 });
+
+/** 로고 링크(`logoHref`) — 누르는 영역은 로고 크기, 키보드 포커스 테두리(PC `TopBar` 로고와 같은 모양) */
+export const logoLink = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  color: 'inherit',
+  borderRadius: vars.radius[2],
+  selectors: {
+    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
+  },
+});

@@ -38,6 +38,9 @@ export function AudienceShell({ children }: { children: ReactNode }) {
       <div className={s.mobileHeader}>
         <Header
           logo="audience"
+          // 로고를 누르면 홈 — PC 상단 바와 같은 "/"(사용자 요청 2026-11-08)
+          logoHref="/"
+          linkAs={Link}
           // 로고는 화면 제목이 아니다 — 글자 없는 h1이 되어 페이지마다 h1이 둘이 된다(P14 접근성)
           titleAs="div"
           leading={<ShellMenuButton noticesHref="/notices" />}

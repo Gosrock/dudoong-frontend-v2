@@ -32,8 +32,8 @@ const FIGMA_NAME_MAP = {
 // 다색 아이콘에서 currentColor로 바꿀 본문 색(Figma `text/primary-label` 계열)
 const INK = new Set(['#141413']);
 
-const FILE_RE = /^(.+)-(outline|filled)-(12|16|20|24)\.svg$/;
-const FIGMA_FILE_RE = /^name=(.+), type=(outline|filled), size=(12|16|20|24)\.svg$/;
+const FILE_RE = /^(.+)-(outline|filled|gray)-(12|16|20|24)\.svg$/;
+const FIGMA_FILE_RE = /^name=(.+), type=(outline|filled|gray), size=(12|16|20|24)\.svg$/;
 
 const toKey = (figmaName) =>
   FIGMA_NAME_MAP[figmaName] ??
@@ -110,7 +110,7 @@ function main() {
     const m = FILE_RE.exec(file);
     if (!m)
       throw new Error(
-        `파일 이름 규칙(<key>-<outline|filled>-<12|16|20|24>.svg)에 맞지 않음: ${file}`,
+        `파일 이름 규칙(<key>-<outline|filled|gray>-<12|16|20|24>.svg)에 맞지 않음: ${file}`,
       );
     const [, name, variant, size] = m;
     const path = join(svgDir, file);
@@ -148,7 +148,7 @@ function main() {
 export type IconName =
 ${names.map((n) => `  | '${n}'`).join('\n')};
 
-export type IconVariant = 'outline' | 'filled';
+export type IconVariant = 'outline' | 'filled' | 'gray';
 export type IconSize = 12 | 16 | 20 | 24;
 
 /** Figma에 있는 (name, variant, size) 조합만 허용한다. variant 기본값 'outline', size 기본값 24. */

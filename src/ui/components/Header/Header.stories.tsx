@@ -133,6 +133,17 @@ export const AudienceLogo: Story = {
   ),
 };
 
+/** 로고를 누르면 홈(`logoHref`, 링크 이름 "두둥 홈") — 관객 · 호스팅 셸 모바일 헤더(사용자 요청 2026-11-08) */
+export const LogoLink: Story = {
+  args: { logo: 'audience', logoHref: '/', titleAs: 'div', leading: menu },
+  play: async ({ canvasElement }) => {
+    await expect(within(canvasElement).getByRole('link', { name: '두둥 홈' })).toHaveAttribute(
+      'href',
+      '/',
+    );
+  },
+};
+
 /** GUI 로컬 `host title` — 호스팅 로고 헤더(벨 없음) */
 export const HostLogo: Story = {
   args: { logo: 'host', leading: menu },
