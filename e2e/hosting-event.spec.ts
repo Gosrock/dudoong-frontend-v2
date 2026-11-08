@@ -207,6 +207,8 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
     await expect(page.getByTestId('place-map')).toHaveAttribute('data-lng', '126.9219');
     await page.getByLabel('공연장 이름').fill('롤링홀');
     await page.getByLabel('상세주소').fill('지하 1층');
+    // 새 공연은 문의처가 비어 호스트(고스락) 대표 연락처로 미리 채워져 있다(Q76) — 첫 줄만 고친다
+    await expect(page.getByLabel('문의처 1', { exact: true })).toHaveValue('@gosrock_official');
     await pick(page, '문의처 유형 1', '인스타그램');
     await page.getByLabel('문의처 1', { exact: true }).fill('@busking');
     const patch = page.waitForRequest(
@@ -222,7 +224,11 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
         longitude: 126.9219,
         detailAddress: '지하 1층',
       },
-      contacts: [{ type: 'INSTAGRAM', value: '@busking' }],
+      contacts: [
+        { type: 'INSTAGRAM', value: '@busking' },
+        { type: 'YOUTUBE', value: 'https://www.youtube.com/@gosrock' },
+        { type: 'EMAIL', value: 'gosrock@example.com' },
+      ],
     });
     await expect(page.getByText('저장했어요')).toBeVisible();
 

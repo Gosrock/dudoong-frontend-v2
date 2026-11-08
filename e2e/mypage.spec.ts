@@ -133,4 +133,49 @@ test.describe('아카이빙', () => {
     await expect(page).toHaveURL(`/orders/${P9_ORDER.pastWithGift}`);
     await expect(page.getByTestId('order-no')).toHaveText('R9000005');
   });
+
+  test('포스터를 누르면 크게 보기가 열리고 [이미지 저장]은 공연 이름으로 내려받는다 — 받지 못하면 새 탭으로 연다', async ({
+    page,
+  }) => {
+    let fail = false;
+    // 새 탭(noopener)도 받도록 컨텍스트에 건다
+    await page.context().route(
+      (url) => url.href.startsWith('https://image.mock.dudoong.test'),
+      (route) =>
+        fail
+          ? route.fulfill({ status: 403, body: '' })
+          : route.fulfill({
+              status: 200,
+              contentType: 'image/jpeg',
+              headers: { 'access-control-allow-origin': '*' },
+              body: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+            }),
+    );
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/mypage/archive');
+    // 포스터가 없는 공연은 버튼이 아니다
+    await expect(
+      page
+        .getByTestId('archive-event')
+        .filter({ hasText: '고스락 제35회 정기공연' })
+        .getByRole('button'),
+    ).toHaveCount(0);
+    await page.getByRole('button', { name: '고스락 제36회 정기공연 포스터 크게 보기' }).click();
+    const viewer = page.getByRole('dialog', { name: '고스락 제36회 정기공연' });
+    await expect(viewer.getByRole('img', { name: '고스락 제36회 정기공연 포스터' })).toBeVisible();
+    // 포스터를 눌러도 주문상세로 가지 않는다
+    await expect(page).toHaveURL('/mypage/archive');
+    const download = page.waitForEvent('download');
+    await viewer.getByRole('button', { name: '이미지 저장' }).click();
+    expect((await download).suggestedFilename()).toBe('고스락 제36회 정기공연.jpeg');
+
+    fail = true;
+    const popup = page.waitForEvent('popup');
+    await viewer.getByRole('button', { name: '이미지 저장' }).click();
+    expect((await popup).url()).toBe('https://image.mock.dudoong.test/event/90/poster.jpeg');
+    // 뒤로가기가 닫는다(patterns §6)
+    await page.goBack();
+    await expect(viewer).toHaveCount(0);
+    await expect(page).toHaveURL('/mypage/archive');
+  });
 });

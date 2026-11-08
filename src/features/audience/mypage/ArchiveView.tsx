@@ -16,6 +16,7 @@ import { colors } from '@/ui/theme/colors';
 
 import * as p from './ArchiveView.css';
 import { useArchive } from './model/useArchive';
+import { openArchivePoster } from './ui/ArchivePosterOverlay';
 import * as s from './ui/mypage.css';
 
 const ALL = 'all';
@@ -23,8 +24,9 @@ const ALL = 'all';
 /**
  * `/mypage/archive` 지난 공연 아카이빙(P9-V, 와이어 근거 — 모바일 `503:16328` · PC `671:6692`).
  * 연도 탭(와이어 "2026년 2025년 …")은 DS `Tabs`로 — 앞에 "전체"를 둔다(서버가 전체 기준 `years`를 주고 `year` 없이 전체를 읽는다).
- * 포스터 그리드(모바일 2열 · PC 4열) + 공연 이름 + 공연 일시. `orderUuid`가 있으면 그 주문상세로, 없으면(선물받은 티켓) 누를 수 없다.
- * 와이어의 CD 케이스 틀은 그리지 않는다(장식 — design-workflow §3). 포스터 크게 보기 · 다운로드(Tomato 10-24 미해결)는 범위 밖.
+ * 포스터 그리드(모바일 2열 · PC 4열) + 공연 이름 + 공연 일시. 이름 · 일시는 `orderUuid`가 있으면 그 주문상세 링크, 없으면(선물받은 티켓) 글자만.
+ * 포스터를 누르면 크게 보기 + [이미지 저장](Tomato 10-24 "이미지 크게 보이고 이미지 다운로드" — 2026-11-08, 디자인 없음 Q207).
+ * 와이어의 CD 케이스 틀은 그리지 않는다(장식 — design-workflow §3).
  */
 export function ArchiveView() {
   const a = useArchive();
@@ -82,27 +84,40 @@ export function ArchiveView() {
         aria-busy={a.switching || undefined}
       >
         {a.events.map((e) => {
-          const body: ReactNode = (
+          const name = e.name ?? UNNAMED_EVENT;
+          const text: ReactNode = (
             <>
-              <ArchivePoster src={e.posterImageUrl} />
               <Txt typography="labelLgEmphasized" lines={2}>
-                {e.name ?? UNNAMED_EVENT}
+                {name}
               </Txt>
               <Txt typography="bodySm" color={colors.textTertiaryLabel}>
                 {e.startAt ?? ''}
               </Txt>
             </>
           );
+          const poster = e.posterImageUrl;
           return (
-            <li key={e.eventId} data-testid="archive-event">
+            <li key={e.eventId} data-testid="archive-event" className={p.gridItem}>
+              {poster ? (
+                <button
+                  type="button"
+                  className={p.posterButton}
+                  aria-label={`${name} 포스터 크게 보기`}
+                  onClick={() => openArchivePoster({ src: poster, name: e.name })}
+                >
+                  <ArchivePoster src={poster} />
+                </button>
+              ) : (
+                <ArchivePoster src={null} />
+              )}
               {e.orderHref ? (
-                <Link href={e.orderHref} className={p.gridItem}>
-                  {body}
+                <Link href={e.orderHref} className={p.gridText}>
+                  {text}
                   {/* 이름 = 보이는 공연명 · 날짜 + "주문상세"(WCAG 2.5.3, P14 접근성) */}
                   <VisuallyHidden> 주문상세</VisuallyHidden>
                 </Link>
               ) : (
-                <div className={p.gridItem}>{body}</div>
+                <div className={p.gridText}>{text}</div>
               )}
             </li>
           );
