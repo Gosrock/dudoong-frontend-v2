@@ -58,6 +58,25 @@ test.describe('티켓탭', () => {
     await expect(page.getByRole('status')).toHaveCount(0);
   });
 
+  test('상태가 섞인 주문도 카드 칩은 하나(개수 없음) — 페이저로 넘기면 그 티켓 상태로 바뀐다', async ({
+    page,
+  }) => {
+    // GUI 908:11275 · 사용자 결정 2026-11-08(디자인 확인 요청 1262:286). 이 주문은 승인완료 · 선물 대기중 · 선물완료 3장
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/tickets');
+    const chip = page.locator(`#group-${NEW_APPROVED_ORDER_UUID}`).getByTestId('state-chip');
+    await expect(chip).toHaveCount(1);
+    await expect(chip).toHaveText('승인완료');
+
+    const layer = await openQr(page, NEW_APPROVED_ORDER_UUID);
+    await layer.getByRole('button', { name: '2번째 티켓으로' }).click();
+    await expect(layer.getByText('(2/3)')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(layer).toHaveCount(0);
+    await expect(chip).toHaveCount(1);
+    await expect(chip).toHaveText('선물 대기중');
+  });
+
   test('선물 보내기 → 링크 생성 → 같은 티켓은 QR 대신 선물 대기 안내', async ({
     page,
     mockApi,

@@ -15,11 +15,12 @@ import {
   ticketStateView,
 } from './my-ticket-state';
 import {
+  cardChip,
   clampIndex,
+  headState,
   noticeBar,
   pagerLabel,
   sortTicketGroups,
-  stateCounts,
   toTicketGroupView,
 } from './ticket-groups';
 
@@ -121,20 +122,44 @@ describe('카드를 누르면 열 상세', () => {
 });
 
 describe('묶음 카드', () => {
-  it('counts → 정해진 순서의 배지, 0개는 빼고 모르는 상태는 UNKNOWN 하나로', () => {
-    expect(
-      stateCounts({ GIFT_PENDING: 1, APPROVED: 2, ENTERED: 0, MYSTERY: 1, OTHER: 2 }).map(
-        (c) => `${c.label} ${c.count}`,
-      ),
-    ).toEqual(['승인완료 2', '선물 대기중 1', '상태 확인 필요 3']);
+  const chipText = (c: ReturnType<typeof cardChip>) =>
+    c === null ? null : c.kind === 'ON_AIR' ? '공연중 ON AIR' : c.label;
+
+  it('티켓 없는 묶음의 상태는 counts에서 정해진 순서 첫 번째 — 0개는 빼고 모르는 키는 UNKNOWN', () => {
+    expect(headState({ GIFT_PENDING: 1, APPROVED: 2, ENTERED: 0 })).toBe('APPROVED');
+    expect(headState({ ENTERED: 0, MYSTERY: 1 })).toBe('UNKNOWN');
+    expect(headState({})).toBeNull();
+  });
+
+  it('섞인 주문도 칩은 하나 · 개수 없음 — 지금 보는 티켓의 상태를 따른다(GUI 908:11275, 사용자 결정 2026-11-08)', () => {
+    const mixed = { counts: { APPROVED: 1, GIFT_PENDING: 1, GIFT_SENT: 1 }, event: null };
+    expect(chipText(cardChip(mixed, { state: 'APPROVED' }))).toBe('승인완료');
+    expect(chipText(cardChip(mixed, { state: 'GIFT_PENDING' }))).toBe('선물 대기중');
+    expect(chipText(cardChip(mixed, { state: 'GIFT_SENT' }))).toBe('선물완료');
+  });
+
+  it('티켓 없는 승인 대기 주문은 counts의 상태 하나(개수를 붙이지 않는다)', () => {
+    expect(chipText(cardChip({ counts: { PENDING_APPROVE: 2 }, event: null }, null))).toBe(
+      '승인대기',
+    );
+    expect(cardChip({ counts: {}, event: null }, null)).toBeNull();
+  });
+
+  it('공연 진행 중이면 승인완료 대신 "공연중 ON AIR", 다른 상태 티켓은 그 상태', () => {
+    const event = { displayStatus: 'ONGOING' } as MyTicketGroup['event'];
+    const g = { counts: { APPROVED: 1, ENTERED: 1 }, event };
+    expect(cardChip(g, { state: 'APPROVED' })).toEqual({ kind: 'ON_AIR' });
+    expect(chipText(cardChip(g, { state: 'ENTERED' }))).toBe('입장 완료');
   });
 
   it('즉시 발급 묶음(approvalRequired=false — #924)은 승인완료 대신 발급 완료, 값이 없으면 승인완료(운영 2.5.3)', () => {
-    const labels = (approvalRequired?: boolean) =>
-      stateCounts({ APPROVED: 1, ENTERED: 1 }, approvalRequired).map((c) => c.label);
-    expect(labels(false)).toEqual(['발급 완료', '입장 완료']);
-    expect(labels(true)).toEqual(['승인완료', '입장 완료']);
-    expect(labels(undefined)).toEqual(['승인완료', '입장 완료']);
+    const label = (approvalRequired?: boolean) =>
+      chipText(
+        cardChip({ counts: { APPROVED: 1 }, approvalRequired, event: null }, { state: 'APPROVED' }),
+      );
+    expect(label(false)).toBe('발급 완료');
+    expect(label(true)).toBe('승인완료');
+    expect(label(undefined)).toBe('승인완료');
   });
 
   const group = {

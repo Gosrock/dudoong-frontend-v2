@@ -1,7 +1,6 @@
 import { createVar, globalStyle, style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
-import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -146,20 +145,13 @@ export const posterImage = style({
   objectFit: 'cover',
 });
 
-export const chipList = style([
-  sprinkles({ listStyle: 'none' }),
-  {
-    position: 'absolute',
-    top: vars.space[3],
-    right: vars.space[3],
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    gap: vars.space[1],
-    margin: 0,
-    padding: 0,
-  },
-]);
+/** 카드 오른쪽 위 상태 칩 자리(`908:11275` — 칩 하나) */
+export const chipSlot = style({
+  position: 'absolute',
+  top: vars.space[3],
+  right: vars.space[3],
+  display: 'flex',
+});
 
 /** 카드 아래 공연명 · 일시 · 티켓 이름 · [주문상세](`908:11290`) */
 export const info = style({

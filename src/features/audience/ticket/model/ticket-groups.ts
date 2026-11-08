@@ -1,40 +1,50 @@
-import type { MyTicketGroup, MyTicketState, NewApproved } from '@/api/my-ticket/schema';
+import type {
+  MyTicketElement,
+  MyTicketGroup,
+  MyTicketState,
+  NewApproved,
+} from '@/api/my-ticket/schema';
 import { MY_TICKET_STATES } from '@/api/my-ticket/schema';
 import { orderHref } from '@/features/shared/routes';
 
 import { TICKET_STATE_ORDER, ticketStateView, type TicketTone } from './my-ticket-state';
 
-/** 묶음 카드의 상태별 개수 배지 하나 */
-export type StateCount = { state: MyTicketState; label: string; tone: TicketTone; count: number };
-
 const KNOWN = new Set<string>(MY_TICKET_STATES);
 
 /**
- * `counts`(키가 열려 있는 맵) → 배지 목록. 정해진 순서로, 0개는 빼고, 모르는 상태는 UNKNOWN 하나로 합친다.
+ * 묶음 카드 오른쪽 위 칩 하나(GUI `908:11275` 한 주문 2장 이상도 칩 하나 · 개수 없음 — 사용자 결정 2026-11-08, 카드 `1262:286`).
+ * - 티켓이 있으면 **지금 페이저로 보고 있는 티켓**(`selectedTicket`)의 상태. 섞인 주문에서 어느 칩을 보일지는 GUI에 없어
+ *   정함(🤖 Claude 판단 2026-11-08 — 되돌리기 쉬운 쪽. Figma 코멘트 #1989727894 답글)
+ * - 티켓 없는 승인 대기·거절 주문은 `counts`의 상태(정해진 순서 첫 번째, 모르는 키는 UNKNOWN)
+ * - 공연 진행 중이면 승인완료 대신 "공연중 ON AIR"(`939:25755`)
  */
-export function stateCounts(
-  counts: Record<string, number>,
-  /** 묶음의 승인형 여부(#924). `false`면 승인완료 배지가 '발급 완료' */
-  approvalRequired?: boolean,
-): StateCount[] {
-  const merged = new Map<MyTicketState, number>();
+export type CardChip =
+  { kind: 'ON_AIR' } | { kind: 'STATE'; state: MyTicketState; label: string; tone: TicketTone };
+
+/** 티켓 없는 묶음의 상태 — `counts`(키가 열린 맵)에서 0개를 빼고 정해진 순서 첫 번째. 없으면 null */
+export function headState(counts: Record<string, number>): MyTicketState | null {
+  const present = new Set<MyTicketState>();
   for (const [key, count] of Object.entries(counts)) {
     if (!Number.isFinite(count) || count <= 0) continue;
-    const state = (KNOWN.has(key) ? key : 'UNKNOWN') as MyTicketState;
-    merged.set(state, (merged.get(state) ?? 0) + count);
+    present.add((KNOWN.has(key) ? key : 'UNKNOWN') as MyTicketState);
   }
-  return TICKET_STATE_ORDER.filter((s) => merged.has(s)).map((state) => ({
-    state,
-    ...ticketStateView(state, approvalRequired),
-    count: merged.get(state)!,
-  }));
+  return TICKET_STATE_ORDER.find((s) => present.has(s)) ?? null;
+}
+
+export function cardChip(
+  group: Pick<MyTicketGroup, 'counts' | 'approvalRequired' | 'event'>,
+  ticket: Pick<MyTicketElement, 'state'> | null,
+): CardChip | null {
+  const state = ticket?.state ?? headState(group.counts);
+  if (state === null) return null;
+  if (state === 'APPROVED' && group.event?.displayStatus === 'ONGOING') return { kind: 'ON_AIR' };
+  return { kind: 'STATE', state, ...ticketStateView(state, group.approvalRequired) };
 }
 
 /** 묶음 카드에 필요한 파생값 */
 export type TicketGroupView = {
   group: MyTicketGroup;
   key: string;
-  counts: StateCount[];
   /** [주문상세] 주소. 받은 티켓 묶음(`orderUuid=null`)은 null — 버튼을 두지 않는다 */
   orderHref: string | null;
   /** 티켓 없이 주문만 있는 묶음(승인 대기·거절). 캐러셀·QR이 없다 */
@@ -47,7 +57,6 @@ export function toTicketGroupView(group: MyTicketGroup): TicketGroupView {
   return {
     group,
     key: group.groupKey,
-    counts: stateCounts(group.counts, group.approvalRequired),
     orderHref: group.orderUuid ? orderHref(group.orderUuid) : null,
     orderOnly: group.tickets.length === 0,
     total: group.tickets.length,
