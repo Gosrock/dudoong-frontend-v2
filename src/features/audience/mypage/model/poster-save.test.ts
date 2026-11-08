@@ -20,12 +20,14 @@ describe('아카이빙 포스터 저장', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
     const open = vi.fn();
 
-    const ok = vi.fn(async () => new Response(new Blob(['x']), { status: 200 }));
+    // 본문은 바이트로 — jsdom이 전역 `Blob`을 덮어써서, Node 22 undici `Response`는 그 Blob을 본문으로 받지 못한다(`object.stream is not a function`)
+    const ok = vi.fn(async () => new Response(new TextEncoder().encode('poster'), { status: 200 }));
     await expect(
       savePosterImage('https://img.x/p.jpeg', '공연', { fetcher: ok, open }),
     ).resolves.toBe('saved');
     expect(ok).toHaveBeenCalledWith('https://img.x/p.jpeg', { mode: 'cors', credentials: 'omit' });
     expect(create).toHaveBeenCalledOnce();
+    expect(await (create.mock.calls[0]?.[0] as Blob).text()).toBe('poster');
     expect(click).toHaveBeenCalledOnce();
     expect(open).not.toHaveBeenCalled();
 
