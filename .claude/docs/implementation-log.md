@@ -3565,7 +3565,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **테스트**: typecheck · eslint · `vitest related` 357/0. ego-browser(dev:mock 3156): 공연홈 · 공연 리스트 카드 제목 computed `kartrider, "Pretendard Variable", …` 800, `document.fonts` `kartrider` 800 **loaded**, preload 링크 0 — Figma 공연홈 `759:22391`과 390 나란히 같은 글꼴. 1440 공연 리스트도 같음.
 
-## 카트라이더체 — 공연 카드 화면에서만 미리 받기(2026-11-09, `fix-kartrider-preload` #PR_NUM)
+## 카트라이더체 — 공연 카드 화면에서만 미리 받기(2026-11-09, `fix-kartrider-preload` #214)
 
 사용자 결정 2026-11-09 — #212의 `preload: false`는 카드가 그려질 때 받기 시작해 잠깐 Pretendard로 보였다가 바뀐다. 미리 받되 **공연 카드가 있는 화면에서만**(모든 화면에 1.4MB를 받게 하지 않는다).
 
