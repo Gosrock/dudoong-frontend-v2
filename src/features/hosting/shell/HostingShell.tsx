@@ -34,6 +34,9 @@ export function HostingShell({ children }: { children: ReactNode }) {
       <div className={s.mobileHeader}>
         <Header
           logo="host"
+          // 로고를 누르면 홈 — PC 상단 바와 같은 "/"(사용자 요청 2026-11-08)
+          logoHref="/"
+          linkAs={Link}
           titleAs="div"
           leading={<ShellMenuButton noticesHref="/hosting/notices" />}
         />

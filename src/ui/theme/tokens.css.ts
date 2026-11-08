@@ -48,6 +48,8 @@ export const vars = createGlobalTheme(':root', {
       successSubtle: palette.green[50],
       warning: palette.coralRed[400],
       warningSubtle: palette.coralRed[50],
+      /** `status/warning 2`(2026-11-08 밤, #198 — `VariableID:862:612`, Light Yellow/300 · Dark Yellow/200 — 다크 미지원이라 Light만) */
+      warning2: palette.yellow[300],
       error: palette.coralRed[400],
     },
     interaction: {

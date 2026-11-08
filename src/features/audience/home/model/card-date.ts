@@ -11,7 +11,8 @@ export function concertCardDate(startAt: string | null): string | null {
 }
 
 /**
- * ConcertCard 가격 줄(design-requests Q63 기본안 — 날짜 줄 아래 한 줄, 백엔드 #925). 순서: 매진 → 무료 → 최저가 `15,000원~`(최저가 0이면 `무료~`) →
+ * ConcertCard 가격 줄(design-requests Q63 기본안 — 날짜 줄 아래 한 줄, 백엔드 #925). **2026-11-08 밤부터 화면에서 쓰지 않는다** —
+ * 공연홈 · 공연 리스트 GUI(사용자 지정 근거)에 가격 줄이 없어 뺐다. 디자인이 가격 줄을 받으면 카드에 다시 넘긴다. 순서: 매진 → 무료 → 최저가 `15,000원~`(최저가 0이면 `무료~`) →
  * 티켓 없음. 그 밖(판매 전 · 마감 · 지난 공연)과 값이 없는 응답(운영 2.5.3)은 null — 줄을 그리지 않는다
  */
 export function concertCardPrice(

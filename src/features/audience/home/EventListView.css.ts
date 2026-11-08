@@ -99,3 +99,11 @@ export const recommendedItem = style({
     [media.desktop]: { selectors: { '&:nth-child(n + 5)': { display: 'none' } } },
   },
 });
+
+/** 정렬 표시(DS SortButton `759:8031` — 글자 + chevron-down 12, 간격 4, `text/primary`) */
+export const sort = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: vars.space[1],
+  color: vars.color.text.primary,
+});

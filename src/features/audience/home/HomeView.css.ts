@@ -9,10 +9,14 @@ export const CONTENT_MAX = 1200;
 /** 본문 왼쪽 끝 — 모바일 24(GUI `759:22410` 좌우 24), PC는 1200 본문의 왼쪽(캐러셀은 이 선에서 시작해 화면 오른쪽 끝까지 흐른다) */
 const edge = `max(${vars.space[5]}, calc((100% - ${CONTENT_MAX}px) / 2))`;
 
+/**
+ * 마지막 섹션 ↔ 푸터 — GUI `759:22572` 아래 안쪽 32 + 푸터 `1383:3429`까지 41(토큰 40으로) = 72.
+ * "두둥 소개"는 그리지 않아 캐러셀 아래에 바로 이 간격이 온다(Design Sync 2026-11-08 밤, 옛 64)
+ */
 export const main = style({
   display: 'flex',
   flexDirection: 'column',
-  paddingBottom: vars.space[9],
+  paddingBottom: `calc(${vars.space[6]} + ${vars.space[7]})`,
 });
 
 /**
@@ -51,7 +55,7 @@ export const section = style({
 
 export const sectionHead = style({ paddingInline: edge });
 
-/** "더 많은 공연 둘러보기 →" — 글자 + 원형 화살표(GUI `759:22411` 간격 12)가 한 링크 */
+/** "더 많은 공연 둘러보기 ↗" — 글자 + ic_diagonal(GUI `759:22411` 간격 12)이 한 링크 */
 export const moreLink = style({
   display: 'inline-flex',
   alignItems: 'center',
@@ -63,9 +67,6 @@ export const moreLink = style({
     '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
   },
 });
-
-/** 원형 화살표 — DS Button round Primary(56)를 Figma 인스턴스 크기 30으로(GUI `759:22413`) */
-export const moreArrow = style({ width: 30, height: 30, pointerEvents: 'none' });
 
 /** 가로 캐러셀(GUI `759:22414` 카드 163 · 간격 16, 와이어 PC 카드 282 · 간격 24) */
 export const carousel = style([

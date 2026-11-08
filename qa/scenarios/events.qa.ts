@@ -217,8 +217,8 @@ scenario(
   {
     kind: '빈 상태',
     summary:
-      '검색어·태그가 있는데 0건 → GUI `1184:33829`(#158) 그림 + "검색된 공연이 없습니다." + "다른 검색어를 입력해보세요."([검색 조건 지우기] 없음). 추천도 0건이면 "이런 공연은 어때요?"를 숨긴다. 조건 없이 0건은 디자인이 없어 잠정(Figma 코멘트 759:7993) "조건에 맞는 공연이 없어요."',
-    basis: ['GUI 1184:33829', 'design-requests Q91', 'Figma 코멘트 1184:33998'],
+      '검색어가 있는데 0건 → GUI `1184:33829`(#158) 그림 + "검색된 공연이 없습니다." + "다른 검색어를 입력해보세요."([검색 조건 지우기] 없음). 태그를 고른 채 0건 → GUI `1270:36348`(#200) 문구 하나 + [필터 초기화](태그만 지움). 추천도 0건이면 "이런 공연은 어때요?"를 숨긴다. 조건 없이 0건은 디자인이 없어 잠정(Figma 코멘트 759:7993) "조건에 맞는 공연이 없어요."',
+    basis: ['GUI 1184:33829', 'GUI 1270:36348', 'design-requests Q91', 'Figma 코멘트 1184:33998'],
     mocks: eventBrowseSets.listEmpty,
   },
   async ({ page, step }) => {
@@ -230,6 +230,25 @@ scenario(
         await expect(page.getByText('다른 검색어를 입력해보세요.')).toBeVisible();
         await expect(page.getByRole('button', { name: '검색 조건 지우기' })).toHaveCount(0);
         await expect(page.getByText('이런 공연은 어때요?')).toHaveCount(0);
+      },
+      { fullPage: false },
+    );
+    await step(
+      '태그를 고른 채 0건이면 GUI `1270:36348`(#200) — 문구 하나 + [필터 초기화]',
+      async () => {
+        await page.goto('/events?tagIds=1');
+        await expect(page.getByText('검색된 공연이 없습니다.')).toBeVisible();
+        await expect(page.getByText('다른 검색어를 입력해보세요.')).toHaveCount(0);
+        await expect(page.getByRole('button', { name: '필터 초기화' })).toBeVisible();
+      },
+      { fullPage: false },
+    );
+    await step(
+      '[필터 초기화]를 누르면 태그만 지운다(주소 ?tagIds 없어짐)',
+      async () => {
+        await page.getByRole('button', { name: '필터 초기화' }).click();
+        await expect.poll(() => new URL(page.url()).search).toBe('');
+        await expect(page.getByRole('button', { name: '필터 초기화' })).toHaveCount(0);
       },
       { fullPage: false },
     );
@@ -374,7 +393,7 @@ scenario(
     kind: '빈 상태',
     summary:
       'GUI `1184:33829`(#158). 추천은 조건 없는 공연임박순 앞 6개(서버 추천 API 없음 — Q91 🤖), 모바일 2열 3줄 · PC는 한 줄 4장. 카드를 누르면 공연 상세.',
-    basis: ['GUI 1184:33829', 'design-requests Q91', 'Figma 코멘트 1184:33998'],
+    basis: ['GUI 1184:33829', 'GUI 1270:36348', 'design-requests Q91', 'Figma 코멘트 1184:33998'],
   },
   async ({ page, step, testInfo }) => {
     const desktop = testInfo.project.name === 'desktop';
@@ -405,7 +424,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI `939:34039` 예매하기(2줄)(#159): 지난 공연(displayStatus PAST)은 포스터 흐림 + 왼쪽 위 DS tag_v2 grey round "공연종료", 날짜 tertiary · 제목 secondary, 가격 줄 없음(Figma 코멘트 939:34059). 다가오는 공연 카드는 그대로. 제목은 2줄 말줄임.',
+      'GUI `939:34039` 예매하기(2줄)(#159): 지난 공연(displayStatus PAST)은 포스터 흐림 + 왼쪽 위 DS tag_v2 grey round "공연종료", 날짜 tertiary · 제목 secondary. 가격 줄은 어느 카드에도 없다(GUI `759:7895` · `939:34039` 사용자 지정 근거 2026-11-08 — 날짜 + 제목만). 제목은 2줄 말줄임. 정렬 "공연임박순" 옆 ▾(DS SortButton).',
     basis: ['GUI 939:34039', 'design-requests Q93', 'api-contract GP-2 displayStatus'],
   },
   async ({ page, step }) => {
@@ -419,7 +438,7 @@ scenario(
         await expect(ended.first()).toBeAttached({ timeout: 1000 });
       }).toPass();
       await expect(ended.first()).toHaveAttribute('data-ended', 'true');
-      await expect(ended.first().getByTestId('card-price')).toHaveCount(0);
+      await expect(page.getByTestId('card-price')).toHaveCount(0);
       await ended.first().scrollIntoViewIfNeeded();
     });
     await step(

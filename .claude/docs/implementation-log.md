@@ -3447,3 +3447,58 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · vitest related(해당 없음). QA `gift` 14/0(수동 2) · e2e `gift-landing` · `tickets` · `a11y` · `seo` · `security` 147/0.
 
 **ego-browser 확인(dev:mock 3151 · `localhost`)**: `/gifts/mock-gift-for-me` 390 비로그인 · 로그인, 1440 비로그인 · 로그인 — 보낸 사람 줄 · 요약 · 버튼이 `939:26412` · `939:26721`과 같은 배치(포스터는 mock에 이미지 없음 — 기존과 같음).
+
+## Design Sync #198 · #200 · #201 · #205 — 공연홈 푸터 · 예매하기 장소 삭제 · 태그 결과 없음 · warning 2(2026-11-08 밤, `design-198-205` #207)
+
+**근거**: GUI 지금 판(`2419462031680483939`, 11-08T13:42Z, REST `figma_nodes.py ready` — Ready 138) — 공연홈 `759:22391`(다시 Ready) · 예매하기(2줄) `939:34039` · 검색결과 없음 `1184:33829` · 태그선택 결과 없음 `1270:36348`(새 Ready, 신규 화면 #200). 예매하기 `759:7895`(#201 "Ready for dev 전환")는 지금 판에서 Ready 밖 — 같은 검색칸이 있는 Ready `939:34039`로 확인. DS 지금 판 `2419464913593223537`(13:32Z) — `ds_diff.py` + Desktop Bridge(변수 · `55:410`).
+
+**매핑**
+| Figma 노드 | 분류 | 코드 | 판단 |
+|---|---|---|---|
+| `1383:3429` 푸터 판(채움 `Background/grey` · 안쪽 24 · 간격 12) | 직접 그림 | `LegalFooter.css.ts` `footer` · `inner` | 커스텀(DS에 푸터 없음) — 판 · 여백 Figma대로 |
+| `1383:3440` 저작권 · `1383:3438` 사업자 정보 + 중개자 · `1383:3439` 처리방침 \| 이용약관(Body/sm `text/secondary`, 링크만 밑줄) | 글자(스타일 걸림) | `Txt bodySm textSecondary` | 문구는 legal-copy A-3 원문과 대조 — 같음 |
+| `1383:3435` ic_github · `1383:3436` ic_instagram(gray) · `1383:3437` ic_open-chat | DS | `Icon` `github` filled · `instagram` gray · `open-chat` filled 24 | 새 아이콘 2개를 DS에서 받아 넣음 |
+| `1383:7786` ic_diagonal(`text/primary-label`) | DS | `Icon name="diagonal"` | 옛 원형 → 버튼(Fab 30) 대신 |
+| `1383:7765` · `759:12102` Button round Primary 40 + effects(drop shadow) | DS + override | `ScrollTopButton` + `boxShadow: vars.shadow.drop` | 화면대로(`FIGMA-CUSTOM`, 2단계 후보) |
+| `1270:36366` "검색된 공연이 없습니다." · `1379:2080` Button Secondary small "필터 초기화" | DS | `Txt headingMd2` · `Button variant="secondary" size="sm"` | DS 그대로 |
+| `939:34039` Search Field placeholder "검색어를 입력해 주세요" | DS | `SearchField placeholder` | #201 — 공연장이 미리 보이던 안내 문구 삭제 |
+| `55:410` Status 색 `warning 2`(`VariableID:862:612`) | DS 변수 | `vars.color.status.warning2`(Yellow 300) | 토큰 추가(Light만) |
+
+**한 것**
+- 공연홈 푸터(#205): 회색 판 · 저작권 "© Dudoong All Rights Reserved" → 사업자 정보 세 줄 + 중개자 한 줄(한 덩어리) → "개인정보 처리방침 | 서비스 이용약관"(밑줄, 새 창) → SNS 아이콘 3(새 창). 위 가는 선(옛 Q150 잠정안) 뺌. 약관 근거 문구는 바꾸지 않음(Figma 글자 = legal-copy 원문).
+- 바로가기 아이콘(#205): "더 많은 공연 둘러보기" 옆 원형 검정 → 버튼 → `ic_diagonal` 24.
+- 맨 위로(#205): 이미 있던 버튼에 Figma `drop shadow`. 보이는 때(스크롤 뒤)는 그대로 — 디자이너 답 대기("디자인 확인 요청" 페이지 카드). "두둥 소개"는 여전히 빈 상자라 그리지 않음.
+- 예매하기(#201): 검색칸 안내 "공연명, 호스트, 공연장으로 검색" → "검색어를 입력해 주세요". 읽어 주는 이름(`aria-label`)은 검색 범위를 알리도록 그대로.
+- 태그 결과 없음(#200): 태그가 걸린 채 0건이면 "다른 검색어를 입력해보세요." 대신 [필터 초기화](태그만 지움, 주소 `?tagIds` 없어짐) + 추천 그대로.
+- DS #198: 새 의미 색 `status/warning 2` → 토큰 `status.warning2`(Yellow 300 `#F9CD3C`, Light만). 처음 확인에서는 파일에 없어 코멘트를 달았고, 관제탑 검토에서 그 뒤 생긴 것을 확인해 반영 + 정정 답글.
+- DS 이슈 밖: `ic_github` · `ic_instagram` gray 받음(생성기에 변형 `gray`), Button 축 이름 `type` → `size`(영향 없음), `ic_camera` · `ic_camera_disable` 반영 대기. design-system 기준 버전 `2419464913593223537`.
+- **관제탑 추가 요청(사용자 2026-11-08)**: 모바일 로고 헤더의 로고를 누르면 홈(`/`) — `src/ui` `Header`에 `logoHref`(+ `linkAs`) prop, 링크 이름 "두둥 홈", `titleAs="div"` 그대로. `AudienceShell` · `HostingShell` 모바일 헤더 둘 다 PC `TopBar`와 같은 `/`. 스토리 `LogoLink`, e2e `shell.spec` "모바일 로고 헤더 — 로고 → 홈" 2건.
+
+**결정(🤖 Claude 판단)**
+1. #201 "공연장소가 미리 보이는 것"을 검색칸 안내 문구로 봄 — 코드에서 공연장이 "미리" 보이던 곳은 이 안내뿐이고, Ready `939:34039`의 같은 칸이 "검색어를 입력해 주세요". 되돌리기: `EventListView` `placeholder`.
+2. Q220 검색어 + 태그가 같이 걸린 0건은 태그 판(버튼이 태그만 지움). 되돌리기: `tagNoResult`.
+3. Q221 SNS 목적지 = v1 운영 푸터 주소(GitHub Gosrock · 인스타그램 dudoong_official · 오픈채팅 아이콘 → 카카오톡 채널 `_xiaLWxj`). 되돌리기: `LegalFooter` `SNS_LINKS`.
+4. 푸터 PC(1024~)는 디자인 없음 — 같은 세로 배치, 좌우는 공연홈 본문 1200 선.
+
+**Figma 코멘트**: GUI `1383:3434` `1999167395` "[개발 · 디자인 없음] 푸터 SNS 아이콘이 가는 곳" · DS `55:410` `1999167400` "[개발 · 디자인 없음] warning 2 시멘틱 색".
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related 275/0 · 40/0. QA `home` 10/0(수동 1) · `events` 23/0(EVL-5 태그 결과 없음 · 필터 초기화 단계 더함) · `shell` 18/0(수동 2). e2e `home` · `event-list` · `legal` · `a11y` · `seo` · `shell-activity` 154/0(건너뜀 36) · `shell` · `shell-activity` 23/0 · `a11y` · `a11y-keyboard` · `home` 119/0.
+
+**ego-browser 확인(dev:mock 3152 · `localhost`)**: `/` 390 — 푸터 · ↗가 `759:22391`과 같음 · 1440 — 푸터 본문 1200 선, ↑ 그림자. `/events?tagIds=1,5` 390 — `1270:36348`과 같음, [필터 초기화] → `/events`. 검색칸 안내 "검색어를 입력해 주세요". `/events` 390 모바일 로고 → `/`.
+
+**관제탑 추가 요청 2 — 세 프레임 전수 대조(사용자 지정 근거 2026-11-08)**: 사용자가 GUI `1386:28711` 묶음에서 공연홈 `759:22391` · 예매하기 `759:7895` · 예매하기(2줄) `939:34039`를 "여기 Ready for dev — 홈과 공연리스트 구현해"로 지정(REST devStatus는 셋 다 비어 있음). 지금 판 `2419467365476049871`(14:13Z)로 `map` · `shot` 다시 — 그림은 앞서 받은 것과 같음. 390에서 DOM을 재어 대조:
+| 항목 | Figma | 고치기 전 | 처리 |
+|---|---|---|---|
+| 카드 가격 줄 | 없음(날짜 + 제목) | "티켓 없음" · "무료" 등 한 줄(옛 Q63) | **뺌** — 공연홈 · 목록 둘 다(Q63 닫음, 🤖 되돌리기 `price=`) |
+| 날짜 줄 높이 → 제목 간격 | 14.4 → 4 | 16(이동 표시 sm 16이 줄을 키움) | 날짜 줄 높이 14.4 고정, 표시는 넘쳐 그림 |
+| 정렬 | "공연임박순" + chevron-down 12(간격 4) | 글자만 | ▾ 그림(누를 수 없음 그대로) |
+| 공연홈 마지막 섹션 ↔ 푸터 | 32 + 41 | 64 | 72(32 + 40 토큰) |
+| 검색칸 342×44 · 안내 14/500 · 아이콘 20 · 위 16 | 같음 | 같음 | — |
+| 태그 칩 61×32 · 간격 16 · 라벨 ↔ 토글 8 · 줄 아래 16 | 같음 | 칩 63(글자 폭) | — |
+| 격자 열 · 행 16 · 포스터 163×230 r8 · 메타 10 | 같음 | 같음 | — |
+| 긴 제목 2줄 말줄임 · 지난 공연 칩(왼쪽 위 8/9 · #EEEEED · #8E8D89) · 날짜 #B8B7B3 · 제목 #5F5E5A | 같음 | 칩 위 8(Figma 9 — 토큰 8) | — |
+| ↑ 40 · 오른쪽 24 · 그림자 | 같음 | 같음 | — |
+1440은 GUI 프레임이 없어 PC 와이어 배치 그대로(공연홈 `626:19888` · 목록 `640:1032`).
+- 검사: vitest related 391/0 · QA `home` 10/0 · `events` 23/0 · e2e `home` · `event-list` · `legal` · `a11y` · `shell` 159/0.
+- #198 정정: 관제탑 검토로 `Color/status/warning 2`(`VariableID:862:612`, Light Yellow/300)가 생긴 것을 확인 → 토큰 `status.warning2`, 코멘트 `55:410`에 정정 답글 `1999172444`(노이슈).
+

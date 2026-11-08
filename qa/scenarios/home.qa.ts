@@ -160,17 +160,17 @@ scenario.manual('HOME-4', '카카오톡 인앱 브라우저에서 공연홈이 �
 
 scenario(
   'HOME-6',
-  '맨 아래 푸터 — 회사 사업자 정보 · 중개자 한 줄 · 약관 링크',
+  '맨 아래 푸터 — 저작권 · 회사 사업자 정보 · 중개자 한 줄 · 약관 링크 · SNS',
   {
     kind: '정상',
     summary:
-      '약관 제3조③(서비스 첫 화면 중개자 지위) · 제4조①(회사 사업자 정보). 디자인 없음(Q150) — DS 프리미티브로 단순하게.',
-    basis: ['legal-copy A-3', 'v1-additions C-1', 'design-requests Q150'],
+      '약관 제3조③(서비스 첫 화면 중개자 지위) · 제4조①(회사 사업자 정보). GUI 푸터 `1383:3429`(Design Sync #205) — 회색 판 · 저작권 줄 · 밑줄 링크 · SNS 아이콘 3(목적지는 v1 푸터 주소, Figma 코멘트 `1383:3434`).',
+    basis: ['legal-copy A-3', 'v1-additions C-1', 'GUI 1383:3429', 'design-requests Q150'],
   },
   async ({ page, step }) => {
     await page.goto('/');
     await step(
-      '맨 아래로 내리면 사업자 정보 세 줄 · 중개자 한 줄 · [개인정보 처리방침] [서비스 이용약관]',
+      '맨 아래로 내리면 저작권 · 사업자 정보 세 줄 · 중개자 한 줄 · [개인정보 처리방침] | [서비스 이용약관] · SNS 3',
       async () => {
         const footer = page.getByRole('contentinfo');
         await footer.scrollIntoViewIfNeeded();
@@ -186,6 +186,15 @@ scenario(
         await expect(footer.getByRole('link', { name: '서비스 이용약관' })).toHaveAttribute(
           'href',
           '/meta/term',
+        );
+        await expect(footer).toContainText('© Dudoong All Rights Reserved');
+        await expect(footer.getByRole('link', { name: '두둥 인스타그램' })).toHaveAttribute(
+          'href',
+          'https://www.instagram.com/dudoong_official/',
+        );
+        await expect(footer.getByRole('link', { name: '두둥 카카오톡 채널' })).toHaveAttribute(
+          'target',
+          '_blank',
         );
       },
     );

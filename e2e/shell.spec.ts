@@ -100,3 +100,22 @@ test.describe('상단 바 고정(이슈 #95)', () => {
     });
   }
 });
+
+/** 모바일 로고 헤더의 로고를 누르면 홈(`/`) — PC 상단 바 로고와 같다(사용자 요청 2026-11-08). 관객 · 호스팅 둘 다 */
+test.describe('모바일 로고 헤더 — 로고 → 홈', () => {
+  for (const { from, session } of [
+    { from: '/events', session: null },
+    { from: '/hosting', session: 'loggedIn' as const },
+  ]) {
+    test(`${from}: 로고("두둥 홈")를 누르면 / 로 간다`, async ({ page }) => {
+      if (session) await setMockSession(page, session);
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.goto(from);
+      const logo = page.getByRole('link', { name: '두둥 홈' });
+      await expect(logo).toBeVisible();
+      await expect(logo).toHaveAttribute('href', '/');
+      await logo.click();
+      await expect(page).toHaveURL(/\/$/);
+    });
+  }
+});
