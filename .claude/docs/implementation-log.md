@@ -3502,3 +3502,14 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 - 검사: vitest related 391/0 · QA `home` 10/0 · `events` 23/0 · e2e `home` · `event-list` · `legal` · `a11y` · `shell` 159/0.
 - #198 정정: 관제탑 검토로 `Color/status/warning 2`(`VariableID:862:612`, Light Yellow/300)가 생긴 것을 확인 → 토큰 `status.warning2`, 코멘트 `55:410`에 정정 답글 `1999172444`(노이슈).
 
+
+## #208 — 거절 알림을 읽으면 티켓탭 거절 띠도 풀기(2026-11-08 밤, `fix-208-refused-bar` #PR)
+
+백엔드 답 #208(티켓탭 "NEW" 띠 규칙)을 코드와 대조했다. 뜨는 조건 · T-2로 승인 띠가 풀리는 것 · O-3으로 거절 띠가 풀리는 것 · [티켓보기] 목적지는 이미 맞았다. 어긋난 곳은 하나 — 알림을 읽은 뒤 T-3을 무효화하는 판정이 승인 알림(`ORDER_APPROVED`)만 봐서, 거절 알림(`ORDER_REFUSED`)을 읽어도 같은 화면에서는 거절 띠가 남았다.
+
+- `notification-kind.ts` `isApprovalNotification` → `affectsTicketNotice`(`ORDER_APPROVED` · `ORDER_REFUSED`). 승인만의 뜻으로 쓰는 곳이 `useReadNotifications` 말고는 없어 이름을 바꿨다. `ReadContext.approval` → `ticketNotice`.
+- mock: PN-3로 거절 알림을 읽으면 그 주문이 T-3 `refusedOrderUuids`에서 빠진다(`markRefusedRead` — 서버와 같은 동작). `NOTIFICATION_ID.refused`(112), 테스트용 `markNotificationUnread`.
+- 테스트: `notification-rules` 판정이 `[ORDER_APPROVED, ORDER_REFUSED]` · `useNotification` "거절 알림을 누르면 T-3을 다시 읽어 거절 띠가 풀린다"(승인 띠는 그대로) 더함 — 고치기 전 코드에서 실패하는 것을 확인. "다른 알림은 T-3을 다시 읽지 않는다"는 그대로.
+- 문서: `api-contract.md` G11/T-3 `refusedOrderUuids` 줄에 #208 답 요약.
+- 검사: typecheck · 바꾼 파일 lint · vitest related 2720/0.
+- ego-browser(dev:mock 3153, 임시로 거절 띠 시드): `/tickets` 390 거절 띠 → 메뉴 → 알림함 → 거절 알림 → 뒤로 `/tickets` — 거절 띠가 풀리고 승인 띠가 보임. 1440도 같음. 화면 변경 없음.

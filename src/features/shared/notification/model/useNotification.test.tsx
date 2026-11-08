@@ -4,8 +4,16 @@ import { delay, http } from 'msw';
 import { type ReactNode, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { NEW_APPROVED_ORDER_UUID, resetTicketStore } from '@/api/__mocks__/fixtures/my-ticket';
-import { NOTIFICATION_ID, resetNotificationStore } from '@/api/__mocks__/fixtures/notification';
+import {
+  NEW_APPROVED_ORDER_UUID,
+  resetTicketStore,
+  setUnreadRefused,
+} from '@/api/__mocks__/fixtures/my-ticket';
+import {
+  markNotificationUnread,
+  NOTIFICATION_ID,
+  resetNotificationStore,
+} from '@/api/__mocks__/fixtures/notification';
 import { notificationHandlers } from '@/api/__mocks__/notification.handlers';
 import { errors } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
@@ -224,7 +232,33 @@ describe('알림함 — useNotificationInbox', () => {
     await waitFor(() => expect(shell.result.current.notice.data?.hasNew).toBe(false));
   });
 
-  it('승인 알림이 아닌 알림을 읽으면 공지 바(T-3)를 다시 읽지 않는다', async () => {
+  it('거절 알림을 누르면 티켓탭 공지 바(T-3)를 다시 읽어 거절 띠가 풀린다(#208)', async () => {
+    setUnreadRefused(['mock-order-tickets-c']);
+    markNotificationUnread(NOTIFICATION_ID.refused);
+    loggedIn();
+    const { wrapper } = setup();
+    const { result } = renderHook(
+      () => ({ ...useBoth(), notice: useQuery(newApprovedTicketsQuery()) }),
+      { wrapper },
+    );
+    await waitFor(() =>
+      expect(result.current?.notice.data?.refusedOrderUuids).toEqual(['mock-order-tickets-c']),
+    );
+    await waitFor(() =>
+      expect(result.current.inbox.items.some((i) => i.id === NOTIFICATION_ID.refused)).toBe(true),
+    );
+
+    const sent = recordRequests();
+    act(() => result.current.inbox.open(NOTIFICATION_ID.refused));
+    await waitFor(() => expect(result.current.notice.data?.refusedOrderUuids).toEqual([]));
+    const lines = await sent.lines();
+    expect(lines).toContain(READ);
+    expect(lines).toContain(NOTICE);
+    // 승인 띠는 그대로(거절 알림은 승인 알림을 읽지 않는다)
+    expect(result.current.notice.data?.hasNew).toBe(true);
+  });
+
+  it('승인·거절 알림이 아닌 알림을 읽으면 공지 바(T-3)를 다시 읽지 않는다', async () => {
     loggedIn();
     const { wrapper } = setup();
     const { result } = renderHook(() => useBoth(), { wrapper });
