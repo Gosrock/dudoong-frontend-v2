@@ -57,7 +57,7 @@
 <Txt typography="headingSmEmphasized" lines={2}>긴 공연 제목은 두 줄에서 말줄임</Txt>
 ```
 
-폰트: 본문은 Pretendard(가변, 동적 서브셋 CSS — 화면에 나온 글자 조각만 받는다), 숫자 전용 `titleNumber`는 Saira Condensed(`next/font/google`). `title`과 ConcertCard 제목의 Kartrider(넥슨 카트 고딕 ExtraBold)는 `next/font/local`로 직접 호스팅한다 — `preload: false`라 그 글자가 화면에 나올 때만 받는다(라이선스 확인 2026-11-09, design-system §1).
+폰트: 본문은 Pretendard(가변, 동적 서브셋 CSS — 화면에 나온 글자 조각만 받는다), 숫자 전용 `titleNumber`는 Saira Condensed(`next/font/google`). `title`과 ConcertCard 제목의 Kartrider(넥슨 카트 고딕 ExtraBold)는 `next/font/local`로 직접 호스팅한다 — `preload: false`라 그 글자가 화면에 나올 때만 받는다(라이선스 확인 2026-11-09, design-system §1). 공연 카드가 첫 화면에 있는 라우트(`/` · `/events` · `/hosts/[hostId]`)만 page에 `<KartriderPreload />`(`src/ui/theme/KartriderPreload.tsx`)를 둬 미리 받는다 — 새로 ConcertCard를 첫 화면에 그리는 라우트도 같게. `fonts.ts`에 `preload: true`를 켜거나 라우트마다 `localFont`를 다시 부르지 않는다(모든 화면 preload · @font-face 두 벌).
 
 ---
 

@@ -3564,3 +3564,19 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 2. ConcertCard 제목 굵기 700 → 800(Figma ExtraBold · 적재 파일과 같게). 받기 전(swap) Pretendard도 800으로 보인다.
 
 **테스트**: typecheck · eslint · `vitest related` 357/0. ego-browser(dev:mock 3156): 공연홈 · 공연 리스트 카드 제목 computed `kartrider, "Pretendard Variable", …` 800, `document.fonts` `kartrider` 800 **loaded**, preload 링크 0 — Figma 공연홈 `759:22391`과 390 나란히 같은 글꼴. 1440 공연 리스트도 같음.
+
+## 카트라이더체 — 공연 카드 화면에서만 미리 받기(2026-11-09, `fix-kartrider-preload` #214)
+
+사용자 결정 2026-11-09 — #212의 `preload: false`는 카드가 그려질 때 받기 시작해 잠깐 Pretendard로 보였다가 바뀐다. 미리 받되 **공연 카드가 있는 화면에서만**(모든 화면에 1.4MB를 받게 하지 않는다).
+
+- **라우트**: ConcertCard를 첫 화면에 그리는 page — `/`(`HomeView`) · `/events`(`EventListView`) · `/hosts/[hostId]`(`HostHomeView` → `HostEventCard`). `title` 프리셋만 쓰는 화면(호스팅 대시보드 · 선물 랜딩 · 티켓 상세 등)은 지금처럼 쓸 때 받는다.
+- **방법**: 정의는 루트 레이아웃의 `fonts.ts` 하나(`preload: false`) 그대로 — `--font-kartrider`는 모든 화면에 있다. 위 세 page가 `<KartriderPreload />`(`src/ui/theme/KartriderPreload.tsx`, `'use client'`)를 그린다 — `<link rel="preload" as="font" type="font/otf" crossOrigin="">`, React가 `<head>`로 올린다. href는 같은 otf를 Turbopack `type: 'asset'`(설치본 `turbopack.md` "Module types", `next.config.ts` `turbopack.rules['*.otf']`)으로 import한 URL — next/font가 내보낸 파일과 **같은 URL**(Turbopack이 한 모듈로 묶음, 빌드 산출물 otf 1개 · kartrider `@font-face` 1개). 빌드 해시를 손으로 적지 않는다. 공백은 `%20`으로(next/font 쪽 URL과 같게).
+- `/events`는 `(app)` 레이아웃 `<Suspense>` 안에서 `useSearchParams`가 경계를 CSR로 넘겨 그 안의 `<link>`가 HTML에 실리지 않는다 → page가 `EventListView`를 `<Suspense>`로 한 겹 더 감싸고 `KartriderPreload`는 그 바깥에 둔다. `(public)` 두 page는 그대로(Suspense · loading 없음, `instant = false` 유지).
+
+**고른 이유(🤖 Claude 판단 — 시험 빌드로 확인)**
+1. next/font에는 "정의 하나 + 라우트별 preload" 방법이 없다 — preload 범위는 폰트 함수를 부른 파일(설치본 `font.md` Preloading, Turbopack 매니페스트는 page 엔트리마다 그 그래프의 `.p.` 파일). 루트에서 `preload: true`면 모든 라우트(`/notices`에도 Link 헤더), 라우트마다 `localFont`를 다시 부르면 `.p.otf`와 `@font-face`가 두 벌.
+2. `ReactDOM.preload()`(서버 page)는 뺐다 — 힌트가 RSC 응답(`HL`)에 실려, 셸 링크가 `/events`를 prefetch하기만 해도 `/notices`에서 1.4MB를 받았다. 서버 컴포넌트의 `<link>`도 정적 라우트(`/events`) RSC에 `HL`로 실렸다. 클라이언트 컴포넌트는 RSC에 참조만 실려 prefetch로는 받지 않는다.
+3. 되돌리기: 세 page의 `<KartriderPreload />`(+ `/events`의 Suspense)와 `next.config.ts` `turbopack.rules`, `KartriderPreload.tsx` · `src/ui/fonts/otf.d.ts`를 지운다.
+
+**테스트**: e2e `font-preload`(신규 — 카드 라우트 3곳: 응답 HTML `<head>` otf preload 1개 · preload URL = `@font-face` src · otf 요청 1번 · `kartrider` loaded / `/notices` · `/tickets` · `/login`: head · Link 헤더 preload 0, networkidle까지 otf 요청 0) + `home` · `event-list` · `host-home` · `seo` · `security`(CSP) 70/0. QA `home` 10/0 · `events` 23/0 · `host-home` 14/0. typecheck · eslint.
+- ego-browser(dev:mock 3157, 390 · 1440): `/` · `/events` · `/hosts/11` head preload · otf 요청 initiator `link`(시작 41~232ms, FCP 92~416ms보다 먼저) · `kartrider` loaded · 카드 제목 카트라이더체. `/notices` 캐시 끄고 otf 요청 0 · unloaded. `/tickets`(비로그인)는 preload 없이 화면 글자로 받는다(initiator `css`, 전과 같음).
