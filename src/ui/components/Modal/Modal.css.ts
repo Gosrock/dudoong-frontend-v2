@@ -1,7 +1,8 @@
-import { globalStyle, keyframes, style, styleVariants } from '@vanilla-extract/css';
+import { globalStyle, keyframes, style } from '@vanilla-extract/css';
 
 import { media } from '../../theme/breakpoints';
 import { vars } from '../../theme/tokens.css';
+import { typographySpecs } from '../../theme/typography.css';
 
 const fadeIn = keyframes({ from: { opacity: 0 } });
 const fadeOut = keyframes({ to: { opacity: 0 } });
@@ -63,21 +64,16 @@ export const contentLarge = style({ ...sheetPanel, maxWidth: 520 });
 /**
  * 확인 팝업 = 디자인 시스템 `다이얼로그`(`758:1714`, 2026-11-01): 310폭, 모서리 16, 안쪽 24(`Space/5`), 흰 판.
  * 글자 묶음(제목 → 본문 8)과 버튼 줄 사이 24 — 묶음 간격 8 + footer 위 16(본문이 있으면 설명 → 본문 8).
+ * 데스크탑(1024~)은 `다이얼로그_데스크탑`(`843:449`, 2026-11-08 #187): 420 · 안쪽 24 · 모서리 16 · 간격 8,
+ * 제목 `Heading/md2 - emphasized` · 본문 `Body/md`, 본문 → 버튼 26(간격 8 + 빈 틀 10 + 8), 버튼은 글자 폭 · 오른쪽 정렬(아래 globalStyle).
+ * 옛 R1f 폭(PC 520 · 480 — Ready `975:8593` · `1030:9318`)은 DS 데스크탑 세트로 바꿨다(관제탑 지시 "DS가 정본", 🤖 2026-11-08)
  */
 export const contentPopup = style({
   gap: vars.space[2],
+  maxWidth: 310,
   padding: vars.space[5],
   background: vars.color.background.normal,
-});
-
-/**
- * 확인 팝업 폭 — 모바일은 늘 310, 데스크탑(1024~)은 화면대로(R1f — GUI 티켓 삭제 · 판매 중단 확인 `975:8593` 등 520,
- * 입장 취소 확인 `1030:9318` 480). FIGMA-CUSTOM: DS `다이얼로그`는 310 하나 — Ready 화면이 폭을 덮어썼다(2단계 후보)
- */
-export const popupWidth = styleVariants({
-  sm: { maxWidth: 310 },
-  md: { maxWidth: 310, '@media': { [media.desktop]: { maxWidth: 480 } } },
-  lg: { maxWidth: 310, '@media': { [media.desktop]: { maxWidth: 520 } } },
+  '@media': { [media.desktop]: { maxWidth: 420 } },
 });
 
 /**
@@ -103,10 +99,15 @@ export const header = style({
 
 export const headTitle = style({ flex: '1 1 auto', minWidth: 0 });
 
-export const title = style({ margin: 0 });
+/**
+ * 제목 · 설명 칸은 flex — 안쪽 `Txt`(span)만 줄 높이를 정한다. 블록이면 h2(24px) · p(16px)의 기본 글자가 줄 상자를 키워
+ * 확인 팝업이 Figma보다 커졌다(모바일 172 ↔ `758:1714` 160, 데스크탑 175.5 ↔ `843:440` 170 — 2026-11-08 #187)
+ */
+export const title = style({ display: 'flex', margin: 0 });
 
 /** 위 간격은 설명 글자 종류가 정한다(`theme/overlay-text`) */
 export const description = style({
+  display: 'flex',
   marginBottom: 0,
   marginLeft: 0,
   marginRight: 0,
@@ -132,8 +133,37 @@ globalStyle(`${footer} > *`, { flex: 1 });
 /** 확인 팝업 — 설명 → 본문 16 = 간격 8 + 8(옛 값 그대로) */
 globalStyle(`${contentPopup} > ${body}`, { marginTop: vars.space[2] });
 
-/** 확인 팝업 — 글자(또는 본문) → 버튼 24 = 간격 8 + 16 */
-globalStyle(`${contentPopup} > ${footer}`, { marginTop: vars.space[4] });
+/** 확인 팝업 — 글자(또는 본문) → 버튼 24 = 간격 8 + 16. 데스크탑은 26 = 간격 8 + 18(`843:368` 빈 틀 10 + 간격 8) */
+globalStyle(`${contentPopup} > ${footer}`, {
+  marginTop: vars.space[4],
+  '@media': { [media.desktop]: { marginTop: 18, justifyContent: 'flex-end' } },
+});
+
+/** 데스크탑 확인 팝업 버튼은 글자 폭(Button min width 69) — `843:370` · `843:371` HUG */
+globalStyle(`${contentPopup} > ${footer} > *`, {
+  '@media': { [media.desktop]: { flex: '0 0 auto' } },
+});
+
+const desktopText = (spec: (typeof typographySpecs)[keyof typeof typographySpecs]) => ({
+  fontFamily: vars.font[spec.font],
+  fontSize: spec.size,
+  fontWeight: spec.weight,
+  lineHeight: spec.lineHeight,
+  letterSpacing: spec.letterSpacing,
+});
+
+/** 데스크탑 확인 팝업 제목 `Heading/md2 - emphasized` 18/700(`843:366`) — 모바일은 `Heading/sm - emphasized` */
+globalStyle(`${contentPopup} ${title} > *`, {
+  '@media': { [media.desktop]: desktopText(typographySpecs.headingMd2Emphasized) },
+});
+
+/**
+ * 데스크탑 확인 팝업 본문 `Body/md` 14/400(`843:367`). 색은 Figma가 변수 없이 #73726E — 가장 가까운 의미 색인
+ * 모바일 다이얼로그 본문 색 `text/secondary-label`을 그대로 둔다(🤖 2026-11-08, Figma 코멘트)
+ */
+globalStyle(`${contentPopup} ${description} > *`, {
+  '@media': { [media.desktop]: desktopText(typographySpecs.bodyMd) },
+});
 
 /** 입금 확인 창 — 카드 → 버튼 16 = 간격 8 + 8(`567:9756` 카드 · 버튼 묶음 간격 16) */
 globalStyle(`${contentSummary} > ${footer}`, { marginTop: vars.space[2] });

@@ -175,6 +175,7 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
   const removeMember = () => {
     // 디자인 없음(와이어는 ⋮ "멤버 삭제" 항목만) — DS Popup으로 확인을 받는다(🤖)
     void openConfirm({
+      intent: 'delete', // 되돌리기 어려운 동작 — [확인] Warning(DS 다이얼로그_데스크탑 삭제, #185 · #187)
       title: `${name}님을 멤버에서 삭제할까요?`,
       description: '삭제하면 이 호스트의 공연을 관리할 수 없어요.',
       confirmLabel: '삭제하기',
@@ -476,6 +477,7 @@ function PendingInvitations({ hostId, myRole }: { hostId: string; myRole: ActorR
 
   const cancel = (invitationId: number, email: string) => {
     void openConfirm({
+      intent: 'delete', // 되돌리기 어려운 동작 — [확인] Warning(DS 다이얼로그_데스크탑 삭제, #185 · #187)
       title: '초대를 취소할까요?',
       description: `${email}에게 보낸 초대 링크를 더 쓸 수 없게 돼요.`,
       confirmLabel: '초대 취소',

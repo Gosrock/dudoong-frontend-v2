@@ -26,10 +26,10 @@ export type PopupProps = {
   closeOnBack?: boolean;
   onExited?: () => void;
   /**
-   * 데스크탑(1024~) 폭 — sm 310(기본, DS `다이얼로그`) · md 480 · lg 520. 모바일은 늘 310.
-   * R1f(2026-11-08): Ready 화면이 덮어쓴 폭 — 티켓 관리 확인 `975:8593` 등 520(lg), 입장 취소 확인 `1030:9318` 480(md)
+   * DS `다이얼로그_데스크탑`(`843:449`) `Property 1` — `default`(기본) = [확인] Primary, `delete`(삭제) = [확인] Warning.
+   * 되돌리기 어려운 동작(삭제 · 취소 · 중단 · 거절 · 탈퇴)에 `delete`를 준다. 모바일 `다이얼로그`에도 같은 색을 쓴다(🤖 2026-11-08 #185)
    */
-  size?: 'sm' | 'md' | 'lg';
+  intent?: 'default' | 'delete';
   /**
    * 모양. `dialog`(기본) = DS `다이얼로그`.
    * `summary` = 입금 확인 창(R1e — GUI `567:9756`): 342 · 회색 판 · 안쪽 16 · 간격 8 · 오른쪽 위 ✕ · 제목 `Label/lg-emphasized` ·
@@ -39,8 +39,10 @@ export type PopupProps = {
 };
 
 /**
- * 확인 팝업 — 디자인 시스템 `다이얼로그`(`758:1714`, 2026-11-01): 제목 `Heading/sm - emphasized`, 본문 `Label/sm`,
- * [취소](Secondary medium)[확인](Primary medium). 진행 중은 `다이얼로그 - 로딩`(`772:1180`) — 취소 Disabled, 확인은 Primary 색 그대로 +
+ * 확인 팝업 — 모바일은 디자인 시스템 `다이얼로그`(`758:1714`, 2026-11-01): 310, 제목 `Heading/sm - emphasized`, 본문 `Label/sm`,
+ * [취소](Secondary medium)[확인](Primary medium) 같은 폭. 데스크탑(1024~)은 `다이얼로그_데스크탑`(`843:449`, 2026-11-08 #187):
+ * 420, 제목 `Heading/md2 - emphasized`, 본문 `Body/md`, 버튼은 글자 폭(min width 69)으로 오른쪽 정렬 — 모양은 CSS가 정한다(Modal.css).
+ * 진행 중은 `다이얼로그 - 로딩`(`772:1180`) — 취소 Disabled, 확인은 Primary 색 그대로 +
  * `Spinner` 20(`772:1176`, 코드 `size="base"`). 옛 근거는 GUI 확인 모달 `567:9468`(342폭 · Large 버튼).
  * 사용자의 결정을 받는 창이라 `role="alertdialog"`이고, 바깥 클릭으로는 닫지 않는다(Esc·취소로 닫는다).
  * 첫 포커스는 [취소](Radix가 첫 버튼에 둔다) — 되돌릴 수 없는 확인을 Enter 한 번에 하지 않게.
@@ -60,7 +62,7 @@ export function Popup({
   confirmDisabled,
   closeOnBack = true,
   onExited,
-  size = 'sm',
+  intent = 'default',
   variant = 'dialog',
 }: PopupProps) {
   const summary = variant === 'summary';
@@ -77,7 +79,6 @@ export function Popup({
       onExited={onExited}
       role="alertdialog"
       layout={summary ? 'summary' : 'popup'}
-      popupWidth={size}
       footer={
         <>
           {!summary && cancelLabel !== null && (
@@ -94,6 +95,7 @@ export function Popup({
             </Button>
           )}
           <Button
+            variant={intent === 'delete' ? 'warning' : 'primary'}
             size={summary ? 'lg' : 'md'}
             disabled={loading || confirmDisabled}
             aria-busy={loading || undefined}

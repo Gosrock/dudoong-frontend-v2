@@ -31,9 +31,10 @@ export type ConfirmOptions = {
   /** popup(기본) = 확인 팝업, responsive = PC 모달 · 모바일 바텀시트 */
   variant?: 'popup' | 'responsive';
   /**
-   * popup의 데스크탑(1024~) 폭 — sm 310(기본) · md 480 · lg 520(`Popup` `size`, R1f). 모바일은 늘 310
+   * 확인 버튼 색 — `delete`면 Warning(DS `다이얼로그_데스크탑` `Property 1=삭제`, #185 · #187). 되돌리기 어려운 동작에 준다.
+   * popup · responsive 둘 다
    */
-  popupSize?: 'sm' | 'md' | 'lg';
+  intent?: 'default' | 'delete';
   /**
    * responsive의 모바일 시트 모양(`BottomSheet` `variant`). 기본 `raised` — 확인 시트(GUI 선물 거절 `939:26914`):
    * 막대 손잡이 · 제목 24 · 설명 가운데 · 버튼 사이 12(O17, 2026-11-08)
@@ -66,7 +67,7 @@ export function EasyOverlay({
   cancelLabel = '취소',
   onConfirm,
   variant = 'popup',
-  popupSize,
+  intent = 'default',
   sheetVariant = 'raised',
 }: EasyOverlayProps) {
   const [pending, setPending] = useState(false);
@@ -108,7 +109,7 @@ export function EasyOverlay({
         loading={pending}
         closeOnBack={false}
         onExited={onExited}
-        size={popupSize}
+        intent={intent}
       >
         {content}
       </Popup>
@@ -138,6 +139,7 @@ export function EasyOverlay({
             </Button>
           )}
           <Button
+            variant={intent === 'delete' ? 'warning' : 'primary'}
             size="lg"
             disabled={pending}
             aria-busy={pending || undefined}
