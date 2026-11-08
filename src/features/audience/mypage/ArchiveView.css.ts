@@ -19,6 +19,7 @@ export const grid = style([
 
 export const gridPoster = style({
   position: 'relative',
+  display: 'block',
   width: '100%',
   aspectRatio: '1 / 1',
   overflow: 'hidden',
@@ -36,4 +37,36 @@ export const gridItem = style({
   textDecoration: 'none',
 });
 
+/** 이름 · 일시(주문상세 링크) */
+export const gridText = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[2],
+  alignItems: 'center',
+  color: 'inherit',
+  textDecoration: 'none',
+});
+
 export const tabsBar = style({ padding: `0 ${vars.space[5]}` });
+
+/** 포스터 = 크게 보기 버튼(와이어 `503:16328` CD 이미지 — Tomato 10-24). 글자(이름 · 일시)는 주문상세 링크 */
+export const posterButton = style({
+  display: 'block',
+  width: '100%',
+  padding: 0,
+  border: 0,
+  background: 'none',
+  cursor: 'zoom-in',
+  borderRadius: vars.radius[2],
+});
+
+/** 크게 보기 — 원본 비율 그대로, 화면 높이의 60%까지 */
+export const viewerImage = style({
+  display: 'block',
+  width: '100%',
+  height: 'auto',
+  maxHeight: '60vh',
+  objectFit: 'contain',
+  borderRadius: vars.radius[2],
+  background: vars.color.surface.imageBg,
+});

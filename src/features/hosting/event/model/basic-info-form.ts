@@ -7,6 +7,7 @@ import {
   type UpdateEventBasicRequest,
 } from '@/api/event/schema';
 import type { HostContactType } from '@/api/host/schema';
+import type { Contact } from '@/api/shared/common-schema';
 import {
   contactInputsOf,
   type HostContactInput,
@@ -61,6 +62,22 @@ export function basicInfoValuesOf(event: EventManage): BasicInfoValues {
     tagIds: event.tags.map((t) => t.tagId),
     hasTicket: event.hasTicket,
   };
+}
+
+/**
+ * 폼 처음 값(RHF `defaultValues`) — GE-3 값에서 문의처가 비었으면 호스트 대표 연락처(GH-3)로 미리 채운다(design-requests Q76 — Nemin 11-07
+ * "호스트 대표 연락처 미리 채워두는것 ㅇㅋ", GUI `748:33351`). 미리 채운 값은 폼 값일 뿐 저장하지 않는다 — 다른 칸을 고쳐 [저장]하면 같이 가고
+ * (`fieldsToSend`), 지우면 빈 채로 저장된다. 처음 값이 미리 채운 값이므로 이탈 경고(dirty)는 이 값 기준이다.
+ * 유형을 모르는(`UNKNOWN`) 연락처는 채우지 않는다(유형 칸이 비어 저장을 막는다). 공연 문의처 상한(10개)까지만
+ */
+export function basicInfoDefaultsOf(
+  event: EventManage,
+  hostContacts: readonly Contact[] = [],
+): BasicInfoValues {
+  const values = basicInfoValuesOf(event);
+  if (event.contacts.length > 0) return values;
+  const prefill = hostContacts.filter((c) => c.type !== 'UNKNOWN').slice(0, EVENT_CONTACTS_MAX);
+  return prefill.length > 0 ? { ...values, contacts: contactInputsOf(prefill) } : values;
 }
 
 // ─── 문의처 ──────────────────────────────────────────────────
@@ -130,10 +147,10 @@ export function nameError(raw: string): string | null {
 export function validateBasicInfo(
   base: BasicInfoValues,
   values: BasicInfoValues,
-  { registered, now }: { registered: boolean; now: Date },
+  { registered, now, saved }: { registered: boolean; now: Date; saved?: BasicInfoValues },
   dirty?: ReadonlySet<string>,
 ): BasicInfoErrors {
-  const changed = changedBasicFields(base, values, dirty);
+  const changed = fieldsToSend(base, values, dirty, saved);
   return {
     name: changed.name ? nameError(values.name) : null,
     schedule: changed.schedule
@@ -179,6 +196,24 @@ export function changedBasicFields(
   };
 }
 
+/**
+ * 저장 때 보낼 필드 — 바뀐 필드(`changedBasicFields`) + 서버 값(`saved` — GE-3 그대로, 미리 채우기 전)과 다른 문의처.
+ * 미리 채운 문의처(Q76)는 처음 값과 같아 "바뀐 필드"가 아니지만 서버에는 없으므로 다른 칸을 저장할 때 같이 보낸다.
+ * `saved`를 주지 않으면 `base`와 같다(미리 채우지 않은 폼)
+ */
+export function fieldsToSend(
+  base: BasicInfoValues,
+  values: BasicInfoValues,
+  dirty?: ReadonlySet<string>,
+  saved: BasicInfoValues = base,
+) {
+  const changed = changedBasicFields(base, values, dirty);
+  return {
+    ...changed,
+    contacts: changed.contacts || !sameContacts(saved.contacts, values.contacts),
+  };
+}
+
 export const isBasicInfoDirty = (
   base: BasicInfoValues,
   values: BasicInfoValues,
@@ -187,14 +222,15 @@ export const isBasicInfoDirty = (
 
 /**
  * 보내는 본문(PE-4) — 바뀐 필드만. 장소를 고치면 상세주소까지 통째로(`toPlaceRequest`), 문의처·태그는 전체.
- * 일정은 시작·종료를 함께 보낸다(종료 ≤ 시작이면 다음 날). 칸 오류가 없을 때만 부른다
+ * 일정은 시작·종료를 함께 보낸다(종료 ≤ 시작이면 다음 날). 미리 채운 문의처는 서버 값(`saved`)과 다르면 같이 보낸다. 칸 오류가 없을 때만 부른다
  */
 export function toUpdateEventBasicBody(
   base: BasicInfoValues,
   values: BasicInfoValues,
   dirty?: ReadonlySet<string>,
+  saved?: BasicInfoValues,
 ): UpdateEventBasicRequest {
-  const changed = changedBasicFields(base, values, dirty);
+  const changed = fieldsToSend(base, values, dirty, saved);
   const body: UpdateEventBasicRequest = {};
   if (changed.poster) body.posterImageKey = values.poster.key;
   if (changed.name) body.name = values.name.trim();

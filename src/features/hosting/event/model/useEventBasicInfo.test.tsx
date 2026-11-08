@@ -48,6 +48,12 @@ const fakeGeocode: Geocoder = vi.fn(async (address: string) =>
 const PREPARING = '140';
 /** 등록된 공연(장소·상세주소 있음) */
 const OPEN = '101';
+/** 준비중 공연(140)은 문의처가 비어 있어 고스락(호스트 11) 대표 연락처로 미리 채운다(Q76) — 다른 칸을 저장하면 같이 간다 */
+const GOSROCK_CONTACTS = [
+  { type: 'INSTAGRAM', value: '@gosrock_official' },
+  { type: 'YOUTUBE', value: 'https://www.youtube.com/@gosrock' },
+  { type: 'EMAIL', value: 'gosrock@example.com' },
+];
 
 function setup(eventId: string, geocode: Geocoder = fakeGeocode) {
   const queryClient = createTestQueryClient();
@@ -107,7 +113,9 @@ describe('기본 정보 — 장소(주소 → 좌표 → 공연장 이름·상�
         },
       },
     });
-    expect(Object.keys(patch!.body as object)).toEqual(['place']);
+    // 장소 + 미리 채운 문의처(Q76 — 서버에는 아직 없다)
+    expect(Object.keys(patch!.body as object)).toEqual(['place', 'contacts']);
+    expect((patch!.body as { contacts: unknown }).contacts).toEqual(GOSROCK_CONTACTS);
     expect(UpdateEventBasicRequestSchema.safeParse(patch!.body).success).toBe(true);
     // 응답(GE-3 모양)을 GE-3 키에 넣었다
     expect(
@@ -257,7 +265,57 @@ describe('기본 정보 — 포스터 · 저장 · 등록된 공연', () => {
     expect((await writes(sent))[0]!.body).toEqual({
       startAt: '2027.03.20 23:00',
       endAt: '2027.03.21 01:00',
+      contacts: GOSROCK_CONTACTS,
     });
+  });
+});
+
+describe('기본 정보 — 문의처 미리 채우기(Q76)', () => {
+  it('문의처가 빈 공연은 호스트 대표 연락처로 채우고, 이탈 경고는 서지 않는다(저장하지 않음)', async () => {
+    const sent = recordRequests();
+    const { result } = setup(PREPARING);
+    await waitFor(() => expect(result.current.values.contacts).toEqual(GOSROCK_CONTACTS));
+    expect(result.current.status.dirty).toBe(false);
+    expect(result.current.status.canSave).toBe(false);
+    expect(await writes(sent)).toEqual([]);
+  });
+
+  it('미리 채운 문의처를 모두 지우면 빈 채로 저장되고, 저장 뒤 다시 채우지 않는다', async () => {
+    const { result, queryClient } = setup(PREPARING);
+    await waitFor(() => expect(result.current.values.contacts).toHaveLength(3));
+    act(() => {
+      result.current.contacts.remove(2);
+      result.current.contacts.remove(1);
+      result.current.contacts.remove(0);
+    });
+    expect(result.current.status.dirty).toBe(true);
+    const sent = recordRequests();
+    expect(await save(result)).toBe(true);
+    expect((await writes(sent))[0]!.body).toEqual({ contacts: [] });
+    expect(
+      queryClient.getQueryData<EventManage>(eventManageQuery(PREPARING).queryKey)?.contacts,
+    ).toEqual([]);
+    expect(result.current.values.contacts).toEqual([{ type: null, value: '' }]);
+    expect(result.current.status.dirty).toBe(false);
+  });
+
+  it('문의처가 있는 공연은 그대로 둔다(호스트를 읽지 않는다)', async () => {
+    const sent = recordRequests();
+    const { result, queryClient } = setup(OPEN);
+    await loaded(result);
+    const event = queryClient.getQueryData<EventManage>(eventManageQuery(OPEN).queryKey)!;
+    expect(event.contacts.length).toBeGreaterThan(0);
+    expect(result.current.values.contacts).toEqual(
+      event.contacts.map((c) => ({ type: c.type, value: c.value })),
+    );
+    expect((await sent.list()).some((r) => r.path === `/api/v2/hosts/${event.hostId}`)).toBe(false);
+  });
+
+  it('일반 멤버(읽기 전용)에게는 채우지 않는다', async () => {
+    actAsRole(11, 'GUEST');
+    const { result } = setup(PREPARING);
+    await loaded(result);
+    expect(result.current.values.contacts).toEqual([{ type: null, value: '' }]);
   });
 });
 

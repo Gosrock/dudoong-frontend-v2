@@ -16,7 +16,7 @@ export const TICKET_STATE_VIEW: Record<MyTicketState, TicketStateView> = {
   GIFT_PENDING: { label: '선물 대기중', tone: 'gift' },
   GIFT_EXPIRED: { label: '선물 만료', tone: 'negative' },
   GIFT_SENT: { label: '선물완료', tone: 'muted' },
-  RECEIVED: { label: '받은 선물', tone: 'gift' },
+  RECEIVED: { label: '선물티켓', tone: 'gift' }, // GUI 908:22658 칩 글자(2026-11-08 — 옛 "받은 선물")
   ENTERED: { label: '입장 완료', tone: 'muted' },
   CANCELED: { label: '취소됨', tone: 'negative' },
   REFUND_REQUESTED: { label: '환불 요청', tone: 'waiting' },

@@ -126,7 +126,7 @@ const CHIP: Record<MyTicketState, string> = {
   GIFT_PENDING: '선물 대기중',
   GIFT_EXPIRED: '선물 만료',
   GIFT_SENT: '선물완료',
-  RECEIVED: '받은 선물',
+  RECEIVED: '선물티켓',
   ENTERED: '입장 완료',
   CANCELED: '취소됨',
   REFUND_REQUESTED: '환불 요청',
@@ -153,7 +153,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '상태마다 묶음 하나(T-1 mock). 승인 대기·거절은 티켓 없는 주문이라 칩만(탭해도 QR 없음 · "탭하여 입장 QR 보기" 없음). 나머지 9값은 카드를 눌러 뒷면 — QR(승인완료·받은 선물) · 선물중 · 입장 완료 · 안내 문구.',
+      '상태마다 묶음 하나(T-1 mock). 승인 대기·거절은 티켓 없는 주문이라 칩만(탭해도 QR 없음 · "탭하여 입장 QR 보기" 없음). 나머지 9값은 카드를 눌러 뒷면 — QR(승인완료·선물티켓) · 선물중 · 입장 완료 · 안내 문구.',
     basis: ['plan P8 완료 기준 V "state 11값 렌더"', 'patterns §17', 'GUI 908:3276'],
     viewports: ['mobile'],
     mocks: allStateMocks,

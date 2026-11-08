@@ -1,12 +1,13 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { type FieldPath, type PathValue, useFieldArray, useForm, useWatch } from 'react-hook-form';
 
 import { updateEventBasicMutation } from '@/api/event/mutations';
 import { eventTagsQuery } from '@/api/event/queries';
 import { handleError, handlersFrom } from '@/api/handle-error';
+import { hostViewerQuery } from '@/api/host/queries';
 import type { HostContactType } from '@/api/host/schema';
 import { uploadImage } from '@/api/upload';
 import {
@@ -28,6 +29,7 @@ import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-erro
 
 import {
   BASIC_INFO_FIELD_ERRORS,
+  basicInfoDefaultsOf,
   type BasicInfoServerField,
   type BasicInfoValues,
   basicInfoValuesOf,
@@ -72,6 +74,8 @@ export type SavedNotice = 'saved' | 'registeredChanged';
  * - 일정: 날짜 1칸 + 시작·종료 시각 → 종료 ≤ 시작이면 다음 날(`schedule.ts`). 등록된 공연의 시작은 지금 이후로만
  * - 장소: `selectAddress(주소)`(우편번호 창 결과) → `geocode`로 좌표 → 공연장 이름·상세주소. 좌표를 못 얻으면 저장하지 않는다.
  *   `geocode`는 주입할 수 있다(기본 카카오 Geocoder — 테스트는 가짜)
+ * - 문의처 미리 채우기(Q76): 공연 문의처가 비었으면 호스트 대표 연락처(GH-3 viewer)로 채운 값이 처음 값이다(`basicInfoDefaultsOf`) — 저장하지 않고,
+ *   다른 칸을 고쳐 저장하면 같이 보낸다(`fieldsToSend`). 지우면 빈 채로 저장된다
  * - 저장(PE-4): 바뀐 필드만(`dirtyFields` → 값 비교), 장소는 상세주소까지 통째로. 성공하면 응답을 GE-3 키에 넣고 GE-7·GE-1·관객 공연 상세 공개 키를 무효화.
  *   등록된 공연이면 `savedNotice: 'registeredChanged'`(안내 팝업, V)
  * - 에러(patterns §24 P11): `Event_400_2`·`24` 일정 · `20` 문의처 · `23` 태그 · `22` 포스터(올린 key를 버리고 다시 올리게) ·
@@ -89,12 +93,23 @@ export function useEventBasicInfo(
   const scope = useEventScope(eventId);
   const canEdit = scope.canEdit;
   const tagsQuery = useQuery(eventTagsQuery());
+  // 문의처 미리 채우기(Q76) — 고칠 수 있고 공연 문의처가 비었을 때만 호스트 대표 연락처(GH-3, 멤버라 원문)를 읽는다
+  const wantsPrefill = canEdit && scope.event.contacts.length === 0;
+  const hostQuery = useQuery({ ...hostViewerQuery(scope.event.hostId), enabled: wantsPrefill });
+  const hostContacts = wantsPrefill ? hostQuery.data?.contacts : undefined;
+  /** 서버 값(미리 채우기 전) — 미리 채운 문의처를 저장 때 같이 보낼지 가른다(`fieldsToSend`) */
+  const serverValues = basicInfoValuesOf(scope.event);
 
   const form = useForm<BasicInfoValues>({
     ...EDIT_FORM_OPTIONS,
-    defaultValues: basicInfoValuesOf(scope.event),
+    defaultValues: basicInfoDefaultsOf(scope.event, hostContacts),
     resolver: resolverFrom((v) =>
-      validateBasicInfo(base, v, { registered: scope.registered, now: now() }, dirtyKeys),
+      validateBasicInfo(
+        base,
+        v,
+        { registered: scope.registered, now: now(), saved: serverValues },
+        dirtyKeys,
+      ),
     ),
   });
   const contactRows = useFieldArray({ control: form.control, name: 'contacts' });
@@ -113,13 +128,21 @@ export function useEventBasicInfo(
   const geocodeSeq = useRef(0);
   const inflight = useRef(false);
 
+  // 호스트 연락처가 폼보다 늦게 오면 그때 미리 채운다 — 처음 값도 함께 바꿔 이탈 경고가 서지 않게, 이미 고친 칸은 그대로(`keepDirtyValues`)
+  const prefilled = useRef(hostContacts !== undefined);
+  useEffect(() => {
+    if (prefilled.current || hostContacts === undefined) return;
+    prefilled.current = true;
+    form.reset(basicInfoDefaultsOf(scope.event, hostContacts), { keepDirtyValues: true });
+  }, [form, hostContacts, scope.event]);
+
   // 칸을 고치면 지난 저장 안내를 내린다(`reset`은 이름이 없어 걸리지 않는다)
   useFieldChange(form, () => setSavedNotice(null));
 
   const errors = validateBasicInfo(
     base,
     values,
-    { registered: scope.registered, now: now() },
+    { registered: scope.registered, now: now(), saved: serverValues },
     dirtyKeys,
   );
   const dirty = isDirty && isBasicInfoDirty(base, values, dirtyKeys);
@@ -225,7 +248,7 @@ export function useEventBasicInfo(
       setFormError(null);
       try {
         const result = await saveMutation.mutateAsync(
-          toUpdateEventBasicBody(base, valid, dirtyKeys),
+          toUpdateEventBasicBody(base, valid, dirtyKeys, serverValues),
         );
         inflight.current = false;
         return result;
@@ -262,6 +285,7 @@ export function useEventBasicInfo(
     })();
     if (!saved) return false;
     // `handleSubmit`이 끝난 뒤에 새 기준으로 — 그래야 `isSubmitted`(칸 오류 표시)도 풀린다
+    // 저장한 값이 새 기준 — 문의처를 비워 저장했으면 다시 채우지 않는다(Q76 "지우면 빈 채로")
     form.reset(basicInfoValuesOf(saved));
     setPosterError(null);
     lastPosterFile.current = null;
