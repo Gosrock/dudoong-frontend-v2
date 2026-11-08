@@ -182,7 +182,7 @@ test('모달 확인 창 — 열면 안으로, Esc로 닫으면 연 버튼으로 
   const link = page.getByRole('link', { name: '대시보드' }).locator('visible=true').first();
   await tabTo(page, link, { back: true });
   await page.keyboard.press('Enter');
-  const dialog = page.getByRole('alertdialog', { name: '저장하지 않고 나갈까요?' });
+  const dialog = page.getByRole('alertdialog', { name: '저장하지 않고 이동할까요?' });
   await expect(dialog).toBeVisible();
   await expect.poll(() => focusIsInside(dialog)).toBe(true);
   await page.keyboard.press('Escape');

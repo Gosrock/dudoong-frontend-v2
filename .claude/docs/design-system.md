@@ -396,7 +396,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 - "불러오지 못했어요 + 다시 시도" 줄 — 코드 `InlineError`(`src/ui`, column · row, 2026-11-02 A7 — 글자 `text/secondary-label` `Body/md` + secondary sm 버튼, 지역 fallback `DefaultErrorFallback`과 같은 문구 규칙)
 - 서버 이미지 실패 자리표시 — 코드 `UploadedImage`의 `fallback`(포스터는 `<Illustration name="poster-placeholder">`). 호출 쪽에서 실패 상태를 또 두지 않는다(A6)
 - 관객 데스크탑 헤더 — Top app bar는 모두 390폭. 호스팅 PC 상단 바는 `Top bar_Host`(위 "호스팅 PC·대시보드 컴포넌트")로 생겼고, 아바타 ▾ 드롭다운은 `My`로 생겼다. 관객 PC 상단 바(로고 + 글자 메뉴 + 검색 + 로그인/아바타 ▾)는 와이어프레임에만 있다(`626:19888`·`640:17991`) — 구성이 `Top bar_Host`와 같다(검색만 더함, gui-screens §3). GUI 요청 Q23
-- ⋮ 메뉴(DropdownMenu) — 공연 카드(P11), 티켓(수정·삭제·판매 중단·재개, P12)
+- ⋮ 메뉴(DropdownMenu) — 공연 카드(P11), 티켓(수정·삭제·판매 중단·재개, P12). **2026-11-08 `variant="card"`** — 상세 정보 탭 메뉴(GUI `1318:385`, #191 — 화면이 직접 그린 200 · 모서리 12 · 그림자 · 항목 37h `Label/lg` · 구분선). DS `dropdown`과 달라 2단계 후보(`FIGMA-CUSTOM`)
 - 공연 전환 메뉴
 - 공지 바 — 티켓탭 승인 알림(T-3)
 - 카드 페이저(N/M) — 티켓탭 캐러셀

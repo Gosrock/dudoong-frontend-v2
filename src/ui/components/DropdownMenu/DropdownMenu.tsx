@@ -1,7 +1,7 @@
 'use client';
 
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 
 import { dropdownSurface } from '../../theme/surface.css';
 import * as s from './DropdownMenu.css';
@@ -21,6 +21,18 @@ export type DropdownMenuProps = {
   items: DropdownMenuItem[];
   side?: 'top' | 'right' | 'bottom' | 'left';
   align?: 'start' | 'center' | 'end';
+  /**
+   * 모양. `default` = DS `dropdown`(116 · 항목 28h · Label/md).
+   * `card` = GUI 상세정보 탭 메뉴(`1318:385` — #191, 화면이 직접 그림): 200 · 모서리 12 · 그림자 `drop shadow` · 안쪽 6 ·
+   * 항목 37h(위아래 9 · 좌우 10 · 아이콘 18 ↔ 글자 12) `Label/lg` · 항목 사이 구분선.
+   * FIGMA-CUSTOM: DS `dropdown`에 없는 변형(2단계 후보, 2026-11-08 #191)
+   */
+  variant?: 'default' | 'card';
+  /** 제어형 — 트리거 밖에서 열고 닫을 때(탭을 눌러 여는 메뉴 등). 없으면 트리거가 연다 */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** 닫힌 뒤 포커스를 다른 곳에 둘 때 `e.preventDefault()` 뒤 직접 옮긴다(Radix `onCloseAutoFocus`) */
+  onCloseAutoFocus?: (e: Event) => void;
 };
 
 /**
@@ -33,9 +45,14 @@ export function DropdownMenu({
   items,
   side = 'bottom',
   align = 'end',
+  variant = 'default',
+  open,
+  onOpenChange,
+  onCloseAutoFocus,
 }: DropdownMenuProps) {
+  const card = variant === 'card';
   return (
-    <RadixMenu.Root modal={false}>
+    <RadixMenu.Root modal={false} open={open} onOpenChange={onOpenChange}>
       <RadixMenu.Trigger asChild>{trigger}</RadixMenu.Trigger>
       <RadixMenu.Portal>
         <RadixMenu.Content
@@ -43,19 +60,22 @@ export function DropdownMenu({
           align={align}
           sideOffset={4}
           collisionPadding={16}
-          className={`${dropdownSurface} ${s.content}`}
+          className={card ? s.cardContent : `${dropdownSurface} ${s.content}`}
+          onCloseAutoFocus={onCloseAutoFocus}
         >
           {items.map((item, i) => (
-            <RadixMenu.Item
-              key={i}
-              className={s.item}
-              disabled={item.disabled}
-              data-danger={item.danger ? 'true' : undefined}
-              onSelect={item.onSelect}
-            >
-              {item.icon}
-              {item.label}
-            </RadixMenu.Item>
+            <Fragment key={i}>
+              {card && i > 0 && <RadixMenu.Separator className={s.cardSeparator} />}
+              <RadixMenu.Item
+                className={card ? s.cardItem : s.item}
+                disabled={item.disabled}
+                data-danger={item.danger ? 'true' : undefined}
+                onSelect={item.onSelect}
+              >
+                {item.icon}
+                {item.label}
+              </RadixMenu.Item>
+            </Fragment>
           ))}
         </RadixMenu.Content>
       </RadixMenu.Portal>
