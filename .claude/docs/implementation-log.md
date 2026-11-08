@@ -3528,7 +3528,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **테스트**: unit `ticket-rules` (섞인 주문 칩 하나 · 티켓마다 바뀜 · ON AIR · 발급 완료 · `headState`) · `useTicketTab`(select 1 → 2 → 3에 칩이 승인완료 → 선물 대기중 → 선물완료). QA `tickets` TIX-1/1b/2/3(칩 하나 · 개수 없음) · TIX-4(2/3 → 3/3 넘기고 닫으면 칩 "선물완료") · TIX-12(공연중 ON AIR 하나). e2e `tickets` "섞인 주문도 칩 하나 — 페이저로 넘기면 바뀐다".
 
-## 공연홈 "두둥 소개" 빈 카드 · 푸터 SNS 목적지 확정(2026-11-09, `fm-home-intro` #PR)
+## 공연홈 "두둥 소개" 빈 카드 · 푸터 SNS 목적지 확정(2026-11-09, `fm-home-intro` #211)
 
 사용자 결정 2026-11-09 두 가지.
 
