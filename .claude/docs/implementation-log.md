@@ -3386,3 +3386,42 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · vitest related 386/0 · `test:stories`(Button · Popup · EasyOverlay · Modal · icons) 38/0. QA `hosting-ticket` 30/0 · `hosting-guests` 37/0 · `checkout` 33/0 · `hosting-home` 18/0 · `mypage` 39/0. e2e `hosting-ticket` · `hosting-guests` · `hosting-host` · `hosting` · `mypage` · `checkout` · `a11y` · `a11y-keyboard` 306/0(38 skip).
 
 **ego-browser 확인**: Storybook 6147 — `Popup/Delete` 1440(420×170 · 제목 18 · 버튼 69×45 오른쪽 · 삭제 #E84230) · 390(310×160 · 같은 폭 버튼 127), `Popup/Opened` 1440(기본 Primary), `Popup/Summary` 390 · 1440(342 그대로), `Button/Matrix` · `MinWidth`(55/75/32 · 69/92/46 · 82/108/56). dev:mock 3147 `/hosting/events/101/tickets` 초대권 ⋮ → 삭제하기: 1440 420×170 [취소][삭제] 오른쪽 · Warning, 390 310×160. DS `843:449` 스크린샷과 같은 배치.
+
+## Design Sync #190~#195 — 공연 상세정보 탭 메뉴 · 이름 변경 · 삭제 · 저장 없이 이동(2026-11-08, `design-190-195` #197)
+
+**근거**: GUI 지금 판(`2419412643836806515`, 11-08T10:23Z) Ready — 상세정보 `767:39585` · `767:39645`(#190, 에디터 카드가 새로 그려짐) · 탭 메뉴 열림 `1316:383` · `1336:957`(#191) · 탭 이름 변경 `1320:383` · `1336:1015`(#192) · 탭 삭제 `1325:14881` · `1336:1073` · 삭제완료 `1325:15101` · `1336:1131`(#193) · 저장 없이 이동시 확인 `1331:838` · `1336:1168`(#194 · #195). 처음엔 REST 토큰이 403이라 공식 Figma MCP(`get_screenshot` · `use_figma` 읽기)로 노드 트리를 읽었고, 토큰을 고친 뒤 `figma_nodes.py ready`로 Ready 134줄을 다시 셈.
+
+**매핑**
+| Figma 노드 | 분류 | 코드 | 판단 |
+|---|---|---|---|
+| `1325:15322` 에디터 카드 · `1325:15323` 툴바(36 정사각 흰 버튼 · 켜짐 테두리 `1320:426` · 구분선 · [이미지] 83) | 직접 그림 | `SectionEditor.css.ts` | 커스텀(DS에 에디터 없음) — `FIGMA-CUSTOM` → DS 후보 |
+| `ic_list` · `ic_image` · `ic_edit_2` · `ic_trash` | DS | `Icon` `list` · `image` · `edit-2` · `trash` filled, 18 | #188 · #189로 들어온 아이콘 |
+| `767:40045` tab item(데스크탑) — 글자 `Heading/md2` 18 | DS + override | `Tab` + `EventDetailView.css.ts` `tab`(PC 18) | 화면대로(R1) |
+| `1316:497` · `1336:1013` "tab item (선택·이름 편집)"(배경 `surface/container` · 좌우 10 · 위 모서리 8) | 직접 그림 | `EventDetailView.css.ts` `tab[data-menu-open]` | 커스텀 — DS `tab item`에 없는 상태 |
+| `1318:385` 탭 메뉴(드롭다운) 200 · 모서리 12 · 그림자 · 항목 37h `Label/lg` · 구분선 | 직접 그림 | `DropdownMenu` `variant="card"` | DS `dropdown`과 달라 변형 더함(`FIGMA-CUSTOM`, 2단계 후보) |
+| `1336:1538` Bottom sheet_탭 메뉴(`surface=flat` · 제목 sm · ✕) + 항목 51h | DS + 로컬 항목 | `BottomSheet variant="flat"` + `SectionTabMenu.css.ts` `sheetItem` | DS 시트 그대로, 항목만 커스텀 |
+| `1320:811` 탭 이름 입력(200×36 · 테두리 2 보라 · 바깥 빛 · 글자 수) | 직접 그림 | `TabNameField`(`SectionTabMenu.css.ts`) | 커스텀 |
+| `1338:1270` 다이얼로그_모바일_탭 이름 변경(DS `text input Field` + 글자 수 + Secondary · Primary) | 직접 그림(DS 다이얼로그 모양) | `Popup` + `Input maxLength` | DS로 같은 모양 — 차이 없음 |
+| `1325:15091` · `1325:15521` 다이얼로그_데스크탑 `Property 1=삭제`, `1325:25546` · `1325:25568` 다이얼로그(Warning) | DS | `openConfirm({ intent: 'delete' })` | DS 그대로 |
+| `1325:15342` · `1325:25560` Toast popup "탭을 삭제했어요." | DS | `toast()` | DS 그대로 |
+
+**한 것**
+- 에디터: 툴바를 카드 위 띠로(굵게 · 소제목 · 목록은 `aria-pressed`, 이미지 올리는 중은 스피너), 입력 영역 안쪽 24.
+- 탭: 탭 이름 칸 · [탭 빼기] 버튼 뺌. 고른 탭을 한 번 더 누르면 PC 드롭다운(탭 아래 왼쪽, 크기 0 트리거) · 모바일 시트. [이름 바꾸기] PC 탭 자리 입력칸(글자 모두 고름) · 모바일 `Popup` 창, [탭 삭제] Warning 확인 → 지우고 토스트. 시트에서 고른 것은 시트가 다 닫힌 뒤(뒤로가기 history 항목이 엇갈리지 않게) 다음 창을 연다.
+- 새 탭 이름 "새 탭"(`NEW_SECTION_TITLE` — 빈 이름으로 시작하면 이름 칸이 없어 저장이 막힌 이유가 안 보인다).
+- 화면 여백 · 글자: 모바일 위 16 · 아래 28 · 사이 16, PC 위 28 · 제목 블록 아래 24 · 탭 ↔ 카드 16, PC 안내 `Body/lg`, 탭 ↔ (+) 24.
+- 이탈 확인(`useLeaveGuard`, 호스팅 공용): "저장하지 않고 이동할까요?" · "저장하지 않은 변경 사항은 사라져요." · [계속 작성][이동하기](Warning). ds-sync-1108 결정 4("저장 안 하고 나가기는 기본 색")를 GUI대로 바꿈.
+- 어디서 뜨나: 화면 안 같은 출처 링크(PC 사이드바 · 모바일 ☰ 드로어 · 헤더 제목 ▾ 공연 바꾸기 · 체크리스트 등) = 이 창 · 새로고침/탭 닫기 = 브라우저 기본 창(`beforeunload`) · 브라우저 뒤로가기 = 막지 않음(App Router에 이동 차단 API가 없다).
+
+**결정(🤖 Claude 판단)** — design-requests Q216~Q219
+1. Q216 메뉴는 고른 탭을 한 번 더 누를 때(다른 탭 누르기는 고르기만). 되돌리기: `EventDetailView.tsx` `onTabClick`.
+2. Q217 탭 하나면 [탭 삭제] 흐림, 10개면 (+) 숨김.
+3. Q218 PC 입력칸 — Enter · 바깥 누르기 = 바꿈, Esc = 그대로, 비면 그대로.
+4. Q219 저장 없이 이동 창을 호스팅 편집 화면 모두(기본 정보 · 티켓 · 호스트 설정)에 같은 문구로.
+5. 메뉴 항목 첫 줄 회색 배경(Figma)은 누름 · 키보드 이동 상태로 봄.
+
+**Figma 코멘트**: 옛 스레드 `767:40044`(`1989708687` "[개발 · 디자인 없음] 상세 정보 — 에디터 툴바 · 탭 이름 바꾸기/빼기 · 탭 최대 개수 · 미리보기", Nemin 11-08 "디자인 추가했음")에 답글 `1999121700` — Figma대로 고친 것 + 아직 그려지지 않은 것(10개 · 하나 남았을 때 · 미리보기).
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related 111/0. QA `hosting-event` 30/0(수동 1, HE-6 다시 씀 · HE-16 새로). e2e `hosting-event` · `a11y-keyboard` 38/0, `a11y` · `hosting-ticket` 129/0.
+
+**ego-browser 확인(dev:mock 3149 · `localhost`)**: `/hosting/events/101/detail` 1440 — 기본 · 탭 메뉴 · 탭 입력칸 · 삭제 확인 · 삭제 토스트 · 이탈 확인이 `767:39645` · `1316:383` · `1320:383` · `1325:14881` · `1325:15101` · `1331:838`과 같음, 키보드(Enter → 메뉴 첫 항목 포커스 · Esc → 탭으로) 확인. 390 — 기본 · 시트(탭 배경 포함) · 이름 창(글자 모두 고름 · 5/20) · 삭제 확인 · 토스트가 `767:39585` · `1336:957` · `1336:1015` · `1336:1073` · `1336:1131`과 같음, 시트 열고 뒤로가기 → 시트만 닫힘.

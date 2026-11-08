@@ -122,9 +122,11 @@ export function EditorBottomBar({
 }
 
 /**
- * 저장하지 않은 변경이 있으면 떠나기 전에 묻는다(이탈 경고 — 디자인 없음, DS `Popup`).
- * - 새로고침·탭 닫기: 브라우저 기본 확인(`beforeunload`)
- * - 화면 안 링크(사이드바·체크리스트·헤더 등 같은 출처 `<a>`): 누르기를 가로채 확인 뒤 `router.push`
+ * 저장하지 않은 변경이 있으면 떠나기 전에 묻는다 — GUI 상세정보_저장 없이 이동시 확인(PC `1331:838` · 모바일 `1336:1168`, #194 · #195):
+ * DS `다이얼로그`(모바일) · `다이얼로그_데스크탑 Property 1=삭제`(PC) — "저장하지 않고 이동할까요?" · [계속 작성][이동하기](Warning).
+ * 호스팅 편집 화면(기본 정보 · 상세 정보 · 티켓 · 호스트 설정)이 같은 창을 쓴다(🤖 2026-11-08 — 같은 상황이라 문구를 하나로).
+ * - 새로고침·탭 닫기: 브라우저 기본 확인(`beforeunload` — 문구를 바꿀 수 없다)
+ * - 화면 안 링크(사이드바·체크리스트·헤더·드로어 등 같은 출처 `<a>`): 누르기를 가로채 확인 뒤 `router.push`
  * 브라우저 뒤로가기는 막지 않는다(App Router에 이동 차단 API가 없다 — 오버레이 뒤로가기 규칙과 겹치지 않게).
  */
 export function useLeaveGuard(dirty: boolean) {
@@ -148,9 +150,11 @@ export function useLeaveGuard(dirty: boolean) {
       // 드로어 안 링크는 오버레이 안 이동이라 replace(patterns §6)
       const inOverlay = Boolean(a.closest('[role="dialog"]'));
       void openConfirm({
-        title: '저장하지 않고 나갈까요?',
-        description: '바꾼 내용이 저장되지 않아요.',
-        confirmLabel: '나가기',
+        title: '저장하지 않고 이동할까요?',
+        description: '저장하지 않은 변경 사항은 사라져요.',
+        cancelLabel: '계속 작성',
+        confirmLabel: '이동하기',
+        intent: 'delete',
       }).then((ok) => {
         if (!ok) return;
         const to = url.pathname + url.search + url.hash;

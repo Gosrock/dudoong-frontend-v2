@@ -47,6 +47,17 @@ async function setUp(page: Page, testInfo: TestInfo) {
 
 const isDesktop = (testInfo: TestInfo) => testInfo.project.name === 'desktop';
 
+/** 상세 정보 탭 메뉴 — 고른 탭을 한 번 더 누르면 PC 드롭다운 · 모바일 시트(#191) */
+async function openTabMenu(page: Page, name: string) {
+  const tab = page.getByRole('tab', { name, exact: true });
+  if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click();
+  await tab.click();
+}
+const tabMenuItem = (page: Page, testInfo: TestInfo, label: string) =>
+  isDesktop(testInfo)
+    ? page.getByRole('menuitem', { name: label })
+    : page.getByRole('dialog').getByRole('button', { name: label });
+
 scenario(
   'HE-1',
   '등록 전 대시보드 — 사이드바 메뉴 4개 · 공연 카드, 체크리스트 0/3 · [공연 등록하기] 비활성',
@@ -272,24 +283,29 @@ scenario(
 
 scenario(
   'HE-6',
-  '상세 정보 — 밑줄 탭 · 에디터, 미리보기는 섹션 뷰어, 탭을 빼고 저장하면 전체 교체',
+  '상세 정보 — 탭 · 에디터 카드, 탭 메뉴로 이름 바꾸기 · 삭제, 저장하면 전체 교체',
   {
     kind: '정상',
     summary:
-      '기본 4탭 + 탭 추가(+). 본문을 쓰면 [미리보기]가 열리고 관객 상세와 같은 뷰어로 보인다. 탭을 빼고 저장하면 PE-6 본문에서 빠진다(전체 교체).',
+      '기본 4탭 + 탭 추가(+) + 툴바 있는 에디터 카드. 본문을 쓰면 [미리보기]가 섹션 뷰어로 열린다. 고른 탭을 한 번 더 누르면 탭 메뉴(PC 드롭다운 · 모바일 시트) — [이름 바꾸기]는 PC 탭 입력칸 · 모바일 창, [탭 삭제]는 확인 뒤 토스트. 저장하면 PE-6 본문이 남은 탭으로 바뀐다(전체 교체).',
     basis: [
+      'GUI 767:39585 · 767:39645(#190)',
+      'GUI 탭 메뉴 1316:383 · 1336:957(#191) · 이름 변경 1320:383 · 1336:1015(#192) · 삭제 1325:14881 · 1325:15101 · 1336:1073 · 1336:1131(#193)',
       'plan P11 완료 기준 V "섹션 저장이 전체 교체임을 UI가 반영"',
-      'GUI 767:39585 · 767:39645',
       'P5b SectionViewer 재사용',
     ],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
-    await step('상세 정보를 열면 탭 4개(공연소개 선택)와 에디터가 보인다', async () => {
-      await page.goto('/hosting/events/101/detail');
-      await expect(page.getByTestId('section')).toHaveCount(4);
-      await expect(page.getByRole('toolbar', { name: '본문 서식' })).toBeVisible();
-    });
+    await step(
+      '상세 정보를 열면 탭 4개(공연 소개 선택)와 툴바 있는 에디터 카드가 보인다',
+      async () => {
+        await page.goto('/hosting/events/101/detail');
+        await expect(page.getByTestId('section')).toHaveCount(4);
+        const toolbar = page.getByRole('toolbar', { name: '본문 서식' });
+        await expect(toolbar.getByRole('button')).toHaveText(['B', 'H', '', '이미지']);
+      },
+    );
     await step('본문을 쓰면 [미리보기]가 열리고 섹션 뷰어로 보인다', async () => {
       const editor = page.getByRole('textbox', { name: /본문$/ });
       await editor.click();
@@ -298,16 +314,49 @@ scenario(
       await page.getByRole('button', { name: '미리보기' }).click();
       await expect(page.getByTestId('sections-preview')).toContainText('앵콜 공연이 추가되었어요');
       await page.keyboard.press('Escape');
+      await expect(page.getByTestId('sections-preview')).toHaveCount(0);
     });
-    await step('세트리스트 탭을 빼면(확인) 탭이 3개가 된다', async () => {
+    await step('다른 탭을 누르면 고르기만, 고른 탭을 한 번 더 누르면 탭 메뉴', async () => {
       await page.getByRole('tab', { name: '세트리스트' }).click();
-      await page.getByRole('button', { name: '탭 빼기' }).click();
-      await expect(page.getByRole('alertdialog')).toContainText(
-        '저장하면 공연 상세에서도 이 탭이 사라져요',
-      );
-      await page.getByRole('alertdialog').getByRole('button', { name: '빼기' }).click();
-      await expect(page.getByTestId('section')).toHaveCount(3);
+      await expect(tabMenuItem(page, testInfo, '이름 바꾸기')).toHaveCount(0);
+      await openTabMenu(page, '세트리스트');
+      await expect(tabMenuItem(page, testInfo, '이름 바꾸기')).toBeVisible();
+      await expect(tabMenuItem(page, testInfo, '탭 삭제')).toBeVisible();
     });
+    await step(
+      '[이름 바꾸기] — PC는 탭이 입력칸, 모바일은 창. 바꾸면 탭 이름이 바뀐다',
+      async () => {
+        await tabMenuItem(page, testInfo, '이름 바꾸기').click();
+        const field = page.getByRole('textbox', { name: '탭 이름' });
+        await expect(field).toBeFocused();
+        await expect(field).toHaveValue('세트리스트');
+        await field.fill('곡 목록');
+        if (isDesktop(testInfo)) {
+          await expect(page.getByText('4/20')).toBeVisible();
+          await page.keyboard.press('Enter');
+        } else {
+          await expect(page.getByRole('alertdialog', { name: '탭 이름 바꾸기' })).toContainText(
+            '4/20',
+          );
+          await page.getByRole('alertdialog').getByRole('button', { name: '저장' }).click();
+        }
+        await expect(page.getByRole('tab', { name: '곡 목록' })).toBeVisible();
+      },
+    );
+    await step(
+      '[탭 삭제] — 확인 창(빨강 [삭제]) 뒤 탭이 3개가 되고 "탭을 삭제했어요."',
+      async () => {
+        await openTabMenu(page, '곡 목록');
+        await tabMenuItem(page, testInfo, '탭 삭제').click();
+        const confirm = page.getByRole('alertdialog', { name: '‘곡 목록’ 탭을 삭제할까요?' });
+        await expect(confirm).toContainText(
+          '탭에 작성한 내용이 모두 삭제돼요. 삭제한 내용은 되돌릴 수 없어요.',
+        );
+        await confirm.getByRole('button', { name: '삭제' }).click();
+        await expect(page.getByTestId('section')).toHaveCount(3);
+        await expect(page.getByText('탭을 삭제했어요.')).toBeVisible();
+      },
+    );
     await step('저장하면 PE-6 본문에 남은 탭 3개만 간다', async () => {
       const put = page.waitForRequest(
         (r) => r.method() === 'PUT' && r.url().endsWith('/api/v2/events/101/sections'),
@@ -317,6 +366,45 @@ scenario(
       expect(body.sections.map((s) => s.title)).toEqual(['공연 소개', '예매안내', '유의사항']);
       await expect(page.getByRole('alertdialog', { name: '저장했어요' })).toBeVisible();
     });
+  },
+);
+
+scenario(
+  'HE-16',
+  '상세 정보 — 새 탭은 "새 탭", 저장하지 않고 다른 메뉴로 가면 확인',
+  {
+    kind: '정상',
+    summary:
+      '(+)로 더한 탭은 이름 "새 탭"으로 시작한다. 고친 채 메뉴로 가면 "저장하지 않고 이동할까요?" — [계속 작성]이면 머문다.',
+    basis: [
+      'GUI 탭 이름 변경 1320:383(새 탭 3/20 — #192)',
+      'GUI 저장 없이 이동시 확인 1331:838 · 1336:1168(#194 · #195)',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('(+)를 누르면 "새 탭"이 생기고 골라진다', async () => {
+      await page.goto('/hosting/events/101/detail');
+      await expect(page.getByTestId('section')).toHaveCount(4);
+      await page.getByRole('button', { name: '탭 추가' }).click();
+      await expect(page.getByRole('tab', { name: '새 탭' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+    });
+    await step(
+      '메뉴로 가려 하면 "저장하지 않고 이동할까요?" — [계속 작성]이면 머문다',
+      async () => {
+        await goEventMenu(page, '대시보드');
+        const dialog = page.getByRole('alertdialog', { name: '저장하지 않고 이동할까요?' });
+        await expect(dialog).toContainText('저장하지 않은 변경 사항은 사라져요.');
+        await expect(dialog.getByRole('button', { name: '이동하기' })).toBeVisible();
+        await dialog.getByRole('button', { name: '계속 작성' }).click();
+        await expect(dialog).toHaveCount(0);
+        await expect(page).toHaveURL('/hosting/events/101/detail');
+        await expect(page.getByTestId('section')).toHaveCount(5);
+      },
+    );
   },
 );
 
@@ -339,10 +427,13 @@ scenario(
       await expect(page.getByLabel('공연 이름')).toHaveAttribute('readonly', '');
       await expect(page.getByRole('button', { name: '저장하기' })).toHaveCount(0);
     });
-    await step('상세 정보 — 툴바·탭 이름 칸 없이 본문만', async () => {
+    await step('상세 정보 — 툴바 없이 본문만, 고른 탭을 눌러도 탭 메뉴가 없다', async () => {
       await goEventMenu(page, '상세 정보');
       await expect(page.getByRole('tab', { name: '공연소개' })).toBeVisible();
       await expect(page.getByRole('toolbar', { name: '본문 서식' })).toHaveCount(0);
+      await page.getByRole('tab', { name: '공연소개' }).click();
+      await expect(page.getByRole('menu')).toHaveCount(0);
+      await expect(page.getByRole('dialog')).toHaveCount(0);
       await expect(page.getByRole('button', { name: '저장하기' })).toHaveCount(0);
     });
     await step('대시보드 — [공연 등록하기]가 없다', async () => {
@@ -398,8 +489,8 @@ scenario(
   {
     kind: '정상',
     summary:
-      '바꾼 칸이 있으면 메뉴 링크를 눌러도 바로 가지 않고 팝업으로 묻는다. [취소]면 머문다, [나가기]면 간다.',
-    basis: ['plan P11 V 범위 "이탈 경고"', 'patterns §6 오버레이'],
+      '바꾼 칸이 있으면 메뉴 링크를 눌러도 바로 가지 않고 "저장하지 않고 이동할까요?"로 묻는다. [계속 작성]이면 머문다, [이동하기]면 간다.',
+    basis: ['GUI 저장 없이 이동시 확인 1331:838 · 1336:1168(#194 · #195)', 'patterns §6 오버레이'],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -408,11 +499,11 @@ scenario(
       await page.getByLabel('공연 이름').fill('이름 바꿈');
       await goEventMenu(page, '대시보드');
       await expect(
-        page.getByRole('alertdialog', { name: '저장하지 않고 나갈까요?' }),
+        page.getByRole('alertdialog', { name: '저장하지 않고 이동할까요?' }),
       ).toBeVisible();
     });
-    await step('[나가기]를 누르면 대시보드로 간다', async () => {
-      await page.getByRole('alertdialog').getByRole('button', { name: '나가기' }).click();
+    await step('[이동하기]를 누르면 대시보드로 간다', async () => {
+      await page.getByRole('alertdialog').getByRole('button', { name: '이동하기' }).click();
       await expect(page).toHaveURL('/hosting/events/140/dashboard');
     });
   },

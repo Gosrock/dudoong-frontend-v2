@@ -73,3 +73,32 @@ export const Danger: Story = {
     ],
   },
 };
+
+/** `variant="card"` — 상세 정보 탭 메뉴(GUI `1318:385`): 200 · 모서리 12 · 그림자 · 항목 37h `Label/lg` · 항목 사이 구분선 */
+export const Card: Story = {
+  args: {
+    variant: 'card',
+    align: 'start',
+    items: [
+      {
+        label: '이름 바꾸기',
+        icon: <Icon name="edit-2" variant="filled" style={{ width: 18, height: 18 }} />,
+        onSelect: onEdit,
+      },
+      {
+        label: '탭 삭제',
+        icon: <Icon name="trash" variant="filled" style={{ width: 18, height: 18 }} />,
+        onSelect: onDelete,
+        danger: true,
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '더보기' }));
+    const menu = await screen.findByRole('menu');
+    await expect(within(menu).getAllByRole('menuitem')).toHaveLength(2);
+    await expect(within(menu).getByRole('separator')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+  },
+};

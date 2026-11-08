@@ -59,8 +59,18 @@ export const canAddSection = (sections: readonly SectionInput[]) =>
 export const canRemoveSection = (sections: readonly SectionInput[]) =>
   sections.length > EVENT_SECTIONS_MIN;
 
-/** 새 섹션 — 제목·본문이 비어 있다(제목을 채워야 저장된다) */
-export const emptySection = (): SectionInput => ({ key: newKey(), title: '', content: '' });
+/**
+ * 새 탭 이름 — GUI 탭 이름 변경 `1320:383` · `1336:1015`(#192)의 값 "새 탭"(3/20). 탭 이름 칸이 화면에서 빠져
+ * (이름은 탭 메뉴 → 이름 바꾸기로만 고친다) 빈 이름으로 시작하면 저장이 막힌 이유가 안 보인다
+ */
+export const NEW_SECTION_TITLE = '새 탭';
+
+/** 새 섹션 — 이름 "새 탭" · 본문 없음 */
+export const emptySection = (): SectionInput => ({
+  key: newKey(),
+  title: NEW_SECTION_TITLE,
+  content: '',
+});
 
 /** 섹션을 더한다(10개면 그대로) */
 export const withAddedSection = (sections: readonly SectionInput[]): SectionInput[] =>

@@ -305,10 +305,20 @@ test.describe('등록된 공연 수정', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/detail');
     await expect(page.getByTestId('section')).toHaveCount(4);
-    await page.getByRole('tab', { name: '세트리스트' }).click();
-    await page.getByRole('button', { name: '탭 빼기' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: '빼기' }).click();
+    // 고른 탭을 한 번 더 누르면 탭 메뉴(#191) — PC 드롭다운 · 모바일 시트
+    const tab = page.getByRole('tab', { name: '세트리스트' });
+    await tab.click();
+    await tab.click();
+    await page
+      .getByRole('menuitem', { name: '탭 삭제' })
+      .or(page.getByRole('dialog').getByRole('button', { name: '탭 삭제' }))
+      .click();
+    await page
+      .getByRole('alertdialog', { name: '‘세트리스트’ 탭을 삭제할까요?' })
+      .getByRole('button', { name: '삭제' })
+      .click();
     await expect(page.getByTestId('section')).toHaveCount(3);
+    await expect(page.getByText('탭을 삭제했어요.')).toBeVisible();
     const put = page.waitForRequest(
       (r) => r.method() === 'PUT' && r.url().endsWith('/api/v2/events/101/sections'),
     );

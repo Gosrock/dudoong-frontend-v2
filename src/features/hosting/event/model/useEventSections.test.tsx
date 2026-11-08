@@ -117,7 +117,7 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
     expect(pub.map((s) => s.title)).toEqual(['공연 소개', '예매안내', '유의사항']);
   });
 
-  it('1~10개: 10개면 더하지 않고 1개면 빼지 않는다, 빈 제목은 칸 오류로 요청하지 않는다', async () => {
+  it('1~10개: 10개면 더하지 않고 1개면 빼지 않는다, 새 탭은 "새 탭", 빈 제목은 칸 오류로 요청하지 않는다', async () => {
     const { result } = setup('140');
     await loaded(result);
     for (let i = 0; i < 7; i += 1) act(() => result.current.tabs.add());
@@ -125,9 +125,11 @@ describe('상세 정보 — 섹션 전체 교체(PE-6)', () => {
     expect(result.current.tabs.canAdd).toBe(false);
     act(() => result.current.tabs.add());
     expect(result.current.sections).toHaveLength(10);
+    expect(result.current.sections.at(-1)!.title).toBe('새 탭');
+    const blank = result.current.sections.at(-1)!.key;
+    act(() => result.current.tabs.setTitle(blank, ' '));
     const sent = recordRequests();
     expect(await save(result)).toBe(false);
-    const blank = result.current.sections.at(-1)!.key;
     expect(result.current.errors[blank]!.title).toBe('탭 이름을 입력해 주세요');
     expect(await writes(sent)).toEqual([]);
   });

@@ -6,7 +6,7 @@ import StarterKit from '@tiptap/starter-kit';
 import { useEffect, useRef } from 'react';
 
 import * as viewer from '@/features/shared/section-viewer/ui/SectionViewer.css';
-import { Button } from '@/ui/components/Button/Button';
+import { Spinner } from '@/ui/components/Loader/Loader';
 import { Icon } from '@/ui/icons/Icon';
 
 import * as s from './SectionEditor.css';
@@ -15,10 +15,11 @@ const imageFile = (files: FileList | null | undefined) =>
   files ? Array.from(files).find((f) => /^image\/(png|jpe?g)$/.test(f.type)) : undefined;
 
 /**
- * 섹션 본문 에디터(Tiptap, HTML 저장 — tech-decisions §17). 툴바는 Figma에 없다(Ready `767:39585`·`767:39645`는 탭과 빈 칸뿐) —
- * DS 버튼으로 최소한(굵게 · 소제목 · 목록 · 이미지)만 둔다. 이미지는 버튼·드래그 앤 드롭·붙여 넣기로 올린다
- * (Figma 안내 "이미지는 드래그 앤 드롭으로도 첨부 가능해요"). 글자 모양은 관객 뷰어(`SectionViewer`)와 같은 서식.
- * 섹션마다 `key`로 새로 만든다(탭을 바꾸면 그 섹션 HTML로 다시 시작).
+ * 섹션 본문 에디터(Tiptap, HTML 저장 — tech-decisions §17). GUI 에디터 카드(`1325:15322` PC · `1325:15571` 모바일, #190):
+ * 테두리 카드 안 위 툴바 [B][H][목록] | [이미지] → 입력 영역. 툴바 버튼은 화면이 직접 그린 36 정사각 흰 버튼(켜짐 = 테두리,
+ * `1320:426`) — FIGMA-CUSTOM: 툴바(gui 1325:15323 "툴바") 커스텀 → `SectionEditor.css.ts`. DS 후보(design-system §3).
+ * 이미지는 버튼·드래그 앤 드롭·붙여 넣기로 올린다(Figma 안내 "이미지는 드래그 앤 드롭으로도 첨부 가능해요").
+ * 글자 모양은 관객 뷰어(`SectionViewer`)와 같은 서식. 섹션마다 `key`로 새로 만든다(탭을 바꾸면 그 섹션 HTML로 다시 시작).
  */
 export function SectionEditor({
   content,
@@ -103,36 +104,41 @@ export function SectionEditor({
     <div className={s.root}>
       {!readOnly && (
         <div className={s.toolbar} role="toolbar" aria-label="본문 서식">
-          <Button
-            variant="secondary"
-            size="sm"
-            selected={active?.bold}
+          <button
+            type="button"
+            className={s.tool}
+            aria-label="굵게"
             aria-pressed={active?.bold ?? false}
             disabled={!editor}
             onClick={() => editor?.chain().focus().toggleBold().run()}
           >
-            굵게
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            selected={active?.heading}
+            <span aria-hidden className={s.toolLetter}>
+              B
+            </span>
+          </button>
+          <button
+            type="button"
+            className={s.tool}
+            aria-label="소제목"
             aria-pressed={active?.heading ?? false}
             disabled={!editor}
             onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
           >
-            소제목
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            selected={active?.list}
+            <span aria-hidden className={s.toolLetter}>
+              H
+            </span>
+          </button>
+          <button
+            type="button"
+            className={s.tool}
+            aria-label="목록"
             aria-pressed={active?.list ?? false}
             disabled={!editor}
             onClick={() => editor?.chain().focus().toggleBulletList().run()}
           >
-            목록
-          </Button>
+            <Icon name="list" variant="filled" className={s.toolIcon} />
+          </button>
+          <span aria-hidden className={s.toolDivider} />
           <input
             ref={fileInput}
             type="file"
@@ -145,16 +151,20 @@ export function SectionEditor({
               if (file && editor) void insert(editor, file);
             }}
           />
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Icon name="image-add" />}
-            loading={uploading}
-            disabled={!editor}
+          <button
+            type="button"
+            className={s.toolWide}
+            aria-busy={uploading || undefined}
+            disabled={!editor || uploading}
             onClick={() => fileInput.current?.click()}
           >
+            {uploading ? (
+              <Spinner size="sm" />
+            ) : (
+              <Icon name="image" variant="filled" className={s.toolIcon} />
+            )}
             이미지
-          </Button>
+          </button>
         </div>
       )}
       <EditorContent editor={editor} className={s.content} />
