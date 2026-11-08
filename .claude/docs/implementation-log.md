@@ -3323,3 +3323,32 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **결정(🤖 Claude 판단)**
 1. 미리 채운 문의처는 다른 칸을 저장할 때 같이 보낸다(보이는 값 = 저장되는 값). 문의처만 그대로 두고 저장하려면 무언가 하나는 고쳐야 한다(처음 값이라 dirty가 아님). 되돌리기: `fieldsToSend`에서 `saved` 비교를 빼면 "건드린 경우만 저장".
 2. 아카이빙 크게 보기 모양(Q207) — 되돌리기: `ArchivePosterOverlay.tsx` · `ArchiveView.tsx` 포스터 버튼.
+
+## Design Sync #180 · #181 — 기본 정보 지도 높이 · 지도 못 불러올 때(2026-11-08, `design-180-181` #184)
+
+**근거**: GUI Ready(Desktop Bridge `figma_execute`로 읽음 — REST 토큰 403). #180 `748:33351` · `748:33451` 지도 `748:33391` · `748:33492` 342×147. PC 정상 `748:34006`의 지도 `748:34508`은 아직 600×144. #181 `1269:29502`(모바일) · `1277:29907`(PC 1440) — 지도 칸 `1269:29539` · `1277:30239`(147, `Color/Background/grey`, r8, 세로 오토레이아웃 위아래 24 · 좌우 80 · 간격 12, 가운데) 안에 DS `img_지도 못불러옴`(`1277:29735`, 디자인 시스템 `834:369`, 91×70) + 글자 "지도 서비스를 불러오지 못했어요."(`Label/md`, `Color/surface/strong-border`). 주소 칸 아래 안내 줄 없음.
+
+**매핑**
+| Figma 노드 | 분류 | 코드 | 판단 |
+|---|---|---|---|
+| `1269:29539` · `1277:30239` A4 지도 칸 | 직접 그림 | `PlaceParts.css.ts` `map`(그대로, 높이만 147) | 지도 칸 자체가 화면 고유 |
+| `1277:29735` · `1277:30240` img_지도 못불러옴 | DS | `<Illustration name="map-unavailable" />`(새 — DS `834:369` SVG 원본) | DS 일러스트 |
+| `1277:29866` · `1277:30241` 문구 | 직접 그림(스타일 Label/md) | `<Txt typography="labelMd" color={colors.surfaceStrongBorder}>` | 토큰 그대로 |
+
+**한 것**
+- `PlaceParts.tsx` `KakaoMapPreview`: 지도 서비스 실패(키 없음 · SDK 실패 · 좌표 찾기에서 이미 실패)면 `MapUnavailable`(일러스트 + 문구, `role="status"`). 옛 "지도를 불러오지 못했어요"(디자인 없이 정한 문구) 뺌. 좌표 없음 "주소를 검색하면 지도가 보여요"(P11-V 때 개발이 정한 것)도 뺐다 — GUI `748:33351`대로 글자 없는 회색 칸(관제탑 검토 #184, 사용자 결정 R1 "Ready 화면과 100% 동일").
+- `PlaceParts.css.ts` 지도 높이 144 → 147(모바일 · PC).
+- `BasicInfoSections.tsx` `PlaceSection`: `lookupFailure === 'unavailable'`이면 칸 위 안내(`PLACE_ERROR.mapUnavailable`)를 띄우지 않는다 — 지도 칸이 알린다. 훅(L)은 그대로(`lookupError` 값은 남음).
+- `src/ui/illustrations/map-unavailable.svg`(Bridge `exportAsync({ format: 'SVG_STRING' })`, 7.5KB — `<script>` · `<foreignObject>` · 외부 참조 없음 확인) + `Illustration.tsx` 등록.
+- QA `HE-4` · e2e `hosting-event` 빈 칸 기대값을 "글자 없음"으로(HE-4는 높이 147도). QA `HE-15`(좌표 있는 공연 101 · 주소를 새로 고른 공연 140, SDK 막음 — 문구 · 높이 147 · 칸 위 안내 없음).
+
+**결정(🤖 Claude 판단)**
+1. Q210 — PC 정상 프레임은 144로 남아 있지만 모바일 · PC 실패 프레임이 147이라 PC도 147. 되돌리기: `map` 높이 PC 144.
+2. Q211 — 좌표 찾기 단계 실패(주소를 새로 고른 직후)도 지도 칸 한 곳에서 같은 그림 + 문구로 알리고 칸 아래 줄은 뺐다. 되돌리기: `PlaceSection` 첫 `FieldError`.
+3. 일러스트 위아래 패딩은 Figma 24 · 좌우 80 대신 지도 칸 가운데 정렬(기존 `overlayText`, 패딩 16) — 147 칸에 내용 99라 보이는 자리는 같다.
+
+**Figma 코멘트**: 달지 않음(이 세션은 Figma에 쓰지 않는다 — 옛 코멘트 `748:33492` "지도 빈/실패"(P11 · #94)에 "Figma대로 고침" 답글은 관제탑 몫).
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related 23/0. QA `hosting-event` 28/0(수동 1). 검토 반영 뒤(main 합침 · 빈 칸 안내 뺌) QA `hosting-event` 28/0 · e2e `hosting-event` 32/0 다시. e2e `hosting-event` · `hosting-ticket` 56/0, `a11y` 105/0(건너뜀 35).
+
+**ego-browser 확인(dev:mock 3145 · `localhost`, 카카오 키 없음 = 지도 실패)**: `/hosting/events/101/info` 390 · 1440 — 지도 칸 342×147 · 600×147, 일러스트 + 문구가 Figma `1269:29502` · `1277:29907` 캡처와 같음. 검토 반영 뒤 `/hosting/events/140/info` 390 · 1440 — 빈 칸 342 · 600 × 147, #EEEEED, 글자 없음(Figma `748:33351`과 같음).

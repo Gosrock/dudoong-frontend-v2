@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
+import { Illustration } from '@/ui/illustrations/Illustration';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
@@ -95,8 +96,9 @@ function PostcodeEmbed({ onPick }: { onPick: (address: string) => void }) {
 }
 
 /**
- * 장소 아래 지도 미리보기(GUI `748:33492` 342×144 · PC `748:34508` 600×144 — 디자이너 코멘트 "지도 프리뷰", Q3 해결).
- * 카카오맵 SDK `kakao.maps.Map` + 마커(Geocoder와 같은 SDK). 좌표가 없거나·키가 없거나·불러오지 못하면 회색 칸 + 안내(같은 크기)
+ * 장소 아래 지도 미리보기(GUI `748:33492` 모바일 342×147 — #180, PC `748:34508` 600×144 → 147로 맞춤 Q210 — 디자이너 코멘트 "지도 프리뷰", Q3 해결).
+ * 카카오맵 SDK `kakao.maps.Map` + 마커(Geocoder와 같은 SDK). 좌표가 없으면 GUI `748:33391`대로 빈 회색 칸(안내 글자 없음 — 관제탑 검토 #184, R1),
+ * 지도 서비스를 불러오지 못하면(키 없음 · SDK 실패 · 좌표 찾기에서 이미 실패) GUI `1269:29539`·`1277:30239`대로 일러스트 + 문구(#181)
  */
 export function KakaoMapPreview({
   latitude,
@@ -105,7 +107,7 @@ export function KakaoMapPreview({
 }: {
   latitude: number | null;
   longitude: number | null;
-  /** 주소 좌표 찾기에서 이미 SDK를 불러오지 못했다(#92-1) — 좌표가 없어도 "주소를 검색하면" 대신 실패 안내 */
+  /** 주소 좌표 찾기에서 이미 SDK를 불러오지 못했다(#92-1) — 좌표가 없어도 빈 칸 대신 실패 안내 */
   unavailable?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -144,11 +146,21 @@ export function KakaoMapPreview({
       aria-label={has ? '공연 장소 지도' : undefined}
     >
       <div ref={ref} className={s.mapCanvas} />
-      {(!has || failed) && (
-        <Txt typography="bodySm" color={colors.textSecondaryLabel} className={s.overlayText}>
-          {has || unavailable ? '지도를 불러오지 못했어요' : '주소를 검색하면 지도가 보여요'}
+      {(has ? failed : unavailable) && <MapUnavailable />}
+    </div>
+  );
+}
+
+/** 지도 서비스를 못 불러올 때(GUI `1269:29539` 모바일 · `1277:30239` PC — 세로 쌓기 간격 12, 일러스트 91×70 + Label/md surface/strong-border) */
+function MapUnavailable() {
+  return (
+    <div role="status" className={s.overlayText}>
+      <Flex direction="column" gap={3} align="center">
+        <Illustration name="map-unavailable" />
+        <Txt typography="labelMd" color={colors.surfaceStrongBorder}>
+          지도 서비스를 불러오지 못했어요.
         </Txt>
-      )}
+      </Flex>
     </div>
   );
 }

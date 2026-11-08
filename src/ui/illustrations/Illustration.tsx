@@ -10,6 +10,7 @@ import gift from './gift.svg';
 import giftCanceled from './gift-canceled.svg';
 import giftReturn from './gift-return.svg';
 import login from './login.svg';
+import mapUnavailable from './map-unavailable.svg';
 import noSearchResult from './no-search-result.svg';
 import noTicket from './no-ticket.svg';
 import posterPlaceholder from './poster-placeholder.svg';
@@ -25,6 +26,8 @@ import posterPlaceholder from './poster-placeholder.svg';
  * - `gift-return`·`gift-canceled`(2026-11-01, P8b-V): GUI 화면 파일(`1Cn4WOu6TDaSajbFIuH6fO`)에만 있는 그림 —
  *   반송·취소 완료의 화살표 선물(`939:25480`, 직접 그린 벡터)과 취소된 선물 랜딩의 회색 선물(`939:27124`, DS `img_선물`의 색 덮어쓰기).
  *   다시 뽑기: `GET /v1/images/1Cn4WOu6TDaSajbFIuH6fO?ids=…&format=svg`.
+ * - `map-unavailable`(2026-11-08, Design Sync #181): 디자인 시스템 `img_지도 못불러옴`(`image` 페이지 `834:369`, 91×70) —
+ *   공연 기본 정보 지도 칸의 "지도 서비스를 불러오지 못했어요". REST 토큰이 403이라 Desktop Bridge `exportAsync({ format: 'SVG_STRING' })`로 뽑았다.
  * 색은 고정이다(`<img>`라 CSS 토큰을 따르지 않는다).
  */
 const ILLUSTRATIONS = {
@@ -36,6 +39,7 @@ const ILLUSTRATIONS = {
   'gift-canceled': { asset: giftCanceled, width: 170, height: 170 },
   'no-search-result': { asset: noSearchResult, width: 170, height: 170 },
   login: { asset: login, width: 285, height: 273 },
+  'map-unavailable': { asset: mapUnavailable, width: 91, height: 70 },
   'dashboard-pending': { asset: dashboardPending, width: 36, height: 36 },
   'dashboard-approved': { asset: dashboardApproved, width: 36, height: 36 },
   'dashboard-rejected': { asset: dashboardRejected, width: 36, height: 36 },

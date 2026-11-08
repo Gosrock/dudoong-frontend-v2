@@ -193,7 +193,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '빈 폼은 [미리보기][저장하기] 비활성. 포스터를 올리면 그 자리에 미리보기, 주소를 고르면 좌표를 얻고 지도 칸이 그 좌표로 그려진다. 바꾸면 [미리보기]가 열린다. 저장하면 토스트.',
+      '빈 폼은 [미리보기][저장하기] 비활성, 지도 칸은 글자 없는 회색 칸. 포스터를 올리면 그 자리에 미리보기, 주소를 고르면 좌표를 얻고 지도 칸이 그 좌표로 그려진다. 바꾸면 [미리보기]가 열린다. 저장하면 토스트.',
     basis: [
       'plan P11 완료 기준 V(포스터 미리보기 · 미리보기 조건 · 지도 미리보기)',
       'GUI 748:33351 · 748:33451 · 748:34006',
@@ -202,12 +202,17 @@ scenario(
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
-    await step('기본 정보를 열면 [미리보기]·[저장하기]가 비활성, 지도 칸은 안내 문구', async () => {
-      await page.goto('/hosting/events/140/info');
-      await expect(page.getByRole('button', { name: '미리보기' })).toBeDisabled();
-      await expect(page.getByRole('button', { name: '저장하기' })).toBeDisabled();
-      await expect(page.getByTestId('place-map')).toContainText('주소를 검색하면 지도가 보여요');
-    });
+    await step(
+      '기본 정보를 열면 [미리보기]·[저장하기]가 비활성, 지도 칸은 빈 회색 칸(GUI 748:33351)',
+      async () => {
+        await page.goto('/hosting/events/140/info');
+        await expect(page.getByRole('button', { name: '미리보기' })).toBeDisabled();
+        await expect(page.getByRole('button', { name: '저장하기' })).toBeDisabled();
+        const map = page.getByTestId('place-map');
+        await expect(map).toHaveText('');
+        expect((await map.boundingBox())?.height).toBe(147);
+      },
+    );
     await step('포스터를 올리면 포스터 미리보기와 [이미지 수정]', async () => {
       await page.getByLabel('포스터 올리기').setInputFiles(PNG);
       await expect(page.getByRole('img', { name: '포스터 미리보기' })).toBeVisible();
@@ -434,6 +439,41 @@ scenario(
       await expect(alert.getByRole('button', { name: '다시 시도' })).toBeVisible({
         timeout: 15_000,
       });
+    });
+  },
+);
+
+scenario(
+  'HE-15',
+  '지도 서비스를 불러오지 못하면 지도 칸에 일러스트 + "지도 서비스를 불러오지 못했어요."',
+  {
+    kind: '에러',
+    summary:
+      '카카오맵 SDK를 불러오지 못하면 지도 칸(높이 147)이 GUI대로 일러스트와 안내 문구를 보인다. 저장된 좌표가 있는 공연도, 주소를 새로 고른 공연(좌표 찾기 실패)도 같은 칸이고, 주소 칸 아래 따로 안내 줄을 띄우지 않는다.',
+    basis: [
+      'GUI 1269:29502 · 1277:29907(Design Sync #181)',
+      'GUI 748:33351 · 748:33451 지도 높이 147(Design Sync #180)',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    // setUp의 가짜 SDK보다 나중에 건 route가 먼저 잡는다
+    await page.route('https://dapi.kakao.com/**', (route) => route.abort());
+    await step('좌표가 저장된 공연(101) — 지도 칸에 일러스트 + 문구, 높이 147', async () => {
+      await page.goto('/hosting/events/101/info');
+      const map = page.getByTestId('place-map');
+      await expect(map.getByRole('status')).toHaveText('지도 서비스를 불러오지 못했어요.');
+      expect((await map.boundingBox())?.height).toBe(147);
+      await map.scrollIntoViewIfNeeded();
+    });
+    await step('주소를 새로 고른 공연(140) — 좌표를 못 찾아도 안내는 지도 칸 한 곳', async () => {
+      await page.goto('/hosting/events/140/info');
+      await expect(page.getByTestId('place-map')).toHaveText('');
+      await pickFakeAddress(page);
+      const map = page.getByTestId('place-map');
+      await expect(map.getByRole('status')).toHaveText('지도 서비스를 불러오지 못했어요.');
+      await expect(page.getByText('위치를 확인할 수 없어요', { exact: false })).toHaveCount(0);
+      await map.scrollIntoViewIfNeeded();
     });
   },
 );
