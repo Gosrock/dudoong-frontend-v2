@@ -4,7 +4,8 @@ import { LoadingLabel } from '../Loader/Loader';
 import { button } from './Button.css';
 
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
-  variant?: 'primary' | 'secondary' | 'tonal' | 'dark';
+  /** Figma `Color` — Primary · Secondary · primary 2(`tonal`) · Warning(`warning`, 위험 동작 확인). `dark`는 화면 덮어쓰기 */
+  variant?: 'primary' | 'secondary' | 'tonal' | 'warning' | 'dark';
   size?: 'sm' | 'md' | 'lg';
   /** 앱이 정하는 선택 상태(Secondary). Hover·Pressed·Disabled는 CSS 상태다(design-system §4) */
   selected?: boolean;
@@ -33,7 +34,7 @@ export function Button({
   ...rest
 }: ButtonProps) {
   const iconOnly = Boolean(icon) && !children && !round;
-  const textOnly = !icon && !round;
+  const iconText = Boolean(icon) && Boolean(children) && !round;
   return (
     <button
       type={type}
@@ -41,7 +42,7 @@ export function Button({
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={[
-        button({ variant, size, iconOnly, textOnly, round, fullWidth, loading }),
+        button({ variant, size, iconOnly, iconText, round, fullWidth, loading }),
         className,
       ]
         .filter(Boolean)

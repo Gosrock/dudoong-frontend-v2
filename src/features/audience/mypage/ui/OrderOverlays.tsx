@@ -242,6 +242,7 @@ function FreeCancelPopup({ orderUuid, open, onClose, onExited }: CancelProps) {
       title={CANCEL_COPY.freeTitle}
       description={CANCEL_COPY.freeBody}
       confirmLabel={CANCEL_COPY.freeConfirm}
+      intent="delete"
       cancelLabel={CANCEL_COPY.no}
       loading={c.pending}
       onConfirm={() => void c.cancel()}

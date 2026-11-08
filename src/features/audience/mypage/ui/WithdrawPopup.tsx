@@ -43,6 +43,7 @@ function WithdrawBody({
       title={WITHDRAW_TITLE}
       description={WITHDRAW_DESCRIPTION}
       confirmLabel="탈퇴하기"
+      intent="delete"
       cancelLabel="취소"
       loading={w.pending}
       onConfirm={() => void w.withdraw()}

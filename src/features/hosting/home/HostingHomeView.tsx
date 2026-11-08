@@ -71,6 +71,7 @@ export function HostingHomeView() {
 
   const confirmDelete = (event: Parameters<typeof del.deleteEvent>[0] & { name: string | null }) =>
     void openConfirm({
+      intent: 'delete', // 되돌리기 어려운 동작 — [확인] Warning(DS 다이얼로그_데스크탑 삭제, #185 · #187)
       title: '공연을 삭제할까요?',
       description: event.name
         ? `'${event.name}'을(를) 삭제하면 되돌릴 수 없어요.`

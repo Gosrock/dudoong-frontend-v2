@@ -18,6 +18,17 @@ type Story = StoryObj<typeof meta>;
 export const Primary: Story = {};
 export const Secondary: Story = { args: { variant: 'secondary' } };
 export const Tonal: Story = { args: { variant: 'tonal', size: 'lg' } };
+/** Figma `Color=Warning`(#185) — 위험 동작 확인. Normal `brand/accent` · Hover `accent-hover` · Pressed `accent-pressed` */
+export const Warning: Story = {
+  args: { variant: 'warning', children: '삭제' },
+  play: async ({ canvas }) => {
+    const btn = canvas.getByRole('button', { name: '삭제' });
+    await expect(getComputedStyle(btn).backgroundColor).toBe('rgb(232, 66, 48)');
+    await expect(getComputedStyle(btn).color).toBe('rgb(247, 247, 246)');
+    await expect(pseudoStyle(btn, ':hover', 'background')).toBe(vars.color.brand.accentHover);
+    await expect(pseudoStyle(btn, ':active', 'background')).toBe(vars.color.brand.accentPressed);
+  },
+};
 export const Selected: Story = { args: { variant: 'secondary', selected: true } };
 export const Disabled: Story = { args: { disabled: true } };
 export const Dark: Story = { args: { variant: 'dark', size: 'lg' } };
@@ -43,6 +54,9 @@ export const Matrix: Story = {
           <Button size={size} variant="tonal">
             텍스트
           </Button>
+          <Button size={size} variant="warning">
+            텍스트
+          </Button>
           <Button size={size} disabled>
             텍스트
           </Button>
@@ -52,22 +66,60 @@ export const Matrix: Story = {
   ),
 };
 
-/** medium은 아이콘 유무와 관계없이 46h(Figma 2026-10-25 `36:47`·`36:68`), 아이콘만 있으면 46×46 */
+/** medium 글자만은 모든 색이 45h(2026-11-08 판), 아이콘이 있으면 46 · 아이콘만 46×46 */
 export const MediumHeight: Story = {
   render: () => (
     <Flex gap={3} align="center">
-      <Button>텍스트</Button>
-      <Button icon={<Icon name="add" size={24} />}>텍스트</Button>
+      <Button>글자</Button>
+      <Button variant="secondary">글자 2</Button>
+      <Button variant="warning">글자 3</Button>
+      <Button icon={<Icon name="add" size={24} />}>아이콘 글자</Button>
       <Button icon={<Icon name="add" />} aria-label="추가" />
     </Flex>
   ),
   play: async ({ canvas }) => {
-    for (const btn of canvas.getAllByRole('button')) {
-      await expect(btn.getBoundingClientRect().height).toBe(46);
+    for (const name of ['글자', '글자 2', '글자 3']) {
+      await expect(canvas.getByRole('button', { name }).getBoundingClientRect().height).toBe(45);
     }
-    await expect(canvas.getByRole('button', { name: '추가' }).getBoundingClientRect().width).toBe(
-      46,
-    );
+    await expect(
+      canvas.getByRole('button', { name: '아이콘 글자' }).getBoundingClientRect().height,
+    ).toBe(46);
+    const add = canvas.getByRole('button', { name: '추가' }).getBoundingClientRect();
+    await expect([add.width, add.height]).toEqual([46, 46]);
+  },
+};
+
+/**
+ * min width(#186) — 글자만 small 55 · medium 69 · Large 82, 아이콘 + 글자 75 · 92 · 108. 아이콘만은 정사각 그대로.
+ * 짧은 글자("예")도 이 폭보다 좁아지지 않는다
+ */
+export const MinWidth: Story = {
+  render: () => (
+    <Flex direction="column" gap={3}>
+      {(['sm', 'md', 'lg'] as const).map((size) => (
+        <Flex key={size} gap={3} align="center">
+          <Button size={size} data-testid={`text-${size}`}>
+            예
+          </Button>
+          <Button size={size} icon={<Icon name="add" size={24} />} data-testid={`icon-${size}`}>
+            예
+          </Button>
+          <Button
+            size={size}
+            variant="secondary"
+            icon={<Icon name="add" />}
+            aria-label="추가"
+            data-testid={`only-${size}`}
+          />
+        </Flex>
+      ))}
+    </Flex>
+  ),
+  play: async ({ canvas }) => {
+    const w = (id: string) => canvas.getByTestId(id).getBoundingClientRect().width;
+    await expect([w('text-sm'), w('text-md'), w('text-lg')]).toEqual([55, 69, 82]);
+    await expect([w('icon-sm'), w('icon-md'), w('icon-lg')]).toEqual([75, 92, 108]);
+    await expect([w('only-sm'), w('only-md'), w('only-lg')]).toEqual([32, 46, 56]);
   },
 };
 

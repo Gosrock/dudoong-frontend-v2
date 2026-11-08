@@ -95,13 +95,37 @@ export const ConfirmDisabled: Story = {
   },
 };
 
-/** 데스크탑 폭 520(`size="lg"` — GUI 티켓 삭제 확인 `975:8593`, R1f). 모바일은 310 */
-export const SizeLarge: Story = {
+const isDesktop = () => window.matchMedia('(min-width: 1024px)').matches;
+
+/**
+ * 삭제(`intent="delete"`) — [확인]이 Warning(DS `다이얼로그_데스크탑` `Property 1=삭제` `843:375`, #185 · #187).
+ * 데스크탑(1024~)은 420 · 제목 18 · 본문 14/400 · 버튼 글자 폭 오른쪽 정렬, 모바일은 DS `다이얼로그` 310 · 같은 폭 버튼
+ */
+export const Delete: Story = {
   args: {
     defaultOpen: true,
-    size: 'lg',
+    intent: 'delete',
     title: '[얼리버드] 티켓을 삭제할까요?',
     description: '삭제한 티켓은 복구할 수 없어요.',
+    confirmLabel: '삭제',
+  },
+  play: async () => {
+    const dialog = await screen.findByRole('alertdialog');
+    const confirm = within(dialog).getByRole('button', { name: '삭제' });
+    // brand/accent — Coral-red 400
+    await expect(getComputedStyle(confirm).backgroundColor).toBe('rgb(232, 66, 48)');
+    const css = getComputedStyle(dialog);
+    const title = within(dialog).getByText('[얼리버드] 티켓을 삭제할까요?');
+    if (isDesktop()) {
+      await expect(css.maxWidth).toBe('420px');
+      await expect(getComputedStyle(title).fontSize).toBe('18px');
+      await expect(getComputedStyle(confirm).flexGrow).toBe('0');
+      await expect(getComputedStyle(confirm).minWidth).toBe('69px');
+    } else {
+      await expect(css.maxWidth).toBe('310px');
+      await expect(getComputedStyle(title).fontSize).toBe('16px');
+      await expect(getComputedStyle(confirm).flexGrow).toBe('1');
+    }
   },
 };
 

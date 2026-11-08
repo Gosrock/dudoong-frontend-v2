@@ -3352,3 +3352,37 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **검사**: typecheck · 바꾼 파일 lint · vitest related 23/0. QA `hosting-event` 28/0(수동 1). 검토 반영 뒤(main 합침 · 빈 칸 안내 뺌) QA `hosting-event` 28/0 · e2e `hosting-event` 32/0 다시. e2e `hosting-event` · `hosting-ticket` 56/0, `a11y` 105/0(건너뜀 35).
 
 **ego-browser 확인(dev:mock 3145 · `localhost`, 카카오 키 없음 = 지도 실패)**: `/hosting/events/101/info` 390 · 1440 — 지도 칸 342×147 · 600×147, 일러스트 + 문구가 Figma `1269:29502` · `1277:29907` 캡처와 같음. 검토 반영 뒤 `/hosting/events/140/info` 390 · 1440 — 빈 칸 342 · 600 × 147, #EEEEED, 글자 없음(Figma `748:33351`과 같음).
+
+## Design Sync #185~#189 — 디자인 시스템 11-08(2026-11-08, `ds-sync-1108` #PR)
+
+**근거**: 디자인 시스템 파일 지금 판 `2419385361681489603`(11-08T09:28Z)을 기준 판 `2419099227210134517`(11-07T14:23Z)과 `ds_diff.py`로 비교(REST — DS 파일은 읽힘). 변수 이름 · 값은 Desktop Bridge(`figma_execute`, DS 파일, 읽기만): Warning 채움 `33:106` `brand/accent` → Coral-red 400 · `33:107` `accent-hover` → 500 · `55:391` `accent-pressed` → 600, 글자 `606:1920` `text/on-brand fixed`. `figma_nodes.py`의 토큰(`~/.dudoong-design-context.env`)은 403이라 GUI 이미지는 `ds_diff.py` 토큰으로 받았다(`975:8593`). 이슈 #185 · #186 Button `36:24` · #187 `다이얼로그_데스크탑` `843:449` · #188 `850:509` · `850:526` · #189 `850:545` · `850:554`.
+
+**매핑**
+| Figma 노드 | 분류 | 코드 | 판단 |
+|---|---|---|---|
+| Button `Color=Warning` 28변형(`844:1266`~`844:1331`) | DS | `<Button variant="warning">` | 새 변형 — 토큰은 이미 있음 |
+| Button 글자 있는 변형 `minWidth`(55 · 69 · 82 / 75 · 92 · 108) | DS | `Button.css.ts` 크기 `minWidth` + `iconText` compound, 아이콘만 · round 0 | DS 값 그대로 |
+| Button medium 글자만 45h(모든 색) | DS | medium 기본 45, 아이콘이 있으면 46 | 옛 `textOnly`(primary 2만 45) → `iconText` |
+| `다이얼로그_데스크탑` 삭제 `843:375` · 기본 `843:440` | DS | `Popup` 데스크탑(1024~) CSS(`Modal.css.ts` `contentPopup` 420 · 제목 md2 · 본문 Body/md · 버튼 줄 위 26 · 글자 폭 오른쪽 정렬) + `intent` | DS가 정본(관제탑 지시) — 옛 R1f `size` 480 · 520 없앰 |
+| `다이얼로그 - 520 (제안)` `835:3387` | 개발 제안 | — | 같은 자리(PC 확인 창)의 답이 `843:449`라고 보고 따르지 않음(Q213) |
+| `ic_list` · `ic_image` · `ic_trash` · `ic_edit_2` | DS | `list` · `image` · `trash` · `edit-2` filled 24 | 18 틀(선 1.5) → 24 틀(선 2) |
+| `img_검색 결과 없음` `506:1721` 선 2개 | DS | `no-search-result.svg` `black` → `#141413` | 이슈 밖, 검색 결과 없음 화면(GUI 구현됨)이 씀 |
+
+**한 것**
+- `Button`: `variant="warning"`(Hover · Pressed CSS 상태, Disabled 공통), `minWidth`, medium 45/46, `iconText`. 스토리 `Warning` · `MediumHeight`(45/46) · `MinWidth` · `Matrix`(Warning 줄).
+- `Popup`: `size` 없앰, `intent?: 'default' | 'delete'`(`delete`면 확인 Warning). `EasyOverlay` `popupSize` → `intent`(popup · responsive 둘 다). `Modal` `popupWidth` 없앰. `Modal.css.ts`: `contentPopup` 310 · 데스크탑 420, 데스크탑 제목 `headingMd2Emphasized` · 설명 `bodyMd`(globalStyle, 두 클래스로 `Txt` 글자 클래스보다 앞섬) · 버튼 줄 위 18 · `justify-content: flex-end` · 버튼 `flex: 0 0 auto`. 제목(h2) · 설명(p) 칸 `display: flex` — 블록이면 h2 24px · p 16px 기본 글자의 줄 상자가 커져 다이얼로그가 Figma보다 컸다(모바일 172 → 160, 데스크탑 175.5 → 170). Modal md/lg 머리도 같이 조금 줄어든다. 스토리 `Popup/Delete`(옛 `SizeLarge` 대신).
+- `intent: 'delete'`: 티켓 삭제(`TicketCard` — 판매 중단 · 재개는 기본) · 티켓 옵션 빼기 · 옵션 삭제(`OptionDetailOverlay`) · 공연 삭제(`HostingHomeView`) · 멤버 삭제 · 초대 취소(`HostMembersView`) · 입장 취소(`IssuedTicketsTab`) · 무료 주문 취소(`OrderOverlays`) · 탈퇴(`WithdrawPopup`). 옵션 닫기 확인(`option-sheet-parts`)은 `popupSize`만 뺌.
+- 아이콘 4개(`src/ui/icons/svg` + `generate.mjs` → 93개 66종), README 절차 줄.
+
+**결정(🤖 Claude 판단)**
+1. Q213 — PC 확인 창을 모두 DS `다이얼로그_데스크탑` 420으로(Ready 티켓 확인 8장 · 입장 취소는 아직 520 · 480 그림). 관제탑 프롬프트 "Figma DS가 정본 — 다르면 DS대로". 되돌리기: `Modal.css.ts` 데스크탑 값 빼고 `Popup` `size`(git 이 PR) 되살리기.
+2. Q214 — 삭제 변형이 데스크탑 세트에만 있지만 모바일 확인 창도 같은 Warning. 되돌리기: `Popup.tsx`의 `variant` 분기를 데스크탑 CSS로.
+3. Q215 — 데스크탑 본문 `#73726E`(변수 없음) → `text/secondary-label`. Primary · Warning medium 글자만 Disabled 37h → 45.
+4. `intent: 'delete'` 대상 — "되돌리기 어려운 동작"(삭제 · 취소 · 탈퇴). 판매 중단(재개 가능) · 저장 안 하고 나가기 · 주문 거절/환불 완료(시트 · 모달, Ready 그림) · 선물 거절/회수(Ready 시트)는 기본 그대로.
+5. 아이콘 18 틀은 24 아이콘의 0.75배로 보고 24 틀로 키움(선 2 — 다른 24 아이콘과 같음). `ic_trash` 빨강은 `currentColor`(쓰는 곳이 색).
+
+**Figma 코멘트**(디자인 시스템 파일): `843:449` `[개발 · 디자인 없음] 다이얼로그_데스크탑 — 본문 색 · 모바일 삭제 버튼 · 티켓 관리 확인 창`(Q213~Q215) · `844:1272` `[개발 · 디자인 없음] Button medium 글자만 Disabled 높이`.
+
+**검사**: typecheck · 바꾼 파일 lint · vitest related 386/0 · `test:stories`(Button · Popup · EasyOverlay · Modal · icons) 38/0. QA `hosting-ticket` 30/0 · `hosting-guests` 37/0 · `checkout` 33/0 · `hosting-home` 18/0 · `mypage` 39/0. e2e `hosting-ticket` · `hosting-guests` · `hosting-host` · `hosting` · `mypage` · `checkout` · `a11y` · `a11y-keyboard` 306/0(38 skip).
+
+**ego-browser 확인**: Storybook 6147 — `Popup/Delete` 1440(420×170 · 제목 18 · 버튼 69×45 오른쪽 · 삭제 #E84230) · 390(310×160 · 같은 폭 버튼 127), `Popup/Opened` 1440(기본 Primary), `Popup/Summary` 390 · 1440(342 그대로), `Button/Matrix` · `MinWidth`(55/75/32 · 69/92/46 · 82/108/56). dev:mock 3147 `/hosting/events/101/tickets` 초대권 ⋮ → 삭제하기: 1440 420×170 [취소][삭제] 오른쪽 · Warning, 390 310×160. DS `843:449` 스크린샷과 같은 배치.

@@ -53,12 +53,10 @@ export type ModalProps = {
   headerStart?: ReactNode;
   /**
    * @internal Popup이 쓴다.
-   * `popup` — 확인 팝업(DS `다이얼로그` 310 — 데스크탑은 `popupWidth`).
+   * `popup` — 확인 팝업(DS `다이얼로그` 310 · 데스크탑 `다이얼로그_데스크탑` 420).
    * `summary` — 입금 확인 창(GUI `567:9756`): 342 · 회색 판 · 안쪽 16 · 간격 8 · ✕
    */
   layout?: 'popup' | 'summary';
-  /** @internal Popup이 쓴다 — 데스크탑(1024~) 폭. sm 310(기본) · md 480 · lg 520 */
-  popupWidth?: 'sm' | 'md' | 'lg';
 };
 
 /**
@@ -90,7 +88,6 @@ export function Modal({
   titleSize = layout === 'summary' ? 'label' : 'sm',
   descriptionStyle = layout === 'summary' ? 'labelPrimary' : 'default',
   headerStart,
-  popupWidth = 'sm',
 }: ModalProps) {
   useCloseOnBack(open, () => onOpenChange(false), { enabled: closeOnBack });
   useOnExited(open, onExited);
@@ -111,7 +108,7 @@ export function Modal({
   const contentClass = [
     s.content,
     layout === 'popup'
-      ? [s.contentPopup, s.popupWidth[popupWidth]]
+      ? s.contentPopup
       : layout === 'summary'
         ? s.contentSummary
         : size === 'lg'

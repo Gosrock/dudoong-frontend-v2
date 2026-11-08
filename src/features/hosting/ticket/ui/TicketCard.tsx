@@ -88,10 +88,10 @@ export function TicketCard({
   // 표의 코드(`'reread'` — 그새 팔림 · 없음 · 끝난 공연)는 목록 위 안내와 다시 읽은 목록이 답이라 토스트 없이 닫는다
   const confirmThen = (action: 'delete' | 'suspend' | 'resume') =>
     void openConfirm({
-      // PC 520(GUI 티켓 삭제 · 판매 중단 · 재개 확인 `975:8593` · `975:9484` · `975:10426` — R1f)
-      popupSize: 'lg',
+      // PC는 DS `다이얼로그_데스크탑`(#187) — 옛 R1f 520(GUI `975:8593` · `975:9484` · `975:10426`)에서 바꿈. 삭제만 Warning
       ...(action === 'delete'
         ? {
+            intent: 'delete' as const,
             title: `[${name}] 티켓을 삭제할까요?`,
             description: '삭제한 티켓은 복구할 수 없어요.',
             confirmLabel: '삭제',
@@ -113,7 +113,7 @@ export function TicketCard({
   /** 옵션 ✕ — 이 티켓에서 빼기(L detach). 확인 창 · 토스트는 GUI #54 `934:2034`·`934:2127` 문구 그대로 */
   const detachOption = async (optionId: number) => {
     const done = await openConfirm({
-      popupSize: 'lg',
+      intent: 'delete',
       title: '티켓 옵션을 삭제할까요?',
       description: '삭제한 옵션은 되돌릴 수 없어요.',
       confirmLabel: '삭제',
