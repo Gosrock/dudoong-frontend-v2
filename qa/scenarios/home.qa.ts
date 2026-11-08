@@ -44,6 +44,17 @@ scenario(
       await expect(main.getByRole('link', { name: '공연 둘러보기' })).toBeVisible();
     });
     await step(
+      '"두둥 소개"는 제목 + ↗ + 빈 카드이고 누를 곳이 없다(사용자 결정 2026-11-09)',
+      async () => {
+        const intro = page.getByRole('region', { name: '두둥 소개' });
+        await intro.scrollIntoViewIfNeeded();
+        await expect(intro.getByRole('heading', { name: '두둥 소개' })).toBeVisible();
+        await expect(intro.getByRole('link')).toHaveCount(0);
+        await expect(intro.getByRole('button')).toHaveCount(0);
+      },
+      { fullPage: false },
+    );
+    await step(
       'GP-1은 서버에서 한 번만 불리고 브라우저는 다시 부르지 않는다',
       async () => {
         const calls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/home'));

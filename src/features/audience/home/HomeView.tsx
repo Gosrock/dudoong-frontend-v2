@@ -24,7 +24,8 @@ import { ScrollTopButton } from './ui/ScrollTopButton';
  * 공연홈(GP-1, GUI `759:22391` · PC 와이어 `626:19888`). 라우트가 `<Prefetch>`로 넘긴 캐시를 읽는다(`(public)`이라 Suspense 없음).
  * 히어로 → "더 많은 공연 둘러보기 ↗" 가로 캐러셀 → ↑. PC는 같은 순서에 본문 1200, 캐러셀은 화면 오른쪽 끝까지 흐른다.
  * 맨 아래 푸터(GUI `1383:3429` — 저작권 · 사업자 정보 · 중개자 한 줄(약관 제3조③ · 제4조①) · 약관 링크 · SNS, Design Sync #205)는 `LegalFooter`.
- * "두둥 소개"(GUI `759:22549`)는 내용·목적지가 정해지지 않아 그리지 않는다(design-requests Q4 묶음, figma-structure 개발 메모).
+ * 그 아래 "두둥 소개"(GUI `759:22549`)는 내용·목적지가 아직 없어 제목 + ↗ + 빈 파란 카드만 그린다(사용자 결정 2026-11-09).
+ * 누를 곳이 없으니 링크·버튼이 아니다 — ↗와 카드는 장식(`aria-hidden`).
  */
 export function HomeView() {
   const { data } = useSuspenseQuery(homeQuery());
@@ -77,6 +78,18 @@ export function HomeView() {
               ))}
             </ul>
           )}
+        </section>
+
+        {/* 두둥 소개(GUI `759:22549`) — 빈 카드(사용자 결정 2026-11-09). 내용·목적지가 정해지면 링크로 바꾼다 */}
+        <section className={s.intro} aria-label="두둥 소개">
+          <div className={s.introHead}>
+            <Txt as="h2" typography="headingMdEmphasized">
+              두둥 소개
+            </Txt>
+            {/* ↗ DS ic_diagonal outline 24(GUI `1383:7790`) — 🤖 Figma대로 그리되 누를 수 없음(목적지 없음) */}
+            <Icon name="diagonal" size={24} />
+          </div>
+          <div className={s.introCard} aria-hidden />
         </section>
 
         <ScrollTopButton />
