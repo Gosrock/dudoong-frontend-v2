@@ -198,7 +198,8 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
       'src',
       /\/event\/7001\/[0-9a-f-]{36}\.png$/,
     );
-    // 주소 칸 → 우편번호 창(가짜) → 고르면 좌표(가짜 Geocoder) → 지도 미리보기
+    // 주소 칸 → 우편번호 창(가짜) → 고르면 좌표(가짜 Geocoder) → 지도 미리보기. 고르기 전에는 글자 없는 회색 칸(GUI 748:33351)
+    await expect(page.getByTestId('place-map')).toHaveText('');
     await pickFakeAddress(page);
     await expect(page.getByRole('textbox', { name: '주소 검색' })).toHaveValue(
       '서울 마포구 어울마당로 35',

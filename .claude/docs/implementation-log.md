@@ -3336,11 +3336,11 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 | `1277:29866` · `1277:30241` 문구 | 직접 그림(스타일 Label/md) | `<Txt typography="labelMd" color={colors.surfaceStrongBorder}>` | 토큰 그대로 |
 
 **한 것**
-- `PlaceParts.tsx` `KakaoMapPreview`: 지도 서비스 실패(키 없음 · SDK 실패 · 좌표 찾기에서 이미 실패)면 `MapUnavailable`(일러스트 + 문구, `role="status"`). 옛 "지도를 불러오지 못했어요"(디자인 없이 정한 문구) 뺌. 좌표 없음 "주소를 검색하면 지도가 보여요"는 그대로.
+- `PlaceParts.tsx` `KakaoMapPreview`: 지도 서비스 실패(키 없음 · SDK 실패 · 좌표 찾기에서 이미 실패)면 `MapUnavailable`(일러스트 + 문구, `role="status"`). 옛 "지도를 불러오지 못했어요"(디자인 없이 정한 문구) 뺌. 좌표 없음 "주소를 검색하면 지도가 보여요"(P11-V 때 개발이 정한 것)도 뺐다 — GUI `748:33351`대로 글자 없는 회색 칸(관제탑 검토 #184, 사용자 결정 R1 "Ready 화면과 100% 동일").
 - `PlaceParts.css.ts` 지도 높이 144 → 147(모바일 · PC).
 - `BasicInfoSections.tsx` `PlaceSection`: `lookupFailure === 'unavailable'`이면 칸 위 안내(`PLACE_ERROR.mapUnavailable`)를 띄우지 않는다 — 지도 칸이 알린다. 훅(L)은 그대로(`lookupError` 값은 남음).
 - `src/ui/illustrations/map-unavailable.svg`(Bridge `exportAsync({ format: 'SVG_STRING' })`, 7.5KB — `<script>` · `<foreignObject>` · 외부 참조 없음 확인) + `Illustration.tsx` 등록.
-- QA `HE-15`(좌표 있는 공연 101 · 주소를 새로 고른 공연 140, SDK 막음 — 문구 · 높이 147 · 칸 위 안내 없음).
+- QA `HE-4` · e2e `hosting-event` 빈 칸 기대값을 "글자 없음"으로(HE-4는 높이 147도). QA `HE-15`(좌표 있는 공연 101 · 주소를 새로 고른 공연 140, SDK 막음 — 문구 · 높이 147 · 칸 위 안내 없음).
 
 **결정(🤖 Claude 판단)**
 1. Q210 — PC 정상 프레임은 144로 남아 있지만 모바일 · PC 실패 프레임이 147이라 PC도 147. 되돌리기: `map` 높이 PC 144.
@@ -3349,6 +3349,6 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **Figma 코멘트**: 달지 않음(이 세션은 Figma에 쓰지 않는다 — 옛 코멘트 `748:33492` "지도 빈/실패"(P11 · #94)에 "Figma대로 고침" 답글은 관제탑 몫).
 
-**검사**: typecheck · 바꾼 파일 lint · vitest related 23/0. QA `hosting-event` 28/0(수동 1). e2e `hosting-event` · `hosting-ticket` 56/0, `a11y` 105/0(건너뜀 35).
+**검사**: typecheck · 바꾼 파일 lint · vitest related 23/0. QA `hosting-event` 28/0(수동 1). 검토 반영 뒤(main 합침 · 빈 칸 안내 뺌) QA `hosting-event` 28/0 · e2e `hosting-event` 32/0 다시. e2e `hosting-event` · `hosting-ticket` 56/0, `a11y` 105/0(건너뜀 35).
 
-**ego-browser 확인(dev:mock 3145 · `localhost`, 카카오 키 없음 = 지도 실패)**: `/hosting/events/101/info` 390 · 1440 — 지도 칸 342×147 · 600×147, 일러스트 + 문구가 Figma `1269:29502` · `1277:29907` 캡처와 같음.
+**ego-browser 확인(dev:mock 3145 · `localhost`, 카카오 키 없음 = 지도 실패)**: `/hosting/events/101/info` 390 · 1440 — 지도 칸 342×147 · 600×147, 일러스트 + 문구가 Figma `1269:29502` · `1277:29907` 캡처와 같음. 검토 반영 뒤 `/hosting/events/140/info` 390 · 1440 — 빈 칸 342 · 600 × 147, #EEEEED, 글자 없음(Figma `748:33351`과 같음).

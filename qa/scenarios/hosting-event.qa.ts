@@ -193,7 +193,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '빈 폼은 [미리보기][저장하기] 비활성. 포스터를 올리면 그 자리에 미리보기, 주소를 고르면 좌표를 얻고 지도 칸이 그 좌표로 그려진다. 바꾸면 [미리보기]가 열린다. 저장하면 토스트.',
+      '빈 폼은 [미리보기][저장하기] 비활성, 지도 칸은 글자 없는 회색 칸. 포스터를 올리면 그 자리에 미리보기, 주소를 고르면 좌표를 얻고 지도 칸이 그 좌표로 그려진다. 바꾸면 [미리보기]가 열린다. 저장하면 토스트.',
     basis: [
       'plan P11 완료 기준 V(포스터 미리보기 · 미리보기 조건 · 지도 미리보기)',
       'GUI 748:33351 · 748:33451 · 748:34006',
@@ -202,12 +202,17 @@ scenario(
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
-    await step('기본 정보를 열면 [미리보기]·[저장하기]가 비활성, 지도 칸은 안내 문구', async () => {
-      await page.goto('/hosting/events/140/info');
-      await expect(page.getByRole('button', { name: '미리보기' })).toBeDisabled();
-      await expect(page.getByRole('button', { name: '저장하기' })).toBeDisabled();
-      await expect(page.getByTestId('place-map')).toContainText('주소를 검색하면 지도가 보여요');
-    });
+    await step(
+      '기본 정보를 열면 [미리보기]·[저장하기]가 비활성, 지도 칸은 빈 회색 칸(GUI 748:33351)',
+      async () => {
+        await page.goto('/hosting/events/140/info');
+        await expect(page.getByRole('button', { name: '미리보기' })).toBeDisabled();
+        await expect(page.getByRole('button', { name: '저장하기' })).toBeDisabled();
+        const map = page.getByTestId('place-map');
+        await expect(map).toHaveText('');
+        expect((await map.boundingBox())?.height).toBe(147);
+      },
+    );
     await step('포스터를 올리면 포스터 미리보기와 [이미지 수정]', async () => {
       await page.getByLabel('포스터 올리기').setInputFiles(PNG);
       await expect(page.getByRole('img', { name: '포스터 미리보기' })).toBeVisible();
@@ -463,7 +468,7 @@ scenario(
     });
     await step('주소를 새로 고른 공연(140) — 좌표를 못 찾아도 안내는 지도 칸 한 곳', async () => {
       await page.goto('/hosting/events/140/info');
-      await expect(page.getByTestId('place-map')).toContainText('주소를 검색하면 지도가 보여요');
+      await expect(page.getByTestId('place-map')).toHaveText('');
       await pickFakeAddress(page);
       const map = page.getByTestId('place-map');
       await expect(map.getByRole('status')).toHaveText('지도 서비스를 불러오지 못했어요.');

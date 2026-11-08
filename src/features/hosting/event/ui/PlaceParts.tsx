@@ -97,7 +97,7 @@ function PostcodeEmbed({ onPick }: { onPick: (address: string) => void }) {
 
 /**
  * 장소 아래 지도 미리보기(GUI `748:33492` 모바일 342×147 — #180, PC `748:34508` 600×144 → 147로 맞춤 Q210 — 디자이너 코멘트 "지도 프리뷰", Q3 해결).
- * 카카오맵 SDK `kakao.maps.Map` + 마커(Geocoder와 같은 SDK). 좌표가 없으면 회색 칸 + 안내,
+ * 카카오맵 SDK `kakao.maps.Map` + 마커(Geocoder와 같은 SDK). 좌표가 없으면 GUI `748:33391`대로 빈 회색 칸(안내 글자 없음 — 관제탑 검토 #184, R1),
  * 지도 서비스를 불러오지 못하면(키 없음 · SDK 실패 · 좌표 찾기에서 이미 실패) GUI `1269:29539`·`1277:30239`대로 일러스트 + 문구(#181)
  */
 export function KakaoMapPreview({
@@ -107,7 +107,7 @@ export function KakaoMapPreview({
 }: {
   latitude: number | null;
   longitude: number | null;
-  /** 주소 좌표 찾기에서 이미 SDK를 불러오지 못했다(#92-1) — 좌표가 없어도 "주소를 검색하면" 대신 실패 안내 */
+  /** 주소 좌표 찾기에서 이미 SDK를 불러오지 못했다(#92-1) — 좌표가 없어도 빈 칸 대신 실패 안내 */
   unavailable?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -146,13 +146,7 @@ export function KakaoMapPreview({
       aria-label={has ? '공연 장소 지도' : undefined}
     >
       <div ref={ref} className={s.mapCanvas} />
-      {has && !failed ? null : has || unavailable ? (
-        <MapUnavailable />
-      ) : (
-        <Txt typography="bodySm" color={colors.textSecondaryLabel} className={s.overlayText}>
-          주소를 검색하면 지도가 보여요
-        </Txt>
-      )}
+      {(has ? failed : unavailable) && <MapUnavailable />}
     </div>
   );
 }

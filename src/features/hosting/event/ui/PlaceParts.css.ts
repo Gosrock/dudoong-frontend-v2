@@ -6,7 +6,7 @@ import { vars } from '@/ui/theme/tokens.css';
 export const postcode = style({ position: 'relative', width: '100%', height: 460 });
 export const postcodeFrame = style({ width: '100%', height: '100%' });
 
-/** 가운데 안내 글자(로딩·실패·좌표 없음) */
+/** 가운데 안내(우편번호 로딩·실패, 지도 서비스 실패) */
 export const overlayText = style({
   position: 'absolute',
   inset: 0,
