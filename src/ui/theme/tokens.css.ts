@@ -135,8 +135,10 @@ export const vars = createGlobalTheme(':root', {
   },
   font: {
     body: '"Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", system-ui, sans-serif',
-    // Kartrider는 웹 임베드 라이선스 확인 전이라 불러오지 않는다 — 설치돼 있으면 쓰고, 아니면 본문 폰트(design-system §1)
-    display: '"Kartrider Kor", "Pretendard Variable", Pretendard, sans-serif',
+    // Kartrider(넥슨 카트 고딕) — 라이선스 확인됨(사용자 2026-11-09, 눈누 1284 · 넥슨 공식 배포 조건). `next/font/local`이
+    // `<html>`에 거는 `--font-kartrider`(`fonts.ts`)를 쓴다. 변수가 없는 곳(테스트)과 받기 전(swap)은 Pretendard(design-system §1)
+    display:
+      'var(--font-kartrider, "Kartrider Kor"), "Pretendard Variable", Pretendard, sans-serif',
     // 숫자도 Pretendard(디자이너 답 2026-10-25, design-requests Q14). Figma Title_number(Saira Condensed)는 쓰지 않는다
     number: '"Pretendard Variable", Pretendard, sans-serif',
   },

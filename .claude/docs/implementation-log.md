@@ -3546,3 +3546,21 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **테스트**: QA `home` HOME-1에 "두둥 소개는 제목 + ↗ + 빈 카드이고 누를 곳이 없다" 단계(링크 · 버튼 0). QA `home` 10/0 · e2e `home` · `legal` 26/0.
 - ego-browser(dev:mock 3155): 390 — 카드 x24 · 342×258 · 모서리 12 · rgb(91,133,255) · 위 32 · 제목 ↔ 카드 16 · 푸터까지 72(Figma와 같음). 1440 — 카드 x120 · 1200×258, 섹션 안 포커스 가능한 것 0.
+
+## 카트라이더체 웹폰트(2026-11-09, `fix-kartrider-font` #212)
+
+사용자 결정 2026-11-09 — "사용해도 되는 라이선스야"(눈누 https://noonnu.cc/font_page/1284). 그동안 라이선스 확인 전이라 불러오지 않아 설치된 기기에서만 Figma 모양이었다(스테이징에서 사용자가 발견).
+
+- **라이선스**: 넥슨 브랜드 가이드 서체 페이지(https://brand.nexon.com/ko/ci-brand-guidelines/typeface, FAQ) — 모든 권리 넥슨코리아 · 무료(상업 사용 가능) 사용 · 배포 · "서체의 본 저작권 안내를 포함해서 … 임베디드 폰트로 사용" 허용 · **폰트 파일을 수정 · 편집해 재배포 금지 · 글꼴 자체 유료 판매 금지** · 출처 표기 권장. 눈누 요약표도 임베딩(웹사이트 서버 내 폰트 탑재) 사용 가능. 원문은 `src/ui/fonts/kartrider/LICENSE.md`, 고지는 `THIRD_PARTY_NOTICES.md`.
+- **파일**: 공식 zip `brand.nexon.com/resources/NEXON_Kart_Gothic.zip`(TTF · OTF만, woff2 없음)의 `OTF/Kor/NEXON Kart Gothic Kor OTF ExtraBold.otf` 하나(1,403,452 B — 한글 11,172자, Kor TTF는 5.3MB라 OTF). 수정 금지라 woff2 변환 · 서브셋을 하지 않았다. 굵기는 코드에서 display를 쓰는 곳(`title` 800 · ConcertCard 제목 Figma ExtraBold)이 모두 800이라 한 벌.
+- **적재**: `src/ui/theme/fonts.ts` `localFont({ weight: '800', display: 'swap', preload: false, adjustFontFallback: false, variable: '--font-kartrider' })` → 루트 레이아웃 `<html className>`. `tokens.css.ts` `font.display` = `var(--font-kartrider, "Kartrider Kor"), Pretendard…`. ConcertCard 제목 `fontWeight: 800`(전에는 headingMd2Emphasized의 700 — Figma ExtraBold).
+- **preload**: next/font는 루트 레이아웃에서 부르면 모든 라우트에 preload를 단다(설치 문서 `font.md` Preloading) — 1.4MB를 모든 화면이 받지 않도록 `preload: false`. 브라우저는 이 글꼴로 그릴 글자가 있을 때만 받는다(ego-browser: `/notices`에서 `kartrider` unloaded · otf 요청 없음).
+- **CSP**: `font-src 'self' data:`(`src/utils/csp.ts`) — 같은 출처 `/_next/static/media/*.otf`라 그대로 된다(e2e CSP 위반 수집 통과).
+- **Storybook**(Vite라 next/font 없음): `.storybook/fonts.css`가 같은 파일을 `@font-face`로 걸고 `--font-kartrider`를 정한다.
+- `adjustFontFallback: false` — 기본 Arial 대체 글꼴은 한글이 없어 시스템 글꼴로 그려진다. 대체는 스택의 Pretendard.
+
+**결정(🤖 Claude 판단)**
+1. OTF를 그대로 둔다(woff2 아님) — 라이선스 "수정 · 편집하여 재배포 금지". 눈누 CDN의 woff2(projectnoonnu)는 넥슨 배포 형태가 아니고, CDN 직접 링크는 CSP · 가용성 때문에 쓰지 않는다. 되돌리기: 넥슨이 woff2를 배포하면 `fonts.ts` `src`만 바꾼다.
+2. ConcertCard 제목 굵기 700 → 800(Figma ExtraBold · 적재 파일과 같게). 받기 전(swap) Pretendard도 800으로 보인다.
+
+**테스트**: typecheck · eslint · `vitest related` 357/0. ego-browser(dev:mock 3156): 공연홈 · 공연 리스트 카드 제목 computed `kartrider, "Pretendard Variable", …` 800, `document.fonts` `kartrider` 800 **loaded**, preload 링크 0 — Figma 공연홈 `759:22391`과 390 나란히 같은 글꼴. 1440 공연 리스트도 같음.
