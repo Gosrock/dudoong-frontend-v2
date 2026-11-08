@@ -3353,7 +3353,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 
 **ego-browser 확인(dev:mock 3145 · `localhost`, 카카오 키 없음 = 지도 실패)**: `/hosting/events/101/info` 390 · 1440 — 지도 칸 342×147 · 600×147, 일러스트 + 문구가 Figma `1269:29502` · `1277:29907` 캡처와 같음. 검토 반영 뒤 `/hosting/events/140/info` 390 · 1440 — 빈 칸 342 · 600 × 147, #EEEEED, 글자 없음(Figma `748:33351`과 같음).
 
-## Design Sync #185~#189 — 디자인 시스템 11-08(2026-11-08, `ds-sync-1108` #PR)
+## Design Sync #185~#189 — 디자인 시스템 11-08(2026-11-08, `ds-sync-1108` #196)
 
 **근거**: 디자인 시스템 파일 지금 판 `2419385361681489603`(11-08T09:28Z)을 기준 판 `2419099227210134517`(11-07T14:23Z)과 `ds_diff.py`로 비교(REST — DS 파일은 읽힘). 변수 이름 · 값은 Desktop Bridge(`figma_execute`, DS 파일, 읽기만): Warning 채움 `33:106` `brand/accent` → Coral-red 400 · `33:107` `accent-hover` → 500 · `55:391` `accent-pressed` → 600, 글자 `606:1920` `text/on-brand fixed`. `figma_nodes.py`의 토큰(`~/.dudoong-design-context.env`)은 403이라 GUI 이미지는 `ds_diff.py` 토큰으로 받았다(`975:8593`). 이슈 #185 · #186 Button `36:24` · #187 `다이얼로그_데스크탑` `843:449` · #188 `850:509` · `850:526` · #189 `850:545` · `850:554`.
 
