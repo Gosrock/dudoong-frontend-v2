@@ -178,6 +178,7 @@ export function PlaceSection({
   error: string | null | undefined;
   readOnly: boolean;
 }) {
+  const mapUnavailable = place.lookupFailure === 'unavailable';
   const pickAddress = async () => {
     if (readOnly) return;
     const address = await openAddressSearch();
@@ -216,7 +217,8 @@ export function PlaceSection({
           위치를 찾는 중
         </Txt>
       )}
-      <FieldError>{place.lookupError}</FieldError>
+      {/* 지도 서비스 실패(`unavailable`)는 칸 위 안내 대신 지도 칸 일러스트 + 문구로 알린다(GUI `1269:29502`·`1277:29907`, #181) */}
+      <FieldError>{mapUnavailable ? null : place.lookupError}</FieldError>
       <div className={s.placeRow}>
         <Input
           aria-label="공연장 이름"
@@ -236,9 +238,9 @@ export function PlaceSection({
       <KakaoMapPreview
         latitude={value.latitude}
         longitude={value.longitude}
-        unavailable={place.lookupFailure === 'unavailable'}
+        unavailable={mapUnavailable}
       />
-      {/* 좌표 찾기 실패 안내가 이미 위에 있으면 같은 칸 오류("다른 주소를 골라 주세요")를 겹쳐 띄우지 않는다(#92-1) */}
+      {/* 좌표 찾기 실패 안내가 이미 위(또는 지도 칸)에 있으면 같은 칸 오류("다른 주소를 골라 주세요")를 겹쳐 띄우지 않는다(#92-1) */}
       <FieldError>{place.lookupError ? null : error}</FieldError>
     </FormSection>
   );

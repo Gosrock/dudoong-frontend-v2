@@ -438,6 +438,41 @@ scenario(
   },
 );
 
+scenario(
+  'HE-15',
+  '지도 서비스를 불러오지 못하면 지도 칸에 일러스트 + "지도 서비스를 불러오지 못했어요."',
+  {
+    kind: '에러',
+    summary:
+      '카카오맵 SDK를 불러오지 못하면 지도 칸(높이 147)이 GUI대로 일러스트와 안내 문구를 보인다. 저장된 좌표가 있는 공연도, 주소를 새로 고른 공연(좌표 찾기 실패)도 같은 칸이고, 주소 칸 아래 따로 안내 줄을 띄우지 않는다.',
+    basis: [
+      'GUI 1269:29502 · 1277:29907(Design Sync #181)',
+      'GUI 748:33351 · 748:33451 지도 높이 147(Design Sync #180)',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    // setUp의 가짜 SDK보다 나중에 건 route가 먼저 잡는다
+    await page.route('https://dapi.kakao.com/**', (route) => route.abort());
+    await step('좌표가 저장된 공연(101) — 지도 칸에 일러스트 + 문구, 높이 147', async () => {
+      await page.goto('/hosting/events/101/info');
+      const map = page.getByTestId('place-map');
+      await expect(map.getByRole('status')).toHaveText('지도 서비스를 불러오지 못했어요.');
+      expect((await map.boundingBox())?.height).toBe(147);
+      await map.scrollIntoViewIfNeeded();
+    });
+    await step('주소를 새로 고른 공연(140) — 좌표를 못 찾아도 안내는 지도 칸 한 곳', async () => {
+      await page.goto('/hosting/events/140/info');
+      await expect(page.getByTestId('place-map')).toContainText('주소를 검색하면 지도가 보여요');
+      await pickFakeAddress(page);
+      const map = page.getByTestId('place-map');
+      await expect(map.getByRole('status')).toHaveText('지도 서비스를 불러오지 못했어요.');
+      await expect(page.getByText('위치를 확인할 수 없어요', { exact: false })).toHaveCount(0);
+      await map.scrollIntoViewIfNeeded();
+    });
+  },
+);
+
 scenario.manual('HE-11', '실제 카카오맵 · 우편번호 SDK로 주소 검색 → 지도 마커', {
   kind: '정상',
   basis: [

@@ -17,11 +17,14 @@ export const overlayText = style({
   padding: vars.space[4],
 });
 
-/** 지도 칸 — 높이 144, 모서리 8, 빈 칸 배경 #EEEEED(GUI `A4 - 1` = `surface.imageBg`) */
+/**
+ * 지도 칸 — 높이 147(GUI 모바일 `748:33391`·`748:33492`·`1269:29539`, PC 실패 `1277:30239` — Design Sync #180),
+ * 모서리 8, 빈 칸 배경 #EEEEED(GUI `A4 - 1` = `surface.imageBg`). PC 정상 `748:34508`은 아직 144 — 147로 통일(Q210 🤖)
+ */
 export const map = style({
   position: 'relative',
   width: '100%',
-  height: 144,
+  height: 147,
   overflow: 'hidden',
   borderRadius: vars.radius[2],
   background: vars.color.surface.imageBg,
