@@ -72,8 +72,12 @@ export const notificationCategory = (type: NotificationType): NotificationCatego
 export const notificationAudience = (type: NotificationType): NotificationAudience =>
   KINDS[type].audience;
 
-/** 티켓탭 공지 바(G11/T-3)를 푸는 승인 알림인지 — 읽으면 T-3을 다시 읽는다(api-contract §6 F10) */
-export const isApprovalNotification = (type: NotificationType) => type === 'ORDER_APPROVED';
+/**
+ * 티켓탭 공지 바(G11/T-3)를 푸는 알림인지 — 읽으면 T-3을 다시 읽는다(api-contract §6 F10).
+ * 승인 알림(`ORDER_APPROVED`)은 승인 띠(`orderUuids`), 거절 알림(`ORDER_REFUSED`)은 거절 띠(`refusedOrderUuids`)를 푼다(#208).
+ */
+export const affectsTicketNotice = (type: NotificationType) =>
+  type === 'ORDER_APPROVED' || type === 'ORDER_REFUSED';
 
 /**
  * 알림을 누르면 갈 곳(Q1 기본안 + #810). 갈 곳을 정할 수 없으면 null(읽음 처리만 한다).

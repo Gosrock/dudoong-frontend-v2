@@ -4,7 +4,7 @@ import type { Notification, NotificationType } from '@/api/notification/schema';
 import { NOTIFICATION_TYPES } from '@/api/notification/schema';
 
 import {
-  isApprovalNotification,
+  affectsTicketNotice,
   NOTIFICATION_CATEGORIES,
   notificationAudience,
   notificationCategory,
@@ -58,9 +58,12 @@ describe('알림 17종 → 카테고리·아이콘(plan P9b, Q13 · #106 운영�
     }
   });
 
-  it('승인 알림(ORDER_APPROVED)만 티켓탭 공지 바를 푸는 알림이다', () => {
-    expect(NOTIFICATION_TYPES.filter(isApprovalNotification)).toEqual(['ORDER_APPROVED']);
-    expect(isApprovalNotification('UNKNOWN')).toBe(false);
+  it('승인·거절 알림(ORDER_APPROVED·ORDER_REFUSED)만 티켓탭 공지 바를 푸는 알림이다(#208)', () => {
+    expect(NOTIFICATION_TYPES.filter(affectsTicketNotice)).toEqual([
+      'ORDER_APPROVED',
+      'ORDER_REFUSED',
+    ]);
+    expect(affectsTicketNotice('UNKNOWN')).toBe(false);
   });
 });
 

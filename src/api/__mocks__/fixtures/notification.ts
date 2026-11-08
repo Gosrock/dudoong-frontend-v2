@@ -1,12 +1,18 @@
 import type { Notification, NotificationTarget } from '../../notification/schema';
-import { markApprovedNotificationRead, NEW_APPROVED_ORDER_UUID, newApproved } from './my-ticket';
+import {
+  markApprovedNotificationRead,
+  markRefusedRead,
+  NEW_APPROVED_ORDER_UUID,
+  newApproved,
+} from './my-ticket';
 
 /**
  * 알림센터 mock 저장소(GN-1 · GN-2 · PN-3). 로그인한 mock 사용자(`me`, 고스락 마스터)의 알림만 있다.
  * 문구는 백엔드 `V2NotificationDomainService`·`V2GiftNotificationDomainService`·`V2EventReminderDomainService`(dev 432cce4)를 따른다.
  *
  * - 티켓탭 저장소(`fixtures/my-ticket.ts`)와 이어진다: 승인 알림(`ORDER_APPROVED`)을 읽으면 그 주문이 T-3에서 빠지고,
- *   T-2를 열어 서버가 승인 알림을 읽음 처리했으면(T-3에서 빠졌으면) 여기서도 읽음이다
+ *   T-2를 열어 서버가 승인 알림을 읽음 처리했으면(T-3에서 빠졌으면) 여기서도 읽음이다.
+ *   거절 알림(`ORDER_REFUSED`)을 읽으면 그 주문이 T-3 `refusedOrderUuids`에서 빠진다(#208)
  * - 25건 — 기본 크기 20이면 두 페이지. 모르는 타입(`FUTURE_TYPE`)과 모르는 대상(`FUTURE_TARGET`)이 한 건씩 있다
  * - 테스트는 `resetNotificationStore()`로 처음 상태로 돌린다
  */
@@ -33,6 +39,8 @@ export const NOTIFICATION_ID = {
   unknownType: 120,
   /** 모르는 대상 — 읽음 */
   unknownTarget: 119,
+  /** ORDER_REFUSED — 읽음, 주문 `mock-order-tickets-c`(거절 띠 테스트는 `markNotificationUnread`로 안 읽음으로) */
+  refused: 112,
 } as const;
 
 const EVENT_101 = '고스락 제37회 정기공연';
@@ -276,6 +284,12 @@ export function unreadNotificationCount(): number {
   return store.filter((n) => !n.isRead).length;
 }
 
+/** 테스트용 — 그 알림을 안 읽음으로 되돌린다(거절 띠는 `setUnreadRefused`와 같이 쓴다) */
+export function markNotificationUnread(id: number) {
+  const n = store.find((x) => x.notificationId === id);
+  if (n) n.isRead = false;
+}
+
 /** PN-3. 없는 id는 무시. `readAll`이면 ids를 보지 않는다 */
 export function readNotifications(ids: number[] | 'all') {
   syncFromTickets();
@@ -287,6 +301,7 @@ export function readNotifications(ids: number[] | 'all') {
     if (n.type === 'ORDER_APPROVED' && n.target.type === 'ORDER') {
       markApprovedNotificationRead(n.target.targetId);
     }
+    if (n.type === 'ORDER_REFUSED' && n.target.type === 'ORDER') markRefusedRead(n.target.targetId);
   }
   return { updatedCount, unreadCount: store.filter((n) => !n.isRead).length };
 }
