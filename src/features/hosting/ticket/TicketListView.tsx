@@ -103,6 +103,7 @@ function TicketList({ eventId }: { eventId: string }) {
             <TicketCard
               key={c.ticket.ticketItemId}
               eventId={eventId}
+              eventStartAt={list.event.startAt}
               card={c}
               pending={list.pendingId !== null}
               onAction={(action) =>

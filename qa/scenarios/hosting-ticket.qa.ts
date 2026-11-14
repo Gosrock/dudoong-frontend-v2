@@ -69,8 +69,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      '공연 101: 판매된 "일반 예매"는 옵션이 › (상세)로만, 판매 전 "초대권"은 [티켓 옵션 추가]. 칩 문구는 띄어 쓴 "판매 중"(#46).',
-    basis: ['GUI 913:949 · 955:2980 · 767:50048 · 767:46943', '#46 · #48'],
+      '공연 101: 판매된 "일반 예매"는 옵션이 › (상세)로만, 판매 전 "초대권"은 [티켓 옵션 추가]. 칩 문구는 띄어 쓴 "판매 중"(#46). 판매 기간을 정하지 않은 티켓은 "등록 즉시 ~ 공연 시작 전(공연 시작 일시)".',
+    basis: [
+      'GUI 913:949 · 955:2980 · 767:50048 · 767:46943',
+      '#46 · #48',
+      'Figma 코멘트 910:3358(2026-11-11)',
+    ],
   },
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
@@ -80,6 +84,10 @@ scenario(
       const sold = card(page, '일반 예매');
       await expect(sold.getByTestId('ticket-chip')).toHaveText('판매 중');
       await expect(sold.getByTestId('ticket-stock')).toHaveText('42/100매 (공개)');
+      // 판매 기간을 정하지 않은 티켓도 실제로 살 수 있는 때까지(디자이너 답 2026-11-11 — Figma 코멘트 910:3358)
+      await expect(sold.getByTestId('ticket-period')).toHaveText(
+        /^등록 즉시 ~ 공연 시작 전\(\d{2}\.\d{2}\.\d{2} \d{2}:\d{2}\)$/,
+      );
       await expect(sold.getByRole('button', { name: /^뒤풀이 참석 .*옵션 상세$/ })).toBeVisible();
       await expect(sold.getByRole('button', { name: '티켓 옵션 추가' })).toHaveCount(0);
       await expect(sold.getByRole('button', { name: /옵션 빼기/ })).toHaveCount(0);
