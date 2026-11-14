@@ -9,6 +9,8 @@ export type IconName =
   | 'backward'
   | 'blank'
   | 'calendar'
+  | 'camera'
+  | 'camera-disable'
   | 'chat'
   | 'check'
   | 'chevron-down'
@@ -26,6 +28,7 @@ export type IconName =
   | 'edit'
   | 'edit-2'
   | 'etc'
+  | 'expand'
   | 'favorite'
   | 'forward'
   | 'gift'
@@ -84,6 +87,8 @@ export type IconSpec =
   | { name: 'blank'; variant?: 'outline'; size?: 24 }
   | { name: 'calendar'; variant?: 'outline'; size: 16 }
   | { name: 'calendar'; variant?: 'outline'; size?: 24 }
+  | { name: 'camera-disable'; variant?: 'outline'; size?: 24 }
+  | { name: 'camera'; variant?: 'outline'; size?: 24 }
   | { name: 'chat'; variant?: 'outline'; size?: 24 }
   | { name: 'check'; variant?: 'outline'; size: 12 }
   | { name: 'check'; variant?: 'outline'; size?: 24 }
@@ -117,6 +122,7 @@ export type IconSpec =
   | { name: 'edit-2'; variant: 'filled'; size?: 24 }
   | { name: 'edit'; variant?: 'outline'; size?: 24 }
   | { name: 'etc'; variant: 'filled'; size?: 24 }
+  | { name: 'expand'; variant?: 'outline'; size?: 24 }
   | { name: 'favorite'; variant?: 'outline'; size?: 24 }
   | { name: 'forward'; variant?: 'outline'; size?: 24 }
   | { name: 'gift-cancel'; variant: 'filled'; size?: 24 }
@@ -216,6 +222,14 @@ export const icons: Record<string, IconEntry> = {
   'calendar/outline/24': {
     viewBox: '0 0 24 24',
     body: '<path d="M8 2V6M16 2V6M3 10H21M5 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  },
+  'camera-disable/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M2 2L22 22M7 7H4C3.46957 7 2.96086 7.21071 2.58579 7.58579C2.21071 7.96086 2 8.46957 2 9V18C2 18.5304 2.21071 19.0391 2.58579 19.4142C2.96086 19.7893 3.46957 20 4 20H20M9.5 4H14.5L17 7H20C20.5304 7 21.0391 7.21071 21.4142 7.58579C21.7893 7.96086 22 8.46957 22 9V16.5M14.1209 15.1209C13.8453 15.4122 13.5142 15.6453 13.147 15.8065C12.7798 15.9676 12.3841 16.0535 11.9831 16.0591C11.5822 16.0647 11.1842 15.9898 10.8127 15.8389C10.4411 15.6881 10.1036 15.4642 9.82009 15.1807C9.53654 14.8972 9.31272 14.5596 9.16185 14.1881C9.01098 13.8166 8.93612 13.4186 8.9417 13.0177C8.94727 12.6167 9.03317 12.2209 9.19431 11.8538C9.35546 11.4866 9.58858 11.1554 9.8799 10.8799" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
+  },
+  'camera/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M14.5 4H9.5L7 7H4C3.46957 7 2.96086 7.21071 2.58579 7.58579C2.21071 7.96086 2 8.46957 2 9V18C2 18.5304 2.21071 19.0391 2.58579 19.4142C2.96086 19.7893 3.46957 20 4 20H20C20.5304 20 21.0391 19.7893 21.4142 19.4142C21.7893 19.0391 22 18.5304 22 18V9C22 8.46957 21.7893 7.96086 21.4142 7.58579C21.0391 7.21071 20.5304 7 20 7H17L14.5 4ZM15 13C15 14.6569 13.6569 16 12 16C10.3431 16 9 14.6569 9 13C9 11.3431 10.3431 10 12 10C13.6569 10 15 11.3431 15 13Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
   'chat/outline/24': {
     viewBox: '0 0 24 24',
@@ -349,6 +363,10 @@ export const icons: Record<string, IconEntry> = {
   'etc/filled/24': {
     viewBox: '0 0 24 24',
     body: '<circle cx="5.5" cy="12.5" r="1.5" fill="currentColor"/><circle cx="11.5" cy="12.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="12.5" r="1.5" fill="currentColor"/>',
+  },
+  'expand/outline/24': {
+    viewBox: '0 0 24 24',
+    body: '<g transform="translate(0 -2)"><path d="M21 23L15 17M16.2 23H21V18.2M7.8 23H3V18.2M3 23L9 17M16.2 5H21V9.8M21 5L15 11M7.8 5H3V9.8M3 5L9 11" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/></g>',
   },
   'favorite/outline/24': {
     viewBox: '0 0 24 24',
@@ -583,6 +601,8 @@ export const iconList = [
   { name: 'blank', variant: 'outline', size: 24 },
   { name: 'calendar', variant: 'outline', size: 16 },
   { name: 'calendar', variant: 'outline', size: 24 },
+  { name: 'camera-disable', variant: 'outline', size: 24 },
+  { name: 'camera', variant: 'outline', size: 24 },
   { name: 'chat', variant: 'outline', size: 24 },
   { name: 'check', variant: 'outline', size: 12 },
   { name: 'check', variant: 'outline', size: 24 },
@@ -616,6 +636,7 @@ export const iconList = [
   { name: 'edit-2', variant: 'filled', size: 24 },
   { name: 'edit', variant: 'outline', size: 24 },
   { name: 'etc', variant: 'filled', size: 24 },
+  { name: 'expand', variant: 'outline', size: 24 },
   { name: 'favorite', variant: 'outline', size: 24 },
   { name: 'forward', variant: 'outline', size: 24 },
   { name: 'gift-cancel', variant: 'filled', size: 24 },

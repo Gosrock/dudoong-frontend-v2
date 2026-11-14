@@ -13,16 +13,17 @@ import { ZXING_WASM_PATH } from '../../src/features/hosting/qr/ui/zxing-wasm';
 import { expect, scenario } from '../scenario';
 
 /**
- * P13b-V QR 체크인(`/hosting/events/[eventId]/qr`, plan P13b 완료 기준 V).
- * - **와이어** `424:11941`(호스트가 스캔) · `424:11976`(관객이 스캔) · `108:4656`·`108:4693`(전체화면). GUI 페이지 `724:5257`은 비어 있다.
- * - 결과 화면 · 카메라 권한 거부 · 네트워크 실패 · 공연 상태 안내는 디자인 없음(DS로만, Figma 코멘트).
+ * P13b QR 체크인(`/hosting/events/[eventId]/qr`, plan P13b 완료 기준 V) — **GUI 근거**(P13b-GUI, Design Sync #215~#234).
+ * - 기본 모바일 `1360:13479` · 데스크탑1440 `1352:30715` · 전체화면 `1359:398` · `1352:30986` · 관객 `1360:25912` · `1360:27107`
+ * - 결과 카드 10종(`1362:1295`, 매핑 가이드 `1411:7760` — 13 → 10) · 카메라 켜는 중 · 실패 5종(`1349:713` · `1360:23457` 등)
+ * - 공연 상태 막힘(`1360:25576` · `1360:25745`) · 티켓 번호 결과 카드 · 입장 취소(`1368:4838` · `1372:18887` · `1372:19151`)
  * - 카메라: 브라우저 `getUserMedia`를 캔버스 영상으로 바꿔 스캐너가 켜진 모양을 찍고, 판독 값은 주입 어댑터(`dd:qr-scan`)로 넣는다.
  *
  * 범주 검토
  * - 크롤러: 해당 없음 — 호스팅 센터(로그인 게이트 안, 서버 조회 없음)
  * - 권한: 일반 멤버도 GQ-1·PQ-2를 쓴다(L 훅 테스트). 공연 접근 403·404는 공연 스코프 레이아웃이 맡는다(P11 QA)
  * - 빈 상태: 발급 0장 공연은 통계 0/0 — 공연 상태 안내(QR-7)와 같은 칸이라 따로 두지 않았다
- * - 반응형: 모든 시나리오 mobile(390) · desktop(1280). PC 와이어는 없다
+ * - 반응형: 모든 시나리오 mobile(390) · desktop — 데스크탑은 GUI 프레임 폭 1440으로 바꿔 찍는다(`setUp`)
  */
 
 const reset = () => {
@@ -55,6 +56,9 @@ async function stubCamera(page: Page, camera: Camera) {
 
 async function setUp(page: Page, camera: Camera = 'fake') {
   reset();
+  // GUI 데스크탑 프레임이 1440 — desktop 프로젝트만 폭을 바꾼다(모바일은 390 그대로)
+  if ((page.viewportSize()?.width ?? 0) >= 1024)
+    await page.setViewportSize({ width: 1440, height: 1024 });
   await stubCamera(page, camera);
   await setMockSession(page, 'loggedIn');
 }
@@ -77,10 +81,10 @@ scenario(
   {
     kind: '정상',
     summary:
-      '통계 3칸(전체 티켓 · 입장 완료 · 미입장) + 막대 + 입장률, [호스트가 QR 스캔] 카메라. 승인 티켓을 찍으면 입장 완료 카드(이름 · 티켓 · 번호)와 1/7.',
+      '통계 3칸(전체 티켓 · 입장 완료 · 미입장) + 막대 + 입장률, [호스트가 QR 스캔] 검정 카메라 · 가이드 · 안내 알약 · [⤢]. 승인 티켓을 찍으면 입장 완료 카드(이름 · 티켓 · 번호)와 1/7.',
     basis: [
       'plan P13b 완료 기준 V(result 화면)',
-      '와이어 424:11941',
+      'GUI 1360:13479 · 1352:30715 · 결과 1362:2224 · 1362:2054',
       'P13a 대시보드 "QR 체크인 열기"',
     ],
   },
@@ -103,7 +107,9 @@ scenario(
       expect(cdn).toEqual([]);
       await expect(page.getByTestId('checkin-stat-issued')).toHaveText('7');
       await expect(page.getByTestId('checkin-stats-rate')).toHaveText('0% 입장 완료');
-      await expect(result(page)).toContainText('티켓 QR을 카메라에 비춰 주세요');
+      await expect(page.getByTestId('host-scan')).toHaveAttribute('data-camera', 'live');
+      await expect(page.getByTestId('host-scan')).toContainText('티켓 QR을 카메라에 비춰 주세요');
+      await expect(page.getByRole('button', { name: '전체화면 전환' })).toBeVisible();
     });
     await step('승인된 티켓을 찍으면 입장 완료 카드와 1/7 · 14.3%가 보인다', async () => {
       await scan(page, TICKET_UUID.approved);
@@ -122,15 +128,15 @@ scenario(
 
 scenario(
   'QR-2',
-  'result 5종 + 티켓 QR 아님 — 결과마다 아이콘 · 문구 · 티켓 정보',
+  'result 5종 + 티켓 QR 아님 — 결과 카드(매핑 가이드 대로)',
   {
     kind: '정상',
     summary:
-      '입장 완료(초록) → 같은 티켓 다시: 이미 입장(경고) · 선물 대기(경고) · 다른 공연(빨강, 티켓 정보 없음) · 취소된 티켓(빨강) · 64자 넘는 값: 티켓 QR이 아니에요.',
+      '입장 완료(초록) → 같은 티켓 다시: 이미 입장(노랑, "{입장 시각} 입장") · 선물 대기(노랑) · 다른 공연(빨강, 티켓 정보 없음) · 취소된 티켓(빨강) · 64자 넘는 값은 다른 공연과 같은 "이 공연 티켓이 아니에요"(가이드 5 · 7 묶음).',
     basis: [
       'plan P13b 완료 기준 V(result 5종 화면)',
-      'design-requests "QR 체크인 결과 화면" 기본안',
-      'checkin-result 호스트 문구',
+      'GUI 결과 카드 1362:1295 · 매핑 가이드 1411:7760(#234)',
+      '결과 프레임 1365:2251 · 1365:2573 · 1365:2895 · 1365:3202',
     ],
   },
   async ({ page, step }) => {
@@ -163,11 +169,15 @@ scenario(
         if (code === 'OTHER_EVENT') await expect(page.getByTestId('scan-ticket')).toHaveCount(0);
       });
     }
-    await step('티켓 QR이 아닌 값(64자 넘음)을 찍으면 "티켓 QR이 아니에요"', async () => {
-      await scan(page, 'https://example.com/'.padEnd(80, 'x'));
-      await expect(result(page)).toHaveAttribute('data-status', 'invalidQr');
-      await expect(result(page)).toContainText('티켓 QR이 아니에요');
-    });
+    await step(
+      '티켓 QR이 아닌 값(64자 넘음)도 "이 공연 티켓이 아니에요"(가이드 7 → 5와 같은 카드)',
+      async () => {
+        await scan(page, 'https://example.com/'.padEnd(80, 'x'));
+        await expect(result(page)).toHaveAttribute('data-status', 'invalidQr');
+        await expect(result(page)).toHaveAttribute('data-card', 'notThisEvent');
+        await expect(result(page)).toContainText('이 공연 티켓이 아니에요');
+      },
+    );
   },
 );
 
@@ -177,8 +187,11 @@ scenario(
   {
     kind: '에러',
     summary:
-      '입장 처리 요청이 끊기면 빨간 실패 카드에 원인과 [다시 시도] · [다음 스캔]. 연결 뒤 다시 시도하면 입장 완료.',
-    basis: ['plan P13b 완료 기준 V(네트워크 차단 시 명확한 실패 UI)', 'patterns §24 P13b'],
+      '입장 처리 요청이 끊기면 빨간 실패 카드 "입장 처리를 하지 못했어요 / 잠시 후 다시 시도해 주세요" + [다시 시도](가이드 6 · 9 · 10 묶음). 연결 뒤 다시 시도하면 입장 완료.',
+    basis: [
+      'plan P13b 완료 기준 V(네트워크 차단 시 명확한 실패 UI)',
+      'GUI 1365:4662 · 1365:4488 · 매핑 가이드 1411:7760',
+    ],
   },
   async ({ page, step }) => {
     await setUp(page);
@@ -188,7 +201,9 @@ scenario(
       await page.route('**/api/v2/events/101/check-ins', (r) => r.abort('internetdisconnected'));
       await scan(page, TICKET_UUID.approved);
       await expect(result(page)).toHaveAttribute('data-status', 'failed');
-      await expect(result(page).getByRole('alert')).toContainText('네트워크에 연결되지 않아');
+      await expect(result(page)).toHaveAttribute('data-card', 'failed');
+      await expect(result(page).getByRole('alert')).toContainText('입장 처리를 하지 못했어요');
+      await expect(result(page).getByRole('button', { name: '다음 스캔' })).toHaveCount(0);
     });
     await step('연결된 뒤 [다시 시도]를 누르면 입장 완료', async () => {
       await page.unroute('**/api/v2/events/101/check-ins');
@@ -200,21 +215,21 @@ scenario(
 
 scenario(
   'QR-4',
-  '카메라 권한 거부 · 카메라 없음 — 카메라 자리에 이유와 [카메라 다시 켜기]',
+  '카메라 권한 거부 — 회색 자리에 카메라 금지 아이콘 · 이유 · [다시 켜기]',
   {
     kind: '에러',
-    summary:
-      '권한을 거부하면 "카메라 권한이 필요해요", 카메라가 없으면 "카메라를 찾을 수 없어요". 기다림 안내는 숨긴다.',
-    basis: ['plan P13b V 범위(카메라 권한 거부 UI)', 'implementation-log P13b-L 남음'],
+    summary: '권한을 거부하면 "카메라 권한이 필요해요" + [다시 켜기]. 안내 알약 · [⤢]는 숨긴다.',
+    basis: ['plan P13b V 범위(카메라 권한 거부 UI)', 'GUI 1360:23457 · 1349:16(#226 · #230)'],
   },
   async ({ page, step }) => {
     await setUp(page, 'denied');
-    await step('권한을 거부하면 "카메라 권한이 필요해요"와 [카메라 다시 켜기]', async () => {
+    await step('권한을 거부하면 "카메라 권한이 필요해요"와 [다시 켜기]', async () => {
       await page.goto(QR);
       const problem = page.getByTestId('camera-problem');
       await expect(problem).toContainText('카메라 권한이 필요해요');
-      await expect(problem.getByRole('button', { name: '카메라 다시 켜기' })).toBeVisible();
-      await expect(result(page)).not.toContainText('카메라에 비춰');
+      await expect(problem.getByRole('button', { name: '다시 켜기' })).toBeVisible();
+      await expect(page.getByTestId('host-scan')).not.toContainText('카메라에 비춰');
+      await expect(page.getByRole('button', { name: '전체화면 전환' })).toHaveCount(0);
     });
   },
 );
@@ -225,13 +240,14 @@ scenario(
   {
     kind: '에러',
     summary: '카메라가 없는 기기(PC 등)에서는 [관객이 QR 스캔]을 권한다.',
-    basis: ['plan P13b V 범위(스캔 실패 UI)'],
+    basis: ['plan P13b V 범위(스캔 실패 UI)', 'GUI 1360:23536 · 1352:31657'],
   },
   async ({ page, step }) => {
     await setUp(page, 'none');
     await step('카메라가 없으면 "카메라를 찾을 수 없어요"', async () => {
       await page.goto(QR);
       await expect(page.getByTestId('camera-problem')).toContainText('카메라를 찾을 수 없어요');
+      await expect(page.getByTestId('camera-problem')).toContainText('[관객이 QR 스캔]');
     });
   },
 );
@@ -242,8 +258,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      '[전체화면 전환]을 누르면 카메라가 화면을 덮고 [‹]가 생긴다. 전체화면에서 찍어도 결과가 보이고, 뒤로가기는 화면을 떠나지 않고 전체화면만 닫는다.',
-    basis: ['plan P13b V 범위(전체화면)', '와이어 108:4656', 'patterns §6 뒤로가기'],
+      '[⤢]를 누르면 카메라가 화면을 덮고 오른쪽 위 [✕]가 생긴다. 전체화면에서 찍어도 결과 카드가 아래에 보이고, 뒤로가기는 화면을 떠나지 않고 전체화면만 닫는다.',
+    basis: [
+      'plan P13b V 범위(전체화면)',
+      'GUI 1359:398 · 1352:30986 · 결과 1367:4189 · 1367:4147',
+      'patterns §6 뒤로가기',
+    ],
   },
   async ({ page, step }) => {
     await setUp(page);
@@ -267,12 +287,12 @@ scenario(
 
 scenario(
   'QR-6',
-  '[관객이 QR 스캔] — 셀프 체크인 QR · 전체화면 · [‹]로 닫기',
+  '[관객이 QR 스캔] — 셀프 체크인 QR · 전체화면 · [✕]로 닫기',
   {
     kind: '정상',
     summary:
-      'QR 주소 = 이 사이트 origin + qrPath(GQ-4). 흰 카드 위 QR + "QR 코드를 스캔하면 입장이 완료됩니다." 전체화면은 흰 바탕에 큰 QR.',
-    basis: ['plan P13b V 범위([관객이 스캔] QR 표시 · 전체화면)', '와이어 424:11976 · 108:4693'],
+      'QR 주소 = 이 사이트 origin + qrPath(GQ-4). 회색 자리 · 흰 판 위 QR + "QR 코드를 스캔하면 입장이 완료됩니다". 전체화면은 로고 · 공연 이름 · 큰 QR · 안내.',
+    basis: ['plan P13b V 범위([관객이 스캔] QR 표시 · 전체화면)', 'GUI 1360:25912 · 1360:27107'],
   },
   async ({ page, step }) => {
     await setUp(page);
@@ -285,16 +305,15 @@ scenario(
         `${new URL(page.url()).origin}/check-in?token=mock-checkin-101`,
       );
       await expect(qr.locator('svg')).toBeVisible();
-      await expect(page.getByText('QR 코드를 스캔하면 입장이 완료됩니다.')).toBeVisible();
+      await expect(page.getByText('QR 코드를 스캔하면 입장이 완료됩니다')).toBeVisible();
     });
-    await step('[전체화면 전환]을 누르면 흰 바탕에 큰 QR', async () => {
+    await step('[⤢]를 누르면 로고 · 공연 이름 · 큰 QR', async () => {
       await page.getByRole('button', { name: '전체화면 전환' }).click();
-      await expect(page.getByRole('region', { name: '셀프 체크인 QR' })).toHaveAttribute(
-        'data-fullscreen',
-        'true',
-      );
+      const region = page.getByRole('region', { name: '셀프 체크인 QR' });
+      await expect(region).toHaveAttribute('data-fullscreen', 'true');
+      await expect(region.getByRole('heading', { name: '고스락 제37회 정기공연' })).toBeVisible();
     });
-    await step('[‹]를 누르면 전체화면이 닫힌다', async () => {
+    await step('[✕]를 누르면 전체화면이 닫힌다', async () => {
       await page.getByRole('button', { name: '전체화면 닫기' }).click();
       await expect(page.getByRole('region', { name: '셀프 체크인 QR' })).not.toHaveAttribute(
         'data-fullscreen',
@@ -306,12 +325,15 @@ scenario(
 
 scenario(
   'QR-7',
-  '공연 상태 안내 — 정산중이면 셀프 체크인 안내만, 지난 공연이면 호스트 스캔도 막힘',
+  '공연 상태 안내 — 정산중이면 셀프 체크인 안내만, 지난 공연이면 두 탭 모두 막힘',
   {
     kind: '빈 상태',
     summary:
-      '정산중: [호스트가 QR 스캔]은 되고 [관객이 QR 스캔]은 QR 대신 안내 두 줄. 지난 공연: 카메라 대신 "지난 공연은 입장 처리를 할 수 없어요".',
-    basis: ['plan P13b 완료 기준 L(끝난 공연 안내 · Event_400_27)', 'patterns §24 P13b'],
+      '정산중: [호스트가 QR 스캔]은 되고 [관객이 QR 스캔]은 QR 대신 안내 두 줄(화면 없음 🤖). 지난 공연: 두 탭 모두 회색 자리에 카메라 금지 아이콘 + "지난 공연은 입장 처리를 할 수 없어요", 티켓 번호 칸 없음.',
+    basis: [
+      'plan P13b 완료 기준 L(끝난 공연 안내 · Event_400_27)',
+      'GUI 1360:25576 · 1360:25654 · 1360:24537 · 1360:25202(#227 · #231)',
+    ],
   },
   async ({ page, step }) => {
     await setUp(page);
@@ -330,18 +352,26 @@ scenario(
       await expect(page.getByTestId('host-scan-blocked')).toHaveText(
         '지난 공연은 입장 처리를 할 수 없어요',
       );
+      await expect(page.getByTestId('ticket-no-check-in')).toHaveCount(0);
+      await page.getByRole('tab', { name: '관객이 QR 스캔' }).click();
+      await expect(page.getByTestId('self-check-in-guidance')).toHaveText(
+        '지난 공연은 입장 처리를 할 수 없어요',
+      );
     });
   },
 );
 
 scenario(
   'QR-10',
-  '카메라를 쓸 수 없으면 티켓 번호로 입장 — 입장 처리 뒤 관객 이름을 크게',
+  '카메라를 쓸 수 없으면 티켓 번호로 입장 — 결과 카드 · 관객 이름 크게 · [입장 취소]',
   {
     kind: '정상',
     summary:
-      'PQ-2b(백엔드 #926 — 2.5.6). [호스트가 QR 스캔] 카메라 아래 "티켓 번호로 입장" DS Input + Button(디자인 없음 — Q99). 숫자만 넣어도 서버가 T를 붙인다. 번호는 추측할 수 있어 입장 처리 뒤 `ownerName`을 크게 보이고 확인을 부탁한다. 다시 넣으면 이미 입장, 없는 번호는 티켓 정보 없음.',
-    basis: ['Backend #914 답 6(B27)', 'design-requests Q99', '이슈 #93 §5'],
+      'PQ-2b(백엔드 #926). 구분선 아래 "티켓 번호로 입장"(PC는 오른쪽에 결과 카드). 숫자만 넣어도 서버가 T를 붙인다. 입장 완료 카드는 "본인이 맞는지 확인해 주세요" + 번호 · 이름 크게 · 티켓 + [입장 취소](확인 창 → 토스트 "입장 처리를 취소했어요."). 이미 입장 · 없는 번호(이 공연 티켓이 아니에요) · 빈 값 · 번호 모양이 아닌 값(abc — 서버로 보내지 않음, 칸 아래 빨간 문구 `1368:6774`).',
+    basis: [
+      'Backend #914 답 6(B27)',
+      'GUI 1368:5238 · 1368:5083 · 1368:5494 · 1368:6268 · 1368:6774 · 1372:18887 · 1372:19151(#221~#224)',
+    ],
   },
   async ({ page, step }) => {
     await setUp(page, 'denied');
@@ -369,6 +399,22 @@ scenario(
         'ALREADY_ENTERED',
       );
     });
+    await step(
+      '예매자 티켓(T2000002)을 넣고 [입장 취소] → 확인 창 → 토스트, 카드가 지워진다',
+      async () => {
+        await field.fill('T2000002');
+        await box.getByRole('button', { name: '입장 처리' }).click();
+        const res = page.getByTestId('ticket-no-result');
+        await expect(res).toHaveAttribute('data-result', 'ENTERED');
+        await expect(res).toContainText('본인이 맞는지 확인해 주세요');
+        await res.getByRole('button', { name: '입장 취소' }).click();
+        const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'));
+        await expect(dialog).toContainText('입장 처리를 취소할까요?');
+        await dialog.getByRole('button', { name: '입장 취소' }).click();
+        await expect(page.getByText('입장 처리를 취소했어요.')).toBeVisible();
+        await expect(page.getByTestId('ticket-no-result')).toHaveCount(0);
+      },
+    );
     await step('없는 번호는 티켓 정보 없음(OTHER_EVENT), 빈 값은 칸 오류', async () => {
       await field.fill('T9999999');
       await box.getByRole('button', { name: '입장 처리' }).click();
@@ -376,10 +422,25 @@ scenario(
         'data-result',
         'OTHER_EVENT',
       );
+      await expect(page.getByTestId('ticket-no-result')).toContainText('이 공연 티켓이 아니에요');
       await field.fill('');
       await box.getByRole('button', { name: '입장 처리' }).click();
       await expect(box.getByText('티켓 번호를 확인해 주세요 (예: T1000118)')).toBeVisible();
     });
+    await step(
+      '번호 모양이 아닌 값(abc)은 서버로 보내지 않고 칸 아래 "티켓 번호를 확인해 주세요"',
+      async () => {
+        const sent: string[] = [];
+        page.on('request', (r) => {
+          if (r.url().includes('/by-ticket-no')) sent.push(r.url());
+        });
+        await field.fill('abc');
+        await box.getByRole('button', { name: '입장 처리' }).click();
+        await expect(box.getByText('티켓 번호를 확인해 주세요 (예: T1000118)')).toBeVisible();
+        await expect(page.getByTestId('ticket-no-result')).toHaveCount(0);
+        expect(sent).toEqual([]);
+      },
+    );
   },
 );
 

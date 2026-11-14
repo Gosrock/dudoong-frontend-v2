@@ -32,16 +32,25 @@ export function Tabs(props: TabsProps) {
 /** `responsive` = 모바일 md · 1024부터 lg(같은 DOM, CSS로) */
 export type TabSize = 'md' | 'lg' | 'responsive';
 
-const TabSizeContext = createContext<TabSize>('md');
+const TabSizeContext = createContext<{ size: TabSize; underline: boolean }>({
+  size: 'md',
+  underline: true,
+});
 
 export type TabListProps = Omit<ComponentPropsWithRef<typeof RadixTabs.List>, 'asChild'> & {
   /** md = Figma `type=모바일`(16, 44h), lg = `type=데스크탑`(20, 48h) */
   size?: TabSize;
+  /**
+   * 선택 탭 아래 2px 줄(기본 true). false = 글자 굵기 · 색만으로 선택을 보인다.
+   * FIGMA-CUSTOM: QR 체크인 GUI(`1360:13500` "탭_주문/발급된 티켓" — DS `tab`의 채움 · 테두리를 덮어써 밑줄 없음, 2026-11-14 P13b-GUI)
+   * — DS에 없는 변형 → 이 prop. DS 후보(design-system §3, 2단계)
+   */
+  underline?: boolean;
 };
 
-export function TabList({ className, size = 'md', ...rest }: TabListProps) {
+export function TabList({ className, size = 'md', underline = true, ...rest }: TabListProps) {
   return (
-    <TabSizeContext value={size}>
+    <TabSizeContext value={{ size, underline }}>
       <RadixTabs.List className={className ? `${s.list} ${className}` : s.list} {...rest} />
     </TabSizeContext>
   );
@@ -50,7 +59,8 @@ export function TabList({ className, size = 'md', ...rest }: TabListProps) {
 export type TabProps = Omit<ComponentPropsWithRef<typeof RadixTabs.Trigger>, 'asChild'>;
 
 export function Tab({ className, ...rest }: TabProps) {
-  const cls = s.tab({ size: use(TabSizeContext) });
+  const { size, underline } = use(TabSizeContext);
+  const cls = s.tab({ size, underline });
   return <RadixTabs.Trigger className={className ? `${cls} ${className}` : cls} {...rest} />;
 }
 

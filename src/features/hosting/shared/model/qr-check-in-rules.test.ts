@@ -7,6 +7,7 @@ import {
   hostScanErrorOutcome,
   isRepeatedScan,
   normalizeScanValue,
+  normalizeTicketNoInput,
   SCAN_COOLDOWN_MS,
   SELF_CHECK_IN_BLOCK_MESSAGE,
   selfCheckInBlockOf,
@@ -118,5 +119,21 @@ describe('PQ-2 실패 분류', () => {
     [new Error('x'), { kind: 'failed', failure: { kind: 'server', canRetry: true } }],
   ])('%s', (e, expected) => {
     expect(hostScanErrorOutcome(e)).toMatchObject(expected);
+  });
+});
+
+describe('티켓 번호 입력(PQ-2b) — T + 숫자만 보낸다(P13b-GUI 번호 형식 오류 `1368:6774`)', () => {
+  it.each([
+    [' T1000118 ', { kind: 'ticketNo', ticketNo: 'T1000118' }],
+    ['t1000118', { kind: 'ticketNo', ticketNo: 't1000118' }],
+    ['1000118', { kind: 'ticketNo', ticketNo: '1000118' }],
+    ['   ', { kind: 'empty' }],
+    ['abc', { kind: 'invalid' }],
+    ['T10-001', { kind: 'invalid' }],
+    ['TT1000118', { kind: 'invalid' }],
+    ['T', { kind: 'invalid' }],
+    ['T'.padEnd(21, '1'), { kind: 'invalid' }],
+  ] as const)('%j', (raw, expected) => {
+    expect(normalizeTicketNoInput(raw)).toEqual(expected);
   });
 });

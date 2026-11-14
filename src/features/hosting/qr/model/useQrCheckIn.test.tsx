@@ -1,5 +1,6 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { http } from 'msw';
 import { type ReactNode, Suspense } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +15,7 @@ import {
 import { resetHostMockState } from '@/api/__mocks__/host.handlers';
 import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
+import { ok } from '@/api/__mocks__/respond';
 import { server } from '@/api/__mocks__/server';
 import { checkInStatsQuery } from '@/api/check-in/queries';
 import { eventDashboardQuery } from '@/api/dashboard/queries';
@@ -249,6 +251,25 @@ describe('[호스트가 스캔](PQ-2)', () => {
     expect(await scanPosts(sent)).toHaveLength(2);
   });
 
+  // P13b-GUI 매핑 가이드(`1411:7760`) — 알 수 없는 결과도 [다시 시도] 카드(네트워크 · 서버와 묶음)
+  it('알 수 없는 결과(UNKNOWN) → retry()가 같은 값을 다시 보낸다(쿨다운 무시)', async () => {
+    server.use(
+      http.post('*/api/v2/events/:eventId/check-ins', () =>
+        ok({ result: 'SOMETHING_NEW', ticket: null, candidates: [] }),
+      ),
+    );
+    const sent = recordRequests();
+    const { result } = await setupScan('101');
+    act(() => void result.current.scan.submitScan(TICKET_UUID.approved));
+    await scanDone(result);
+    expect(result.current.scan.state).toMatchObject({ view: { result: 'UNKNOWN' } });
+    server.resetHandlers();
+    act(() => result.current.scan.retry());
+    await scanDone(result);
+    expect(result.current.scan.state).toMatchObject({ view: { result: 'ENTERED' } });
+    expect(await scanPosts(sent)).toHaveLength(2);
+  });
+
   it('5xx → failed(server), 다시 시도할 수 있다', async () => {
     server.use(...hostCheckInSets.scanServerError);
     const { result } = await setupScan('101');
@@ -364,17 +385,18 @@ describe('[관객이 스캔](GQ-4)', () => {
     expect(result.current.guidance).toBeNull();
   });
 
+  // P13b-GUI — 호스트 스캔도 막힌 공연은 두 탭이 같은 안내(`1360:25654` · `1360:25745`), 정산중만 셀프 안내 + 힌트
   it.each([
-    ['CALCULATING', 'ended', '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요'],
-    ['CLOSED', 'ended', '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요'],
-    ['PREPARING', 'notRegistered', '공연을 등록해야 셀프 체크인을 할 수 있어요'],
-  ] as const)('%s → 안내만, GQ-4를 부르지 않는다', async (status, block, guidance) => {
+    ['CALCULATING', 'ended', '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요', true],
+    ['CLOSED', 'ended', '지난 공연은 입장 처리를 할 수 없어요', false],
+    ['PREPARING', 'notRegistered', '공연을 등록해야 입장 처리를 할 수 있어요', false],
+  ] as const)('%s → 안내만, GQ-4를 부르지 않는다', async (status, block, guidance, hint) => {
     setStoredStatus(101, status);
     const sent = recordRequests();
     const { result } = setup(() => useSelfCheckInQr('101', { origin }));
     await waitFor(() => expect(result.current?.status).toBe('blocked'));
     expect(result.current).toMatchObject({ block, guidance, qrUrl: null });
-    expect(result.current.hint !== null).toBe(block === 'ended');
+    expect(result.current.hint !== null).toBe(hint);
     expect((await sent.list()).filter((r) => r.path.endsWith('/check-in-qr'))).toEqual([]);
   });
 

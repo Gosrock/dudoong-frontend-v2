@@ -8,11 +8,14 @@ describe('카메라 안내(이슈 #93 §5)', () => {
     expect(cameraWaitHint(true).description).toContain('[관객이 QR 스캔]');
   });
 
-  it('권한 거부는 다시 켜기, 지원 안 함은 다시 켜기 없음', () => {
+  it('권한 거부 · 지원 안 함 모두 다시 켜기(P13b-GUI — 다섯 화면 모두 [다시 켜기])', () => {
     expect(cameraProblemOf('permission-denied')).toMatchObject({
       title: '카메라 권한이 필요해요',
       canRetry: true,
     });
-    expect(cameraProblemOf('insecure-context').canRetry).toBe(false);
+    expect(cameraProblemOf('insecure-context')).toMatchObject({
+      title: '이 브라우저에서는 카메라를 쓸 수 없어요',
+      canRetry: true,
+    });
   });
 });
