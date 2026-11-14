@@ -176,11 +176,20 @@ export function useHostScan(
     [block, now, cooldownMs, send],
   );
 
-  /** `failed`(다시 시도할 수 있는 것)일 때 같은 값을 다시 보낸다 — 쿨다운을 보지 않는다 */
+  /**
+   * 같은 값을 다시 보낸다 — 쿨다운을 보지 않는다(같은 QR을 3초 안에 다시 찍으면 무시되므로). `failed`(다시 시도할 수 있는 것)와
+   * 알 수 없는 결과(`UNKNOWN`)일 때 — P13b-GUI 매핑 가이드(`1411:7760`)가 UNKNOWN을 네트워크 · 서버 실패와 같은 [다시 시도] 카드로 묶었다
+   */
   const retry = useCallback(() => {
-    if (state.status !== 'failed' || !state.failure.canRetry) return;
+    const value =
+      state.status === 'failed' && state.failure.canRetry
+        ? state.value
+        : state.status === 'result' && state.view.result === 'UNKNOWN'
+          ? state.value
+          : null;
+    if (value === null) return;
     if (pendingValue.current !== null || block !== null) return;
-    send(state.value);
+    send(value);
   }, [state, block, send]);
 
   const reset = useCallback(() => {

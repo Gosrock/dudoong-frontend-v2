@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import { checkInQrQuery } from '@/api/check-in/queries';
 import {
+  HOST_SCAN_BLOCK_MESSAGE,
+  hostScanBlockOf,
   SELF_CHECK_IN_BLOCK_MESSAGE,
   SELF_CHECK_IN_ENDED_HINT,
   selfCheckInBlockOf,
@@ -24,6 +26,9 @@ const browserOrigin = () => (typeof window === 'undefined' ? '' : window.locatio
 export function useSelfCheckInQr(eventId: string, { origin = browserOrigin } = {}) {
   const { event } = useEventScope(eventId);
   const block = selfCheckInBlockOf(event.status);
+  // P13b-GUI — 두 탭이 같은 안내(`1360:25654` 지난 공연 · `1360:25745` 알 수 없는 상태, #227 · #228): 호스트 스캔도 막힌 공연이면 그 말.
+  // 정산중(셀프만 막힘 — 호스트 스캔은 된다)은 화면이 없어 셀프 안내 + [호스트가 스캔] 힌트를 그대로 둔다 🤖
+  const hostBlock = hostScanBlockOf(event.status);
   const q = useQuery({ ...checkInQrQuery(eventId), enabled: block === null });
   const qrUrl = q.data ? selfCheckInUrl(origin(), q.data.qrPath) : null;
   const status: 'blocked' | 'pending' | 'error' | 'ready' =
@@ -39,9 +44,13 @@ export function useSelfCheckInQr(eventId: string, { origin = browserOrigin } = {
     /** 셀프 체크인을 막는 이유(`ended` 정산중·지난 공연 · `notRegistered` 준비중 · `unknown`) */
     block,
     /** 막혔을 때 안내 */
-    guidance: block ? SELF_CHECK_IN_BLOCK_MESSAGE[block] : null,
-    /** 끝난 공연이면 다음 행동 안내 */
-    hint: block === 'ended' ? SELF_CHECK_IN_ENDED_HINT : null,
+    guidance: hostBlock
+      ? HOST_SCAN_BLOCK_MESSAGE[hostBlock]
+      : block
+        ? SELF_CHECK_IN_BLOCK_MESSAGE[block]
+        : null,
+    /** 정산중(호스트 스캔은 된다)이면 다음 행동 안내 */
+    hint: block === 'ended' && hostBlock === null ? SELF_CHECK_IN_ENDED_HINT : null,
     /** QR에 넣을 주소(`ready`일 때만) */
     qrUrl: status === 'ready' ? qrUrl : null,
     retry: () => void q.refetch(),

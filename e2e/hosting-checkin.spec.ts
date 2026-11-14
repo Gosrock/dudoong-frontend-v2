@@ -91,7 +91,9 @@ test.describe('[호스트가 스캔]', () => {
     );
     await scan(page, TICKET_UUID.approved);
     await expect(result(page)).toHaveAttribute('data-status', 'failed');
-    await expect(result(page).getByRole('alert')).toContainText('네트워크에 연결되지 않아');
+    // P13b-GUI 매핑 가이드 — 네트워크 · 서버 · 알 수 없는 결과는 한 카드 "입장 처리를 하지 못했어요"(원인은 data-card로 남긴다)
+    await expect(result(page)).toHaveAttribute('data-card', 'failed');
+    await expect(result(page).getByRole('alert')).toContainText('입장 처리를 하지 못했어요');
 
     await page.unroute('**/api/v2/events/101/check-ins');
     await result(page).getByRole('button', { name: '다시 시도' }).click();

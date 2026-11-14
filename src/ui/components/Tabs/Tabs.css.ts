@@ -45,6 +45,14 @@ export const tab = recipe({
     },
   },
   variants: {
+    /** false = 밑줄 없음(QR 체크인 GUI `1360:13500`) — `TabList` `underline` */
+    underline: {
+      true: {},
+      false: {
+        borderBottom: 'none',
+        selectors: { '&[data-state="active"]': { borderBottomColor: 'transparent' } },
+      },
+    },
     size: {
       md: [
         typography.labelLg,
@@ -88,7 +96,7 @@ export const tab = recipe({
       ],
     },
   },
-  defaultVariants: { size: 'md' },
+  defaultVariants: { size: 'md', underline: true },
 });
 
 export const panel = style({ outline: 'none' });
