@@ -124,6 +124,8 @@ CMD ["node", "server.js"]
 
 **`deploymentId`.** 배포하면 옛 JS 청크가 서버에서 사라진다. 배포 전에 열어 둔 탭이 화면을 이동하다 없는 청크를 요청하면 깨진다. `deploymentId`를 주면 Next가 버전이 달라진 것을 알아채고 전체 새로고침으로 넘어간다. 체크아웃 도중 배포가 나가는 경우가 여기 해당한다.
 
+**응답 헤더 크기(2026-11-14).** `deploymentId`가 있으면 정적 파일 주소마다 `?dpl=<GIT_SHA>`(45자)가 붙는다. React가 CSS preload를 응답 `Link` 헤더에 싣는데(기본 6000자까지) 공연 상세는 CSS 청크가 31개라 스테이징에서 헤더가 4.4KB → nginx 기본 `proxy_buffer_size`(4k)를 넘어 502였다. `reactMaxHeadersLength: 800`으로 앱 헤더를 2KB 아래에 둔다(e2e `response-headers`). nginx 버퍼를 늘리는 것은 Deploy 저장소 몫(implementation-log "응답 헤더 크기(2026-11-14)").
+
 한계도 있다. 전체 새로고침이라 `useState` 같은 컴포넌트 상태와 입력 중인 폼 값은 사라진다(Next 문서 self-hosting #version-skew). 그래서 주문 완료 화면은 메모리의 응답이 아니라 주소(`/orders/[orderUuid]?created=1`)로 다시 그릴 수 있게 했다(tech-decisions §3). 또 화면 이동 없이 불러오는 지연 청크(`next/dynamic`)의 404는 이 기능이 막지 못한다 — 옛 청크를 서버에 남겨 두는 기능이 아니다. 에디터·QR 스캐너를 여는 순간 배포가 겹치면 그 부분만 깨질 수 있고, 경계(`AsyncBoundary`)의 재시도로 새로고침을 안내한다.
 
 **이미지 최적화(`next/image`).** 포스터는 호스트가 올린 원본이라 그대로 내려보내기엔 크다. `next/image`를 쓰되 변환 결과가 컨테이너 안(`.next/cache/images`)에 쌓여 배포마다 사라지는 점, 변환이 CPU·메모리를 쓰는 점을 D2(스테이징 첫 배포)에서 스테이징 서버 사양으로 본다. 부담이 크면 `deviceSizes`를 v1처럼 두세 개로 줄이고, 그래도 크면 캐시 폴더를 볼륨으로 뺀다.
