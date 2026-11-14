@@ -42,6 +42,24 @@ export const TwoTabs: Story = {
   },
 };
 
+/** 밑줄 없음(`underline={false}`) — QR 체크인 GUI(`1360:13500`)가 DS `tab`을 덮어씀. 선택은 굵기 · 색으로만 */
+export const NoUnderline: Story = {
+  render: () => (
+    <Tabs defaultValue="host">
+      <TabList aria-label="체크인 방식" underline={false}>
+        <Tab value="host">호스트가 QR 스캔</Tab>
+        <Tab value="audience">관객이 QR 스캔</Tab>
+      </TabList>
+    </Tabs>
+  ),
+  play: async ({ canvas }) => {
+    const selected = getComputedStyle(canvas.getByRole('tab', { name: '호스트가 QR 스캔' }));
+    await expect(selected.borderBottomStyle).toBe('none');
+    await expect(selected.fontWeight).toBe('700');
+    await expect(selected.color).toBe('rgb(20, 20, 19)');
+  },
+};
+
 /** Figma `type=데스크탑`(`657:2012`·`657:2014`) — 20(`Heading/md` / `- emphasized`), 48h로 통일 */
 export const Desktop: Story = {
   render: () => (

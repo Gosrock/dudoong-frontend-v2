@@ -7,6 +7,7 @@ import { hostCheckInSets } from '@/api/__mocks__/check-in.handlers';
 import { setStoredStatus } from '@/api/__mocks__/event-store';
 import { resetTicketStore as resetMyTicketStore } from '@/api/__mocks__/fixtures/my-ticket';
 import { resetHostMockState } from '@/api/__mocks__/host.handlers';
+import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { server } from '@/api/__mocks__/server';
 import { errorToast } from '@/test/error-toast';
@@ -123,5 +124,54 @@ describe('티켓 번호로 입장(PQ-2b — #926)', () => {
     expect(result.current.blocked).toBe(true);
     act(() => void result.current.submit('T1000001'));
     expect(await posts(sent)).toHaveLength(0);
+  });
+
+  // P13b-GUI — 번호 입장 완료 카드의 [입장 취소](Q-3, `1372:18887` · `1372:19151`)
+  it('입장 완료 → 입장 취소(Q-3, 그 티켓 uuid) → 카드를 지우고, 다시 넣으면 다시 입장 완료', async () => {
+    const sent = recordRequests();
+    const { result } = await setup();
+    expect(result.current.entranceCancel.can).toBe(true);
+    act(() => void result.current.submit('T2000002'));
+    await done(result);
+    expect(result.current.state).toMatchObject({ view: { result: 'ENTERED' } });
+    let out: Awaited<ReturnType<typeof result.current.entranceCancel.run>> | undefined;
+    await act(async () => {
+      out = await result.current.entranceCancel.run();
+    });
+    expect(out).toEqual({ kind: 'done' });
+    expect(result.current.state.status).toBe('idle');
+    expect(
+      (await sent.list())
+        .filter((r) => r.method === 'POST' && r.path.endsWith('/entrance/cancel'))
+        .map((r) => r.path),
+    ).toHaveLength(1);
+    act(() => void result.current.submit('T2000002'));
+    await done(result);
+    expect(result.current.state).toMatchObject({ view: { result: 'ENTERED' } });
+  });
+
+  it('입장 취소 — 이미 바뀐 티켓(404)은 stale + 카드 지움, 입장 완료가 아니면 보내지 않는다', async () => {
+    const sent = recordRequests();
+    const { result } = await setup();
+    act(() => void result.current.submit('T1000003'));
+    await done(result);
+    let out: Awaited<ReturnType<typeof result.current.entranceCancel.run>> | undefined;
+    await act(async () => {
+      out = await result.current.entranceCancel.run();
+    });
+    expect(out?.kind).toBe('stale');
+    expect(result.current.state.status).toBe('idle');
+    // 결과가 없으면(입장 완료 카드가 아니면) 요청하지 않는다
+    await act(async () => {
+      out = await result.current.entranceCancel.run();
+    });
+    expect(out).toEqual({ kind: 'failed' });
+    expect((await sent.list()).filter((r) => r.path.endsWith('/entrance/cancel'))).toHaveLength(1);
+  });
+
+  it('일반 멤버는 입장 취소를 못 한다(매니저 이상)', async () => {
+    actAsRole(11, 'GUEST');
+    const { result } = await setup();
+    expect(result.current.entranceCancel.can).toBe(false);
   });
 });
