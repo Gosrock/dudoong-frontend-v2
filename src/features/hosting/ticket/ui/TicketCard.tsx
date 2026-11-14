@@ -30,10 +30,22 @@ const CHIP_COLOR: Record<TicketSaleChip, ChipColor> = {
 /** `yyyy.MM.dd HH:mm` → `yy.MM.dd HH:mm`(GUI "26.10.28 12:00 ~ 26.11.08 23:59") */
 const short = (v: string) => v.slice(2);
 
-/** 판매 기간 줄. 둘 다 없으면(등록 즉시 ~ 공연 시작까지) 줄을 두지 않는다(🤖) */
-export function salePeriodText(start: string | null, end: string | null) {
-  if (start === null && end === null) return null;
-  return `${start ? short(start) : '등록 즉시'} ~ ${end ? short(end) : '공연 시작까지'}`;
+/**
+ * 판매 기간 줄 — 기간을 정하지 않아도 실제로 살 수 있는 때까지 적는다(디자이너 답 2026-11-11, Figma 코멘트 `910:3358`).
+ * 시작이 없으면 "등록 즉시", 끝이 없으면 공연 시작 전까지(`ticketSaleChipOf`와 같은 규칙 — 판매 종료 = 공연 시작)라
+ * "공연 시작 전(26.11.20 19:00)"(🤖 공연 시작 일시가 아직 없으면 "공연 시작 전")
+ */
+export function salePeriodText(
+  start: string | null,
+  end: string | null,
+  eventStartAt: string | null,
+) {
+  const until = end
+    ? short(end)
+    : eventStartAt
+      ? `공연 시작 전(${short(eventStartAt)})`
+      : '공연 시작 전';
+  return `${start ? short(start) : '등록 즉시'} ~ ${until}`;
 }
 
 /** 완료 토스트 — GUI #55 `958:20680` · #56 `958:20841` · #57 `958:21517` */
@@ -59,11 +71,14 @@ export function stockText(t: Card['ticket']) {
  */
 export function TicketCard({
   eventId,
+  eventStartAt,
   card,
   pending,
   onAction,
 }: {
   eventId: string;
+  /** 공연 시작(GE-3) — 판매 기간을 정하지 않은 티켓의 끝 */
+  eventStartAt: string | null;
   card: Card;
   /** 다른 동작이 도는 중 */
   pending: boolean;
@@ -77,7 +92,7 @@ export function TicketCard({
   const [detail, setDetail] = useState<{ id: number; open: boolean } | null>(null);
   const options = useTicketOptions(eventId, t.ticketItemId);
   const changeable = card.canManageOptions && card.chip !== 'ended';
-  const period = salePeriodText(t.saleStartAt, t.saleEndAt);
+  const period = salePeriodText(t.saleStartAt, t.saleEndAt, eventStartAt);
   const meta = [
     t.purchaseLimit !== null ? `인당 ${t.purchaseLimit}매 제한` : null,
     t.approvalRequired ? '호스트 승인 후 확정' : null,
@@ -136,11 +151,9 @@ export function TicketCard({
           </div>
           {t.description && <p className={s.line}>{t.description}</p>}
           {meta.length > 0 && <p className={s.line}>{meta.join(' / ')}</p>}
-          {period && (
-            <p className={s.line} data-testid="ticket-period">
-              {period}
-            </p>
-          )}
+          <p className={s.line} data-testid="ticket-period">
+            {period}
+          </p>
         </div>
         <div className={s.side}>
           <p className={s.price}>{t.payType === 'FREE' ? '무료' : formatWon(t.price)}</p>
