@@ -3670,3 +3670,23 @@ Design Sync #215~#234(Nemin, 2026-11-12 판 GUI `2421002327746762064`) — 페�
 **성능**(`scripts/perf-lighthouse.mjs`, 가짜 백엔드 · 느린 4G 시뮬레이션, 중앙값 전 3회 → 후 5회): 공연 상세 LCP 6.02 → 6.03초 · FCP 3.46 → 3.46 · CLS 0.055 그대로, 공연홈 LCP 11.56 → 10.96 · 체크아웃 6.77 → 7.53 · 그 밖 ±0.2초. 호스팅 대시보드 LCP 7.62 → 12.39초로 나왔지만 이 라우트는 `Link`가 바뀌지 않고(preconnect 하나), 같은 후 빌드에서 회차별로 6.7 / 12.5 / 12.5 / 11.7초로 갈렸다 — LCP가 클라이언트 조회 뒤 그려지는 포스터 자리 그림(`poster-placeholder`)이라 "Load Delay"가 6~11초로 흔들린다. 이 변경과 상관없는 측정 편차로 본다.
 
 **테스트**: e2e 전체 697 통과 / 0 실패(건너뜀 39 — 새 `response-headers` 14 포함) · QA `event-detail` 22/0(수동 1) · ego-browser(standalone + 스테이징 API, 390 · 1440): 공연 상세 스타일 정상 · `<link rel="stylesheet">` 31 · 가로 넘침 없음(브라우저 `/api`는 로컬에 nginx가 없어 티켓 칸 · 헤더 "다시 시도"는 변경과 무관).
+
+## 404 상태 코드 — 실서버(2026-11-14, `fix-notfound-status`)
+
+관제탑 보고: 스테이징(main `50fded8`)에서 `curl -s -o /dev/null -w '%{http_code}'`로 `/events/999999` · `/hosts/999999` · `/notices/999999` · `/gifts/zzz`가 모두 200(본문은 not-found 화면 + `noindex` + `NEXT_HTTP_ERROR_FALLBACK;404`). e2e는 mock에서 404로 통과하므로 실서버에서만 깨진다고 봤다.
+
+**확인 결과 — 버그가 아니라 결정된 동작.** curl 기본 UA(`curl/8.x`)는 브라우저와 같은 쪽이라 셸(200)을 받는다. e2e의 404 검사(`event-detail.spec.ts` · `host-home.spec.ts`)는 모두 크롤러 UA(`KAKAO_SCRAP_UA` · Googlebot 등)로 요청한다. 실서버 · mock 차이는 없다.
+
+| 경로 | curl/8 · 브라우저 UA | Googlebot | 카카오(`facebookexternalhit` · `kakaotalk-scrap`) |
+|---|---|---|---|
+| 스테이징 `/events/999999` · `/hosts/999999` · `/notices/999999` · `/gifts/zzz` | 200 | **404** | **404** |
+| 스테이징 `/events/59` · `/hosts/17` | 200 | 200 | 200 |
+| mock standalone(e2e 빌드) `/events/999999` · `/hosts/999999` | 200 | **404** | — |
+| mock standalone `/events/101` | 200 | 200 | — |
+
+- 원인(설치본 Next 16.4.1 `01-app/02-guides/streaming.md` "The HTTP contract" · "Bots and crawlers › Cache Components"): Cache Components에서 방문자와 DOM을 읽는 크롤러는 빌드 때 만든 셸을 바로 받고, 셸과 함께 200이 나간다. 그 뒤의 `notFound()`는 상태를 바꾸지 못하고 `noindex`를 넣는다. 셸을 건너뛰고 끝까지 렌더하는 것은 `htmlLimitedBots`에 걸린 UA뿐 — tech-decisions §26(2026-11-01, 이슈 #90)에 적은 그대로다. Suspense · `loading.tsx` · `usePathname` 경계 · 응답 지연 · 백엔드 404 본문과는 상관없다(mock은 지연 없이도 브라우저 UA 200).
+- `(public)` 규칙(Suspense · `loading.tsx` 없음, 페이지마다 `instant = false`)은 그대로 지켜지고 있다 — 크롤러 404가 그 결과다.
+
+**결정(사용자 결정 2026-11-14)**: 지금대로 둔다 — 코드 변경 없음, 문서만. 기각한 두 길: ① `src/proxy.ts`가 네 경로마다 백엔드에 먼저 물어 브라우저에도 404 — 요청마다 백엔드 호출 하나 · TTFB 증가 · 페이지 조회와 결과가 어긋날 수 있음 ② `htmlLimitedBots: /.*/` — 모든 화면에서 정적 셸 · 즉시 이동을 잃음(§26에서 이미 기각).
+
+**검사**: 새 e2e 없음(크롤러 404 · 브라우저 200 + `noindex`는 이미 `event-detail.spec.ts` "카카오 크롤러 계약" · "없는 공연은 not-found 화면(noindex)" · `host-home.spec.ts`가 본다). 상태 코드 확인 명령은 크롤러 UA로: `curl -s -o /dev/null -w '%{http_code}' -A 'Googlebot/2.1' https://staging.dudoong.com/events/999999` → 404.
