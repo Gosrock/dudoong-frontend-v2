@@ -1430,6 +1430,8 @@ design-system §8 "2026-10-31" 표의 반영 거리를 처리했다.
 **범위 밖**: DS BottomSheet에 ✕가 없음(공용 컴포넌트). DS Fab에 보라 변형 없음. gui-screens §0 머리의 Ready 수(35 → 66)는 관제탑 몫
 **검사**: typecheck · 바꾼 파일 eslint · `vitest related`(126) · e2e `hosting-ticket`·`hosting-event`·`hosting`(102 — #53~#57 반영 뒤 `hosting-ticket`·`hosting-event` 44 다시) · QA `pnpm qa hosting-ticket` 30/30(HT-1~13 · 15 · 16 × mobile · desktop, 수동 HT-14). 전체 게이트는 PR CI
 
+**2026-11-14 Design Sync #235~#238(`design-235-238`)**: 환불 의무 동의 칸을 GUI대로 옮김(Q42 ④ 닫음) — 모바일 토글 아래 · PC 1280~ 왼쪽 열 계좌 아래(격자 2행), 제목 별표 없음, 노란 안내 상자 직접 그림(`1413:10166` 패딩 16 · 모서리 12, 아이콘 없음 — `FIGMA-CUSTOM`), DS Checkbox square + bodyMd. 문구는 C-1과 같아 `AGREEMENT_VERSION` 그대로, 표시 조건(두둥 만들기 · 무료 → 두둥 수정) L 변경 없음(토글on `821:25649`도 두둥). #235 "티켓 옵션이란?"은 코드가 이미 빈 목록에도 그려 변경 없음. 결정: 🤖 1024~1279 한 열(Figma 없음)은 지금처럼 폼 끝(토글 아래) — 근거: 모바일과 같은 순서 / 되돌리려면 `TicketFormView.css` `columns`. 검사: QA hosting-ticket 30/0 · e2e hosting-ticket + legal 42/0
+
 ## P13b-V — QR 체크인 (뷰)
 
 **상태**: done (2026-11-01, PR #62) — 스킬 `gui-implement`. 남은 것(사람 · D2 스테이징): 실기기 3종 판독(QA QR-8 수동), [관객이 스캔] QR을 실제 폰으로 찍어 `/check-in` 입장(QR-9 수동)

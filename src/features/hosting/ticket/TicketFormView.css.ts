@@ -82,6 +82,8 @@ export const columns = style({
       maxWidth: 'none',
       display: 'grid',
       gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 557px)',
+      // 2행은 환불 의무 동의(왼쪽 열 계좌 아래 — GUI `821:25116`). 남는 높이는 2행이 받아 1행(왼쪽 칸)이 늘지 않는다
+      gridTemplateRows: 'auto 1fr',
       columnGap: vars.space[7],
       alignItems: 'start',
     },
@@ -97,6 +99,9 @@ export const right = style({
   minWidth: 0,
   '@media': {
     [media.desktopS]: {
+      gridColumn: '2',
+      gridRow: '1 / span 2',
+      alignSelf: 'start',
       padding: `${vars.space[2]} ${vars.space[5]}`,
       borderRadius: vars.radius[6],
       background: vars.color.surface.container,
