@@ -3583,7 +3583,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **테스트**: e2e `font-preload`(신규 — 카드 라우트 3곳: 응답 HTML `<head>` otf preload 1개 · preload URL = `@font-face` src · otf 요청 1번 · `kartrider` loaded / `/notices` · `/tickets` · `/login`: head · Link 헤더 preload 0, networkidle까지 otf 요청 0) + `home` · `event-list` · `host-home` · `seo` · `security`(CSP) 70/0. QA `home` 10/0 · `events` 23/0 · `host-home` 14/0. typecheck · eslint.
 - ego-browser(dev:mock 3157, 390 · 1440): `/` · `/events` · `/hosts/11` head preload · otf 요청 initiator `link`(시작 41~232ms, FCP 92~416ms보다 먼저) · `kartrider` loaded · 카드 제목 카트라이더체. `/notices` 캐시 끄고 otf 요청 0 · unloaded. `/tickets`(비로그인)는 preload 없이 화면 글자로 받는다(initiator `css`, 전과 같음).
 
-## Figma 코멘트 정리 2026-11-14(`figma-comments-1114` #PR)
+## Figma 코멘트 정리 2026-11-14(`figma-comments-1114` #242)
 
 관제탑이 고른 GUI 파일 디자이너 코멘트 중 개발 답이 없던 7스레드(2026-11-07~11-14). QR 체크인 스레드(`1999138328` · `1999140639` · `1999167018`)는 `p13b-gui-qr` 몫이라 건드리지 않았고, 디자이너끼리 쓴 메모(`1999012308` · DS `1999002162`)는 건너뛰었다.
 
