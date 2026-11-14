@@ -3583,7 +3583,7 @@ backend-questions(B18 삭제 · B16 날짜만 · 지켜보는 것 #758 L-3 · #8
 **테스트**: e2e `font-preload`(신규 — 카드 라우트 3곳: 응답 HTML `<head>` otf preload 1개 · preload URL = `@font-face` src · otf 요청 1번 · `kartrider` loaded / `/notices` · `/tickets` · `/login`: head · Link 헤더 preload 0, networkidle까지 otf 요청 0) + `home` · `event-list` · `host-home` · `seo` · `security`(CSP) 70/0. QA `home` 10/0 · `events` 23/0 · `host-home` 14/0. typecheck · eslint.
 - ego-browser(dev:mock 3157, 390 · 1440): `/` · `/events` · `/hosts/11` head preload · otf 요청 initiator `link`(시작 41~232ms, FCP 92~416ms보다 먼저) · `kartrider` loaded · 카드 제목 카트라이더체. `/notices` 캐시 끄고 otf 요청 0 · unloaded. `/tickets`(비로그인)는 preload 없이 화면 글자로 받는다(initiator `css`, 전과 같음).
 
-## P13b-GUI — QR 체크인 와이어 → GUI(2026-11-14, `p13b-gui-qr` #PR)
+## P13b-GUI — QR 체크인 와이어 → GUI(2026-11-14, `p13b-gui-qr` #241)
 
 Design Sync #215~#234(Nemin, 2026-11-12 판 GUI `2421002327746762064`) — 페이지 ↳QR체크인 `724:5257` Ready 99장 + 참고 프레임 2(카드 13종 `1362:1695` · 결과 매핑 가이드 `1411:7760`, Ready 아님 — 매핑 근거로만). 와이어 구현(P13b-V #62)을 모양 우선으로 바꿨다. 같은 DOM, 1024부터 PC(CSS로).
 
