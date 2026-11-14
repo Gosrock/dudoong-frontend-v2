@@ -48,7 +48,7 @@ describe('QR 결과 → 카드(P13b-GUI 매핑 가이드)', () => {
       false,
       'next',
     ],
-    ['6 알 수 없는 결과', result('WHAT'), 'failed', 'error', false, 'retry'],
+    ['6 알 수 없는 결과', result('UNKNOWN'), 'failed', 'error', false, 'retry'],
     [
       '9 네트워크',
       { status: 'failed', value: 'u1', failure: HOST_SCAN_FAILURES.network } as HostScanState,
@@ -97,7 +97,7 @@ describe('QR 결과 → 카드(P13b-GUI 매핑 가이드)', () => {
 
   it('기다림은 카드 없음 · 묶은 카드도 원인은 남긴다', () => {
     expect(hostScanCard({ status: 'idle' })).toBeNull();
-    expect(hostScanCard(result('WHAT'))?.cause).toBe('UNKNOWN');
+    expect(hostScanCard(result('UNKNOWN'))?.cause).toBe('UNKNOWN');
     expect(
       hostScanCard({ status: 'failed', value: 'u1', failure: HOST_SCAN_FAILURES.network })?.cause,
     ).toBe('network');
@@ -109,7 +109,7 @@ describe('QR 결과 → 카드(P13b-GUI 매핑 가이드)', () => {
       description: '2026.10.17 18:40 입장',
     });
     expect(hostScanCard({ status: 'invalidQr' })?.title).toBe('이 공연 티켓이 아니에요');
-    expect(hostScanCard(result('WHAT'))).toMatchObject({
+    expect(hostScanCard(result('UNKNOWN'))).toMatchObject({
       title: '입장 처리를 하지 못했어요',
       description: '잠시 후 다시 시도해 주세요',
     });
