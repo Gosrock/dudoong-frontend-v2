@@ -367,7 +367,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      'PQ-2b(백엔드 #926). 구분선 아래 "티켓 번호로 입장"(PC는 오른쪽에 결과 카드). 숫자만 넣어도 서버가 T를 붙인다. 입장 완료 카드는 "본인이 맞는지 확인해 주세요" + 번호 · 이름 크게 · 티켓 + [입장 취소](확인 창 → 토스트 "입장 처리를 취소했어요."). 이미 입장 · 없는 번호(이 공연 티켓이 아니에요) · 빈 값(칸 아래 빨간 문구).',
+      'PQ-2b(백엔드 #926). 구분선 아래 "티켓 번호로 입장"(PC는 오른쪽에 결과 카드). 숫자만 넣어도 서버가 T를 붙인다. 입장 완료 카드는 "본인이 맞는지 확인해 주세요" + 번호 · 이름 크게 · 티켓 + [입장 취소](확인 창 → 토스트 "입장 처리를 취소했어요."). 이미 입장 · 없는 번호(이 공연 티켓이 아니에요) · 빈 값 · 번호 모양이 아닌 값(abc — 서버로 보내지 않음, 칸 아래 빨간 문구 `1368:6774`).',
     basis: [
       'Backend #914 답 6(B27)',
       'GUI 1368:5238 · 1368:5083 · 1368:5494 · 1368:6268 · 1368:6774 · 1372:18887 · 1372:19151(#221~#224)',
@@ -427,6 +427,20 @@ scenario(
       await box.getByRole('button', { name: '입장 처리' }).click();
       await expect(box.getByText('티켓 번호를 확인해 주세요 (예: T1000118)')).toBeVisible();
     });
+    await step(
+      '번호 모양이 아닌 값(abc)은 서버로 보내지 않고 칸 아래 "티켓 번호를 확인해 주세요"',
+      async () => {
+        const sent: string[] = [];
+        page.on('request', (r) => {
+          if (r.url().includes('/by-ticket-no')) sent.push(r.url());
+        });
+        await field.fill('abc');
+        await box.getByRole('button', { name: '입장 처리' }).click();
+        await expect(box.getByText('티켓 번호를 확인해 주세요 (예: T1000118)')).toBeVisible();
+        await expect(page.getByTestId('ticket-no-result')).toHaveCount(0);
+        expect(sent).toEqual([]);
+      },
+    );
   },
 );
 

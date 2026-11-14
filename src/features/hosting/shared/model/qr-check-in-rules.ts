@@ -95,14 +95,20 @@ export type TicketNoInput =
   | { kind: 'invalid' }
   | { kind: 'ticketNo'; ticketNo: string };
 
+/** 발급 티켓 번호 모양 — `T` + 숫자(api-contract 식별자 `issuedTicketNo`), 숫자만이면 서버가 `T`를 붙인다. 대소문자 무시 */
+export const TICKET_NO_PATTERN = /^T?\d+$/i;
+
 /**
  * 입력 → PQ-2b `ticketNo`. 앞뒤 공백만 뺀다 — 대소문자 · 숫자만 입력(`1000118` → `T1000118`)은 서버가 맞춘다.
- * 모양은 따지지 않는다: 없는 번호는 서버가 200 + `OTHER_EVENT`로 판정한다
+ * 번호 모양(`T?숫자`)이 아니면 보내지 않고 칸 오류(P13b-GUI `_7_번호 형식 오류` `1368:6774` — 관제탑 검증 #241).
+ * 모양이 맞는데 없는 번호는 서버가 200 + `OTHER_EVENT`로 판정한다
  */
 export function normalizeTicketNoInput(raw: string): TicketNoInput {
   const value = raw.trim();
   if (!value) return { kind: 'empty' };
-  if (value.length > CHECK_IN_TICKET_NO_MAX) return { kind: 'invalid' };
+  if (value.length > CHECK_IN_TICKET_NO_MAX || !TICKET_NO_PATTERN.test(value)) {
+    return { kind: 'invalid' };
+  }
   return { kind: 'ticketNo', ticketNo: value };
 }
 

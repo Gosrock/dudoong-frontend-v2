@@ -83,11 +83,16 @@ describe('티켓 번호로 입장(PQ-2b — #926)', () => {
     });
   });
 
-  it('빈 값 · 20자 넘음은 보내지 않고 칸 오류', async () => {
+  it('빈 값 · 20자 넘음 · 번호 모양이 아님(abc)은 보내지 않고 칸 오류', async () => {
     const sent = recordRequests();
     const { result } = await setup();
     act(() => void result.current.submit('   '));
     expect(result.current.state.status).toBe('invalid');
+    act(() => void result.current.submit('abc'));
+    expect(result.current.state).toMatchObject({
+      status: 'invalid',
+      message: '티켓 번호를 확인해 주세요 (예: T1000118)',
+    });
     act(() => void result.current.submit('T'.repeat(21)));
     expect(result.current.state.status).toBe('invalid');
     expect(await posts(sent)).toHaveLength(0);
