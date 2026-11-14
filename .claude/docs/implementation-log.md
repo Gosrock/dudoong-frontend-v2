@@ -3636,3 +3636,37 @@ Design Sync #215~#234(Nemin, 2026-11-12 판 GUI `2421002327746762064`) — 페�
 
 **테스트**: unit `TicketCard.test.ts`(신규 — 기간 있음 · 둘 다 없음 · 끝만 없음 · 공연 시작 없음). QA `hosting-ticket` HT-2에 기간 줄 단계. e2e `hosting-ticket`.
 - ego-browser(dev:mock 3172, `/hosting/events/101/tickets`): 390 — 세 카드 "등록 즉시 ~ 공연 시작 전(26.11.21 19:00)" 한 줄 · 12px 500 rgb(95,94,90) · 가로 넘침 없음. 1440 — 두 열 카드 같은 줄 높이 16.8.
+
+## 응답 헤더 크기(2026-11-14, `fix-event-detail-header`)
+
+스테이징(main `cee120a`)에서 공연 상세 `/events/[eventId]`가 모든 공연 · 없는 번호까지 nginx 502(0.05초). API · 다른 라우트는 200.
+
+**원인(로컬 재현)**
+- React 19 Fizz가 렌더 중 모은 preload(CSS `rel=preload; as="style"` · preconnect)를 `onHeaders`로 응답 `Link` 헤더에 싣는다. Next는 상한을 `reactMaxHeadersLength`(기본 6000자)로 준다(설치본 `reactMaxHeadersLength.md` — "리버스 프록시가 긴 헤더를 못 받으면 낮춰라").
+- 공연 상세 HTML은 `<link rel="stylesheet">`가 31개다. vanilla-extract는 `.css.ts` 파일마다 CSS 모듈이 생기고 Turbopack 기본 청킹(`cssChunking: true`)이 라우트별로 합친 결과다 — 공연 리스트도 30개라 공연 상세만의 문제는 아니다. 차이는 렌더 방식: `/events` · 체크아웃 · 티켓탭 · 호스팅은 정적 셸(프리렌더)을 내보내 `Link`에 preconnect 하나뿐이고, 요청마다 끝까지 렌더하는 공연 상세(`instant = false`, Suspense 없음)와 공연홈 `/`만 CSS preload를 전부 헤더에 싣는다.
+- **스테이징이 로컬보다 큰 이유는 `deploymentId`**: 이미지 빌드는 `GIT_SHA`를 넣어 정적 파일 주소마다 `?dpl=<40자 SHA>`가 붙는다(스테이징 `/events` HTML로 확인). `GIT_SHA=cee120a…`로 빌드해 스테이징 API에 붙인 standalone에서 공연 상세 앱 헤더 **4,470바이트**(`Link` 3,515자) — nginx 기본 `proxy_buffer_size`(4k)를 넘는다. 같은 빌드에서 `/`는 3,126바이트라 살아 있던 것도 맞다. nginx 에러 로그는 보지 못해 "too big header"는 추정 그대로.
+
+**고친 것**: `next.config.ts` `reactMaxHeadersLength: 800`. 상한을 넘는 preload는 헤더에서만 빠지고 HTML `<head>`의 `<link rel="stylesheet">`는 그대로(31개 확인) — 브라우저는 HTML 첫 조각에서 같은 CSS를 받는다. CSS 청킹(`cssChunking: 'graph'`)이나 import 정리는 하지 않았다: 헤더 문제는 상한 하나로 라우트 · 청크 수와 상관없이 막히고, 청킹을 바꾸면 모든 화면의 CSS 순서 · 요청 수가 바뀐다.
+
+**헤더 크기**(standalone, `API_INTERNAL_URL=https://staging.dudoong.com/api/v2`, 앱이 보내는 헤더 바이트 · `Link` 글자 수)
+
+| 라우트 | 전(`GIT_SHA` 없음) | 전(`GIT_SHA` = 스테이징) | 후(`GIT_SHA` = 스테이징) |
+|---|---|---|---|
+| `/` | 2,271 · 1,316 | 3,126 · 2,171 | 1,670 · 715 |
+| `/events` | 1,000 · 43 | 1,000 · 43 | 1,000 · 43 |
+| `/events/59` | 3,075 · 2,120 | **4,470 · 3,515** | **1,670 · 715** |
+| `/events/999999` | 3,075 · 2,120 | 4,470 · 3,515 | 1,670 · 715 |
+| `/events/59/checkout` | 998 · 43 | 998 · 43 | 998 · 43 |
+| `/tickets` | 999 · 43 | 1,000 · 43 | 1,000 · 43 |
+| `/hosting/events/59/dashboard` | 998 · 43 | 998 · 43 | 998 · 43 |
+
+스테이징 200 경로(`/events/59/checkout` 1,105 · `/events` 1,135)는 로컬 + nginx가 붙이는 `server` · HSTS · `x-frame-options` 등 약 110바이트로, 앱 헤더 자체는 같다.
+
+**재발 방지**: e2e `response-headers.spec.ts` — 주요 7라우트를 Next 서버에 바로 물어 헤더 합 2,048바이트 미만 · `Link` 800자 이하. e2e 빌드에는 `GIT_SHA`가 없지만 고치기 전 공연 상세가 3,075바이트라 이것만으로도 실패한다.
+
+**결정**
+- 🤖 Claude 판단 — 상한 800 / 근거: 앱의 다른 헤더(CSP Report-Only 약 550 포함)가 약 950바이트라 800이면 `?dpl`이 붙어도 앱 헤더 약 1.7KB, nginx 4k 버퍼에 2KB 넘게 남는다. 배포 빌드에서 CSS preload 6개는 헤더에 남는다 / 되돌리려면 `next.config.ts`에서 줄을 지운다(기본 6000) — nginx `proxy_buffer_size`를 늘린 뒤에도 앱은 800을 유지하길 권한다(운영 nginx · 다른 프록시도 같은 위험).
+
+**성능**(`scripts/perf-lighthouse.mjs`, 가짜 백엔드 · 느린 4G 시뮬레이션, 중앙값 전 3회 → 후 5회): 공연 상세 LCP 6.02 → 6.03초 · FCP 3.46 → 3.46 · CLS 0.055 그대로, 공연홈 LCP 11.56 → 10.96 · 체크아웃 6.77 → 7.53 · 그 밖 ±0.2초. 호스팅 대시보드 LCP 7.62 → 12.39초로 나왔지만 이 라우트는 `Link`가 바뀌지 않고(preconnect 하나), 같은 후 빌드에서 회차별로 6.7 / 12.5 / 12.5 / 11.7초로 갈렸다 — LCP가 클라이언트 조회 뒤 그려지는 포스터 자리 그림(`poster-placeholder`)이라 "Load Delay"가 6~11초로 흔들린다. 이 변경과 상관없는 측정 편차로 본다.
+
+**테스트**: e2e 전체 697 통과 / 0 실패(건너뜀 39 — 새 `response-headers` 14 포함) · QA `event-detail` 22/0(수동 1) · ego-browser(standalone + 스테이징 API, 390 · 1440): 공연 상세 스타일 정상 · `<link rel="stylesheet">` 31 · 가로 넘침 없음(브라우저 `/api`는 로컬에 nginx가 없어 티켓 칸 · 헤더 "다시 시도"는 변경과 무관).

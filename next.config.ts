@@ -89,6 +89,13 @@ const nextConfig: NextConfig = {
   // 배포 사이 버전 불일치를 감지해 하드 내비게이션으로 넘긴다(deploy-plan §3).
   deploymentId: process.env.GIT_SHA,
   /**
+   * React가 응답 `Link` 헤더에 싣는 preload 길이 상한(설치본 reactMaxHeadersLength.md, 기본 6000). 공연 상세는 CSS 청크가
+   * 30개 남짓이고 배포 빌드는 주소마다 `?dpl=<GIT_SHA>`가 붙어 `Link`만 3.5KB → 응답 헤더 4.4KB로 nginx 기본 버퍼(4k)를 넘어
+   * 502였다(implementation-log "응답 헤더 크기(2026-11-14)"). 상한을 넘는 preload는 헤더에서만 빠지고 HTML `<link>`에는 그대로
+   * 있다. 헤더 전체를 2KB 아래로 둔다 — e2e `response-headers`가 지킨다.
+   */
+  reactMaxHeadersLength: 800,
+  /**
    * 포스터 · 커버 최적화(P15, `src/ui/components/UploadedImage`). 업로드 출처 하나만 받는다(deploy-plan §3 — `/_next/image` 차단을
    * 푸는 조건). SVG는 받지 않는다(`dangerouslyAllowSVG` 기본 false), 형식은 기본 webp만(AVIF 끔 — 기본값).
    * 운영 nginx의 `/_next/image` 차단은 컷오버 때 지운다(deploy-plan §6 9번, cutover-runbook).
