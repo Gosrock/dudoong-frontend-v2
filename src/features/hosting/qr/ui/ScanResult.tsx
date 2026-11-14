@@ -33,7 +33,6 @@ export function ScanResult({ state, onRetry, onNext, fullscreen }: Props) {
       data-result={state.status === 'result' ? state.view.result : undefined}
       data-card={card?.kind}
       className={fullscreen ? `${s.resultDock} ${s.resultDockFullscreen}` : s.resultDock}
-      hidden={card === null || undefined}
     >
       {card && <ResultCard card={card} onRetry={onRetry} onNext={onNext} />}
     </section>
