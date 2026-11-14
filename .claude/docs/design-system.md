@@ -691,6 +691,14 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 
 디자인 시스템 파일이 바뀔 때마다 절 하나를 위에 더한다. 받는 길은 둘이다 — 디자이너의 `Design: 디자인 시스템` 이슈, 그리고 화면 작업 시작 때 버전 목록 확인(이슈 없이 바뀐 것). 비교는 `python3 -I .claude/skills/gui-implement/ds_diff.py diff <기준 버전> --out <scratchpad>`, 변수 값은 Desktop Bridge(스킬 `gui-implement` "디자인 시스템 변경"). 끝나면 머리의 "동기화 기준 버전"을 올린다.
 
+### 2026-11-14 — #239 `img_초대장` · `img_초대장_error`(반영 대기) · `design-235-238`
+
+받은 이슈: #239(Nemin, "초대장 이미지 추가", 페이지 ┗ image). 판 비교(`ds_diff`)는 하지 않았다 — 이 세션은 티켓 관리 이슈 몫이라 이 절은 이슈 한 줄만, "동기화 기준 버전"은 그대로.
+
+| 영역 | 바뀐 것 | 코드 |
+|---|---|---|
+| image(새) | `img_초대장`(`886:285`) · `img_초대장_error`(`886:477`) COMPONENT, 170×170 | **반영 대기** — 쓸 화면이 `와이어로 구현됨`: 호스트 멤버 초대 링크 팝업(design-requests Q119) · 초대 수락 화면 `/host-invitations/{token}`(Q121 — 정상은 `img_초대장`, 만료 · 사용됨 · 없음은 `_error`로 보임). 그 화면이 GUI로 올 때 `src/ui/illustrations`에 더한다. `Refs #239`(gui-screens §0 호스트 멤버 줄) |
+
 ### 2026-11-08 밤 — `2419385361681489603`(11-08T09:28Z) → `2419464913593223537`(11-08T13:32Z) · `design-198-205`
 
 받은 이슈: #198(Nemin, "Frame 6 — warning 2 시멘틱 컬러 추가", `55:410` ┗ Color - Semantic). 화면 이슈 #205(공연홈 푸터)가 새 아이콘을 쓴다. `ds_diff.py`(REST) + Desktop Bridge(DS 파일 변수 · `55:410` 노드).
