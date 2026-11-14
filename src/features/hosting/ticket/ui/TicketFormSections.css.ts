@@ -1,6 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
 import { media } from '@/ui/theme/breakpoints';
+import { colors } from '@/ui/theme/colors';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -91,10 +92,20 @@ export const dateTime = style({
   gap: vars.space[2],
 });
 
-/** 환불 의무 동의(Q42 ④ — 디자인 없음). PC 두 열이면 왼쪽 열 맨 아래(저장 버튼 바로 위) */
+/** 환불 의무 동의(GUI `1413:10164` · PC `1414:10209`). 1280~ 두 열이면 왼쪽 열 계좌 아래(`TicketFormView.css.ts` 격자 2행) */
 export const agreement = style({
   display: 'flex',
   flexDirection: 'column',
   minWidth: 0,
-  '@media': { [media.desktopS]: { gridColumn: '1' } },
+  '@media': { [media.desktopS]: { gridColumn: '1', gridRow: '2' } },
 });
+
+/** 안내 상자(`1413:10166`) — 패딩 16 · 모서리 12 · 채움 Yellow/50(의미 변수 없음 — 원시 색, NoticeBox와 같다) */
+export const refundNotice = style({
+  padding: vars.space[4],
+  borderRadius: vars.radius[4],
+  background: colors.yellow50,
+  color: vars.color.text.primaryLabel,
+});
+
+globalStyle(`${refundNotice} > p`, { margin: 0 });

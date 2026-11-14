@@ -243,6 +243,7 @@ scenario(
     basis: [
       'plan P12 완료 기준 V(라벨 · 무제한이면 재고 공개 비활성)',
       'GUI 767:46560 · 767:46664 · 821:25116 · 821:25649',
+      '환불 의무 동의 GUI 1413:10164(모바일) · 1414:10209(PC) · 체크 뒤 1413:10171 — #235~#238, Q42 ④',
     ],
   },
   async ({ page, step, testInfo }) => {
@@ -266,15 +267,32 @@ scenario(
       await expect(page.getByLabel('1인 최대 매수')).toBeVisible();
       await expect(page.getByTestId('sale-period')).toBeVisible();
     });
-    await step('폼 맨 아래 환불 의무 안내 — 동의를 체크해야 [티켓 만들기]가 열린다', async () => {
-      // #840 ④ — 2026-11-01 DS로 붙임(디자인 Q42 답 전 잠정 위치)
-      await expect(page.getByTestId('refund-obligation')).toContainText('환불 의무 안내');
-      await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeDisabled();
-      await page
-        .getByRole('checkbox', { name: '위 내용을 확인했고 환불 의무를 지키는 데 동의합니다' })
-        .check();
-      await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeEnabled();
-    });
+    await step(
+      '환불 의무 안내 — 모바일은 토글 아래, PC는 왼쪽 열 계좌 아래 · 동의를 체크해야 [티켓 만들기]가 열린다',
+      async () => {
+        // #237 · #238(GUI 1413:10164 · 1414:10209) — 제목 → 노란 안내 상자 → 네모 체크박스
+        const refund = page.getByTestId('refund-obligation');
+        await expect(refund).toContainText('환불 의무 안내');
+        await refund.scrollIntoViewIfNeeded();
+        const box = await refund.boundingBox();
+        const account = await page.getByLabel('예금주').boundingBox();
+        const period = await page.getByRole('switch', { name: '판매 기간 설정' }).boundingBox();
+        if (!box || !account || !period)
+          throw new Error('환불 의무 · 계좌 · 판매 기간 위치를 못 읽음');
+        expect(box.y).toBeGreaterThan(account.y);
+        if (testInfo.project.name === 'desktop') {
+          // 1440 두 열 — 오른쪽 판(토글)보다 왼쪽
+          expect(box.x + box.width).toBeLessThan(period.x);
+        } else {
+          expect(box.y).toBeGreaterThan(period.y);
+        }
+        await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeDisabled();
+        await page
+          .getByRole('checkbox', { name: '위 내용을 확인했고 환불 의무를 지키는 데 동의합니다' })
+          .check();
+        await expect(page.getByRole('button', { name: '티켓 만들기' })).toBeEnabled();
+      },
+    );
   },
 );
 

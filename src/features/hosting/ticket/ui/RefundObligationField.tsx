@@ -3,7 +3,6 @@
 import { useId } from 'react';
 
 import { FieldError, FormSection } from '@/features/hosting/shared/ui/EditorParts';
-import { NoticeBox } from '@/features/hosting/shared/ui/NoticeBox';
 import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { Txt } from '@/ui/primitives/Txt';
 
@@ -18,7 +17,11 @@ const REFUND_OBLIGATION_BODY =
 const REFUND_OBLIGATION_LABEL = '위 내용을 확인했고 환불 의무를 지키는 데 동의합니다';
 export const REFUND_OBLIGATION_ERROR = '환불 의무에 동의해 주세요';
 
-/** 디자인 없음(Q42 ④) — 기존 FormSection + NoticeBox + DS Checkbox로만 */
+/**
+ * 환불 의무 동의 — GUI 모바일 `767:46560`(체크 전) · `1413:10171`(체크 뒤) · PC `821:25116` · `821:25649`(#235~#238, Q42 ④ 답).
+ * 제목 `Heading/md2-emphasized`(별표 없음) → 안내 상자 → DS Checkbox(square) + 14/400 문구, 사이 16 · 위 16.
+ * 문구는 Figma도 C-1 원문과 같다(2026-11-14 확인)
+ */
 export function RefundObligationField({
   agreed,
   onAgreedChange,
@@ -34,17 +37,21 @@ export function RefundObligationField({
   const errorId = useId();
   return (
     <div className={s.agreement} data-testid="refund-obligation">
-      <FormSection title={REFUND_OBLIGATION_TITLE} required>
-        <div id={bodyId}>
-          <NoticeBox icon="important">{REFUND_OBLIGATION_BODY}</NoticeBox>
+      <FormSection title={REFUND_OBLIGATION_TITLE} loose>
+        {/* FIGMA-CUSTOM: 환불 의무 안내 상자(gui 1413:10166 "안내 상자" 342×152 r12 · 패딩 16 · Yellow/50, 아이콘 없음) — Figma가 직접 그린 대로(R1 2026-11-07). NoticeBox(패딩 8 · r8 · 아이콘)와 모양이 달라 따로 둔다 → 커스텀 TicketFormSections.css.ts. DS 후보(design-system §3) */}
+        <div id={bodyId} className={s.refundNotice}>
+          <Txt as="p" typography="bodyMd">
+            {REFUND_OBLIGATION_BODY}
+          </Txt>
         </div>
         <Checkbox
+          shape="square"
           checked={agreed}
           onCheckedChange={onAgreedChange}
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${bodyId} ${errorId}` : bodyId}
-          label={<Txt typography="labelMd">{REFUND_OBLIGATION_LABEL}</Txt>}
+          label={<Txt typography="bodyMd">{REFUND_OBLIGATION_LABEL}</Txt>}
         />
         {error && (
           <div id={errorId}>
