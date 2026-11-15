@@ -3783,7 +3783,7 @@ Design Sync #257 · #260 · #261 · #262 + #269 일부(Nemin, 2026-11-15 12:12~1
 
 **테스트**: 단위 `host-home-rules`(아이콘 줄 · 주소) · `image-crop`(신규 7) · `Avatar`(host 폴백). 스토리 `Avatar/HostFallback` · `ConcertCard/BadgeEnd`. QA `host-home` 24/0(HH-8~HH-13 새 — 소개글 · 연락처 6개 · 로그인 필요 · 스크롤 바 · 공연 리스트 두 시점) · `host-settings` 38/0(HS-2 자르기 단계 · HS-18 커버 시트 닫기 · HS-19 저장 없이 이동). e2e `host-home` · `hosting-host`(버튼 이름 · [적용] 단계 · 1×1 실제 PNG — 미리보기를 못 불러오면 숨기므로) · `a11y` · `font-preload` · `seo` · `hosting` · `notifications` 통과. ego-browser(dev:mock 3162, 390 · 1440): 홈 기본 · 스크롤 바 · 소개 펼침 · 연락처 시트(로그인 · 로그인 전) · 로그인 필요 팝업 · 이미지 없는 호스트 · PC · 공연 리스트 · 설정 · 자르기 시트 · 다시 선택 · 설정 PC.
 
-## 디자이너 코멘트 반영 — 카카오 로그인 버튼 · 초대 이메일 안내 · "딤"(2026-11-16, `fix-1115-designer` #PR)
+## 디자이너 코멘트 반영 — 카카오 로그인 버튼 · 초대 이메일 안내 · "딤"(2026-11-16, `fix-1115-designer` #275)
 
 GUI 파일 코멘트(2026-11-15 13:13~13:20Z) 세 건.
 
