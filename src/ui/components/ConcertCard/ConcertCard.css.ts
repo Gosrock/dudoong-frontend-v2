@@ -1,4 +1,4 @@
-import { style } from '@vanilla-extract/css';
+import { style, styleVariants } from '@vanilla-extract/css';
 
 import { palette } from '../../theme/palette';
 import { vars } from '../../theme/tokens.css';
@@ -38,11 +38,14 @@ export const poster = style({
 /** 포스터 + 얹는 표시(`badge`)의 기준 상자 */
 export const posterWrap = style({ position: 'relative', display: 'block' });
 
-export const badge = style({
-  position: 'absolute',
-  top: vars.space[2],
-  left: vars.space[2],
-  display: 'flex',
+const badgeBase = style({ position: 'absolute', top: vars.space[2], display: 'flex' });
+
+/**
+ * 포스터 위 표시 — 왼쪽 위(기본, 가장자리에서 8) · 오른쪽 위(`badgePlacement="end"`, GUI `1478:15867` 가장자리에서 15 → 토큰 16)
+ */
+export const badge = styleVariants({
+  start: [badgeBase, { left: vars.space[2] }],
+  end: [badgeBase, { top: vars.space[4], right: vars.space[4] }],
 });
 
 export const posterImage = style({

@@ -25,6 +25,10 @@ export type ConcertCardProps = {
   /** 포스터 왼쪽 위에 얹는 상태 표시(보통 `Chip` — 호스트 홈 "준비중"·"D-15", 와이어 `503:30867`). 없으면 그리지 않는다 */
   badge?: ReactNode;
   /**
+   * 표시 자리 — `start`(기본) 왼쪽 위 · `end` 오른쪽 위(GUI 호스트 공연 리스트 `1423:2651` "준비중" — Design Sync #262)
+   */
+  badgePlacement?: 'start' | 'end';
+  /**
    * 지난 공연 모양(GUI `939:34039` 예매하기(2줄) — 포스터 흐림 · 날짜 `text/tertiary` · 제목 `text/secondary`).
    * 표시 칩("공연종료")은 부르는 쪽이 `badge`로 준다
    */
@@ -44,6 +48,7 @@ export function ConcertCard({
   price,
   posterUrl,
   badge,
+  badgePlacement = 'start',
   ended = false,
   className,
 }: ConcertCardProps) {
@@ -55,7 +60,7 @@ export function ConcertCard({
     >
       <span className={s.posterWrap}>
         <Poster src={posterUrl ?? null} ended={ended} />
-        {badge ? <span className={s.badge}>{badge}</span> : null}
+        {badge ? <span className={s.badge[badgePlacement]}>{badge}</span> : null}
       </span>
       <span className={s.meta}>
         <span className={s.dateRow}>

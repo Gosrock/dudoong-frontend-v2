@@ -1,19 +1,59 @@
 'use client';
 
+import Link from 'next/link';
 import { overlay } from 'overlay-kit';
 
-import { ContactList } from '@/features/shared/contact/ui/ContactList';
-import { Avatar } from '@/ui/components/Avatar/Avatar';
+import { useLoginHref } from '@/features/shared/auth/LoginRequiredLink';
+import { browserLocation } from '@/features/shared/auth/model/browser-location';
+import { loginHref } from '@/features/shared/auth/model/login-href';
+import type { ContactType } from '@/features/shared/contact/model/contact-link';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
+import { Button } from '@/ui/components/Button/Button';
+import { button } from '@/ui/components/Button/Button.css';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
+import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
+import { Icon, type IconProps } from '@/ui/icons/Icon';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
+import { colors } from '@/ui/theme/colors';
 
 import { useHostHome } from '../model/useHostHome';
+import * as s from './HostContactsOverlay.css';
 
 /**
- * 호스트 연락처 — 모바일 바텀시트 · PC 모달(`ResponsiveOverlay`). 공연 상세 [문의하기](P5b-V)와 같은 모양:
- * 호스트 사진 + 이름 + 아이콘·값 행(`ContactList` — 가린 값에는 "로그인하면 볼 수 있어요", Q41).
- * 와이어 `503:30867`의 연락처 아이콘 줄은 누르는 곳이 정해져 있지 않다 — 아이콘 어느 것을 눌러도 이 시트를 연다(🤖).
+ * 연락처 유형 → 아이콘(GUI 로컬 컴포넌트 "호스트홈_연락처" `1478:7210`, Design Sync #269). 유튜브는 DS `ic_youtube`(11-15 판 —
+ * 이슈 없이 생긴 새 세트, 사용자 허락), 기타는 `ic_link`. 모르는 유형은 링크. ⋯(전체 보기)는 `etc` filled.
+ * 공연 상세 연락처(`ContactList`, 와이어)는 아직 옛 대응을 쓴다 — 이 화면 밖이라 고치지 않았다.
+ */
+export const HOST_CONTACT_ICON: Record<ContactType, IconProps> = {
+  PHONE: { name: 'phone', variant: 'filled' },
+  EMAIL: { name: 'mail', variant: 'filled' },
+  INSTAGRAM: { name: 'instagram' },
+  OPEN_CHAT: { name: 'open-chat', variant: 'filled' },
+  YOUTUBE: { name: 'youtube', variant: 'filled' },
+  ETC: { name: 'link' },
+  UNKNOWN: { name: 'link' },
+};
+
+/** 연락처 행 위 작은 글자(GUI `1481:7194` — "이메일" · "전화번호" · "인스타그램" · "오픈채팅" · "유튜브" · "기타") */
+const ROW_LABEL: Record<ContactType, string> = {
+  PHONE: '전화번호',
+  EMAIL: '이메일',
+  INSTAGRAM: '인스타그램',
+  OPEN_CHAT: '오픈채팅',
+  YOUTUBE: '유튜브',
+  ETC: '기타',
+  UNKNOWN: '연락처',
+};
+
+/** 로그인 전 가린 값 안내(GUI `1481:7910` 시트 · `1484:8168` 팝업) */
+export const MASKED_CONTACTS_NOTE = '로그인하면 전화번호와 이메일을 볼 수 있어요';
+
+/**
+ * 연락처 전체 보기 — 모바일 바텀시트 · PC 모달(`ResponsiveOverlay`). GUI `1481:7194`(로그인) · `1481:7672`(로그인 전):
+ * 제목 "연락처" + ✕, 행(GUI 로컬 "연락처 행" `1481:7193` — 원 36 아이콘 · 유형 Label/sm · 값 Heading/sm · 열 수 있으면 >).
+ * 로그인 전 가린 값은 회색 글자 · > 없음(상태=가림), 그 아래 회색 안내 상자 + [로그인 하기](Primary Large).
+ * 링크로 열 수 없는 값(기타의 글자 등)은 > 없이 글자만(상태=텍스트).
  */
 export function openHostContacts(hostId: string) {
   overlay.open(({ isOpen, close, unmount }) => (
@@ -22,24 +62,123 @@ export function openHostContacts(hostId: string) {
       onOpenChange={(o) => !o && close()}
       onExited={unmount}
       title="연락처"
+      // 호스팅형 시트 모양(막대 손잡이 · 머리 오른쪽 ✕ · 위 모서리 16 — GUI `1481:7734` "바텀시트_연락처")
+      sheetVariant="flat"
     >
       <HostContactsBody hostId={hostId} />
     </ResponsiveOverlay>
   ));
 }
 
+/**
+ * 로그인 전에 가린 연락처(전화 · 이메일) 아이콘을 누르면 — "로그인이 필요해요"(GUI `1484:8106` DS 다이얼로그 · [취소] [로그인하기]).
+ * [로그인하기]는 지금 주소로 돌아오는 로그인으로 간다(오버레이 안 이동이라 `replace` — patterns §6).
+ */
+export function openLoginForContacts(navigate: (href: string) => void) {
+  return openConfirm({
+    title: '로그인이 필요해요',
+    description: '로그인하면 호스트의 전화번호와 이메일을 볼 수 있어요.',
+    cancelLabel: '취소',
+    confirmLabel: '로그인하기',
+    onConfirm: async () => navigate(loginHref(browserLocation.currentPath())),
+  });
+}
+
 /** 화면과 같은 훅을 읽는다 — 캐시를 같이 써서 요청이 늘지 않고, 시트가 열린 동안 viewer가 확정되면 원문으로 바뀐다 */
 function HostContactsBody({ hostId }: { hostId: string }) {
   const home = useHostHome(hostId);
+  const login = useLoginHref();
+  const { contacts } = home;
+
+  if (contacts.status === 'pending' || contacts.status === 'idle') {
+    return (
+      <div className={s.list} aria-busy="true">
+        {contacts.items.map((_, i) => (
+          <Skeleton key={i} height={64} />
+        ))}
+      </div>
+    );
+  }
+  if (contacts.status === 'error') {
+    return (
+      <div role="alert">
+        <Flex direction="column" align="center" gap={3} fullWidth>
+          <Txt typography="bodyMd" color={colors.textSecondary}>
+            연락처를 불러오지 못했어요.
+          </Txt>
+          <Button variant="secondary" size="sm" onClick={home.retryViewer}>
+            다시 시도
+          </Button>
+        </Flex>
+      </div>
+    );
+  }
+  if (contacts.items.length === 0) {
+    return (
+      <Txt as="p" typography="bodyMd" color={colors.textTertiary} align="center">
+        등록된 연락처가 없어요
+      </Txt>
+    );
+  }
+
   return (
-    <Flex direction="column" align="center" gap={5} fullWidth>
-      <Flex direction="column" align="center" gap={3}>
-        <Avatar size={80} src={home.host.profileImageUrl} />
-        <Txt typography="headingMdEmphasized" align="center">
-          {home.host.name ?? '이름 없는 호스트'}
-        </Txt>
-      </Flex>
-      <ContactList state={home.contacts} onRetry={home.retryViewer} />
+    <Flex direction="column" gap={5} fullWidth>
+      <ul className={s.list} aria-label="연락처">
+        {contacts.items.map((c, i) => {
+          const body = (
+            <>
+              <span className={s.icon}>
+                <Icon {...HOST_CONTACT_ICON[c.type]} />
+              </span>
+              <span className={s.text}>
+                <Txt typography="labelSm" color={colors.textSecondaryLabel}>
+                  {ROW_LABEL[c.type]}
+                </Txt>
+                <Txt
+                  typography="headingSm"
+                  lines={1}
+                  color={c.masked ? colors.textTertiary : colors.textPrimaryLabel}
+                >
+                  {c.value}
+                </Txt>
+              </span>
+            </>
+          );
+          return (
+            <li key={`${c.type}-${i}`}>
+              {c.href ? (
+                <a
+                  className={`${s.row} ${s.rowLink}`}
+                  href={c.href}
+                  {...(c.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                >
+                  {body}
+                  <Icon name="chevron-right" className={s.chevron} />
+                </a>
+              ) : (
+                <div className={s.row}>{body}</div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {contacts.masked && (
+        <Flex direction="column" gap={5} fullWidth>
+          <p className={s.note}>
+            <Txt typography="labelSm" color={colors.textSecondaryLabel}>
+              {MASKED_CONTACTS_NOTE}
+            </Txt>
+          </p>
+          {/* 오버레이 안에서 다른 경로로 — replace(patterns §6) */}
+          <Link
+            href={login}
+            replace
+            className={button({ variant: 'primary', size: 'lg', fullWidth: true })}
+          >
+            로그인 하기
+          </Link>
+        </Flex>
+      )}
     </Flex>
   );
 }

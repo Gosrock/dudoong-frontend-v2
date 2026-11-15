@@ -40,3 +40,10 @@ export const shellBarSpaceVars = style({
   vars: { [SHELL_BAR_SPACE_VAR]: `${HEADER_HEIGHT}px` },
   '@media': { [media.desktop]: { vars: { [SHELL_BAR_SPACE_VAR]: `${TOP_BAR_HEIGHT}px` } } },
 });
+
+/**
+ * 페이지가 두는 "셸 상단 바 없이 화면 맨 위부터" 표시(모바일만). 호스트 홈(GUI `741:30896`)은 커버 이미지가 화면 맨 위에서
+ * 시작하고 그 위에 원형 [←] · [⚙]가 떠 있다 — 셸이 이 표시를 보면 모바일 로고 헤더와 그 자리(`barSpace`)를 숨긴다.
+ * 표시를 다는 쪽은 `useActivityMarker` ref도 건다(숨은 Activity 화면의 표시는 판정에서 빠진다 — patterns §6). PC는 그대로.
+ */
+export const SHELL_IMMERSIVE_ATTR = 'data-shell-immersive';
