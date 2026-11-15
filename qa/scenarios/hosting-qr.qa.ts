@@ -248,8 +248,8 @@ scenario(
     await step('카메라가 없으면 "카메라를 찾을 수 없어요"', async () => {
       await page.goto(QR);
       await expect(page.getByTestId('camera-problem')).toContainText('카메라를 찾을 수 없어요');
-      // 설명 글자는 Figma 그대로(탭 이름만 바뀜 #247 — 설명 속 "[관객이 QR 스캔]"은 Ready 화면에 그대로 남음, Figma 코멘트)
-      await expect(page.getByTestId('camera-problem')).toContainText('[관객이 QR 스캔]');
+      // 설명 속 탭 이름도 [관객이 스캔](디자이너 답 2026-11-15, Q228 — #247 탭 이름과 같게)
+      await expect(page.getByTestId('camera-problem')).toContainText('[관객이 스캔]');
     });
   },
 );
