@@ -10,6 +10,9 @@ import { Button } from '../Button/Button';
 import { LoadingLabel } from '../Loader/Loader';
 import { Popup } from '../Popup/Popup';
 
+/** 확인 버튼 색 — `kakaoLogin`은 로그인으로 가는 확인(카카오 로그인 버튼 가이드 — `Button variant="kakao"`) */
+const CONFIRM_VARIANT = { default: 'primary', delete: 'warning', kakaoLogin: 'kakao' } as const;
+
 export type ConfirmOptions = {
   title: ReactNode;
   description?: ReactNode;
@@ -32,9 +35,9 @@ export type ConfirmOptions = {
   variant?: 'popup' | 'responsive';
   /**
    * 확인 버튼 색 — `delete`면 Warning(DS `다이얼로그_데스크탑` `Property 1=삭제`, #185 · #187). 되돌리기 어려운 동작에 준다.
-   * popup · responsive 둘 다
+   * `kakaoLogin`이면 카카오 로그인 버튼(로그인으로 가는 확인). popup · responsive 둘 다
    */
-  intent?: 'default' | 'delete';
+  intent?: 'default' | 'delete' | 'kakaoLogin';
   /**
    * responsive의 모바일 시트 모양(`BottomSheet` `variant`). 기본 `raised` — 확인 시트(GUI 선물 거절 `939:26914`):
    * 막대 손잡이 · 제목 24 · 설명 가운데 · 버튼 사이 12(O17, 2026-11-08)
@@ -139,7 +142,7 @@ export function EasyOverlay({
             </Button>
           )}
           <Button
-            variant={intent === 'delete' ? 'warning' : 'primary'}
+            variant={CONFIRM_VARIANT[intent]}
             size="lg"
             disabled={pending}
             aria-busy={pending || undefined}

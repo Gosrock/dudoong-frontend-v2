@@ -16,6 +16,10 @@ import { typography } from '../../theme/typography.css';
  * 아이콘 자리는 Figma에서 인스턴스 스왑(`ic_blank`)으로 바뀌었다 — 코드는 원래 `icon` prop이라 바뀌는 것 없음.
  * Secondary 글자색은 크기마다 달랐는데 `text.secondaryLabel` 하나로 통일했다(design-system §5 정리 요청).
  */
+/** 카카오 로그인 버튼 레이블 서체 — 가이드 "OS별 기본 시스템 서체"(가이드 Figma는 Apple SD Gothic Neo) */
+const KAKAO_LABEL_FONT =
+  '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+
 export const button = recipe({
   base: {
     display: 'inline-flex',
@@ -93,6 +97,16 @@ export const button = recipe({
           '&:hover:not(:disabled)': { background: vars.color.brand.accentHover },
           '&:active:not(:disabled)': { background: vars.color.brand.accentPressed },
         },
+      },
+      /**
+       * 카카오 로그인 버튼 — 근거는 카카오 공식 디자인 가이드 Figma(`V17DxZkTnrhtUnUvAceCAP` 노드 `124:973`, 사용자 결정 2026-11-16).
+       * 컨테이너 #FEE500 · 레이블 #000000 85% · 심볼 #000000(`KakaoSymbol` 18). 크기 · 모서리 · 간격 · 글자는 아래 compound(크기와
+       * 상관없이 가이드 한 벌). "색상 규정에 벗어난 색상을 적용해서는 안 된다"라 Hover · Pressed 색은 바꾸지 않는다 🤖.
+       * 디자이너 요청(GUI 코멘트 `2008666517`, 2026-11-15) — 외부 브랜드 가이드라 `FIGMA-CUSTOM`이 아니다. 브랜드 고정색이라 토큰이 아니다
+       */
+      kakao: {
+        background: '#FEE500',
+        color: 'rgba(0, 0, 0, 0.85)',
       },
       /** 검정 채움 — GUI 빈 화면·주문 완료 버튼이 Primary 채움을 text/primary-label로 덮어쓴 것(P2) */
       dark: {
@@ -174,6 +188,27 @@ export const button = recipe({
           '&:hover:not(:disabled)': { background: vars.color.brand.secondaryHover },
           '&:active:not(:disabled)': { background: vars.color.brand.secondaryPressed },
         },
+      },
+    },
+    /**
+     * 카카오 로그인 버튼 — 가이드 `카카오 로그인`(`122:101`, 기본형 184×45 · 300×45): 높이 45 · 모서리 6 · 좌우 14 + 안쪽 24 = 38 ·
+     * 심볼 18 · 간격 8 · 레이블 15 / 600 / 22.5(OS 기본 시스템 서체 — 가이드 "OS별 기본 시스템 서체"). 큰 · 꽉 찬 판(368 · 600 × 90,
+     * 모서리 12 · 심볼 36 · 글자 30)은 모든 값이 정확히 2배라 같은 버튼의 2배 해상도 판으로 본다 🤖 — 폭만 자리에 맞춘다(`fullWidth`).
+     * 크기 변형(`size`)의 높이 · 패딩 · 모서리 · 글자를 덮는다
+     */
+    {
+      variants: { variant: 'kakao' },
+      style: {
+        height: 45,
+        minWidth: 0,
+        padding: '0 38px',
+        gap: vars.space[2],
+        borderRadius: 6,
+        fontFamily: KAKAO_LABEL_FONT,
+        fontSize: 15,
+        fontWeight: 600,
+        lineHeight: '22.5px',
+        letterSpacing: 0,
       },
     },
   ],

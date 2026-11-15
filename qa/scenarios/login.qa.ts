@@ -17,7 +17,7 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
  * - 반응형: 모든 시나리오가 mobile(바텀시트)·desktop(모달)에서 돈다
  */
 
-const KAKAO_BUTTON = { name: '카카오 로그인하기' } as const;
+const KAKAO_BUTTON = { name: '카카오 로그인' } as const;
 
 async function chooseKakao(page: Page, choice: string) {
   await page.getByRole('button', KAKAO_BUTTON).click();
@@ -31,7 +31,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI 1175:16950 그대로 — DS img_login(170) + 안내 한 줄 + DS Button Primary Large [카카오 로그인하기](폭 254).',
+      'GUI 1175:16950 그대로 — DS img_login(170) + 안내 한 줄 + [카카오 로그인](폭 254 — 색 · 심볼 · 모서리는 카카오 로그인 가이드, 디자이너 요청 2026-11-15).',
     basis: [
       'plan P4b V 범위 · GUI',
       'gui-screens §0 로그인 줄',
@@ -40,13 +40,19 @@ scenario(
   },
   async ({ page, step }) => {
     await setMockSession(page, 'anonymous');
-    await step('/login 을 열면 안내 문구와 [카카오 로그인하기]가 보인다', async () => {
+    await step('/login 을 열면 안내 문구와 [카카오 로그인]가 보인다', async () => {
       await page.goto('/login?redirect=%2Fevents');
       await expect(page.getByRole('heading', { name: '로그인' })).toBeAttached();
       await expect(
         page.getByText('두둥에 로그인하고 다양한 공연을 즐겨보세요!').first(),
       ).toBeVisible();
       await expect(page.getByRole('button', KAKAO_BUTTON)).toBeEnabled();
+      // 카카오 로그인 버튼 가이드(디자이너 요청 2026-11-15) — 노란 배경 · 심볼
+      await expect(page.getByRole('button', KAKAO_BUTTON)).toHaveCSS(
+        'background-color',
+        'rgb(254, 229, 0)',
+      );
+      await expect(page.getByRole('button', KAKAO_BUTTON).locator('svg')).toBeAttached();
     });
     await step('버튼을 누르면 카카오 인증 화면으로 간다', async () => {
       await page.getByRole('button', KAKAO_BUTTON).click();

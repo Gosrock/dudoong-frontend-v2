@@ -48,7 +48,7 @@ scenario(
   {
     kind: '권한',
     summary:
-      '관객 뷰(GUI 1452:41324)처럼 멤버 줄이 없고 공개 공연만 공개 상세로 간다. ♡는 요청 없이 /login?redirect=로 가는 링크. 연락처 시트(1481:7672)는 가린 전화·이메일을 회색으로, 아래에 안내 + [로그인 하기].',
+      '관객 뷰(GUI 1452:41324)처럼 멤버 줄이 없고 공개 공연만 공개 상세로 간다. ♡는 요청 없이 /login?redirect=로 가는 링크. 연락처 시트(1481:7672)는 가린 전화·이메일을 회색으로, 아래에 안내 + [카카오 로그인].',
     basis: [
       'plan P5c 완료 기준 V',
       'GUI 1452:41324 · 1481:7672',
@@ -86,9 +86,14 @@ scenario(
       await expect(dialog.getByText('@gosrock_official')).toBeVisible();
       await expect(dialog.getByText('gosrock@example.com')).toHaveCount(0);
       await expect(dialog.getByText('로그인하면 전화번호와 이메일을 볼 수 있어요')).toBeVisible();
-      await expect(dialog.getByRole('link', { name: '로그인 하기' })).toHaveAttribute(
+      await expect(dialog.getByRole('link', { name: '카카오 로그인' })).toHaveAttribute(
         'href',
         '/login?redirect=%2Fhosts%2F11',
+      );
+      // 로그인으로 가는 버튼은 카카오 로그인 버튼(디자이너 요청 2026-11-15)
+      await expect(dialog.getByRole('link', { name: '카카오 로그인' })).toHaveCSS(
+        'background-color',
+        'rgb(254, 229, 0)',
       );
     });
   },
@@ -336,7 +341,7 @@ scenario(
   {
     kind: '권한',
     summary:
-      'GUI 1484:8106 — DS 다이얼로그 "로그인이 필요해요" · [취소] [로그인하기]. [로그인하기]는 창이 닫힌 뒤 지금 주소로 돌아오는 로그인.',
+      'GUI 1484:8106 — DS 다이얼로그 "로그인이 필요해요" · [취소] [카카오 로그인](카카오 로그인 버튼 — 디자이너 요청 2026-11-15). [카카오 로그인]는 창이 닫힌 뒤 지금 주소로 돌아오는 로그인.',
     basis: ['GUI 1484:8106', 'patterns §6 확인 창 계약'],
   },
   async ({ page, step }) => {
@@ -349,9 +354,14 @@ scenario(
       await expect(
         popup.getByText('로그인하면 호스트의 전화번호와 이메일을 볼 수 있어요.'),
       ).toBeVisible();
+      // [카카오 로그인]는 카카오 로그인 버튼(디자이너 요청 GUI 코멘트 2008666517, 2026-11-15)
+      await expect(popup.getByRole('button', { name: '카카오 로그인' })).toHaveCSS(
+        'background-color',
+        'rgb(254, 229, 0)',
+      );
     });
-    await step('[로그인하기]를 누르면 로그인으로', async () => {
-      await page.getByRole('button', { name: '로그인하기' }).click();
+    await step('[카카오 로그인]를 누르면 로그인으로', async () => {
+      await page.getByRole('button', { name: '카카오 로그인' }).click();
       await expect(page).toHaveURL(/\/login\?redirect=%2Fhosts%2F11$/);
     });
   },

@@ -6,6 +6,9 @@ import { Button } from '../Button/Button';
 import { LoadingLabel } from '../Loader/Loader';
 import { Modal } from '../Modal/Modal';
 
+/** 확인 버튼 색 — `kakaoLogin`은 로그인으로 가는 확인(카카오 로그인 버튼 가이드 — `Button variant="kakao"`) */
+const CONFIRM_VARIANT = { default: 'primary', delete: 'warning', kakaoLogin: 'kakao' } as const;
+
 export type PopupProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,9 +30,10 @@ export type PopupProps = {
   onExited?: () => void;
   /**
    * DS `다이얼로그_데스크탑`(`843:449`) `Property 1` — `default`(기본) = [확인] Primary, `delete`(삭제) = [확인] Warning.
-   * 되돌리기 어려운 동작(삭제 · 취소 · 중단 · 거절 · 탈퇴)에 `delete`를 준다. 모바일 `다이얼로그`에도 같은 색을 쓴다(🤖 2026-11-08 #185)
+   * 되돌리기 어려운 동작(삭제 · 취소 · 중단 · 거절 · 탈퇴)에 `delete`를 준다. 모바일 `다이얼로그`에도 같은 색을 쓴다(🤖 2026-11-08 #185).
+   * `kakaoLogin` = [확인]이 카카오 로그인 버튼(로그인으로 가는 확인 — 디자이너 요청 2026-11-15, 카카오 가이드)
    */
-  intent?: 'default' | 'delete';
+  intent?: 'default' | 'delete' | 'kakaoLogin';
   /**
    * 모양. `dialog`(기본) = DS `다이얼로그`.
    * `summary` = 입금 확인 창(R1e — GUI `567:9756`): 342 · 회색 판 · 안쪽 16 · 간격 8 · 오른쪽 위 ✕ · 제목 `Label/lg-emphasized` ·
@@ -95,7 +99,7 @@ export function Popup({
             </Button>
           )}
           <Button
-            variant={intent === 'delete' ? 'warning' : 'primary'}
+            variant={CONFIRM_VARIANT[intent]}
             size={summary ? 'lg' : 'md'}
             disabled={loading || confirmDisabled}
             aria-busy={loading || undefined}

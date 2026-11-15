@@ -354,6 +354,9 @@ function PermissionGuideSheet({
   );
 }
 
+/** 이메일 칸 아래 안내(디자이너 요청 2026-11-15 — 초대는 두둥 계정 = 카카오 계정 이메일로 찾는다) */
+const INVITE_EMAIL_HINT = '카카오톡에 가입한 이메일로 적어주세요.';
+
 /**
  * 초대 시트(`1422:1911` · 매니저 `1423:4341` · 역할 열림 `1467:5001`) — 이메일 + 역할(기본 "일반", 매니저는 "일반" 고정) + [초대하기].
  * 가입한 이메일은 PH-7로 바로 멤버가 된다(api-contract — 시트 설명 "상대방 승인 후"와 다르다, Figma 코멘트 🤖).
@@ -376,6 +379,7 @@ function InviteSheet({
   const inviteForm = useInviteMembers(hostId, myRole);
   const inviteLink = useCreateInviteLink(hostId, myRole);
   const errorId = useId();
+  const hintId = useId();
   const row = inviteForm.rows[0]!;
   const error =
     inviteForm.serverErrors[0] ??
@@ -484,7 +488,7 @@ function InviteSheet({
             placeholder="dudoong@email.com"
             showCount={false}
             invalid={Boolean(error)}
-            aria-describedby={error ? errorId : undefined}
+            aria-describedby={error ? `${hintId} ${errorId}` : hintId}
             {...inviteForm.form.register('rows.0.email')}
           />
           <Dropdown
@@ -499,41 +503,48 @@ function InviteSheet({
             onValueChange={(v) => v && inviteForm.setRole(0, v as AssignableHostRole)}
           />
         </div>
-        {(error || unregistered) && (
-          <div className={s.inviteMessages}>
-            {error && (
-              <p id={errorId} role="alert" className={s.note}>
-                <Txt typography="labelMd" color={colors.textDangerLabel}>
-                  {error}
-                </Txt>
-              </p>
-            )}
-            {unregistered && (
-              <div className={s.greyBox} data-testid="invite-link-offer">
-                <Txt typography="labelSm" color={colors.textTertiaryLabel}>
-                  초대 링크를 만들면 이 이메일로 링크를 보내요. 링크는 7일 동안 한 번만 쓸 수
-                  있어요.
-                </Txt>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={inviteLink.creating}
-                  disabled={inviteForm.submitting}
-                  onClick={() => void inviteLink.create(unregistered.email, unregistered.role)}
-                >
-                  초대 링크 만들기
-                </Button>
-                {inviteLink.error && (
-                  <p role="alert" className={s.note}>
-                    <Txt typography="bodySm" color={colors.textDangerLabel}>
-                      {inviteLink.error}
-                    </Txt>
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        <div className={s.inviteMessages}>
+          {/*
+            카카오톡에 가입한 이메일 안내 — 디자이너 요청(GUI 코멘트 `2008678247` · `2008678295`, 2026-11-15 — 문구 그대로).
+            Ready 프레임(`1422:1911`)에 자리가 없어 줄 아래 사유 자리 맨 위에 회색 작은 글자로 둔다 🤖(DS Input helper는
+            칸 위에 그려져 이메일 칸만 내려가 역할 칸과 줄이 어긋난다)
+          */}
+          <p id={hintId} className={s.note}>
+            <Txt typography="labelSm" color={colors.textTertiaryLabel}>
+              {INVITE_EMAIL_HINT}
+            </Txt>
+          </p>
+          {error && (
+            <p id={errorId} role="alert" className={s.note}>
+              <Txt typography="labelMd" color={colors.textDangerLabel}>
+                {error}
+              </Txt>
+            </p>
+          )}
+          {unregistered && (
+            <div className={s.greyBox} data-testid="invite-link-offer">
+              <Txt typography="labelSm" color={colors.textTertiaryLabel}>
+                초대 링크를 만들면 이 이메일로 링크를 보내요. 링크는 7일 동안 한 번만 쓸 수 있어요.
+              </Txt>
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={inviteLink.creating}
+                disabled={inviteForm.submitting}
+                onClick={() => void inviteLink.create(unregistered.email, unregistered.role)}
+              >
+                초대 링크 만들기
+              </Button>
+              {inviteLink.error && (
+                <p role="alert" className={s.note}>
+                  <Txt typography="bodySm" color={colors.textDangerLabel}>
+                    {inviteLink.error}
+                  </Txt>
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </form>
     </ResponsiveOverlay>
   );

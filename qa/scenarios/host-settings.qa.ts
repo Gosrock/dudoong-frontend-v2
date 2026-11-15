@@ -350,6 +350,10 @@ scenario(
         await page.goto(MEMBERS);
         await page.getByRole('button', { name: '멤버 초대하기' }).click();
         await expect(dialog).toContainText('가입한 이메일은 바로 멤버로 추가돼요.');
+        // 디자이너 요청(2026-11-15) — 이메일 칸 아래 안내, 칸의 설명으로 읽힌다
+        await expect(dialog.getByLabel('초대할 이메일')).toHaveAccessibleDescription(
+          '카카오톡에 가입한 이메일로 적어주세요.',
+        );
         await expect(dialog.getByLabel('역할')).toHaveText('일반');
         await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
       },

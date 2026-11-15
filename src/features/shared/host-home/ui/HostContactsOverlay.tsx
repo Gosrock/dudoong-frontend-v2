@@ -10,6 +10,7 @@ import type { ContactType } from '@/features/shared/contact/model/contact-link';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
+import { KakaoSymbol } from '@/ui/components/Button/KakaoSymbol';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Icon, type IconProps } from '@/ui/icons/Icon';
@@ -52,7 +53,7 @@ export const MASKED_CONTACTS_NOTE = '로그인하면 전화번호와 이메일�
 /**
  * 연락처 전체 보기 — 모바일 바텀시트 · PC 모달(`ResponsiveOverlay`). GUI `1481:7194`(로그인) · `1481:7672`(로그인 전):
  * 제목 "연락처" + ✕, 행(GUI 로컬 "연락처 행" `1481:7193` — 원 36 아이콘 · 유형 Label/sm · 값 Heading/sm · 열 수 있으면 >).
- * 로그인 전 가린 값은 회색 글자 · > 없음(상태=가림), 그 아래 회색 안내 상자 + [로그인 하기](Primary Large).
+ * 로그인 전 가린 값은 회색 글자 · > 없음(상태=가림), 그 아래 회색 안내 상자 + [카카오 로그인](카카오 로그인 버튼 — 2026-11-16, GUI의 [로그인 하기] 자리).
  * 링크로 열 수 없는 값(기타의 글자 등)은 > 없이 글자만(상태=텍스트).
  */
 export function openHostContacts(hostId: string) {
@@ -71,8 +72,8 @@ export function openHostContacts(hostId: string) {
 }
 
 /**
- * 로그인 전에 가린 연락처(전화 · 이메일) 아이콘을 누르면 — "로그인이 필요해요"(GUI `1484:8106` DS 다이얼로그 · [취소] [로그인하기]).
- * [로그인하기]면 창이 닫히고(기록 항목을 돌려놓은 뒤) 지금 주소로 돌아오는 로그인으로 간다 — 닫히기 전에 이동하면 창이 기록을
+ * 로그인 전에 가린 연락처(전화 · 이메일) 아이콘을 누르면 — "로그인이 필요해요"(GUI `1484:8106` DS 다이얼로그 · [취소] [로그인하기] — 그 자리를 카카오 로그인 버튼 [카카오 로그인]으로, 2026-11-16).
+ * [카카오 로그인]이면 창이 닫히고(기록 항목을 돌려놓은 뒤) 지금 주소로 돌아오는 로그인으로 간다 — 닫히기 전에 이동하면 창이 기록을
  * 되돌리며 이동이 취소된다(`useCloseOnBack` release). 이동은 `push`(창은 이미 닫혀 뒤로가기는 호스트 홈).
  */
 export async function openLoginForContacts(navigate: (href: string) => void) {
@@ -80,7 +81,9 @@ export async function openLoginForContacts(navigate: (href: string) => void) {
     title: '로그인이 필요해요',
     description: '로그인하면 호스트의 전화번호와 이메일을 볼 수 있어요.',
     cancelLabel: '취소',
-    confirmLabel: '로그인하기',
+    confirmLabel: '카카오 로그인',
+    // 로그인으로 가는 버튼은 카카오 로그인 버튼(디자이너 요청 — GUI 코멘트 `2008666517`, 2026-11-15 "가이드대로")
+    intent: 'kakaoLogin',
   });
   if (ok) navigate(loginHref(browserLocation.currentPath()));
 }
@@ -174,9 +177,11 @@ function HostContactsBody({ hostId }: { hostId: string }) {
           <Link
             href={login}
             replace
-            className={button({ variant: 'primary', size: 'lg', fullWidth: true })}
+            className={button({ variant: 'kakao', size: 'lg', fullWidth: true, iconText: true })}
           >
-            로그인 하기
+            {/* 카카오 로그인 버튼(가이드 — 심볼 필수). 디자이너 요청 GUI 코멘트 `2008666517`(2026-11-15) */}
+            <KakaoSymbol />
+            카카오 로그인
           </Link>
         </Flex>
       )}

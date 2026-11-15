@@ -7,6 +7,7 @@ import { formatKstDotDateWeekdayTime } from '@/api/shared/date';
 import { LoginRequiredLink } from '@/features/shared/auth/LoginRequiredLink';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
+import { KakaoSymbol } from '@/ui/components/Button/KakaoSymbol';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
@@ -27,7 +28,7 @@ type Landing = ReturnType<typeof useGiftLanding>;
 /**
  * 선물 랜딩(`/gifts/[giftToken]`) — GUI `939:27148` 티켓 선물 받기/거절하기(2026-11-01 Ready).
  * - 받을 수 있음(AVAILABLE) + 로그인 → 보낸 사람 · 포스터 · 공연 · [거절하기] [선물받기](`939:26721`), [거절하기] → 확인 시트(`939:26858`)
- * - 받을 수 있음 + 익명 → 보낸 사람 · 포스터 · 공연 · [두둥에 로그인하고 선물 받기](`939:26412`, 2026-11-08 #202) — `/login?redirect=<랜딩>`(복귀 뒤 다시 눌러 수락)
+ * - 받을 수 있음 + 익명 → 보낸 사람 · 포스터 · 공연 · [카카오 로그인](GUI는 [두둥에 로그인하고 선물 받기] — 카카오 가이드 문구로 2026-11-16 🤖)(`939:26412`, 2026-11-08 #202) — `/login?redirect=<랜딩>`(복귀 뒤 다시 눌러 수락)
  * - 방금 거절함 → 거절 완료(`939:26992`) · 취소된 선물(CANCELED) → `939:27058` · 보낸 사람이 방금 취소함 → 취소 완료(`908:21359`)
  * - 나머지 상태(이미 받음 · 반환됨 · 내 링크 · 만료 · 모름)는 디자인이 없다 — 같은 틀에 L 문구(design-requests §1 기본안)
  * 상태 영역은 사용자별 값이 확정된 뒤에만 그린다(그 전에는 자리표시) — 보낸 본인에게 수락 버튼이 잠깐도 보이지 않는다.
@@ -91,10 +92,12 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
           <Flex direction="column" align="center" gap={5}>
             {senderLine}
             <Summary landing={landing} />
+            {/* 로그인으로 가는 버튼은 카카오 로그인 버튼(가이드 — 심볼 필수, GUI 코멘트 `2008666517` 2026-11-15) */}
             <LoginRequiredLink
-              className={button({ variant: 'primary', size: 'lg', fullWidth: true })}
+              className={button({ variant: 'kakao', size: 'lg', fullWidth: true, iconText: true })}
             >
-              두둥에 로그인하고 선물 받기
+              <KakaoSymbol />
+              카카오 로그인
             </LoginRequiredLink>
           </Flex>
         </section>
