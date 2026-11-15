@@ -7,6 +7,7 @@ import { hostCheckInByTicketNoMutation } from '@/api/check-in/mutations';
 import { isSessionLost } from '@/api/errors';
 import { handleError } from '@/api/handle-error';
 import { cancelEntranceMutation } from '@/api/issued-ticket/mutations';
+import { CANCEL_ENTRANCE_STALE_MESSAGE as CANCEL_ENTRANCE_REVERTED } from '@/features/hosting/shared/model/cancel-entrance-messages';
 import { invalidateEventStatus } from '@/features/hosting/shared/model/event-cache';
 import { invalidateAfterScan } from '@/features/hosting/shared/model/qr-cache';
 import {
@@ -58,10 +59,9 @@ export const CANCEL_ENTRANCE_CONFIRM = {
 /** 입장 취소 성공 토스트(GUI `1372:19151`) */
 export const CANCEL_ENTRANCE_DONE_MESSAGE = '입장 처리를 취소했어요.';
 
-/** 입장 취소 — 상태가 이미 바뀜(예매자 관리와 같은 말, 🤖 404는 이 화면 말) */
+/** 입장 취소 — 상태가 이미 바뀜. 예매자 관리와 같은 상수(디자이너 답 2008391965), 404는 이 화면 말(🤖 — 답 없음) */
 export const CANCEL_ENTRANCE_STALE_MESSAGE = {
-  IssuedTicket_400_9: '입장 전 티켓이에요. 최신 상태를 불러왔어요',
-  IssuedTicket_400_3: '취소된 티켓이라 입장을 취소할 수 없어요. 최신 상태를 불러왔어요',
+  ...CANCEL_ENTRANCE_REVERTED,
   IssuedTicket_404_1: '티켓을 찾을 수 없어요. 최신 상태를 불러왔어요',
 } as const;
 

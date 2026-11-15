@@ -7,7 +7,6 @@ import {
   HOST_SCAN_BLOCK_MESSAGE,
   hostScanBlockOf,
   SELF_CHECK_IN_BLOCK_MESSAGE,
-  SELF_CHECK_IN_ENDED_HINT,
   selfCheckInBlockOf,
   selfCheckInUrl,
 } from '@/features/hosting/shared/model/qr-check-in-rules';
@@ -27,7 +26,7 @@ export function useSelfCheckInQr(eventId: string, { origin = browserOrigin } = {
   const { event } = useEventScope(eventId);
   const block = selfCheckInBlockOf(event.status);
   // P13b-GUI — 두 탭이 같은 안내(`1360:25654` 지난 공연 · `1360:25745` 알 수 없는 상태, #227 · #228): 호스트 스캔도 막힌 공연이면 그 말.
-  // 정산중(셀프만 막힘 — 호스트 스캔은 된다)은 화면이 없어 셀프 안내 + [호스트가 스캔] 힌트를 그대로 둔다 🤖
+  // 정산중(셀프만 막힘 — 호스트 스캔은 된다)은 `1447:24001`(#246) — 같은 막힘 모양에 셀프 안내 한 문단(힌트 줄 없음)
   const hostBlock = hostScanBlockOf(event.status);
   const q = useQuery({ ...checkInQrQuery(eventId), enabled: block === null });
   const qrUrl = q.data ? selfCheckInUrl(origin(), q.data.qrPath) : null;
@@ -49,8 +48,6 @@ export function useSelfCheckInQr(eventId: string, { origin = browserOrigin } = {
       : block
         ? SELF_CHECK_IN_BLOCK_MESSAGE[block]
         : null,
-    /** 정산중(호스트 스캔은 된다)이면 다음 행동 안내 */
-    hint: block === 'ended' && hostBlock === null ? SELF_CHECK_IN_ENDED_HINT : null,
     /** QR에 넣을 주소(`ready`일 때만) */
     qrUrl: status === 'ready' ? qrUrl : null,
     retry: () => void q.refetch(),

@@ -14,7 +14,8 @@ import { expect, scenario } from '../scenario';
 
 /**
  * P13b QR 체크인(`/hosting/events/[eventId]/qr`, plan P13b 완료 기준 V) — **GUI 근거**(P13b-GUI, Design Sync #215~#234).
- * - 기본 모바일 `1360:13479` · 데스크탑1440 `1352:30715` · 전체화면 `1359:398` · `1352:30986` · 관객 `1360:25912` · `1360:27107`
+ * - 기본 모바일 `1360:13479` · 데스크탑1440 `1352:30715` · 전체화면 `1359:398` · `1352:30986` · 관객 `1360:25912` · `1447:24498` · `1360:27107`
+ * - 탭 이름 [호스트가 스캔] · [관객이 스캔](#247), 정산중 관객 `1447:24001`(#246)
  * - 결과 카드 10종(`1362:1295`, 매핑 가이드 `1411:7760` — 13 → 10) · 카메라 켜는 중 · 실패 5종(`1349:713` · `1360:23457` 등)
  * - 공연 상태 막힘(`1360:25576` · `1360:25745`) · 티켓 번호 결과 카드 · 입장 취소(`1368:4838` · `1372:18887` · `1372:19151`)
  * - 카메라: 브라우저 `getUserMedia`를 캔버스 영상으로 바꿔 스캐너가 켜진 모양을 찍고, 판독 값은 주입 어댑터(`dd:qr-scan`)로 넣는다.
@@ -81,7 +82,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      '통계 3칸(전체 티켓 · 입장 완료 · 미입장) + 막대 + 입장률, [호스트가 QR 스캔] 검정 카메라 · 가이드 · 안내 알약 · [⤢]. 승인 티켓을 찍으면 입장 완료 카드(이름 · 티켓 · 번호)와 1/7.',
+      '통계 3칸(전체 티켓 · 입장 완료 · 미입장) + 막대 + 입장률, [호스트가 스캔] 검정 카메라 · 가이드 · 안내 알약 · [⤢]. 승인 티켓을 찍으면 입장 완료 카드(이름 · 티켓 · 번호)와 1/7.',
     basis: [
       'plan P13b 완료 기준 V(result 화면)',
       'GUI 1360:13479 · 1352:30715 · 결과 1362:2224 · 1362:2054',
@@ -239,7 +240,7 @@ scenario(
   '카메라 없음 — "카메라를 찾을 수 없어요"',
   {
     kind: '에러',
-    summary: '카메라가 없는 기기(PC 등)에서는 [관객이 QR 스캔]을 권한다.',
+    summary: '카메라가 없는 기기(PC 등)에서는 [관객이 스캔]을 권한다.',
     basis: ['plan P13b V 범위(스캔 실패 UI)', 'GUI 1360:23536 · 1352:31657'],
   },
   async ({ page, step }) => {
@@ -247,6 +248,7 @@ scenario(
     await step('카메라가 없으면 "카메라를 찾을 수 없어요"', async () => {
       await page.goto(QR);
       await expect(page.getByTestId('camera-problem')).toContainText('카메라를 찾을 수 없어요');
+      // 설명 글자는 Figma 그대로(탭 이름만 바뀜 #247 — 설명 속 "[관객이 QR 스캔]"은 Ready 화면에 그대로 남음, Figma 코멘트)
       await expect(page.getByTestId('camera-problem')).toContainText('[관객이 QR 스캔]');
     });
   },
@@ -254,7 +256,7 @@ scenario(
 
 scenario(
   'QR-5',
-  '[호스트가 QR 스캔] 전체화면 — 결과 카드도 보이고, 뒤로가기로 닫힌다',
+  '[호스트가 스캔] 전체화면 — 결과 카드도 보이고, 뒤로가기로 닫힌다',
   {
     kind: '정상',
     summary:
@@ -287,18 +289,21 @@ scenario(
 
 scenario(
   'QR-6',
-  '[관객이 QR 스캔] — 셀프 체크인 QR · 전체화면 · [✕]로 닫기',
+  '[관객이 스캔] — 셀프 체크인 QR · 전체화면 · [✕]로 닫기',
   {
     kind: '정상',
     summary:
       'QR 주소 = 이 사이트 origin + qrPath(GQ-4). 회색 자리 · 흰 판 위 QR + "QR 코드를 스캔하면 입장이 완료됩니다". 전체화면은 로고 · 공연 이름 · 큰 QR · 안내.',
-    basis: ['plan P13b V 범위([관객이 스캔] QR 표시 · 전체화면)', 'GUI 1360:25912 · 1360:27107'],
+    basis: [
+      'plan P13b V 범위([관객이 스캔] QR 표시 · 전체화면)',
+      'GUI 1360:25912 · 데스크탑 1447:24498(#248 — QR 판 250) · 1360:27107',
+    ],
   },
   async ({ page, step }) => {
     await setUp(page);
     await page.goto(QR);
-    await step('[관객이 QR 스캔]을 누르면 셀프 체크인 QR이 보인다', async () => {
-      await page.getByRole('tab', { name: '관객이 QR 스캔' }).click();
+    await step('[관객이 스캔]을 누르면 셀프 체크인 QR이 보인다', async () => {
+      await page.getByRole('tab', { name: '관객이 스캔' }).click();
       const qr = page.getByTestId('self-check-in-qr');
       await expect(qr).toHaveAttribute(
         'data-value',
@@ -329,21 +334,21 @@ scenario(
   {
     kind: '빈 상태',
     summary:
-      '정산중: [호스트가 QR 스캔]은 되고 [관객이 QR 스캔]은 QR 대신 안내 두 줄(화면 없음 🤖). 지난 공연: 두 탭 모두 회색 자리에 카메라 금지 아이콘 + "지난 공연은 입장 처리를 할 수 없어요", 티켓 번호 칸 없음.',
+      '정산중: [호스트가 스캔]은 되고 [관객이 스캔]은 QR 대신 회색 자리 · 카메라 금지 아이콘 + "정산중인 공연은 셀프 체크인을 할 수 없어요. 호스트 스캔을 이용해 주세요."(`1447:24001`, #246). 지난 공연: 두 탭 모두 회색 자리에 카메라 금지 아이콘 + "지난 공연은 입장 처리를 할 수 없어요", 티켓 번호 칸 없음.',
     basis: [
       'plan P13b 완료 기준 L(끝난 공연 안내 · Event_400_27)',
-      'GUI 1360:25576 · 1360:25654 · 1360:24537 · 1360:25202(#227 · #231)',
+      'GUI 1360:25576 · 1360:25654 · 1360:24537 · 1360:25202 · 1447:24001(#227 · #231 · #246)',
     ],
   },
   async ({ page, step }) => {
     await setUp(page);
     setStoredStatus(101, 'CALCULATING');
-    await step('정산중 공연의 [관객이 QR 스캔]은 QR 대신 안내', async () => {
+    await step('정산중 공연의 [관객이 스캔]은 QR 대신 안내', async () => {
       await page.goto(QR);
       await expect(page.getByTestId('host-scan')).toBeVisible();
-      await page.getByRole('tab', { name: '관객이 QR 스캔' }).click();
+      await page.getByRole('tab', { name: '관객이 스캔' }).click();
       await expect(page.getByTestId('self-check-in-guidance')).toHaveText(
-        '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요',
+        '정산중인 공연은 셀프 체크인을 할 수 없어요. 호스트 스캔을 이용해 주세요.',
       );
       await expect(page.getByTestId('self-check-in-qr')).toHaveCount(0);
     });
@@ -353,7 +358,7 @@ scenario(
         '지난 공연은 입장 처리를 할 수 없어요',
       );
       await expect(page.getByTestId('ticket-no-check-in')).toHaveCount(0);
-      await page.getByRole('tab', { name: '관객이 QR 스캔' }).click();
+      await page.getByRole('tab', { name: '관객이 스캔' }).click();
       await expect(page.getByTestId('self-check-in-guidance')).toHaveText(
         '지난 공연은 입장 처리를 할 수 없어요',
       );
@@ -447,11 +452,11 @@ scenario(
 scenario.manual('QR-8', '실기기 3종 이상에서 티켓 QR 판독', {
   kind: '정상',
   basis: ['plan P13b 완료 기준 V(실기기 3종 이상에서 판독)'],
-  how: 'D2 스테이징(HTTPS — 카메라는 보안 출처에서만 켜진다)에서 iPhone Safari · Android Chrome · 태블릿(또는 노트북 Chrome)으로 QR 체크인 → [호스트가 QR 스캔]을 열고, 다른 폰 티켓탭의 입장 QR을 비춘다. 입장 완료 · 같은 티켓 다시(이미 입장) · 카메라 권한 거부 화면을 기기마다 본다. iPhone은 BarcodeDetector가 없어 판독 엔진(wasm)을 jsdelivr에서 받는다 — 처음 판독이 늦지 않은지도 본다.',
+  how: 'D2 스테이징(HTTPS — 카메라는 보안 출처에서만 켜진다)에서 iPhone Safari · Android Chrome · 태블릿(또는 노트북 Chrome)으로 QR 체크인 → [호스트가 스캔]을 열고, 다른 폰 티켓탭의 입장 QR을 비춘다. 입장 완료 · 같은 티켓 다시(이미 입장) · 카메라 권한 거부 화면을 기기마다 본다. iPhone은 BarcodeDetector가 없어 판독 엔진(wasm)을 jsdelivr에서 받는다 — 처음 판독이 늦지 않은지도 본다.',
 });
 
 scenario.manual('QR-9', '[관객이 스캔] QR을 실제 폰으로 찍어 /check-in 입장', {
   kind: '정상',
   basis: ['plan P13b 완료 기준 V([관객이 스캔] — GQ-4 QR을 실제 폰으로, D2 스테이징 주소로)'],
-  how: 'D2 스테이징에서 호스트 계정으로 [관객이 QR 스캔] 전체화면을 띄우고, 티켓이 있는 관객 폰의 기본 카메라로 찍는다 → 스테이징 /check-in이 열리고 로그인 뒤 입장이 완료되는지, 호스트 화면 통계가 늘어나는지 본다.',
+  how: 'D2 스테이징에서 호스트 계정으로 [관객이 스캔] 전체화면을 띄우고, 티켓이 있는 관객 폰의 기본 카메라로 찍는다 → 스테이징 /check-in이 열리고 로그인 뒤 입장이 완료되는지, 호스트 화면 통계가 늘어나는지 본다.',
 });

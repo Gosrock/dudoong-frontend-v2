@@ -131,7 +131,7 @@ function resultCard(view: ResultView): ScanCard {
   return card(kind, view.result, view.ticket, description);
 }
 
-/** [호스트가 QR 스캔] 상태 → 카드. 기다림(`idle`)은 카드 없음 */
+/** [호스트가 스캔] 상태 → 카드. 기다림(`idle`)은 카드 없음 */
 export function hostScanCard(state: HostScanState): ScanCard | null {
   switch (state.status) {
     case 'idle':

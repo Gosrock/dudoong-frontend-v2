@@ -44,15 +44,15 @@ export function selfCheckInBlockOf(status: EventStatus): CheckInBlock | null {
   return 'unknown';
 }
 
+/**
+ * 셀프 체크인만 막혔을 때의 안내. 지난 공연·준비중은 호스트 스캔도 막혀 [관객이 스캔]도 `HOST_SCAN_BLOCK_MESSAGE`를 쓰므로,
+ * `ended`가 화면에 나오는 것은 정산중뿐이다 — 문구는 GUI `1447:24001`(정산중 관객 스캔, #246) 그대로(다음 행동까지 한 문단)
+ */
 export const SELF_CHECK_IN_BLOCK_MESSAGE: Record<CheckInBlock, string> = {
   notRegistered: '공연을 등록해야 셀프 체크인을 할 수 있어요',
-  ended: '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요',
+  ended: '정산중인 공연은 셀프 체크인을 할 수 없어요. 호스트 스캔을 이용해 주세요.',
   unknown: '지금은 셀프 체크인을 할 수 없는 공연 상태예요',
 };
-
-/** 공연이 끝나 셀프 체크인이 안 될 때 덧붙이는 다음 행동 */
-export const SELF_CHECK_IN_ENDED_HINT =
-  '[호스트가 스캔]으로 관객 티켓 QR을 찍어 입장 처리해 주세요';
 
 // ─── 셀프 체크인 QR 주소(GQ-4) ────────────────────────────────
 
@@ -156,7 +156,7 @@ export const HOST_SCAN_FAILURES: Record<HostScanFailureKind, HostScanFailure> = 
   },
   forbidden: {
     kind: 'forbidden',
-    message: '이 공연의 입장 처리 권한이 없어요',
+    message: '공연의 입장 처리 권한이 없어요',
     canRetry: false,
   },
   notFound: {

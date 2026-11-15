@@ -384,6 +384,7 @@ globalStyle(`${ticketList} dd`, { overflowWrap: 'anywhere' });
 /* ── 관객이 스캔(QR) ──────────────────────────────── */
 
 /** QR 흰 판 230 r24(`1360:26009`), QR 156 — 사이 여백이 QR의 quiet zone */
+/** QR 판 — 모바일 230 · QR 156(`1360:25912`), PC 250 · QR 169(`1447:24498` 관객 1440, #248). 모서리는 두 폭 모두 24 토큰(PC Figma 26.09 → 반올림) */
 export const qrCard = style({
   display: 'flex',
   alignItems: 'center',
@@ -393,9 +394,13 @@ export const qrCard = style({
   boxSizing: 'border-box',
   borderRadius: vars.radius[7],
   background: vars.color.background.normal,
+  '@media': { [media.desktop]: { width: 250, height: 250 } },
 });
 
-export const qrImage = style({ width: 156 });
+export const qrImage = style({
+  width: 156,
+  '@media': { [media.desktop]: { width: 169 } },
+});
 
 /** 안내 — `Label/lg`, 위아래 12 · 좌우 24(`1360:25940`), QR 판과 사이 12 */
 export const qrCaption = style({ padding: `${vars.space[3]} ${vars.space[5]}`, margin: 0 });
@@ -426,13 +431,20 @@ export const audienceTitle = style({
   '@media': { [media.desktop]: { fontSize: 48 } },
 });
 
+const QR_CARD_LARGE = 'min(80vw, 46dvh, 486px)';
+
+/** `qrCard`의 PC 크기(250)보다 나중에 와야 해서 같은 미디어 조건으로 다시 적는다 */
 export const qrCardLarge = style({
-  width: 'min(80vw, 46dvh, 486px)',
-  height: 'min(80vw, 46dvh, 486px)',
+  width: QR_CARD_LARGE,
+  height: QR_CARD_LARGE,
   borderRadius: `calc(${vars.radius[7]} * 2)`,
+  '@media': { [media.desktop]: { width: QR_CARD_LARGE, height: QR_CARD_LARGE } },
 });
 
-export const qrImageLarge = style({ width: '68%' });
+export const qrImageLarge = style({
+  width: '68%',
+  '@media': { [media.desktop]: { width: '68%' } },
+});
 
 /** 안내 — PC `Heading/2xl`(32), 모바일은 그려지지 않아 20으로 줄인다 🤖 */
 export const audienceCaption = style({
