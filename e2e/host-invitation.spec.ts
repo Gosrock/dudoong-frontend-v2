@@ -88,7 +88,7 @@ test.describe('수락', () => {
     ]);
   });
 
-  test('이미 멤버면 수락 없이 바로 "이미 멤버" 결과 — 요청하지 않는다', async ({
+  test('이미 멤버면 [수락하기] 없이 바로 "이미 멤버" 결과 — 수락은 스스로 한 번 불러 초대를 소비한다', async ({
     page,
     mockApi,
   }) => {
@@ -100,7 +100,15 @@ test.describe('수락', () => {
       '/hosts/11',
     );
     await expect(page.getByRole('button', { name: '수락하기' })).toHaveCount(0);
-    expect(mockApi.calls().filter((c) => c.method === 'POST')).toEqual([]);
+    // 초대를 남기지 않는다(링크 소지가 자격 — 만료 전까지 다른 사람이 쓰지 못하게, tap-review #271)
+    await expect
+      .poll(() =>
+        mockApi
+          .calls()
+          .filter((c) => c.method === 'POST')
+          .map((c) => [c.path.replace(MOCK_INVITE_TOKEN.member, '{token}'), c.status]),
+      )
+      .toEqual([['/api/v2/host-invitations/{token}/accept', 200]]);
   });
 
   for (const [token, title] of [

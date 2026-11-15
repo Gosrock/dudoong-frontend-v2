@@ -52,6 +52,7 @@ const invalidOf = (error: unknown): InvalidInvitation | null =>
  * - 수락(H-20) 응답의 `role`이 내 역할이다 — 이미 멤버였으면 기존 역할(초대한 역할과 다를 수 있다, 백엔드 #928). 화면은 이 값으로 말한다
  * - 수락 뒤 `myRole`을 주는 쿼리(GM-1 `hosts` · GH-1 · 그 호스트 키)를 무효화한다
  * - 수락 실패: 만료 · 사용됨 · 없음은 `invalid`, 그 밖은 공용 토스트(handleError)
+ * - 이미 멤버(`landing.alreadyMember`)면 수락을 스스로 한 번 부른다 — 화면에 [수락하기]가 없다(GUI `1427:4836`)
  */
 export function useHostInvitation(routeToken: string | null) {
   const router = useRouter();
@@ -114,6 +115,16 @@ export function useHostInvitation(routeToken: string | null) {
       return false;
     }
   }, [accepted, mutation, token]);
+
+  // 이미 멤버면 화면은 바로 "이미 멤버" 결과(GUI `1427:4836`)지만, 수락(H-20)은 한 번 불러 초대를 소비한다 — 안 부르면 초대 대기
+  // 줄이 남고, 링크 소지가 자격이라 만료 전까지 다른 사람이 쓸 수 있다(api-contract H-20, tap-review #271). 역할은 그대로(백엔드 #928)
+  const autoAccepted = useRef(false);
+  const alreadyMember = landing.data?.alreadyMember === true;
+  useEffect(() => {
+    if (!alreadyMember || autoAccepted.current) return;
+    autoAccepted.current = true;
+    void accept();
+  }, [accept, alreadyMember]);
 
   const state: HostInvitationState = (() => {
     if (token === undefined) return { status: 'checking' };

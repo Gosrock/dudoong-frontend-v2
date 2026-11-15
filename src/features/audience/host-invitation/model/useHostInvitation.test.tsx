@@ -93,15 +93,18 @@ describe('수락(H-19 · H-20)', () => {
     });
   });
 
-  it('이미 멤버면 alreadyMember + 기존 역할(마스터)', async () => {
+  it('이미 멤버면 수락을 스스로 한 번 불러 초대를 소비한다 — alreadyMember + 기존 역할(마스터)', async () => {
     restore = installLoggedInFetch();
     const { result } = open(MOCK_INVITE_TOKEN.member);
-    await waitFor(() => expect(result.current.state.status).toBe('ready'));
-    await act(() => result.current.accept());
-    expect(result.current.state).toMatchObject({
-      status: 'accepted',
-      result: { role: 'MASTER', alreadyMember: true },
-    });
+    // [수락하기]를 누르지 않아도(화면에 없다 — GUI 1427:4836) accepted가 된다
+    await waitFor(() =>
+      expect(result.current.state).toMatchObject({
+        status: 'accepted',
+        result: { role: 'MASTER', alreadyMember: true },
+      }),
+    );
+    // 한 번만 — 다시 부르면 이미 사용된 초대(HOST_400_20)가 된다
+    expect(await result.current.accept()).toBe(false);
   });
 
   it.each([
