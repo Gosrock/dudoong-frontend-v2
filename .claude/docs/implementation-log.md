@@ -3716,7 +3716,7 @@ Design Sync #251(Nemin, `Design: 수정` · `Figma: 디자인 시스템`, 세트
 
 **검사**: typecheck · `vitest related registry.ts` 42 파일 280 통과 · 스토리 `src/ui/icons` 6 통과 · QA `tickets` 20/0(수동 1) · `event-detail` 22/0(수동 1) · `gift` 14/0(수동 2) · e2e `tickets` · `gift-landing` · `event-detail` · `hosting-host` · `a11y` · `a11y-keyboard` 225 통과 / 0 실패(건너뜀 37).
 
-## P10b 멤버 · 초대 GUI — 호스트 멤버 · 멤버 초대 · 초대 수락 와이어 → GUI(2026-11-15, `p10b-gui-members`)
+## P10b 멤버 · 초대 GUI — 호스트 멤버 · 멤버 초대 · 초대 수락 와이어 → GUI(2026-11-15, `p10b-gui-members` #271)
 
 Design Sync #263(마스터뷰 14) · #264(매니저 · 일반뷰 3) · #265(권한 안내 시트) · #266(초대 시트 5) · #267(초대 수락 8) · #268(이미 멤버 — Ready 표시 없음, 이슈 노드라 근거) · #269 중 `멤버 권한이란` `1418:39693` · `멤버 행` `1421:752` · `초대 대기 행` `1468:5362`(나머지 4개는 병렬 세션 `p5c-gui-host-home`) · #239(DS `img_초대장` · `_error`). Nemin 2026-11-15 12:12~12:24Z, **모바일만 Ready** — PC(1024~)는 와이어 배치 유지(🤖). 와이어(P10b-V #69 · 초대 링크 #138)를 모양 우선으로 바꿨다. 동작은 L 그대로(아래 "L 변경"만).
 
