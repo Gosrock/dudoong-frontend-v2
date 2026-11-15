@@ -20,7 +20,7 @@ import {
   searchEmptyMessageOf,
 } from './guest-rules';
 import { useGuestExport } from './useGuestExport';
-import { useTableQueryState } from './useTableQueryState';
+import { useClampPage, useTableQueryState } from './useTableQueryState';
 
 /**
  * 예매자 관리 환불 탭(GF-1 · GF-1b · GF-3 · PF-2, plan P13a — GUI `1031:9189`). 상태 필터(건수 칩)·검색·페이지 번호·엑셀·환불 완료.
@@ -40,6 +40,7 @@ export function useRefundList(eventId: string) {
     ...refundsQuery(eventId, { status, ...applied, page }),
     placeholderData: keepPreviousData,
   });
+  useClampPage(page, query.data?.totalPages ?? null, setPage);
   const countsQuery = useQuery({
     ...refundCountsQuery(eventId, applied),
     placeholderData: keepPreviousData,

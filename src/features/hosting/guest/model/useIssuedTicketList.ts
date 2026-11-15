@@ -33,7 +33,7 @@ import {
 } from './guest-rules';
 import { useGuestExport } from './useGuestExport';
 import { useMissingDetail } from './useMissingDetail';
-import { useTableQueryState } from './useTableQueryState';
+import { useClampPage, useTableQueryState } from './useTableQueryState';
 
 /**
  * 예매자 관리 발급된 티켓 탭(GI-1 · GI-2 · GI-3, plan P13a). 입장 필터·검색(현재 소유자 기준 — 이름·연락처)·페이지 번호,
@@ -56,6 +56,7 @@ export function useIssuedTicketList(eventId: string) {
     placeholderData: keepPreviousData,
   });
   const data = query.data;
+  useClampPage(page, data?.tickets.totalPages ?? null, table.setPage);
 
   // ─── 상세(GI-2) ───
   const [selected, setSelected] = useState<string | null>(null);
