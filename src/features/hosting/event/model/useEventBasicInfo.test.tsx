@@ -311,6 +311,25 @@ describe('기본 정보 — 문의처 미리 채우기(Q76)', () => {
     expect((await sent.list()).some((r) => r.path === `/api/v2/hosts/${event.hostId}`)).toBe(false);
   });
 
+  it('문의처가 있던 공연에서 모두 지워 저장해도 호스트 대표 연락처로 다시 채우지 않는다(리뷰 #183)', async () => {
+    const { result, queryClient } = setup(OPEN);
+    await loaded(result);
+    const count = result.current.values.contacts.length;
+    act(() => {
+      for (let i = count - 1; i >= 0; i -= 1) result.current.contacts.remove(i);
+    });
+    expect(await save(result)).toBe(true);
+    expect(
+      queryClient.getQueryData<EventManage>(eventManageQuery(OPEN).queryKey)?.contacts,
+    ).toEqual([]);
+    const sent = recordRequests();
+    // 저장 뒤에도 호스트를 읽지 않고, 빈 칸 그대로(이탈 경고 없음)
+    await new Promise((r) => setTimeout(r, 50));
+    expect(result.current.values.contacts).toEqual([{ type: null, value: '' }]);
+    expect(result.current.status.dirty).toBe(false);
+    expect((await sent.list()).some((r) => /\/api\/v2\/hosts\/\d+$/.test(r.path))).toBe(false);
+  });
+
   it('일반 멤버(읽기 전용)에게는 채우지 않는다', async () => {
     actAsRole(11, 'GUEST');
     const { result } = setup(PREPARING);
