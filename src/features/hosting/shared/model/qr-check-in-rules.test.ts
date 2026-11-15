@@ -37,9 +37,9 @@ describe('공연 상태별 안내', () => {
     expect(selfCheckInBlockOf(status)).toBe(block);
   });
 
-  it('공연이 끝나면 plan 문구로 안내한다', () => {
+  it('정산중(셀프만 막힘)은 GUI 문구로 안내한다(`1447:24001`, #246)', () => {
     expect(SELF_CHECK_IN_BLOCK_MESSAGE.ended).toBe(
-      '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요',
+      '정산중인 공연은 셀프 체크인을 할 수 없어요. 호스트 스캔을 이용해 주세요.',
     );
   });
 });

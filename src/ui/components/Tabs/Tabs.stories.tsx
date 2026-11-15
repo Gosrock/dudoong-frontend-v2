@@ -47,13 +47,13 @@ export const NoUnderline: Story = {
   render: () => (
     <Tabs defaultValue="host">
       <TabList aria-label="체크인 방식" underline={false}>
-        <Tab value="host">호스트가 QR 스캔</Tab>
-        <Tab value="audience">관객이 QR 스캔</Tab>
+        <Tab value="host">호스트가 스캔</Tab>
+        <Tab value="audience">관객이 스캔</Tab>
       </TabList>
     </Tabs>
   ),
   play: async ({ canvas }) => {
-    const selected = getComputedStyle(canvas.getByRole('tab', { name: '호스트가 QR 스캔' }));
+    const selected = getComputedStyle(canvas.getByRole('tab', { name: '호스트가 스캔' }));
     await expect(selected.borderBottomStyle).toBe('none');
     await expect(selected.fontWeight).toBe('700');
     await expect(selected.color).toBe('rgb(20, 20, 19)');

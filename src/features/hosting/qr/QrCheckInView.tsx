@@ -67,10 +67,10 @@ function QrCheckIn({ eventId }: { eventId: string }) {
       </h1>
       <CheckInStats eventId={eventId} />
       <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
-        {/* 탭 — DS tab(밑줄 없음 · 두 폭 모두 16, gui 1360:13500). DS 덮어쓴 모양은 TabList `underline={false}` */}
+        {/* 탭 — DS tab(밑줄 없음 · 두 폭 모두 16, gui 1360:13500). DS 덮어쓴 모양은 TabList `underline={false}`. 이름은 #247 */}
         <TabList aria-label="체크인 방식" size="md" underline={false}>
-          <Tab value="host">호스트가 QR 스캔</Tab>
-          <Tab value="audience">관객이 QR 스캔</Tab>
+          <Tab value="host">호스트가 스캔</Tab>
+          <Tab value="audience">관객이 스캔</Tab>
         </TabList>
         <TabPanel value="host" className={s.panel}>
           <HostScan eventId={eventId} />
@@ -224,20 +224,15 @@ function ScanGuide({ fullscreen }: { fullscreen: boolean }) {
   );
 }
 
-/** 공연 상태로 막힘 — 회색 자리에 카메라 금지 아이콘 + 회색 제목(`1360:25870` "QR 체크인_불가", #227 · #228 · #231 · #232) */
-function BlockedStage({
-  message,
-  hint,
-  testId,
-}: {
-  message: ReactNode;
-  hint?: string | null;
-  testId?: string;
-}) {
+/**
+ * 공연 상태로 막힘 — 회색 자리에 카메라 금지 아이콘 + 회색 제목(`1360:25870` "QR 체크인_불가", #227 · #228 · #231 · #232 ·
+ * 정산중 관객 `1447:24001` #246)
+ */
+function BlockedStage({ message, testId }: { message: ReactNode; testId?: string }) {
   return (
     <div className={s.stage}>
       <div className={s.cameraNotice} role="status" data-testid={testId}>
-        <CameraNotice icon="camera-disable" title={message} description={hint} muted />
+        <CameraNotice icon="camera-disable" title={message} muted />
       </div>
     </div>
   );
@@ -252,7 +247,6 @@ function AudienceScan({ eventId }: { eventId: string }) {
       <section aria-label="셀프 체크인 QR" data-status="blocked">
         <BlockedStage
           message={<span data-testid="self-check-in-guidance">{selfQr.guidance}</span>}
-          hint={selfQr.hint}
         />
       </section>
     );

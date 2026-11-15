@@ -11,6 +11,7 @@ import {
   REFUSE_REASON_TEXT_MAX,
   type RefuseOrderRequest,
 } from '@/api/order/schema';
+import { CANCEL_ENTRANCE_STALE_MESSAGE } from '@/features/hosting/shared/model/cancel-entrance-messages';
 import { type ActorRole, can } from '@/features/shared/permission/model/can';
 
 /**
@@ -440,8 +441,5 @@ export const CANCEL_ENTRANCE_CONFIRM = {
   confirmLabel: '입장 취소',
 } as const;
 
-/** 입장 취소 실패 — 상태가 이미 바뀐 것은 최신 상태를 다시 읽는다 */
-export const CANCEL_ENTRANCE_ERROR_MESSAGE = {
-  IssuedTicket_400_9: '입장 전 티켓이에요. 최신 상태를 불러왔어요',
-  IssuedTicket_400_3: '취소된 티켓이라 입장을 취소할 수 없어요. 최신 상태를 불러왔어요',
-} as const;
+/** 입장 취소 실패 — 상태가 이미 바뀐 것은 최신 상태를 다시 읽는다(QR 체크인 티켓 번호와 같은 말 — 디자이너 답 2008391965) */
+export const CANCEL_ENTRANCE_ERROR_MESSAGE = CANCEL_ENTRANCE_STALE_MESSAGE;

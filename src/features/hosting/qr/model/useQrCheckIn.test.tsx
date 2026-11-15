@@ -385,18 +385,21 @@ describe('[관객이 스캔](GQ-4)', () => {
     expect(result.current.guidance).toBeNull();
   });
 
-  // P13b-GUI — 호스트 스캔도 막힌 공연은 두 탭이 같은 안내(`1360:25654` · `1360:25745`), 정산중만 셀프 안내 + 힌트
+  // P13b-GUI — 호스트 스캔도 막힌 공연은 두 탭이 같은 안내(`1360:25654` · `1360:25745`), 정산중만 셀프 안내(`1447:24001`, #246)
   it.each([
-    ['CALCULATING', 'ended', '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요', true],
-    ['CLOSED', 'ended', '지난 공연은 입장 처리를 할 수 없어요', false],
-    ['PREPARING', 'notRegistered', '공연을 등록해야 입장 처리를 할 수 있어요', false],
-  ] as const)('%s → 안내만, GQ-4를 부르지 않는다', async (status, block, guidance, hint) => {
+    [
+      'CALCULATING',
+      'ended',
+      '정산중인 공연은 셀프 체크인을 할 수 없어요. 호스트 스캔을 이용해 주세요.',
+    ],
+    ['CLOSED', 'ended', '지난 공연은 입장 처리를 할 수 없어요'],
+    ['PREPARING', 'notRegistered', '공연을 등록해야 입장 처리를 할 수 있어요'],
+  ] as const)('%s → 안내만, GQ-4를 부르지 않는다', async (status, block, guidance) => {
     setStoredStatus(101, status);
     const sent = recordRequests();
     const { result } = setup(() => useSelfCheckInQr('101', { origin }));
     await waitFor(() => expect(result.current?.status).toBe('blocked'));
     expect(result.current).toMatchObject({ block, guidance, qrUrl: null });
-    expect(result.current.hint !== null).toBe(hint);
     expect((await sent.list()).filter((r) => r.path.endsWith('/check-in-qr'))).toEqual([]);
   });
 

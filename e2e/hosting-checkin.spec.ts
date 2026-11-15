@@ -129,7 +129,7 @@ test.describe('[관객이 스캔]', () => {
   }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/qr');
-    await page.getByRole('tab', { name: '관객이 QR 스캔' }).click();
+    await page.getByRole('tab', { name: '관객이 스캔' }).click();
     const qr = page.getByTestId('self-check-in-qr');
     const expected = `${new URL(baseURL!).origin}/check-in?token=mock-checkin-101`;
     await expect(qr).toHaveAttribute('data-value', expected);
@@ -150,9 +150,9 @@ test.describe('[관객이 스캔]', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/events/101/qr');
     await expect(page.getByTestId('host-scan')).toBeVisible();
-    await page.getByRole('tab', { name: '관객이 QR 스캔' }).click();
+    await page.getByRole('tab', { name: '관객이 스캔' }).click();
     await expect(page.getByTestId('self-check-in-guidance')).toHaveText(
-      '공연이 끝나면(정산중·지난 공연) 셀프 체크인이 안 돼요',
+      '정산중인 공연은 셀프 체크인을 할 수 없어요. 호스트 스캔을 이용해 주세요.',
     );
     await expect(page.getByTestId('self-check-in-qr')).toHaveCount(0);
     expect(mockApi.calls().filter((c) => c.path.endsWith('/check-in-qr'))).toEqual([]);
