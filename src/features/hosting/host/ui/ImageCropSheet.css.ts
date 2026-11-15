@@ -108,3 +108,6 @@ export const buttons = style({
   gap: vars.space[2],
   width: '100%',
 });
+
+/** 자르기 실패 안내 — 확대 막대 아래 */
+export const error = style({ margin: 0, marginTop: vars.space[3] });

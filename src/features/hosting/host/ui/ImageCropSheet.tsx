@@ -6,6 +6,8 @@ import { type PointerEvent, useEffect, useRef, useState } from 'react';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
 import { Icon } from '@/ui/icons/Icon';
+import { Txt } from '@/ui/primitives/Txt';
+import { colors } from '@/ui/theme/colors';
 
 import type { HostImageSlot } from '../model/host-settings-form';
 import {
@@ -62,17 +64,22 @@ function ImageCropOverlay({
 }) {
   const [file, setFile] = useState(initialFile);
   const [busy, setBusy] = useState(false);
+  // 사진을 읽고 칸을 잰 파일(`CropArea`가 알린다) — 지금 파일과 같아야 [적용]을 누를 수 있다
+  const [readyFile, setReadyFile] = useState<File | null>(null);
+  const [failed, setFailed] = useState(false);
+  const ready = readyFile === file;
   const crop = useRef<CropHandle | null>(null);
   const picker = useRef<HTMLInputElement>(null);
 
   const apply = async () => {
-    if (!crop.current || busy) return;
+    if (!crop.current || busy || !ready) return;
     setBusy(true);
+    setFailed(false);
     try {
       onResult(await crop.current.toFile());
     } catch {
-      // 그리기 실패(사진을 못 읽음 등) — 원본 그대로 올린다(업로드 쪽이 형식 · 실패를 그 자리에 알린다)
-      onResult(file);
+      // 그리기 실패(canvas · toBlob) — 자르지 않은 원본을 몰래 올리지 않는다. 시트를 열어 둔 채 안내(tap-review #272)
+      setFailed(true);
     } finally {
       setBusy(false);
     }
@@ -97,7 +104,7 @@ function ImageCropOverlay({
           >
             다시 선택
           </Button>
-          <Button variant="primary" size="lg" fullWidth disabled={busy} onClick={apply}>
+          <Button variant="primary" size="lg" fullWidth disabled={busy || !ready} onClick={apply}>
             적용
           </Button>
         </div>
@@ -111,7 +118,10 @@ function ImageCropOverlay({
         onChange={(e) => {
           const next = e.target.files?.[0];
           e.target.value = '';
-          if (next) setFile(next);
+          if (next) {
+            setFile(next);
+            setFailed(false);
+          }
         }}
       />
       <CropArea
@@ -119,7 +129,16 @@ function ImageCropOverlay({
         file={file}
         slot={slot}
         handleRef={crop}
+        onReady={setReadyFile}
       />
+      {failed && (
+        // 🤖 문구 — 그려진 실패 화면이 없다(Q232와 같은 곳)
+        <p role="alert" className={s.error}>
+          <Txt typography="bodySm" color={colors.textDangerLabel}>
+            이미지를 자르지 못했어요. 다른 이미지를 선택해 주세요.
+          </Txt>
+        </p>
+      )}
     </ResponsiveOverlay>
   );
 }
@@ -131,10 +150,13 @@ function CropArea({
   file,
   slot,
   handleRef,
+  onReady,
 }: {
   file: File;
   slot: HostImageSlot;
   handleRef: { current: CropHandle | null };
+  /** 사진을 읽고 칸 폭을 잰 뒤 한 번 — 그 전에는 [적용]을 막는다 */
+  onReady: (file: File) => void;
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [natural, setNatural] = useState<Size | null>(null);
@@ -189,6 +211,10 @@ function CropArea({
     if (!blob) throw new Error('toBlob failed');
     return new File([blob], outputNameOf(file, type), { type });
   };
+
+  useEffect(() => {
+    if (ready) onReady(file);
+  }, [ready, file, onReady]);
 
   // [적용]이 부르는 자르기 — 그린 뒤 지금 값으로 바꿔 둔다
   useEffect(() => {
