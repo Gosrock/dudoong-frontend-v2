@@ -1,7 +1,7 @@
 # 아이콘
 
 Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 세트 밖 낱개 `ic/ticket/filled/24`(`183:1130`)에서
-뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-08 밤 판 기준 67종 95개 — `github` filled · `instagram` gray 더함. 그 전 66종 93개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 5종·`link` 포함, 새 세트 `ic_add host` · `ic_add concert` outline 24).
+뽑은 SVG를 `<Icon />`으로 쓴다(2026-11-15 판 기준 71종 99개 — `youtube` filled 더함. 2026-11-08 밤 판 기준 67종 95개 — `github` filled · `instagram` gray 더함. 그 전 66종 93개 — 세트 밖 낱개 `lightbulb`·`important` 24, ic_v2의 gift filled 5종·`link` 포함, 새 세트 `ic_add host` · `ic_add concert` outline 24).
 `lucide-react`는 쓰지 않는다(`.claude/docs/design-system.md` §4). 라이선스 고지는 루트 `THIRD_PARTY_NOTICES.md`.
 
 ```tsx
@@ -12,7 +12,7 @@ Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 
 <Icon name="notification-on" title="새 알림" />   // title이 있으면 role="img", 없으면 aria-hidden
 ```
 
-- 색은 `currentColor`(부모 `color`)를 따른다. 다색 아이콘 7개(`chat`, `important`, `instagram`, `lightbulb`,
+- 색은 `currentColor`(부모 `color`)를 따른다. 다색 아이콘 8개(`chat`, `important`, `instagram`, `lightbulb`, `youtube`(빨강 · 흰색 모두 고정),
   `notification-on`, `settings` filled, `ticket-alert`)는 본문만 `currentColor`이고 강조색은 고정이다.
 - Figma에 있는 (name, variant, size) 조합만 타입 검사를 통과한다(`registry.ts`의 `IconSpec`).
 
@@ -49,6 +49,7 @@ Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 
      같은 판의 `ic_camera` · `ic_camera_disable` outline 24는 쓰는 GUI 구현 화면이 없어 넣지 않았다(design-system §8 반영 대기).
    - 2026-11-15 판(#251)에서 `ic_link` 24(`760:2838`)의 안쪽 그림이 21.9 → 18로 줄었다(틀 24 그대로, 가운데) —
      같은 노드를 다시 내보내 `link-outline-24.svg`를 바꿨다.
+   - 2026-11-15 판의 새 세트 `ic_youtube` filled 24(`946:1465`, 다색 — 빨강 · 흰색 고정)를 `youtube-filled-24.svg`로 넣었다(호스트 홈 연락처, `p5c-gui-host-home`).
    - 세트 밖 낱개 `important` 24(`751:1654`, 다색)도 따로 내보내 `important-outline-24.svg`로 저장한다.
    - 세트 밖 낱개 프레임 `ic`(`662:722`·`662:726`)·`icon/music-4`(`662:730`)는 2026-10-31에 지워졌다.
 2. 파일을 `src/ui/icons/svg/`에 넣는다(같은 키의 기존 파일은 지운다).
