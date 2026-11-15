@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>두둥 v2 작업기록</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #f7f6fb; --surface: #ffffff; --ink: #1d1a2b; --muted: #6b6680; --line: #e2dfec;
+  --accent: #6b4de6; --accent-soft: #ece7fd;
+  --gui: #1f8a5b; --gui-soft: #e2f3ea;
+  --mix: #6b4de6; --mix-soft: #ece7fd;
+  --wire: #2f6fb0; --wire-soft: #e1edf9;
+  --none: #8a6a12; --none-soft: #f8efd2;
+  --ask: #b5641a; --ask-soft: #fbeedd;
+  --font: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141220; --surface: #1d1a2b; --ink: #ece9f6; --muted: #a39fb8; --line: #322e44;
+    --accent: #a08cff; --accent-soft: #2c2547;
+    --gui: #5cc995; --gui-soft: #183428; --mix: #a08cff; --mix-soft: #2c2547;
+    --wire: #7fb2e8; --wire-soft: #1a2a3b; --none: #e3c25e; --none-soft: #352c12;
+    --ask: #f0a35c; --ask-soft: #3a2a17; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.65;
+  padding-top: calc(32px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { margin: 0; line-height: 1.3; text-wrap: balance; }
+h1 { font-size: 28px; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 66ch; }
+.eyebrow { font-size: 12px; letter-spacing: .06em; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 10px; border-bottom: 2px dashed var(--line); padding-bottom: 24px; }
+
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.lg { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.lg .cnt { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lg p { font-size: 13.5px; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; padding: 2px 10px; border-radius: 999px; white-space: nowrap; width: fit-content; }
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.b-gui { background: var(--gui-soft); color: var(--gui); }
+.b-mix { background: var(--mix-soft); color: var(--mix); }
+.b-wire { background: var(--wire-soft); color: var(--wire); }
+.b-none { background: var(--none-soft); color: var(--none); }
+.new { font-size: 11px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 4px; padding: 1px 6px; }
+
+.bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: var(--line); }
+.bar span { display: block; height: 100%; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters button { font: inherit; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.section { display: flex; flex-direction: column; gap: 14px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sec-head .mini { display: flex; gap: 6px; flex-wrap: wrap; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card.fresh { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.card .title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.card .where { font-size: 13px; color: var(--muted); }
+.row { display: grid; grid-template-columns: 64px 1fr; gap: 8px; font-size: 13.5px; }
+.row .k { color: var(--muted); font-size: 12.5px; padding-top: 1px; }
+.row.ask .v { color: var(--ask); }
+.card[hidden] { display: none; }
+.go { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--accent); text-decoration: none; border: 1px solid var(--accent-soft); background: var(--accent-soft); border-radius: 8px; padding: 5px 10px; width: fit-content; }
+.go:hover { border-color: var(--accent); }
+.go-hint { font-size: 12px; color: var(--muted); }
+.go-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
+.notice { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+
+.asks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.asks .card h3 { font-size: 15px; }
+ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.how { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+footer { color: var(--muted); font-size: 12.5px; border-top: 2px dashed var(--line); padding-top: 16px; }
+</style>
+
+<style>
+.tl { position: relative; display: flex; flex-direction: column; gap: 18px; padding-left: 28px; }
+.tl::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+.day { position: relative; }
+.day::before { content: ""; position: absolute; left: -24px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); }
+.day.latest::before { background: var(--accent); }
+.day .card { gap: 12px; }
+.day .when { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.day h3 { font-size: 17px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.tag.t-design { background: var(--gui-soft); color: var(--gui); }
+.tag.t-screen { background: var(--wire-soft); color: var(--wire); }
+.tag.t-backend { background: var(--none-soft); color: var(--none); }
+.tag.t-quality { background: var(--ask-soft); color: var(--ask); }
+.tag.t-base { background: var(--line); color: var(--muted); }
+details { font-size: 13px; }
+details summary { cursor: pointer; color: var(--muted); }
+details ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.stat b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 13px; }
+.day[hidden] { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow" id="eyebrow">두둥 v2 · 작업기록</span>
+    <h1>지금까지 이렇게 만들어 왔어요</h1>
+    <p class="lead">새 두둥(v2)을 날짜별로 무엇을 했는지 모았어요. 위가 최근이에요. 각 날짜의 "개발 기록 원문"을 펼치면 그날 들어간 작업 목록이 그대로 보여요.</p>
+    <p class="lead">화면마다 지금 상태는 <a id="screens-link" href="#">화면별 구현 현황</a>에서 볼 수 있어요.</p>
+  </header>
+
+  <section class="stats" aria-label="요약">
+    <div class="stat"><b id="s-days">0</b><span>작업한 날</span></div>
+    <div class="stat"><b id="s-prs">0</b><span>들어간 작업</span></div>
+    <div class="stat"><b id="s-span">—</b><span>기간</span></div>
+  </section>
+
+  <section class="section" aria-labelledby="filter-title">
+    <h2 id="filter-title" style="font-size:16px">골라 보기</h2>
+    <div class="filters" role="group" aria-label="종류로 거르기" id="filters"></div>
+  </section>
+
+  <section class="tl" id="tl" aria-label="작업기록"></section>
+
+  <footer id="foot"></footer>
+</div>
+<script>
+const DATA = /*__DATA__*/null;
+const el = (t, c, txt) => { const n = document.createElement(t); if (c) n.className = c; if (txt != null) n.textContent = txt; return n; };
+const fmt = (d) => { const [y, m, dd] = d.split('-'); return `${Number(m)}월 ${Number(dd)}일`; };
+const dow = (d) => '일월화수목금토'[new Date(d + 'T00:00:00+09:00').getDay()];
+document.getElementById('eyebrow').textContent = `두둥 v2 · 작업기록 · ${DATA.asOf} 기준`;
+document.getElementById('screens-link').href = DATA.screensUrl;
+const days = [...DATA.days].reverse();
+document.getElementById('s-days').textContent = DATA.workDays + '일';
+document.getElementById('s-prs').textContent = DATA.totalItems + '개';
+document.getElementById('s-span').textContent = `${fmt(DATA.days[0].date)} ~ ${fmt(DATA.asOf)}`;
+const tl = document.getElementById('tl');
+days.forEach((d, i) => {
+  const box = el('article', 'day' + (i === 0 ? ' latest' : ''));
+  box.dataset.tags = d.tags.join(' ');
+  const c = el('div', 'card');
+  const when = d.until ? `${fmt(d.date)} ~ ${fmt(d.until)}` : `${fmt(d.date)} (${dow(d.date)})`;
+  c.append(el('span', 'when', when));
+  c.append(el('h3', null, d.title));
+  const tags = el('div', 'tags');
+  for (const t of d.tags) tags.append(el('span', 'tag t-' + t, DATA.tags[t]));
+  c.append(tags);
+  const ul = el('ul');
+  for (const p of d.points) ul.append(el('li', null, p));
+  c.append(ul);
+  if (d.items && d.items.length) {
+    const det = el('details');
+    det.append(el('summary', null, `개발 기록 원문 ${d.items.length}개`));
+    const ol = el('ol');
+    for (const it of d.items) ol.append(el('li', null, it));
+    det.append(ol); c.append(det);
+  }
+  box.append(c); tl.append(box);
+});
+const filters = document.getElementById('filters');
+const keys = ['all', ...Object.keys(DATA.tags)];
+for (const k of keys) {
+  const b = el('button', null, k === 'all' ? '전체' : DATA.tags[k]);
+  b.type = 'button'; b.dataset.f = k; b.setAttribute('aria-pressed', String(k === 'all'));
+  b.addEventListener('click', () => {
+    filters.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    tl.querySelectorAll('.day').forEach((day) => { day.hidden = !(k === 'all' || day.dataset.tags.split(' ').includes(k)); });
+  });
+  filters.append(b);
+}
+document.getElementById('foot').textContent = `${DATA.asOf} 기준. 요약은 개발이 쉬운 말로 다시 쓴 것이고, 원문은 GitHub에 들어간 작업 제목 그대로예요.`;
+</script>
+</body>
+</html>
