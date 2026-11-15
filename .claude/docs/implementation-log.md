@@ -3693,7 +3693,7 @@ Design Sync #215~#234(Nemin, 2026-11-12 판 GUI `2421002327746762064`) — 페�
 
 **검사**: 새 e2e 없음(크롤러 404 · 브라우저 200 + `noindex`는 이미 `event-detail.spec.ts` "카카오 크롤러 계약" · "없는 공연은 not-found 화면(noindex)" · `host-home.spec.ts`가 본다). 상태 코드 확인 명령은 크롤러 UA로: `curl -s -o /dev/null -w '%{http_code}' -A 'Googlebot/2.1' https://staging.dudoong.com/events/999999` → 404.
 
-## DS #251 — `ic_link` 아이콘 크기(2026-11-15, `design-251` #PR)
+## DS #251 — `ic_link` 아이콘 크기(2026-11-15, `design-251` #255)
 
 Design Sync #251(Nemin, `Design: 수정` · `Figma: 디자인 시스템`, 세트 `ic_link` `760:2837`, "아이콘 크기 수정함"). `ds_diff.py diff 2419464913593223537` → 지금 판 `2422010394129100162`(11-15T11:01Z).
 
