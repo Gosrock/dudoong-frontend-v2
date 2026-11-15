@@ -99,6 +99,8 @@ orca worktree create --repo id:<repoId> --name <ascii-name> --base-branch main -
 - 세션이 Figma에 단 코멘트(`[개발 · DS 컴포넌트로 구현]`·`[개발 · 디자인 없음]`) 목록이 PR 본문에 있는가.
 - PR 본문에 **"ego-browser 확인" 절**(본 화면 · 폭 · 발견 · 처리)이 있는가 — 없으면 돌려보낸다(사용자 요청 2026-11-01).
 - 검토는 **`gh pr view --json headRefOid`의 최신 커밋 기준**으로 한다(옛 head를 보고 지적한 일 — 세션 회고). 문서에 자기 PR 번호를 일괄 치환하다 다른 문서의 같은 글자를 바꾸지 않았는지(`api-contract.md` `(#PR)` — #52·#74) diff로 본다.
+- **코드 리뷰**(사용자 지시 2026-11-15): CI를 기다리는 동안 `/tap-review <PR번호>`를 서브에이전트(general-purpose, background)에 맡긴다 — Step 6(자동 수정) 없이 신뢰도 70 이상 지적만 결과 파일로. 지적은 세션에 고치게 하고(`orca terminal send`) 새 head로 다시 본다. 관제탑이 직접 고치지 않는다.
+- **ego-browser 검증**(사용자 요청 2026-11-14): 머지 전에 PR head를 따로 띄워(job tmp 워크트리 + `dev:mock`, 포트 31xx) 로직 · 화면을 390 · 1440으로 직접 확인한다.
 - 게이트는 **PR CI(`pr-gate`)가 정본**이다(design-workflow §9 검사 시점). 관제탑은 CI를 기다리고(`task-kickoff`의 `until gh pr checks …` 백그라운드), 로컬 전체 게이트를 다시 돌리지 않는다. main을 merge하며 충돌을 풀었을 때만 로컬에서 `pnpm typecheck && pnpm lint`.
 
 CI가 통과하고 검토에서 막을 것이 없으면 바로 ⑦. 막을 것(범위 밖 변경이 섞임, 정본 문서와 어긋남, 테스트를 지워서 통과 등)은 세션에 고치라고 전하고(`orca terminal send`) 다시 기다린다. 같은 문제가 두 번 반복되면 "사용자 대기".
