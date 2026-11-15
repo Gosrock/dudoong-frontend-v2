@@ -162,17 +162,18 @@ describe('초대 실패 → 줄 매핑(HOST_400_13·14·15·18, reason 끝 괄�
 });
 
 describe('권한 가이드 표(api-contract §2, "호스트 삭제" 행 없음)', () => {
-  /** api-contract §2 표 그대로 — [일반, 매니저, 마스터] */
+  /** GUI 권한 안내 시트 `1452:54461`(#265)의 행 — [일반, 매니저, 마스터]. 칸은 api-contract §2 표(can())와 같아야 한다 */
   const CONTRACT: [label: string, guest: boolean, manager: boolean, master: boolean][] = [
-    ['관리 화면 조회(준비중 포함), 멤버·티켓·옵션 목록, 체크리스트', true, true, true],
-    ['대시보드, 주문·발급 티켓·환불 목록과 상세', true, true, true],
+    ['모든 관리 화면 보기\n(대시보드·예매자 관리 포함)', true, true, true],
+    ['QR체크인, 셀프 체크인 QR띄우기, 체크인 통계', true, true, true],
+    ['공연·티켓·옵션 만들기, 수정, 삭제', false, true, true],
     ['환불 계좌 전체 보기', false, true, true],
-    ['엑셀 다운로드', false, true, true],
-    ['QR 체크인, 셀프 체크인 QR 띄우기, 체크인 통계', true, true, true],
-    ['공연·티켓·옵션 쓰기, 호스트 설정·이미지', false, true, true],
+    ['예매자 관리 엑셀 다운로드', false, true, true],
+    ['주문 승인·거절·승인 후 취소·환불 완료·입장 취소', false, true, true],
+    ['호스트 홈 설정', false, true, true],
     ['멤버 추가·삭제', false, true, true],
-    ['주문 승인·거절·승인 후 취소·환불 완료', false, true, true],
     ['역할 변경(일반 ↔ 매니저), 마스터 양도', false, false, true],
+    ['공연 취소', false, false, true],
   ];
 
   it('행과 칸이 계약 표와 같다(판정은 can()에서 만든다)', () => {
@@ -185,9 +186,8 @@ describe('권한 가이드 표(api-contract §2, "호스트 삭제" 행 없음)'
     expect(PERMISSION_GUIDE.some((r) => r.label.includes('호스트 삭제'))).toBe(false);
   });
 
-  it('제한 메모 — 일반 읽기 전용·가린 값, 매니저 일반 멤버만', () => {
-    expect(PERMISSION_GUIDE[0]!.GUEST.note).toBe('읽기 전용');
-    expect(PERMISSION_GUIDE[1]!.GUEST.note).toBe('구매자 연락처·이메일·입금자명은 가린 값');
-    expect(PERMISSION_GUIDE[6]!.MANAGER.note).toBe('일반 멤버만');
+  it('제한 메모 — 일반 가린 값, 매니저 일반만', () => {
+    expect(PERMISSION_GUIDE[0]!.GUEST.note).toBe('구매자 연락처·이메일·입금자명은 가린 값');
+    expect(PERMISSION_GUIDE[7]!.MANAGER.note).toBe('일반만 가능');
   });
 });

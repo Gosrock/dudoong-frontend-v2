@@ -691,6 +691,18 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 
 디자인 시스템 파일이 바뀔 때마다 절 하나를 위에 더한다. 받는 길은 둘이다 — 디자이너의 `Design: 디자인 시스템` 이슈, 그리고 화면 작업 시작 때 버전 목록 확인(이슈 없이 바뀐 것). 비교는 `python3 -I .claude/skills/gui-implement/ds_diff.py diff <기준 버전> --out <scratchpad>`, 변수 값은 Desktop Bridge(스킬 `gui-implement` "디자인 시스템 변경"). 끝나면 머리의 "동기화 기준 버전"을 올린다.
 
+### 2026-11-15 — #239 `img_초대장` 반영 · Empty state medium · `p10b-gui-members`
+
+받은 이슈: #239(아래 11-14 절 — 반영 대기였다). 판 목록(`ds_diff versions`)은 #251 절과 같은 `2422010394129100162`(11-15T11:01Z)가 마지막 — 새 판 없음, "동기화 기준 버전"은 그대로. 호스트 멤버 · 초대 수락 화면이 GUI가 되며(Design Sync #263~#268) 쓰는 것만 반영했다.
+
+| 영역 | 바뀐 것 | 코드 |
+|---|---|---|
+| image(#239) | `img_초대장`(`886:285`) · `img_초대장_error`(`886:477`) 170×170 | **반영함** — REST SVG 그대로 `invitation` · `invitation-error`(`Illustration`). 초대 수락 결과 화면이 150으로 줄여 씀. `img_초대장_decline`(`943:1334`)은 거절 화면이 서버 없음이라 **반영 대기** |
+| Empty state | `size=medium, button=true`(#251 절 "범위 밖"에 있던 변형) — 위아래 40 · 묶음 사이 12 · 그림 150 · 제목 `Heading/md2 - emphasized` · 문구 사이 4 · 설명 `Body/md` · 버튼 자리 안쪽 10 · [Primary Large] | **반영함** — `EmptyState` `size="md"`(새 prop, 기본 `lg` 그대로). 쓰는 곳: 초대 수락 결과 6종 |
+| Input | 테두리만 에러(GUI 초대 시트 `1427:4143` — 사유 글자는 이메일 + 역할 줄 아래) | `Input` `invalid`(새 prop) — DS 변형이 아니라 쓰는 방식 |
+
+범위 밖(반영 대기 그대로): Avatar 60 · 아바타 모서리 정리(멤버 행이 60을 쓰지만 지금 `Avatar size={60}` — 병렬 세션 `p5c-gui-host-home`이 "프로필 이미지 기본"(#269 `1452:40909`)과 함께 반영) · `ic_youtube`.
+
 ### 2026-11-15 — #251 `ic_link` 아이콘 크기 · `design-251`
 
 받은 이슈: #251(Nemin, "ic_link — 아이콘 크기 수정함", 세트 `760:2837`, 섹션 ic_v2). `ds_diff.py diff 2419464913593223537`(기준 → 지금 `2422010394129100162`, 11-15T11:01Z). 이 세션은 `ic_link`만 반영했고 **"동기화 기준 버전"은 그대로** 둔다 — 같은 비교에 나온 나머지 변경(아래 "범위 밖")이 아직 반영되지 않았다.
@@ -707,7 +719,7 @@ Ready 화면이 Figma에서 옛 Concert state chip을 쓰는 곳(대시보드 9�
 
 | 영역 | 바뀐 것 | 코드 |
 |---|---|---|
-| image(새) | `img_초대장`(`886:285`) · `img_초대장_error`(`886:477`) COMPONENT, 170×170 | **반영 대기** — 쓸 화면이 `와이어로 구현됨`: 호스트 멤버 초대 링크 팝업(design-requests Q119) · 초대 수락 화면 `/host-invitations/{token}`(Q121 — 정상은 `img_초대장`, 만료 · 사용됨 · 없음은 `_error`로 보임). 그 화면이 GUI로 올 때 `src/ui/illustrations`에 더한다. `Refs #239`(gui-screens §0 호스트 멤버 줄) |
+| image(새) | `img_초대장`(`886:285`) · `img_초대장_error`(`886:477`) COMPONENT, 170×170 | **반영함 2026-11-15(`p10b-gui-members`, `Closes #239`)** — `src/ui/illustrations/invitation.svg` · `invitation-error.svg`(초대 수락 GUI 결과 화면). 옛 판단: 쓸 화면이 `와이어로 구현됨`: 호스트 멤버 초대 링크 팝업(design-requests Q119) · 초대 수락 화면 `/host-invitations/{token}`(Q121 — 정상은 `img_초대장`, 만료 · 사용됨 · 없음은 `_error`로 보임). 그 화면이 GUI로 올 때 `src/ui/illustrations`에 더한다. `Refs #239`(gui-screens §0 호스트 멤버 줄) |
 
 ### 2026-11-08 밤 — `2419385361681489603`(11-08T09:28Z) → `2419464913593223537`(11-08T13:32Z) · `design-198-205`
 
