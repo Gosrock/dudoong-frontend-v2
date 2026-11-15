@@ -1,39 +1,45 @@
 'use client';
 
+import Link from 'next/link';
+
+import { formatKstKoreanDate } from '@/api/shared/date';
+import { hostHref } from '@/features/shared/routes';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
-import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
-import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
+import { button } from '@/ui/components/Button/Button.css';
+import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Skeleton, SkeletonText } from '@/ui/components/Skeleton/Skeleton';
-import { Container } from '@/ui/primitives/Container';
+import { Illustration } from '@/ui/illustrations/Illustration';
 import { Flex } from '@/ui/primitives/Flex';
-import { Spacing } from '@/ui/primitives/Spacing';
 import { Txt } from '@/ui/primitives/Txt';
-import { colors } from '@/ui/theme/colors';
 
+import * as s from './HostInvitation.css';
 import { invitedRoleLabel } from './model/invite-token';
 import { type InvalidInvitation, useHostInvitation } from './model/useHostInvitation';
 
-const INVALID_COPY: Record<InvalidInvitation, { title: string; description: string }> = {
+/** 쓸 수 없는 초대 — 만료 `1427:4701` · 이미 사용 `1427:4746` · 없음 `1427:4791`(설명 두 줄) */
+const INVALID_COPY: Record<InvalidInvitation, { title: string; description: string[] }> = {
   expired: {
-    title: '만료된 초대 링크예요',
-    description: '초대 링크는 7일 동안 쓸 수 있어요. 초대한 사람에게 새 링크를 요청해 주세요.',
+    title: '만료된 초대장이에요',
+    description: ['호스트에게 새 초대 링크를 요청해 주세요.'],
   },
-  used: {
-    title: '이미 사용된 초대 링크예요',
-    description:
-      '초대 링크는 한 번만 쓸 수 있어요. 필요하면 초대한 사람에게 새 링크를 요청해 주세요.',
-  },
+  used: { title: '이미 사용된 초대장이에요', description: ['다시 호스트에게 요청해 주세요.'] },
   missing: {
-    title: '초대를 찾을 수 없어요',
-    description: '취소됐거나 새 링크로 바뀐 초대예요. 초대한 사람에게 다시 확인해 주세요.',
+    title: '초대장을 찾을 수 없어요',
+    description: ['취소됐거나 새 링크로 바뀌었을 수 있어요.', '호스트에게 확인해 주세요.'],
   },
 };
 
+const HOME_LABEL = '두둥 홈으로 가기';
+const HOST_HOME_LABEL = '호스트 홈으로 가기';
+
 /**
- * 호스트 초대 수락(`/host-invitations/{token}`, H-19 · H-20 — B33② · 백엔드 #933). **디자인 없음** — 와이어도 없어 DS
- * `Avatar` · `InfoRow` · `Button` · `EmptyState`로만 단순하게 그렸다(design-requests Q121 🤖). 로그인 필요, 토큰은 진입 직후 주소에서 지운다.
+ * 호스트 초대 수락(`/host-invitations/{token}`, H-19 · H-20 — B33② · 백엔드 #933). **GUI 근거**(모바일 Ready, Design Sync #267):
+ * 초대 `1427:4596` · 수락 완료 `1427:4638` · 만료 `1427:4701` · 이미 사용 `1427:4746` · 없는 초대 `1427:4791` · 이미 멤버 `1427:4836`.
+ * 결과 화면은 DS `Empty state size=medium` + DS `img_초대장` · `img_초대장_error`(#239).
+ * **거절**(`1470:5877` · `1470:5905`)은 서버에 API가 없어(#267 본문 "회의 후 지원할지 확정") [거절하기]를 두지 않았다 — PR "사용자 대기".
+ * PC(1024~)는 Ready가 없어 같은 묶음을 342 폭 가운데로(🤖). 로그인 필요, 토큰은 진입 직후 주소에서 지운다.
  */
 export function HostInvitationView({ token }: { token: string | null }) {
   const { state, accept, accepting } = useHostInvitation(token);
@@ -42,101 +48,189 @@ export function HostInvitationView({ token }: { token: string | null }) {
     case 'checking':
       return (
         <Page busy>
-          <Flex direction="column" gap={4} paddingY={6} fullWidth>
-            <Skeleton shape="text" height={24} width="40%" />
-            <SkeletonText lines={3} />
+          <Flex direction="column" align="center" gap={4} fullWidth>
+            <Skeleton shape="circle" width={100} height={100} />
+            <Skeleton shape="text" height={26} width="80%" />
+            <SkeletonText lines={2} />
           </Flex>
         </Page>
       );
     case 'noToken':
+      // 디자인 없음 — 오류 결과 화면과 같은 틀로(🤖)
       return (
         <Page>
-          <EmptyState
+          <Result
+            illustration="invitation-error"
             title="초대 링크를 다시 열어 주세요"
-            description="보안을 위해 링크 주소는 화면에 남기지 않아요. 받은 초대 링크를 다시 눌러 주세요."
-            action={<EmptyStateAction href="/">홈으로</EmptyStateAction>}
+            description={[
+              '보안을 위해 링크 주소는 화면에 남기지 않아요.',
+              '받은 초대 링크를 다시 눌러 주세요.',
+            ]}
+            href="/"
+            actionLabel={HOME_LABEL}
           />
         </Page>
       );
-    case 'invalid':
+    case 'invalid': {
+      const copy = INVALID_COPY[state.reason];
       return (
         <Page>
-          <EmptyState
-            title={INVALID_COPY[state.reason].title}
-            description={INVALID_COPY[state.reason].description}
-            action={<EmptyStateAction href="/">홈으로</EmptyStateAction>}
+          <Result
+            illustration="invitation-error"
+            title={copy.title}
+            description={copy.description}
+            href="/"
+            actionLabel={HOME_LABEL}
           />
         </Page>
       );
+    }
     case 'error':
       return (
         <Page>
-          <Flex paddingY={6} justify="center">
-            <InlineError
-              message="초대를 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
-              onRetry={state.retry}
-            />
-          </Flex>
+          <InlineError
+            message="초대를 불러오지 못했어요. 잠시 후 다시 시도해 주세요."
+            onRetry={state.retry}
+          />
         </Page>
       );
     case 'accepted': {
       const { result, hostName } = state;
       const name = hostName ?? '호스트';
-      const role = invitedRoleLabel(result.role);
       return (
         <Page>
-          <EmptyState
-            title={result.alreadyMember ? `이미 ${name}의 멤버예요` : `${name}에 합류했어요`}
-            description={`내 역할: ${role}`}
-            action={<EmptyStateAction href="/hosting">공연준비로 가기</EmptyStateAction>}
-          />
+          {result.alreadyMember ? (
+            <AlreadyMember name={name} hostId={result.hostId} />
+          ) : (
+            <Result
+              illustration="invitation"
+              title={`‘${name}’의 멤버가 됐어요!`}
+              description={['이제 호스트 홈에서 공연을 함께 준비할 수 있어요.']}
+              href={hostHref(result.hostId)}
+              actionLabel={HOST_HOME_LABEL}
+            />
+          )}
         </Page>
       );
     }
     case 'ready': {
       const { landing } = state;
       const name = landing.hostName ?? '이름 없는 호스트';
+      // 이미 멤버면 수락할 것이 없다 — 바로 "이미 멤버" 결과(`1427:4836`, 수락해도 역할은 그대로 — 백엔드 #928)
+      if (landing.alreadyMember) {
+        return (
+          <Page>
+            <AlreadyMember name={name} hostId={landing.hostId} />
+          </Page>
+        );
+      }
       return (
-        <Page>
-          <Flex direction="column" align="center" gap={3} paddingY={6} fullWidth>
-            <Avatar size={64} src={landing.hostProfileImageUrl ?? null} />
-            <Txt as="h1" typography="headingMdEmphasized" align="center">
-              {name}에서 {invitedRoleLabel(landing.role)}로 초대했어요
+        <Page
+          actions={
+            <Button size="lg" fullWidth loading={accepting} onClick={() => void accept()}>
+              수락하기
+            </Button>
+          }
+        >
+          <div className={s.invite}>
+            {/* 프로필 이미지 기본(#269 `1452:40909`)은 병렬 세션 몫 — 지금은 Avatar 캐릭터 · 사진 */}
+            <Avatar size={100} src={landing.hostProfileImageUrl ?? null} />
+            <Txt as="h1" typography="headingMdEmphasized">
+              ‘{name}’에서 {invitedRoleLabel(landing.role)}로 초대했어요
             </Txt>
-            <Txt typography="bodyMd" color={colors.textSecondary} align="center">
-              수락하면 이 호스트의 공연을 함께 관리할 수 있어요.
-            </Txt>
-          </Flex>
-          <section aria-label="초대 정보">
-            <InfoRow label="초대받은 이메일" value={landing.maskedEmail} />
-            <InfoRow label="링크 만료" value={landing.expiresAt} />
-          </section>
-          {landing.alreadyMember && (
-            <>
-              <Spacing size={3} />
-              <Txt as="p" typography="bodySm" color={colors.textSecondaryLabel}>
-                이미 이 호스트의 멤버예요. 수락해도 지금 역할은 바뀌지 않아요.
-              </Txt>
-            </>
-          )}
-          <Spacing size={6} />
-          <Button size="lg" fullWidth loading={accepting} onClick={() => void accept()}>
-            수락하기
-          </Button>
+            <dl className={s.infoBox} aria-label="초대 정보">
+              <div className={s.infoRow}>
+                <dt className={s.infoLabel}>
+                  <Txt typography="bodyMd">이메일</Txt>
+                </dt>
+                <dd className={s.infoValue}>
+                  <Txt typography="bodyMd">{landing.maskedEmail}</Txt>
+                </dd>
+              </div>
+              <div className={s.infoRow}>
+                <dt className={s.infoLabel}>
+                  <Txt typography="bodyMd">만료일</Txt>
+                </dt>
+                <dd className={s.infoValue}>
+                  <Txt typography="bodyMd">
+                    {formatKstKoreanDate(landing.expiresAt, { weekday: false })}
+                  </Txt>
+                </dd>
+              </div>
+            </dl>
+          </div>
         </Page>
       );
     }
   }
 }
 
-function Page({ children, busy }: { children: React.ReactNode; busy?: boolean }) {
+function AlreadyMember({ name, hostId }: { name: string; hostId: number }) {
   return (
-    <main aria-busy={busy || undefined}>
-      <Container>
-        <Flex direction="column" paddingY={6} fullWidth>
-          {children}
-        </Flex>
-      </Container>
+    <Result
+      illustration="invitation"
+      title={`이미 ‘${name}’의 멤버예요`}
+      description={['같은 호스트에는 한 번만 참여할 수 있어요.']}
+      href={hostHref(hostId)}
+      actionLabel={HOST_HOME_LABEL}
+    />
+  );
+}
+
+/** 결과 화면 — DS `Empty state size=medium, button=true`(그림 150 · [Primary Large] 링크) */
+function Result({
+  illustration,
+  title,
+  description,
+  href,
+  actionLabel,
+}: {
+  illustration: 'invitation' | 'invitation-error';
+  title: string;
+  description: string[];
+  href: string;
+  actionLabel: string;
+}) {
+  return (
+    <EmptyState
+      size="md"
+      illustration={<Illustration name={illustration} width={150} />}
+      title={
+        <span role="heading" aria-level={1}>
+          {title}
+        </span>
+      }
+      description={description.map((line, i) => (
+        <span key={line}>
+          {i > 0 && <br />}
+          {line}
+        </span>
+      ))}
+      action={
+        <Link
+          href={href}
+          className={`${button({ variant: 'primary', size: 'lg' })} ${s.actionLink}`}
+        >
+          {actionLabel}
+        </Link>
+      }
+    />
+  );
+}
+
+function Page({
+  children,
+  actions,
+  busy,
+}: {
+  children: React.ReactNode;
+  actions?: React.ReactNode;
+  busy?: boolean;
+}) {
+  return (
+    <main aria-busy={busy || undefined} className={s.page}>
+      <div className={s.center}>{children}</div>
+      {actions && <div className={s.actions}>{actions}</div>}
     </main>
   );
 }
