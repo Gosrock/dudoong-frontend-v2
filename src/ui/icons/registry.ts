@@ -71,7 +71,8 @@ export type IconName =
   | 'trash'
   | 'up'
   | 'up-down'
-  | 'update';
+  | 'update'
+  | 'youtube';
 
 export type IconVariant = 'outline' | 'filled' | 'gray';
 export type IconSize = 12 | 16 | 20 | 24;
@@ -175,7 +176,8 @@ export type IconSpec =
   | { name: 'trash'; variant: 'filled'; size?: 24 }
   | { name: 'up-down'; variant?: 'outline'; size?: 24 }
   | { name: 'up'; variant?: 'outline'; size?: 24 }
-  | { name: 'update'; variant?: 'outline'; size?: 24 };
+  | { name: 'update'; variant?: 'outline'; size?: 24 }
+  | { name: 'youtube'; variant: 'filled'; size?: 24 };
 
 export type IconEntry = {
   viewBox: string;
@@ -589,6 +591,11 @@ export const icons: Record<string, IconEntry> = {
     viewBox: '0 0 24 24',
     body: '<path d="M12 2V4M12 20V22M4.93018 4.92993L6.34018 6.33993M17.6602 17.6599L19.0702 19.0699M2 12H4M20 12H22M6.34018 17.6599L4.93018 19.0699M19.0702 4.92993L17.6602 6.33993M16 12C16 14.2091 14.2091 16 12 16C9.79086 16 8 14.2091 8 12C8 9.79086 9.79086 8 12 8C14.2091 8 16 9.79086 16 12Z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke="currentColor"/>',
   },
+  'youtube/filled/24': {
+    viewBox: '0 0 24 24',
+    body: '<path d="M2.52393 17.0664C1.82536 13.7697 1.82536 10.3631 2.52393 7.06641C2.61572 6.73162 2.79307 6.42648 3.03854 6.18101C3.28401 5.93554 3.58914 5.75819 3.92393 5.66641C9.28738 4.77786 14.7605 4.77786 20.1239 5.66641C20.4587 5.75819 20.7639 5.93554 21.0093 6.18101C21.2548 6.42648 21.4321 6.73162 21.5239 7.06641C22.2225 10.3631 22.2225 13.7697 21.5239 17.0664C21.4321 17.4012 21.2548 17.7063 21.0093 17.9518C20.7639 18.1973 20.4587 18.3746 20.1239 18.4664C14.7605 19.3551 9.28737 19.3551 3.92393 18.4664C3.58914 18.3746 3.28401 18.1973 3.03854 17.9518C2.79307 17.7063 2.61572 17.4012 2.52393 17.0664Z" fill="#FF0000"/><path d="M10.0239 15.0664L15.0239 12.0664L10.0239 9.06641V15.0664Z" fill="white"/>',
+    multicolor: true,
+  },
 };
 
 export const iconList = [
@@ -690,4 +697,5 @@ export const iconList = [
   { name: 'up-down', variant: 'outline', size: 24 },
   { name: 'up', variant: 'outline', size: 24 },
   { name: 'update', variant: 'outline', size: 24 },
+  { name: 'youtube', variant: 'filled', size: 24 },
 ] as const satisfies readonly IconSpec[];

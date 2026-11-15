@@ -3715,3 +3715,70 @@ Design Sync #251(Nemin, `Design: 수정` · `Figma: 디자인 시스템`, 세트
 - 화면 파일은 고치지 않았다 — GUI 구현 화면([링크복사])은 이미 Figma 인스턴스 크기(18)대로라 새 SVG만으로 같아짐.
 
 **검사**: typecheck · `vitest related registry.ts` 42 파일 280 통과 · 스토리 `src/ui/icons` 6 통과 · QA `tickets` 20/0(수동 1) · `event-detail` 22/0(수동 1) · `gift` 14/0(수동 2) · e2e `tickets` · `gift-landing` · `event-detail` · `hosting-host` · `a11y` · `a11y-keyboard` 225 통과 / 0 실패(건너뜀 37).
+
+## P10b 멤버 · 초대 GUI — 호스트 멤버 · 멤버 초대 · 초대 수락 와이어 → GUI(2026-11-15, `p10b-gui-members` #271)
+
+Design Sync #263(마스터뷰 14) · #264(매니저 · 일반뷰 3) · #265(권한 안내 시트) · #266(초대 시트 5) · #267(초대 수락 8) · #268(이미 멤버 — Ready 표시 없음, 이슈 노드라 근거) · #269 중 `멤버 권한이란` `1418:39693` · `멤버 행` `1421:752` · `초대 대기 행` `1468:5362`(나머지 4개는 병렬 세션 `p5c-gui-host-home`) · #239(DS `img_초대장` · `_error`). Nemin 2026-11-15 12:12~12:24Z, **모바일만 Ready** — PC(1024~)는 와이어 배치 유지(🤖). 와이어(P10b-V #69 · 초대 링크 #138)를 모양 우선으로 바꿨다. 동작은 L 그대로(아래 "L 변경"만).
+
+- **멤버 목록**(`1421:755`): 본문 위 8 · 세로 8. [ⓘ 멤버 권한에 대해서] 칩(28h · r12 · `surface/container` — GUI 로컬, `FIGMA-CUSTOM`). 멤버 행 76h(아바타 60 · 이름 `Heading/sm-emphasized` + " (나)" · 역할 `Body/sm` 색 — 마스터 `brand/primary` · 매니저 Teal 400 · 일반 `text/secondary-label`, 이제 "일반"도 보인다) + ⋮ 44. 호버(`1504:*` — 이슈 뒤 더해짐)는 좌우 12 넓은 회색 판 r12(포인터 기기만). [+] → `Fab`(검정 56, 접근성 이름 "멤버 초대하기").
+- **⋮ 메뉴**(`1422:918`): DS dropdown 그대로, "멤버 삭제"는 빨강 아님(화면대로).
+- **권한 변경**(`1422:1121` · `1452:42791`): [지금 권한(비활성 Input)] → [바꿀 권한 ▾ 매니저 · 일반](기본은 다른 역할). **양도**(`1422:1395`): "받는 멤버" 줄 없음 · [양도하기] Warning. **삭제**(`1422:1695`): 설명 없음 · [삭제하기] Primary. 토스트 문구는 각 완료 프레임.
+- **권한 안내 시트**(`1452:54461`): `ResponsiveOverlay` flat(모바일 시트 · PC 모달) · 표(머리 아래 진한 선 · 줄마다 옅은 선, 열 39% · 17.5% · 17.5% · 26%, ✓ 20).
+- **초대 시트**(`1422:1911` · `1423:4341` · `1467:5001` · `1427:4143` · `1476:6806`): flat 시트 · 제목 md2 · 설명 Body/md 진한색 · 이메일 + 역할 116 · 줄 아래 빨간 사유(`Label/md`) · 미가입이면 회색 상자(안내 `Label/sm` 3차색 + [초대 링크 만들기]) · 서버가 막은 이메일은 고치기 전까지 [초대하기] 비활성. **링크 시트**(`1427:4357` · `1427:4566`): 회색 상자(링크 한 줄 말줄임 · "만료일: 2026년 12월 11일") + [🔗 링크 복사하기] Primary, ✕로 닫음([확인] 없음). 설명은 한 문구(Q232 닫음). 토스트 "링크를 클립보드에 복사했어요."
+- **초대 대기**(`1452:56710` · `1452:57010`): 위 16 · 제목 `Heading/md-emphasized` · 행 60(이메일 `Heading/sm` · "역할 · 만료까지" `Label/md`) · 행 사이 선. **초대 취소**(`1476:7882`): 설명 "보낸 초대 링크는 더 이상 쓸 수 없어요." · [닫기] · [초대 취소] Primary.
+- **초대 수락**(`1427:4596`): 가운데 묶음(아바타 100 · 제목 "‘호스트’에서 역할로 초대했어요" · 회색 정보 상자 — 라벨 80 가운데 · 이메일 · 만료일) + 아래 [수락하기](위아래 36). 결과 6종(`1427:4638` · `4701` · `4746` · `4791` · `4836` + 링크 없음)은 DS `Empty state` medium(`EmptyState size="md"` 새 prop) + `img_초대장` / `_error` 150 + [Primary Large] 링크(호스트 홈 `/hosts/{id}` · 두둥 홈 `/`).
+- **DS · src/ui**: `Illustration` `invitation` · `invitation-error`(#239) · `EmptyState` `size` · `Input` `invalid`(테두리만) · `formatKstKoreanDate(…, { weekday: false })`. 새 CSS는 `HostMembers.css.ts` · `HostInvitation.css.ts`(공용 `HostManage.css.ts`는 `page`만 씀 — 옛 멤버 클래스는 병렬 세션 파일이라 지우지 않음).
+
+**L 변경**(model · 단위 테스트)
+- `member-rules` `PERMISSION_GUIDE` — 행 · 문구 · 순서를 권한 안내 시트대로(10행: 모든 관리 화면 보기 · QR · 공연 쓰기 · 환불 계좌 · 엑셀 · 주문 처리(+ 입장 취소) · 호스트 홈 설정 · 멤버 추가 · 삭제(매니저 "일반만 가능") · 역할 변경 · 양도 · 공연 취소). 행이 여러 동작을 묶으면(`actions`) 모두 `can()`일 때만 가능. "호스트 삭제" 행은 여전히 없다.
+- `hideRoleLabel` · `roleLabelHidden` 지움(GUI는 "일반"도 보인다).
+- 초대 수락 L(`useHostInvitation`) — 이미 멤버면 수락을 스스로 한 번 부른다(위 결정, 단위 테스트 기대값 "누르지 않아도 accepted · 두 번째는 false"). 8장과 대응: ready ↔ `1427:4596`, accepted ↔ `4638`, invalid expired · used · missing ↔ `4701` · `4746` · `4791`, `landing.alreadyMember` · `result.alreadyMember` ↔ `4836`(V가 고름), 거절 `1470:5877` · `5905` ↔ 없음(서버 없음).
+
+**결정**
+- 🤖 Claude 판단 — 초대 시트 설명 "상대방 승인 후 멤버로 추가돼요." → "가입한 이메일은 바로 멤버로 추가돼요." / 근거: PH-7은 즉시 멤버(api-contract) / 되돌리려면 `InviteSheet` `description`. 코멘트 `1469:5793`(Q229).
+- 🤖 [거절하기] · 거절 확인 · 완료 화면 · `img_초대장_decline` 넣지 않음 / 근거: #267 본문 "서버 미구현 · 회의 후 확정" — 데이터 계약 / 되돌리려면 서버가 생긴 뒤 `Page actions`에 [거절하기] + `openConfirm`. 코멘트 `1452:59109`(Q233), PR 사용자 대기.
+- 🤖 이미 멤버 초대 링크는 초대 화면 없이 바로 "이미 멤버" 결과 / 근거: `1427:4836`이 결과 화면이고 수락해도 역할은 그대로(백엔드 #928). **수락(H-20)은 L이 스스로 한 번 부른다**(tap-review #271 — 안 부르면 초대 대기 줄이 남고 링크 소지가 자격이라 만료 전까지 남이 쓸 수 있다, `useHostInvitation` `autoAccepted`) / 되돌리려면 `ready` 분기의 `landing.alreadyMember` 처리를 지움.
+- 🤖 멤버 삭제 · 초대 취소 확인 버튼 Primary(보라), 양도는 Warning(빨강) / 근거: R1 Ready 화면대로(#187 정리의 `intent="delete"`와 다름 — 그 표의 "멤버 삭제 · 초대 취소"는 이 화면에서 바뀜) / 되돌리려면 `openConfirm`에 `intent: 'delete'`.
+- 매니저뷰에도 [+] — 처음엔 `1452:54924`에 없어 🤖로 두고 코멘트 `1452:54928`(Q231), 디자이너가 [+]를 더함(답 `2008671613`, 12:54Z) → 닫음, 코드 그대로.
+- 링크 시트 설명 — 두 프레임 문구가 달라 코멘트 `1425:4739`(Q232), 디자이너가 `1427:4566`을 만든 직후 문구로 맞춤(답 `2008671618`, 12:55Z) → 한 문구(메일 발송 여부와 상관없이).
+- 🤖 권한 변경 팝업에서 지금 역할을 고르면 요청 없이 닫힘(드롭다운에 지금 역할도 있다 — `1452:42791`).
+- 🤖 PC(1024~): 멤버는 와이어 배치(폭 600 · 오른쪽 아래 FAB · 시트 대신 모달), 초대 수락은 같은 묶음을 342 가운데 · [수락하기]는 본문 아래.
+- 매니저 역할 글자 대비 2.07:1 — 색은 그대로, e2e a11y `CONTRAST_PENDING_DESIGN`에 `#37c6cd #ffffff`. 코멘트 `1421:598`(Q234).
+- 멤버 행 아바타는 지금 `Avatar`(캐릭터 grey · 사진) — "프로필 이미지 기본"(#269 `1452:40909`)은 병렬 세션이 만든 뒤 바꾼다.
+
+**Figma 코멘트**(2026-11-15-impl): `1469:5793` "[개발 · 디자인 없음] 멤버 초대 시트 설명 문구" · `1452:56720` "… 초대 대기 목록에 들어오는 초대" · `1452:54928` "… 매니저뷰의 [+] 버튼" · `1452:59109` "… 초대 수락 화면 [거절하기]" · `1425:4739` "… 초대 링크 시트 설명 두 가지" · `1421:598` "[개발 · 디자인 확인] 멤버 행 '매니저' 역할 글자 대비".
+
+**범위 밖**: 확인 팝업 폭 310(DS 다이얼로그) — Ready 화면은 342(390 − 48) · 관객 셸 모바일 헤더(로고 · 검색 · 티켓)는 GUI `basic title`(로고만)과 다름 · 권한 변경 드롭다운이 팝업 아래로 열림(GUI는 위).
+
+**테스트**: 단위 `member-rules`(권한 표 기대값 — 시트 행) · 스토리 `EmptyState/Medium` · `Input/InvalidOnly`. QA `host-invitation` 14/0 · `host-settings`(멤버 시나리오 HS-5~ 기대값만, 설정 시나리오는 그대로) 34/0. e2e `host-invitation` · `hosting-host` · `a11y` · `legacy-urls` · `security` · `seo` · `hosting` — 기대값만 고침(테스트 지우지 않음; 이미 멤버는 "수락 → 결과"에서 "바로 결과 + POST 없음"으로).
+
+## P5c · P10b 설정 GUI — 호스트 홈 · 공연 리스트 · 호스트 홈 설정 와이어 → GUI(2026-11-15, `p5c-gui-host-home` #272)
+
+Design Sync #257 · #260 · #261 · #262 + #269 일부(Nemin, 2026-11-15 12:12~12:24Z — GUI 페이지 ↳호스트홈 `741:30895`, **모바일만 Ready**). 와이어 구현(P5c-V #67 · P10b-V #69)을 모양 우선으로 바꿨다. 같은 DOM, 1024부터 PC(CSS로). PC는 Ready가 없어 와이어 배치에 GUI 모양을 잇는다(🤖 Q233).
+
+- **셸**: 페이지가 `SHELL_IMMERSIVE_ATTR`(`features/shared/shell/shell.css.ts`) 표시를 두면 관객 · 호스팅 셸이 **모바일** 로고 헤더와 그 자리(`barSpace`)를 숨긴다(`:has` + `useActivityMarker`). 호스트 홈(커버가 맨 위) · 호스트 홈 설정(Top app bar만)이 쓴다. 서비스 공지 배너는 그대로 위에 남는다. 병렬 `p10b-gui-members`도 같은 표시를 쓰면 된다.
+- **호스트 홈**: 커버 390:246(없거나 못 불러오면 GUI 로컬 "커버 이미지 기본" `1452:40910` → `illustrations/host-cover-default.svg`) · 커버 안 흰 원 44 [←] [⚙](`HostCoverButtons` — 커버와 같이 스크롤돼 공지 배너와 겹치지 않음) · 커버가 64 밑으로 지나가면 고정 흰 Top app bar "← 이름 ⚙"(`HostHomeTopBar`, IntersectionObserver — 서버 HTML은 바 없음). 프로필 100(커버에 68 걸침, `Avatar fallback="host"` — "프로필 이미지 기본" `1452:40909`) · ♡ 44(관심이면 `brand/accent` 채움) · 이름 `title`(카트라이더) · 소개 `headingSm` 3줄 + [더보기 ⌄]/[접기 ⌃](`HostIntroduce` — 실제 높이로 넘침 판정) · 연락처 원 36(GUI "호스트홈_연락처" `1478:7210`) · 멤버 수 · 개설일(16 아이콘 · `labelMd`) · [멤버 >] Avatar 60 · [공연 리스트 >] 카드 163 · 빈 상태 "아직 등록한 공연이 없어요."(제목 > 없음) · [+] DS round(매니저 이상, `Fab` 모양 링크).
+- **연락처**: 아이콘 줄 4개 이하면 모두, 넘으면 3 + ⋯(`contactIconsOf`). 아이콘 → 연락처 전체 보기 시트(`sheetVariant="flat"`, GUI "연락처 행" `1481:7193` — 원 36 · 유형 `labelSm` · 값 `headingSm` · 열 수 있으면 >, 가림 = 회색 · > 없음, 텍스트 = > 없음). 로그인 전 가린 값이 있으면 안내 상자 + [로그인 하기](replace). 로그인 전 가린 전화 · 이메일 아이콘 → `openConfirm` "로그인이 필요해요"(`1484:8106`) — [로그인하기]는 창이 닫힌 뒤(`useCloseOnBack` release) `push`로 로그인(닫히기 전 이동은 창이 기록을 되돌려 취소됨 — QA HH-10에서 잡음). 아이콘 대응(유튜브 DS `ic_youtube` · 기타 `ic_link`)은 호스트 홈 안 `HOST_CONTACT_ICON` — 공연 상세 `ContactList`(와이어)는 그대로.
+- **공연 리스트** `/hosts/[hostId]/events`(새 화면, `(audience)/(app)` — 브라우저 무한 목록): `AudienceSubHeader align="start"`("← 공연 리스트", 새 prop) · 2열(사이 16 · 줄 24) · 준비중만 오른쪽 위 칩(`ConcertCard badgePlacement="end"` 새 prop, DS Concert state chip ready → `Chip` green weak) · [+](매니저 이상). PC는 칸 200 이상(🤖).
+- **카드**: GUI 카드에 D-day · 지난 공연 칩이 없어 와이어 때 칩을 뺐다(준비중만). 날짜 줄 `2026.01.01 수요일 (18:00)`(공연홈과 같은 꼴 — `hostEventCardDate`).
+- **호스트 홈 설정**: 제목 "호스트 홈 설정" · 셸 로고 헤더 없음 · 상단 바와 하단 [저장] 바를 모바일 화면 폭으로(`HostSettingsView.css` bleed) · 도움말 "호스트 홈에 보이는 정보예요." · 이미지 칸(`HostImageField` — 제목 `headingMd2Emphasized` · 프로필 160 · 커버 폭×180 · 채움 `surface/container` · 테두리 · r12 · 가운데 [이미지 업로드](Secondary md + `image-add`) · [기본 이미지로] · 실패 문구 + [다시 올리기] · 못 불러온 미리보기는 숨김). 일반 멤버는 버튼 비활성(Q53 그대로). "호스트 삭제하기"는 서버에 없어 그리지 않음. `stakeholder` `1478:9437`은 노드를 읽으니 연락처 10줄(유형별 placeholder · 줄마다 ✕ · [문의처 추가] 없음 = 최대) — L(`HOST_CONTACTS_MAX` 10 · `ContactRows`)이 이미 같아 변경 없음.
+- **이미지 자르기**(새 동작, 의존성 없음): 파일을 고르면 "이미지 위치 조정"(`ImageCropSheet` — `ResponsiveOverlay` flat) — 자르기 칸 정사각 · `text/primary` 바탕 · r12, 가이드 밖 #0a0a09 85%(Figma 값), 프로필 흰 원 290/342 · 커버 흰 직사각(🤖 Q231 홈 커버 비율 390:246), 끌기(pointer · `data-vaul-no-drag`) · 확대 1~3([−] 막대 [+], GUI 로컬 "확대 축소" `1452:40749`), [다시 선택] · [적용]. 계산은 `model/image-crop.ts`(가이드 · 배율 · 끌기 한계 · 원본 영역 · 결과 크기 프로필 512 · 커버 1280 · PNG는 PNG 그 밖 JPEG 0.9), 그리기는 canvas `drawImage` → `File` → 지금 업로드 경로(PH-15 → S3 → PH-4). 서버 계약 변화 없음(JPEG · PNG만 — api-contract §1). JPG · PNG가 아니면 자르지 않고 훅이 그 자리 오류.
+- **새 자산 · 컴포넌트 prop**: 아이콘 `youtube` filled(DS `ic_youtube` `946:1465` — 11-15 판 반영 대기였던 것, 사용자 허락) · 일러스트 `host-profile-default.svg` · `host-cover-default.svg`(GUI 로컬 컴포넌트 SVG 내보내기) · `Avatar` `fallback` · `ConcertCard` `badgePlacement` · `AudienceSubHeader` `align`.
+
+**L 변경**(model · 단위 테스트, 이 PR)
+- `host-home-rules` — `contactIconsOf`(4개 이하 모두 · 넘으면 3 + more) · `hostEventsHref`.
+- `useHostHome` → viewer · 공연 목록을 `model/useHostEvents.ts`(`useHostViewer` · `useHostEvents`)로 떼어 공연 리스트 화면과 같이 씀(같은 캐시 · 같은 규칙, 값 그대로).
+- `hosting/host/model/image-crop.ts`(새 — 자르기 계산).
+
+**결정**
+- 🤖 Claude 판단 — 연락처 아이콘 하나를 누르면 전체 보기 시트(로그인 전 가린 값만 로그인 필요 팝업) / 근거: 그려진 것은 ⋯ · 로그인 필요뿐, 시트가 값을 보여 준다 / 되돌리려면 `HostHomeView` 아이콘 `onClick`. 코멘트 `2008673514`(Q229).
+- 관객 뷰 [+] 숨김(마스터 · 매니저만) — 처음엔 🤖(코멘트 `2008673516`, Q230)였는데 PR 직전 재확인에서 디자이너가 `1452:41324`의 [+]를 뺌 → Figma와 같아짐, 답글 노이슈 · Q230 닫음.
+- 🤖 커버 자르기 가이드 = 홈 커버 비율 390:246(Figma 340×180) / 근거: 자른 그대로 홈에 보이게 / 되돌리려면 `CROP_GUIDE.COVER.aspect` = 340/180. 코멘트 `2008673520`(Q231).
+- 🤖 올리는 중 · 실패 모습(버튼 로딩 · 빨간 문구 + [다시 올리기]) / 코멘트 `2008673526`(Q232).
+- 🤖 PC — 와이어 배치(셸 상단 바 아래 둥근 커버 1280×280 · 왼쪽 정렬 · ⚙는 커버 오른쪽 위) + GUI 모양, 공연 리스트 칸 200+, 설정 폼 600 / 코멘트 `2008673530`(Q233).
+- 🤖 결과 이미지 크기 상한(프로필 512 · 커버 1280) · JPEG 품질 0.9 / 근거: 홈 프로필 100(3배 여유) · PC 커버 폭 / 되돌리려면 `CROP_OUTPUT_MAX`.
+- 연락처 유형 칸 폭 128(Figma 116) · 대표 연락처 줄 사이는 호스트 만들기와 같은 `CreateHostView.css`(공용 — 이 PR 밖)라 그대로.
+
+**Figma 코멘트**(2026-11-15-impl, GUI): `1478:7248` "[개발 · 디자인 없음] 연락처 아이콘을 눌렀을 때" · `1452:41329` "관객 뷰의 [+] 버튼" · `1476:8505` "커버 이미지 자르기 가이드 비율" · `1452:40578` "이미지를 올리는 중 · 올리지 못했을 때" · `741:30898` "호스트 홈 PC(1024px 이상)". 디자이너 코멘트 답글(관제탑 전달): `2008666517`(`1484:8106` "이거 노란색이어야하나" — 위치는 팝업 [로그인하기], 지금 Figma · 코드 모두 보라 Primary라 같음 → "노란색이 맞으면 Figma만 고쳐 주시면 따라갈게요", 답글 `2008674855`).
+
+**테스트**: 단위 `host-home-rules`(아이콘 줄 · 주소) · `image-crop`(신규 7) · `Avatar`(host 폴백). 스토리 `Avatar/HostFallback` · `ConcertCard/BadgeEnd`. QA `host-home` 24/0(HH-8~HH-13 새 — 소개글 · 연락처 6개 · 로그인 필요 · 스크롤 바 · 공연 리스트 두 시점) · `host-settings` 38/0(HS-2 자르기 단계 · HS-18 커버 시트 닫기 · HS-19 저장 없이 이동). e2e `host-home` · `hosting-host`(버튼 이름 · [적용] 단계 · 1×1 실제 PNG — 미리보기를 못 불러오면 숨기므로) · `a11y` · `font-preload` · `seo` · `hosting` · `notifications` 통과. ego-browser(dev:mock 3162, 390 · 1440): 홈 기본 · 스크롤 바 · 소개 펼침 · 연락처 시트(로그인 · 로그인 전) · 로그인 필요 팝업 · 이미지 없는 호스트 · PC · 공연 리스트 · 설정 · 자르기 시트 · 다시 선택 · 설정 PC.

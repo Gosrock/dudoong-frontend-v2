@@ -3,7 +3,13 @@ import { describe, expect, it } from 'vitest';
 import type { EventStatus } from '@/api/event/schema';
 import type { HostRole } from '@/api/shared/common-schema';
 
-import { hostEventHref, hostManageActions, parseHostIdParam } from './host-home-rules';
+import {
+  contactIconsOf,
+  hostEventHref,
+  hostEventsHref,
+  hostManageActions,
+  parseHostIdParam,
+} from './host-home-rules';
 
 describe('호스트 id 주소 값', () => {
   it.each([
@@ -51,5 +57,18 @@ describe('호스트 홈 관리 버튼', () => {
       { key: 'members', href: '/hosting/hosts/11/members' },
       { key: 'newEvent', href: '/hosting/new/events?hostId=11' },
     ]);
+  });
+});
+
+describe('연락처 아이콘 줄(GUI 1481:7911 · 741:30896)', () => {
+  it('4개 이하면 모두 보이고 ⋯가 없다', () => {
+    expect(contactIconsOf([1, 2, 3, 4])).toEqual({ shown: [1, 2, 3, 4], more: false });
+    expect(contactIconsOf([])).toEqual({ shown: [], more: false });
+  });
+  it('5개 이상이면 앞의 3개 + ⋯', () => {
+    expect(contactIconsOf([1, 2, 3, 4, 5, 6])).toEqual({ shown: [1, 2, 3], more: true });
+  });
+  it('공연 리스트 주소', () => {
+    expect(hostEventsHref(11)).toBe('/hosts/11/events');
   });
 });

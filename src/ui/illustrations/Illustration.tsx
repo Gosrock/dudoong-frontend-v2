@@ -9,6 +9,8 @@ import dashboardRejected from './dashboard-rejected.svg';
 import gift from './gift.svg';
 import giftCanceled from './gift-canceled.svg';
 import giftReturn from './gift-return.svg';
+import invitation from './invitation.svg';
+import invitationError from './invitation-error.svg';
 import login from './login.svg';
 import mapUnavailable from './map-unavailable.svg';
 import noSearchResult from './no-search-result.svg';
@@ -28,6 +30,9 @@ import posterPlaceholder from './poster-placeholder.svg';
  *   다시 뽑기: `GET /v1/images/1Cn4WOu6TDaSajbFIuH6fO?ids=…&format=svg`.
  * - `map-unavailable`(2026-11-08, Design Sync #181): 디자인 시스템 `img_지도 못불러옴`(`image` 페이지 `834:369`, 91×70) —
  *   공연 기본 정보 지도 칸의 "지도 서비스를 불러오지 못했어요". REST 토큰이 403이라 Desktop Bridge `exportAsync({ format: 'SVG_STRING' })`로 뽑았다.
+ * - `invitation` · `invitation-error`(2026-11-15, Design Sync #239): 디자인 시스템 `img_초대장`(`886:285`) · `img_초대장_error`(`886:477`)
+ *   170×170 — 호스트 초대 수락 화면(GUI `1427:4638` 등)의 Empty state medium(150으로 줄여 씀). REST SVG 내보내기
+ *   (`GET /v1/images/0QD9tGSt8ZciDqe7ol2gYH?ids=…&format=svg`). `img_초대장_decline`(`943:1334`)은 쓰는 화면(초대 거절)이 서버 미지원이라 아직 넣지 않았다.
  * 색은 고정이다(`<img>`라 CSS 토큰을 따르지 않는다).
  */
 const ILLUSTRATIONS = {
@@ -38,6 +43,8 @@ const ILLUSTRATIONS = {
   'gift-return': { asset: giftReturn, width: 170, height: 170 },
   'gift-canceled': { asset: giftCanceled, width: 170, height: 170 },
   'no-search-result': { asset: noSearchResult, width: 170, height: 170 },
+  invitation: { asset: invitation, width: 170, height: 170 },
+  'invitation-error': { asset: invitationError, width: 170, height: 170 },
   login: { asset: login, width: 285, height: 273 },
   'map-unavailable': { asset: mapUnavailable, width: 91, height: 70 },
   'dashboard-pending': { asset: dashboardPending, width: 36, height: 36 },

@@ -10,14 +10,16 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
  * 호스트 설정 `/hosting/hosts/[hostId]/settings` · 멤버 관리 `/hosting/hosts/[hostId]/members`(plan P10b 완료 기준 V).
- * 근거는 **와이어**(GUI Ready for dev 없음) — 설정 `503:32374`, 멤버 흐름 `503:30866`(목록 `503:30922` · ⋮ `503:31732` ·
- * 권한 변경 `503:31833` · 양도 `503:32075` · 초대 `503:32779` · 권한 가이드 `503:30950`). 캡처는 와이어와 구조·문구·동작만 비교한다.
+ * 설정의 근거는 **GUI**(Design Sync #260, 모바일 Ready만 — `741:31172` 미입력 · `1452:40541` 저장 가능 · `1452:42653` 저장 없이 이동 ·
+ * `1458:4961` · `1476:8399` 이미지 자르기 · `1478:9437` 연락처 여러 줄 — `p5c-gui-host-home`).
+ * 멤버 관리(HS-5~)는 2026-11-15부터 **GUI**(모바일 Ready, Design Sync #263~#266 · #268 — `p10b-gui-members`). 옛 와이어 근거: 멤버 흐름 `503:30866`
+ * (목록 `503:30922` · ⋮ `503:31732` · 권한 변경 `503:31833` · 양도 `503:32075` · 초대 `503:32779` · 권한 가이드 `503:30950`).
  * 고스락(11)의 mock 멤버: 두둥이(나, 마스터) · 김매니저(매니저) · 이드럼(일반) · 이름 없음(일반).
  *
  * 범주 검토
  * - 빈 상태: 해당 없음 — 멤버 목록에는 늘 마스터(나 포함)가 있다. 연락처는 1줄 이상(서버 규칙)
  * - 크롤러: 해당 없음 — 보호 화면(로그인 게이트 안, 서버 조회 없음). 비로그인 → 로그인은 e2e `hosting-host.spec.ts`
- * - 반응형: 모든 시나리오가 mobile · desktop — 배치가 바뀌는 곳은 이미지 두 칸(모바일 세로 · PC 가로)과 [+ 멤버 초대하기] 위치뿐
+ * - 반응형: 모든 시나리오가 mobile · desktop — 설정은 PC Ready가 없어 같은 세로 폼(폭 600), 멤버는 [+ 멤버 초대하기] 위치만 바뀐다
  */
 
 const reset = () => {
@@ -60,19 +62,25 @@ scenario(
   {
     kind: '정상',
     summary:
-      '와이어 503:32374 순서(호스트 이름* · 소개글 · 호스트 대표 연락처* + [문의처 추가] · [저장]). 바뀐 필드만 PH-4. 이미지 칸은 맨 아래(디자인 없음).',
-    basis: ['plan P10b V 범위', '와이어 503:32374', 'patterns §23 바뀐 필드만'],
+      'GUI 1452:40541 순서(← 호스트 홈 설정 · 호스트 이름* · 소개글 · 호스트 대표 연락처* + [문의처 추가] · 프로필 이미지 · 커버 이미지 · [저장]). 바뀐 필드만 PH-4.',
+    basis: ['plan P10b V 범위', 'GUI 741:31172 · 1452:40541', 'patterns §23 바뀐 필드만'],
   },
   async ({ page, mockApi, step }) => {
     reset();
     await setMockSession(page, 'loggedIn');
-    await step('설정에 들어가면 이름 · 소개글 · 연락처 3줄 · [저장](비활성)이 보인다', async () => {
-      await page.goto(SETTINGS);
-      await expect(page.getByLabel('호스트 이름')).toHaveValue('고스락');
-      await expect(page.getByTestId('contact-row')).toHaveCount(3);
-      await expect(page.getByRole('button', { name: '문의처 추가' })).toBeVisible();
-      await expect(page.getByRole('button', { name: '저장' })).toBeDisabled();
-    });
+    await step(
+      '설정에 들어가면 이름 · 소개글 · 연락처 3줄 · 이미지 두 칸 · [저장](비활성)이 보인다',
+      async () => {
+        await page.goto(SETTINGS);
+        await expect(page.getByRole('heading', { level: 1, name: '호스트 홈 설정' })).toBeVisible();
+        await expect(page.getByRole('group', { name: '프로필 이미지' })).toBeVisible();
+        await expect(page.getByRole('group', { name: '커버 이미지' })).toBeVisible();
+        await expect(page.getByLabel('호스트 이름')).toHaveValue('고스락');
+        await expect(page.getByTestId('contact-row')).toHaveCount(3);
+        await expect(page.getByRole('button', { name: '문의처 추가' })).toBeVisible();
+        await expect(page.getByRole('button', { name: '저장' })).toBeDisabled();
+      },
+    );
     await step('이름을 바꾸고 [저장]하면 "저장했어요" 토스트', async () => {
       await page.getByLabel('호스트 이름').fill('고스락 밴드');
       await page.getByRole('button', { name: '저장' }).click();
@@ -93,12 +101,16 @@ scenario(
 
 scenario(
   'HS-2',
-  '설정 — 프로필 이미지를 올리면 미리보기, [저장]하면 다시 열어도 그 이미지',
+  '설정 — 프로필 이미지를 고르면 위치 조정 시트 → [적용]하면 미리보기, [저장]하면 다시 열어도 그 이미지',
   {
     kind: '정상',
     summary:
-      'PH-15 발급 → S3 PUT → 폼 값에 key → [저장] 때 PH-4. 이미지 칸 위치·모양은 디자인 없음(🤖 폼 맨 아래 DS DropZone).',
-    basis: ['plan P10b 완료 기준 V "호스트 이미지가 업로드 뒤 표시됨"', 'patterns §23'],
+      'GUI 1458:4961 "이미지 위치 조정"(원 가이드 · 확대 막대 · [다시 선택] [적용]) → 자른 결과를 PH-15 발급 → S3 PUT → 폼 값에 key → [저장] 때 PH-4.',
+    basis: [
+      'plan P10b 완료 기준 V "호스트 이미지가 업로드 뒤 표시됨"',
+      'GUI 1452:40541 · 1458:4961',
+      'patterns §23',
+    ],
   },
   async ({ page, mockApi, step }) => {
     reset();
@@ -112,11 +124,20 @@ scenario(
           : route.fulfill({ status: 200, headers: S3_CORS, body: '' }),
     );
     await setMockSession(page, 'loggedIn');
-    await step('[프로필 이미지 올리기]로 파일을 고르면 그 칸에 미리보기', async () => {
+    await step('[이미지 업로드]로 파일을 고르면 "이미지 위치 조정" 시트', async () => {
       await page.goto(SETTINGS);
       const chooser = page.waitForEvent('filechooser');
-      await page.getByRole('button', { name: '프로필 이미지 올리기' }).click();
+      await page.getByRole('button', { name: '프로필 이미지 업로드' }).click();
       await (await chooser).setFiles(PNG);
+      const sheet = page.getByRole('dialog', { name: '이미지 위치 조정' });
+      await expect(sheet.getByRole('slider', { name: '확대 배율' })).toBeVisible();
+      await expect(sheet.getByRole('button', { name: '다시 선택' })).toBeVisible();
+    });
+    await step('[적용]하면 자른 이미지가 올라가 그 칸에 미리보기', async () => {
+      await page
+        .getByRole('dialog', { name: '이미지 위치 조정' })
+        .getByRole('button', { name: '적용' })
+        .click();
       const img = page.getByTestId('image-PROFILE').getByRole('img', { name: '프로필 이미지' });
       await expect(img).toHaveAttribute('src', /\/host\/11\/[0-9a-f-]{36}\.png$/);
       await img.scrollIntoViewIfNeeded();
@@ -196,7 +217,65 @@ scenario(
       await expect(page.getByLabel('호스트 이름')).toHaveAttribute('readonly', '');
       await expect(page.getByRole('button', { name: '저장' })).toHaveCount(0);
       await expect(page.getByRole('button', { name: '문의처 추가' })).toHaveCount(0);
-      await expect(page.getByRole('button', { name: '프로필 이미지 올리기' })).toBeDisabled();
+      await expect(page.getByRole('button', { name: '프로필 이미지 업로드' })).toBeDisabled();
+    });
+  },
+);
+
+scenario(
+  'HS-18',
+  '설정 — 커버 이미지를 고르면 직사각 가이드 시트, ✕로 닫으면 바뀌지 않는다',
+  {
+    kind: '정상',
+    summary:
+      'GUI 1476:8399 커버 이미지 자르기 — 직사각 가이드(🤖 홈 커버 비율 390:246, Figma 코멘트). 닫으면 아무것도 올리지 않는다.',
+    basis: ['GUI 1476:8399', 'Design Sync #260'],
+  },
+  async ({ page, mockApi, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    await step('[커버 이미지 업로드]로 파일을 고르면 시트가 열린다', async () => {
+      await page.goto(SETTINGS);
+      const chooser = page.waitForEvent('filechooser');
+      await page.getByRole('button', { name: '커버 이미지 업로드' }).click();
+      await (await chooser).setFiles(PNG);
+      await expect(page.getByRole('dialog', { name: '이미지 위치 조정' })).toBeVisible();
+    });
+    await step('✕로 닫으면 올리지 않고 [저장]도 그대로 비활성', async () => {
+      await page
+        .getByRole('dialog', { name: '이미지 위치 조정' })
+        .getByRole('button', { name: '닫기' })
+        .click();
+      await expect(page.getByRole('dialog', { name: '이미지 위치 조정' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '저장' })).toBeDisabled();
+      expect(mockApi.calls().filter((c) => c.method !== 'GET')).toEqual([]);
+    });
+  },
+);
+
+scenario(
+  'HS-19',
+  '설정 — 바꾼 채로 [←]를 누르면 "저장하지 않고 이동할까요?"',
+  {
+    kind: '정상',
+    summary:
+      'GUI 1452:42653 저장 없이 이동 — [계속 작성] [이동하기](Warning). 호스팅 편집 화면 공통 창(useLeaveGuard).',
+    basis: ['GUI 1452:42653', 'Design Sync #260'],
+  },
+  async ({ page, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    await step('이름을 바꾸고 [←]를 누르면 확인 창', async () => {
+      await page.goto(SETTINGS);
+      await page.getByLabel('호스트 이름').fill('고스락 밴드');
+      await page.getByRole('link', { name: '뒤로 가기' }).click();
+      const popup = page.getByRole('alertdialog', { name: '저장하지 않고 이동할까요?' });
+      await expect(popup.getByRole('button', { name: '계속 작성' })).toBeVisible();
+      await expect(popup.getByRole('button', { name: '이동하기' })).toBeVisible();
+    });
+    await step('[이동하기]를 누르면 호스트 홈으로', async () => {
+      await page.getByRole('button', { name: '이동하기' }).click();
+      await expect(page).toHaveURL(/\/hosts\/11$/);
     });
   },
 );
@@ -209,8 +288,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      '와이어 503:30922 · 503:31732. 일반 멤버는 역할 글자를 비운다(와이어). 마스터 행·내 행에는 ⋮가 없다. 권한 가이드에 "호스트 삭제" 행 없음.',
-    basis: ['plan P10b V 범위', '와이어 503:30922 · 503:31732 · 503:30950', 'patterns §22'],
+      'GUI 1421:755 · 1422:918. 역할 글자는 모두 보인다(마스터 보라 · 매니저 청록 · 일반 회색). 마스터 행·내 행에는 ⋮가 없다. 권한 안내 시트(1452:54461)에 "호스트 삭제" 행 없음.',
+    basis: [
+      'plan P10b V 범위',
+      'GUI 1421:755 · 1422:918 · 1452:54461(#263 · #265)',
+      'patterns §22',
+    ],
   },
   async ({ page, step }) => {
     reset();
@@ -234,9 +317,9 @@ scenario(
         '멤버 삭제',
       ]);
     });
-    await step('[멤버 권한이란?]을 누르면 권한 가이드 표 — "호스트 삭제" 행이 없다', async () => {
+    await step('[멤버 권한에 대해서]를 누르면 권한 안내 표 — "호스트 삭제" 행이 없다', async () => {
       await page.keyboard.press('Escape');
-      await page.getByRole('button', { name: '멤버 권한이란?' }).click();
+      await page.getByRole('button', { name: '멤버 권한에 대해서' }).click();
       const guide = page.getByRole('table', { name: '권한 가이드' });
       await expect(guide).toBeVisible();
       await expect(guide).not.toContainText('호스트 삭제');
@@ -250,7 +333,7 @@ scenario(
   {
     kind: '에러',
     summary:
-      '와이어 503:32779(이메일 1칸 + 역할(기본 "일반") + [초대하기]). 문구는 "바로 멤버로 추가됩니다"(서버는 즉시 멤버). 실패 사유는 HOST_400_13 → 줄 오류.',
+      'GUI 초대 시트 1422:1911(이메일 1칸 + 역할(기본 "일반") + [초대하기]). 설명은 "가입한 이메일은 바로 멤버로 추가돼요."(서버는 즉시 멤버 — Figma 문구와 다름 🤖). 실패 사유는 HOST_400_13 → 줄 아래 사유(1427:4143).',
     basis: [
       'plan P10b V 범위 · 완료 기준 V "초대 실패 줄 표시"',
       'patterns §24 P10b HOST_400_13~15 · 18',
@@ -266,7 +349,7 @@ scenario(
       async () => {
         await page.goto(MEMBERS);
         await page.getByRole('button', { name: '멤버 초대하기' }).click();
-        await expect(dialog).toContainText('초대하면 바로 멤버로 추가됩니다.');
+        await expect(dialog).toContainText('가입한 이메일은 바로 멤버로 추가돼요.');
         await expect(dialog.getByLabel('역할')).toHaveText('일반');
         await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
       },
@@ -297,8 +380,8 @@ scenario(
   {
     kind: '정상',
     summary:
-      '와이어 503:31833 "멤버 권한 변경"(바꿀 역할은 늘 하나라 드롭다운 대신 글자 — 🤖), 완료 토스트 503:31972.',
-    basis: ['와이어 503:31833 · 503:31972', 'api-contract PH-10'],
+      'GUI 1422:1121 "멤버 권한 변경" — [지금 권한(비활성)] → [바꿀 권한 ▾](기본은 다른 역할), 완료 토스트 1422:1164.',
+    basis: ['GUI 1422:1121 · 1452:42791 · 1422:1164(#263)', 'api-contract PH-10'],
   },
   async ({ page, step }) => {
     reset();
@@ -307,7 +390,8 @@ scenario(
     await step('⋮ → 권한 변경을 누르면 "일반 → 매니저" 팝업', async () => {
       await page.goto(MEMBERS);
       await (await openMenu(page, '이드럼')).filter({ hasText: '권한 변경' }).click();
-      await expect(popup.getByTestId('role-change')).toHaveText(/일반.*매니저/);
+      await expect(popup.getByLabel('지금 권한')).toHaveValue('일반');
+      await expect(popup.getByLabel('바꿀 권한')).toHaveText('매니저');
     });
     await step(
       '[변경하기]를 누르면 이드럼이 매니저 + "멤버의 권한을 변경하였습니다."',
@@ -327,18 +411,17 @@ scenario(
   {
     kind: '정상',
     summary:
-      '와이어 503:32075 문구 그대로 + "받는 멤버: ○○"(🤖). 양도 뒤 myRole 쿼리를 다시 읽어 버튼이 바뀐다.',
+      'GUI 1422:1395 문구(받는 멤버 줄 없음, [양도하기] 빨강). 양도 뒤 myRole 쿼리를 다시 읽어 버튼이 바뀐다.',
     basis: ['와이어 503:32075 · 503:32266', 'plan P10b 완료 기준 L myRole 무효화'],
   },
   async ({ page, step }) => {
     reset();
     await setMockSession(page, 'loggedIn');
     const popup = page.getByRole('alertdialog', { name: '마스터 권한을 양도하시겠어요?' });
-    await step('김매니저 ⋮ → 마스터 양도를 누르면 확인 팝업(받는 멤버: 김매니저)', async () => {
+    await step('김매니저 ⋮ → 마스터 양도를 누르면 확인 팝업', async () => {
       await page.goto(MEMBERS);
       await (await openMenu(page, '김매니저')).filter({ hasText: '마스터 양도' }).click();
-      await expect(popup).toContainText('현재 마스터는 매니저 권한으로 변경됩니다');
-      await expect(popup).toContainText('받는 멤버: 김매니저');
+      await expect(popup).toContainText('현재 마스터는 매니저 권한으로 변경돼요.');
     });
     await step('[양도하기]를 누르면 김매니저가 마스터, 나는 매니저 + 토스트', async () => {
       await popup.getByRole('button', { name: '양도하기' }).click();
@@ -426,7 +509,7 @@ scenario(
       await expect(page.getByTestId('member-row')).toHaveCount(4);
       await expect(page.getByTestId('member-row').getByRole('button')).toHaveCount(0);
       await expect(page.getByRole('button', { name: '멤버 초대하기' })).toHaveCount(0);
-      await expect(page.getByRole('button', { name: '멤버 권한이란?' })).toBeVisible();
+      await expect(page.getByRole('button', { name: '멤버 권한에 대해서' })).toBeVisible();
     });
   },
 );
@@ -533,15 +616,15 @@ scenario(
   },
 );
 
-// ─── 미가입자 초대 링크(H-16~H-18, B33② · 백엔드 #933 — Api 2.5.7). 디자인 없음(design-requests Q119 · Q120) ───
+// ─── 미가입자 초대 링크(H-16~H-18, B33② · 백엔드 #933 — Api 2.5.7). GUI 1427:4143 · 1427:4357 · 1452:57010(#263 · #266) ───
 
 scenario(
   'HS-15',
-  '초대 — 가입되지 않은 이메일이면 [초대 링크 만들기] → 링크 · 만료 · [링크 복사], 닫으면 "초대 대기"에 생긴다',
+  '초대 — 가입되지 않은 이메일이면 [초대 링크 만들기] → 링크 · 만료일 · [링크 복사하기], 닫으면 "초대 대기"에 생긴다',
   {
     kind: '정상',
     summary:
-      'PH-7이 HOST_400_13이면 같은 이메일 · 역할로 H-16. 링크는 지금 출처 + 서버 경로(/host-invitations/{token}). 메일이 안 갈 수 있어 링크를 직접 전한다(백엔드 #928). 디자인 없음 — DS Modal · Input(읽기 전용) · Button(🤖 Q119).',
+      'PH-7이 HOST_400_13이면 같은 이메일 · 역할로 H-16. 링크는 지금 출처 + 서버 경로(/host-invitations/{token}). 메일이 안 갈 수 있어 링크를 직접 전한다(백엔드 #928). GUI 시트 1427:4357(회색 상자에 링크 한 줄 · 만료일 + [링크 복사하기], ✕로 닫음).',
     basis: [
       '이슈 #136 §8',
       'backend-questions B33②',
@@ -567,17 +650,19 @@ scenario(
     const done = page.getByRole('dialog', { name: '초대 링크를 만들었어요' });
     await step('[초대 링크 만들기] → 링크(지금 출처) · 만료 안내', async () => {
       await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
-      await expect(done.getByLabel('초대 링크')).toHaveValue(
+      await expect(done.getByTestId('invite-link').locator('p')).toHaveText(
         new RegExp(`^${new URL(page.url()).origin}/host-invitations/`),
       );
-      await expect(done).toContainText('한 번만 쓸 수 있어요');
+      await expect(done.getByTestId('invite-link')).toContainText(
+        /만료일: \d{4}년 \d{1,2}월 \d{1,2}일/,
+      );
     });
-    await step('[링크 복사] → 토스트', async () => {
-      await done.getByRole('button', { name: '링크 복사' }).click();
-      await expect(page.getByText('초대 링크를 복사했어요')).toBeVisible();
+    await step('[링크 복사하기] → 토스트', async () => {
+      await done.getByRole('button', { name: '링크 복사하기' }).click();
+      await expect(page.getByText('링크를 클립보드에 복사했어요.')).toBeVisible();
     });
-    await step('[확인]으로 닫으면 "초대 대기"에 그 이메일', async () => {
-      await done.getByRole('button', { name: '확인' }).click();
+    await step('✕로 닫으면 "초대 대기"에 그 이메일', async () => {
+      await done.getByRole('button', { name: '닫기' }).first().click();
       await expect(
         page.getByTestId('invitation-row').filter({ hasText: 'nobody@example.com' }),
       ).toHaveCount(1);

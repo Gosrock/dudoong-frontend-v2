@@ -6,28 +6,27 @@ import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
- * 호스트 홈 — **와이어 근거**(`503:30867` 마스터·매니저 · `529:34027` 멤버 · `503:30477` 관객, 모바일 390).
- * GUI `741:30896`·`741:30970`은 Ready for dev가 아니라 모양을 가져오지 않는다(design-workflow §3). 와이어에 PC가 없어
- * PC(1024~)는 관객 PC 규칙(`Container` 최대 폭) 안에 같은 세로 배치를 둔다(🤖). 값은 구조에 필요한 것만 와이어에서,
- * 나머지는 DS 토큰.
+ * 호스트 홈 — **GUI 근거**(모바일 390, `741:30896` 등 — Design Sync #257 · #261 · #262). 값은 Figma 그대로, 간격은 토큰.
+ * PC(1024~)는 Ready가 없다 — 와이어 배치(셸 상단 바 아래 둥근 커버 · 왼쪽 정렬 프로필 · 같은 세로 순서)에 모바일 GUI의
+ * 글자 · 원 · 카드 모양을 그대로 잇는다(🤖, PR 본문).
  */
 
 export const page = style({
   position: 'relative',
-  // [+ 새 공연 만들기]가 모바일·PC 모두 떠 있다 — 마지막 줄(빈 상태 문구 · 카드 배지)을 가리지 않게(#92-8)
+  // [+]가 모바일·PC 모두 떠 있다 — 마지막 줄(빈 상태 문구 · 카드)을 가리지 않게(#92-8)
   paddingBottom: fabClearance.md,
   '@media': { [media.desktop]: { paddingTop: vars.space[5] } },
 });
 
 /**
- * 배너 — 모바일은 화면 폭 가득(Container 좌우 여백 24를 되돌림), 비율 390:230(와이어). PC는 Container 안에 높이 280·모서리
- * (🤖 — 와이어에 PC 없음).
+ * 커버 — 모바일은 화면 맨 위부터 폭 가득(Container 좌우 여백 24를 되돌림), 390:246(GUI `741:30950`). 셸 로고 헤더 자리는
+ * `HostHomeTopBar`의 표시로 숨는다. PC는 Container 안에 높이 280 · 모서리(🤖 — 와이어 배치 그대로).
  */
 export const banner = style({
   position: 'relative',
   marginLeft: -24,
   marginRight: -24,
-  aspectRatio: '390 / 230',
+  aspectRatio: '390 / 246',
   background: vars.color.surface.imageBg,
   overflow: 'hidden',
   '@media': {
@@ -48,73 +47,89 @@ export const cover = style({
   objectFit: 'cover',
 });
 
-/** 배너 오른쪽 위 ⚙(와이어 `503:30867`) */
-export const settings = style({
+/** PC 커버 오른쪽 위 ⚙(와이어 `503:30867`). 모바일은 상단 바가 ⚙를 그린다 */
+export const desktopSettings = style({
   position: 'absolute',
   top: vars.space[4],
   right: vars.space[4],
   textDecoration: 'none',
+  display: 'none',
+  '@media': { [media.desktop]: { display: 'inline-flex' } },
 });
 
-/** 원형 로고 80 — 배너 아래 가장자리에 반쯤 걸친다(와이어) */
-export const logo = style({
-  position: 'relative',
-  marginTop: -40,
-  border: `2px solid ${vars.color.background.normal}`,
-  boxSizing: 'content-box',
-});
-
+/**
+ * 프로필 묶음 — 모바일 가운데 정렬(GUI), PC 왼쪽 정렬(와이어 배치 🤖). ♡는 이 묶음 위 오른쪽 끝(커버 아래 13, `741:30969`)에 붙는다
+ */
 export const profile = style({
+  position: 'relative',
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.space[2],
-  paddingTop: vars.space[2],
-});
-
-export const nameRow = style({
-  display: 'flex',
   alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: vars.space[3],
+  textAlign: 'center',
+  '@media': { [media.desktop]: { alignItems: 'flex-start', textAlign: 'left' } },
 });
 
-export const meta = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.space[3],
+/** 프로필 100 — 커버 아래 가장자리에 68 걸친다(GUI 225~325, 커버 끝 293). 흰 원 위에 이미지 */
+export const logo = style({
+  position: 'relative',
+  marginTop: -68,
+  background: vars.color.background.normal,
 });
 
-export const metaItem = style({
+/** ♡ 44 — 아이콘 24의 오른쪽 끝이 화면 끝에서 28(GUI `741:30969` 338~362), 커버 끝에서 아이콘 위 23 */
+export const follow = style({
+  position: 'absolute',
+  top: 13,
+  right: -6,
   display: 'inline-flex',
   alignItems: 'center',
-  gap: vars.space[1],
-  color: vars.color.text.secondaryLabel,
+  justifyContent: 'center',
+  width: 44,
+  height: 44,
+  padding: 0,
+  border: 0,
+  borderRadius: vars.radius.full,
+  background: 'transparent',
+  color: vars.color.text.primaryLabel,
+  cursor: 'pointer',
+  textDecoration: 'none',
+  selectors: {
+    // 관심 중 — 빨간 채운 하트(GUI `741:30969` 채움 #e84230 = `brand/accent`)
+    '&[aria-pressed="true"]': { color: vars.color.brand.accent },
+    '&:disabled': { color: vars.color.interaction.disabled, cursor: 'default' },
+    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
+  },
 });
 
-/** 메타 줄 아이콘은 20(와이어) — 코드 아이콘은 24만 있어 CSS로 줄인다(AccountMenu와 같은 방식) */
-export const metaIcon = style({ width: 20, height: 20, flexShrink: 0 });
+globalStyle(`${follow}[aria-pressed="true"] svg path`, { fill: 'currentColor' });
 
-export const introduce = style({ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' });
+/** 이름 · 소개 — 프로필 아래 17(GUI 325 → 342), 사이 4 */
+export const nameBlock = style({ marginTop: 17 });
 
+export const name = style({ overflowWrap: 'anywhere' });
+
+/** 연락처 아이콘 줄 — 소개 아래 16, 원 사이 12(GUI `1478:7248`) */
 export const contacts = style([
   sprinkles({ listStyle: 'none' }),
   {
     display: 'flex',
     flexWrap: 'wrap',
-    gap: vars.space[2],
+    justifyContent: 'center',
+    gap: vars.space[3],
     margin: 0,
-    marginTop: vars.space[2],
+    marginTop: vars.space[4],
     padding: 0,
+    '@media': { [media.desktop]: { justifyContent: 'flex-start' } },
   },
 ]);
 
-/** 연락처 아이콘 원 40(와이어 회색 원) */
+/** 연락처 원 36 — GUI 로컬 컴포넌트 "호스트홈_연락처"(`1478:7210`) 채움 `surface/container`, 아이콘 24 */
 export const contactButton = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: 40,
-  height: 40,
+  width: 36,
+  height: 36,
   padding: 0,
   border: 0,
   borderRadius: vars.radius.full,
@@ -127,38 +142,58 @@ export const contactButton = style({
   },
 });
 
-/** ♡ — 아이콘만 있는 버튼. 관심 중이면 채운 하트(DS에 filled가 없어 선 아이콘 안을 칠한다, 🤖) */
-export const follow = style({
-  display: 'inline-flex',
+/** 멤버 수 · 개설일 — 연락처 아래 16, 묶음 사이 12 · 아이콘–글자 4(GUI `741:30912`) */
+export const meta = style({
+  display: 'flex',
   alignItems: 'center',
-  justifyContent: 'center',
-  flexShrink: 0,
-  width: 44,
-  height: 44,
-  padding: 0,
-  border: 0,
-  borderRadius: vars.radius.full,
-  background: 'transparent',
-  color: vars.color.text.primaryLabel,
-  cursor: 'pointer',
-  textDecoration: 'none',
-  selectors: {
-    '&[aria-pressed="true"]': { color: vars.color.brand.primary },
-    '&:disabled': { color: vars.color.interaction.disabled, cursor: 'default' },
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
+  gap: vars.space[3],
+  marginTop: vars.space[4],
 });
 
-globalStyle(`${follow}[aria-pressed="true"] svg path`, { fill: 'currentColor' });
+export const metaItem = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: vars.space[1],
+  color: vars.color.text.secondaryLabel,
+});
 
+/** 메타 줄 아이콘은 16(GUI) — 코드 아이콘은 24만 있어 CSS로 줄인다(AccountMenu와 같은 방식) */
+export const metaIcon = style({ width: 16, height: 16, flexShrink: 0 });
+
+/** 멤버 · 공연 리스트 — 프로필 묶음 아래 17 + 위 여백 12, 섹션 사이 24(GUI `741:30919` · `741:30920`) */
+export const sections = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[5],
+  marginTop: 17,
+  paddingTop: vars.space[3],
+});
+
+/** 섹션 — 위 16, 제목과 내용 사이 16(GUI `741:30922` · `741:30942`) */
 export const section = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.space[4],
-  marginTop: vars.space[7],
+  paddingTop: vars.space[4],
 });
 
-/** 가로로 넘기는 줄(멤버 · 공연) — 모바일은 화면 끝까지 넘친다 */
+export const sectionTitle = style({ display: 'flex', alignItems: 'center' });
+
+export const sectionLink = style({
+  display: 'inline-flex',
+  alignItems: 'center',
+  color: vars.color.text.primaryLabel,
+  textDecoration: 'none',
+  borderRadius: vars.radius[1],
+  selectors: {
+    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
+  },
+});
+
+/** 제목 옆 > 20(GUI `741:30925`) */
+export const sectionChevron = style({ width: 20, height: 20, flexShrink: 0 });
+
+/** 가로로 넘기는 줄(멤버 · 공연) — 모바일은 화면 끝까지 넘친다, 사이 16 */
 export const scroller = style([
   sprinkles({ listStyle: 'none' }),
   {
@@ -187,26 +222,18 @@ export const scroller = style([
   },
 ]);
 
+/** 멤버 칸 — Avatar 60 + 이름 Label/sm, 사이 4(GUI `741:30927`) */
 export const member = style({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: vars.space[2],
+  gap: vars.space[1],
   flexShrink: 0,
-  width: 52,
+  width: 60,
   scrollSnapAlign: 'start',
 });
 
-export const sectionLink = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  color: vars.color.text.primaryLabel,
-  textDecoration: 'none',
-  borderRadius: vars.radius[1],
-  selectors: {
-    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
-  },
-});
+export const memberName = style({ width: '100%' });
 
 /** 가로 줄 끝의 다음 페이지 감지 · 스피너 자리 */
 export const sentinel = style({
@@ -217,7 +244,7 @@ export const sentinel = style({
   width: 48,
 });
 
-/** 오른쪽 아래 [+ 새 공연 만들기](와이어 `503:30867`) — PC도 같은 자리(🤖) */
+/** 오른쪽 아래 [+] 56(GUI `741:30958` — 화면 끝에서 오른쪽 21 · 아래 25). PC도 같은 자리(🤖) */
 export const fab = style({
   position: 'fixed',
   right: vars.space[5],

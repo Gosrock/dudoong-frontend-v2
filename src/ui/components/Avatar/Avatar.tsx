@@ -7,6 +7,7 @@ import grey from '../../illustrations/avatar-grey.svg';
 import indigo from '../../illustrations/avatar-indigo.svg';
 import orange from '../../illustrations/avatar-orange.svg';
 import teal from '../../illustrations/avatar-teal.svg';
+import hostProfileDefault from '../../illustrations/host-profile-default.svg';
 import { avatar } from './Avatar.css';
 
 export type AvatarColor = 'teal' | 'orange' | 'indigo' | 'grey';
@@ -26,6 +27,11 @@ export type AvatarProps = {
    * 불러오지 못하면(403 · 404 · 네트워크) 캐릭터로 바꾼다 — 깨진 이미지 아이콘을 보이지 않는다(#92-5)
    */
   src?: string | null;
+  /**
+   * 사진이 없을 때(또는 못 불러올 때) 보일 기본 그림. `character`(기본) = 캐릭터 4색, `host` = 호스트 프로필 기본 이미지
+   * (GUI `1452:40909` "프로필 이미지 기본" — 회색 판 + 두둥 글자, Design Sync #269). `host`면 `color`를 쓰지 않는다
+   */
+  fallback?: 'character' | 'host';
   /** 기본 ""(장식). 옆에 이름이 없을 때만 준다 */
   alt?: string;
   className?: string;
@@ -37,6 +43,7 @@ export function Avatar({
   size = 32,
   color = 'grey',
   src,
+  fallback = 'character',
   alt = '',
   className,
   style,
@@ -56,12 +63,12 @@ export function Avatar({
     // eslint-disable-next-line @next/next/no-img-element
     <img
       ref={checkLoaded}
-      src={photo ?? assetSrc(CHARACTERS[color])}
+      src={photo ?? assetSrc(fallback === 'host' ? hostProfileDefault : CHARACTERS[color])}
       width={size}
       height={size}
       alt={alt}
       decoding="async"
-      data-kind={photo ? 'photo' : 'character'}
+      data-kind={photo ? 'photo' : fallback}
       onError={photo ? () => setFailedSrc(photo) : undefined}
       className={className ? `${avatar} ${className}` : avatar}
       style={style}

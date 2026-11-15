@@ -1,8 +1,13 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
-import { fixedBar, shellBarSpaceVars } from '@/features/shared/shell/shell.css';
+import {
+  barSpace,
+  fixedBar,
+  SHELL_IMMERSIVE_ATTR,
+  shellBarSpaceVars,
+} from '@/features/shared/shell/shell.css';
 import { activeMarker } from '@/ui/hooks/activity-marker';
-import { media } from '@/ui/theme/breakpoints';
+import { breakpoints, media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -31,6 +36,14 @@ export const mobileHeader = style([
 ]);
 
 globalStyle(`${root}:has(${activeMarker(SUBHEADER_ATTR)}) ${mobileHeader}`, { display: 'none' });
+
+/** 화면 맨 위부터 그리는 페이지(호스트 홈 — `SHELL_IMMERSIVE_ATTR`) — 모바일 로고 헤더와 그 자리를 숨긴다. PC는 그대로 */
+globalStyle(`${root}:has(${activeMarker(SHELL_IMMERSIVE_ATTR)}) ${mobileHeader}`, {
+  display: 'none',
+});
+globalStyle(`${root}:has(${activeMarker(SHELL_IMMERSIVE_ATTR)}) > ${barSpace}`, {
+  '@media': { [`screen and (max-width: ${breakpoints.desktop - 1}px)`]: { display: 'none' } },
+});
 
 /** PC 상단 바 — 화면 위에 고정(`fixedBar`) */
 export const desktopOnly = style([

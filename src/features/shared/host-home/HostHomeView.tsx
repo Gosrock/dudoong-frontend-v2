@@ -2,43 +2,57 @@
 
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 import { LoginRequiredLink } from '@/features/shared/auth/LoginRequiredLink';
-import { CONTACT_ICON } from '@/features/shared/contact/ui/ContactList';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
-import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
+import { fab, tone as fabTone } from '@/ui/components/Fab/Fab.css';
+import { FAB_ATTR } from '@/ui/components/Fab/fab-attrs';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
-import { ListHeader } from '@/ui/components/ListHeader/ListHeader';
 import { Spinner } from '@/ui/components/Loader/Loader';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
+import { useActivityMarker } from '@/ui/hooks/useActivityMarker';
 import { Icon } from '@/ui/icons/Icon';
+import { assetSrc } from '@/ui/illustrations/assetSrc';
+import coverDefault from '@/ui/illustrations/host-cover-default.svg';
 import { Container } from '@/ui/primitives/Container';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import * as s from './HostHomeView.css';
-import type { HostManageKey } from './model/host-home-rules';
+import { contactIconsOf, hostEventsHref, type HostManageKey } from './model/host-home-rules';
 import { useHostHome } from './model/useHostHome';
-import { openHostContacts } from './ui/HostContactsOverlay';
+import {
+  HOST_CONTACT_ICON,
+  openHostContacts,
+  openLoginForContacts,
+} from './ui/HostContactsOverlay';
 import { HostEventCard } from './ui/HostEventCard';
 import * as card from './ui/HostEventCard.css';
+import { HostCoverButtons, HostHomeTopBar } from './ui/HostHomeTopBar';
+import { HostIntroduce } from './ui/HostIntroduce';
 
-/** 공연 목록이 비었을 때(L 문구 그대로) */
-export const HOST_EVENTS_EMPTY = '두둥! 등록한 공연이 없습니다.';
+/** 공연 목록이 비었을 때(GUI `741:30970` "아직 등록한 공연이 없어요.") */
+export const HOST_EVENTS_EMPTY = '아직 등록한 공연이 없어요.';
 
 /**
- * 호스트 홈 `/hosts/[hostId]`(plan P5c V) — **와이어 근거**: `503:30867` 마스터·매니저(⚙ · [+ 새 공연 만들기]) ·
- * `529:34027` 멤버(⚙·FAB 없음, 멤버 줄 있음) · `503:30477` 관객(멤버 줄 없음). 한 화면이 `myRole`로 나뉜다(`can` — 훅).
- * 위에서부터 배너(+⚙) · 원형 로고 · 이름 + ♡ · 멤버 수·개설일 · 소개 · 연락처 아이콘 · [멤버 >] 아바타 줄 · 공연 리스트(가로).
+ * 호스트 홈 `/hosts/[hostId]`(plan P5c V) — **GUI 근거**(Design Sync #257 · #261 · #262, 모바일 Ready만):
+ * `741:30896` 하트 눌림 · `741:30970` 안눌림 · `741:31027` 스크롤 · `1452:40783` 이미지 없음(호스트 뷰) · `1452:41324` 이미지 없음(관객 뷰) ·
+ * `1464:4953` · `1465:5019` 소개글 접힘/펼침 · `1481:7194` 연락처 전체 보기 · `1481:7454` 같은 종류 여러 개 · `1481:7911` 4개 이하 ·
+ * `1481:7672` 로그인 전 연락처 · `1484:8106` 로그인 전 연락처 누름.
+ * 모바일: 커버가 화면 맨 위에서 시작하고 원형 [←] · [⚙]가 떠 있다 — 커버가 지나가면 흰 상단 바(← 이름 ⚙, `HostHomeTopBar`).
+ * 가운데 정렬 프로필(100) · 이름(Title) · 소개(3줄 + 더보기) · 연락처 아이콘 · 멤버 수 · 개설일 → [멤버 >] → [공연 리스트 >].
+ * PC(1024~)는 Ready가 없어 와이어 배치(셸 상단 바 아래 커버 · 왼쪽 정렬 프로필)에 같은 모양을 잇는다(🤖).
  * 공개 값(GH-3)은 서버에서 받은 것을 바로 그리고, 사용자별 값(♡·관리·멤버)과 공연 목록은 하이드레이션 뒤 브라우저에서 읽는다.
  */
 export function HostHomeView({ hostId }: { hostId: string }) {
   const home = useHostHome(hostId);
+  const router = useRouter();
   const { follow, host } = home;
   const manage = home.manage.status === 'ready' ? home.manage.actions : [];
   const hrefOf = (key: HostManageKey) => manage.find((a) => a.key === key)?.href;
@@ -46,11 +60,16 @@ export function HostHomeView({ hostId }: { hostId: string }) {
   const newEventHref = hrefOf('newEvent');
   const membersHref = hrefOf('members');
   const hostName = host.name ?? '이름 없는 호스트';
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const contacts = contactIconsOf(home.contacts.items);
 
   return (
     <Container as="main" className={s.page}>
-      <div className={s.banner}>
-        {host.coverImageUrl && (
+      <HostHomeTopBar title={hostName} settingsHref={settingsHref} watchRef={bannerRef} />
+
+      <div ref={bannerRef} className={s.banner}>
+        {/* 커버가 없거나 못 불러오면 GUI 로컬 컴포넌트 "커버 이미지 기본"(`1452:40910`, 관객·호스트 뷰 `1452:41324` · `1452:40783`) */}
+        {host.coverImageUrl ? (
           // 업로드 배경(업로드 출처면 `/_next/image` 최적화 — P15). 화면 폭 · PC 높이 280(HostHomeView.css `banner`)
           <UploadedImage
             className={s.cover}
@@ -60,61 +79,93 @@ export function HostHomeView({ hostId }: { hostId: string }) {
             height={280}
             sizes="(min-width: 1440px) 1280px, 100vw"
             decoding="async"
+            fallback={<DefaultCover />}
           />
+        ) : (
+          <DefaultCover />
         )}
-        {/* 관리 버튼은 viewer가 확정되고 `can`이 허락할 때만 — 확정 전에는 그리지 않는다(자리는 배너·화면 고정이라 밀리지 않는다) */}
-        {(settingsHref || newEventHref) && (
-          <nav aria-label="호스트 관리">
-            {settingsHref && (
-              <Link
-                href={settingsHref}
-                aria-label="설정"
-                className={`${button({ variant: 'secondary', size: 'sm', iconOnly: true })} ${s.settings}`}
-              >
-                <Icon name="settings" />
-              </Link>
-            )}
-            {newEventHref && (
-              <Link
-                href={newEventHref}
-                className={`${button({ variant: 'dark', size: 'md' })} ${s.fab}`}
-              >
-                <Icon name="add" />새 공연 만들기
-              </Link>
-            )}
-          </nav>
+        <HostCoverButtons settingsHref={settingsHref} />
+        {/* PC의 ⚙ — 모바일은 커버 위 흰 원(`HostCoverButtons`). viewer가 확정되고 `can`이 허락할 때만 */}
+        {settingsHref && (
+          <Link
+            href={settingsHref}
+            aria-label="설정"
+            className={`${button({ variant: 'secondary', size: 'sm', iconOnly: true })} ${s.desktopSettings}`}
+          >
+            <Icon name="settings" />
+          </Link>
         )}
       </div>
 
-      <Avatar size={80} src={host.profileImageUrl} className={s.logo} />
-
       <section className={s.profile} aria-label="호스트 정보">
-        <div className={s.nameRow}>
-          <Txt as="h1" typography="headingLgEmphasized" lines={2}>
+        {/* FIGMA-CUSTOM: 프로필 원(gui 1452:40959 흰 원 100 + 이미지) — Figma대로 Avatar 100, 사진이 없으면 "프로필 이미지 기본"(1452:40909) */}
+        <Avatar size={100} src={host.profileImageUrl} fallback="host" className={s.logo} />
+        {follow.status === 'login' ? (
+          <LoginRequiredLink aria-label="관심 호스트" className={s.follow}>
+            <Icon name="favorite" />
+          </LoginRequiredLink>
+        ) : (
+          <button
+            type="button"
+            className={s.follow}
+            aria-label="관심 호스트"
+            aria-pressed={follow.isFollowing}
+            disabled={follow.status === 'disabled'}
+            onClick={follow.status === 'ready' ? follow.toggle : undefined}
+          >
+            <Icon name="favorite" />
+          </button>
+        )}
+
+        <Flex direction="column" gap={1} fullWidth className={s.nameBlock}>
+          <Txt as="h1" typography="title" lines={2} className={s.name}>
             {hostName}
           </Txt>
-          {follow.status === 'login' ? (
-            <LoginRequiredLink aria-label="관심 호스트" className={s.follow}>
-              <Icon name="favorite" />
-            </LoginRequiredLink>
-          ) : (
-            <button
-              type="button"
-              className={s.follow}
-              aria-label="관심 호스트"
-              aria-pressed={follow.isFollowing}
-              disabled={follow.status === 'disabled'}
-              onClick={follow.status === 'ready' ? follow.toggle : undefined}
-            >
-              <Icon name="favorite" />
-            </button>
-          )}
-        </div>
+          {host.introduce && <HostIntroduce text={host.introduce} />}
+        </Flex>
+
+        {contacts.shown.length > 0 && (
+          <ul
+            className={s.contacts}
+            aria-label="연락처"
+            aria-busy={home.contacts.status === 'pending' || undefined}
+          >
+            {contacts.shown.map((c, i) => (
+              <li key={`${c.type}-${i}`}>
+                <button
+                  type="button"
+                  className={s.contactButton}
+                  aria-label={`연락처 보기 — ${c.label}`}
+                  onClick={() =>
+                    // 로그인 전 가린 값(전화 · 이메일)을 누르면 "로그인이 필요해요"(GUI `1484:8106`), 그 밖은 연락처 전체 보기
+                    c.masked && home.viewerStatus === 'anonymous'
+                      ? void openLoginForContacts(router.push)
+                      : openHostContacts(hostId)
+                  }
+                >
+                  <Icon {...HOST_CONTACT_ICON[c.type]} />
+                </button>
+              </li>
+            ))}
+            {contacts.more && (
+              <li>
+                <button
+                  type="button"
+                  className={s.contactButton}
+                  aria-label="연락처 전체 보기"
+                  onClick={() => openHostContacts(hostId)}
+                >
+                  <Icon name="etc" variant="filled" />
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
 
         <div className={s.meta}>
           <span className={s.metaItem}>
             <Icon name="people" className={s.metaIcon} />
-            <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
+            <Txt typography="labelMd" color={colors.textSecondaryLabel}>
               <VisuallyHidden>멤버 </VisuallyHidden>
               {home.memberCount}
               <VisuallyHidden>명</VisuallyHidden>
@@ -123,40 +174,13 @@ export function HostHomeView({ hostId }: { hostId: string }) {
           {home.createdOn && (
             <span className={s.metaItem}>
               <Icon name="calendar" className={s.metaIcon} />
-              <Txt typography="bodyMd" color={colors.textSecondaryLabel}>
+              <Txt typography="labelMd" color={colors.textSecondaryLabel}>
                 <VisuallyHidden>개설일 </VisuallyHidden>
                 {home.createdOn}
               </Txt>
             </span>
           )}
         </div>
-
-        {host.introduce && (
-          <Txt as="p" typography="bodyMd" className={s.introduce}>
-            {host.introduce}
-          </Txt>
-        )}
-
-        {home.contacts.items.length > 0 && (
-          <ul
-            className={s.contacts}
-            aria-label="연락처"
-            aria-busy={home.contacts.status === 'pending' || undefined}
-          >
-            {home.contacts.items.map((c, i) => (
-              <li key={`${c.type}-${i}`}>
-                <button
-                  type="button"
-                  className={s.contactButton}
-                  aria-label={`연락처 보기 — ${c.label}`}
-                  onClick={() => openHostContacts(hostId)}
-                >
-                  <Icon {...CONTACT_ICON[c.type]} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
 
         {home.viewerStatus === 'error' && (
           <InlineError
@@ -167,42 +191,89 @@ export function HostHomeView({ hostId }: { hostId: string }) {
         )}
       </section>
 
-      {home.members && (
-        <section className={s.section} aria-labelledby="host-members-title">
-          <ListHeader
-            title={
-              membersHref ? (
-                <Link href={membersHref} className={s.sectionLink} id="host-members-title">
-                  멤버
-                  <Icon name="chevron-right" />
-                </Link>
-              ) : (
-                <span id="host-members-title">멤버</span>
-              )
-            }
-          />
-          <ul className={s.scroller} aria-label="멤버">
-            {home.members.map((m) => (
-              <li key={m.userId} className={s.member}>
-                <Avatar size={52} src={m.profileImageUrl} />
-                <Txt typography="labelSm" lines={1} align="center">
-                  {m.name ?? '이름 없음'}
-                </Txt>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <div className={s.sections}>
+        {home.members && (
+          <section className={s.section} aria-labelledby="host-members-title">
+            <SectionTitle id="host-members-title" href={membersHref}>
+              멤버
+            </SectionTitle>
+            <ul className={s.scroller} aria-label="멤버">
+              {home.members.map((m) => (
+                <li key={m.userId} className={s.member}>
+                  <Avatar size={60} src={m.profileImageUrl} />
+                  <Txt typography="labelSm" lines={1} align="center" className={s.memberName}>
+                    {m.name ?? '이름 없음'}
+                  </Txt>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-      <section
-        className={s.section}
-        aria-labelledby="host-events-title"
-        aria-busy={home.events.status === 'pending' || undefined}
-      >
-        <ListHeader title={<span id="host-events-title">공연 리스트</span>} />
-        <HostEvents events={home.events} />
-      </section>
+        <section
+          className={s.section}
+          aria-labelledby="host-events-title"
+          aria-busy={home.events.status === 'pending' || undefined}
+        >
+          <SectionTitle
+            id="host-events-title"
+            // 공연이 있을 때만 [>] — 비었으면 제목만(GUI `741:30970`)
+            href={home.events.status === 'success' ? hostEventsHref(hostId) : undefined}
+          >
+            공연 리스트
+          </SectionTitle>
+          <HostEvents events={home.events} />
+        </section>
+      </div>
+
+      {newEventHref && <NewEventFab href={newEventHref} />}
     </Container>
+  );
+}
+
+function DefaultCover() {
+  // 정적 SVG — next/image 최적화가 필요 없다
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className={s.cover} src={assetSrc(coverDefault)} alt="" decoding="async" />;
+}
+
+/** 섹션 제목(Heading/md - emphasized 20) — 목적지가 있으면 [제목 >] 링크 */
+function SectionTitle({ id, href, children }: { id: string; href?: string; children: string }) {
+  const title = (
+    <Txt as="h2" typography="headingMdEmphasized">
+      {children}
+    </Txt>
+  );
+  if (!href) {
+    return (
+      <div className={s.sectionTitle} id={id}>
+        {title}
+      </div>
+    );
+  }
+  return (
+    <div className={s.sectionTitle}>
+      <Link href={href} className={s.sectionLink} id={id}>
+        {title}
+        <Icon name="chevron-right" className={s.sectionChevron} />
+      </Link>
+    </div>
+  );
+}
+
+/** 오른쪽 아래 [+](GUI DS Button round Primary — `741:30958`). 새 공연 만들기로 가는 링크라 `Fab` 모양만 빌린다 */
+function NewEventFab({ href }: { href: string }) {
+  const ref = useActivityMarker<HTMLAnchorElement>();
+  return (
+    <Link
+      ref={ref}
+      href={href}
+      aria-label="새 공연 만들기"
+      className={`${fab} ${fabTone.dark} ${s.fab}`}
+      {...{ [FAB_ATTR]: '' }}
+    >
+      <Icon name="add" />
+    </Link>
   );
 }
 
@@ -226,12 +297,16 @@ function HostEvents({ events }: { events: Events }) {
     return <InlineError message="공연을 불러오지 못했어요." onRetry={events.retry} />;
   }
   if (events.status === 'empty') {
-    return <EmptyState title={HOST_EVENTS_EMPTY} />;
+    return (
+      <Txt as="p" typography="bodyMd">
+        {HOST_EVENTS_EMPTY}
+      </Txt>
+    );
   }
   return (
     <ul className={s.scroller} aria-label="공연">
       {events.items.map((item) => (
-        <HostEventCard key={item.event.eventId} item={item} />
+        <HostEventCard key={item.event.eventId} item={item} className={card.item} />
       ))}
       <EventsTail events={events} />
     </ul>

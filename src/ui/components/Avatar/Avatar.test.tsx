@@ -19,4 +19,12 @@ describe('Avatar — 사진을 불러오지 못하면 캐릭터(#92-5)', () => {
     rerender(<Avatar src="https://a.example/2.png" alt="호스트" />);
     expect(screen.getByRole('img', { name: '호스트' })).toHaveAttribute('data-kind', 'photo');
   });
+
+  it('fallback="host"면 사진이 없거나 실패할 때 호스트 프로필 기본 이미지(GUI 1452:40909)', () => {
+    render(<Avatar src="https://a.example/x.png" fallback="host" alt="호스트" />);
+    const img = screen.getByRole('img', { name: '호스트' });
+    fireEvent.error(img);
+    expect(img).toHaveAttribute('data-kind', 'host');
+    expect(img.getAttribute('src')).toContain('host-profile-default');
+  });
 });

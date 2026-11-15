@@ -18,6 +18,11 @@ export type InputProps = Omit<ComponentPropsWithRef<'input'>, 'size' | 'children
   helper?: ReactNode;
   /** 있으면 테두리 `status/error` + 칸 아래 문구 */
   error?: string;
+  /**
+   * 문구 없이 테두리만 `status/error`(`aria-invalid`). 문구를 칸 밖(여러 칸을 묶은 줄 아래 등)에 둘 때 — 그 문구의 id를
+   * `aria-describedby`로 넘긴다(GUI 멤버 초대 `1427:4143`: 이메일 + 역할 줄 아래 빨간 사유)
+   */
+  invalid?: boolean;
   /** 앞쪽 아이콘(Figma icon input). `<Icon name="calendar" />`처럼 넘기면 20 자리에 16으로 그린다(Figma 2026-10-31) */
   leading?: ReactNode;
   /** 뒤쪽 단위 글자(Figma text input "원") */
@@ -43,6 +48,7 @@ export function Input({
   label,
   helper,
   error,
+  invalid,
   leading,
   trailing,
   showCount = true,
@@ -78,7 +84,7 @@ export function Input({
     >
       <div
         className={s.box}
-        data-invalid={error ? 'true' : undefined}
+        data-invalid={error || invalid ? 'true' : undefined}
         data-disabled={disabled ? 'true' : undefined}
       >
         {leading && <span className={s.adornment}>{leading}</span>}
@@ -91,7 +97,7 @@ export function Input({
           maxLength={maxLength}
           value={value}
           defaultValue={defaultValue}
-          aria-invalid={error ? true : undefined}
+          aria-invalid={error || invalid ? true : undefined}
           aria-describedby={describedBy(helper ? helperId : null, error ? errorId : null)}
           onChange={(e) => {
             setCurrent(e.currentTarget.value);

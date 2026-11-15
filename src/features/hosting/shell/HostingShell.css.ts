@@ -1,10 +1,15 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
 import { EVENT_SCOPE_ATTR } from '@/features/hosting/shared/ui/event-scope-attrs';
-import { fixedBar, shellBarSpaceVars } from '@/features/shared/shell/shell.css';
+import {
+  barSpace,
+  fixedBar,
+  SHELL_IMMERSIVE_ATTR,
+  shellBarSpaceVars,
+} from '@/features/shared/shell/shell.css';
 import { activeMarker } from '@/ui/hooks/activity-marker';
 import { container } from '@/ui/primitives/layout.css';
-import { media } from '@/ui/theme/breakpoints';
+import { breakpoints, media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
@@ -28,6 +33,17 @@ export const mobileHeader = style([
 
 /** 공연 안에서는 로고 헤더 대신 공연 헤더("대시보드 ▾ / 공연명" + 벨 — P11-V `EventMobileHeader`)가 나온다. 같은 DOM, CSS `:has`로 */
 globalStyle(`${root}:has(${activeMarker(EVENT_SCOPE_ATTR)}) ${mobileHeader}`, { display: 'none' });
+
+/**
+ * 셸 로고 헤더 없이 맨 위부터 그리는 화면(`SHELL_IMMERSIVE_ATTR` — 호스트 홈 설정 GUI `1452:40548`은 Top app bar만 있다) —
+ * 모바일 로고 헤더와 그 자리를 숨긴다. PC는 그대로
+ */
+globalStyle(`${root}:has(${activeMarker(SHELL_IMMERSIVE_ATTR)}) ${mobileHeader}`, {
+  display: 'none',
+});
+globalStyle(`${root}:has(${activeMarker(SHELL_IMMERSIVE_ATTR)}) > ${barSpace}`, {
+  '@media': { [`screen and (max-width: ${breakpoints.desktop - 1}px)`]: { display: 'none' } },
+});
 
 /** PC 상단 바 — 화면 위에 고정(`fixedBar`) */
 export const desktopOnly = style([
