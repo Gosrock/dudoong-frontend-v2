@@ -3783,7 +3783,7 @@ Design Sync #257 · #260 · #261 · #262 + #269 일부(Nemin, 2026-11-15 12:12~1
 
 **테스트**: 단위 `host-home-rules`(아이콘 줄 · 주소) · `image-crop`(신규 7) · `Avatar`(host 폴백). 스토리 `Avatar/HostFallback` · `ConcertCard/BadgeEnd`. QA `host-home` 24/0(HH-8~HH-13 새 — 소개글 · 연락처 6개 · 로그인 필요 · 스크롤 바 · 공연 리스트 두 시점) · `host-settings` 38/0(HS-2 자르기 단계 · HS-18 커버 시트 닫기 · HS-19 저장 없이 이동). e2e `host-home` · `hosting-host`(버튼 이름 · [적용] 단계 · 1×1 실제 PNG — 미리보기를 못 불러오면 숨기므로) · `a11y` · `font-preload` · `seo` · `hosting` · `notifications` 통과. ego-browser(dev:mock 3162, 390 · 1440): 홈 기본 · 스크롤 바 · 소개 펼침 · 연락처 시트(로그인 · 로그인 전) · 로그인 필요 팝업 · 이미지 없는 호스트 · PC · 공연 리스트 · 설정 · 자르기 시트 · 다시 선택 · 설정 PC.
 
-## 소급 코드 리뷰(2026-11-15, `review-retro-1115` #PRNUM)
+## 소급 코드 리뷰(2026-11-15, `review-retro-1115` #276)
 
 머지된 PR 39개(#134 · #137 · #138 · #143 · #144 · #147 · #148 · #151~#153 · #156 · #157 · #162 · #163 · #165 · #166 · #169~#172 · #174 · #177 · #179 · #183 · #184 · #196 · #197 · #206 · #207 · #209~#212 · #214 · #240~#242 · #250 · #255)를 tap-review Step 1~5로 다시 봤다(관제탑 지시 — 앞으로는 세션이 자기 PR마다 돈다, main-phase ⑥). 에이전트 5개(규칙 · 버그 · 이전 PR · Frontend Fundamentals · React/성능) → 점수(루브릭) → 70 미만 버림. Codex 교차 리뷰는 스킬이 없어 스킵. 규칙 스킬(tap-code-quality · tap-review-react-patterns)이 중간에 설치돼, 그 전에 돈 19개는 Agent #4 · #5만 다시 돌렸다(중첩 삼항 3건이 새로 70을 넘음). 결과 파일은 커밋하지 않는 `.review-1115/`(PR 본문에 표).
 
