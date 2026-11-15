@@ -80,4 +80,5 @@ export const blackButton = style([
 export const medium = style({ padding: `${vars.space[7]} 0` });
 export const mediumIllustration = style({ marginBottom: vars.space[3] });
 export const mediumTexts = style({ gap: vars.space[1] });
+/** FIGMA-CUSTOM: 문구 → 버튼 22 = 묶음 간격 12 + 버튼 자리 안쪽 10(DS `Empty state` medium) — 토큰 스케일(16 · 24)에 없는 Figma 값 그대로 */
 export const mediumAction = style({ marginTop: 22 });

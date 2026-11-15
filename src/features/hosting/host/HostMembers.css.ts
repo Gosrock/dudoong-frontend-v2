@@ -31,6 +31,7 @@ export const guideChip = style({
   gap: vars.space[1],
   alignSelf: 'flex-start',
   height: 28,
+  // 안쪽 6/10 — `1418:39693` p6/10, 토큰 스케일(4 · 8 · 12)에 없는 Figma 값 그대로
   padding: `6px 10px`,
   border: 'none',
   borderRadius: vars.radius[4],
@@ -219,6 +220,7 @@ export const guideTable = style({
 
 /** 머리 줄 — 아래 1px `text/primary-label`, 위아래 10 */
 export const guideHead = style({
+  // FIGMA-CUSTOM: 줄 위아래 10(`1452:54461` 표 행 p10/0) — 토큰 스케일(8 · 12)에 없는 Figma 값 그대로
   padding: '10px 0',
   borderBottom: `1px solid ${vars.color.text.primaryLabel}`,
   textAlign: 'left',
@@ -227,12 +229,17 @@ export const guideHead = style({
 
 /** 몸 줄 — 아래 1px `surface/default-border`, 위아래 10 */
 export const guideCell = style({
+  // FIGMA-CUSTOM: 줄 위아래 10(`1452:54461` 표 행 p10/0) — 토큰 스케일에 없는 Figma 값 그대로
   padding: '10px 0',
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
   verticalAlign: 'middle',
 });
 
-export const guideLabelCol = style({ width: '39%', paddingRight: vars.space[2] });
+export const guideLabelCol = style({
+  width: '39%',
+  paddingRight: vars.space[2],
+  textAlign: 'left',
+});
 export const guideRoleCol = style({ width: '17.5%', textAlign: 'center' });
 export const guideGuestCol = style({ width: '26%', textAlign: 'center' });
 

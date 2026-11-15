@@ -312,7 +312,6 @@ function PermissionGuideSheet({
                 key={role}
                 scope="col"
                 className={`${s.guideHead} ${role === 'GUEST' ? s.guideGuestCol : s.guideRoleCol}`}
-                style={{ textAlign: 'center' }}
               >
                 <Txt typography="labelSm">{HOST_ROLE_LABEL[role]}</Txt>
               </th>
@@ -322,11 +321,7 @@ function PermissionGuideSheet({
         <tbody>
           {guide.map((row) => (
             <tr key={row.label}>
-              <th
-                scope="row"
-                className={`${s.guideCell} ${s.guideLabelCol}`}
-                style={{ textAlign: 'left' }}
-              >
+              <th scope="row" className={`${s.guideCell} ${s.guideLabelCol}`}>
                 <Txt
                   typography="labelMd"
                   color={colors.textSecondaryLabel}

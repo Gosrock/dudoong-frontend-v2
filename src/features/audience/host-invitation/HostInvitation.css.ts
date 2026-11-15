@@ -72,6 +72,7 @@ export const actions = style({
   gap: vars.space[3],
   width: '100%',
   maxWidth: 342,
+  // FIGMA-CUSTOM: 버튼 줄 위아래 36(GUI `1427:4596` `Frame 1707480366` p36/24) — 토큰 스케일(32 · 40)에 없는 Figma 값 그대로
   padding: `36px 0`,
 });
 
