@@ -14,7 +14,7 @@ import {
   searchEmptyMessageOf,
 } from './guest-rules';
 import { useGuestExport } from './useGuestExport';
-import { useTableQueryState } from './useTableQueryState';
+import { useClampPage, useTableQueryState } from './useTableQueryState';
 
 /**
  * 예매자 관리 주문 탭(GR-1, plan P13a). 상태 탭·검색·페이지 번호와 엑셀(GR-6)을 돌려준다. UI 동작은 없다.
@@ -37,6 +37,7 @@ export function useOrderList(eventId: string) {
     placeholderData: keepPreviousData,
   });
   const data = query.data;
+  useClampPage(page, data?.orders.totalPages ?? null, table.setPage);
 
   const exporter = useGuestExport(
     eventId,

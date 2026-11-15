@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { OPERATION_KEYWORD_MAX } from '@/api/order/schema';
 
@@ -61,4 +61,21 @@ export function useTableQueryState<F, S>(initialFilter: F, initialSearchType: S)
     /** 조회 키에 들어가는 적용된 검색(기준 · 검색어) */
     applied,
   };
+}
+
+/**
+ * 지금 페이지가 서버 페이지 수를 넘으면 마지막 페이지로 당긴다. 2페이지의 마지막 행을 승인 · 거절 · 환불 완료해 다시 읽으면
+ * `totalPages`가 줄어 빈 페이지에 남는데, 빈 목록에서는 페이지 줄도 숨어(`alwaysShowPagination`) 앞으로 갈 길이 없다(리뷰 #147).
+ * `totalPages`가 0(목록이 아예 빔)이면 첫 페이지로.
+ */
+export function useClampPage(
+  page: number,
+  totalPages: number | null,
+  setPage: (n: number) => void,
+) {
+  useEffect(() => {
+    if (totalPages === null) return;
+    const last = Math.max(totalPages - 1, 0);
+    if (page > last) setPage(last);
+  }, [page, totalPages, setPage]);
 }

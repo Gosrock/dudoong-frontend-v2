@@ -5,7 +5,7 @@ import { cameraProblemOf, cameraWaitHint } from './camera-errors';
 describe('카메라 안내(이슈 #93 §5)', () => {
   it('켜는 중에는 권한 창 [허용] 안내, 오래 걸리면 다른 방법까지', () => {
     expect(cameraWaitHint(false).description).toContain('[허용]');
-    expect(cameraWaitHint(true).description).toContain('[관객이 QR 스캔]');
+    expect(cameraWaitHint(true).description).toContain('[관객이 스캔]');
   });
 
   it('권한 거부 · 지원 안 함 모두 다시 켜기(P13b-GUI — 다섯 화면 모두 [다시 켜기])', () => {

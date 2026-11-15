@@ -15,7 +15,12 @@ import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 import { saveBlob } from '@/utils/download';
 
-import { EXACT_MATCH_HINT, EXPORT_TOO_MANY_MESSAGE, TICKET_MISSING_MESSAGE } from './guest-rules';
+import {
+  CANCEL_ENTRANCE_ERROR_MESSAGE,
+  EXACT_MATCH_HINT,
+  EXPORT_TOO_MANY_MESSAGE,
+  TICKET_MISSING_MESSAGE,
+} from './guest-rules';
 import { useIssuedTicketList } from './useIssuedTicketList';
 import { useOrderList } from './useOrderList';
 import { useRefundList } from './useRefundList';
@@ -205,6 +210,27 @@ describe('발급된 티켓 탭(GI-1 · GI-2 · GI-3)', () => {
     expect(view).toMatchObject({ result: 'ALREADY_ENTERED' });
   });
 
+  it('입장 취소(Q-3): 성공 true, 이미 입장 전(IssuedTicket_400_9)이면 안내 + 다시 읽고 확인 창을 닫는 reread(patterns §6)', async () => {
+    const { result } = setup(() => useIssuedTicketList('101'));
+    await waitFor(() => expect(result.current?.status).toBe('success'));
+    const uuid = `${GUEST_ORDER.approved}-t1`;
+    act(() => result.current.openTicket(uuid));
+    await waitFor(() => expect(result.current.detail?.ticket.entrance).toBe('DONE'));
+    let r: Awaited<ReturnType<typeof result.current.entranceCancel.run>> = false;
+    await act(async () => {
+      r = await result.current.entranceCancel.run(uuid);
+    });
+    expect(r).toBe(true);
+    await waitFor(() => expect(result.current.detail?.ticket.entrance).toBe('BEFORE'));
+    // 다른 매니저가 먼저 취소한 것처럼 같은 티켓을 또 — 서버 400_9는 실패가 아니라 다시 읽은 화면이 답
+    await act(async () => {
+      r = await result.current.entranceCancel.run(uuid);
+    });
+    expect(r).toBe('reread');
+    expect(result.current.missingNotice).toBe(CANCEL_ENTRANCE_ERROR_MESSAGE.IssuedTicket_400_9);
+    expect(errorToast).not.toHaveBeenCalled();
+  });
+
   it('일반 멤버: 엑셀 없음, 연락처 검색 안내', async () => {
     actAsRole(11, 'GUEST');
     const { result } = setup(() => useIssuedTicketList('101'));
@@ -247,6 +273,17 @@ describe('환불 탭(GF-1 · PF-2)', () => {
     act(() => result.current.setStatus('REQUESTED'));
     await waitFor(() => expect(result.current.rows).toHaveLength(2));
     expect((await sent.list())[0]!.query).toEqual({ status: 'REQUESTED' });
+  });
+
+  it('상태 칩 건수는 칩마다 맞는 건수(전체 · 요청 · 완료)', async () => {
+    const { result } = setup(() => useRefundList('101'));
+    await waitFor(() =>
+      expect(result.current?.filters.map((f) => [f.key, f.count])).toEqual([
+        ['ALL', 4],
+        ['REQUESTED', 3],
+        ['COMPLETED', 1],
+      ]),
+    );
   });
 
   it('환불 계좌는 매니저 이상에게만 — 일반 멤버는 null + 버튼 없음', async () => {

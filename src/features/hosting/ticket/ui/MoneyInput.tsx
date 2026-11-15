@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useReducer, useRef } from 'react';
 
 import { Input, type InputProps } from '@/ui/components/Input/Input';
 import { formatAmountInput, parseAmountInput } from '@/utils/money';
@@ -36,6 +36,7 @@ export function MoneyInput({ value, onValueChange, ref, ...rest }: MoneyInputPro
   const inputRef = useRef<HTMLInputElement | null>(null);
   /** 다음 그리기 뒤 커서를 둘 자리(커서 앞 숫자 개수) */
   const pendingCaret = useRef<number | null>(null);
+  const [, rerender] = useReducer((n: number) => n + 1, 0);
   const display = formatAmountInput(value);
 
   useLayoutEffect(() => {
@@ -60,11 +61,26 @@ export function MoneyInput({ value, onValueChange, ref, ...rest }: MoneyInputPro
       onChange={(e) => {
         const raw = e.target.value;
         const caret = e.target.selectionStart ?? raw.length;
-        const digits = parseAmountInput(raw);
+        const current = parseAmountInput(value);
+        let candidate = raw.replace(/\D/g, '');
+        let before = digitsBefore(raw, caret);
+        // 쉼표만 지워졌으면(숫자는 그대로) 그 쉼표 옆 숫자를 지운다 — Backspace는 앞, Delete는 뒤(리뷰 #152)
+        if (candidate === current && raw.length < display.length) {
+          const inputType = (e.nativeEvent as InputEvent).inputType;
+          if (inputType === 'deleteContentBackward' && before > 0) {
+            candidate = current.slice(0, before - 1) + current.slice(before);
+            before -= 1;
+          } else if (inputType === 'deleteContentForward' && before < current.length) {
+            candidate = current.slice(0, before) + current.slice(before + 1);
+          }
+        }
+        const digits = parseAmountInput(candidate);
         // 앞의 0을 지운 만큼 커서 앞 숫자도 준다
-        const dropped = raw.replace(/\D/g, '').length - digits.length;
-        pendingCaret.current = Math.max(0, digitsBefore(raw, caret) - dropped);
-        onValueChange?.(digits);
+        const dropped = candidate.length - digits.length;
+        pendingCaret.current = Math.max(0, before - dropped);
+        // 값이 그대로면(글자 · 쉼표 입력) 다시 그리지 않아 커서가 끝으로 튀고 예약도 남는다 — 한 번 다시 그린다
+        if (digits === current) rerender();
+        else onValueChange?.(digits);
       }}
     />
   );

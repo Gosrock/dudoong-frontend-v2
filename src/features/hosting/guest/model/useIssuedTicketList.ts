@@ -33,7 +33,7 @@ import {
 } from './guest-rules';
 import { useGuestExport } from './useGuestExport';
 import { useMissingDetail } from './useMissingDetail';
-import { useTableQueryState } from './useTableQueryState';
+import { useClampPage, useTableQueryState } from './useTableQueryState';
 
 /**
  * 예매자 관리 발급된 티켓 탭(GI-1 · GI-2 · GI-3, plan P13a). 입장 필터·검색(현재 소유자 기준 — 이름·연락처)·페이지 번호,
@@ -43,6 +43,9 @@ import { useTableQueryState } from './useTableQueryState';
  * - 상세 404 `IssuedTicket_404_1`(다른 공연·없는 티켓): 닫고 목록 다시 읽기 + `missingNotice`
  * - 일반 멤버의 연락처 검색은 완전 일치 안내, 상세 연락처는 가린 값을 그대로
  */
+/** 입장 취소 결과 — 성공 `true` · 표의 코드(안내 + 다시 읽기, 확인 창을 닫는다) `'reread'` · 그 밖 실패 `false` */
+export type EntranceCancelResult = boolean | 'reread';
+
 export function useIssuedTicketList(eventId: string) {
   const queryClient = useQueryClient();
   const scope = useEventScope(eventId);
@@ -53,6 +56,7 @@ export function useIssuedTicketList(eventId: string) {
     placeholderData: keepPreviousData,
   });
   const data = query.data;
+  useClampPage(page, data?.tickets.totalPages ?? null, table.setPage);
 
   // ─── 상세(GI-2) ───
   const [selected, setSelected] = useState<string | null>(null);
@@ -108,7 +112,7 @@ export function useIssuedTicketList(eventId: string) {
   const cancelEntranceM = useMutation(cancelEntranceMutation(eventId));
   const canCancelEntrance = can(scope.role, 'cancelEntrance') && checkInBlock === null;
   const cancelEntrance = useCallback(
-    async (ticketUuid: string) => {
+    async (ticketUuid: string): Promise<EntranceCancelResult> => {
       if (!canCancelEntrance || cancelEntranceM.isPending) return false;
       const reread = (message: string) => {
         setMissingNotice(message);
@@ -120,19 +124,29 @@ export function useIssuedTicketList(eventId: string) {
         void invalidateAfterScan(queryClient, eventId, 'ENTERED');
         return true;
       } catch (e) {
+        // 표의 코드는 안내 + 다시 읽은 화면이 답이라 확인 창을 닫는다(`'reread'`, patterns §6) — 그 밖 실패만 `false`(열린 채)
+        let result: EntranceCancelResult = false;
         handleError(e, {
-          IssuedTicket_400_9: () => reread(CANCEL_ENTRANCE_ERROR_MESSAGE.IssuedTicket_400_9),
-          IssuedTicket_400_3: () => reread(CANCEL_ENTRANCE_ERROR_MESSAGE.IssuedTicket_400_3),
+          IssuedTicket_400_9: () => {
+            reread(CANCEL_ENTRANCE_ERROR_MESSAGE.IssuedTicket_400_9);
+            result = 'reread';
+          },
+          IssuedTicket_400_3: () => {
+            reread(CANCEL_ENTRANCE_ERROR_MESSAGE.IssuedTicket_400_3);
+            result = 'reread';
+          },
           IssuedTicket_404_1: () => {
             setSelected(null);
             reread(TICKET_MISSING_MESSAGE);
+            result = 'reread';
           },
           Event_400_27: () => {
             setMissingNotice(EVENT_NOT_CHECKABLE_MESSAGE);
             void invalidateEventStatus(queryClient, eventId);
+            result = 'reread';
           },
         });
-        return false;
+        return result;
       }
     },
     [canCancelEntrance, cancelEntranceM, eventId, queryClient],
@@ -208,7 +222,7 @@ export function useIssuedTicketList(eventId: string) {
       /** 마지막 수동 입장 결과(상세를 닫으면 지운다) */
       result: checkInResult,
     },
-    /** [입장 취소] — 매니저 이상 + 공연 OPEN·정산중, 입장 완료(`DONE`) 티켓 상세에만. 취소했으면 `true` */
+    /** [입장 취소] — 매니저 이상 + 공연 OPEN·정산중, 입장 완료(`DONE`) 티켓 상세에만. 취소했으면 `true`, 표의 코드면 `'reread'`, 그 밖 실패 `false` */
     entranceCancel: {
       can: canCancelEntrance,
       run: cancelEntrance,

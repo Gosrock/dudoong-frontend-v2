@@ -134,8 +134,9 @@ export const headRow = style({
 
 export const headTitle = style({ flex: '1 1 auto', minWidth: 0 });
 
-/** ✕ — `ic/close` 24 */
+/** ✕ — `ic/close` 24. 제목을 숨기고 앞 슬롯도 없으면 ✕ 혼자라 `space-between`이 왼쪽에 둔다 — 늘 오른쪽 끝(리뷰 #172) */
 export const closeButton = style({
+  marginLeft: 'auto',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',

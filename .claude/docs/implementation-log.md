@@ -3783,6 +3783,25 @@ Design Sync #257 · #260 · #261 · #262 + #269 일부(Nemin, 2026-11-15 12:12~1
 
 **테스트**: 단위 `host-home-rules`(아이콘 줄 · 주소) · `image-crop`(신규 7) · `Avatar`(host 폴백). 스토리 `Avatar/HostFallback` · `ConcertCard/BadgeEnd`. QA `host-home` 24/0(HH-8~HH-13 새 — 소개글 · 연락처 6개 · 로그인 필요 · 스크롤 바 · 공연 리스트 두 시점) · `host-settings` 38/0(HS-2 자르기 단계 · HS-18 커버 시트 닫기 · HS-19 저장 없이 이동). e2e `host-home` · `hosting-host`(버튼 이름 · [적용] 단계 · 1×1 실제 PNG — 미리보기를 못 불러오면 숨기므로) · `a11y` · `font-preload` · `seo` · `hosting` · `notifications` 통과. ego-browser(dev:mock 3162, 390 · 1440): 홈 기본 · 스크롤 바 · 소개 펼침 · 연락처 시트(로그인 · 로그인 전) · 로그인 필요 팝업 · 이미지 없는 호스트 · PC · 공연 리스트 · 설정 · 자르기 시트 · 다시 선택 · 설정 PC.
 
+## 소급 코드 리뷰(2026-11-15, `review-retro-1115` #276)
+
+머지된 PR 39개(#134 · #137 · #138 · #143 · #144 · #147 · #148 · #151~#153 · #156 · #157 · #162 · #163 · #165 · #166 · #169~#172 · #174 · #177 · #179 · #183 · #184 · #196 · #197 · #206 · #207 · #209~#212 · #214 · #240~#242 · #250 · #255)를 tap-review Step 1~5로 다시 봤다(관제탑 지시 — 앞으로는 세션이 자기 PR마다 돈다, main-phase ⑥). 에이전트 5개(규칙 · 버그 · 이전 PR · Frontend Fundamentals · React/성능) → 점수(루브릭) → 70 미만 버림. Codex 교차 리뷰는 스킬이 없어 스킵. 규칙 스킬(tap-code-quality · tap-review-react-patterns)이 중간에 설치돼, 그 전에 돈 19개는 Agent #4 · #5만 다시 돌렸다(중첩 삼항 3건이 새로 70을 넘음). 결과 파일은 커밋하지 않는 `.review-1115/`(PR 본문에 표).
+
+**70 이상 16건 — 모두 리뷰 시점 main에 남아 있었다**
+- 버그 · 확인 창 계약: #137 입장 취소 400_9 · 400_3 · 404_1 · Event_400_27은 안내 + 다시 읽기인데 확인 창이 열린 채 → 훅이 `'reread'`를 돌려주고 호출 쪽은 `true`일 때만 토스트(patterns §6). #147 마지막 페이지가 비면 페이지 줄이 사라져 앞 페이지로 못 감 → `useClampPage`(주문 · 발급 티켓 · 환불). #152 금액 칸 쉼표 옆 Backspace · Delete가 숫자를 안 지움 → `inputType`으로 쉼표 옆 숫자를 지우고, 값이 같으면 다시 그려 커서 제자리. #172 flat 시트에서 제목 숨김 + 앞 슬롯 없으면 ✕가 왼쪽 → `marginLeft: auto`. #183 문의처를 다 지워 저장하면 대표 연락처로 다시 채움 → 처음 열 때 비어 있던 경우만 채움.
+- 접근성 · CLAUDE.md: #240 환불 의무 동의 `aria-required`. `'use client'` — #151 `LegalFooter` · #179 `NoticeBox`(지웠던 것 되돌림) · #241 `CameraNotice`. #162 `ConcertCard` `ended` 변형에 `FIGMA-CUSTOM:`. #214 `next.config.ts` 주석 경로.
+- 가독성(no-nested-ternary): #242 `TicketCard` 판매 기간 끝 칸 · #137 환불 칩 건수(옵션에 `count` 키 — 주문 탭과 같은 모양) · #137 · #163 발급 티켓 상세 하단(early return 함수 — `footer` 유무로 하단 칸을 그려 컴포넌트가 아니라 함수).
+- 남김: #148 티켓탭 빈 상태 일러스트 아래 간격이 PC에서 48 — 티켓탭 PC는 디자인 없음, 토큰 규칙대로라 근거 없이 안 바꿈.
+- 병렬 세션 범위: #138 `hosting/host/model/useHostInvitations.ts` status 3단 삼항 — #271 · #272가 고치던 범위라 손대지 않고 관제탑에 넘김.
+
+**관제탑 추가**: 카메라 안내 설명 속 탭 이름 `[관객이 QR 스캔]` → `[관객이 스캔]`(디자이너 답 `1360:23536`, Q228 닫음 · 답글 노이슈).
+
+**결정**
+- 🤖 Claude 판단 — 걸러진 지적 중 프로젝트 공통 패턴(`onSuccess`가 invalidate를 await — `*-cache.ts` 전부)은 0~15로 매김 / 근거: 한 곳만 바꾸면 일관성이 깨진다 / 바꾸려면 cache 헬퍼를 한꺼번에.
+- 🤖 #144 `useEventCancel` `cancel()` 반환 2단 삼항(55)은 남김 — 결과 3개 한 줄.
+
+**검증**: typecheck · lint · 단위 2779/0 · e2e(hosting-guests · hosting-ticket · hosting-event · hosting-checkin · home · tickets · a11y · legal) 237/0(건너뜀 35) · QA hosting-qr 18/0 · hosting-guests 37/0. ego-browser 390 · 1440(운영 빌드 + 가짜 백엔드): 환불 칩 건수 · 발급 티켓 상세 하단(입장 완료 [입장 취소] · 선물 티켓 입장 전 [입장 처리]) · 티켓 관리 판매 기간 · 옵션 상세 ✕ · 새 티켓 금액 칸(12,345 → 쉼표 뒤 Backspace → 1,345 커서 1) · 환불 의무 체크 `aria-required` · 기본 정보 문의처 · 공연홈 푸터.
+
 ## 디자이너 코멘트 반영 — 카카오 로그인 버튼 · 초대 이메일 안내 · "딤"(2026-11-16, `fix-1115-designer` #275)
 
 GUI 파일 코멘트(2026-11-15 13:13~13:20Z) 세 건.
