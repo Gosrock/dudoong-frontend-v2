@@ -3716,7 +3716,7 @@ Design Sync #251(Nemin, `Design: 수정` · `Figma: 디자인 시스템`, 세트
 
 **검사**: typecheck · `vitest related registry.ts` 42 파일 280 통과 · 스토리 `src/ui/icons` 6 통과 · QA `tickets` 20/0(수동 1) · `event-detail` 22/0(수동 1) · `gift` 14/0(수동 2) · e2e `tickets` · `gift-landing` · `event-detail` · `hosting-host` · `a11y` · `a11y-keyboard` 225 통과 / 0 실패(건너뜀 37).
 
-## P5c · P10b 설정 GUI — 호스트 홈 · 공연 리스트 · 호스트 홈 설정 와이어 → GUI(2026-11-15, `p5c-gui-host-home` #PR)
+## P5c · P10b 설정 GUI — 호스트 홈 · 공연 리스트 · 호스트 홈 설정 와이어 → GUI(2026-11-15, `p5c-gui-host-home` #272)
 
 Design Sync #257 · #260 · #261 · #262 + #269 일부(Nemin, 2026-11-15 12:12~12:24Z — GUI 페이지 ↳호스트홈 `741:30895`, **모바일만 Ready**). 와이어 구현(P5c-V #67 · P10b-V #69)을 모양 우선으로 바꿨다. 같은 DOM, 1024부터 PC(CSS로). PC는 Ready가 없어 와이어 배치에 GUI 모양을 잇는다(🤖 Q233).
 
