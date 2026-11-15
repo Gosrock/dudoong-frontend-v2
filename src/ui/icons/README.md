@@ -47,6 +47,8 @@ Figma 「디자인 시스템」 파일의 `ic` 컴포넌트 세트(`36:178`)와 
    - 2026-11-08 밤 판에서 새 세트 `ic_github`(`863:48`, filled 24)와 `ic_instagram`의 새 변형 `type=gray`(`863:10`, 단색)가 생겼다(공연홈 푸터) —
      `github-filled-24.svg` · `instagram-gray-24.svg`. **변형 이름 `gray`** 는 생성기 파일 규칙에 더했다(`<Icon name="instagram" variant="gray" />`, 단색이라 `currentColor`).
      같은 판의 `ic_camera` · `ic_camera_disable` outline 24는 쓰는 GUI 구현 화면이 없어 넣지 않았다(design-system §8 반영 대기).
+   - 2026-11-15 판(#251)에서 `ic_link` 24(`760:2838`)의 안쪽 그림이 21.9 → 18로 줄었다(틀 24 그대로, 가운데) —
+     같은 노드를 다시 내보내 `link-outline-24.svg`를 바꿨다.
    - 세트 밖 낱개 `important` 24(`751:1654`, 다색)도 따로 내보내 `important-outline-24.svg`로 저장한다.
    - 세트 밖 낱개 프레임 `ic`(`662:722`·`662:726`)·`icon/music-4`(`662:730`)는 2026-10-31에 지워졌다.
 2. 파일을 `src/ui/icons/svg/`에 넣는다(같은 키의 기존 파일은 지운다).
