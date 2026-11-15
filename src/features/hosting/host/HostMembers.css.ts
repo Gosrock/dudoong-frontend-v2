@@ -53,10 +53,29 @@ export const list = style([
  * 행 ↔ ⋮ 4, ⋮ 칸 44
  */
 export const memberRow = style({
+  position: 'relative',
+  isolation: 'isolate',
   display: 'flex',
   alignItems: 'center',
   gap: vars.space[1],
   minHeight: 76,
+  /**
+   * `상태=호버`(`1504:13275` 등 — #269 뒤 디자이너가 더함): 행보다 좌우 12 넓은 `surface/container` 배경 · 모서리 12.
+   * 포인터 기기만(터치에서 눌린 채 남지 않게)
+   */
+  '::before': {
+    content: '""',
+    position: 'absolute',
+    inset: `0 calc(-1 * ${vars.space[3]})`,
+    zIndex: -1,
+    borderRadius: vars.radius[4],
+    background: 'transparent',
+  },
+  '@media': {
+    '(hover: hover)': {
+      selectors: { '&:hover::before': { background: vars.color.surface.container } },
+    },
+  },
 });
 
 export const memberMain = style({

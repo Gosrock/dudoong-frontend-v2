@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
 
 import { Icon } from '../../icons/Icon';
+import { Illustration } from '../../illustrations/Illustration';
 import { Flex } from '../../primitives/Flex';
 import { Button } from '../Button/Button';
 import { EmptyState, EmptyStateAction } from './EmptyState';
@@ -88,5 +89,20 @@ export const ButtonClick: Story = {
     const button = within(canvasElement).getByRole('button', { name: '눌러 보기' });
     await userEvent.click(button);
     await expect(button).toBeVisible();
+  },
+};
+
+/** DS `Empty state size=medium, button=true`(초대 수락 결과 `1427:4638`) — 그림 150 · 제목 18 · 설명 14 · [Primary Large] */
+export const Medium: Story = {
+  args: {
+    size: 'md',
+    illustration: <Illustration name="invitation" width={150} />,
+    title: '‘꿈도리즈’의 멤버가 됐어요!',
+    description: '이제 호스트 홈에서 공연을 함께 준비할 수 있어요.',
+    action: <Button size="lg">호스트 홈으로 가기</Button>,
+  },
+  play: async ({ canvasElement }) => {
+    const title = within(canvasElement).getByText('‘꿈도리즈’의 멤버가 됐어요!');
+    await expect(getComputedStyle(title).fontSize).toBe('18px');
   },
 };

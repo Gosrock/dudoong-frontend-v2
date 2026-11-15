@@ -5,7 +5,8 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
  * 호스트 초대 수락 `/host-invitations/{token}`(H-19 · H-20 — 이슈 #136 §8, B33② · 백엔드 #933, Api 2.5.7).
- * 근거: **디자인 · 와이어 없음** — DS `Avatar` · `InfoRow` · `Button` · `EmptyState`로 단순하게(design-requests Q121 🤖).
+ * 근거: **GUI**(모바일 Ready, Design Sync #267 — 초대 `1427:4596` · 수락 완료 `1427:4638` · 만료 `1427:4701` · 사용됨 `1427:4746` ·
+ * 없음 `1427:4791` · 이미 멤버 `1427:4836`). 결과 화면은 DS `Empty state` medium + `img_초대장`(#239). 거절은 서버 없음 — 화면에 없다.
  * 토큰 보호: 진입 직후 주소에서 지운다(`/host-invitations`), 로그인으로 갈 때만 탭 저장소에, Referer 없음(메타).
  *
  * 범주 검토
@@ -18,12 +19,12 @@ const TOKEN = MOCK_INVITE_TOKEN.valid;
 
 scenario(
   'HI-1',
-  '초대 화면 — 호스트 · 역할 · 가린 이메일 · 만료, [수락하기] → 합류 결과(응답 역할)',
+  '초대 화면 — 호스트 · 역할 · 가린 이메일 · 만료일, [수락하기] → 멤버가 됐어요 · [호스트 홈으로 가기]',
   {
     kind: '정상',
     summary:
-      'H-19로 "소음공작소에서 일반 멤버로 초대했어요" + 초대받은 이메일(가림) · 링크 만료. 수락(H-20)하면 "소음공작소에 합류했어요 · 내 역할: 일반 멤버" + [공연준비로 가기]. 주소에는 토큰이 없다.',
-    basis: ['이슈 #136 §8', 'api-contract H-19 · H-20', 'backend-questions B33②'],
+      'H-19로 "‘소음공작소’에서 일반 멤버로 초대했어요" + 이메일(가림) · 만료일. [거절하기]는 없다(서버 없음). 수락(H-20)하면 "‘소음공작소’의 멤버가 됐어요!" + [호스트 홈으로 가기]. 주소에는 토큰이 없다.',
+    basis: ['GUI 1427:4596 · 1427:4638(#267)', '이슈 #136 §8', 'api-contract H-19 · H-20'],
   },
   async ({ page, step }) => {
     resetHostMockState();
@@ -32,65 +33,73 @@ scenario(
       await page.goto(`/host-invitations/${TOKEN}`);
       await expect(page).toHaveURL(/\/host-invitations$/);
       await expect(
-        page.getByRole('heading', { name: '소음공작소에서 일반 멤버로 초대했어요' }),
+        page.getByRole('heading', { name: '‘소음공작소’에서 일반 멤버로 초대했어요' }),
       ).toBeVisible();
       await expect(page.getByText('ne***@example.com')).toBeVisible();
+      await expect(page.getByText('2099년 1월 1일')).toBeVisible();
+      await expect(page.getByRole('button', { name: '거절하기' })).toHaveCount(0);
     });
-    await step('[수락하기] → "소음공작소에 합류했어요" · 내 역할', async () => {
+    await step('[수락하기] → "‘소음공작소’의 멤버가 됐어요!" + [호스트 홈으로 가기]', async () => {
       await page.getByRole('button', { name: '수락하기' }).click();
-      await expect(page.getByText('소음공작소에 합류했어요')).toBeVisible();
-      await expect(page.getByText('내 역할: 일반 멤버')).toBeVisible();
-      await expect(page.getByRole('link', { name: '공연준비로 가기' })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { name: '‘소음공작소’의 멤버가 됐어요!' }),
+      ).toBeVisible();
+      await expect(page.getByRole('link', { name: '호스트 홈으로 가기' })).toHaveAttribute(
+        'href',
+        /^\/hosts\/\d+$/,
+      );
     });
   },
 );
 
 scenario(
   'HI-2',
-  '이미 멤버 — 안내, 수락 결과는 기존 역할(초대한 역할과 다를 수 있다)',
+  '이미 멤버 — 수락할 것 없이 바로 "이미 ‘고스락’의 멤버예요" + [호스트 홈으로 가기]',
   {
     kind: '정상',
     summary:
-      '고스락(11) 매니저 초대인데 나는 이미 마스터 → H-19 alreadyMember 안내, H-20 200 + alreadyMember · role=MASTER → "이미 고스락의 멤버예요 · 내 역할: 마스터".',
-    basis: ['백엔드 #928 답 — 수락 응답 role은 기존 역할', 'api-contract H-20'],
+      '고스락(11) 매니저 초대인데 나는 이미 마스터 → H-19 alreadyMember면 초대 화면 대신 이미 멤버 결과(GUI 1427:4836). [수락하기]는 없다(수락해도 역할은 그대로 — 백엔드 #928).',
+    basis: ['GUI 1427:4836(#267)', '백엔드 #928 답 — 수락해도 기존 역할', 'api-contract H-19'],
   },
   async ({ page, step }) => {
     resetHostMockState();
     await setMockSession(page, 'loggedIn');
-    await step('"고스락에서 매니저로 초대했어요" + 이미 멤버 안내', async () => {
+    await step('"이미 ‘고스락’의 멤버예요" · [호스트 홈으로 가기] · [수락하기] 없음', async () => {
       await page.goto(`/host-invitations/${MOCK_INVITE_TOKEN.member}`);
-      await expect(
-        page.getByRole('heading', { name: '고스락에서 매니저로 초대했어요' }),
-      ).toBeVisible();
-      await expect(page.getByText('이미 이 호스트의 멤버예요', { exact: false })).toBeVisible();
-    });
-    await step('[수락하기] → "이미 고스락의 멤버예요 · 내 역할: 마스터"', async () => {
-      await page.getByRole('button', { name: '수락하기' }).click();
-      await expect(page.getByText('이미 고스락의 멤버예요')).toBeVisible();
-      await expect(page.getByText('내 역할: 마스터')).toBeVisible();
+      await expect(page.getByRole('heading', { name: '이미 ‘고스락’의 멤버예요' })).toBeVisible();
+      await expect(page.getByText('같은 호스트에는 한 번만 참여할 수 있어요.')).toBeVisible();
+      await expect(page.getByRole('link', { name: '호스트 홈으로 가기' })).toHaveAttribute(
+        'href',
+        '/hosts/11',
+      );
+      await expect(page.getByRole('button', { name: '수락하기' })).toHaveCount(0);
     });
   },
 );
 
 for (const [id, token, code, title] of [
-  ['HI-3a', MOCK_INVITE_TOKEN.expired, 'HOST_400_19', '만료된 초대 링크예요'],
-  ['HI-3b', MOCK_INVITE_TOKEN.used, 'HOST_400_20', '이미 사용된 초대 링크예요'],
-  ['HI-3c', MOCK_INVITE_TOKEN.missing, 'HOST_404_3', '초대를 찾을 수 없어요'],
+  ['HI-3a', MOCK_INVITE_TOKEN.expired, 'HOST_400_19', '만료된 초대장이에요'],
+  ['HI-3b', MOCK_INVITE_TOKEN.used, 'HOST_400_20', '이미 사용된 초대장이에요'],
+  ['HI-3c', MOCK_INVITE_TOKEN.missing, 'HOST_404_3', '초대장을 찾을 수 없어요'],
 ] as const) {
   scenario(
     id,
     `쓸 수 없는 초대(${code}) → "${title}"`,
     {
       kind: '에러',
-      summary: `H-19가 ${code}면 안내 + [홈으로]. [수락하기]는 없다.`,
-      basis: ['이슈 #136 §8 에러', 'error-codes HOST_400_19 · 20 · HOST_404_3'],
+      summary: `H-19가 ${code}면 img_초대장_error + 안내 + [두둥 홈으로 가기]. [수락하기]는 없다.`,
+      basis: ['GUI 1427:4701 · 4746 · 4791(#267)', 'error-codes HOST_400_19 · 20 · HOST_404_3'],
     },
     async ({ page, step }) => {
       resetHostMockState();
       await setMockSession(page, 'loggedIn');
       await step(title, async () => {
         await page.goto(`/host-invitations/${token}`);
-        await expect(page.getByText(title)).toBeVisible();
+        await expect(page.getByRole('heading', { name: title })).toBeVisible();
+        await expect(page.getByRole('link', { name: '두둥 홈으로 가기' })).toHaveAttribute(
+          'href',
+          '/',
+        );
         await expect(page.getByRole('button', { name: '수락하기' })).toHaveCount(0);
       });
     },
@@ -117,7 +126,7 @@ scenario(
       await setMockSession(page, 'loggedIn');
       await page.goto('/host-invitations');
       await expect(
-        page.getByRole('heading', { name: '소음공작소에서 일반 멤버로 초대했어요' }),
+        page.getByRole('heading', { name: '‘소음공작소’에서 일반 멤버로 초대했어요' }),
       ).toBeVisible();
     });
     await step('새로고침하면 "초대 링크를 다시 열어 주세요"', async () => {
