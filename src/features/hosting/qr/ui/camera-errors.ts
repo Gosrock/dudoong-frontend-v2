@@ -20,7 +20,7 @@ export function cameraProblemOf(kind: ScannerErrorKind): CameraProblem {
     case 'overconstrained':
       return {
         title: '카메라를 찾을 수 없어요',
-        description: '카메라가 있는 기기를 사용하거나 [관객이 QR 스캔]으로 입장을 받아 주세요.',
+        description: '카메라가 있는 기기를 사용하거나 [관객이 스캔]으로 입장을 받아 주세요.',
         canRetry: true,
       };
     case 'in-use':
@@ -34,7 +34,7 @@ export function cameraProblemOf(kind: ScannerErrorKind): CameraProblem {
       return {
         title: '이 브라우저에서는 카메라를 쓸 수 없어요',
         description:
-          '최신 Chrome이나 Safari를 사용해 주세요. 혹은 [관객이 QR 스캔]으로 입장을 받아 주세요.',
+          '최신 Chrome이나 Safari를 사용해 주세요. 혹은 [관객이 스캔]으로 입장을 받아 주세요.',
         canRetry: true,
       };
     default:
@@ -58,7 +58,7 @@ export function cameraWaitHint(slow: boolean): { title: string; description: str
     ? {
         title: '카메라가 켜지지 않나요?',
         description:
-          '주소창의 카메라 권한을 허용했는지 확인해 주세요. 안되면 Chrome 또는 Safari로 열거나 [관객이 QR 스캔]으로 입장을 받아 주세요.',
+          '주소창의 카메라 권한을 허용했는지 확인해 주세요. 안되면 Chrome 또는 Safari로 열거나 [관객이 스캔]으로 입장을 받아 주세요.',
       }
     : {
         title: '카메라를 켜는 중이에요',

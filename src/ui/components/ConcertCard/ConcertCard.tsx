@@ -30,7 +30,8 @@ export type ConcertCardProps = {
   badgePlacement?: 'start' | 'end';
   /**
    * 지난 공연 모양(GUI `939:34039` 예매하기(2줄) — 포스터 흐림 · 날짜 `text/tertiary` · 제목 `text/secondary`).
-   * 표시 칩("공연종료")은 부르는 쪽이 `badge`로 준다
+   * 표시 칩("공연종료")은 부르는 쪽이 `badge`로 준다.
+   * FIGMA-CUSTOM: DS ConcertCard(`759:22415`)에 지난 공연 변형이 없다 — Ready 화면이 직접 그림(2단계 후보, 리뷰 #162)
    */
   ended?: boolean;
   className?: string;

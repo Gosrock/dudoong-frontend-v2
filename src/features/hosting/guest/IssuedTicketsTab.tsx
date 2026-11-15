@@ -48,17 +48,20 @@ export function IssuedTicketsTab({ eventId }: { eventId: string }) {
   };
 
   const cancelEntrance = async (ticketUuid: string) => {
-    // 확인 창 계약(patterns §6): 실패면(`false`) 열린 채, 성공하면 닫히고 토스트.
+    // 확인 창 계약(patterns §6): 실패면(`false`) 열린 채, 성공하면 닫히고 토스트. 표의 코드(`'reread'` — 이미 입장 전 ·
+    // 취소된 티켓 · 없는 티켓 · 공연 상태)는 목록 위 안내와 다시 읽은 목록이 답이라 토스트 없이 닫는다.
     // 티켓 상세도 닫고 목록 위에 토스트(GUI #161 `1228:10719` · `1228:10669` — 목록만 보이고 아래 토스트)
     const ok = await openConfirm({
       intent: 'delete', // 되돌리기 어려운 동작 — [확인] Warning(DS 다이얼로그_데스크탑 삭제, #185 · #187)
       ...CANCEL_ENTRANCE_CONFIRM,
       cancelLabel: '돌아가기',
-      onConfirm: () => list.entranceCancel.run(ticketUuid),
+      onConfirm: async () => {
+        const result = await list.entranceCancel.run(ticketUuid);
+        if (result === true) toast('입장 처리를 취소했어요.');
+        return result !== false;
+      },
     });
-    if (!ok) return;
-    list.closeTicket();
-    toast('입장 처리를 취소했어요.');
+    if (ok) list.closeTicket();
   };
 
   const columns = nowrapColumns<HostIssuedTicket>([

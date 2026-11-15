@@ -40,12 +40,14 @@ export function salePeriodText(
   end: string | null,
   eventStartAt: string | null,
 ) {
-  const until = end
-    ? short(end)
-    : eventStartAt
-      ? `공연 시작 전(${short(eventStartAt)})`
-      : '공연 시작 전';
-  return `${start ? short(start) : '등록 즉시'} ~ ${until}`;
+  return `${start ? short(start) : '등록 즉시'} ~ ${saleUntilText(end, eventStartAt)}`;
+}
+
+/** 판매 기간 끝 칸 — 끝을 정했으면 그 시각, 아니면 공연 시작 전까지 */
+function saleUntilText(end: string | null, eventStartAt: string | null) {
+  if (end) return short(end);
+  if (eventStartAt) return `공연 시작 전(${short(eventStartAt)})`;
+  return '공연 시작 전';
 }
 
 /** 완료 토스트 — GUI #55 `958:20680` · #56 `958:20841` · #57 `958:21517` */

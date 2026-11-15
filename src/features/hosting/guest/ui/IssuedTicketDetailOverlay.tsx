@@ -1,5 +1,7 @@
 'use client';
 
+import type { ReactNode } from 'react';
+
 import type { HostIssuedTicket } from '@/api/issued-ticket/schema';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
@@ -68,53 +70,9 @@ export function IssuedTicketDetailOverlay({
       descriptionStyle="body"
       sheetVariant="flat"
       footer={
-        t && t.ticket.entrance === 'DONE' && t.ticket.ticketUuid && list.entranceCancel.can ? (
-          // GUI `1030:9136` — 입장 완료 상세 하단 [입장 취소](secondary 큰 버튼) → 확인 `1030:9318`
-          <Button
-            variant="secondary"
-            size="lg"
-            fullWidth
-            loading={list.entranceCancel.pending}
-            onClick={() => void onCancelEntrance(t.ticket.ticketUuid!)}
-          >
-            입장 취소
-          </Button>
-        ) : t && t.ticket.entrance === 'BEFORE' && t.ticket.ticketUuid && list.checkIn.can ? (
-          list.checkIn.blockMessage ? (
-            <Txt
-              as="p"
-              typography="bodyMd"
-              color={colors.textPrimaryLabel}
-              className={o.centerNote}
-            >
-              {list.checkIn.blockMessage}
-            </Txt>
-          ) : giftPending ? (
-            // GUI `1182:10514` · `1182:10057` — 안내 문구 + 사이 24 + 비활성 [입장 처리](받는 분이 수락해야 입장, 서버 PQ-2 GIFT_PENDING)
-            <Flex direction="column" gap={5}>
-              <Txt
-                as="p"
-                typography="bodyMd"
-                color={colors.textPrimaryLabel}
-                className={o.centerNote}
-              >
-                {GIFT_PENDING_CHECK_IN_MESSAGE}
-              </Txt>
-              <Button size="lg" fullWidth disabled>
-                입장 처리
-              </Button>
-            </Flex>
-          ) : (
-            <Button
-              size="lg"
-              fullWidth
-              loading={list.checkIn.pending}
-              onClick={() => void onCheckIn(t.ticket)}
-            >
-              입장 처리
-            </Button>
-          )
-        ) : undefined
+        t
+          ? detailFooter({ ticket: t.ticket, list, giftPending, onCheckIn, onCancelEntrance })
+          : undefined
       }
     >
       <Flex direction="column" gap={5} data-testid="ticket-detail">
@@ -148,5 +106,72 @@ export function IssuedTicketDetailOverlay({
         )}
       </Flex>
     </ResponsiveOverlay>
+  );
+}
+
+/**
+ * 하단 — 입장 완료면 [입장 취소], 입장 전이면 안내 문구 · 선물 대기 안내 + 비활성 · [입장 처리] 중 하나, 없으면 `undefined`
+ * (오버레이가 `footer` 유무로 하단 칸을 그린다 — 컴포넌트가 아니라 함수). 리뷰 #137 · #163 — 중첩 삼항 풀기
+ */
+function detailFooter({
+  ticket,
+  list,
+  giftPending,
+  onCheckIn,
+  onCancelEntrance,
+}: {
+  ticket: HostIssuedTicket;
+  list: IssuedTicketListState;
+  giftPending: boolean;
+  onCheckIn: (ticket: Pick<HostIssuedTicket, 'ticketUuid' | 'ownerName'>) => Promise<void>;
+  onCancelEntrance: (ticketUuid: string) => Promise<void>;
+}): ReactNode {
+  const ticketUuid = ticket.ticketUuid;
+  if (!ticketUuid) return undefined;
+  if (ticket.entrance === 'DONE') {
+    if (!list.entranceCancel.can) return undefined;
+    // GUI `1030:9136` — 입장 완료 상세 하단 [입장 취소](secondary 큰 버튼) → 확인 `1030:9318`
+    return (
+      <Button
+        variant="secondary"
+        size="lg"
+        fullWidth
+        loading={list.entranceCancel.pending}
+        onClick={() => void onCancelEntrance(ticketUuid)}
+      >
+        입장 취소
+      </Button>
+    );
+  }
+  if (ticket.entrance !== 'BEFORE' || !list.checkIn.can) return undefined;
+  if (list.checkIn.blockMessage) {
+    return (
+      <Txt as="p" typography="bodyMd" color={colors.textPrimaryLabel} className={o.centerNote}>
+        {list.checkIn.blockMessage}
+      </Txt>
+    );
+  }
+  if (giftPending) {
+    // GUI `1182:10514` · `1182:10057` — 안내 문구 + 사이 24 + 비활성 [입장 처리](받는 분이 수락해야 입장, 서버 PQ-2 GIFT_PENDING)
+    return (
+      <Flex direction="column" gap={5}>
+        <Txt as="p" typography="bodyMd" color={colors.textPrimaryLabel} className={o.centerNote}>
+          {GIFT_PENDING_CHECK_IN_MESSAGE}
+        </Txt>
+        <Button size="lg" fullWidth disabled>
+          입장 처리
+        </Button>
+      </Flex>
+    );
+  }
+  return (
+    <Button
+      size="lg"
+      fullWidth
+      loading={list.checkIn.pending}
+      onClick={() => void onCheckIn(ticket)}
+    >
+      입장 처리
+    </Button>
   );
 }

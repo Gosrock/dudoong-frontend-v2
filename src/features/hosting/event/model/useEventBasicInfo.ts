@@ -93,8 +93,10 @@ export function useEventBasicInfo(
   const scope = useEventScope(eventId);
   const canEdit = scope.canEdit;
   const tagsQuery = useQuery(eventTagsQuery());
-  // 문의처 미리 채우기(Q76) — 고칠 수 있고 공연 문의처가 비었을 때만 호스트 대표 연락처(GH-3, 멤버라 원문)를 읽는다
-  const wantsPrefill = canEdit && scope.event.contacts.length === 0;
+  // 문의처 미리 채우기(Q76) — 고칠 수 있고 공연 문의처가 비었을 때만 호스트 대표 연락처(GH-3, 멤버라 원문)를 읽는다.
+  // "비었는지"는 화면을 연 때의 값 — 문의처를 다 지워 저장한 뒤 비게 된 공연은 다시 채우지 않는다(Q76 "지우면 빈 채로", 리뷰 #183)
+  const [openedEmpty] = useState(() => scope.event.contacts.length === 0);
+  const wantsPrefill = canEdit && openedEmpty && scope.event.contacts.length === 0;
   const hostQuery = useQuery({ ...hostViewerQuery(scope.event.hostId), enabled: wantsPrefill });
   const hostContacts = wantsPrefill ? hostQuery.data?.contacts : undefined;
   /** 서버 값(미리 채우기 전) — 미리 채운 문의처를 저장 때 같이 보낼지 가른다(`fieldsToSend`) */
