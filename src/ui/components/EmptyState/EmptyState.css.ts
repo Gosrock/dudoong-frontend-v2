@@ -72,3 +72,13 @@ export const blackButton = style([
     },
   },
 ]);
+
+/**
+ * DS `Empty state` `size=medium, button=true`(2026-11-14 판 — GUI 초대 수락 `1427:4638` 등): 위아래 40 · 묶음 사이 12 ·
+ * 그림 150 · 제목 `Heading/md2 - emphasized` 18 · 문구 사이 4 · 설명 `Body/md` 14 · 버튼 자리 안쪽 10(문구 → 버튼 22)
+ */
+export const medium = style({ padding: `${vars.space[7]} 0` });
+export const mediumIllustration = style({ marginBottom: vars.space[3] });
+export const mediumTexts = style({ gap: vars.space[1] });
+/** FIGMA-CUSTOM: 문구 → 버튼 22 = 묶음 간격 12 + 버튼 자리 안쪽 10(DS `Empty state` medium) — 토큰 스케일(16 · 24)에 없는 Figma 값 그대로 */
+export const mediumAction = style({ marginTop: 22 });

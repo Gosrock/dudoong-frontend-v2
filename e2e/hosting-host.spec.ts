@@ -219,7 +219,7 @@ test.describe('멤버 관리 — 3시점', () => {
     await expect(page.getByRole('option')).toHaveText(['매니저', '일반']);
     await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: '멤버 권한이란?' }).click();
+    await page.getByRole('button', { name: '멤버 권한에 대해서' }).click();
     const guide = page.getByRole('table', { name: '권한 가이드' });
     await expect(guide).toBeVisible();
     await expect(guide).not.toContainText('호스트 삭제');
@@ -259,20 +259,21 @@ test.describe('멤버 관리 — 변경', () => {
     await page.goto('/hosting/hosts/11/members');
     await page.getByRole('button', { name: '멤버 초대하기' }).click();
     const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
-    await expect(dialog).toContainText('바로 멤버로 추가됩니다');
+    await expect(dialog).toContainText('가입한 이메일은 바로 멤버로 추가돼요.');
     const email = dialog.getByLabel('초대할 이메일');
     await email.fill('nobody@example.com');
     await dialog.getByRole('button', { name: '초대하기' }).click();
-    await expect(dialog.getByTestId('invite-row').getByRole('alert')).toHaveText(
+    await expect(dialog.getByRole('alert')).toHaveText(
       '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
     );
+    await expect(dialog.getByLabel('초대할 이메일')).toHaveAttribute('aria-invalid', 'true');
     await expect(roles(page)).toHaveCount(4);
     await email.fill('guitar@example.com');
     await expect(dialog.getByRole('alert')).toHaveCount(0);
     await dialog.getByRole('button', { name: '초대하기' }).click();
     await expect(dialog).toHaveCount(0);
     await expect(roles(page)).toHaveCount(5);
-    await expect(page.getByText('멤버를 초대했어요')).toBeVisible();
+    await expect(page.getByText('멤버를 초대했어요.')).toBeVisible();
     expect(
       mockApi
         .calls()
@@ -292,7 +293,8 @@ test.describe('멤버 관리 — 변경', () => {
     await page.goto('/hosting/hosts/11/members');
     await (await openMenu(page, '이드럼')).filter({ hasText: '권한 변경' }).click();
     const popup = page.getByRole('alertdialog', { name: '멤버 권한 변경' });
-    await expect(popup.getByTestId('role-change')).toHaveText(/일반.*매니저/);
+    await expect(popup.getByLabel('지금 권한')).toHaveValue('일반');
+    await expect(popup.getByLabel('바꿀 권한')).toHaveText('매니저');
     await popup.getByRole('button', { name: '변경하기' }).click();
     await expect(popup).toHaveCount(0);
     await expect(page.getByText('멤버의 권한을 변경하였습니다.')).toBeVisible();
@@ -323,7 +325,8 @@ test.describe('멤버 관리 — 변경', () => {
     await page.goto('/hosting/hosts/11/members');
     await (await openMenu(page, '김매니저')).filter({ hasText: '마스터 양도' }).click();
     const popup = page.getByRole('alertdialog', { name: '마스터 권한을 양도하시겠어요?' });
-    await expect(popup).toContainText('받는 멤버: 김매니저');
+    // GUI `1422:1395` — 받는 멤버 줄 없이 안내만(받는 사람은 ⋮를 연 행)
+    await expect(popup).toContainText('현재 마스터는 매니저 권한으로 변경돼요.');
     await popup.getByRole('button', { name: '양도하기' }).click();
     await expect(page.getByText('마스터 권한을 양도하였습니다.')).toBeVisible();
     await expect(row(page, '김매니저').getByTestId('member-role')).toHaveText('마스터');
@@ -344,10 +347,10 @@ test.describe('멤버 관리 — 변경', () => {
 });
 
 /**
- * 미가입자 초대 링크(H-16~H-18, B33② · 백엔드 #933 — Api 2.5.7). 디자인 없음(Q119 · Q120) — 초대 팝업에 이어지는 칸과 "초대 대기" 목록.
+ * 미가입자 초대 링크(H-16~H-18, B33② · 백엔드 #933 — Api 2.5.7). GUI(#263 · #266 — `1427:4143` · `1427:4357` · `1452:57010`) — 초대 시트에 이어지는 칸과 "초대 대기" 목록.
  */
 test.describe('멤버 관리 — 초대 링크', () => {
-  test('미가입(HOST_400_13)이면 [초대 링크 만들기] → H-16 → 지금 출처 + 경로 링크 · [링크 복사] · 대기 목록에 생긴다', async ({
+  test('미가입(HOST_400_13)이면 [초대 링크 만들기] → H-16 → 지금 출처 + 경로 링크 · [링크 복사하기] · 대기 목록에 생긴다', async ({
     page,
     context,
     mockApi,
@@ -360,25 +363,30 @@ test.describe('멤버 관리 — 초대 링크', () => {
     const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
     await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
     await dialog.getByRole('button', { name: '초대하기' }).click();
-    await expect(dialog.getByTestId('invite-row').getByRole('alert')).toHaveText(
+    await expect(dialog.getByRole('alert')).toHaveText(
       '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
     );
+    // 서버가 막은 이메일은 고치기 전까지 [초대하기] 비활성(GUI `1427:4143`)
+    await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
     await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
     const done = page.getByRole('dialog', { name: '초대 링크를 만들었어요' });
-    const link = done.getByLabel('초대 링크');
+    const link = done.getByTestId('invite-link').locator('p');
     const origin = new URL(page.url()).origin;
-    await expect(link).toHaveValue(
-      new RegExp(`^${origin}/host-invitations/mock-invite-\\d+-\\w+$`),
+    await expect(link).toHaveText(new RegExp(`^${origin}/host-invitations/mock-invite-\\d+-\\w+$`));
+    await expect(done.getByTestId('invite-link')).toContainText(
+      /만료일: \d{4}년 \d{1,2}월 \d{1,2}일$/,
     );
-    await done.getByRole('button', { name: '링크 복사' }).click();
-    await expect(page.getByText('초대 링크를 복사했어요')).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await link.inputValue());
+    await done.getByRole('button', { name: '링크 복사하기' }).click();
+    await expect(page.getByText('링크를 클립보드에 복사했어요.')).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      await link.textContent(),
+    );
     const post = mockApi.calls().filter((c) => c.method === 'POST');
     expect(post.map((c) => [c.path, c.status])).toEqual([
       ['/api/v2/hosts/11/members', 400],
       ['/api/v2/hosts/11/invitations', 200],
     ]);
-    await done.getByRole('button', { name: '확인' }).click();
+    await done.getByRole('button', { name: '닫기' }).click();
     await expect(page.getByTestId('invitation-row')).toHaveCount(4);
     await expect(page.getByTestId('invitation-row').last()).toContainText('nobody@example.com');
   });

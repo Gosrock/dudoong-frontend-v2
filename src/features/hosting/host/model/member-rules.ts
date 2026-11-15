@@ -4,7 +4,6 @@ import {
   HOST_MEMBERS_INVITE_MAX,
   type HostMember,
 } from '@/api/host/schema';
-import type { HostRole } from '@/api/shared/common-schema';
 import { type ActorRole, can, type HostAction } from '@/features/shared/permission/model/can';
 
 /**
@@ -13,12 +12,6 @@ import { type ActorRole, can, type HostAction } from '@/features/shared/permissi
  * 서버 규칙(432cce4): `Host.validateCanManageRole`(MASTER 지정 불가 · 매니저는 GUEST만), `V2HostDomainService.removeMember`
  * (마스터 삭제 불가), `Host.changeActiveHostUserRole`(마스터 대상 불가), `Host.transferMaster`(활성 멤버에게만).
  */
-
-/**
- * 멤버 목록에서 역할 글자를 눈으로는 숨기는 역할(와이어: 마스터·매니저만 적고 일반은 비워 둔다 — 화면 읽기 프로그램에는 읽힌다).
- * 표시용 매핑이라 `can()`이 아니다(patterns §22 D10, 코드 패턴 점검 A42)
- */
-export const hideRoleLabel = (role: HostRole) => role === 'GUEST';
 
 // ─── 행 메뉴 ─────────────────────────────────────────────────
 
@@ -167,37 +160,41 @@ export type PermissionGuideRow = {
 
 type GuideSource = {
   label: string;
-  action: HostAction;
+  /** 행이 묶은 동작 — 모두 할 수 있을 때만 가능(묶은 동작은 문턱이 같다) */
+  actions: readonly HostAction[];
   notes?: Partial<Record<'GUEST' | 'MANAGER' | 'MASTER', string>>;
 };
 
 /**
- * api-contract §2 권한표의 행. 칸의 가능 여부는 `can()`에서 만든다(표와 판정이 어긋나지 않게).
- * Figma의 "호스트 삭제" 행은 서버에 없어 뺀다(plan P10b, patterns §22).
+ * 행 · 문구 · 순서는 GUI 권한 안내 시트(`1452:54461`, Design Sync #265 — 디자이너가 api-contract §2 표를 합치고 문구를 다듬음).
+ * 칸의 가능 여부는 `can()`에서 만든다(표와 판정이 어긋나지 않게). "호스트 삭제" 행은 서버에 없다(plan P10b, patterns §22).
  */
 const GUIDE: GuideSource[] = [
   {
-    label: '관리 화면 조회(준비중 포함), 멤버·티켓·옵션 목록, 체크리스트',
-    action: 'viewManagement',
-    notes: { GUEST: '읽기 전용' },
-  },
-  {
-    label: '대시보드, 주문·발급 티켓·환불 목록과 상세',
-    action: 'viewGuests',
+    label: '모든 관리 화면 보기\n(대시보드·예매자 관리 포함)',
+    actions: ['viewManagement', 'viewGuests'],
     notes: { GUEST: '구매자 연락처·이메일·입금자명은 가린 값' },
   },
-  { label: '환불 계좌 전체 보기', action: 'viewRefundAccount' },
-  { label: '엑셀 다운로드', action: 'downloadExcel' },
-  { label: 'QR 체크인, 셀프 체크인 QR 띄우기, 체크인 통계', action: 'checkIn' },
-  { label: '공연·티켓·옵션 쓰기, 호스트 설정·이미지', action: 'editHost' },
-  { label: '멤버 추가·삭제', action: 'manageMembers', notes: { MANAGER: '일반 멤버만' } },
-  { label: '주문 승인·거절·승인 후 취소·환불 완료', action: 'manageOrders' },
-  { label: '역할 변경(일반 ↔ 매니저), 마스터 양도', action: 'changeMemberRole' },
+  { label: 'QR체크인, 셀프 체크인 QR띄우기, 체크인 통계', actions: ['checkIn'] },
+  { label: '공연·티켓·옵션 만들기, 수정, 삭제', actions: ['editEvent'] },
+  { label: '환불 계좌 전체 보기', actions: ['viewRefundAccount'] },
+  { label: '예매자 관리 엑셀 다운로드', actions: ['downloadExcel'] },
+  {
+    label: '주문 승인·거절·승인 후 취소·환불 완료·입장 취소',
+    actions: ['manageOrders', 'cancelEntrance'],
+  },
+  { label: '호스트 홈 설정', actions: ['editHost'] },
+  { label: '멤버 추가·삭제', actions: ['manageMembers'], notes: { MANAGER: '일반만 가능' } },
+  {
+    label: '역할 변경(일반 ↔ 매니저), 마스터 양도',
+    actions: ['changeMemberRole', 'transferMaster'],
+  },
+  { label: '공연 취소', actions: ['cancelEvent'] },
 ];
 
 export const PERMISSION_GUIDE: readonly PermissionGuideRow[] = GUIDE.map((row) => {
   const cell = (role: 'GUEST' | 'MANAGER' | 'MASTER'): PermissionCell => ({
-    allowed: can(role, row.action),
+    allowed: row.actions.every((action) => can(role, action)),
     note: row.notes?.[role] ?? null,
   });
   return {

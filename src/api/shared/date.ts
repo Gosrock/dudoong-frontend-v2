@@ -71,10 +71,14 @@ export function formatKstDateTime(date: Date): string {
 /** 요일 한 글자(일요일부터) — `Date.getUTCDay()` 순서. 화면에서 요일 배열을 다시 만들지 않는다 */
 export const KOREAN_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'] as const;
 
-/** `'2026.05.11 19:30'`(KST) → `'2026년 5월 11일 (월)'` — 공연준비 홈 카드 날짜 줄(plan P10a, GUI 카드 문구 2026-10-25) */
-export function formatKstKoreanDate(value: string): string {
+/**
+ * `'2026.05.11 19:30'`(KST) → `'2026년 5월 11일 (월)'` — 공연준비 홈 카드 날짜 줄(plan P10a, GUI 카드 문구 2026-10-25).
+ * `weekday: false`면 `'2026년 5월 11일'`(초대 링크 만료일 — GUI `1427:4357` · `1427:4596`)
+ */
+export function formatKstKoreanDate(value: string, { weekday: withWeekday = true } = {}): string {
   const p = readParts(value);
   if (!p) throw new RangeError('날짜 형식이 yyyy.MM.dd HH:mm이 아니다');
+  if (!withWeekday) return `${p.year}년 ${p.month}월 ${p.day}일`;
   const weekday = KOREAN_WEEKDAYS[new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay()];
   return `${p.year}년 ${p.month}월 ${p.day}일 (${weekday})`;
 }

@@ -70,6 +70,17 @@ export const WithError: Story = {
   },
 };
 
+/** 테두리만 에러(`invalid`) — 문구는 칸 밖(GUI 멤버 초대 `1427:4143`: 이메일 + 역할 줄 아래) */
+export const InvalidOnly: Story = {
+  args: { 'aria-label': '초대할 이메일', invalid: true, defaultValue: 'nobody@example.com' },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const input = c.getByRole('textbox', { name: '초대할 이메일' });
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+    await expect(c.queryByRole('alert')).toBeNull();
+  },
+};
+
 /** Figma 3종 × 상태 비교 */
 export const Matrix: Story = {
   render: () => (

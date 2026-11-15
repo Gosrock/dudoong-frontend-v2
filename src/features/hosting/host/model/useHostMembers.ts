@@ -22,12 +22,7 @@ import { HOST_ROLE_LABEL } from '@/features/hosting/shared/model/host-role';
 import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 import { type Result, tryCatch } from '@/utils/try-catch';
 
-import {
-  hideRoleLabel,
-  MEMBER_ACTION_ERROR_MESSAGE,
-  memberActionsOf,
-  PERMISSION_GUIDE,
-} from './member-rules';
+import { MEMBER_ACTION_ERROR_MESSAGE, memberActionsOf, PERMISSION_GUIDE } from './member-rules';
 
 /** 멤버 동작 결과 — 성공 `true` · 이미 없는 멤버(`HOST_404_2`, 목록을 다시 읽음) `'missing'` · 그 밖 실패 `false` */
 export type MemberActionResult = boolean | 'missing';
@@ -111,8 +106,6 @@ export function useHostMembers(hostId: string) {
       members.map((m) => ({
         ...m,
         roleLabel: HOST_ROLE_LABEL[m.role],
-        /** 역할 글자를 눈으로는 숨긴다(일반 멤버 — 와이어) */
-        roleLabelHidden: hideRoleLabel(m.role),
         /** 나(GM-1 `userId`) — "나" 표시용 */
         isMe: me?.userId === m.userId,
         actions: memberActionsOf(myRole, m),
