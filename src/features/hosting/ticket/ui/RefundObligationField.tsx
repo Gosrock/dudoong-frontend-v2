@@ -49,6 +49,8 @@ export function RefundObligationField({
           checked={agreed}
           onCheckedChange={onAgreedChange}
           disabled={disabled}
+          // 제목 별표는 GUI대로 없앴지만(`required` 없음) 필수 동의라는 정보는 보조기기에 남긴다(리뷰 #240)
+          aria-required
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${bodyId} ${errorId}` : bodyId}
           label={<Txt typography="bodyMd">{REFUND_OBLIGATION_LABEL}</Txt>}
