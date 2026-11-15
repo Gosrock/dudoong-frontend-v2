@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>두둥 v2 화면별 구현 현황 — 디자이너용</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #f7f6fb; --surface: #ffffff; --ink: #1d1a2b; --muted: #6b6680; --line: #e2dfec;
+  --accent: #6b4de6; --accent-soft: #ece7fd;
+  --gui: #1f8a5b; --gui-soft: #e2f3ea;
+  --mix: #6b4de6; --mix-soft: #ece7fd;
+  --wire: #2f6fb0; --wire-soft: #e1edf9;
+  --none: #8a6a12; --none-soft: #f8efd2;
+  --ask: #b5641a; --ask-soft: #fbeedd;
+  --font: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141220; --surface: #1d1a2b; --ink: #ece9f6; --muted: #a39fb8; --line: #322e44;
+    --accent: #a08cff; --accent-soft: #2c2547;
+    --gui: #5cc995; --gui-soft: #183428; --mix: #a08cff; --mix-soft: #2c2547;
+    --wire: #7fb2e8; --wire-soft: #1a2a3b; --none: #e3c25e; --none-soft: #352c12;
+    --ask: #f0a35c; --ask-soft: #3a2a17; color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.65;
+  padding-top: calc(32px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { margin: 0; line-height: 1.3; text-wrap: balance; }
+h1 { font-size: 28px; }
+h2 { font-size: 20px; }
+h3 { font-size: 16px; }
+p { margin: 0; }
+.lead { color: var(--muted); max-width: 66ch; }
+.eyebrow { font-size: 12px; letter-spacing: .06em; color: var(--muted); }
+header { display: flex; flex-direction: column; gap: 10px; border-bottom: 2px dashed var(--line); padding-bottom: 24px; }
+
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.lg { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; }
+.lg .cnt { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lg p { font-size: 13.5px; color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; padding: 2px 10px; border-radius: 999px; white-space: nowrap; width: fit-content; }
+.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.b-gui { background: var(--gui-soft); color: var(--gui); }
+.b-mix { background: var(--mix-soft); color: var(--mix); }
+.b-wire { background: var(--wire-soft); color: var(--wire); }
+.b-none { background: var(--none-soft); color: var(--none); }
+.new { font-size: 11px; font-weight: 700; color: #fff; background: var(--accent); border-radius: 4px; padding: 1px 6px; }
+
+.bar { display: flex; height: 16px; border-radius: 8px; overflow: hidden; background: var(--line); }
+.bar span { display: block; height: 100%; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filters button { font: inherit; font-size: 13.5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.section { display: flex; flex-direction: column; gap: 14px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.sec-head .mini { display: flex; gap: 6px; flex-wrap: wrap; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card.fresh { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.card .title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.card .where { font-size: 13px; color: var(--muted); }
+.row { display: grid; grid-template-columns: 64px 1fr; gap: 8px; font-size: 13.5px; }
+.row .k { color: var(--muted); font-size: 12.5px; padding-top: 1px; }
+.row.ask .v { color: var(--ask); }
+.card[hidden] { display: none; }
+.go { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--accent); text-decoration: none; border: 1px solid var(--accent-soft); background: var(--accent-soft); border-radius: 8px; padding: 5px 10px; width: fit-content; }
+.go:hover { border-color: var(--accent); }
+.go-hint { font-size: 12px; color: var(--muted); }
+.go-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 2px; }
+.notice { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; padding: 12px 16px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+
+.asks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.asks .card h3 { font-size: 15px; }
+ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.how { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+footer { color: var(--muted); font-size: 12.5px; border-top: 2px dashed var(--line); padding-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow" id="eyebrow">두둥 v2 · 디자이너 공유용</span>
+    <h1>화면별로 어떻게 만들어졌나</h1>
+    <p class="lead">새 두둥(v2)의 모든 화면은 일단 다 만들어져 있고 테스트도 통과했어요. 다만 화면마다 <b>무엇을 보고 만들었는지</b>가 달라요. Figma GUI를 그대로 따른 화면, 와이어프레임 수준으로 만든 화면, 둘이 섞인 화면, 디자인이 아예 없어서 개발이 기존 디자인 시스템 부품으로 꾸민 화면이 있어요. 아래에서 화면마다 확인하실 수 있어요.</p>
+  </header>
+
+  <section class="section" aria-labelledby="labels">
+    <h2 id="labels">네 가지 표시의 뜻</h2>
+    <div class="legend">
+      <div class="lg"><span class="badge b-gui">GUI대로</span><span class="cnt" id="c-gui">0</span><p>Figma에서 <b>Ready for dev</b>로 표시된 GUI 화면을 그대로 따랐어요. 간격·글자·색을 Figma와 나란히 놓고 비교했어요.</p></div>
+      <div class="lg"><span class="badge b-mix">섞임</span><span class="cnt" id="c-mix">0</span><p>화면의 일부는 GUI대로, 나머지(예: PC 배치, 특정 상태)는 와이어나 개발 판단으로 만들었어요.</p></div>
+      <div class="lg"><span class="badge b-wire">와이어대로</span><span class="cnt" id="c-wire">0</span><p>GUI가 아직 없거나 Ready for dev가 아니어서 <b>와이어프레임 구성</b>만 따랐어요. 모양은 디자인 시스템 기본값이라 GUI가 오면 바뀌어요.</p></div>
+      <div class="lg"><span class="badge b-none">디자인 없음</span><span class="cnt" id="c-none">0</span><p>와이어도 GUI도 없어서 개발이 <b>디자인 시스템 부품만으로</b> 꾸몄어요. Figma에 "[개발 · 디자인 없음]" 코멘트를 남겨 두었어요.</p></div>
+    </div>
+    <div class="bar" id="bar" aria-label="화면 표시 비율"></div>
+  </section>
+
+  <div class="notice">
+    <b>카드의 [스테이징에서 보기 ↗]를 누르면 실제 화면으로 가요.</b>
+    <span id="stg-note"></span>
+  </div>
+
+  <section class="section" aria-labelledby="recent-title">
+    <h2 id="recent-title" style="font-size:16px">최근 반영 <span class="go-hint" id="recent-date"></span></h2>
+    <ul id="recent"></ul>
+  </section>
+
+  <section class="section" aria-labelledby="filter-title">
+    <h2 id="filter-title" style="font-size:16px">골라 보기</h2>
+    <div class="filters" role="group" aria-label="표시로 거르기">
+      <button type="button" data-f="all" aria-pressed="true">전체</button>
+      <button type="button" data-f="gui" aria-pressed="false">GUI대로</button>
+      <button type="button" data-f="mix" aria-pressed="false">섞임</button>
+      <button type="button" data-f="wire" aria-pressed="false">와이어대로</button>
+      <button type="button" data-f="none" aria-pressed="false">디자인 없음</button>
+      <button type="button" data-f="ask" aria-pressed="false">디자이너 확인 필요만</button>
+      <button type="button" data-f="fresh" aria-pressed="false">최근 바뀐 것만</button>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="aud">
+    <div class="sec-head"><h2 id="aud">관객 화면</h2><div class="mini" id="m-audience"></div></div>
+    <div class="grid" id="g-audience"></div>
+  </section>
+
+  <section class="section" aria-labelledby="host">
+    <div class="sec-head"><h2 id="host">공연 준비하기(호스트) 화면</h2><div class="mini" id="m-hosting"></div></div>
+    <div class="grid" id="g-hosting"></div>
+  </section>
+
+  <section class="section" aria-labelledby="asks">
+    <h2 id="asks">디자이너께 부탁드리는 것</h2>
+    <div class="asks" id="ask-list"></div>
+  </section>
+
+  <section class="how" aria-labelledby="flow">
+    <h2 id="flow" style="font-size:16px">이렇게 주고받고 있어요</h2>
+    <ul>
+      <li><b>Ready for dev로 바꾸면</b> Figma 플러그인이 GitHub에 이슈를 만들고, 개발이 그 화면을 GUI대로 고쳐요. 끝나면 이슈가 닫혀요.</li>
+      <li><b>디자인이 없어 개발이 정한 곳</b>에는 Figma 코멘트를 남겨요. "[개발 · 디자인 없음]" 또는 "[개발 · DS 컴포넌트로 구현]"으로 시작해요. 답글로 "지금 방식 괜찮다"거나 바꿀 방향을 주시면 반영해요.</li>
+      <li>더 할 일이 없는 답글에는 끝에 "→ 노이슈 — 완료 처리해 주셔도 됩니다."라고 붙여요. 그 코멘트는 완료 처리해 주세요.</li>
+    </ul>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const LABEL = { gui: 'GUI대로', mix: '섞임', wire: '와이어대로', none: '디자인 없음' };
+const COLOR = { gui: 'var(--gui)', mix: 'var(--mix)', wire: 'var(--wire)', none: 'var(--none)' };
+const KINDS = ['gui', 'mix', 'wire', 'none'];
+const el = (t, c, txt) => { const n = document.createElement(t); if (c) n.className = c; if (txt != null) n.textContent = txt; return n; };
+const md = (d) => d ? d.slice(5).replace('-', '-') : '';
+
+document.getElementById('eyebrow').textContent = `두둥 v2 · 디자이너 공유용 · ${DATA.asOf} 기준`;
+document.getElementById('stg-note').textContent =
+  `스테이징 주소는 ${DATA.staging.base.replace('https://', '')}이에요. 밤 2시에 자동으로 꺼지니, 안 열리면 개발에 켜 달라고 말씀해 주세요. 공연 준비하기 화면은 카카오 로그인이 필요하고, ${DATA.staging.note}의 멤버여야 보여요. 링크나 QR이 있어야 열리는 화면은 들어가는 방법을 적어 두었어요.`;
+document.getElementById('recent-date').textContent = `(${DATA.asOf})`;
+for (const r of DATA.recent) document.getElementById('recent').append(el('li', null, r));
+
+const total = { gui: 0, mix: 0, wire: 0, none: 0 };
+for (const group of ['audience', 'hosting']) {
+  const grid = document.getElementById('g-' + group);
+  const counts = { gui: 0, mix: 0, wire: 0, none: 0 };
+  for (const s of DATA.screens.filter((x) => x.group === group)) {
+    counts[s.kind]++; total[s.kind]++;
+    const fresh = s.updated && s.updated >= DATA.freshSince;
+    const c = el('article', 'card' + (fresh ? ' fresh' : ''));
+    c.dataset.kind = s.kind; c.dataset.ask = s.ask ? '1' : ''; c.dataset.fresh = fresh ? '1' : '';
+    const top = el('div', 'top');
+    const ti = el('div', 'title');
+    const h = el('h3', null, s.name);
+    if (fresh) { h.append(' '); h.append(el('span', 'new', md(s.updated))); }
+    ti.append(h, el('span', 'where', s.where));
+    top.append(ti, el('span', 'badge b-' + s.kind, LABEL[s.kind]));
+    c.append(top);
+    const row = (k, v, cls) => { const r = el('div', 'row' + (cls ? ' ' + cls : '')); r.append(el('span', 'k', k), el('span', 'v', v)); c.append(r); };
+    if (s.gui) row('GUI대로', s.gui);
+    if (s.other) row(s.kind === 'gui' || s.kind === 'mix' ? '그 밖' : '어떻게', s.other);
+    if (s.ask) row('부탁', s.ask, 'ask');
+    const w = el('div', 'go-wrap');
+    if (s.path) {
+      const a = el('a', 'go', '스테이징에서 보기 ↗');
+      a.href = DATA.staging.base + s.path; a.target = '_blank'; a.rel = 'noopener';
+      w.append(a);
+    }
+    if (s.hint) w.append(el('span', 'go-hint', s.hint));
+    if (w.childNodes.length) c.append(w);
+    grid.append(c);
+  }
+  const mini = document.getElementById('m-' + group);
+  for (const k of KINDS) if (counts[k]) mini.append(el('span', 'badge b-' + k, LABEL[k] + ' ' + counts[k]));
+}
+const sum = KINDS.reduce((n, k) => n + total[k], 0);
+const bar = document.getElementById('bar');
+for (const k of KINDS) {
+  document.getElementById('c-' + k).textContent = total[k] + '개';
+  const s = el('span'); s.style.width = (total[k] / sum * 100) + '%'; s.style.background = COLOR[k]; s.title = LABEL[k] + ' ' + total[k]; bar.append(s);
+}
+const asks = document.getElementById('ask-list');
+for (const a of DATA.asks) {
+  const c = el('div', 'card');
+  c.append(el('h3', null, a.title));
+  if (a.lead) { const p = el('p', 'lead', a.lead); p.style.fontSize = '13.5px'; c.append(p); }
+  const ul = el('ul');
+  for (const i of a.items) ul.append(el('li', null, i));
+  c.append(ul); asks.append(c);
+}
+document.getElementById('foot').textContent = `${DATA.asOf} 기준. 근거: 개발 문서 gui-screens §0(화면별 상태) · progress.md · Design Sync 이슈 · Figma 코멘트.`;
+
+const buttons = document.querySelectorAll('.filters button');
+buttons.forEach((btn) => btn.addEventListener('click', () => {
+  buttons.forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  const f = btn.dataset.f;
+  document.querySelectorAll('.grid .card').forEach((card) => {
+    card.hidden = !(f === 'all' || (f === 'ask' ? card.dataset.ask === '1' : f === 'fresh' ? card.dataset.fresh === '1' : card.dataset.kind === f));
+  });
+}));
+</script>
+</body>
+</html>

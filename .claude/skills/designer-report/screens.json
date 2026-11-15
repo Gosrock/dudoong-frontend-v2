@@ -1,0 +1,493 @@
+{
+  "asOf": "2026-11-14",
+  "freshSince": "2026-11-14",
+  "staging": {
+    "base": "https://staging.dudoong.com",
+    "note": "예시 공연 \"고스락 홍대 버스킹\"(공연 59, 호스트 고스락 17)"
+  },
+  "recent": [
+    "QR 체크인 GUI 99장 전부 반영",
+    "새 티켓 폼 환불 의무 안내 · 동의 체크를 Figma 위치로",
+    "티켓 카드 판매 기간 줄(판매 기간을 안 정한 티켓도 \"등록 즉시 ~ 공연 시작 전(일시)\")",
+    "11-07 이후 답이 없던 코멘트 7개에 답글"
+  ],
+  "asks": [
+    {
+      "title": "1. 와이어 수준인 화면의 GUI",
+      "lead": "Ready for dev로 표시해 주시면 개발이 바로 이슈로 받아 GUI대로 바꿔요. 사용자가 많이 보는 순서로 적었어요.",
+      "items": [
+        "공연 상세 · 티켓 선택(매진·판매 중단 상태 포함)",
+        "마이페이지 · 알림함 · 관람 아카이빙",
+        "호스트 홈 · 공연준비 홈 · 호스트 만들기/설정/멤버 · 간편 공연 만들기",
+        "티켓 수정 화면"
+      ]
+    },
+    {
+      "title": "2. 디자인이 없는 화면·상태",
+      "lead": "",
+      "items": [
+        "관객 셀프 체크인(공연장 QR을 찍고 들어오는 화면 전체)",
+        "서비스 공지 목록·상세 · 상단 배너",
+        "회원가입 창 · 로그인 처리 중/실패 안내",
+        "무료 티켓 \"신청하기\" 체크아웃 · 티켓탭 PC",
+        "공연 취소 표시(대시보드) · QR 체크인 관객 탭 일부"
+      ]
+    },
+    {
+      "title": "3. 답을 기다리는 확인 요청",
+      "lead": "",
+      "items": [
+        "\"디자인 확인 요청\" 페이지의 남은 카드 · Figma와 다르게 둔 곳 18개",
+        "동의 체크 칸 위치 — 가입 · 체크아웃 · 입금 확인 3곳 (새 티켓 폼은 반영 완료)",
+        "글자 색 대비가 부족한 색 6묶음",
+        "파비콘 · 공유 미리보기 기본 이미지(OG)"
+      ]
+    }
+  ],
+  "screens": [
+    {
+      "group": "audience",
+      "name": "공연홈",
+      "where": "두둥 첫 화면",
+      "kind": "mix",
+      "gui": "모바일 전체 — 큰 그림, 공연 카드 줄, 푸터, 맨 위로 버튼",
+      "other": "PC 배치는 와이어대로. \"두둥 소개\"는 빈 카드로 둠",
+      "ask": "PC 공연홈 GUI",
+      "path": "/",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "공연 리스트",
+      "where": "공연 둘러보기 · 검색 · 태그",
+      "kind": "gui",
+      "gui": "목록, 검색, 태그, 검색 결과 없음, 지난 공연 표시",
+      "other": "",
+      "ask": "",
+      "path": "/events",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "공연 상세",
+      "where": "공연 하나 보기 · 호스트 연락처 · 공유",
+      "kind": "wire",
+      "gui": "",
+      "other": "GUI 프레임은 있지만 Ready for dev가 아니라 와이어 구성",
+      "ask": "Ready for dev 표시",
+      "path": "/events/59",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "티켓 선택",
+      "where": "[예매하기] 시트 · PC 오른쪽 카드",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성. 매진·판매 중단·판매 종료 표시는 개발이 정함",
+      "ask": "Ready for dev + 매진 등 상태",
+      "path": "/events/59",
+      "hint": "[예매하기]를 눌러요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "체크아웃",
+      "where": "예매 정보 입력 · 입금 안내",
+      "kind": "gui",
+      "gui": "두둥 티켓(계좌 입금) 결제 화면 전체",
+      "other": "무료 티켓 \"신청하기\"는 GUI가 없어 결제 칸만 뺌",
+      "ask": "무료 신청 화면",
+      "path": "/events/59",
+      "hint": "[예매하기] → 티켓 고르고 다음으로",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "주문 완료",
+      "where": "예매 직후 화면",
+      "kind": "gui",
+      "gui": "완료 안내와 두 버튼",
+      "other": "",
+      "ask": "",
+      "path": "/events/59",
+      "hint": "예매를 끝내면 나와요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "티켓탭 · 입장 QR",
+      "where": "내 티켓 보기 · QR 보여주기",
+      "kind": "gui",
+      "gui": "티켓 카드, QR, 상태 칩 하나",
+      "other": "PC 화면과 일부 상태 칩 색은 디자인 없음",
+      "ask": "PC 티켓탭",
+      "path": "/tickets",
+      "hint": "로그인 필요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "선물하기",
+      "where": "티켓을 링크로 선물",
+      "kind": "gui",
+      "gui": "선물 시트, 링크 만들기, 취소·반송 완료",
+      "other": "유의사항 체크 전 모양과 PC는 디자인 없음",
+      "ask": "",
+      "path": "/tickets",
+      "hint": "티켓 카드에서 [선물하기]",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "선물 받기",
+      "where": "선물 링크를 연 사람",
+      "kind": "gui",
+      "gui": "받기, 거절, 로그인 전 화면, 보낸 사람 표시",
+      "other": "",
+      "ask": "",
+      "path": null,
+      "hint": "다른 사람이 보낸 선물 링크를 열면 나와요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "셀프 체크인",
+      "where": "관객이 공연장 QR을 찍고 입장",
+      "kind": "none",
+      "gui": "",
+      "other": "와이어도 GUI도 없어 전부 디자인 시스템 부품으로 꾸밈",
+      "ask": "화면 전체 디자인",
+      "path": null,
+      "hint": "QR 체크인 화면의 [관객이 QR 스캔] QR을 폰으로 찍으면 나와요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "로그인",
+      "where": "로그인 · 세션 만료 · 회원가입",
+      "kind": "mix",
+      "gui": "로그인 화면(그림 + 카카오 버튼)",
+      "other": "로그인 처리 중/실패 안내, 회원가입 창은 디자인 없음",
+      "ask": "회원가입 창",
+      "path": "/login",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "메뉴 · 헤더",
+      "where": "상단 헤더 · 햄버거 메뉴 · PC 상단 바",
+      "kind": "mix",
+      "gui": "햄버거 메뉴(로그인 전·후)",
+      "other": "로고 헤더, PC 상단 바, 404·에러 화면은 와이어 구성",
+      "ask": "",
+      "path": "/",
+      "hint": "왼쪽 위 ☰",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "마이페이지",
+      "where": "프로필 · 바로가기 · 탈퇴",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성. 프로필 편집과 회원 탈퇴는 디자인 없음",
+      "ask": "GUI",
+      "path": "/mypage",
+      "hint": "로그인 필요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "주문내역 · 주문상세",
+      "where": "예매 목록과 한 건 상세",
+      "kind": "gui",
+      "gui": "목록 카드, 상세(선물·거절 포함)",
+      "other": "",
+      "ask": "",
+      "path": "/orders",
+      "hint": "로그인 필요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "관심 호스트",
+      "where": "♥한 호스트 목록",
+      "kind": "gui",
+      "gui": "목록, ♥ 해제",
+      "other": "",
+      "ask": "",
+      "path": "/mypage/following",
+      "hint": "로그인 필요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "관람 아카이빙",
+      "where": "지난 관람 기록",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성. CD 이미지 만드는 방법은 코멘트로 설명함",
+      "ask": "GUI",
+      "path": "/mypage/archive",
+      "hint": "로그인 필요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "호스트 홈",
+      "where": "관객이 보는 호스트 소개",
+      "kind": "wire",
+      "gui": "",
+      "other": "GUI 프레임은 있지만 Ready for dev가 아님",
+      "ask": "Ready for dev 표시",
+      "path": "/hosts/17",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "알림함",
+      "where": "알림 목록",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성. 빈 상태와 \"n분 전\" 표시는 개발이 정함",
+      "ask": "GUI",
+      "path": "/mypage/notifications",
+      "hint": "로그인 필요",
+      "updated": null
+    },
+    {
+      "group": "audience",
+      "name": "서비스 공지 · 상단 배너",
+      "where": "두둥 공지 목록 · 화면 맨 위 한 줄 배너",
+      "kind": "none",
+      "gui": "",
+      "other": "디자인이 없어 디자인 시스템 부품으로 꾸밈",
+      "ask": "공지 화면 디자인",
+      "path": "/notices",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "공연준비 홈",
+      "where": "내 호스트 · 내 공연 목록",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성",
+      "ask": "GUI",
+      "path": "/hosting",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "호스트 만들기",
+      "where": "새 호스트 등록",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성",
+      "ask": "GUI",
+      "path": "/hosting/new/hosts",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "호스트 설정",
+      "where": "호스트 이름 · 소개 · 연락처",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성. 호스트 이미지 칸은 디자인 없음",
+      "ask": "Ready for dev 표시",
+      "path": "/hosting/hosts/17/settings",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "호스트 멤버",
+      "where": "멤버 초대 · 권한 바꾸기",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성. 새 초대장 이미지(#239)는 이 화면 GUI가 오면 넣음",
+      "ask": "GUI",
+      "path": "/hosting/hosts/17/members",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "간편 공연 만들기",
+      "where": "공연 처음 만들기",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성",
+      "ask": "GUI",
+      "path": "/hosting/new/events",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "대시보드 — 등록 전",
+      "where": "체크리스트 · 유의사항",
+      "kind": "gui",
+      "gui": "체크리스트 0/3 · 3/3, 유의사항",
+      "other": "등록 확인 팝업, 토스트, 1/3 · 2/3 단계는 디자인 없음",
+      "ask": "",
+      "path": "/hosting",
+      "hint": "\"준비중\" 공연을 골라요",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "대시보드 — 등록 후",
+      "where": "판매 · 입장 현황 · 일정",
+      "kind": "gui",
+      "gui": "통계 카드, 판매 도넛, 입장 현황, 일정 패널(5가지 폭)",
+      "other": "공연 취소 표시는 디자인 없음",
+      "ask": "공연 취소 상태",
+      "path": "/hosting/events/59/dashboard",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "기본 정보",
+      "where": "공연 이름 · 일시 · 장소",
+      "kind": "gui",
+      "gui": "모바일 · PC, 지도, 지도를 못 불러올 때",
+      "other": "",
+      "ask": "",
+      "path": "/hosting/events/59/info",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "상세 정보",
+      "where": "공연 소개 글 · 탭",
+      "kind": "gui",
+      "gui": "에디터, 탭 메뉴, 이름 바꾸기, 탭 삭제",
+      "other": "탭 10개 제한 · 미리보기는 개발 방식(11-11 \"좋다\" 답 받음)",
+      "ask": "",
+      "path": "/hosting/events/59/detail",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "티켓 관리",
+      "where": "티켓 목록",
+      "kind": "gui",
+      "gui": "티켓 카드, ⋮ 메뉴, 확인 창, \"티켓 옵션이란?\"",
+      "other": "11-14: 판매 기간을 안 정한 티켓도 \"등록 즉시 ~ 공연 시작 전(일시)\"로 표시(답글 반영)",
+      "ask": "",
+      "path": "/hosting/events/59/tickets",
+      "hint": "",
+      "updated": "2026-11-14"
+    },
+    {
+      "group": "hosting",
+      "name": "티켓 옵션",
+      "where": "옵션 추가 · 만들기 · 수정",
+      "kind": "gui",
+      "gui": "추가 시트, 새 옵션, 상세, 수정",
+      "other": "옵션 삭제 버튼 자리는 개발이 정함",
+      "ask": "",
+      "path": "/hosting/events/59/tickets",
+      "hint": "티켓 카드의 [티켓 옵션 추가]",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "새 티켓 만들기",
+      "where": "티켓 등록 폼",
+      "kind": "gui",
+      "gui": "폼 전체 + 11-14 환불 의무 안내와 동의 체크를 Figma 위치로",
+      "other": "",
+      "ask": "",
+      "path": "/hosting/events/59/tickets/new",
+      "hint": "",
+      "updated": "2026-11-14"
+    },
+    {
+      "group": "hosting",
+      "name": "티켓 수정",
+      "where": "이미 만든 티켓 고치기",
+      "kind": "mix",
+      "gui": "새 티켓 GUI 폼을 그대로 다시 씀",
+      "other": "수정 화면 GUI가 없어 \"판매된 티켓은 못 바꿔요\" 안내 등은 개발이 정함",
+      "ask": "수정 화면 GUI",
+      "path": "/hosting/events/59/tickets",
+      "hint": "티켓 카드 ⋮ → 수정하기",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "예매자 관리",
+      "where": "주문 · 발급된 티켓 · 환불",
+      "kind": "gui",
+      "gui": "세 탭, 상태 필터, 검색, 여러 개 선택, 상세, 승인·거절",
+      "other": "",
+      "ask": "",
+      "path": "/hosting/events/59/guests",
+      "hint": "",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "QR 체크인",
+      "where": "공연장에서 관객 QR 찍기",
+      "kind": "gui",
+      "gui": "11-14 전부 GUI로: 카메라, 결과 카드, 카메라 켜는 중·실패, 지난 공연, 티켓 번호 입장, 입장 취소",
+      "other": "관객 탭의 정산중 · 관객 모바일 전체화면은 디자인 없음(코멘트 남김)",
+      "ask": "관객 탭 두 상태",
+      "path": "/hosting/events/59/qr",
+      "hint": "카메라 허용 필요",
+      "updated": "2026-11-14"
+    },
+    {
+      "group": "hosting",
+      "name": "메뉴 · 헤더 (PC)",
+      "where": "상단 바 · 공연 사이드바 · 오른쪽 일정",
+      "kind": "gui",
+      "gui": "상단 바, 공연 사이드바, 오른쪽 패널 폭",
+      "other": "",
+      "ask": "",
+      "path": "/hosting/events/59/dashboard",
+      "hint": "PC 화면에서",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "메뉴 · 헤더 (모바일 · 공연 밖)",
+      "where": "로고 헤더 · 햄버거 메뉴 · 공연 바꾸기",
+      "kind": "wire",
+      "gui": "",
+      "other": "와이어 구성. 공연 바꾸기 시트는 개발 기본안",
+      "ask": "",
+      "path": "/hosting",
+      "hint": "휴대폰 화면에서",
+      "updated": null
+    },
+    {
+      "group": "hosting",
+      "name": "서비스 공지 (호스트)",
+      "where": "공지 목록 · 상단 배너",
+      "kind": "none",
+      "gui": "",
+      "other": "디자인이 없어 디자인 시스템 부품으로 꾸밈",
+      "ask": "공지 화면 디자인",
+      "path": "/hosting/notices",
+      "hint": "",
+      "updated": null
+    }
+  ]
+}
