@@ -3751,3 +3751,34 @@ Design Sync #263(마스터뷰 14) · #264(매니저 · 일반뷰 3) · #265(권�
 **범위 밖**: 확인 팝업 폭 310(DS 다이얼로그) — Ready 화면은 342(390 − 48) · 관객 셸 모바일 헤더(로고 · 검색 · 티켓)는 GUI `basic title`(로고만)과 다름 · 권한 변경 드롭다운이 팝업 아래로 열림(GUI는 위).
 
 **테스트**: 단위 `member-rules`(권한 표 기대값 — 시트 행) · 스토리 `EmptyState/Medium` · `Input/InvalidOnly`. QA `host-invitation` 14/0 · `host-settings`(멤버 시나리오 HS-5~ 기대값만, 설정 시나리오는 그대로) 34/0. e2e `host-invitation` · `hosting-host` · `a11y` · `legacy-urls` · `security` · `seo` · `hosting` — 기대값만 고침(테스트 지우지 않음; 이미 멤버는 "수락 → 결과"에서 "바로 결과 + POST 없음"으로).
+
+## P5c · P10b 설정 GUI — 호스트 홈 · 공연 리스트 · 호스트 홈 설정 와이어 → GUI(2026-11-15, `p5c-gui-host-home` #272)
+
+Design Sync #257 · #260 · #261 · #262 + #269 일부(Nemin, 2026-11-15 12:12~12:24Z — GUI 페이지 ↳호스트홈 `741:30895`, **모바일만 Ready**). 와이어 구현(P5c-V #67 · P10b-V #69)을 모양 우선으로 바꿨다. 같은 DOM, 1024부터 PC(CSS로). PC는 Ready가 없어 와이어 배치에 GUI 모양을 잇는다(🤖 Q233).
+
+- **셸**: 페이지가 `SHELL_IMMERSIVE_ATTR`(`features/shared/shell/shell.css.ts`) 표시를 두면 관객 · 호스팅 셸이 **모바일** 로고 헤더와 그 자리(`barSpace`)를 숨긴다(`:has` + `useActivityMarker`). 호스트 홈(커버가 맨 위) · 호스트 홈 설정(Top app bar만)이 쓴다. 서비스 공지 배너는 그대로 위에 남는다. 병렬 `p10b-gui-members`도 같은 표시를 쓰면 된다.
+- **호스트 홈**: 커버 390:246(없거나 못 불러오면 GUI 로컬 "커버 이미지 기본" `1452:40910` → `illustrations/host-cover-default.svg`) · 커버 안 흰 원 44 [←] [⚙](`HostCoverButtons` — 커버와 같이 스크롤돼 공지 배너와 겹치지 않음) · 커버가 64 밑으로 지나가면 고정 흰 Top app bar "← 이름 ⚙"(`HostHomeTopBar`, IntersectionObserver — 서버 HTML은 바 없음). 프로필 100(커버에 68 걸침, `Avatar fallback="host"` — "프로필 이미지 기본" `1452:40909`) · ♡ 44(관심이면 `brand/accent` 채움) · 이름 `title`(카트라이더) · 소개 `headingSm` 3줄 + [더보기 ⌄]/[접기 ⌃](`HostIntroduce` — 실제 높이로 넘침 판정) · 연락처 원 36(GUI "호스트홈_연락처" `1478:7210`) · 멤버 수 · 개설일(16 아이콘 · `labelMd`) · [멤버 >] Avatar 60 · [공연 리스트 >] 카드 163 · 빈 상태 "아직 등록한 공연이 없어요."(제목 > 없음) · [+] DS round(매니저 이상, `Fab` 모양 링크).
+- **연락처**: 아이콘 줄 4개 이하면 모두, 넘으면 3 + ⋯(`contactIconsOf`). 아이콘 → 연락처 전체 보기 시트(`sheetVariant="flat"`, GUI "연락처 행" `1481:7193` — 원 36 · 유형 `labelSm` · 값 `headingSm` · 열 수 있으면 >, 가림 = 회색 · > 없음, 텍스트 = > 없음). 로그인 전 가린 값이 있으면 안내 상자 + [로그인 하기](replace). 로그인 전 가린 전화 · 이메일 아이콘 → `openConfirm` "로그인이 필요해요"(`1484:8106`) — [로그인하기]는 창이 닫힌 뒤(`useCloseOnBack` release) `push`로 로그인(닫히기 전 이동은 창이 기록을 되돌려 취소됨 — QA HH-10에서 잡음). 아이콘 대응(유튜브 DS `ic_youtube` · 기타 `ic_link`)은 호스트 홈 안 `HOST_CONTACT_ICON` — 공연 상세 `ContactList`(와이어)는 그대로.
+- **공연 리스트** `/hosts/[hostId]/events`(새 화면, `(audience)/(app)` — 브라우저 무한 목록): `AudienceSubHeader align="start"`("← 공연 리스트", 새 prop) · 2열(사이 16 · 줄 24) · 준비중만 오른쪽 위 칩(`ConcertCard badgePlacement="end"` 새 prop, DS Concert state chip ready → `Chip` green weak) · [+](매니저 이상). PC는 칸 200 이상(🤖).
+- **카드**: GUI 카드에 D-day · 지난 공연 칩이 없어 와이어 때 칩을 뺐다(준비중만). 날짜 줄 `2026.01.01 수요일 (18:00)`(공연홈과 같은 꼴 — `hostEventCardDate`).
+- **호스트 홈 설정**: 제목 "호스트 홈 설정" · 셸 로고 헤더 없음 · 상단 바와 하단 [저장] 바를 모바일 화면 폭으로(`HostSettingsView.css` bleed) · 도움말 "호스트 홈에 보이는 정보예요." · 이미지 칸(`HostImageField` — 제목 `headingMd2Emphasized` · 프로필 160 · 커버 폭×180 · 채움 `surface/container` · 테두리 · r12 · 가운데 [이미지 업로드](Secondary md + `image-add`) · [기본 이미지로] · 실패 문구 + [다시 올리기] · 못 불러온 미리보기는 숨김). 일반 멤버는 버튼 비활성(Q53 그대로). "호스트 삭제하기"는 서버에 없어 그리지 않음. `stakeholder` `1478:9437`은 노드를 읽으니 연락처 10줄(유형별 placeholder · 줄마다 ✕ · [문의처 추가] 없음 = 최대) — L(`HOST_CONTACTS_MAX` 10 · `ContactRows`)이 이미 같아 변경 없음.
+- **이미지 자르기**(새 동작, 의존성 없음): 파일을 고르면 "이미지 위치 조정"(`ImageCropSheet` — `ResponsiveOverlay` flat) — 자르기 칸 정사각 · `text/primary` 바탕 · r12, 가이드 밖 #0a0a09 85%(Figma 값), 프로필 흰 원 290/342 · 커버 흰 직사각(🤖 Q231 홈 커버 비율 390:246), 끌기(pointer · `data-vaul-no-drag`) · 확대 1~3([−] 막대 [+], GUI 로컬 "확대 축소" `1452:40749`), [다시 선택] · [적용]. 계산은 `model/image-crop.ts`(가이드 · 배율 · 끌기 한계 · 원본 영역 · 결과 크기 프로필 512 · 커버 1280 · PNG는 PNG 그 밖 JPEG 0.9), 그리기는 canvas `drawImage` → `File` → 지금 업로드 경로(PH-15 → S3 → PH-4). 서버 계약 변화 없음(JPEG · PNG만 — api-contract §1). JPG · PNG가 아니면 자르지 않고 훅이 그 자리 오류.
+- **새 자산 · 컴포넌트 prop**: 아이콘 `youtube` filled(DS `ic_youtube` `946:1465` — 11-15 판 반영 대기였던 것, 사용자 허락) · 일러스트 `host-profile-default.svg` · `host-cover-default.svg`(GUI 로컬 컴포넌트 SVG 내보내기) · `Avatar` `fallback` · `ConcertCard` `badgePlacement` · `AudienceSubHeader` `align`.
+
+**L 변경**(model · 단위 테스트, 이 PR)
+- `host-home-rules` — `contactIconsOf`(4개 이하 모두 · 넘으면 3 + more) · `hostEventsHref`.
+- `useHostHome` → viewer · 공연 목록을 `model/useHostEvents.ts`(`useHostViewer` · `useHostEvents`)로 떼어 공연 리스트 화면과 같이 씀(같은 캐시 · 같은 규칙, 값 그대로).
+- `hosting/host/model/image-crop.ts`(새 — 자르기 계산).
+
+**결정**
+- 🤖 Claude 판단 — 연락처 아이콘 하나를 누르면 전체 보기 시트(로그인 전 가린 값만 로그인 필요 팝업) / 근거: 그려진 것은 ⋯ · 로그인 필요뿐, 시트가 값을 보여 준다 / 되돌리려면 `HostHomeView` 아이콘 `onClick`. 코멘트 `2008673514`(Q229).
+- 관객 뷰 [+] 숨김(마스터 · 매니저만) — 처음엔 🤖(코멘트 `2008673516`, Q230)였는데 PR 직전 재확인에서 디자이너가 `1452:41324`의 [+]를 뺌 → Figma와 같아짐, 답글 노이슈 · Q230 닫음.
+- 🤖 커버 자르기 가이드 = 홈 커버 비율 390:246(Figma 340×180) / 근거: 자른 그대로 홈에 보이게 / 되돌리려면 `CROP_GUIDE.COVER.aspect` = 340/180. 코멘트 `2008673520`(Q231).
+- 🤖 올리는 중 · 실패 모습(버튼 로딩 · 빨간 문구 + [다시 올리기]) / 코멘트 `2008673526`(Q232).
+- 🤖 PC — 와이어 배치(셸 상단 바 아래 둥근 커버 1280×280 · 왼쪽 정렬 · ⚙는 커버 오른쪽 위) + GUI 모양, 공연 리스트 칸 200+, 설정 폼 600 / 코멘트 `2008673530`(Q233).
+- 🤖 결과 이미지 크기 상한(프로필 512 · 커버 1280) · JPEG 품질 0.9 / 근거: 홈 프로필 100(3배 여유) · PC 커버 폭 / 되돌리려면 `CROP_OUTPUT_MAX`.
+- 연락처 유형 칸 폭 128(Figma 116) · 대표 연락처 줄 사이는 호스트 만들기와 같은 `CreateHostView.css`(공용 — 이 PR 밖)라 그대로.
+
+**Figma 코멘트**(2026-11-15-impl, GUI): `1478:7248` "[개발 · 디자인 없음] 연락처 아이콘을 눌렀을 때" · `1452:41329` "관객 뷰의 [+] 버튼" · `1476:8505` "커버 이미지 자르기 가이드 비율" · `1452:40578` "이미지를 올리는 중 · 올리지 못했을 때" · `741:30898` "호스트 홈 PC(1024px 이상)". 디자이너 코멘트 답글(관제탑 전달): `2008666517`(`1484:8106` "이거 노란색이어야하나" — 위치는 팝업 [로그인하기], 지금 Figma · 코드 모두 보라 Primary라 같음 → "노란색이 맞으면 Figma만 고쳐 주시면 따라갈게요", 답글 `2008674855`).
+
+**테스트**: 단위 `host-home-rules`(아이콘 줄 · 주소) · `image-crop`(신규 7) · `Avatar`(host 폴백). 스토리 `Avatar/HostFallback` · `ConcertCard/BadgeEnd`. QA `host-home` 24/0(HH-8~HH-13 새 — 소개글 · 연락처 6개 · 로그인 필요 · 스크롤 바 · 공연 리스트 두 시점) · `host-settings` 38/0(HS-2 자르기 단계 · HS-18 커버 시트 닫기 · HS-19 저장 없이 이동). e2e `host-home` · `hosting-host`(버튼 이름 · [적용] 단계 · 1×1 실제 PNG — 미리보기를 못 불러오면 숨기므로) · `a11y` · `font-preload` · `seo` · `hosting` · `notifications` 통과. ego-browser(dev:mock 3162, 390 · 1440): 홈 기본 · 스크롤 바 · 소개 펼침 · 연락처 시트(로그인 · 로그인 전) · 로그인 필요 팝업 · 이미지 없는 호스트 · PC · 공연 리스트 · 설정 · 자르기 시트 · 다시 선택 · 설정 PC.

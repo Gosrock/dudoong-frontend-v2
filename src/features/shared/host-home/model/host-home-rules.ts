@@ -48,3 +48,18 @@ export function hostManageActions(
     href: m.href(String(hostId)),
   }));
 }
+
+/** 호스트 홈 연락처 아이콘 줄에 한 번에 보이는 수(GUI `1481:7911` 4개 이하 · `741:30896` 넘으면 3개 + ⋯) */
+export const HOST_CONTACT_ICONS_MAX = 4;
+
+/**
+ * 연락처 아이콘 줄(L 변경 — P5c GUI, Design Sync #257). 4개 이하면 모두, 넘으면 앞의 3개 + [⋯ 전체 보기].
+ * 같은 유형이 여럿이면 여럿 그대로 보인다(`1481:7454` — 전화 2개). 순서는 서버 순서.
+ */
+export function contactIconsOf<T>(items: readonly T[]): { shown: T[]; more: boolean } {
+  if (items.length <= HOST_CONTACT_ICONS_MAX) return { shown: [...items], more: false };
+  return { shown: items.slice(0, HOST_CONTACT_ICONS_MAX - 1), more: true };
+}
+
+/** 호스트 공연 리스트 화면(GUI `1423:2651` · `1478:8878`, Design Sync #262) */
+export const hostEventsHref = (hostId: string | number) => `/hosts/${hostId}/events`;

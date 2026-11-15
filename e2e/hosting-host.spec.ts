@@ -33,6 +33,10 @@ const S3_CORS = {
 /** 가짜 S3(다른 출처) — 브라우저의 PUT을 받아 기록한다 */
 async function routeS3(page: Page) {
   const puts: { url: string; contentType: string | undefined }[] = [];
+  // 올린 이미지 주소(가짜 이미지 출처)도 실제 PNG로 답한다 — 미리보기가 그려지게
+  await page.route(/\/host\/11\/[0-9a-f-]{36}\.png$/, (route) =>
+    route.fulfill({ status: 200, contentType: 'image/png', body: PNG.buffer }),
+  );
   await page.route(`${MOCK_S3_ORIGIN}/**`, async (route) => {
     const req = route.request();
     if (req.method() === 'PUT') {
@@ -43,7 +47,18 @@ async function routeS3(page: Page) {
   return puts;
 }
 
-const PNG = { name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from([0x89, 0x50, 0x4e]) };
+/**
+ * 1×1 투명 PNG — 실제 이미지여야 한다: 고르면 "이미지 위치 조정"에서 그리고 자르며, 미리보기는 못 불러오면 숨긴다
+ * (올린 이미지 주소 GET도 이 이미지로 답한다 — `routeS3`)
+ */
+const PNG = {
+  name: 'logo.png',
+  mimeType: 'image/png',
+  buffer: Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+    'base64',
+  ),
+};
 
 test.describe('접근 — 실제 호스트 하위 라우트', () => {
   for (const sub of ['settings', 'members'] as const) {
@@ -106,8 +121,13 @@ test.describe('호스트 설정', () => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/settings');
     const chooser = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: '프로필 이미지 올리기' }).click();
+    await page.getByRole('button', { name: '프로필 이미지 업로드' }).click();
     await (await chooser).setFiles(PNG);
+    // 고르면 "이미지 위치 조정"(GUI 1458:4961) — [적용]하면 자른 이미지를 올린다
+    await page
+      .getByRole('dialog', { name: '이미지 위치 조정' })
+      .getByRole('button', { name: '적용' })
+      .click();
     const profile = page.getByTestId('image-PROFILE').getByRole('img');
     await expect(profile).toHaveAttribute('src', /\/host\/11\/[0-9a-f-]{36}\.png$/);
     expect(puts).toEqual([
@@ -154,8 +174,13 @@ test.describe('호스트 설정', () => {
     await expect(page).toHaveURL('/hosting/hosts/11/settings');
     await page.getByLabel('소개글').fill('새 소개글');
     const chooser = page.waitForEvent('filechooser');
-    await page.getByRole('button', { name: '프로필 이미지 올리기' }).click();
+    await page.getByRole('button', { name: '프로필 이미지 업로드' }).click();
     await (await chooser).setFiles(PNG);
+    // 고르면 "이미지 위치 조정"(GUI 1458:4961) — [적용]하면 자른 이미지를 올린다
+    await page
+      .getByRole('dialog', { name: '이미지 위치 조정' })
+      .getByRole('button', { name: '적용' })
+      .click();
     await expect(page.getByTestId('image-PROFILE').getByRole('img')).toHaveAttribute(
       'src',
       /\/host\/11\//,

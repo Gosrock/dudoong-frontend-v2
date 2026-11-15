@@ -15,9 +15,12 @@ import * as s from './AudienceShell.css';
 export function AudienceSubHeader({
   title,
   fallbackHref = '/',
+  align = 'center',
 }: {
   title: string;
   fallbackHref?: string;
+  /** 제목 자리 — 기본 가운데. Top app bar `only title`(← 옆 왼쪽, 호스트 공연 리스트 `1423:2652`)이면 `start` */
+  align?: 'start' | 'center';
 }) {
   const router = useRouter();
   // 이동 뒤 숨은 Activity로 남아도 셸 로고 헤더를 숨기지 않게(fix-qa-1101)
@@ -28,7 +31,7 @@ export function AudienceSubHeader({
         title={title}
         // 화면 제목(h1)은 페이지 본문이 갖는다 — 헤더 제목은 글자만(제목 중복 방지)
         titleAs="div"
-        align="center"
+        align={align}
         onBack={() => {
           // 기록이 있으면 뒤로, 새 탭으로 바로 열었으면(기록 1개) 정해 둔 곳으로
           if (window.history.length > 1) {

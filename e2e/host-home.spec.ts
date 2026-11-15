@@ -89,7 +89,9 @@ test.describe('호스트 홈 — 조회 위치와 시점', () => {
       '/events/101',
     );
     await expect(page.getByText('고스락 신입 환영 공연(준비중)')).toHaveCount(0);
-    await expect(page.getByRole('navigation', { name: '호스트 관리' })).toHaveCount(0);
+    // 관리 버튼(⚙ · [+])이 없다 — GUI에서 커버 위 원 · 오른쪽 아래 [+]로 흩어져 묶음(nav)이 없어졌다
+    await expect(page.getByRole('link', { name: '설정' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: '새 공연 만들기' })).toHaveCount(0);
     const hostCalls = mockApi
       .calls()
       .filter((c) => c.path.startsWith('/api/v2/hosts/11') && c.from === 'browser');

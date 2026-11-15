@@ -48,3 +48,8 @@ export const Photo: Story = {
     alt: '김두둥 프로필',
   },
 };
+
+/** 호스트 프로필 기본(`fallback="host"` — GUI 로컬 "프로필 이미지 기본" `1452:40909`, 호스트 홈 100 · Design Sync #269) */
+export const HostFallback: Story = {
+  args: { size: 100, fallback: 'host', src: null },
+};

@@ -1,58 +1,44 @@
 'use client';
 
-import type { HostEvent } from '@/api/host/schema';
-import { formatDday } from '@/api/shared/dday';
+import { formatKstDotDateWeekday, formatKstTime } from '@/api/shared/date';
 import { UNNAMED_EVENT } from '@/features/shared/event-labels';
-import { Chip, type ChipColor, type ChipTheme } from '@/ui/components/Chip/Chip';
+import { Chip } from '@/ui/components/Chip/Chip';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
 
 import type { HostEventCard as HostEventCardItem } from '../model/useHostHome';
-import * as s from './HostEventCard.css';
 
-type ChipLook = { label: string; color: ChipColor; theme: ChipTheme };
-
-/**
- * 공연 상태 칩 — 와이어 `503:30867` 카드 왼쪽 위 "준비중"·"D-15"·"지난공연". 색은 design-system §3 "옛 Tag → tag_v2"
- * (공연준비 홈 카드와 같은 대응 — 그쪽은 `features/hosting`이라 가져오지 않는다). 모르는 상태는 칩 없음.
- */
-export function hostEventChipOf(event: Pick<HostEvent, 'displayStatus' | 'dDay'>): ChipLook | null {
-  switch (event.displayStatus) {
-    case 'PREPARING':
-      return { label: '준비중', color: 'green', theme: 'weak' };
-    case 'UPCOMING':
-      return {
-        label: event.dDay === null ? '예정' : formatDday(event.dDay),
-        color: 'red',
-        theme: 'weak',
-      };
-    case 'ONGOING':
-      return { label: '공연중', color: 'red', theme: 'fill' };
-    case 'PAST':
-      return { label: '지난 공연', color: 'grey', theme: 'weak' };
-    default:
-      return null;
-  }
+/** ConcertCard 날짜 줄 — `2026.01.01 수요일 (18:00)`(GUI `741:30947` · 공연홈과 같은 꼴). 시작 일시가 없으면 null */
+export function hostEventCardDate(startAt: string | null): string | null {
+  if (startAt === null) return null;
+  return `${formatKstDotDateWeekday(startAt)} (${formatKstTime(startAt)})`;
 }
 
 /**
- * 호스트 홈 공연 카드(와이어 `503:30867`·`503:30477` — 포스터 + 상태 칩 + 제목 + 날짜) → DS `ConcertCard` + `badge`.
- * 카드 전체가 링크다(준비중은 `/hosting/events/[id]`, 그 밖은 `/events/[id]` — `hostEventHref`).
- * 날짜·제목 순서는 DS 컴포넌트대로(와이어는 제목 → 날짜).
+ * 호스트 공연 카드 — DS `ConcertCard`(GUI `741:30947` 홈 가로 줄 · `1423:2673` 공연 리스트 2열). 카드 전체가 링크다
+ * (준비중은 `/hosting/events/[id]`, 그 밖은 `/events/[id]` — `hostEventHref`).
+ * 칩은 준비중만 — 포스터 오른쪽 위 DS `Concert state chip` ready small(`1478:15867` → `Chip` green weak, design-system §3 옛 Tag 대응).
+ * GUI 카드에 D-day · 지난 공연 칩이 없어 와이어 때 붙인 칩을 뺐다(공개 공연 카드는 공연홈과 같은 모양).
  */
-export function HostEventCard({ item }: { item: HostEventCardItem }) {
+export function HostEventCard({
+  item,
+  className,
+}: {
+  item: HostEventCardItem;
+  className?: string;
+}) {
   const { event, href } = item;
-  const chip = hostEventChipOf(event);
   return (
-    <li className={s.item}>
+    <li className={className}>
       <ConcertCard
         href={href}
         title={event.name ?? UNNAMED_EVENT}
-        date={event.startAt?.slice(0, 10) ?? null}
+        date={hostEventCardDate(event.startAt)}
         posterUrl={event.posterImageUrl}
+        badgePlacement="end"
         badge={
-          chip && (
-            <Chip color={chip.color} theme={chip.theme}>
-              {chip.label}
+          item.isPreparing && (
+            <Chip color="green" theme="weak">
+              준비중
             </Chip>
           )
         }
