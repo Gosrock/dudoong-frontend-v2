@@ -3692,3 +3692,26 @@ Design Sync #215~#234(Nemin, 2026-11-12 판 GUI `2421002327746762064`) — 페�
 **결정(사용자 결정 2026-11-14)**: 지금대로 둔다 — 코드 변경 없음, 문서만. 기각한 두 길: ① `src/proxy.ts`가 네 경로마다 백엔드에 먼저 물어 브라우저에도 404 — 요청마다 백엔드 호출 하나 · TTFB 증가 · 페이지 조회와 결과가 어긋날 수 있음 ② `htmlLimitedBots: /.*/` — 모든 화면에서 정적 셸 · 즉시 이동을 잃음(§26에서 이미 기각).
 
 **검사**: 새 e2e 없음(크롤러 404 · 브라우저 200 + `noindex`는 이미 `event-detail.spec.ts` "카카오 크롤러 계약" · "없는 공연은 not-found 화면(noindex)" · `host-home.spec.ts`가 본다). 상태 코드 확인 명령은 크롤러 UA로: `curl -s -o /dev/null -w '%{http_code}' -A 'Googlebot/2.1' https://staging.dudoong.com/events/999999` → 404.
+
+## DS #251 — `ic_link` 아이콘 크기(2026-11-15, `design-251` #PR)
+
+Design Sync #251(Nemin, `Design: 수정` · `Figma: 디자인 시스템`, 세트 `ic_link` `760:2837`, "아이콘 크기 수정함"). `ds_diff.py diff 2419464913593223537` → 지금 판 `2422010394129100162`(11-15T11:01Z).
+
+- **바뀐 것**: 변형 `size=24, type=outline`(`760:2838`) 하나. 틀 24×24 그대로, 안쪽 `Vector`(`760:2850`)가 21.89×21.87 → 18.00×17.98, 자리 (1.06, 1.07) → (3.00, 3.01). 변형 추가 없음.
+- **반영**: `/v1/images/0QD9tGSt8ZciDqe7ol2gYH?ids=760:2838&format=svg`를 `src/ui/icons/svg/link-outline-24.svg`에 넣고 `node src/ui/icons/generate.mjs` — `registry.ts`에서 `link/outline/24` 본문만 바뀜(98개 70종 그대로). 손으로 path를 고치지 않았다.
+- **쓰는 곳**(ego-browser, `pnpm dev:mock` 3162, 390 · 1440 측정 — 틀 · 버튼 크기는 모두 그대로, 안쪽 그림만 줄어듦):
+
+| 화면 | 근거 | 틀 | 안쪽 그림 전 → 후 | 버튼 |
+|---|---|---|---|---|
+| 선물링크 완료 [링크복사](`GiftActionSections`, GUI 구현됨) | GUI `908:13105` · `908:21508` — `ic_link` 인스턴스 18×18, 안쪽 13.5 | 18(`shareIcon`) | 16.4 → **13.5**(Figma와 같음) | 109×46 그대로 |
+| 티켓탭 선물 취소 시트 [선물 링크 다시 보기](`TicketGiftButton`) | 디자인 없음(Q80) | 24 | 21.9 → 18 | 144×32 그대로 |
+| 공연 상세 공유(`EventDetailView`) | 와이어 | 24 | 21.9 → 18 | 32×32(모바일) · 46×56(PC) 그대로 |
+| 호스트 멤버 초대 링크 [링크 복사](`HostMembersView`) | 와이어 | 24 | 21.9 → 18 | 98×32 그대로 |
+| 연락처 YOUTUBE(`ContactList`) | — | 24 | 21.9 → 18 | — |
+
+**결정**
+- 🤖 Claude 판단 — `design-system.md` 머리의 "동기화 기준 버전"을 올리지 않음 / 근거: 같은 비교에 나온 나머지(`ic_youtube` 새 세트 · Avatar 60 · 아바타 모서리 값 · Empty state medium 버튼 · `img_초대장_decline`)를 이 세션은 반영하지 않았다. 올리면 다음 비교에서 빠진다(§8 "범위 밖"에 적음) / 되돌리려면 기준 버전을 `2422010394129100162`로 바꾸고 범위 밖 줄을 반영 대기 표로 옮긴다.
+- 🤖 Claude 판단 — 연락처 YOUTUBE 아이콘은 `link` 그대로 / 근거: 새 `ic_youtube`는 이슈가 없고 이 이슈 범위 밖 / 되돌리려면 `ic_youtube`를 뽑아 `ContactList` 대응표를 바꾼다.
+- 화면 파일은 고치지 않았다 — GUI 구현 화면([링크복사])은 이미 Figma 인스턴스 크기(18)대로라 새 SVG만으로 같아짐.
+
+**검사**: typecheck · `vitest related registry.ts` 42 파일 280 통과 · 스토리 `src/ui/icons` 6 통과 · QA `tickets` 20/0(수동 1) · `event-detail` 22/0(수동 1) · `gift` 14/0(수동 2) · e2e `tickets` · `gift-landing` · `event-detail` · `hosting-host` · `a11y` · `a11y-keyboard` 225 통과 / 0 실패(건너뜀 37).
