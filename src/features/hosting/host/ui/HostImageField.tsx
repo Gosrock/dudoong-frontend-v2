@@ -67,21 +67,20 @@ export function HostImageField({
             onError={() => setFailedUrl(photo)}
           />
         )}
-        {!readOnly && (
-          <Button
-            variant="secondary"
-            size="md"
-            icon={<Icon name="image-add" />}
-            className={s.upload}
-            disabled={disabled}
-            aria-label={`${label} 업로드`}
-            onClick={() => input.current?.click()}
-          >
-            <LoadingLabel loading={image.uploading} size="sm">
-              이미지 업로드
-            </LoadingLabel>
-          </Button>
-        )}
+        {/* 일반 멤버(읽기 전용)는 누를 수 없게 둔다(Q53 — 모양은 같고 비활성) */}
+        <Button
+          variant="secondary"
+          size="md"
+          icon={<Icon name="image-add" />}
+          className={s.upload}
+          disabled={disabled}
+          aria-label={`${label} 업로드`}
+          onClick={() => input.current?.click()}
+        >
+          <LoadingLabel loading={image.uploading} size="sm">
+            이미지 업로드
+          </LoadingLabel>
+        </Button>
         <input
           ref={input}
           type="file"

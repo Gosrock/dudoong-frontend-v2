@@ -139,7 +139,7 @@ export function HostHomeView({ hostId }: { hostId: string }) {
                   onClick={() =>
                     // 로그인 전 가린 값(전화 · 이메일)을 누르면 "로그인이 필요해요"(GUI `1484:8106`), 그 밖은 연락처 전체 보기
                     c.masked && home.viewerStatus === 'anonymous'
-                      ? void openLoginForContacts(router.replace)
+                      ? void openLoginForContacts(router.push)
                       : openHostContacts(hostId)
                   }
                 >

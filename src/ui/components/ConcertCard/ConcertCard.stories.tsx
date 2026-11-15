@@ -101,6 +101,25 @@ export const WithBadge: Story = {
   },
 };
 
+/** 표시를 오른쪽 위에(`badgePlacement="end"` — 호스트 공연 리스트 GUI `1423:2651` "준비중", Design Sync #262) */
+export const BadgeEnd: Story = {
+  args: {
+    badgePlacement: 'end',
+    badge: (
+      <Chip color="green" theme="weak">
+        준비중
+      </Chip>
+    ),
+  },
+  play: async ({ canvasElement }) => {
+    const badge = within(canvasElement).getByText('준비중').getBoundingClientRect();
+    const poster = canvasElement.querySelector('img')!.parentElement!.getBoundingClientRect();
+    // 오른쪽 끝에 붙고(가장자리에서 16) 왼쪽 끝에서는 멀다
+    await expect(poster.right - badge.right).toBeLessThan(24);
+    await expect(badge.left - poster.left).toBeGreaterThan(24);
+  },
+};
+
 /** 지난 공연(GUI `939:34039` 예매하기(2줄), #159) — 포스터 흐림 + "공연종료" 칩, 날짜 tertiary · 제목 secondary */
 export const Ended: Story = {
   args: {

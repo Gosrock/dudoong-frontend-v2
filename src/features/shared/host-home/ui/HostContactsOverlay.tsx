@@ -72,16 +72,17 @@ export function openHostContacts(hostId: string) {
 
 /**
  * 로그인 전에 가린 연락처(전화 · 이메일) 아이콘을 누르면 — "로그인이 필요해요"(GUI `1484:8106` DS 다이얼로그 · [취소] [로그인하기]).
- * [로그인하기]는 지금 주소로 돌아오는 로그인으로 간다(오버레이 안 이동이라 `replace` — patterns §6).
+ * [로그인하기]면 창이 닫히고(기록 항목을 돌려놓은 뒤) 지금 주소로 돌아오는 로그인으로 간다 — 닫히기 전에 이동하면 창이 기록을
+ * 되돌리며 이동이 취소된다(`useCloseOnBack` release). 이동은 `push`(창은 이미 닫혀 뒤로가기는 호스트 홈).
  */
-export function openLoginForContacts(navigate: (href: string) => void) {
-  return openConfirm({
+export async function openLoginForContacts(navigate: (href: string) => void) {
+  const ok = await openConfirm({
     title: '로그인이 필요해요',
     description: '로그인하면 호스트의 전화번호와 이메일을 볼 수 있어요.',
     cancelLabel: '취소',
     confirmLabel: '로그인하기',
-    onConfirm: async () => navigate(loginHref(browserLocation.currentPath())),
   });
+  if (ok) navigate(loginHref(browserLocation.currentPath()));
 }
 
 /** 화면과 같은 훅을 읽는다 — 캐시를 같이 써서 요청이 늘지 않고, 시트가 열린 동안 viewer가 확정되면 원문으로 바뀐다 */
