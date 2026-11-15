@@ -3802,3 +3802,27 @@ Design Sync #257 · #260 · #261 · #262 + #269 일부(Nemin, 2026-11-15 12:12~1
 
 **검증**: typecheck · lint · 단위 2779/0 · e2e(hosting-guests · hosting-ticket · hosting-event · hosting-checkin · home · tickets · a11y · legal) 237/0(건너뜀 35) · QA hosting-qr 18/0 · hosting-guests 37/0. ego-browser 390 · 1440(운영 빌드 + 가짜 백엔드): 환불 칩 건수 · 발급 티켓 상세 하단(입장 완료 [입장 취소] · 선물 티켓 입장 전 [입장 처리]) · 티켓 관리 판매 기간 · 옵션 상세 ✕ · 새 티켓 금액 칸(12,345 → 쉼표 뒤 Backspace → 1,345 커서 1) · 환불 의무 체크 `aria-required` · 기본 정보 문의처 · 공연홈 푸터.
 
+## 디자이너 코멘트 반영 — 카카오 로그인 버튼 · 초대 이메일 안내 · "딤"(2026-11-16, `fix-1115-designer` #275)
+
+GUI 파일 코멘트(2026-11-15 13:13~13:20Z) 세 건.
+
+**1. 카카오 로그인 버튼**(`2008666517` — Nemin "노란색으로 / 가이드대로"). 근거는 **카카오 공식 디자인 가이드 Figma `V17DxZkTnrhtUnUvAceCAP` `124:973`**(사용자 결정 2026-11-16 — 관제탑 전달). REST로 받은 값: 컴포넌트 `카카오 로그인`(`122:101`) 45h · 모서리 6 · 바깥 좌우 14 + 안쪽 24 · 간격 8 · `카카오 로고` 18(검정 #000000, SVG는 `I124:932;122:102` 내보낸 그대로) · `Label` 15 / 600 / 22.5 #000000 85% · 배경 #FEE500 · 문구 "카카오 로그인". 문서(developers.kakao.com 디자인 가이드)의 "모서리 12 · 30pt"는 2배 판 숫자다.
+- `src/ui` Button `variant="kakao"`(새 값 — 기본값 · 다른 변형 그대로): 색은 변형, 크기 · 모서리 · 간격 · 글자는 compound(가장 뒤 — `size` · `iconText` compound를 덮는다). 심볼 `KakaoSymbol`을 아이콘이 없으면 자동으로 넣는다. `Popup` · `EasyOverlay` `intent="kakaoLogin"`(새 값) → [확인]이 카카오 버튼.
+- 바꾼 곳: 로그인 · 세션 만료 `LoginView` · 로그인 필요 팝업(`openLoginForContacts`) · 연락처 시트 로그인 전 링크 · 선물 랜딩 로그인 전 링크. 문구는 모두 "카카오 로그인".
+- Figma 프레임 수정(사용자 결정 — DS 파일에 카카오 버튼 컴포넌트 + GUI 로그인 관련 Ready 프레임 인스턴스 교체)은 **Desktop Bridge 연결 없음**(`figma_list_open_files` 빈 목록)이라 못 함 → PR "사용자 대기".
+
+**2. 멤버 초대 이메일 안내**(`2008678247` · `2008678295`): 초대 시트 이메일 · 역할 줄 아래 "카카오톡에 가입한 이메일로 적어주세요."(`Label/sm` `text/tertiary-label`, 칸 `aria-describedby`). 답글 노이슈.
+
+**3. "딤"**(`2008676618`, `741:30896` 커버 이미지 위): 프레임(REST — 커버 `1452:40989` 이미지 채움 하나, 덮는 층 · 효과 없음)과 코드(`HostHomeView.css` `cover`) 모두 딤 없음 → 고치지 않고 답글로 여쭘(Q235).
+
+**결정**
+- 🤖 Claude 판단 — 가이드 큰 · 꽉 찬 판(368 · 600 × 90, 모서리 12 · 심볼 36 · 글자 30)은 기본형의 정확히 2배라 같은 버튼의 2배 해상도 판으로 보고 CSS는 45h 한 벌, 폭만 자리(로그인 254 · 팝업 칸 · 시트 꽉 참). 근거: 모든 값이 2배 / 되돌리려면 compound에 `size="lg"` 90h 판을 더한다.
+- 🤖 Claude 판단 — 레이블 서체는 가이드 "OS별 기본 시스템 서체"(`-apple-system, … "Apple SD Gothic Neo", "Malgun Gothic", system-ui`). 되돌리려면 compound의 `fontFamily`를 뺀다(Pretendard).
+- 🤖 Claude 판단 — Hover · Pressed 색 변화 없음(가이드 "색상 규정에 벗어난 색상을 적용해서는 안 된다"). 되돌리려면 `kakao` 변형에 selectors.
+- 🤖 Claude 판단 — 선물 랜딩 [두둥에 로그인하고 선물 받기]도 "카카오 로그인"(가이드 기본 레이블은 완성형 "카카오 로그인" · 축약형 "로그인"뿐). 되돌리려면 `GiftLandingView` 글자 하나(Q236).
+- 🤖 Claude 판단 — PC 상단 바 [로그인](Secondary small) · 드로어 "로그인 >" · 콜백 실패 [다시 로그인]은 바로 카카오로 가지 않고 로그인 화면으로 가는 자리라 그대로(답글로 여쭘, Q236).
+- 🤖 Claude 판단 — 초대 안내 자리: DS Input `helper`는 칸 위(라벨 줄)에 그려져 이메일 칸만 내려가 역할 칸과 어긋나 줄 아래(Q237). 되돌리려면 `<p id={hintId}>` 블록 하나.
+
+**Figma 코멘트**(2026-11-16-impl, GUI 답글): `2008666517` → `2008720164`(바뀐 곳 · 그대로 둔 곳 · 프레임 수정 확인 중) · `2008678247` → `2008720168`(노이슈) · `2008678295` → `2008720170`(노이슈) · `2008676618` → `2008720173`(딤 질문).
+
+**테스트**: 스토리 `Button/Kakao`(색 · 모서리 6 · 45h · 15px · 심볼 18 · #000000) · `Button/KakaoWidths`. QA `login` 20/0(노란 배경 · 심볼) · `host-home` 24/0(팝업 · 시트 노란 배경) · `host-settings` 38/0(초대 칸 설명) · `gift` 14/0 · `self-checkin` 14/0. e2e auth · host-home · gift-landing · hosting-host · shell · check-in · a11y 241/0. 선택자 이름만 "카카오 로그인"으로(테스트 지우거나 약하게 하지 않음).

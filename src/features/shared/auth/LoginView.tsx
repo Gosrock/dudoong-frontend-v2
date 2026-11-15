@@ -25,7 +25,8 @@ const ILLUSTRATION_WIDTH = 170;
 
 /**
  * 로그인(`/login`)·세션 만료 안내(`/login/expired`) — **GUI 근거** `1175:16950`("로그인", Ready 2026-11-07).
- * 일러스트(DS `img_login`) + 안내 한 줄 + [카카오 로그인하기](DS Button Primary Large). 와이어의 말풍선은 GUI에서 빠졌다.
+ * 일러스트(DS `img_login`) + 안내 한 줄 + [카카오 로그인](카카오 로그인 버튼 — 노란 배경 · 심볼, 디자이너 요청 2026-11-15
+ * "가이드대로" — GUI의 Primary 대신 카카오 가이드). 와이어의 말풍선은 GUI에서 빠졌다.
  * 둘 다 `?redirect=`로 돌아올 곳을 받는다 — 읽는 것은 말단 `KakaoLoginAction`(patterns §6).
  */
 export function LoginView({ expired = false }: { expired?: boolean }) {
@@ -49,21 +50,21 @@ export function LoginView({ expired = false }: { expired?: boolean }) {
   );
 }
 
-/** [카카오 로그인하기] + 실패 안내. `?redirect=`를 읽는 말단(자체 Suspense — patterns §6) */
+/** [카카오 로그인] + 실패 안내. `?redirect=`를 읽는 말단(자체 Suspense — patterns §6) */
 function KakaoLoginAction() {
   const redirect = useSearchParams().get('redirect');
   const { state, start } = useKakaoLogin(redirect);
   return (
     <Flex direction="column" align="center" gap={3} fullWidth>
-      {/* GUI `1175:16958` — DS Button Primary Large(채움 override는 Primary와 같은 색, 좌우 70 → 폭 254) */}
+      {/* GUI `1175:16958` 자리(폭 254) — 모양 · 문구는 카카오 공식 가이드 Figma `124:973`(GUI 코멘트 `2008666517` · 사용자 결정 2026-11-16) */}
       <Button
-        variant="primary"
+        variant="kakao"
         size="lg"
         fullWidth
         loading={state.status === 'starting'}
         onClick={() => void start()}
       >
-        카카오 로그인하기
+        카카오 로그인
       </Button>
       {state.status === 'error' && (
         <div role="alert">

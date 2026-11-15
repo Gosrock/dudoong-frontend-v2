@@ -29,6 +29,36 @@ export const Warning: Story = {
     await expect(pseudoStyle(btn, ':active', 'background')).toBe(vars.color.brand.accentPressed);
   },
 };
+/**
+ * 카카오 로그인 버튼 — 카카오 공식 디자인 가이드 Figma(`V17DxZkTnrhtUnUvAceCAP` `124:973`): #FEE500 · 레이블 #000000 85% ·
+ * 심볼 18 자동 · 45h · 모서리 6 · 간격 8 · 15 / 600. `size`와 상관없이 한 벌, 폭만 글자에 맞춤(184) 또는 꽉 찬 폭(사용자 결정 2026-11-16)
+ */
+export const Kakao: Story = {
+  args: { variant: 'kakao', children: '카카오 로그인' },
+  play: async ({ canvas }) => {
+    const btn = canvas.getByRole('button', { name: '카카오 로그인' });
+    const style = getComputedStyle(btn);
+    await expect(style.backgroundColor).toBe('rgb(254, 229, 0)');
+    await expect(style.color).toBe('rgba(0, 0, 0, 0.85)');
+    await expect(style.borderRadius).toBe('6px');
+    await expect(style.height).toBe('45px');
+    await expect(style.fontSize).toBe('15px');
+    await expect(btn.querySelector('svg')).toHaveAttribute('width', '18');
+    await expect(btn.querySelector('svg path')).toHaveAttribute('fill', '#000000');
+  },
+};
+export const KakaoWidths: Story = {
+  render: () => (
+    <Flex direction="column" gap={3} style={{ width: 342 }}>
+      <Button variant="kakao" size="sm">
+        카카오 로그인
+      </Button>
+      <Button variant="kakao" size="lg" fullWidth>
+        카카오 로그인
+      </Button>
+    </Flex>
+  ),
+};
 export const Selected: Story = { args: { variant: 'secondary', selected: true } };
 export const Disabled: Story = { args: { disabled: true } };
 export const Dark: Story = { args: { variant: 'dark', size: 'lg' } };

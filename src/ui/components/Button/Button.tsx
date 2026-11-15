@@ -2,10 +2,14 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 import { LoadingLabel } from '../Loader/Loader';
 import { button } from './Button.css';
+import { KakaoSymbol } from './KakaoSymbol';
 
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
-  /** Figma `Color` — Primary · Secondary · primary 2(`tonal`) · Warning(`warning`, 위험 동작 확인). `dark`는 화면 덮어쓰기 */
-  variant?: 'primary' | 'secondary' | 'tonal' | 'warning' | 'dark';
+  /**
+   * Figma `Color` — Primary · Secondary · primary 2(`tonal`) · Warning(`warning`, 위험 동작 확인). `dark`는 화면 덮어쓰기.
+   * `kakao` = 카카오 로그인 버튼(카카오 공식 가이드 — 노란 배경 · 심볼 자동 · 45h · 모서리 6, `size` 무시). 로그인으로 가는 버튼에만, 문구는 "카카오 로그인"
+   */
+  variant?: 'primary' | 'secondary' | 'tonal' | 'warning' | 'dark' | 'kakao';
   size?: 'sm' | 'md' | 'lg';
   /** 앱이 정하는 선택 상태(Secondary). Hover·Pressed·Disabled는 CSS 상태다(design-system §4) */
   selected?: boolean;
@@ -33,8 +37,10 @@ export function Button({
   children,
   ...rest
 }: ButtonProps) {
-  const iconOnly = Boolean(icon) && !children && !round;
-  const iconText = Boolean(icon) && Boolean(children) && !round;
+  // 카카오 로그인 버튼은 심볼 없이 만들 수 없다(가이드) — 아이콘을 따로 주지 않으면 심볼을 넣는다
+  const lead = variant === 'kakao' && !icon ? <KakaoSymbol /> : icon;
+  const iconOnly = Boolean(lead) && !children && !round;
+  const iconText = Boolean(lead) && Boolean(children) && !round;
   return (
     <button
       type={type}
@@ -50,7 +56,7 @@ export function Button({
       {...rest}
     >
       <LoadingLabel loading={loading} size={size === 'lg' ? 'md' : 'sm'}>
-        {icon}
+        {lead}
         {children}
       </LoadingLabel>
     </button>
