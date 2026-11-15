@@ -275,6 +275,17 @@ describe('환불 탭(GF-1 · PF-2)', () => {
     expect((await sent.list())[0]!.query).toEqual({ status: 'REQUESTED' });
   });
 
+  it('상태 칩 건수는 칩마다 맞는 건수(전체 · 요청 · 완료)', async () => {
+    const { result } = setup(() => useRefundList('101'));
+    await waitFor(() =>
+      expect(result.current?.filters.map((f) => [f.key, f.count])).toEqual([
+        ['ALL', 4],
+        ['REQUESTED', 3],
+        ['COMPLETED', 1],
+      ]),
+    );
+  });
+
   it('환불 계좌는 매니저 이상에게만 — 일반 멤버는 null + 버튼 없음', async () => {
     actAsRole(11, 'GUEST');
     const { result } = setup(() => useRefundList('101'));

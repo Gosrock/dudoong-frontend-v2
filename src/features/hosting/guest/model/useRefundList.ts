@@ -102,14 +102,9 @@ export function useRefundList(eventId: string) {
     fetching: query.isFetching,
     /** 상태 칩(건수는 GF-1b — 검색어 반영. 받지 못하면 null) */
     filters: REFUND_FILTER_OPTIONS.map((f) => ({
-      ...f,
-      count: counts
-        ? f.key === 'ALL'
-          ? counts.all
-          : f.key === 'REQUESTED'
-            ? counts.requested
-            : counts.completed
-        : null,
+      key: f.key,
+      label: f.label,
+      count: counts ? counts[f.count] : null,
       selected: f.key === status,
     })),
     statusFilter: status,

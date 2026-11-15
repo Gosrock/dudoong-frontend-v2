@@ -7,6 +7,7 @@ import {
   type HostOrderStatusFilter,
   type OrderCanceledBy,
   type OrderSearchType,
+  type RefundCounts,
   type RefundStatusFilter,
   REFUSE_REASON_TEXT_MAX,
   type RefuseOrderRequest,
@@ -109,10 +110,14 @@ export const ENTRANCE_FILTER_OPTIONS = [
 ] as const satisfies readonly { key: EntranceFilter; label: string }[];
 
 export const REFUND_FILTER_OPTIONS = [
-  { key: 'ALL', label: '전체' },
-  { key: 'REQUESTED', label: '환불 요청' },
-  { key: 'COMPLETED', label: '환불 완료' },
-] as const satisfies readonly { key: RefundStatusFilter; label: string }[];
+  { key: 'ALL', label: '전체', count: 'all' },
+  { key: 'REQUESTED', label: '환불 요청', count: 'requested' },
+  { key: 'COMPLETED', label: '환불 완료', count: 'completed' },
+] as const satisfies readonly {
+  key: RefundStatusFilter;
+  label: string;
+  count: keyof RefundCounts;
+}[];
 
 /**
  * 일반 멤버의 연락처·입금자명 검색은 완전 일치만 된다(#846 — 가린 값을 부분 일치로 복원하지 못하게). 그 검색 칸의 안내 문구(GUI `1029:4569`).
