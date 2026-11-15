@@ -9,8 +9,7 @@ import { loginHref } from '@/features/shared/auth/model/login-href';
 import type { ContactType } from '@/features/shared/contact/model/contact-link';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
-import { button } from '@/ui/components/Button/Button.css';
-import { KakaoSymbol } from '@/ui/components/Button/KakaoSymbol';
+import { KakaoLoginLabel, kakaoLoginLinkClass } from '@/ui/components/Button/KakaoSymbol';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { Skeleton } from '@/ui/components/Skeleton/Skeleton';
 import { Icon, type IconProps } from '@/ui/icons/Icon';
@@ -177,11 +176,10 @@ function HostContactsBody({ hostId }: { hostId: string }) {
           <Link
             href={login}
             replace
-            className={button({ variant: 'kakao', size: 'lg', fullWidth: true, iconText: true })}
+            // 카카오 로그인 버튼(가이드 — 심볼 필수). 디자이너 요청 GUI 코멘트 `2008666517`(2026-11-15)
+            className={kakaoLoginLinkClass()}
           >
-            {/* 카카오 로그인 버튼(가이드 — 심볼 필수). 디자이너 요청 GUI 코멘트 `2008666517`(2026-11-15) */}
-            <KakaoSymbol />
-            카카오 로그인
+            <KakaoLoginLabel />
           </Link>
         </Flex>
       )}

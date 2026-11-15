@@ -3,6 +3,10 @@ import { recipe } from '@vanilla-extract/recipes';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
+/** 카카오 로그인 버튼 레이블 서체 — 가이드 "OS별 기본 시스템 서체"(가이드 Figma는 Apple SD Gothic Neo) */
+const KAKAO_LABEL_FONT =
+  '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
+
 /**
  * Figma Button(`36:24`, design-system §3). 크기 small 32 · medium 46 · Large 56, 모서리 8 · 10 · 12.
  * 상태 색은 2026-10-25 판(68개 변형, design-system §3 "Button 상태 색"). 빈 조합(Selected는 Secondary medium에만,
@@ -16,10 +20,6 @@ import { typography } from '../../theme/typography.css';
  * 아이콘 자리는 Figma에서 인스턴스 스왑(`ic_blank`)으로 바뀌었다 — 코드는 원래 `icon` prop이라 바뀌는 것 없음.
  * Secondary 글자색은 크기마다 달랐는데 `text.secondaryLabel` 하나로 통일했다(design-system §5 정리 요청).
  */
-/** 카카오 로그인 버튼 레이블 서체 — 가이드 "OS별 기본 시스템 서체"(가이드 Figma는 Apple SD Gothic Neo) */
-const KAKAO_LABEL_FONT =
-  '-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif';
-
 export const button = recipe({
   base: {
     display: 'inline-flex',

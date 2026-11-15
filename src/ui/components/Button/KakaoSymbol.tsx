@@ -1,3 +1,5 @@
+import { button } from './Button.css';
+
 /**
  * 카카오 말풍선 심볼 18 — 카카오 로그인 버튼(`Button variant="kakao"`)에 꼭 들어간다(가이드: 심볼 없이 버튼을 만들 수 없고
  * 형태 · 비율 · 색을 바꿀 수 없다).
@@ -21,5 +23,23 @@ export function KakaoSymbol() {
         fill="#000000"
       />
     </svg>
+  );
+}
+
+/**
+ * `<Link>` 등 `<Button>`이 아닌 요소에 카카오 로그인 버튼 모양을 입힐 때 — 클래스와 내용(심볼 + 문구)을 한 곳에서 맞춘다.
+ * `<Button variant="kakao">`는 심볼을 스스로 넣으니 쓰지 않는다
+ */
+export function kakaoLoginLinkClass({ fullWidth = true }: { fullWidth?: boolean } = {}) {
+  return button({ variant: 'kakao', fullWidth, iconText: true });
+}
+
+/** 카카오 로그인 링크 내용 — 심볼 + 가이드 완성형 문구 "카카오 로그인" */
+export function KakaoLoginLabel() {
+  return (
+    <>
+      <KakaoSymbol />
+      카카오 로그인
+    </>
   );
 }

@@ -8,10 +8,7 @@ import type { BottomSheetVariant } from '../BottomSheet/BottomSheet';
 import { ResponsiveOverlay } from '../BottomSheet/ResponsiveOverlay';
 import { Button } from '../Button/Button';
 import { LoadingLabel } from '../Loader/Loader';
-import { Popup } from '../Popup/Popup';
-
-/** 확인 버튼 색 — `kakaoLogin`은 로그인으로 가는 확인(카카오 로그인 버튼 가이드 — `Button variant="kakao"`) */
-const CONFIRM_VARIANT = { default: 'primary', delete: 'warning', kakaoLogin: 'kakao' } as const;
+import { CONFIRM_VARIANT, type ConfirmIntent, Popup } from '../Popup/Popup';
 
 export type ConfirmOptions = {
   title: ReactNode;
@@ -37,7 +34,7 @@ export type ConfirmOptions = {
    * 확인 버튼 색 — `delete`면 Warning(DS `다이얼로그_데스크탑` `Property 1=삭제`, #185 · #187). 되돌리기 어려운 동작에 준다.
    * `kakaoLogin`이면 카카오 로그인 버튼(로그인으로 가는 확인). popup · responsive 둘 다
    */
-  intent?: 'default' | 'delete' | 'kakaoLogin';
+  intent?: ConfirmIntent;
   /**
    * responsive의 모바일 시트 모양(`BottomSheet` `variant`). 기본 `raised` — 확인 시트(GUI 선물 거절 `939:26914`):
    * 막대 손잡이 · 제목 24 · 설명 가운데 · 버튼 사이 12(O17, 2026-11-08)

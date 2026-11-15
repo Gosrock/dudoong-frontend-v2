@@ -7,7 +7,7 @@ import { formatKstDotDateWeekdayTime } from '@/api/shared/date';
 import { LoginRequiredLink } from '@/features/shared/auth/LoginRequiredLink';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
-import { KakaoSymbol } from '@/ui/components/Button/KakaoSymbol';
+import { KakaoLoginLabel, kakaoLoginLinkClass } from '@/ui/components/Button/KakaoSymbol';
 import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { NotFoundView } from '@/ui/components/NotFoundView/NotFoundView';
@@ -93,11 +93,8 @@ export function GiftLandingView({ giftToken }: { giftToken: string }) {
             {senderLine}
             <Summary landing={landing} />
             {/* 로그인으로 가는 버튼은 카카오 로그인 버튼(가이드 — 심볼 필수, GUI 코멘트 `2008666517` 2026-11-15) */}
-            <LoginRequiredLink
-              className={button({ variant: 'kakao', size: 'lg', fullWidth: true, iconText: true })}
-            >
-              <KakaoSymbol />
-              카카오 로그인
+            <LoginRequiredLink className={kakaoLoginLinkClass()}>
+              <KakaoLoginLabel />
             </LoginRequiredLink>
           </Flex>
         </section>
