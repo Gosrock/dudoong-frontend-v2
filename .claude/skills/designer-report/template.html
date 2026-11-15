@@ -89,14 +89,49 @@ ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 
 .how { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 10px; }
 footer { color: var(--muted); font-size: 12.5px; border-top: 2px dashed var(--line); padding-top: 16px; }
 </style>
+<style>
+.tl { position: relative; display: flex; flex-direction: column; gap: 18px; padding-left: 28px; }
+.tl::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px; background: var(--line); }
+.day { position: relative; }
+.day::before { content: ""; position: absolute; left: -24px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); }
+.day.latest::before { background: var(--accent); }
+.day .card { gap: 12px; }
+.day .when { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.day h3 { font-size: 17px; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.tag.t-design { background: var(--gui-soft); color: var(--gui); }
+.tag.t-screen { background: var(--wire-soft); color: var(--wire); }
+.tag.t-backend { background: var(--none-soft); color: var(--none); }
+.tag.t-quality { background: var(--ask-soft); color: var(--ask); }
+.tag.t-base { background: var(--line); color: var(--muted); }
+details { font-size: 13px; }
+details summary { cursor: pointer; color: var(--muted); }
+details ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 3px; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.stat b { font-size: 24px; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 13px; }
+.day[hidden] { display: none; }
+
+.views-nav { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 10px 0; display: flex; gap: 8px; border-bottom: 1px solid var(--line); }
+.views-nav a { font-size: 15px; font-weight: 700; text-decoration: none; color: var(--muted); padding: 8px 14px; border-radius: 10px; }
+.views-nav a[aria-current="page"] { color: var(--ink); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.view[hidden] { display: none; }
+</style>
 </head>
 <body>
 <div class="wrap">
+  <nav class="views-nav" aria-label="보기">
+    <a href="#screens" data-view="screens">화면별 현황</a>
+    <a href="#timeline" data-view="timeline">작업기록</a>
+  </nav>
+  <div class="view" id="view-screens">
+    <div class="wrap" style="max-width:none">
   <header>
     <span class="eyebrow" id="eyebrow">두둥 v2 · 디자이너 공유용</span>
     <h1>화면별로 어떻게 만들어졌나</h1>
     <p class="lead">새 두둥(v2)의 모든 화면은 일단 다 만들어져 있고 테스트도 통과했어요. 다만 화면마다 <b>무엇을 보고 만들었는지</b>가 달라요. Figma GUI를 그대로 따른 화면, 와이어프레임 수준으로 만든 화면, 둘이 섞인 화면, 디자인이 아예 없어서 개발이 기존 디자인 시스템 부품으로 꾸민 화면이 있어요. 아래에서 화면마다 확인하실 수 있어요.</p>
-    <p class="lead">날짜별로 무엇을 했는지는 <a href="https://claude.ai/artifact/7B8zv9nf3nSrc5LKKTbtXR">작업기록</a>에서 볼 수 있어요.</p>
   </header>
 
   <section class="section" aria-labelledby="labels">
@@ -159,8 +194,34 @@ footer { color: var(--muted); font-size: 12.5px; border-top: 2px dashed var(--li
 
   <footer id="foot"></footer>
 </div>
+  </div>
+  <div class="view" id="view-timeline" hidden>
+    <div class="wrap" style="max-width:none">
+  <header>
+    <span class="eyebrow" id="t-eyebrow">두둥 v2 · 작업기록</span>
+    <h1>지금까지 이렇게 만들어 왔어요</h1>
+    <p class="lead">새 두둥(v2)을 날짜별로 무엇을 했는지 모았어요. 위가 최근이에요. 각 날짜의 "개발 기록 원문"을 펼치면 그날 들어간 작업 목록이 그대로 보여요.</p>
+  </header>
 
+  <section class="stats" aria-label="요약">
+    <div class="stat"><b id="t-s-days">0</b><span>작업한 날</span></div>
+    <div class="stat"><b id="t-s-prs">0</b><span>들어간 작업</span></div>
+    <div class="stat"><b id="t-s-span">—</b><span>기간</span></div>
+  </section>
+
+  <section class="section" aria-labelledby="t-filter-title">
+    <h2 id="t-filter-title" style="font-size:16px">골라 보기</h2>
+    <div class="filters" role="group" aria-label="종류로 거르기" id="t-filters"></div>
+  </section>
+
+  <section class="tl" id="t-tl" aria-label="작업기록"></section>
+
+  <footer id="t-foot"></footer>
+</div>
+  </div>
+</div>
 <script>
+
 const DATA = /*__DATA__*/null;
 const LABEL = { gui: 'GUI대로', mix: '섞임', wire: '와이어대로', none: '디자인 없음' };
 const COLOR = { gui: 'var(--gui)', mix: 'var(--mix)', wire: 'var(--wire)', none: 'var(--none)' };
@@ -224,14 +285,73 @@ for (const a of DATA.asks) {
 }
 document.getElementById('foot').textContent = `${DATA.asOf} 기준. 근거: 개발 문서 gui-screens §0(화면별 상태) · progress.md · Design Sync 이슈 · Figma 코멘트.`;
 
-const buttons = document.querySelectorAll('.filters button');
+const buttons = document.querySelectorAll('#view-screens .filters button');
 buttons.forEach((btn) => btn.addEventListener('click', () => {
   buttons.forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
   const f = btn.dataset.f;
-  document.querySelectorAll('.grid .card').forEach((card) => {
+  document.querySelectorAll('#view-screens .grid .card').forEach((card) => {
     card.hidden = !(f === 'all' || (f === 'ask' ? card.dataset.ask === '1' : f === 'fresh' ? card.dataset.fresh === '1' : card.dataset.kind === f));
   });
 }));
+
+</script>
+<script>
+
+const TL = /*__TIMELINE__*/null;
+const tel = (t, c, txt) => { const n = document.createElement(t); if (c) n.className = c; if (txt != null) n.textContent = txt; return n; };
+const fmt = (d) => { const [y, m, dd] = d.split('-'); return `${Number(m)}월 ${Number(dd)}일`; };
+const dow = (d) => '일월화수목금토'[new Date(d + 'T00:00:00+09:00').getDay()];
+document.getElementById('t-eyebrow').textContent = `두둥 v2 · 작업기록 · ${TL.asOf} 기준`;
+const days = [...TL.days].reverse();
+document.getElementById('t-s-days').textContent = TL.workDays + '일';
+document.getElementById('t-s-prs').textContent = TL.totalItems + '개';
+document.getElementById('t-s-span').textContent = `${fmt(TL.days[0].date)} ~ ${fmt(TL.asOf)}`;
+const tl = document.getElementById('t-tl');
+days.forEach((d, i) => {
+  const box = tel('article', 'day' + (i === 0 ? ' latest' : ''));
+  box.dataset.tags = d.tags.join(' ');
+  const c = tel('div', 'card');
+  const when = d.until ? `${fmt(d.date)} ~ ${fmt(d.until)}` : `${fmt(d.date)} (${dow(d.date)})`;
+  c.append(tel('span', 'when', when));
+  c.append(tel('h3', null, d.title));
+  const tags = tel('div', 'tags');
+  for (const t of d.tags) tags.append(tel('span', 'tag t-' + t, TL.tags[t]));
+  c.append(tags);
+  const ul = tel('ul');
+  for (const p of d.points) ul.append(tel('li', null, p));
+  c.append(ul);
+  if (d.items && d.items.length) {
+    const det = tel('details');
+    det.append(tel('summary', null, `개발 기록 원문 ${d.items.length}개`));
+    const ol = tel('ol');
+    for (const it of d.items) ol.append(tel('li', null, it));
+    det.append(ol); c.append(det);
+  }
+  box.append(c); tl.append(box);
+});
+const filters = document.getElementById('t-filters');
+const keys = ['all', ...Object.keys(TL.tags)];
+for (const k of keys) {
+  const b = tel('button', null, k === 'all' ? '전체' : TL.tags[k]);
+  b.type = 'button'; b.dataset.f = k; b.setAttribute('aria-pressed', String(k === 'all'));
+  b.addEventListener('click', () => {
+    filters.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    tl.querySelectorAll('.day').forEach((day) => { day.hidden = !(k === 'all' || day.dataset.tags.split(' ').includes(k)); });
+  });
+  filters.append(b);
+}
+document.getElementById('t-foot').textContent = `${TL.asOf} 기준. 요약은 개발이 쉬운 말로 다시 쓴 것이고, 원문은 GitHub에 들어간 작업 제목 그대로예요.`;
+
+</script>
+<script>
+function showView() {
+  const v = location.hash === '#timeline' ? 'timeline' : 'screens';
+  document.getElementById('view-screens').hidden = v !== 'screens';
+  document.getElementById('view-timeline').hidden = v !== 'timeline';
+  document.querySelectorAll('.views-nav a').forEach((a) => { if (a.dataset.view === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+}
+window.addEventListener('hashchange', () => { showView(); window.scrollTo(0, 0); });
+showView();
 </script>
 </body>
 </html>

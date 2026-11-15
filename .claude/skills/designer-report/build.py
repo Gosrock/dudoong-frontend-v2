@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""디자이너 공유 페이지 빌드 — screens.json → out/index.html(화면별 현황), timeline.json + git log → out/timeline.html(작업기록).
+"""디자이너 공유 페이지 빌드 — screens.json + timeline.json + git log → out/index.html 한 페이지(탭 #screens 화면별 현황 · #timeline 작업기록).
 
   python3 .claude/skills/designer-report/build.py          # 빌드 + 검사
 검사: 화면 kind 값 · 필수 칸 · 같은 이름 중복 · asOf/freshSince 날짜 형식. 실패하면 0이 아닌 코드로 끝난다.
@@ -37,17 +37,15 @@ payload = json.dumps(data, ensure_ascii=False).replace('</', '<\\/')
 html = tpl.replace('/*__DATA__*/null', payload)
 os.makedirs(os.path.join(HERE, 'out'), exist_ok=True)
 out = os.path.join(HERE, 'out', 'index.html')
-open(out, 'w', encoding='utf-8').write(html)
 kinds = {k: sum(1 for s in data['screens'] if s['kind'] == k) for k in ('gui', 'mix', 'wire', 'none')}
 fresh = [s['name'] for s in data['screens'] if s.get('updated') and s['updated'] >= data['freshSince']]
-print(f'{out}\n화면 {len(data["screens"])} · {kinds} · 최근 바뀜 {fresh}')
+print(f'화면 {len(data["screens"])} · {kinds} · 최근 바뀜 {fresh}')
 
 
 # ─── 작업기록(timeline) ───────────────────────────────
 import subprocess
 from datetime import date as _date, timedelta
 
-SCREENS_URL = 'https://claude.ai/artifact/SMnBC5QhWSB2c9JX6GKfvY'
 tl = json.load(open(os.path.join(HERE, 'timeline.json'), encoding='utf-8'))
 terrs = []
 for k in ('asOf',):
@@ -93,10 +91,8 @@ for d in tl['days']:
 missing = sorted(k for k in by_day if k >= tl['days'][0]['date'] and k not in covered)
 if missing:
     print('작업기록에 빠진 날짜(timeline.json에 칸을 더하거나 until로 묶는다):', ', '.join(missing)); sys.exit(1)
-tl['screensUrl'] = SCREENS_URL
 tl['workDays'] = sum(1 for k in by_day if k >= tl['days'][0]['date'])
 tl['totalItems'] = sum(len(d['items']) for d in tl['days'])
-ttpl = open(os.path.join(HERE, 'timeline-template.html'), encoding='utf-8').read()
-tout = os.path.join(HERE, 'out', 'timeline.html')
-open(tout, 'w', encoding='utf-8').write(ttpl.replace('/*__DATA__*/null', json.dumps(tl, ensure_ascii=False).replace('</', '<\\/')))
-print(f'{tout}\n작업기록 {len(tl["days"])}칸 · 작업한 날 {tl["workDays"]} · 원문 {tl["totalItems"]}개')
+html = html.replace('/*__TIMELINE__*/null', json.dumps(tl, ensure_ascii=False).replace('</', '<\\/'))
+open(out, 'w', encoding='utf-8').write(html)
+print(f'작업기록 {len(tl["days"])}칸 · 작업한 날 {tl["workDays"]} · 원문 {tl["totalItems"]}개\n{out}  (#screens · #timeline)')
