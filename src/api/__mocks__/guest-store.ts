@@ -1028,6 +1028,7 @@ export function dashboardOf(eventId: number): Dashboard | null {
     entranceStats: entranceStatsOf(guestTicketsOf(eventId)),
     displayStatus: e.displayStatus,
     dDay: e.displayStatus === 'UPCOMING' ? e.dDay : null,
+    canceledAt: e.canceledAt ?? null,
     openedAt: e.openedAt,
   };
 }

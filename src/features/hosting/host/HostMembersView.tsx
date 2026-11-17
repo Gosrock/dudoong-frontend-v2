@@ -45,22 +45,23 @@ type Members = ReturnType<typeof useHostMembers>;
 type MemberRow = Members['members'][number];
 
 /**
- * 역할 글자 색(GUI `멤버 행` `1421:752`) — 마스터 `brand/primary` · 매니저 Teal 400 · 일반 `text/secondary-label`.
- * 표시용 매핑이라 `can()`이 아니다(patterns §22 D10)
+ * 역할 글자 색(GUI `멤버 행` `1421:752`) — 마스터 `brand/primary` · 매니저 Teal 500(접근성 대비로 400 → 500, Design Sync #282) ·
+ * 일반 `text/secondary-label`. 표시용 매핑이라 `can()`이 아니다(patterns §22 D10)
  */
 const ROLE_COLOR: Record<HostRole, string> = {
   MASTER: colors.brandPrimary,
-  MANAGER: colors.chipCyan,
+  MANAGER: colors.teal500,
   GUEST: colors.textSecondaryLabel,
   UNKNOWN: colors.textSecondaryLabel,
 };
 
 /**
- * `/hosting/hosts/[hostId]/members` 멤버 관리 — **GUI 근거**(모바일 Ready, 2026-11-15 Design Sync #263~#266 · #268 · #269):
+ * `/hosting/hosts/[hostId]/members` 멤버 관리 — **GUI 근거**(모바일 2026-11-15 Design Sync #263~#266 · #268 · #269, 11-16 #282~#289):
  * 목록 `1421:755`(마스터) · `1452:54924`(매니저) · `1452:56114`(일반), ⋮ 메뉴 `1422:918`, 권한 변경 `1422:1121` · `1452:42791`,
  * 마스터 양도 `1422:1395`, 멤버 삭제 `1422:1695`, 권한 안내 시트 `1452:54461`, 초대 시트 `1422:1911` · `1423:4341` · `1467:5001`,
  * 미가입 이메일 `1427:4143`, 링크 만듦 `1427:4357` · `1427:4566`, 이미 멤버 `1476:6806`, 초대 대기 `1452:56710` · `1452:57010`,
- * 초대 취소 `1476:7882` · `1476:8144`. PC(1024~)는 Ready가 없어 와이어 배치(폭 600 · 오른쪽 아래 버튼)를 유지한다(🤖).
+ * 초대 취소 `1476:7882` · `1476:8144`. PC(1024~, #296~#298): `1496:9302` · `1496:9535` · `1496:12051` 등 — 본문 960 가운데 ·
+ * 머리 줄 오른쪽 [+ 멤버 초대하기](FAB 대신) · 아바타 40. 같은 DOM이고 무엇이 보일지는 CSS가 정한다.
  * 메뉴 항목·초대 역할·FAB는 `can()`(`memberActionsOf` · `canInvite`)이 정한다 — 역할 문자열을 여기서 비교하지 않는다.
  * 주소의 id가 숫자가 아니면 요청 없이 공용 404, 비멤버는 공용 403.
  */
@@ -100,7 +101,25 @@ function HostMembers({ hostId }: { hostId: string }) {
 
   return (
     <main className={page.page}>
-      <Header title="멤버" backHref={hostHref(hostId)} linkAs={Link} />
+      <Header
+        title="멤버"
+        backHref={hostHref(hostId)}
+        linkAs={Link}
+        className={s.header}
+        trailing={
+          members.canInvite && (
+            // PC 머리 줄 버튼(`1496:9302` `멤버 초대 버튼_데스크탑` — Primary medium + `ic_add` 18). 모바일은 아래 FAB
+            <Button
+              className={s.inviteButton}
+              size="md"
+              icon={<Icon name="add" />}
+              onClick={openInvite}
+            >
+              멤버 초대하기
+            </Button>
+          )
+        }
+      />
       <div className={s.body}>
         <button type="button" className={s.guideChip} onClick={openGuide}>
           <Icon name="information" size={16} />
@@ -203,7 +222,7 @@ function MemberItem({ member, m }: { member: MemberRow; m: Members }) {
     <li className={s.memberRow} data-testid="member-row">
       <div className={s.memberMain}>
         {/* 프로필 이미지 기본(#269 `1452:40909`)은 병렬 세션 몫 — 지금은 Avatar 캐릭터(grey) · 사진 */}
-        <Avatar size={60} src={member.profileImageUrl} />
+        <Avatar size={60} className={s.memberAvatar} src={member.profileImageUrl} />
         <div className={s.memberText}>
           <Txt typography="headingSmEmphasized" lines={1}>
             <span data-testid="member-name">{name}</span>
@@ -354,14 +373,19 @@ function PermissionGuideSheet({
   );
 }
 
-/** 이메일 칸 아래 안내(디자이너 요청 2026-11-15 — 초대는 두둥 계정 = 카카오 계정 이메일로 찾는다) */
-const INVITE_EMAIL_HINT = '카카오톡에 가입한 이메일로 적어주세요.';
+/**
+ * 초대 시트 설명(`1469:5793` 외 — Design Sync #283 · #284). 첫 줄은 Figma 그대로(초대는 두둥 계정 = 카카오 계정 이메일로 찾는다).
+ * 둘째 줄 Figma "상대방 승인 후 멤버로 추가돼요."는 서버와 달라(PH-7은 바로 멤버 — DEC-015, 승인은 초대 링크만) 바꾼다 🤖(Q229)
+ */
+const INVITE_DESCRIPTION =
+  '카카오톡에 가입한 이메일로 적어주세요.\n가입한 이메일은 바로 멤버로 추가돼요.';
 
 /**
- * 초대 시트(`1422:1911` · 매니저 `1423:4341` · 역할 열림 `1467:5001`) — 이메일 + 역할(기본 "일반", 매니저는 "일반" 고정) + [초대하기].
- * 가입한 이메일은 PH-7로 바로 멤버가 된다(api-contract — 시트 설명 "상대방 승인 후"와 다르다, Figma 코멘트 🤖).
- * 가입되지 않은 이메일(`HOST_400_13`)이면 줄 아래 빨간 사유 + 회색 상자 [초대 링크 만들기](H-16, `1427:4143`), 만든 뒤에는
- * 링크 · 만료일 · [링크 복사하기](`1427:4357` · `1427:4566`). 이미 멤버(`HOST_400_15`)는 줄 아래 빨간 사유(`1476:6806`)
+ * 초대 시트(`1422:1911` · 매니저 `1423:4341` · 역할 열림 `1467:5001`, PC 모달 `1496:11298`) — 이메일 + 역할(기본 "일반", 매니저는
+ * "일반" 고정) + [초대하기]. 가입한 이메일은 PH-7로 바로 멤버가 된다.
+ * 줄 아래 빨간 사유(간격 8): 미가입(`HOST_400_13` — 아래 회색 상자 [초대 링크 만들기](H-16, `1427:4143`), 이미 보낸 초대가 있으면 상자 안
+ * 분홍 안내 `1476:7459`) · 이미 멤버(`HOST_400_15`, `1476:6806`) · 같은 이메일 계정 여러 개(`HOST_400_18`, `1476:7024`) ·
+ * 링크 한도(H-16 `HOST_400_21`, `1476:7242` — 상자 대신 사유만). 만든 뒤에는 링크 · 만료일 · [링크 복사하기](`1427:4357` · `1427:4566`)
  */
 function InviteSheet({
   open,
@@ -378,16 +402,19 @@ function InviteSheet({
 }) {
   const inviteForm = useInviteMembers(hostId, myRole);
   const inviteLink = useCreateInviteLink(hostId, myRole);
+  const invitations = useHostInvitations(hostId, myRole);
   const errorId = useId();
-  const hintId = useId();
   const row = inviteForm.rows[0]!;
+  const unregistered = inviteForm.unregistered;
+  // 링크 발급 실패(한도 · 이미 멤버)는 미가입 사유 자리를 대신한다(`1476:7242` — 회색 상자 없이 사유만). 칸을 고치면 미가입과 함께 사라진다
+  const linkError = unregistered ? inviteLink.error : null;
   const error =
+    linkError ??
     inviteForm.serverErrors[0] ??
     (inviteForm.attempted ? inviteForm.errors[0] : null) ??
     inviteForm.formError;
   const formId = 'host-invite-form';
   const busy = inviteForm.submitting || inviteLink.creating;
-  const unregistered = inviteForm.unregistered;
 
   if (inviteLink.link) {
     const { link } = inviteLink;
@@ -446,7 +473,7 @@ function InviteSheet({
       titleSize="md2"
       descriptionStyle="body"
       title="멤버 초대하기"
-      description="가입한 이메일은 바로 멤버로 추가돼요."
+      description={<span className={s.preLine}>{INVITE_DESCRIPTION}</span>}
       footer={
         <Button
           type="submit"
@@ -469,6 +496,7 @@ function InviteSheet({
       <form
         id={formId}
         aria-label="멤버 초대"
+        className={s.inviteForm}
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
@@ -480,71 +508,63 @@ function InviteSheet({
           });
         }}
       >
-        <div className={s.inviteRow} data-testid="invite-row">
-          <Input
-            className={s.inviteEmail}
-            type="email"
-            aria-label="초대할 이메일"
-            placeholder="dudoong@email.com"
-            showCount={false}
-            invalid={Boolean(error)}
-            aria-describedby={error ? `${hintId} ${errorId}` : hintId}
-            {...inviteForm.form.register('rows.0.email')}
-          />
-          <Dropdown
-            className={s.inviteRole}
-            aria-label="역할"
-            options={inviteForm.roleOptions.map((role) => ({
-              value: role,
-              label: HOST_ROLE_LABEL[role],
-            }))}
-            value={row.role}
-            disabled={inviteForm.roleOptions.length < 2}
-            onValueChange={(v) => v && inviteForm.setRole(0, v as AssignableHostRole)}
-          />
-        </div>
-        <div className={s.inviteMessages}>
-          {/*
-            카카오톡에 가입한 이메일 안내 — 디자이너 요청(GUI 코멘트 `2008678247` · `2008678295`, 2026-11-15 — 문구 그대로).
-            Ready 프레임(`1422:1911`)에 자리가 없어 줄 아래 사유 자리 맨 위에 회색 작은 글자로 둔다 🤖(DS Input helper는
-            칸 위에 그려져 이메일 칸만 내려가 역할 칸과 줄이 어긋난다)
-          */}
-          <p id={hintId} className={s.note}>
-            <Txt typography="labelSm" color={colors.textTertiaryLabel}>
-              {INVITE_EMAIL_HINT}
-            </Txt>
-          </p>
+        {/* 칸 줄 + 사유(`1427:4143` `Frame 1707480467` — 간격 8) */}
+        <div className={s.inviteField}>
+          <div className={s.inviteRow} data-testid="invite-row">
+            <Input
+              className={s.inviteEmail}
+              type="email"
+              aria-label="초대할 이메일"
+              placeholder="dudoong@email.com"
+              showCount={false}
+              invalid={Boolean(error)}
+              aria-describedby={error ? errorId : undefined}
+              {...inviteForm.form.register('rows.0.email')}
+            />
+            <Dropdown
+              className={s.inviteRole}
+              aria-label="역할"
+              options={inviteForm.roleOptions.map((role) => ({
+                value: role,
+                label: HOST_ROLE_LABEL[role],
+              }))}
+              value={row.role}
+              disabled={inviteForm.roleOptions.length < 2}
+              onValueChange={(v) => v && inviteForm.setRole(0, v as AssignableHostRole)}
+            />
+          </div>
           {error && (
-            <p id={errorId} role="alert" className={s.note}>
+            <p id={errorId} role="alert" className={`${s.note} ${s.preLine}`}>
               <Txt typography="labelMd" color={colors.textDangerLabel}>
                 {error}
               </Txt>
             </p>
           )}
-          {unregistered && (
-            <div className={s.greyBox} data-testid="invite-link-offer">
-              <Txt typography="labelSm" color={colors.textTertiaryLabel}>
-                초대 링크를 만들면 이 이메일로 링크를 보내요. 링크는 7일 동안 한 번만 쓸 수 있어요.
-              </Txt>
-              <Button
-                variant="secondary"
-                size="sm"
-                loading={inviteLink.creating}
-                disabled={inviteForm.submitting}
-                onClick={() => void inviteLink.create(unregistered.email, unregistered.role)}
-              >
-                초대 링크 만들기
-              </Button>
-              {inviteLink.error && (
-                <p role="alert" className={s.note}>
-                  <Txt typography="bodySm" color={colors.textDangerLabel}>
-                    {inviteLink.error}
-                  </Txt>
-                </p>
-              )}
-            </div>
-          )}
         </div>
+        {unregistered && !linkError && (
+          <div className={s.greyBox} data-testid="invite-link-offer">
+            <Txt typography="labelSm" color={colors.textTertiaryLabel}>
+              초대 링크를 만들면 이 이메일로 링크를 보내요. 링크는 7일 동안 한 번만 쓸 수 있어요.
+            </Txt>
+            {invitations.hasPendingFor(unregistered.email) && (
+              // GUI `1476:7459` "이전 링크 무효 안내" — 분홍 상자. 같은 이메일 대기 초대는 새 링크가 무효로 만든다(H-16)
+              <p className={s.dangerBox} data-testid="invite-reinvite-notice">
+                <Txt typography="labelSm" color={colors.textDangerLabel}>
+                  이미 보낸 초대가 있어요. 다시 초대하면 이전 링크는 쓸 수 없게 돼요.
+                </Txt>
+              </p>
+            )}
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={inviteLink.creating}
+              disabled={inviteForm.submitting}
+              onClick={() => void inviteLink.create(unregistered.email, unregistered.role)}
+            >
+              초대 링크 만들기
+            </Button>
+          </div>
+        )}
       </form>
     </ResponsiveOverlay>
   );

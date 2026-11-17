@@ -103,14 +103,16 @@ export const toAddMembersBody = (rows: readonly InviteRow[]): AddHostMembersRequ
  * 초대 실패의 줄별 사유(patterns §24 P10b). 백엔드는 문제 이메일을 `reason` 끝 괄호에 `, `로 이어 붙인다
  * — `"가입되지 않은 이메일입니다. (a@x.com, b@y.com)"`(`HostErrorCode.toDetailException`, 432cce4). `HOST_400_14`의 이메일은 소문자다.
  * 검사 순서가 정해져 있어(중복 14 → 동명 계정 18 → 미가입 13 → 이미 멤버 15) 한 번에 한 사유만 온다.
- * 문구는 잠정(디자인 없음).
+ * 문구는 GUI 초대 시트 오류 화면(13 `1427:4143` · 15 `1476:6806` · 18 `1476:7024`, Design Sync #286 · #289). 14는 화면이 한 줄이라
+ * 나오지 않는다(잠정 문구).
  */
 export const INVITE_ERROR_MESSAGE = {
   // 다음 행동을 함께(스테이징 QA #106 §5) — 초대 링크(H-16, B33② · 백엔드 #933)로 이어진다
   HOST_400_13: '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
   HOST_400_14: '같은 이메일을 두 번 넣었어요',
-  HOST_400_15: '이미 이 호스트의 멤버예요',
-  HOST_400_18: '같은 이메일로 가입된 계정이 여러 개예요. 두둥에 문의해 주세요',
+  HOST_400_15: '이미 이 호스트의 멤버예요.',
+  HOST_400_18:
+    '같은 이메일로 가입한 계정이 여러 개라 초대할 수 없어요.\n다른 이메일로 초대해 주세요.',
 } as const;
 export type InviteErrorCode = keyof typeof INVITE_ERROR_MESSAGE;
 

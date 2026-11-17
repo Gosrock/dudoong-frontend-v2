@@ -271,7 +271,8 @@ function resultScreen(
     return {
       illustration: 'gift-canceled',
       title: '취소된 선물',
-      description: '선물 보낸분이 선물을 취소했습니다.',
+      // 이유별 문구(이슈 #274 §1-3 — `SENDER`만 GUI `939:27058` 원문, `giftCanceledText`)
+      description: screen.description,
       browse: true,
     };
   }

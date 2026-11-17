@@ -333,7 +333,7 @@ scenario(
   {
     kind: '에러',
     summary:
-      'GUI 초대 시트 1422:1911(이메일 1칸 + 역할(기본 "일반") + [초대하기]). 설명은 "가입한 이메일은 바로 멤버로 추가돼요."(서버는 즉시 멤버 — Figma 문구와 다름 🤖). 실패 사유는 HOST_400_13 → 줄 아래 사유(1427:4143).',
+      'GUI 초대 시트 1422:1911(이메일 1칸 + 역할(기본 "일반") + [초대하기]). 설명 첫 줄 "카카오톡에 가입한 이메일로 적어주세요."(#283), 둘째 줄은 "가입한 이메일은 바로 멤버로 추가돼요."(서버는 즉시 멤버 — Figma "상대방 승인 후"와 다름 🤖 Q229). 실패 사유는 HOST_400_13 → 줄 아래 사유(1427:4143).',
     basis: [
       'plan P10b V 범위 · 완료 기준 V "초대 실패 줄 표시"',
       'patterns §24 P10b HOST_400_13~15 · 18',
@@ -349,10 +349,9 @@ scenario(
       async () => {
         await page.goto(MEMBERS);
         await page.getByRole('button', { name: '멤버 초대하기' }).click();
-        await expect(dialog).toContainText('가입한 이메일은 바로 멤버로 추가돼요.');
-        // 디자이너 요청(2026-11-15) — 이메일 칸 아래 안내, 칸의 설명으로 읽힌다
-        await expect(dialog.getByLabel('초대할 이메일')).toHaveAccessibleDescription(
-          '카카오톡에 가입한 이메일로 적어주세요.',
+        // 설명 두 줄(#283 · #284 — 카카오톡 안내는 설명 첫 줄로 옮겨짐), 팝업의 설명으로 읽힌다
+        await expect(dialog).toHaveAccessibleDescription(
+          /카카오톡에 가입한 이메일로 적어주세요\.\s*가입한 이메일은 바로 멤버로 추가돼요\./,
         );
         await expect(dialog.getByLabel('역할')).toHaveText('일반');
         await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
@@ -735,6 +734,102 @@ scenario(
       await expect(page.getByTestId('member-row')).toHaveCount(4);
       await expect(page.getByText('초대 대기 목록을 불러오지 못했어요')).toBeVisible();
       await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible();
+    });
+  },
+);
+
+scenario(
+  'HS-20',
+  '초대 시트 오류별 — 이미 멤버 · 같은 이메일 계정 여러 개 · 다시 초대 안내 · 링크 한도',
+  {
+    kind: '에러',
+    summary:
+      'GUI 1476:6806(HOST_400_15) · 1476:7024(HOST_400_18 두 줄) · 1476:7459(미가입인데 같은 이메일 대기 초대가 있으면 회색 상자 안 분홍 안내 — H-16이 옛 링크를 무효로 만든다) · 1476:7242(H-16 HOST_400_21 — 사유만, 상자 없음). 모두 칸 아래 사유(간격 8) · [초대하기] 비활성.',
+    basis: [
+      'Design Sync #286 · #289',
+      'api-contract H-16(같은 이메일 대기 초대는 새 링크로 바꾼다 · 발급 한도)',
+      'error-codes HOST_400_15 · 18 · 21',
+    ],
+  },
+  async ({ page, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
+    const email = dialog.getByLabel('초대할 이메일');
+    const submit = async (value: string) => {
+      await email.fill(value);
+      await dialog.getByRole('button', { name: '초대하기' }).click();
+    };
+    await step('이미 멤버(drum@) — "이미 이 호스트의 멤버예요."', async () => {
+      await page.goto(MEMBERS);
+      await expect(page.getByTestId('invitation-row')).toHaveCount(3);
+      await page.getByRole('button', { name: '멤버 초대하기' }).click();
+      await submit('drum@example.com');
+      await expect(dialog.getByRole('alert')).toHaveText('이미 이 호스트의 멤버예요.');
+      await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
+    });
+    await step('같은 이메일 계정 여러 개(twin@) — 두 줄 사유', async () => {
+      await submit('twin@example.com');
+      await expect(dialog.getByRole('alert')).toHaveText(
+        '같은 이메일로 가입한 계정이 여러 개라 초대할 수 없어요.\n다른 이메일로 초대해 주세요.',
+      );
+    });
+    await step('대기 초대가 있는 미가입 이메일 — 상자 안 "이미 보낸 초대가 있어요"', async () => {
+      await submit('pending-guest@example.com');
+      await expect(dialog.getByTestId('invite-reinvite-notice')).toHaveText(
+        '이미 보낸 초대가 있어요. 다시 초대하면 이전 링크는 쓸 수 없게 돼요.',
+      );
+    });
+    await step('링크 한도(limit@) — [초대 링크 만들기] 뒤 사유만, 상자 없음', async () => {
+      await submit('limit@example.com');
+      await expect(dialog.getByTestId('invite-reinvite-notice')).toHaveCount(0);
+      await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
+      await expect(dialog.getByRole('alert')).toHaveText(
+        '가입되지 않은 이메일이에요. 초대 링크를 보내야 하는데, 오늘은 더 만들 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
+      );
+      await expect(dialog.getByTestId('invite-link-offer')).toHaveCount(0);
+    });
+  },
+);
+
+scenario(
+  'HS-21',
+  '멤버 PC 1440 — 본문 960 가운데 · 머리 줄 [+ 멤버 초대하기] · 아바타 40 · 초대 모달 480',
+  {
+    kind: '반응형',
+    summary:
+      'GUI 1496:9302(마스터뷰) · 1496:12051(초대 대기) · 1496:11298(초대 모달). FAB 대신 머리 줄 오른쪽 Primary 버튼, 행 56(아바타 40), 매니저 글자 Teal 500(#282).',
+    basis: ['Design Sync #282 · #296 · #297 · #298', 'patterns §1 반응형(1024부터 PC)'],
+    viewports: ['desktop'],
+  },
+  async ({ page, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    await page.setViewportSize({ width: 1440, height: 1024 });
+    await step('목록 — 960 가운데, 버튼은 머리 줄 오른쪽 끝', async () => {
+      await page.goto(MEMBERS);
+      await expect(page.getByTestId('member-row')).toHaveCount(4);
+      const list = await page.getByRole('list', { name: '멤버 목록' }).boundingBox();
+      expect(list).toMatchObject({ x: 240, width: 960 });
+      const invite = await page.getByRole('button', { name: '멤버 초대하기' }).boundingBox();
+      expect(Math.round(invite!.x + invite!.width)).toBe(1200);
+      const avatar = await page
+        .getByTestId('member-row')
+        .first()
+        .locator('img, svg')
+        .first()
+        .boundingBox();
+      expect(avatar).toMatchObject({ width: 40, height: 40 });
+      await expect(
+        page.getByTestId('member-role').filter({ hasText: '매니저' }).locator('*').first(),
+      ).toHaveCSS('color', 'rgb(45, 163, 169)');
+    });
+    await step('[+ 멤버 초대하기] → 모달 480', async () => {
+      await page.getByRole('button', { name: '멤버 초대하기' }).click();
+      const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
+      await expect(dialog).toBeVisible();
+      // 열림 애니메이션(크기 변화)이 끝난 뒤의 폭
+      await expect.poll(async () => (await dialog.boundingBox())?.width).toBe(480);
     });
   },
 );

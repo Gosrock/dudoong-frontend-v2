@@ -1,4 +1,4 @@
-import type { GiftViewState } from '@/api/gift/schema';
+import type { GiftCancelReason, GiftViewState } from '@/api/gift/schema';
 
 /**
  * 선물 랜딩 `viewState` 7종 + UNKNOWN → 화면 상태(patterns §18, tech-decisions §20).
@@ -23,7 +23,27 @@ export type GiftLandingViewer = {
   isReceiver: boolean;
   /** 보는 사람이 보낸 사람이면 선물 id(회수) */
   giftId: number | null;
+  /** CANCELED일 때 취소 이유(GG-3 `cancelReason`, Api 2.5.15). 없거나 모르는 값이면 공통 문구 */
+  cancelReason?: GiftCancelReason | null;
 };
+
+/**
+ * 취소된 선물 랜딩 설명 — 이유별(이슈 #274 §1-3, 백엔드 #957). `SENDER`만 GUI `696:17554`(`939:27058`) 원문이고, 나머지는 디자인이 없어
+ * 🤖 문구(이유를 사실대로 · 정지 여부는 드러내지 않음). 모르는 값·이유 없음(2.5.14 이하 · 수락 중 취소 `Gift_400_6`)은 이슈 지정 문구
+ */
+export const GIFT_CANCELED_REASON_TEXT: Record<Exclude<GiftCancelReason, 'UNKNOWN'>, string> = {
+  SENDER: '선물 보낸분이 선물을 취소했습니다.',
+  ORDER_CANCELED: '선물한 티켓의 주문이 취소되어 선물이 취소되었어요.',
+  SENDER_WITHDRAWN: '선물 보낸분이 두둥을 더 이상 이용할 수 없어 선물이 취소되었어요.',
+  EVENT_REMOVED: '공연이 삭제되거나 비공개로 바뀌어 선물이 취소되었어요.',
+  ADMIN: '운영자가 선물을 회수해 선물이 취소되었어요.',
+};
+export const GIFT_CANCELED_FALLBACK_TEXT = '선물이 취소되었어요';
+
+export function giftCanceledText(reason: GiftCancelReason | null | undefined): string {
+  if (!reason || reason === 'UNKNOWN') return GIFT_CANCELED_FALLBACK_TEXT;
+  return GIFT_CANCELED_REASON_TEXT[reason];
+}
 
 /**
  * 보낸 사람이 선물을 취소·회수한 뒤 완료 화면 설명(티켓탭 · 선물 랜딩 공통). GUI `908:21359`의 "선물 받는분에게 선물 취소 알림이
@@ -34,7 +54,7 @@ export const GIFT_CANCELED_DESCRIPTION =
 
 export function giftLandingScreen(
   viewState: GiftViewState,
-  { isReceiver, giftId }: GiftLandingViewer,
+  { isReceiver, giftId, cancelReason }: GiftLandingViewer,
 ): GiftLandingScreen {
   const sender = giftId !== null;
   const base = { viewState, showSummary: false, description: null };
@@ -63,7 +83,7 @@ export function giftLandingScreen(
       return {
         ...base,
         title: '취소된 선물이에요',
-        description: '보낸 분이 선물을 취소했어요',
+        description: giftCanceledText(cancelReason),
         actions: ['GO_TICKETS'],
       };
     case 'OWN_LINK':

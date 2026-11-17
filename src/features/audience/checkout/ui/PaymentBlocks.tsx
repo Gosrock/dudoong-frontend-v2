@@ -12,10 +12,12 @@ import { Divider } from '@/ui/primitives/Divider';
  */
 
 /**
- * 결제정보 머리 줄 안내 — 체크아웃 GUI `564:4156`(Ready for dev) 원문. 주문상세(와이어)의 "…동일하게 입력해주세요"도 이것으로 맞춘다.
+ * 결제정보 머리 줄 안내. 체크아웃 GUI `564:4156`(Ready for dev) 원문은 "입금자명은 닉네임과 동일하게 해주세요"인데, 서버 정책은 입금자명을 주문마다
+ * 1~20자로 따로 받는다(WorkBook DEC-022 #6 — 이슈 #274 §3). 지금 화면은 운영자 결정(#106 §4)대로 닉네임을 입금자명으로 보내므로
+ * "닉네임과 같게"라는 정책처럼 읽히지 않게 아래 줄의 이름으로 입금하라고만 쓴다(🤖 — 입금자명 칸을 따로 둘지는 #274 질문).
  * 약관 근거 문구가 아니다(legal-copy A-12는 v1 참고 문구).
  */
-export const DEPOSITOR_NOTICE = '입금자명은 닉네임과 동일하게 해주세요';
+export const DEPOSITOR_NOTICE = '아래 입금자명으로 입금해 주세요';
 
 type DepositAccount = {
   bankName: string | null;

@@ -41,6 +41,20 @@ export const GiftTicketSchema = z.object({
 });
 
 /**
+ * 대기 중 선물이 취소된 이유(`TicketGiftCancelReason` @432cce4).
+ * `ADMIN` = 운영자 강제 회수(내부 어드민, 백엔드 #819·#826). 보낸 사람 회수와 같은 규칙 — 대기 중일 때만, 알림 없음
+ */
+export const GIFT_CANCEL_REASONS = [
+  'SENDER',
+  'ORDER_CANCELED',
+  'SENDER_WITHDRAWN',
+  'EVENT_REMOVED',
+  'ADMIN',
+] as const;
+export const GiftCancelReasonSchema = openEnum('GiftCancelReason', GIFT_CANCEL_REASONS);
+export type GiftCancelReason = z.infer<typeof GiftCancelReasonSchema>;
+
+/**
  * GG-3 선물 랜딩 — 공개 필드(서버 프리페치, 토큰 없음). OG와 공연 요약을 그린다.
  * `viewState`는 익명 기준 값이다(익명이 확정됐을 때만 화면 상태로 쓴다). 로그인 사용자는 viewer 값을 쓴다.
  * 사용자별 필드(`isLoggedIn`·`isReceiver`·`giftId`)는 뺐다(tech-decisions §4).
@@ -54,6 +68,8 @@ export const GiftLandingSchema = z.object({
   event: GiftEventSchema.nullable(),
   /** 대기 중일 때만. 옵션 답변은 오지 않는다 */
   ticket: GiftTicketSchema.nullable(),
+  /** 취소된 이유 — `viewState == CANCELED`일 때만, 그 밖은 null(Api 2.5.15, 백엔드 #957). 2.5.14 이하는 필드 없음 */
+  cancelReason: GiftCancelReasonSchema.nullable().optional(),
 });
 export type GiftLanding = z.infer<typeof GiftLandingSchema>;
 
@@ -72,20 +88,6 @@ export type GiftLandingViewer = z.infer<typeof GiftLandingViewerSchema>;
 
 /** 메모 최대 길이(앞뒤 공백 제외). 넘으면 `Gift_400_9` */
 export const GIFT_MEMO_MAX = 50;
-
-/**
- * 대기 중 선물이 취소된 이유(`TicketGiftCancelReason` @432cce4).
- * `ADMIN` = 운영자 강제 회수(내부 어드민, 백엔드 #819·#826). 보낸 사람 회수와 같은 규칙 — 대기 중일 때만, 알림 없음
- */
-export const GIFT_CANCEL_REASONS = [
-  'SENDER',
-  'ORDER_CANCELED',
-  'SENDER_WITHDRAWN',
-  'EVENT_REMOVED',
-  'ADMIN',
-] as const;
-export const GiftCancelReasonSchema = openEnum('GiftCancelReason', GIFT_CANCEL_REASONS);
-export type GiftCancelReason = z.infer<typeof GiftCancelReasonSchema>;
 
 /**
  * PG-1 · PG-8 본문(`V2GiftMemoRequest`, 엄격). 메모는 보낸 사람에게만 보인다.

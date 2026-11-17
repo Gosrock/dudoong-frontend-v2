@@ -262,6 +262,7 @@
 | `Ticket_Item_400_14` | 400 | 판매된 티켓은 설명·판매기간·재고공개·매수제한·수량 증가만 수정할 수 있습니다. | `FORBIDDEN_SOLD_TICKET_ITEM_CHANGE` |
 | `Ticket_Item_400_15` | 400 | 티켓 입력값이 올바르지 않습니다. | `INVALID_TICKET_ITEM_FIELD` |
 | `Ticket_Item_400_15` | 400 | 값을 비우려면 null 대신 clear 에 필드 이름을 넣어 주세요 (무제한·제한 없음·등록 즉시·공연 시작까지·설명 없음). | `TICKET_ITEM_NULL_FIELD` |
+| `Ticket_Item_400_16` | 400 | 공개된 공연에는 티켓이 최소 1개 있어야 해요. 판매를 멈추려면 판매 중단을 이용해 주세요. | (Api 2.5.15, 백엔드 #956 · PR #960 — 등록된 티켓 있음 공연의 마지막 티켓 삭제. 판매 중단 티켓도 셈. 화면은 메시지 그대로 + 목록 다시 읽기, 마지막 티켓 ⋮ 메뉴는 삭제 대신 판매 중단 — 이슈 #274 §1-2) |
 | `Option_Group_400_4` | 400 | v2 에서는 주관식·네/아니오 옵션만 만들 수 있습니다. | `UNSUPPORTED_V2_OPTION_TYPE` |
 | `Option_Group_400_5` | 400 | 판매된 티켓에 붙은 옵션은 이름·설명만 수정할 수 있습니다. | `FORBIDDEN_LOCKED_OPTION_CHANGE` |
 | `Option_Group_400_6` | 400 | 옵션 설명은 50자까지 입력할 수 있습니다. | `INVALID_OPTION_DESCRIPTION` |
