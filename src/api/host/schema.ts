@@ -63,8 +63,13 @@ export const HostEventSchema = z.object({
   /** 저장 상태. 비멤버에게는 PREPARING이 오지 않는다 */
   status: EventStatusSchema,
   displayStatus: EventDisplayStatusSchema,
-  /** D-n의 n(당일 0). UPCOMING일 때만, 아니면 null */
+  /** D-n의 n(당일 0). UPCOMING일 때만, 아니면 null. 취소된 공연도 null(Api 2.5.15) */
   dDay: z.number().int().nullable(),
+  /**
+   * 호스트가 공연을 취소한 시각(E-11 — Api 2.5.15, 백엔드 #955). 취소 안 됐으면 null. `status`·`displayStatus`는 취소돼도 그대로라
+   * 이 값으로 "취소됨"을 판정한다(`isEventCanceled`). 2.5.14 이하는 필드 없음
+   */
+  canceledAt: kstDateTime.nullable().optional(),
 });
 export const HostEventPageSchema = pageSchema(HostEventSchema);
 export type HostEvent = z.infer<typeof HostEventSchema>;

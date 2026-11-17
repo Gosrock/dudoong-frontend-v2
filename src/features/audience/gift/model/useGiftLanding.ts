@@ -76,7 +76,11 @@ export function useGiftLanding(giftToken: string) {
     const viewState = forcedCanceled ? 'CANCELED' : source.viewState;
     return {
       status: 'ready',
-      screen: giftLandingScreen(viewState, source),
+      // 수락 중 취소(`Gift_400_6`)로 CANCELED를 대신 그릴 때는 이유를 모른다 — 공통 문구
+      screen: giftLandingScreen(
+        viewState,
+        forcedCanceled ? { ...source, cancelReason: null } : source,
+      ),
       giftId: source.giftId,
     };
   }, [session, viewer, source, forcedCanceled]);

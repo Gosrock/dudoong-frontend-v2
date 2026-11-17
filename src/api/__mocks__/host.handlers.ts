@@ -245,7 +245,9 @@ const toHostEvent = (e: MockEvent): HostEvent => ({
   place: e.place,
   status: e.status,
   displayStatus: e.displayStatus,
-  dDay: e.dDay,
+  // Api 2.5.15 — 취소된 공연은 dDay null + canceledAt
+  dDay: e.canceledAt ? null : e.dDay,
+  canceledAt: e.canceledAt ?? null,
 });
 
 /** 로그인 사용자가 이 호스트에서 보는 역할·팔로우 기본값(관점을 바꾸는 세트가 덮는다) */
