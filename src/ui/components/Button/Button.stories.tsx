@@ -62,6 +62,17 @@ export const KakaoWidths: Story = {
       </Button>
     </Flex>
   ),
+  /** `size`와 상관없이 한 벌 — sm · lg에서도 모서리 10 · 45h · 14 / 700 */
+  play: async ({ canvas }) => {
+    for (const btn of canvas.getAllByRole('button', { name: '카카오 로그인' })) {
+      const style = getComputedStyle(btn);
+      await expect(style.borderRadius).toBe('10px');
+      await expect(style.height).toBe('45px');
+      await expect(style.fontSize).toBe('14px');
+      await expect(style.fontWeight).toBe('700');
+      await expect(style.lineHeight).toBe('16.8px');
+    }
+  },
 };
 export const Selected: Story = { args: { variant: 'secondary', selected: true } };
 export const Disabled: Story = { args: { disabled: true } };

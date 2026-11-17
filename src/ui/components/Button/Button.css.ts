@@ -1,7 +1,10 @@
 import { recipe } from '@vanilla-extract/recipes';
 
 import { vars } from '../../theme/tokens.css';
-import { typography } from '../../theme/typography.css';
+import { typography, typographySpecs } from '../../theme/typography.css';
+
+/** 카카오 로그인 버튼 레이블 — GUI `1516:55992` Pretendard Bold 14 / 120% / -1%(= `labelMdEmphasized`) */
+const KAKAO_LABEL = typographySpecs.labelMdEmphasized;
 
 /**
  * Figma Button(`36:24`, design-system §3). 크기 small 32 · medium 46 · Large 56, 모서리 8 · 10 · 12.
@@ -190,20 +193,23 @@ export const button = recipe({
      * 카카오 로그인 버튼 — GUI 컴포넌트 `카카오 로그인 버튼`(`1516:55992`, 디자이너가 2026-11-16 바꾼 값 — 코멘트 `2008666517`, Q238):
      * 높이 45 · 모서리 10 · 좌우 38 · 심볼 18 · 간격 8 · 레이블 Pretendard Bold 14 / 120% / -1%(= `labelMdEmphasized`).
      * 처음엔 카카오 가이드(`122:101`) 값(모서리 6 · 시스템 서체 15 / 600)이었다 — 색 · 심볼은 가이드 그대로.
-     * 크기 변형(`size`)의 높이 · 패딩 · 모서리 · 글자를 덮는다
+     * 크기 변형(`size`)의 높이 · 패딩 · 모서리 · 글자를 덮는다 — 글자도 속성으로 직접 쓴다. `typography.labelMdEmphasized` 클래스를
+     * 얹으면 `size.sm`의 `typography.labelSm`과 특이도가 같아 typography.css.ts 정의 순서로 `labelSm`(12 / 500)이 이긴다
      */
     {
       variants: { variant: 'kakao' },
-      style: [
-        typography.labelMdEmphasized,
-        {
-          height: 45,
-          minWidth: 0,
-          padding: '0 38px',
-          gap: vars.space[2],
-          borderRadius: vars.radius[3],
-        },
-      ],
+      style: {
+        height: 45,
+        minWidth: 0,
+        padding: '0 38px',
+        gap: vars.space[2],
+        borderRadius: vars.radius[3],
+        fontFamily: vars.font[KAKAO_LABEL.font],
+        fontSize: KAKAO_LABEL.size,
+        fontWeight: KAKAO_LABEL.weight,
+        lineHeight: KAKAO_LABEL.lineHeight,
+        letterSpacing: KAKAO_LABEL.letterSpacing,
+      },
     },
   ],
   defaultVariants: { variant: 'primary', size: 'md' },
