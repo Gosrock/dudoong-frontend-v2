@@ -283,9 +283,11 @@ function AudienceScan({ eventId }: { eventId: string }) {
       )}
       {selfQr.qrUrl &&
         (full ? (
-          // 관객 전체화면(`1360:27107`) — 로고 · 공연 이름 · 큰 QR · 안내
+          // 관객 전체화면 — 모바일 `1561:105352`(#300): 공연 이름 · QR · 아래 안내 / PC `1360:27107`: 로고 · 공연 이름 · 큰 QR · 안내
           <div className={s.audienceFull}>
-            <Logo height={62} title="" />
+            <span className={s.audienceLogo} data-testid="audience-logo">
+              <Logo height={62} title="" />
+            </span>
             <h2 className={s.audienceTitle}>{event.name}</h2>
             <div className={`${s.qrCard} ${s.qrCardLarge}`}>
               <div className={s.qrImageLarge}>
@@ -297,7 +299,7 @@ function AudienceScan({ eventId }: { eventId: string }) {
                 />
               </div>
             </div>
-            <Txt as="p" typography="heading2xl" className={s.audienceCaption}>
+            <Txt as="p" typography="labelLg" className={s.audienceCaption}>
               {SELF_CHECK_IN_CAPTION}
             </Txt>
           </div>

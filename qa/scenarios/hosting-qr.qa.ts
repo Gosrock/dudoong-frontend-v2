@@ -296,7 +296,8 @@ scenario(
       'QR 주소 = 이 사이트 origin + qrPath(GQ-4). 회색 자리 · 흰 판 위 QR + "QR 코드를 스캔하면 입장이 완료됩니다". 전체화면은 로고 · 공연 이름 · 큰 QR · 안내.',
     basis: [
       'plan P13b V 범위([관객이 스캔] QR 표시 · 전체화면)',
-      'GUI 1360:25912 · 데스크탑 1447:24498(#248 — QR 판 250) · 1360:27107',
+      'GUI 1360:25912 · 데스크탑 1447:24498(#248 — QR 판 250, #301 — 티켓 번호 칸 없음) · 1360:27107',
+      'GUI 관객 전체화면 모바일 1561:105352(#300 — 로고 없음 · 공연 이름 · QR 판 230 · 아래 끝 안내)',
     ],
   },
   async ({ page, step }) => {
@@ -311,13 +312,39 @@ scenario(
       );
       await expect(qr.locator('svg')).toBeVisible();
       await expect(page.getByText('QR 코드를 스캔하면 입장이 완료됩니다')).toBeVisible();
+      // 관객이 스캔할 때는 아래 "티켓 번호로 입장" 칸이 없다(#301)
+      await expect(page.getByRole('textbox', { name: '티켓 번호로 입장' })).toHaveCount(0);
     });
-    await step('[⤢]를 누르면 로고 · 공연 이름 · 큰 QR', async () => {
-      await page.getByRole('button', { name: '전체화면 전환' }).click();
-      const region = page.getByRole('region', { name: '셀프 체크인 QR' });
-      await expect(region).toHaveAttribute('data-fullscreen', 'true');
-      await expect(region.getByRole('heading', { name: '고스락 제37회 정기공연' })).toBeVisible();
-    });
+    const desktop = (page.viewportSize()?.width ?? 0) >= 1024;
+    await step(
+      desktop
+        ? '[⤢]를 누르면 로고 · 공연 이름 · 큰 QR'
+        : '[⤢]를 누르면 공연 이름 · QR 판 230 · 아래 끝 안내(로고 없음, #300)',
+      async () => {
+        await page.getByRole('button', { name: '전체화면 전환' }).click();
+        const region = page.getByRole('region', { name: '셀프 체크인 QR' });
+        await expect(region).toHaveAttribute('data-fullscreen', 'true');
+        await expect(region.getByRole('heading', { name: '고스락 제37회 정기공연' })).toBeVisible();
+        const logo = region.getByTestId('audience-logo');
+        if (desktop) {
+          await expect(logo).toBeVisible();
+        } else {
+          await expect(logo).toBeHidden();
+          const card = await region
+            .getByTestId('self-check-in-qr')
+            .locator('..')
+            .locator('..')
+            .boundingBox();
+          expect(Math.round(card?.width ?? 0)).toBe(230);
+          const caption = await region
+            .getByText('QR 코드를 스캔하면 입장이 완료됩니다')
+            .boundingBox();
+          const height = page.viewportSize()?.height ?? 0;
+          // 안내 줄(위아래 12 포함)이 화면 아래 끝에서 56 위(`1561:105360`)
+          expect(Math.round(height - ((caption?.y ?? 0) + (caption?.height ?? 0)))).toBe(56);
+        }
+      },
+    );
     await step('[✕]를 누르면 전체화면이 닫힌다', async () => {
       await page.getByRole('button', { name: '전체화면 닫기' }).click();
       await expect(page.getByRole('region', { name: '셀프 체크인 QR' })).not.toHaveAttribute(
