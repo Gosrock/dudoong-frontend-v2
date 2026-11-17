@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 import { Button } from '../Button/Button';
 import { LoadingLabel } from '../Loader/Loader';
-import { Modal } from '../Modal/Modal';
+import { Modal, type ModalProps } from '../Modal/Modal';
 
 /**
  * 확인 버튼 색 — `kakaoLogin`은 로그인으로 가는 확인(카카오 로그인 버튼 가이드 — `Button variant="kakao"`).
@@ -51,6 +51,14 @@ export type PopupProps = {
   variant?: 'dialog' | 'summary' | 'compact';
 };
 
+/** `variant` → Modal 판 */
+const POPUP_LAYOUT = {
+  dialog: 'popup',
+  summary: 'summary',
+  // FIGMA-CUSTOM: 로그인 필요 PC(gui 1539:15046 "다이얼로그_로그인 필요 + 닫기") 커스텀 → DS 다이얼로그 모바일 모양을 PC에도 + ✕. DS 후보(design-system §3)
+  compact: 'compact',
+} as const satisfies Record<NonNullable<PopupProps['variant']>, ModalProps['layout']>;
+
 /**
  * 확인 팝업 — 모바일은 디자인 시스템 `다이얼로그`(`758:1714`, 2026-11-01): 310, 제목 `Heading/sm - emphasized`, 본문 `Label/sm`,
  * [취소](Secondary medium)[확인](Primary medium) 같은 폭. 데스크탑(1024~)은 `다이얼로그_데스크탑`(`843:449`, 2026-11-08 #187):
@@ -91,7 +99,7 @@ export function Popup({
       closeOnOutsideClick={false}
       onExited={onExited}
       role="alertdialog"
-      layout={summary ? 'summary' : variant === 'compact' ? 'compact' : 'popup'}
+      layout={POPUP_LAYOUT[variant]}
       footer={
         <>
           {!summary && cancelLabel !== null && (

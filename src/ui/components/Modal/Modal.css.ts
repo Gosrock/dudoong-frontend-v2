@@ -90,7 +90,7 @@ export const contentSummary = style({
 /**
  * 작은 팝업(`compact`) — GUI 호스트 홈 연락처 팝업(`1529:13695` — 342 · 흰 판 · 안쪽 24 · 모서리 16, 타이틀 → 값 8 · 값 → 버튼 24)과
  * 로그인 필요 PC(`1539:15046` — 모바일 다이얼로그 모양 그대로 342 + ✕). 모바일 · PC 같은 폭, ✕는 PC만(`closeCompact`).
- * 묶음 간격 8 + footer 위 16 = 24(확인 팝업과 같은 방식)
+ * 묶음 간격 8 + footer 위 16 = 24(확인 팝업과 같은 방식). FIGMA-CUSTOM: GUI 로컬 "연락처 팝업"이 직접 그린 판(2단계 후보)
  */
 export const contentCompact = style({
   gap: vars.space[2],
@@ -117,7 +117,7 @@ export const headTitle = style({ flex: '1 1 auto', minWidth: 0 });
  */
 export const title = style({ display: 'flex', margin: 0 });
 
-/** 제목 가운데(연락처 팝업 `1529:13695`) */
+/** 제목 가운데(연락처 팝업 `1529:13695`). FIGMA-CUSTOM: DS 다이얼로그는 왼쪽 정렬(2단계 후보) */
 export const titleCenter = style({ justifyContent: 'center', textAlign: 'center' });
 
 /** 위 간격은 설명 글자 종류가 정한다(`theme/overlay-text`) */

@@ -63,6 +63,18 @@ export type ModalProps = {
   titleAlign?: 'start' | 'center';
 };
 
+/** `layout`이 있으면 그 판, 없으면 `size` 판 */
+const LAYOUT_CLASS: Record<NonNullable<ModalProps['layout']>, string> = {
+  popup: s.contentPopup,
+  summary: s.contentSummary,
+  // FIGMA-CUSTOM: 작은 팝업(gui 1529:13695 "연락처 팝업" · 1539:15046 "다이얼로그_로그인 필요 + 닫기") — DS 다이얼로그(310 · PC 420)와 다른 342 판 + PC만 ✕. DS 후보(design-system §3)
+  compact: s.contentCompact,
+};
+const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
+  md: s.contentMedium,
+  lg: s.contentLarge,
+};
+
 /**
  * 데스크탑 중앙 모달(Radix Dialog). 포커스 트랩·Esc·바깥 클릭 닫기·포커스 복귀는 Radix가 한다.
  * 모양은 GUI 예매자 주문 상세 `1029:6888` · 티켓 옵션 모달 `956:3281`(머리 = 제목 행 + 설명, 본문, 하단 버튼).
@@ -117,20 +129,7 @@ export function Modal({
     descriptionStyle,
     layout === 'popup' || layout === 'compact' ? 'popup' : 'modal',
   );
-  const contentClass = [
-    s.content,
-    layout === 'popup'
-      ? s.contentPopup
-      : layout === 'summary'
-        ? s.contentSummary
-        : layout === 'compact'
-          ? s.contentCompact
-          : size === 'lg'
-            ? s.contentLarge
-            : s.contentMedium,
-  ]
-    .flat()
-    .join(' ');
+  const contentClass = `${s.content} ${layout ? LAYOUT_CLASS[layout] : SIZE_CLASS[size]}`;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
