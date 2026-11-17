@@ -49,8 +49,9 @@ const CONTRAST_PENDING_DESIGN = new Set([
   '#28a82e #f7f7f6',
   // teal 400 — Chip cyan weak
   '#37c6cd #e4fbfc',
-  // teal 400 — 호스트 멤버 행 "매니저" 역할 글자(GUI `멤버 행` `1421:752`, 흰 바탕 2.07:1 · Q234)
-  '#37c6cd #ffffff',
+  // teal 500 — 호스트 멤버 행 "매니저" 역할 글자(GUI `멤버 행` `1421:752`, Q234 답으로 400 → 500 — Design Sync #282). 흰 바탕 3.0:1로
+  // 나아졌지만 작은 글자(13px) 4.5:1에는 못 미친다(Q234 남은 질문)
+  '#2da3a9 #ffffff',
   // 호스팅 사이드바 어두운 공연 카드의 text/secondary(GUI)
   '#5f5e5a #222221',
 ]);

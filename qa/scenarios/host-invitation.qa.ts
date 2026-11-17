@@ -159,3 +159,35 @@ scenario(
     });
   },
 );
+
+scenario(
+  'HI-6',
+  '초대 수락 PC 1440 — 묶음과 [수락하기]가 한 덩어리로 가운데(폭 345)',
+  {
+    kind: '반응형',
+    summary:
+      'GUI 1496:13112 — 초대 내용(아바타 · 문구 · 정보 상자 345)과 버튼 줄이 사이 32로 붙어 화면 가운데. 만료(1496:13198)는 모바일과 같은 Empty state 가운데. [거절하기]는 서버가 없어 그리지 않는다(Q233).',
+    basis: ['Design Sync #299', 'patterns §1 반응형(1024부터 PC)'],
+    viewports: ['desktop'],
+  },
+  async ({ page, step }) => {
+    resetHostMockState();
+    await setMockSession(page, 'loggedIn');
+    await page.setViewportSize({ width: 1440, height: 1024 });
+    await step('정보 상자 345 가운데 · [수락하기]는 상자 바로 아래(68)', async () => {
+      await page.goto(`/host-invitations/${TOKEN}`);
+      const info = page.getByRole('definition').first().locator('xpath=ancestor::dl');
+      const box = (await info.boundingBox())!;
+      expect(box.width).toBe(345);
+      expect(Math.round(box.x + box.width / 2)).toBe(720);
+      const accept = (await page.getByRole('button', { name: '수락하기' }).boundingBox())!;
+      expect(accept.width).toBe(345);
+      expect(Math.round(accept.y - (box.y + box.height))).toBe(68);
+    });
+    await step('만료된 초대 — 가운데 결과 화면', async () => {
+      await page.goto(`/host-invitations/${MOCK_INVITE_TOKEN.expired}`);
+      await expect(page.getByRole('heading', { name: '만료된 초대장이에요' })).toBeVisible();
+      await expect(page.getByRole('link', { name: '두둥 홈으로 가기' })).toBeVisible();
+    });
+  },
+);
