@@ -454,9 +454,14 @@ export const audienceTitle = style({
 
 const QR_CARD_LARGE = 'min(80vw, 46dvh, 486px)';
 
-/** 모바일은 기본 판 그대로(230 · QR 156 — `1561:105379`), PC만 크게. `qrCard`의 PC 크기(250)보다 나중에 와야 한다 */
+/**
+ * 모바일 230(`1561:105379`) — 가로로 눕힌 폰처럼 낮은 화면에서는 높이의 40%까지 줄어 안내가 잘리지 않게. PC는 크게.
+ * `qrCard`의 PC 크기(250)보다 나중에 와야 한다
+ */
 export const qrCardLarge = style({
   flexShrink: 0,
+  width: 'min(230px, 40dvh)',
+  height: 'min(230px, 40dvh)',
   '@media': {
     [media.desktop]: {
       width: QR_CARD_LARGE,
@@ -466,9 +471,8 @@ export const qrCardLarge = style({
   },
 });
 
-export const qrImageLarge = style({
-  '@media': { [media.desktop]: { width: '68%' } },
-});
+/** QR은 판의 68%(모바일 156 / 230 · PC 486 판) */
+export const qrImageLarge = style({ width: '68%' });
 
 /** 안내 — 모바일 `Label/lg` 위아래 12 · 좌우 24(`1561:105360`, 아래 끝), PC `Heading/2xl`(32) */
 export const audienceCaption = style({

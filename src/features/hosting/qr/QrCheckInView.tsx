@@ -290,7 +290,7 @@ function AudienceScan({ eventId }: { eventId: string }) {
             </span>
             <h2 className={s.audienceTitle}>{event.name}</h2>
             <div className={`${s.qrCard} ${s.qrCardLarge}`}>
-              <div className={`${s.qrImage} ${s.qrImageLarge}`}>
+              <div className={s.qrImageLarge}>
                 <QrCode
                   value={selfQr.qrUrl}
                   size={480}
