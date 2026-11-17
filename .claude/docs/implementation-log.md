@@ -3918,6 +3918,36 @@ Nemin 2026-11-16 14:52~18:05Z — GUI `1Cn4WOu6TDaSajbFIuH6fO` ↳호스트홈. 
 **Figma 코멘트**(2026-11-17-impl, GUI): `567:5166` 결제정보 머리 줄 새 코멘트 `2010733503` · `564:4156` 환불 규정 스레드 답글 `2010733516`(노이슈) · `748:33140` 공연 취소 스레드 답글 `2010733532`(사이드바 "취소됨" — 디자인 없음).
 
 **이슈 질문**: #274 댓글 — Q1 입금자명 칸 · 닉네임 최대 길이, Q2 환불 규정 결제 방식별 분리 · A-8/A-9/A-2 같이 맞출지.
+## 호스트 홈 · 호스트 홈 설정 Design Sync — 커버 2:1 · 딤 · 연락처 팝업 · PC 1440(2026-11-17, `design-278-295` #307)
+
+Design Sync #278 · #279 · #280 · #281 · #287 · #288 · #290 · #291 · #292 · #294 · #295(디자이너 2026-11-16 14:12~17:16Z) — 대상은 GUI 구현됨 화면(#272). #293(호스트 삭제 확인)은 **서버 기능 없음**(api-contract "호스트 삭제 없음 — `DELETE` 405", Backend `V2HostController`에 `DeleteMapping`은 멤버 · 팔로우뿐, Backend #274 §3 DEC-013) → 그리지 않고 `Refs`만, PR "사용자 대기".
+
+**호스트 홈**(`src/features/shared/host-home/`)
+- 커버 모바일 2:1(390×195), PC 1440 폭 가득 × 300(셸 상단 바 아래), 사진 · 기본 커버 위 딤 Neutral 900 30%(새 토큰 `overlay.coverDim`). 기본 커버 SVG는 컴포넌트 `1452:40910`을 다시 내보내고 딤 층만 뺐다(딤은 CSS 한 층).
+- PC(#290): `Container` 대신 본문 칸(모바일 좌우 24 · PC 가운데 960 + 양옆 32) · 프로필 140(커버에 70 걸침) · 이름 묶음 342 · ♡ 프로필 가운데 + 147 · 섹션 간격 48/40 · 카드 163 · ⚙ 커버 오른쪽 위 흰 원 44 · [+] 없음.
+- 연락처 아이콘(#281 · #287 · #291): L `hostContactTapOf`(login · sheet · link · popup) · `hostContactPopupActionOf`. 링크 유형은 `<a target=_blank>`, 전화 · 이메일 · 기타(글자)는 `openHostContactPopup` — `Modal layout="compact"`(새 값: 342 · 안쪽 24 · 글자 묶음 → 버튼 24 · ✕ PC만 오른쪽 위 23/20) + `titleAlign="center"`(새 값). 복사는 `copyText` + `toast(…, { position: 'top' })`(#288).
+- 로그인 필요 팝업 PC(`1539:15046`): `Popup variant="compact"` · `openConfirm({ popupVariant: 'compact' })`(새 값) — PC도 342 + ✕.
+- 공연 리스트 PC(#295): DS Top app bar(← 공연 리스트) + [+ 공연 추가하기](Primary medium 아이콘 + 글자, 오른쪽 끝) · 가운데 960 · 카드 163 고정 칸 · [+] 원 버튼은 모바일만.
+- 공연 카드 "취소됨" 칩(백엔드 #274 §1-1 — #305가 남긴 줄, 관제탑 요청): `HostEventCard` 항목에 `isCanceled`(`isEventCanceled` — H-14 `canceledAt`), 포스터 오른쪽 위 "취소됨" grey fill(공연준비 홈 `eventChipOf`와 같은 모양 · 글자, 디자인 없음 Q124 🤖)이 준비중보다 먼저. 카드는 원래 D-n을 그리지 않는다. QA HH-15.
+
+**호스트 홈 설정**(`HostSettingsView` · `HostImageField` · 설정 model)
+- 커버 미리보기 폭 × 171(모바일 342×171 = 2:1), 자르기 가이드 2:1(`CROP_GUIDE.COVER.aspect` 2 — Q231 닫음), 결과 긴 변 1440.
+- 이미지 칸(#278 · #292): 칸 아래 회색 안내(`HOST_IMAGE_GUIDE`) / 오류면 빨간 테두리 + 빨간 글(안내 자리), 올리는 중 흰 60% 덮개 + 버튼 자리 스피너, [다시 올리기] 뺌(#278 3). 새 L `host-image-rules.ts` — 10MB(원본, 자르기 전) · 형식 · HEIC(`createImageBitmap`으로 읽히면 자르기에서 JPEG로, 아니면 "아이폰 사진은 JPG로 바꿔서 올려 주세요.") · 업로드 실패 코드 표(형식 · S3 · NETWORK · TIMEOUT · `GLOBAL_429_1` → 칸 아래). 훅 `image.reject(message)` 추가.
+- PC(#294): 가운데 960(제목 줄 포함) · 폼 960 가득 · 연락처 줄 116 + 358 + ✕.
+
+**결정**
+- 🤖 Claude 판단 — 데스크탑 호스트 홈 [+] 없음: 마스터 뷰 `1495:8685`에 없고, 관객 뷰 `1495:9022`의 [+]는 모바일 #280("잘못 들어갔었음")과 같은 실수로 봄. 근거: 관객은 공연을 만들 수 없음 / 되돌리려면 `HostHomeView.css` `fab` desktop `display: none`을 뺀다(Q241, 코멘트 `2010749945`).
+- 🤖 Claude 판단 — 링크로 열 수 없는 인스타그램 · 유튜브 · 오픈채팅 값은 기타(글자)와 같은 팝업 + [닫기], 복사 실패 토스트 "복사하지 못했어요. 길게 눌러 복사해 주세요"(Q242, 코멘트 `2010749955`). 되돌리려면 `hostContactTapOf` · `HostContactPopup` `copy`.
+- 🤖 Claude 판단 — 설정 PC [저장]은 프레임 밖이라 지금 하단 고정 바 그대로, 연락처 줄은 116 + 358 + ✕ 44에서 멈춤(Q243, 코멘트 `2010749969`). 되돌리려면 `HostSettingsView.css` `contacts`.
+- 🤖 Claude 판단 — 1024~1439는 가운데 960 칸이 양옆 32를 남기고 줄어든다(Figma 1440만). 되돌리려면 `HostHomeView.css` `body` · `HostEventsListView.css` `page`.
+- 🤖 Claude 판단 — 실패 문구 중 형식 오류는 실패 화면 `1524:13380`의 "JPG, JPEG, PNG 파일만 올릴 수 있어요."(안내 프레임 `1525:13546`은 "JPG, PNG"). 근거: 칸 안내도 "JPG, JPEG, PNG" / 되돌리려면 `HOST_IMAGE_ERROR.format`.
+- 🤖 Claude 판단 — 이미지 규칙은 호스트 설정만. `1525:13546`은 "공연 포스터 · 상세 이미지 · 내 프로필도 같은 규칙"이라 하지만 공용 `UPLOAD_ERROR_MESSAGE`와 그 화면들은 이 작업 범위 밖(PR "범위 밖").
+- 🤖 Claude 판단 — 연락처 팝업 · 로그인 필요 PC 판은 `src/ui` Modal에 `compact` 레이아웃으로(GUI 로컬 컴포넌트 "연락처 팝업" — `FIGMA-CUSTOM:`, DS 후보). 모바일 로그인 필요 팝업도 342(전엔 DS 다이얼로그 310 — Figma `1484:8106`이 342).
+
+**Figma 코멘트**(2026-11-17-impl): 답글 `2008676618` → `2010749735`(딤 반영 노이슈) · `2008673514` → `2010749745` · `2008673520` → `2010749755` · `2008673526` → `2010749763` · `2008673530` → `2010749777`(모두 노이슈). 새 코멘트 `1495:9117` `2010749945`(Q241) · `1529:13695` `2010749955`(Q242) · `1496:12744` `2010749969`(Q243).
+
+**테스트**: unit `image-crop`(2:1 · 1440) · `useHostSettings`(문구 기대값만 Figma대로). QA `host-home` 26/0(HH-1 링크 · HH-2 팝업 + 복사 토스트 · HH-4/5/12 PC [+] · 1440 커버 300 · 카드 163 · 새 HH-14 전화 · 기타 · 오픈채팅 · PC ✕) · `host-settings` 40/0(새 HS-20 안내 · GIF · 10MB · S3 실패 · PC 960). e2e a11y · host-home · font-preload · host-invitation · hosting-host · notifications · hosting · seo 277/0(건너뜀 35).
+
 
 ## Next 보안 업그레이드 16.4.1 → 16.4.6(2026-11-17, `chore-next-1646` #306)
 

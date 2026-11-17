@@ -55,8 +55,24 @@ export type ModalProps = {
    * @internal Popup이 쓴다.
    * `popup` — 확인 팝업(DS `다이얼로그` 310 · 데스크탑 `다이얼로그_데스크탑` 420).
    * `summary` — 입금 확인 창(GUI `567:9756`): 342 · 회색 판 · 안쪽 16 · 간격 8 · ✕
+   * `compact` — 342 흰 판(모바일 · PC 같은 폭) · 안쪽 24 · 글자 묶음 → 버튼 24, ✕는 PC(1024~)에서만 오른쪽 위에 뜬다
+   *   (GUI 호스트 홈 연락처 팝업 `1529:13695` · 로그인 필요 PC `1539:15046`, Design Sync #281 · #291)
    */
-  layout?: 'popup' | 'summary';
+  layout?: 'popup' | 'summary' | 'compact';
+  /** 제목 정렬 — `center`는 연락처 팝업(`1529:13695` 타이틀 가운데). 기본 `start` */
+  titleAlign?: 'start' | 'center';
+};
+
+/** `layout`이 있으면 그 판, 없으면 `size` 판 */
+const LAYOUT_CLASS: Record<NonNullable<ModalProps['layout']>, string> = {
+  popup: s.contentPopup,
+  summary: s.contentSummary,
+  // FIGMA-CUSTOM: 작은 팝업(gui 1529:13695 "연락처 팝업" · 1539:15046 "다이얼로그_로그인 필요 + 닫기") — DS 다이얼로그(310 · PC 420)와 다른 342 판 + PC만 ✕. DS 후보(design-system §3)
+  compact: s.contentCompact,
+};
+const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
+  md: s.contentMedium,
+  lg: s.contentLarge,
 };
 
 /**
@@ -88,6 +104,7 @@ export function Modal({
   titleSize = layout === 'summary' ? 'label' : 'sm',
   descriptionStyle = layout === 'summary' ? 'labelPrimary' : 'default',
   headerStart,
+  titleAlign = 'start',
 }: ModalProps) {
   useCloseOnBack(open, () => onOpenChange(false), { enabled: closeOnBack });
   useOnExited(open, onExited);
@@ -95,28 +112,24 @@ export function Modal({
 
   // Txt는 id·ref를 넘기지 않으므로 Radix Title·Description을 바깥에 두고 Txt를 안에 넣는다
   const titleNode = (
-    <Dialog.Title className={s.title}>
+    <Dialog.Title className={titleAlign === 'center' ? `${s.title} ${s.titleCenter}` : s.title}>
       <Txt typography={overlayTitleTypography[titleSize]}>{title}</Txt>
     </Dialog.Title>
   );
   const closeNode = showClose && (
-    <Dialog.Close className={s.closeButton} aria-label="닫기" disabled={!dismissible}>
+    <Dialog.Close
+      className={layout === 'compact' ? `${s.closeButton} ${s.closeCompact}` : s.closeButton}
+      aria-label="닫기"
+      disabled={!dismissible}
+    >
       <Icon name="close" />
     </Dialog.Close>
   );
-  const desc = overlayDescriptionText(descriptionStyle, layout === 'popup' ? 'popup' : 'modal');
-  const contentClass = [
-    s.content,
-    layout === 'popup'
-      ? s.contentPopup
-      : layout === 'summary'
-        ? s.contentSummary
-        : size === 'lg'
-          ? s.contentLarge
-          : s.contentMedium,
-  ]
-    .flat()
-    .join(' ');
+  const desc = overlayDescriptionText(
+    descriptionStyle,
+    layout === 'popup' || layout === 'compact' ? 'popup' : 'modal',
+  );
+  const contentClass = `${s.content} ${layout ? LAYOUT_CLASS[layout] : SIZE_CLASS[size]}`;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

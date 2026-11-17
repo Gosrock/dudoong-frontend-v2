@@ -283,7 +283,7 @@ describe('호스트 이미지 — PH-15 발급 → S3 PUT → PH-4', () => {
     const { result } = setup();
     await loaded(result);
     await act(() => result.current.images.COVER.change(png()));
-    expect(result.current.images.COVER.error).toBe('이미지를 올리지 못했어요. 다시 시도해 주세요');
+    expect(result.current.images.COVER.error).toBe('이미지를 올리지 못했어요. 다시 시도해 주세요.');
     expect(result.current.images.COVER.changed).toBe(false);
     expect(errorToast).not.toHaveBeenCalled();
     await act(() => result.current.images.COVER.retry());
@@ -302,7 +302,7 @@ describe('호스트 이미지 — PH-15 발급 → S3 PUT → PH-4', () => {
     await act(() =>
       result.current.images.PROFILE.change(new File(['x'], 'a.gif', { type: 'image/gif' })),
     );
-    expect(result.current.images.PROFILE.error).toBe('JPG·PNG 이미지만 올릴 수 있어요');
+    expect(result.current.images.PROFILE.error).toBe('JPG, JPEG, PNG 파일만 올릴 수 있어요.');
     expect(await writes(sent)).toEqual([]);
   });
 
