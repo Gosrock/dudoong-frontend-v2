@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { GIFT_VIEW_STATES, GiftViewStateSchema } from '@/api/gift/schema';
+import { GIFT_VIEW_STATES, GiftCancelReasonSchema, GiftViewStateSchema } from '@/api/gift/schema';
 
 import { GIFT_ERROR_TABLE, giftErrorOutcome } from './gift-errors';
 import { giftLandingScreen } from './gift-landing-state';
@@ -39,6 +39,23 @@ describe('랜딩 viewState 7종 → 화면 상태', () => {
       const has = giftLandingScreen(v, sender).actions.includes('ACCEPT');
       expect(has).toBe(v === 'AVAILABLE');
     }
+  });
+
+  it.each([
+    ['SENDER', '선물 보낸분이 선물을 취소했습니다.'],
+    ['ORDER_CANCELED', '선물한 티켓의 주문이 취소되어 선물이 취소되었어요.'],
+    ['SENDER_WITHDRAWN', '선물 보낸분이 두둥을 더 이상 이용할 수 없어 선물이 취소되었어요.'],
+    ['EVENT_REMOVED', '공연이 삭제되거나 비공개로 바뀌어 선물이 취소되었어요.'],
+    ['ADMIN', '운영자가 선물을 회수해 선물이 취소되었어요.'],
+    ['UNKNOWN', '선물이 취소되었어요'],
+    [null, '선물이 취소되었어요'],
+    [undefined, '선물이 취소되었어요'],
+  ] as const)('CANCELED 이유 %s → "%s"(이슈 #274 §1-3)', (cancelReason, description) => {
+    expect(giftLandingScreen('CANCELED', { ...anon, cancelReason }).description).toBe(description);
+  });
+
+  it('모르는 취소 이유는 UNKNOWN', () => {
+    expect(GiftCancelReasonSchema.parse('BANNED')).toBe('UNKNOWN');
   });
 
   it('모르는 viewState는 UNKNOWN', () => {

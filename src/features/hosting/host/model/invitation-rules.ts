@@ -58,11 +58,27 @@ export function invitationRowsOf(
   }));
 }
 
-/** 링크 발급 실패 중 화면이 문구를 정하는 것(patterns §24 P10b). 그 밖(403 · 400 · 5xx · 운영 2.5.3의 404)은 공용 토스트 */
+/**
+ * 링크 발급 실패 중 화면이 문구를 정하는 것(patterns §24 P10b). 그 밖(403 · 400 · 5xx · 운영 2.5.3의 404)은 공용 토스트.
+ * 한도(`HOST_400_21`)는 GUI `1476:7242` 문구 — 호스트 24시간 20건(api-contract H-16, 초대한 사람 50건 한도는 문구에 없다)
+ */
 export const CREATE_INVITATION_ERROR_MESSAGE = {
-  HOST_400_15: '이미 이 호스트의 멤버예요',
-  HOST_400_21: '초대 링크를 너무 많이 만들었어요. 잠시 후 다시 시도해 주세요',
+  HOST_400_15: '이미 이 호스트의 멤버예요.',
+  HOST_400_21:
+    '가입되지 않은 이메일이에요. 초대 링크를 보내야 하는데, 오늘은 더 만들 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
 } as const;
+
+/**
+ * 이 이메일로 보낸 대기 초대가 있는지 — 있으면 새 링크를 만들 때 옛 링크가 무효가 된다(H-16 "같은 이메일에 대기 초대가 있으면 새 링크로
+ * 바꾼다", GUI `1476:7459` 안내). 서버는 이메일을 소문자로 저장 · 비교한다(`V2HostInvitationDomainService.issue`) — 여기도 대소문자를 가리지 않는다
+ */
+export function hasPendingInvitation(
+  list: readonly Pick<HostInvitation, 'email'>[],
+  email: string,
+) {
+  const target = email.trim().toLowerCase();
+  return target !== '' && list.some((i) => i.email.trim().toLowerCase() === target);
+}
 
 /** 초대 취소에서 이미 없는 초대(`HOST_404_3` — 수락 · 만료 · 다른 사람이 취소) */
 export const INVITATION_GONE_MESSAGE = '이미 없는 초대예요. 목록을 새로 불러왔어요';

@@ -674,6 +674,7 @@ export function giftLanding(token: string, viewer: Who | null): GiftLandingViewe
     senderName: pending ? g.senderName : null,
     event: pending && e ? { ...eventSummary(e)!, placeName: e.place?.name ?? null } : null,
     ticket: pending ? { ticketName: t.ticketName, unitPrice: t.unitPrice } : null,
+    cancelReason: viewState === 'CANCELED' ? g.cancelReason : null,
   };
 }
 

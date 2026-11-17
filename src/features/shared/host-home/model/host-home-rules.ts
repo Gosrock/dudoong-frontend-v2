@@ -61,6 +61,9 @@ export function contactIconsOf<T>(items: readonly T[]): { shown: T[]; more: bool
   return { shown: items.slice(0, HOST_CONTACT_ICONS_MAX - 1), more: true };
 }
 
+/** 취소된 공연 카드 칩(H-14 `canceledAt` — 백엔드 #274 §1-1, 디자인 없음 Q124 · 공연준비 홈 카드와 같은 글자 · 모양) */
+export const HOST_EVENT_CANCELED_LABEL = '취소됨';
+
 /** 호스트 공연 리스트 화면(GUI `1423:2651` · `1478:8878`, Design Sync #262) */
 export const hostEventsHref = (hostId: string | number) => `/hosts/${hostId}/events`;
 

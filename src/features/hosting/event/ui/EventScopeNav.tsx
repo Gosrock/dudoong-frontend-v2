@@ -8,9 +8,8 @@ import { Suspense } from 'react';
 
 import { eventDashboardQuery } from '@/api/dashboard/queries';
 import { myEventsQuery } from '@/api/event/queries';
-import { formatDday } from '@/api/shared/dday';
 import type { EventMenuKey } from '@/features/hosting/shared/model/event-scope';
-import { eventChipOf } from '@/features/hosting/shared/model/home-cards';
+import { eventChipOf, eventMetaLineOf } from '@/features/hosting/shared/model/home-cards';
 import type { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
@@ -104,9 +103,7 @@ function EventSidebarBody({
               {event.name ?? UNNAMED_EVENT}
             </Txt>
             <Txt typography="bodyMd" color={colors.textSecondary} lines={1}>
-              {[event.hostName, event.dDay !== null ? formatDday(event.dDay) : null]
-                .filter(Boolean)
-                .join(' · ')}
+              {eventMetaLineOf(event)}
             </Txt>
           </Flex>
         </div>

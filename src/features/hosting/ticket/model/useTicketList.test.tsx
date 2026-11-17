@@ -8,6 +8,7 @@ import { actAsRole } from '@/api/__mocks__/host-store';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
 import { hostingTicketSets } from '@/api/__mocks__/hosting-ticket.handlers';
 import { server } from '@/api/__mocks__/server';
+import { removeTicket } from '@/api/__mocks__/ticket-store';
 import { createEventMutation } from '@/api/event/mutations';
 import { eventChecklistQuery, eventManageQuery } from '@/api/event/queries';
 import { eventOptionsQuery } from '@/api/option/queries';
@@ -104,6 +105,8 @@ describe('티켓 관리 목록(G10/T-1)', () => {
     expect(
       result.current.cards.map((c) => [c.ticket.saleState, c.ticket.isPurchasable, c.chipLabel]),
     ).toEqual([['BEFORE_SALE', false, '판매 예정']]);
+    // 준비중 공연은 마지막 티켓도 지울 수 있다(Ticket_Item_400_16은 등록된 공연만)
+    expect(result.current.cards[0]!.menu.map((m) => m.action)).toEqual(['edit', 'delete']);
   });
 
   it('티켓이 없으면 빈 목록(만든 티켓이 없어요)', async () => {
@@ -214,6 +217,37 @@ describe('삭제(T-4)', () => {
       ]),
     );
     expect(invalidate.mock.calls.every((c) => (c[0] as { exact?: boolean }).exact)).toBe(true);
+  });
+
+  it('등록된 공연의 마지막 티켓은 삭제 대신 판매 중단(이슈 #274 §1-2) — 지우는 요청을 보내지 않는다', async () => {
+    removeTicket(501);
+    removeTicket(502);
+    const { result } = setup('101');
+    await loaded(result);
+    expect(
+      result.current.cards.map((c) => [c.ticket.ticketItemId, c.menu.map((m) => m.action)]),
+    ).toEqual([[503, ['edit', 'suspend']]]);
+    const sent = recordRequests();
+    expect(await act(() => result.current.remove(503))).toBe(false);
+    expect(await writes(sent)).toEqual([]);
+  });
+
+  it('그새 마지막 티켓이 됐으면(Ticket_Item_400_16) 서버 문구 그대로 + 목록 다시 읽기, 토스트 없음', async () => {
+    server.use(...hostingTicketSets.deleteFails(101, 'Ticket_Item_400_16'));
+    const { result, queryClient } = setup('101');
+    await loaded(result);
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    expect(await act(() => result.current.remove(503))).toBe('reread');
+    await waitFor(() =>
+      expect(result.current.actionError).toBe(
+        '공개된 공연에는 티켓이 최소 1개 있어야 해요. 판매를 멈추려면 판매 중단을 이용해 주세요.',
+      ),
+    );
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: ticketItemsManageQuery('101').queryKey,
+      exact: true,
+    });
+    expect(errorToast).not.toHaveBeenCalled();
   });
 
   it('그새 팔렸으면(Ticket_Item_400_7) 안내 + 목록 다시 읽기, 토스트 없음', async () => {

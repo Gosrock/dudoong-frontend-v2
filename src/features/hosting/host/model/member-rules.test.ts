@@ -136,7 +136,7 @@ describe('초대 실패 → 줄 매핑(HOST_400_13·14·15·18, reason 끝 괄�
     [
       'HOST_400_15',
       '이미 호스트 멤버인 이메일입니다. (drum@example.com)',
-      [null, null, '이미 이 호스트의 멤버예요'],
+      [null, null, '이미 이 호스트의 멤버예요.'],
     ],
     // 중복 이메일은 서버가 소문자로 준다 — 대소문자를 무시하고 맞춘다
     [
@@ -147,7 +147,11 @@ describe('초대 실패 → 줄 매핑(HOST_400_13·14·15·18, reason 끝 괄�
     [
       'HOST_400_18',
       '같은 이메일로 가입된 계정이 여러 개입니다. (nobody@example.com)',
-      [null, '같은 이메일로 가입된 계정이 여러 개예요. 두둥에 문의해 주세요', null],
+      [
+        null,
+        '같은 이메일로 가입한 계정이 여러 개라 초대할 수 없어요.\n다른 이메일로 초대해 주세요.',
+        null,
+      ],
     ],
   ] as const)('%s → 해당 줄에만 사유', (code, reason, rowErrors) => {
     expect(inviteServerErrors(code, reason, sent)).toEqual({ rows: rowErrors, form: null });

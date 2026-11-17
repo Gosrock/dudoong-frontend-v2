@@ -3,7 +3,7 @@ import type { Page } from '@playwright/test';
 import { setMockSession } from '../../e2e/support/auth';
 import { hostSets, resetHostMockState } from '../../src/api/__mocks__/host.handlers';
 import { editHostProfile } from '../../src/api/__mocks__/host-store';
-import { expect, scenario } from '../scenario';
+import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
  * 호스트 홈 `/hosts/[hostId]` · 공연 리스트 `/hosts/[hostId]/events`(plan P5c 완료 기준 V — 비로그인·관객·일반 멤버·매니저·마스터).
@@ -537,6 +537,54 @@ scenario(
         'href',
         'https://open.kakao.com/o/example',
       );
+    });
+  },
+);
+
+/** 취소된 공연 하나(H-14 `canceledAt` — Api 2.5.15, 취소돼도 status · displayStatus는 그대로, dDay null) */
+const CANCELED_EVENT = {
+  eventId: 9001,
+  name: '고스락 취소된 공연',
+  posterImageUrl: null,
+  startAt: '2026.12.24 18:00',
+  place: null,
+  status: 'OPEN',
+  displayStatus: 'UPCOMING',
+  dDay: null,
+  canceledAt: '2026.11.17 10:00',
+};
+
+scenario(
+  'HH-15',
+  '호스트가 취소한 공연 카드는 포스터 오른쪽 위 "취소됨" 칩',
+  {
+    kind: '정상',
+    summary:
+      '백엔드 #274 §1-1 — H-14 `canceledAt`이 있으면 D-n 대신 "취소됨"(공연준비 홈 카드와 같은 grey fill, 디자인 없음 Q124). 상태는 OPEN · UPCOMING 그대로라 `canceledAt`으로 판정.',
+    basis: ['Backend #274 §1-1', 'PR #305 남김 줄', 'design-requests Q124'],
+    mocks: [
+      http.get('*/api/v2/hosts/11/events', () =>
+        HttpResponse.json(
+          envelope.ok({
+            content: [CANCELED_EVENT],
+            page: 0,
+            size: 10,
+            totalElements: 1,
+            totalPages: 1,
+            hasNext: false,
+          }),
+        ),
+      ),
+    ],
+  },
+  async ({ page, step }) => {
+    resetHostMockState();
+    await setMockSession(page, 'anonymous');
+    await step('공연 리스트 카드에 "취소됨" 칩', async () => {
+      await page.goto(HOST);
+      const card = page.getByRole('link', { name: '고스락 취소된 공연' });
+      await expect(card).toBeVisible();
+      await expect(card.getByText('취소됨', { exact: true })).toBeVisible();
     });
   },
 );

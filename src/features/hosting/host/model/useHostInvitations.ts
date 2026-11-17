@@ -17,6 +17,7 @@ import { tryCatch } from '@/utils/try-catch';
 import {
   canCreateInvitation,
   CREATE_INVITATION_ERROR_MESSAGE,
+  hasPendingInvitation,
   INVITATION_GONE_MESSAGE,
   invitationRowsOf,
   inviteUrlOf,
@@ -68,26 +69,40 @@ export function useHostInvitations(hostId: string, myRole: ActorRole | null) {
     [cancelMutation, query, rows],
   );
 
-  const status: 'hidden' | 'pending' | 'error' | 'success' = !enabled
-    ? 'hidden'
-    : query.status === 'error'
-      ? isApiError(query.error) &&
-        query.error.status === 404 &&
-        !query.error.code?.startsWith('HOST')
-        ? 'hidden'
-        : 'error'
-      : query.status;
+  const status = invitationsStatusOf(enabled, query.status, query.error);
 
   return {
     /** `hidden` — 권한 없음 또는 서버에 API가 없음(운영 2.5.3 404) */
     status,
     retry: () => void query.refetch(),
     rows,
+    /** 이 이메일로 보낸 대기 초대가 있는지(새 링크를 만들면 옛 링크가 무효 — 초대 시트 안내) */
+    hasPendingFor: (email: string) => hasPendingInvitation(query.data ?? [], email),
     cancel,
     pendingId,
     /** 화면이 처리한 실패(`HOST_404_3`). 다음 취소에서 지운다 */
     actionError,
   };
+}
+
+type InvitationsStatus = 'hidden' | 'pending' | 'error' | 'success';
+
+/**
+ * 서버에 H-17이 없다(운영 2.5.3 — 라우트가 없어 HOST 코드 없는 404). 없는 호스트 · 초대(`HOST_404_*`)는 그대로 실패다
+ */
+function isInvitationsApiMissing(error: unknown) {
+  return isApiError(error) && error.status === 404 && !error.code?.startsWith('HOST');
+}
+
+/** 목록 자리 상태 — 권한이 없거나 API가 없으면 숨김, 그 밖 실패는 그 자리 오류 */
+function invitationsStatusOf(
+  enabled: boolean,
+  queryStatus: 'pending' | 'error' | 'success',
+  error: unknown,
+): InvitationsStatus {
+  if (!enabled) return 'hidden';
+  if (queryStatus !== 'error') return queryStatus;
+  return isInvitationsApiMissing(error) ? 'hidden' : 'error';
 }
 
 /** 만든 링크 — 공유 주소 · 만료 · 메일을 이번에 보냈는지 */
