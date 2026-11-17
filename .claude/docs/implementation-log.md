@@ -3947,3 +3947,17 @@ Design Sync #278 · #279 · #280 · #281 · #287 · #288 · #290 · #291 · #292
 **Figma 코멘트**(2026-11-17-impl): 답글 `2008676618` → `2010749735`(딤 반영 노이슈) · `2008673514` → `2010749745` · `2008673520` → `2010749755` · `2008673526` → `2010749763` · `2008673530` → `2010749777`(모두 노이슈). 새 코멘트 `1495:9117` `2010749945`(Q241) · `1529:13695` `2010749955`(Q242) · `1496:12744` `2010749969`(Q243).
 
 **테스트**: unit `image-crop`(2:1 · 1440) · `useHostSettings`(문구 기대값만 Figma대로). QA `host-home` 26/0(HH-1 링크 · HH-2 팝업 + 복사 토스트 · HH-4/5/12 PC [+] · 1440 커버 300 · 카드 163 · 새 HH-14 전화 · 기타 · 오픈채팅 · PC ✕) · `host-settings` 40/0(새 HS-20 안내 · GIF · 10MB · S3 실패 · PC 960). e2e a11y · host-home · font-preload · host-invitation · hosting-host · notifications · hosting · seo 277/0(건너뜀 35).
+
+
+## Next 보안 업그레이드 16.4.1 → 16.4.6(2026-11-17, `chore-next-1646` #306)
+
+권고 [GHSA-mfr8-8qww-v76h](https://github.com/advisories/GHSA-mfr8-8qww-v76h)(moderate, 16.3.0~16.4.4, 16.4.5부터 패치): `'use cache'` 함수를 `unstable_cache()`로 부를 때 root params 정보가 노출된다. 관제탑 지시(2026-11-17). 함께 `next dev` · `next build` 첫 실행을 멈추던 업그레이드 권고도 없어진다.
+- **바꾼 것**: `package.json`의 `next` · `eslint-config-next` 16.4.1 → 16.4.6. `pnpm-lock.yaml`은 `next` · `@next/env` · `@next/eslint-plugin-next` · `@next/swc-*` · `eslint-config-next`와, next를 peer로 가진 `@vanilla-extract/next-plugin` · `turbopack-plugin`의 해시 줄만 바뀌었다. `@next/*`를 직접 쓰는 의존성은 없다.
+- **영향 판단**: `src`에 `unstable_cache` · `'use cache'` · `cacheLife` · `cacheTag`가 0건이다(서버 캐시 없음 규칙). 그래서 권고 경로는 우리 코드에 없다.
+- **설치본 문서 비교**(`node_modules/.pnpm/next@16.4.1…` ↔ `16.4.6…`, `dist/docs` 74개 파일이 다름):
+  - `reactMaxHeadersLength.md` · `htmlLimitedBots.md`는 같다.
+  - `cacheComponents.md`: 바뀐 것은 "`runtime` 세그먼트 설정을 지원하지 않으니 `runtime = 'nodejs'`도 빼라"는 문장이다. 우리는 `runtime` 내보내기가 없다.
+  - `instant.md`: "`instant = false`는 instant-navigation 검사만 끄고 prerender · 스트리밍은 그대로"가 더해졌다.
+  - `loading.md` 상태 코드: "Cache Components에서 페이지 안 요청 시점 검사는 셸을 보낸 뒤라 `instant = false`여도 200"이 더해졌다. 이미 알던 동작이다(브라우저 UA는 200 + not-found 화면, `htmlLimitedBots` 크롤러만 404 — tech-decisions §2·§26, `e2e/event-detail.spec.ts` 주석). 크롤러 404 e2e는 그대로 통과한다.
+  - `unstable_cache.md`: "배포를 넘겨 유지해야 하는 비-fetch 데이터에는 계속 써도 된다"로 바뀌었다. 우리는 쓰지 않는다.
+- **검사**: typecheck · lint · vitest 151 파일 2779 통과. build 통과(권고 멈춤 없음). e2e `response-headers` · `event-detail` · `host-home` · `shell` 95 통과 · 1 건너뜀(원래 skip). `pnpm dev:mock`은 권고 없이 바로 뜨고 `/login`이 200.
