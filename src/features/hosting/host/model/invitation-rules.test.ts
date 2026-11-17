@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   canCancelInvitation,
   canCreateInvitation,
+  hasPendingInvitation,
   invitationRowsOf,
   inviteUrlOf,
 } from './invitation-rules';
@@ -53,5 +54,17 @@ describe('초대 권한(can) — 매니저는 일반 초대만', () => {
       [1, '일반', true],
       [2, '매니저', false],
     ]);
+  });
+});
+
+describe('같은 이메일 대기 초대(H-16 재초대 — 옛 링크 무효 안내)', () => {
+  const list = [{ email: 'pending-guest@example.com' }, { email: 'other@example.com' }];
+  it('대소문자 · 앞뒤 공백을 가리지 않고 찾는다(서버는 소문자로 저장)', () => {
+    expect(hasPendingInvitation(list, ' Pending-Guest@Example.com ')).toBe(true);
+  });
+  it('없거나 빈 이메일이면 false', () => {
+    expect(hasPendingInvitation(list, 'new@example.com')).toBe(false);
+    expect(hasPendingInvitation(list, '  ')).toBe(false);
+    expect(hasPendingInvitation([], 'pending-guest@example.com')).toBe(false);
   });
 });

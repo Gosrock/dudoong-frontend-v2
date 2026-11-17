@@ -416,7 +416,9 @@ test.describe('멤버 관리 — 초대 링크', () => {
     await expect(page.getByTestId('invitation-row').last()).toContainText('nobody@example.com');
   });
 
-  test('발급 한도(HOST_400_21)면 팝업 안에 사유, 링크는 없다', async ({ page }) => {
+  test('발급 한도(HOST_400_21)면 칸 아래 사유가 미가입 사유를 대신하고, 링크 상자 · 링크는 없다(GUI 1476:7242)', async ({
+    page,
+  }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/members');
     await page.getByRole('button', { name: '멤버 초대하기' }).click();
@@ -424,9 +426,32 @@ test.describe('멤버 관리 — 초대 링크', () => {
     await dialog.getByLabel('초대할 이메일').fill('limit@example.com');
     await dialog.getByRole('button', { name: '초대하기' }).click();
     await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
-    await expect(dialog.getByTestId('invite-link-offer').getByRole('alert')).toHaveText(
-      '초대 링크를 너무 많이 만들었어요. 잠시 후 다시 시도해 주세요',
+    await expect(dialog.getByRole('alert')).toHaveText(
+      '가입되지 않은 이메일이에요. 초대 링크를 보내야 하는데, 오늘은 더 만들 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
     );
+    await expect(dialog.getByTestId('invite-link-offer')).toHaveCount(0);
+    await expect(dialog.getByTestId('invite-link')).toHaveCount(0);
+  });
+
+  test('이미 대기 초대가 있는 미가입 이메일이면 링크 상자에 옛 링크 무효 안내(GUI 1476:7459)', async ({
+    page,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto('/hosting/hosts/11/members');
+    await expect(page.getByTestId('invitation-row')).toHaveCount(3);
+    await page.getByRole('button', { name: '멤버 초대하기' }).click();
+    const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
+    const email = dialog.getByLabel('초대할 이메일');
+    await email.fill('Pending-Guest@example.com');
+    await dialog.getByRole('button', { name: '초대하기' }).click();
+    await expect(dialog.getByTestId('invite-reinvite-notice')).toHaveText(
+      '이미 보낸 초대가 있어요. 다시 초대하면 이전 링크는 쓸 수 없게 돼요.',
+    );
+    // 대기 초대가 없는 미가입 이메일은 안내 없이 상자만
+    await email.fill('nobody@example.com');
+    await dialog.getByRole('button', { name: '초대하기' }).click();
+    await expect(dialog.getByTestId('invite-link-offer')).toBeVisible();
+    await expect(dialog.getByTestId('invite-reinvite-notice')).toHaveCount(0);
   });
 
   test('초대 대기 [취소] → 확인 → H-18, 줄이 사라진다', async ({ page, mockApi }) => {
