@@ -383,6 +383,9 @@ globalStyle(`${ticketList} dd`, { overflowWrap: 'anywhere' });
 
 /* ── 관객이 스캔(QR) ──────────────────────────────── */
 
+/** 관객 전체화면 모바일 — 공연 이름 ↔ QR 판 · 안내 ↔ 아래 끝 56(`1561:105352`) */
+const AUDIENCE_GAP_MOBILE = `calc(${vars.space[8]} + ${vars.space[2]})`;
+
 /** QR 흰 판 230 r24(`1360:26009`), QR 156 — 사이 여백이 QR의 quiet zone */
 /** QR 판 — 모바일 230 · QR 156(`1360:25912`), PC 250 · QR 169(`1447:24498` 관객 1440, #248). 모서리는 두 폭 모두 24 토큰(PC Figma 26.09 → 반올림) */
 export const qrCard = style({
@@ -406,51 +409,81 @@ export const qrImage = style({
 export const qrCaption = style({ padding: `${vars.space[3]} ${vars.space[5]}`, margin: 0 });
 
 /**
- * 관객 전체화면(`1360:27107`, PC만 그려짐) — 로고 → 공연 이름(Kartrider 48) → QR 판 486(r≈50) → 안내 `Heading/2xl`.
- * 모바일 전체화면은 그려지지 않아 같은 순서를 화면 폭에 맞춰 줄인다 🤖
+ * 관객 전체화면 — 모바일 `1561:105352`(#300): 공연 이름(Kartrider 32) → QR 판 230(QR 156) → 아래 끝 안내 `Label/lg`(아래 56),
+ * 로고 없음. PC `1360:27107`: 로고 → 공연 이름(Kartrider 48) → QR 판 486(r≈50) → 안내 `Heading/2xl`, 가운데 모음
  */
 export const audienceFull = style({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: vars.space[6],
-  padding: vars.space[5],
+  width: '100%',
+  height: '100dvh',
+  padding: `${vars.space[5]} ${vars.space[5]} calc(env(safe-area-inset-bottom, 0px) + ${AUDIENCE_GAP_MOBILE})`,
   boxSizing: 'border-box',
-  maxHeight: '100dvh',
   textAlign: 'center',
+  '@media': {
+    [media.desktop]: {
+      justifyContent: 'center',
+      gap: vars.space[6],
+      height: 'auto',
+      maxHeight: '100dvh',
+      padding: vars.space[5],
+    },
+  },
+});
+
+/** 로고 — PC만(모바일 `1561:105352`에는 없다) */
+export const audienceLogo = style({
+  display: 'none',
+  '@media': { [media.desktop]: { display: 'block' } },
 });
 
 export const audienceTitle = style({
   margin: 0,
+  // 모바일: 남는 높이를 이름 위와 QR 아래(안내 위)로 나눈다 — Figma 위 183 · 아래 234
+  marginTop: 'auto',
+  marginBottom: AUDIENCE_GAP_MOBILE,
   fontFamily: vars.font.display,
   fontWeight: 800,
-  fontSize: 28,
+  fontSize: 32,
   lineHeight: '130%',
   letterSpacing: '-0.01em',
   color: vars.color.text.primary,
-  '@media': { [media.desktop]: { fontSize: 48 } },
+  '@media': { [media.desktop]: { margin: 0, fontSize: 48 } },
 });
 
 const QR_CARD_LARGE = 'min(80vw, 46dvh, 486px)';
 
-/** `qrCard`의 PC 크기(250)보다 나중에 와야 해서 같은 미디어 조건으로 다시 적는다 */
+/** 모바일은 기본 판 그대로(230 · QR 156 — `1561:105379`), PC만 크게. `qrCard`의 PC 크기(250)보다 나중에 와야 한다 */
 export const qrCardLarge = style({
-  width: QR_CARD_LARGE,
-  height: QR_CARD_LARGE,
-  borderRadius: `calc(${vars.radius[7]} * 2)`,
-  '@media': { [media.desktop]: { width: QR_CARD_LARGE, height: QR_CARD_LARGE } },
+  flexShrink: 0,
+  '@media': {
+    [media.desktop]: {
+      width: QR_CARD_LARGE,
+      height: QR_CARD_LARGE,
+      borderRadius: `calc(${vars.radius[7]} * 2)`,
+    },
+  },
 });
 
 export const qrImageLarge = style({
-  width: '68%',
   '@media': { [media.desktop]: { width: '68%' } },
 });
 
-/** 안내 — PC `Heading/2xl`(32), 모바일은 그려지지 않아 20으로 줄인다 🤖 */
+/** 안내 — 모바일 `Label/lg` 위아래 12 · 좌우 24(`1561:105360`, 아래 끝), PC `Heading/2xl`(32) */
 export const audienceCaption = style({
   margin: 0,
-  fontSize: 20,
-  '@media': { [media.desktop]: { fontSize: typographySpecs.heading2xl.size } },
+  marginTop: 'auto',
+  padding: `${vars.space[3]} ${vars.space[5]}`,
+  '@media': {
+    [media.desktop]: {
+      marginTop: 0,
+      padding: 0,
+      fontSize: typographySpecs.heading2xl.size,
+      fontWeight: typographySpecs.heading2xl.weight,
+      lineHeight: typographySpecs.heading2xl.lineHeight,
+    },
+  },
 });
 
 /* ── 티켓 번호로 입장(PQ-2b — #926) ─────────────────────── */
