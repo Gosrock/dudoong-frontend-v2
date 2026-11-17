@@ -3853,3 +3853,16 @@ GUI 파일 코멘트(2026-11-15 13:13~13:20Z) 세 건.
 **코드 리뷰(tap-review)**: 지적 6개(겹친 것을 합침), 70점 이상 0개. 점수가 70 미만이어도 고친 것: 낮은 화면(가로로 눕힌 폰)에서 QR · 안내가 잘리던 문제(65) — 모바일 QR 판 `min(230px, 40dvh)` · QR 68%. 그리고 gui-screens · Q225의 옛 문구(55).
 
 **테스트**: QA `hosting-qr` 18/0(QR-6 — 모바일: 로고 숨김 · QR 판 230 · 안내 줄 아래 끝 56, PC: 로고 보임, 두 폭: 관객 탭 티켓 번호 칸 없음) · e2e `hosting-checkin` 14/0. 화면 비교는 QA 캡처(가짜 카메라 장치 Playwright — 카메라 화면이라 ego-browser 대신)와 Figma PNG.
+
+## Next 보안 업그레이드 16.4.1 → 16.4.6(2026-11-17, `chore-next-1646`)
+
+권고 [GHSA-mfr8-8qww-v76h](https://github.com/advisories/GHSA-mfr8-8qww-v76h)(moderate, 16.3.0~16.4.4, 16.4.5부터 패치): `'use cache'` 함수를 `unstable_cache()`로 부를 때 root params 정보가 노출된다. 관제탑 지시(2026-11-17). 함께 `next dev` · `next build` 첫 실행을 멈추던 업그레이드 권고도 없어진다.
+- **바꾼 것**: `package.json`의 `next` · `eslint-config-next` 16.4.1 → 16.4.6. `pnpm-lock.yaml`은 `next` · `@next/env` · `@next/eslint-plugin-next` · `@next/swc-*` · `eslint-config-next`와, next를 peer로 가진 `@vanilla-extract/next-plugin` · `turbopack-plugin`의 해시 줄만 바뀌었다. `@next/*`를 직접 쓰는 의존성은 없다.
+- **영향 판단**: `src`에 `unstable_cache` · `'use cache'` · `cacheLife` · `cacheTag`가 0건이다(서버 캐시 없음 규칙). 그래서 권고 경로는 우리 코드에 없다.
+- **설치본 문서 비교**(`node_modules/.pnpm/next@16.4.1…` ↔ `16.4.6…`, `dist/docs` 74개 파일이 다름):
+  - `reactMaxHeadersLength.md` · `htmlLimitedBots.md`는 같다.
+  - `cacheComponents.md`: 바뀐 것은 "`runtime` 세그먼트 설정을 지원하지 않으니 `runtime = 'nodejs'`도 빼라"는 문장이다. 우리는 `runtime` 내보내기가 없다.
+  - `instant.md`: "`instant = false`는 instant-navigation 검사만 끄고 prerender · 스트리밍은 그대로"가 더해졌다.
+  - `loading.md` 상태 코드: "Cache Components에서 페이지 안 요청 시점 검사는 셸을 보낸 뒤라 `instant = false`여도 200"이 더해졌다. 이미 알던 동작이다(브라우저 UA는 200 + not-found 화면, `htmlLimitedBots` 크롤러만 404 — tech-decisions §2·§26, `e2e/event-detail.spec.ts` 주석). 크롤러 404 e2e는 그대로 통과한다.
+  - `unstable_cache.md`: "배포를 넘겨 유지해야 하는 비-fetch 데이터에는 계속 써도 된다"로 바뀌었다. 우리는 쓰지 않는다.
+- **검사**: typecheck · lint · vitest 151 파일 2779 통과. build 통과(권고 멈춤 없음). e2e `response-headers` · `event-detail` · `host-home` · `shell` 95 통과 · 1 건너뜀(원래 skip). `pnpm dev:mock`은 권고 없이 바로 뜨고 `/login`이 200.
