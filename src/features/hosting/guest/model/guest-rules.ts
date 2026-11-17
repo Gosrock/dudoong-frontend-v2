@@ -319,10 +319,11 @@ export const REFUND_NO_ACCOUNT_MESSAGE = ORDER_ACTION_BLOCK_MESSAGE.noAccount;
 
 /**
  * 거절 사유 "입금 미확인" 안내(GUI `1029:7114`). 백엔드 #929(B35 — 2.5.7)부터 입금 미확인 거절은 결제 금액이 있어도 환불 요청을 만들지
- * 않고 **되돌릴 수 없다**(관객도 환불 계좌를 넣을 수 없다 — `Order_400_27`). 거절 사유 단계(주문 상세 · 표에서 거절)에서 그 사유를 고르면 꼭 보인다
+ * 않고 **되돌릴 수 없다**(관객도 환불 계좌를 넣을 수 없다 — `Order_400_27`). 거절 사유 단계(주문 상세 · 표에서 거절)에서 그 사유를 고르면 꼭 보인다.
+ * 이슈 #274 §2(WorkBook DEC-041): 실제로 입금됐는데 이 사유를 고르면 환불 목록에 오르지 않는다 — "되돌릴 수 없다" 경고 + 다른 사유 권유를 더했다(🤖 문구)
  */
 export const REFUSE_DEPOSIT_UNCONFIRMED_NOTE =
-  '입금 미확인으로 거절하면 환불 요청이 생기지 않아요.';
+  '입금 미확인으로 거절하면 환불 요청이 생기지 않고 되돌릴 수 없어요. 입금을 받았다면 다른 사유를 골라 주세요.';
 export const showsDepositUnconfirmedNote = (reasonType: RefuseReasonKey | null) =>
   reasonType === 'DEPOSIT_UNCONFIRMED';
 

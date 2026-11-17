@@ -105,7 +105,7 @@ scenario(
     );
     await step('결제정보에 입금자명·입금은행·결제계좌·예금주가 나온다', async () => {
       const info = page.getByRole('region', { name: '결제정보' });
-      await expect(info.getByText('입금자명은 닉네임과 동일하게 해주세요')).toBeVisible();
+      await expect(info.getByText('아래 입금자명으로 입금해 주세요')).toBeVisible();
       await expect(info.getByText('입금은행')).toBeVisible();
       await expect(info.getByText('신한은행')).toBeVisible();
       await expect(info.getByText('110-123-456789')).toBeVisible();

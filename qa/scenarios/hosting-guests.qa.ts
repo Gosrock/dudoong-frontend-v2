@@ -707,7 +707,7 @@ scenario(
       await overlay.getByRole('radio', { name: '입금 미확인' }).click();
       // 입금 미확인 거절은 환불 요청이 생기지 않고 되돌릴 수 없다(#929 B35) — 꼭 보인다
       await expect(overlay.getByTestId('refuse-deposit-note')).toHaveText(
-        '입금 미확인으로 거절하면 환불 요청이 생기지 않아요.',
+        '입금 미확인으로 거절하면 환불 요청이 생기지 않고 되돌릴 수 없어요. 입금을 받았다면 다른 사유를 골라 주세요.',
       );
       await overlay.getByRole('button', { name: '거절', exact: true }).click();
       await expect(page.getByText('1건을 거절했어요.')).toBeVisible();
