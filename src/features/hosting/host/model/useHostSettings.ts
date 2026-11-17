@@ -24,9 +24,9 @@ import {
   serverErrorOf,
   useClearServerErrors,
 } from '@/features/hosting/shared/model/rhf-form';
-import { UPLOAD_ERROR_MESSAGE } from '@/features/shared/image-upload/upload-errors';
 import { can, superAdminOrRole } from '@/features/shared/permission/model/can';
 
+import { HOST_IMAGE_UPLOAD_ERROR } from './host-image-rules';
 import {
   hasHostSettingsErrors,
   HOST_IMAGE_SLOTS,
@@ -112,10 +112,10 @@ export function useHostSettings(hostId: string) {
           { shouldDirty: true },
         );
       } catch (e) {
-        // 그 자리의 업로드 오류(공용 문구 — A10). 표에 없는 실패(429·네트워크·403 등)는 공용 토스트
+        // 그 자리의 업로드 오류(GUI `1525:13546` — 형식 · S3 · 네트워크 · 시간 초과 · 429). 표에 없는 실패(403 등)는 공용 토스트
         handleError(
           e,
-          handlersFrom(UPLOAD_ERROR_MESSAGE, (message) =>
+          handlersFrom(HOST_IMAGE_UPLOAD_ERROR, (message) =>
             setImageErrors((prev) => ({ ...prev, [slot]: message })),
           ),
         );
@@ -205,6 +205,8 @@ export function useHostSettings(hostId: string) {
     reset: () => resetImage(slot),
     /** 마지막으로 고른 파일로 발급부터 다시(S3 실패·`HOST_400_17` 뒤) */
     retry: () => retryImage(slot),
+    /** 올리기 전에 거절한 파일(10MB 초과 · 형식 · HEIC — `hostImagePickOf`)의 칸 아래 오류. 올린 이미지는 그대로 둔다 */
+    reject: (message: string) => setImageErrors((prev) => ({ ...prev, [slot]: message })),
   });
 
   return {

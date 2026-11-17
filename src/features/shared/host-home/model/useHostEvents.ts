@@ -3,6 +3,7 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
+import { isEventCanceled } from '@/api/event/schema';
 import { hostEventsQuery, hostEventsViewerQuery, hostViewerQuery } from '@/api/host/queries';
 import type { HostEvent } from '@/api/host/schema';
 import { flattenPages, infiniteListControls } from '@/api/shared/page';
@@ -11,7 +12,13 @@ import { useSession } from '@/features/shared/auth/model/useSession';
 import { hostEventHref } from './host-home-rules';
 import type { ViewerStatus } from './useHostFollow';
 
-export type HostEventCard = { event: HostEvent; href: string; isPreparing: boolean };
+/** `isCanceled` — 호스트가 취소한 공연(H-14 `canceledAt`, Api 2.5.15 — 상태는 OPEN 그대로라 이 값으로 판정) */
+export type HostEventCard = {
+  event: HostEvent;
+  href: string;
+  isPreparing: boolean;
+  isCanceled: boolean;
+};
 
 /**
  * 공연 목록을 어느 키로 읽는지. 세션·viewer가 확정되기 전에는 읽지 않는다 — 공개 목록을 그렸다가 멤버 목록으로
@@ -76,6 +83,7 @@ export function useHostEvents(
         event,
         href: hostEventHref(event),
         isPreparing: event.status === 'PREPARING',
+        isCanceled: isEventCanceled(event),
       })),
     [list.data],
   );

@@ -1,6 +1,5 @@
 import { style } from '@vanilla-extract/css';
 
-import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** 소개글 + [더보기] — 사이 4(GUI `1452:41511`) */
@@ -10,8 +9,6 @@ export const root = style({
   alignItems: 'center',
   gap: vars.space[1],
   width: '100%',
-  // PC는 왼쪽 정렬(와이어 배치 🤖)
-  '@media': { [media.desktop]: { alignItems: 'flex-start' } },
 });
 
 export const text = style({ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' });

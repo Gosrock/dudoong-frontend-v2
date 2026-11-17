@@ -13,11 +13,11 @@ import {
 const box = 342;
 
 describe('이미지 자르기 계산(GUI 1458:4961 · 1476:8399)', () => {
-  it('가이드 — 프로필 원 290, 커버는 340 폭 · 홈 커버 비율(390:246)', () => {
+  it('가이드 — 프로필 원 290, 커버는 340 폭 · 2:1(GUI 1476:8505 340×170)', () => {
     expect(guideSizeOf('PROFILE', box)).toEqual({ width: 290, height: 290 });
     const cover = guideSizeOf('COVER', box);
     expect(cover.width).toBe(340);
-    expect(cover.height).toBeCloseTo((340 * 246) / 390);
+    expect(cover.height).toBe(170);
   });
 
   it('확대는 1~3배로 묶는다', () => {
@@ -54,7 +54,7 @@ describe('이미지 자르기 계산(GUI 1458:4961 · 1476:8399)', () => {
     expect(rect.sx).toBeCloseTo(250);
   });
 
-  it('결과 크기는 긴 변 상한(프로필 512 · 커버 1280)까지만 줄이고 늘리지 않는다', () => {
+  it('결과 크기는 긴 변 상한(프로필 512 · 커버 1440)까지만 줄이고 늘리지 않는다', () => {
     expect(outputSizeOf('PROFILE', { sx: 0, sy: 0, sw: 2000, sh: 2000 })).toEqual({
       width: 512,
       height: 512,
@@ -63,9 +63,9 @@ describe('이미지 자르기 계산(GUI 1458:4961 · 1476:8399)', () => {
       width: 300,
       height: 300,
     });
-    expect(outputSizeOf('COVER', { sx: 0, sy: 0, sw: 3900, sh: 2460 })).toEqual({
-      width: 1280,
-      height: 807,
+    expect(outputSizeOf('COVER', { sx: 0, sy: 0, sw: 3900, sh: 1950 })).toEqual({
+      width: 1440,
+      height: 720,
     });
   });
 

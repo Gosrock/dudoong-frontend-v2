@@ -31,9 +31,11 @@ import { useHostSettings } from './model/useHostSettings';
 import { HostImageField } from './ui/HostImageField';
 
 /**
- * `/hosting/hosts/[hostId]/settings` 호스트 설정(plan P10b V) — **와이어 근거** `503:32374`(호스트_매니저v1.0 "호스트 설정").
- * GUI `741:31172`는 Ready for dev가 아니라 모양을 가져오지 않는다. GUI의 "호스트 삭제하기"는 서버에 없어 그리지 않는다.
- * 이미지 칸(PH-15)은 와이어·GUI 어디에도 없어 폼 맨 아래 "호스트 이미지" 묶음으로 둔다(🤖 — 지우기 쉬운 자리, 디자인 대기).
+ * `/hosting/hosts/[hostId]/settings` 호스트 홈 설정(plan P10b V) — **GUI 근거**: 모바일 `741:31172` · `1452:40541` · `1452:42653` ·
+ * `1524:13269` · `1524:13380` · 자르기 `1458:4961` · `1476:8399`(Design Sync #260 · #278), PC 1440 `1496:12683` · `1556:15393` ·
+ * `1556:15548` · `1556:15687` · `1556:15762`(#294 — 가운데 960, 제목 줄 포함).
+ * GUI의 "호스트 삭제하기"(`741:31204` · `1551:104649` · `1556:15836`, #293)는 서버에 기능이 없어(DEC-013, Backend #274 §3 —
+ * `DELETE /hosts/{id}` 405) 그리지 않는다.
  * 주소의 id가 숫자가 아니면 요청 없이 공용 404, 비멤버는 공용 403(호스팅 센터는 서버 조회가 없어 상태 코드는 200).
  */
 export function HostSettingsView({ hostId }: { hostId: string }) {
@@ -58,12 +60,12 @@ function HostSettings({ hostId }: { hostId: string }) {
   const uploading = HOST_IMAGE_SLOTS.some((slot) => settings.images[slot].uploading);
 
   return (
-    <main className={s.page}>
+    <main className={`${s.page} ${v.column}`}>
       <HostSettingsHeader hostId={hostId} />
       <form
         id={formId}
         noValidate
-        className={`${c.form} ${s.body}`}
+        className={`${c.form} ${s.body} ${v.form}`}
         onSubmit={(e) => {
           e.preventDefault();
           void settings.save().then((ok) => ok && toast('저장했어요', { id: 'host-saved' }));
@@ -97,7 +99,7 @@ function HostSettings({ hostId }: { hostId: string }) {
           {...settings.form.register('introduce')}
         />
 
-        <fieldset className={c.contacts}>
+        <fieldset className={`${c.contacts} ${v.contacts}`}>
           <legend className={`${field.label} ${c.legend}`}>
             호스트 대표 연락처
             <span aria-hidden className={field.requiredMark}>

@@ -5,20 +5,37 @@ import { media } from '@/ui/theme/breakpoints';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
-/** 위 8(GUI `1423:2672` 위 여백) · 아래는 [+]가 마지막 줄을 가리지 않게 */
+/** 위 8(GUI `1423:2672` 위 여백) · 아래는 [+]가 마지막 줄을 가리지 않게. PC는 가운데 960 · 위 20(`1554:105203` 안쪽 20/240) */
 export const page = style({
   paddingTop: vars.space[2],
   paddingBottom: fabClearance.md,
-  '@media': { [media.desktop]: { paddingTop: vars.space[5] } },
+  '@media': {
+    [media.desktop]: {
+      maxWidth: 960 + 32 * 2,
+      paddingLeft: 32,
+      paddingRight: 32,
+      paddingTop: 20,
+      paddingBottom: vars.space[10],
+    },
+  },
 });
 
-/** PC 제목 — 모바일은 하위 화면 헤더(← 공연 리스트)가 제목이다(🤖 PC는 셸 상단 바만 있어 본문에 둔다) */
+/** PC 제목 줄(DS Top app bar 64 → 목록 위 24, `1554:105193` · `1496:12657` 안쪽 24). 모바일은 셸 하위 화면 헤더 */
 export const desktopTitle = style({
   display: 'none',
   '@media': { [media.desktop]: { display: 'block', marginBottom: vars.space[5] } },
 });
 
-/** 2열 · 사이 16 · 줄 사이 24(GUI `1423:2673` 163 두 장, 줄 119 → 425). PC는 칸 200 이상으로 채운다(🤖) */
+/** DS Top app bar 오른쪽 여백 24를 없앤다 — [공연 추가하기]가 960 칸 오른쪽 끝(`1554:105204` x 1070~1200) */
+export const desktopHeader = style({ selectors: { '&&': { paddingRight: 0 } } });
+
+/** [+ 공연 추가하기] — 링크에 버튼 모양 */
+export const addLink = style({ textDecoration: 'none' });
+
+/** 버튼 아이콘 18(GUI `I1554:105204;1504:13179;36:69`) */
+export const addIcon = style({ width: 18, height: 18 });
+
+/** 2열 · 사이 16 · 줄 사이 24(GUI `1423:2673` 163 두 장, 줄 119 → 425). PC는 163 칸을 왼쪽부터(`1496:12657` — 960에 5장) */
 export const grid = style([
   sprinkles({ listStyle: 'none' }),
   {
@@ -29,7 +46,7 @@ export const grid = style([
     margin: 0,
     padding: 0,
     '@media': {
-      [media.desktop]: { gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' },
+      [media.desktop]: { gridTemplateColumns: 'repeat(auto-fill, 163px)' },
     },
   },
 ]);
@@ -37,11 +54,12 @@ export const grid = style([
 /** 로딩 자리 포스터 — DS ConcertCard 포스터 비율(163:231) */
 export const skeletonPoster = style({ width: '100%', aspectRatio: '163 / 231' });
 
-/** 오른쪽 아래 [+] — 호스트 홈과 같은 자리 */
+/** 오른쪽 아래 [+] — 호스트 홈과 같은 자리. PC는 제목 줄의 [공연 추가하기](`1496:12596`) */
 export const fab = style({
   position: 'fixed',
   right: vars.space[5],
   bottom: fabBottom,
   zIndex: vars.zIndex.header,
   textDecoration: 'none',
+  '@media': { [media.desktop]: { display: 'none' } },
 });

@@ -11,7 +11,8 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 /**
  * 호스트 설정 `/hosting/hosts/[hostId]/settings` · 멤버 관리 `/hosting/hosts/[hostId]/members`(plan P10b 완료 기준 V).
  * 설정의 근거는 **GUI**(Design Sync #260, 모바일 Ready만 — `741:31172` 미입력 · `1452:40541` 저장 가능 · `1452:42653` 저장 없이 이동 ·
- * `1458:4961` · `1476:8399` 이미지 자르기 · `1478:9437` 연락처 여러 줄 — `p5c-gui-host-home`).
+ * `1458:4961` · `1476:8399` 이미지 자르기 · `1478:9437` 연락처 여러 줄 — `p5c-gui-host-home`), 2026-11-16 #278 · #292 · #294로 이미지 안내 · 오류
+ * (`1524:13269` · `1524:13380` · `1525:13546`) · 커버 2:1 · PC 1440(`1496:12683` — 가운데 960)을 더했다(`design-278-295`).
  * 멤버 관리(HS-5~)는 2026-11-15부터 **GUI**(모바일 Ready, Design Sync #263~#266 · #268 — `p10b-gui-members`). 옛 와이어 근거: 멤버 흐름 `503:30866`
  * (목록 `503:30922` · ⋮ `503:31732` · 권한 변경 `503:31833` · 양도 `503:32075` · 초대 `503:32779` · 권한 가이드 `503:30950`).
  * 고스락(11)의 mock 멤버: 두둥이(나, 마스터) · 김매니저(매니저) · 이드럼(일반) · 이름 없음(일반).
@@ -19,7 +20,7 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
  * 범주 검토
  * - 빈 상태: 해당 없음 — 멤버 목록에는 늘 마스터(나 포함)가 있다. 연락처는 1줄 이상(서버 규칙)
  * - 크롤러: 해당 없음 — 보호 화면(로그인 게이트 안, 서버 조회 없음). 비로그인 → 로그인은 e2e `hosting-host.spec.ts`
- * - 반응형: 모든 시나리오가 mobile · desktop — 설정은 PC Ready가 없어 같은 세로 폼(폭 600), 멤버는 [+ 멤버 초대하기] 위치만 바뀐다
+ * - 반응형: 모든 시나리오가 mobile · desktop — 설정 PC는 가운데 960 세로 폼(HS-20이 1440을 찍는다), 멤버는 [+ 멤버 초대하기] 위치만 바뀐다
  */
 
 const reset = () => {
@@ -228,8 +229,8 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI 1476:8399 커버 이미지 자르기 — 직사각 가이드(🤖 홈 커버 비율 390:246, Figma 코멘트). 닫으면 아무것도 올리지 않는다.',
-    basis: ['GUI 1476:8399', 'Design Sync #260'],
+      'GUI 1476:8399 커버 이미지 자르기 — 2:1 가이드(340×170, #278). 닫으면 아무것도 올리지 않는다.',
+    basis: ['GUI 1476:8399', 'Design Sync #260 · #278'],
   },
   async ({ page, mockApi, step }) => {
     reset();
@@ -250,6 +251,94 @@ scenario(
       await expect(page.getByRole('button', { name: '저장' })).toBeDisabled();
       expect(mockApi.calls().filter((c) => c.method !== 'GET')).toEqual([]);
     });
+  },
+);
+
+scenario(
+  'HS-20',
+  '설정 — 이미지 칸 안내 문구 · 형식 · 10MB · 업로드 실패는 칸 아래 빨간 글 + 빨간 테두리([다시 올리기] 없음)',
+  {
+    kind: '에러',
+    summary:
+      'GUI 1525:13546 안내 · 오류 문구 · 1524:13380 실패(빨간 테두리 · 안내 자리에 빨간 글, 다시 고를 때는 상자 안 [이미지 업로드] — #278 3) · 1525:13517 안내(#292). 10MB는 원본 기준, 자르기 전에 막는다. PC 1440(1496:12683)은 가운데 960 · 커버 칸 960×171.',
+    basis: [
+      'GUI 1525:13546 · 1524:13380 · 1525:13517 · 1496:12683',
+      'Design Sync #278 · #292 · #294',
+    ],
+  },
+  async ({ page, mockApi, step, testInfo }) => {
+    reset();
+    await page.route(
+      (url) => url.href.startsWith(MOCK_S3_ORIGIN),
+      (route) => route.fulfill({ status: 500, headers: S3_CORS, body: '' }),
+    );
+    await setMockSession(page, 'loggedIn');
+    await step(
+      '칸 아래 회색 안내 — 프로필 "정사각형 권장" · 커버 "중요한 내용은 가운데에 두세요."',
+      async () => {
+        await page.goto(SETTINGS);
+        await expect(
+          page.getByTestId('image-PROFILE').getByText('JPG, JPEG, PNG · 최대 10MB · 정사각형 권장'),
+        ).toBeVisible();
+        await expect(
+          page
+            .getByTestId('image-COVER')
+            .getByText('JPG, JPEG, PNG · 최대 10MB · 중요한 내용은 가운데에 두세요.'),
+        ).toBeVisible();
+      },
+    );
+    await step('GIF를 고르면 요청 없이 "JPG, JPEG, PNG 파일만 올릴 수 있어요."', async () => {
+      const chooser = page.waitForEvent('filechooser');
+      await page.getByRole('button', { name: '프로필 이미지 업로드' }).click();
+      await (
+        await chooser
+      ).setFiles({ name: 'a.gif', mimeType: 'image/gif', buffer: Buffer.from('GIF89a') });
+      await expect(page.getByTestId('image-PROFILE').getByRole('alert')).toHaveText(
+        'JPG, JPEG, PNG 파일만 올릴 수 있어요.',
+      );
+      await expect(page.getByRole('dialog', { name: '이미지 위치 조정' })).toHaveCount(0);
+    });
+    await step('10MB가 넘는 사진은 자르기 전에 "10MB 이하의 사진만 올릴 수 있어요."', async () => {
+      const chooser = page.waitForEvent('filechooser');
+      await page.getByRole('button', { name: '커버 이미지 업로드' }).click();
+      await (
+        await chooser
+      ).setFiles({
+        name: 'big.jpg',
+        mimeType: 'image/jpeg',
+        buffer: Buffer.alloc(10 * 1024 * 1024 + 1),
+      });
+      await expect(page.getByTestId('image-COVER').getByRole('alert')).toHaveText(
+        '10MB 이하의 사진만 올릴 수 있어요.',
+      );
+      await expect(page.getByRole('dialog', { name: '이미지 위치 조정' })).toHaveCount(0);
+    });
+    await step(
+      'S3 업로드가 실패하면 "이미지를 올리지 못했어요. 다시 시도해 주세요." — [다시 올리기] 없음',
+      async () => {
+        const chooser = page.waitForEvent('filechooser');
+        await page.getByRole('button', { name: '커버 이미지 업로드' }).click();
+        await (await chooser).setFiles(PNG);
+        await page
+          .getByRole('dialog', { name: '이미지 위치 조정' })
+          .getByRole('button', { name: '적용' })
+          .click();
+        await expect(page.getByTestId('image-COVER').getByRole('alert')).toHaveText(
+          '이미지를 올리지 못했어요. 다시 시도해 주세요.',
+        );
+        await expect(page.getByRole('button', { name: '다시 올리기' })).toHaveCount(0);
+        expect(mockApi.calls().filter((c) => c.method === 'PATCH')).toEqual([]);
+      },
+    );
+    if (testInfo.project.name === 'desktop') {
+      await step('PC 1440 — 가운데 960 · 커버 칸 960×171(1496:12683)', async () => {
+        await page.setViewportSize({ width: 1440, height: 1502 });
+        await page.getByTestId('image-COVER').scrollIntoViewIfNeeded();
+        const box = await page.getByTestId('image-COVER').boundingBox();
+        expect(box?.x).toBe(240);
+        expect(box?.width).toBe(960);
+      });
+    }
   },
 );
 

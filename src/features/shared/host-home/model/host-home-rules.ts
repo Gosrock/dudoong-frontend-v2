@@ -61,5 +61,38 @@ export function contactIconsOf<T>(items: readonly T[]): { shown: T[]; more: bool
   return { shown: items.slice(0, HOST_CONTACT_ICONS_MAX - 1), more: true };
 }
 
+/** 취소된 공연 카드 칩(H-14 `canceledAt` — 백엔드 #274 §1-1, 디자인 없음 Q124 · 공연준비 홈 카드와 같은 글자 · 모양) */
+export const HOST_EVENT_CANCELED_LABEL = '취소됨';
+
 /** 호스트 공연 리스트 화면(GUI `1423:2651` · `1478:8878`, Design Sync #262) */
 export const hostEventsHref = (hostId: string | number) => `/hosts/${hostId}/events`;
+
+/**
+ * 호스트 홈 연락처 아이콘 하나를 눌렀을 때(L 변경 — Design Sync #281 · #287 · #291, 2026-11-16 Ready).
+ * - `login` — 로그인 전 가린 값(전화 · 이메일)을 익명이 누름 → "로그인이 필요해요"(GUI `1484:8106` · PC `1495:9888`)
+ * - `sheet` — 가린 값인데 아직 내가 누군지 모름(확인 중 · 실패) → 연락처 전체 보기(원문이 오면 바뀐다)
+ * - `link` — 인스타그램 · 유튜브 · 오픈채팅 · 기타(링크)는 바로 연다(#281 "바로 링크가 열림")
+ * - `popup` — 전화 · 이메일 · 기타(글자)는 연락처 팝업(`1529:13695` — 값 + 복사 + [전화 걸기] · [메일 쓰기] · [닫기])
+ * 링크로 열 수 없는 인스타그램 · 유튜브 · 오픈채팅 값(형식이 안 맞는 글자)은 팝업으로 글자를 보여 준다(🤖 — Figma에 없음).
+ */
+export type HostContactTap = 'login' | 'sheet' | 'link' | 'popup';
+
+export function hostContactTapOf(
+  contact: { type: string; href: string | null; masked: boolean },
+  anonymous: boolean,
+): HostContactTap {
+  if (contact.masked) return anonymous ? 'login' : 'sheet';
+  if (contact.type === 'PHONE' || contact.type === 'EMAIL') return 'popup';
+  return contact.href ? 'link' : 'popup';
+}
+
+/** 연락처 팝업 버튼(`1529:13695`) — 전화 [전화 걸기] · 이메일 [메일 쓰기]는 링크, 그 밖(기타 글자 · 형식이 안 맞는 값)은 [닫기] */
+export function hostContactPopupActionOf(contact: {
+  type: string;
+  href: string | null;
+}): { label: string; href: string } | null {
+  if (!contact.href) return null;
+  if (contact.type === 'PHONE') return { label: '전화 걸기', href: contact.href };
+  if (contact.type === 'EMAIL') return { label: '메일 쓰기', href: contact.href };
+  return null;
+}

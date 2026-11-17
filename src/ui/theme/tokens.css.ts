@@ -106,6 +106,9 @@ export const vars = createGlobalTheme(':root', {
       // Figma `Background/dimmed`(Neutral 900 85%, 2026-10-31)
       dim: `color-mix(in srgb, ${palette.neutral[900]} 85%, transparent)`,
       shadow: `color-mix(in srgb, ${palette.neutral[900]} 15%, transparent)`,
+      // 커버 이미지 딤(GUI 호스트 홈 "dimmed" — Neutral 900 30%, 변수 없는 값 · Design Sync #279, 2026-11-16)
+      // FIGMA-CUSTOM: 커버 딤(gui 1522:13269 "dimmed") — 디자인 시스템 변수에 없는 색. DS 후보(디자인 시스템 `Background/dimmed` 옆 변수)
+      coverDim: `color-mix(in srgb, ${palette.neutral[900]} 30%, transparent)`,
     },
   },
   /** Space/1~10. 7~10은 데스크탑에서 커진다(Figma Component 컬렉션 Mobile/Desktop 모드). */

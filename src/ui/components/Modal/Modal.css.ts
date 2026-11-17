@@ -87,6 +87,18 @@ export const contentSummary = style({
   background: vars.color.surface.container,
 });
 
+/**
+ * 작은 팝업(`compact`) — GUI 호스트 홈 연락처 팝업(`1529:13695` — 342 · 흰 판 · 안쪽 24 · 모서리 16, 타이틀 → 값 8 · 값 → 버튼 24)과
+ * 로그인 필요 PC(`1539:15046` — 모바일 다이얼로그 모양 그대로 342 + ✕). 모바일 · PC 같은 폭, ✕는 PC만(`closeCompact`).
+ * 묶음 간격 8 + footer 위 16 = 24(확인 팝업과 같은 방식). FIGMA-CUSTOM: GUI 로컬 "연락처 팝업"이 직접 그린 판(2단계 후보)
+ */
+export const contentCompact = style({
+  gap: vars.space[2],
+  maxWidth: 342,
+  padding: vars.space[5],
+  background: vars.color.background.normal,
+});
+
 export const headGroup = style({ display: 'flex', flexDirection: 'column', flexShrink: 0 });
 
 /** 제목 행 — 앞 슬롯 · 제목 · ✕, 간격 8, 세로 가운데(`1029:6892` 제목 행 · `956:5913` 머리) */
@@ -104,6 +116,9 @@ export const headTitle = style({ flex: '1 1 auto', minWidth: 0 });
  * 확인 팝업이 Figma보다 커졌다(모바일 172 ↔ `758:1714` 160, 데스크탑 175.5 ↔ `843:440` 170 — 2026-11-08 #187)
  */
 export const title = style({ display: 'flex', margin: 0 });
+
+/** 제목 가운데(연락처 팝업 `1529:13695`). FIGMA-CUSTOM: DS 다이얼로그는 왼쪽 정렬(2단계 후보) */
+export const titleCenter = style({ justifyContent: 'center', textAlign: 'center' });
 
 /** 위 간격은 설명 글자 종류가 정한다(`theme/overlay-text`) */
 export const description = style({
@@ -165,6 +180,9 @@ globalStyle(`${contentPopup} ${description} > *`, {
   '@media': { [media.desktop]: desktopText(typographySpecs.bodyMd) },
 });
 
+/** 작은 팝업 — 글자 묶음 → 버튼 24 = 간격 8 + 16 */
+globalStyle(`${contentCompact} > ${footer}`, { marginTop: vars.space[4] });
+
 /** 입금 확인 창 — 카드 → 버튼 16 = 간격 8 + 8(`567:9756` 카드 · 버튼 묶음 간격 16) */
 globalStyle(`${contentSummary} > ${footer}`, { marginTop: vars.space[2] });
 
@@ -184,3 +202,15 @@ export const closeButton = style({
 });
 
 export const headerEnd = style({ display: 'flex', justifyContent: 'flex-end' });
+
+/**
+ * 작은 팝업의 ✕ — PC(1024~)에서만, 판 오른쪽 위(✕ 24가 위 23 · 오른쪽 20 — GUI `1537:15088` · `1539:15047`).
+ * 글자 흐름 밖에 떠서 가운데 제목을 밀지 않는다. 모바일은 ✕ 없이 버튼 · 바깥 · 뒤로가기로 닫는다(`1529:13696`)
+ */
+export const closeCompact = style({
+  position: 'absolute',
+  top: 23,
+  right: 20,
+  display: 'none',
+  '@media': { [media.desktop]: { display: 'inline-flex' } },
+});
