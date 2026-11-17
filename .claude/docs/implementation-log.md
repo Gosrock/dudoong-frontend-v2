@@ -3854,7 +3854,7 @@ GUI 파일 코멘트(2026-11-15 13:13~13:20Z) 세 건.
 
 **테스트**: QA `hosting-qr` 18/0(QR-6 — 모바일: 로고 숨김 · QR 판 230 · 안내 줄 아래 끝 56, PC: 로고 보임, 두 폭: 관객 탭 티켓 번호 칸 없음) · e2e `hosting-checkin` 14/0. 화면 비교는 QA 캡처(가짜 카메라 장치 Playwright — 카메라 화면이라 ego-browser 대신)와 Figma PNG.
 
-## Next 보안 업그레이드 16.4.1 → 16.4.6(2026-11-17, `chore-next-1646`)
+## Next 보안 업그레이드 16.4.1 → 16.4.6(2026-11-17, `chore-next-1646` #306)
 
 권고 [GHSA-mfr8-8qww-v76h](https://github.com/advisories/GHSA-mfr8-8qww-v76h)(moderate, 16.3.0~16.4.4, 16.4.5부터 패치): `'use cache'` 함수를 `unstable_cache()`로 부를 때 root params 정보가 노출된다. 관제탑 지시(2026-11-17). 함께 `next dev` · `next build` 첫 실행을 멈추던 업그레이드 권고도 없어진다.
 - **바꾼 것**: `package.json`의 `next` · `eslint-config-next` 16.4.1 → 16.4.6. `pnpm-lock.yaml`은 `next` · `@next/env` · `@next/eslint-plugin-next` · `@next/swc-*` · `eslint-config-next`와, next를 peer로 가진 `@vanilla-extract/next-plugin` · `turbopack-plugin`의 해시 줄만 바뀌었다. `@next/*`를 직접 쓰는 의존성은 없다.
