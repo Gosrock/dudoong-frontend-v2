@@ -45,6 +45,8 @@ export const DashboardSchema = z.object({
   displayStatus: EventDisplayStatusSchema,
   /** UPCOMING일 때만(당일 0) */
   dDay: z.number().int().nullable(),
+  /** 호스트가 공연을 취소한 시각(E-11 — Api 2.5.15, 백엔드 #955). 취소 안 됐으면 null. `dDay`·`displayStatus`는 취소돼도 그대로 */
+  canceledAt: z.string().nullable().optional(),
   /** 공연 등록(최초 OPEN) 시각(#802). 준비중이면 null, 2026-10 이전 오픈 공연도 null */
   openedAt: z.string().nullable(),
 });

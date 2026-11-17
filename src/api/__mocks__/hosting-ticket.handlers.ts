@@ -72,6 +72,8 @@ export const TICKET_ERROR_REASONS = {
   Ticket_Item_400_14:
     '판매된 티켓은 설명·판매기간·재고공개·매수제한·수량 증가만 수정할 수 있습니다.',
   Ticket_Item_400_15: '티켓 입력값이 올바르지 않습니다.',
+  Ticket_Item_400_16:
+    '공개된 공연에는 티켓이 최소 1개 있어야 해요. 판매를 멈추려면 판매 중단을 이용해 주세요.',
   Option_Group_400_1: '해당 이벤트 소속 옵션그룹이 아닙니다.',
   Option_Group_400_2: '옵션그룹 삭제가 불가능한 상태입니다.',
   Option_Group_400_3: '설정할 수 없는 추가 가격입니다.',
@@ -544,7 +546,7 @@ export const hostingTicketHandlers = [
     },
   ),
 
-  // D10/T-4 — 권한 → 수정 가능 → 티켓 404 → 승인 대기 → 재고 감소 → 남은 목록
+  // D10/T-4 — 권한 → 수정 가능 → 티켓 404 → 승인 대기 → 재고 감소 → 등록된 공연의 마지막 티켓 → 남은 목록
   http.delete(
     '*/api/v2/events/:eventId/ticket-items/:ticketItemId',
     ({ request, params, cookies }) => {
@@ -558,6 +560,14 @@ export const hostingTicketHandlers = [
       if (!item) return ticketError(request, 'Ticket_Item_404_1');
       if (item.pendingApproveCount > 0 || isSold(item)) {
         return ticketError(request, 'Ticket_Item_400_7');
+      }
+      // Api 2.5.15(백엔드 #956) — 등록된(준비중 아님) 티켓 있음 공연의 마지막 티켓. 판매 중단 티켓도 남은 티켓으로 센다
+      if (
+        g.event.status !== 'PREPARING' &&
+        g.event.hasTicket &&
+        ticketsOfEvent(g.event.eventId).length <= 1
+      ) {
+        return ticketError(request, 'Ticket_Item_400_16');
       }
       removeTicket(item.ticketItemId);
       return ok(ticketsOfEvent(g.event.eventId).map((t) => view(t, g.event)));

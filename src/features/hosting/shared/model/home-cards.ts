@@ -33,7 +33,7 @@ export const roleChipOf = (role: HostRole): ChipLook | null => ROLE_CHIP[role];
 export function eventChipOf(
   event: Pick<MyEvent, 'displayStatus' | 'dDay' | 'canceledAt'>,
 ): ChipLook | null {
-  if (event.canceledAt) return { label: '취소됨', color: 'grey', theme: 'fill' };
+  if (event.canceledAt) return { label: EVENT_CANCELED_LABEL, color: 'grey', theme: 'fill' };
   switch (event.displayStatus) {
     case 'PREPARING':
       return { label: '준비중', color: 'green', theme: 'weak' };
@@ -50,6 +50,22 @@ export function eventChipOf(
     default:
       return null;
   }
+}
+
+/** 취소된 공연 칩·줄 글자(E-11 `canceledAt`) */
+export const EVENT_CANCELED_LABEL = '취소됨';
+
+/**
+ * 공연 사이드바 카드 둘째 줄 — 호스트명 · D-n. 취소된 공연은 D-n 대신 "취소됨"(이슈 #274 §1-1 — 취소돼도 `displayStatus`가
+ * UPCOMING일 수 있어 판매 중처럼 D-n이 보였다. Api 2.5.15부터 서버도 `dDay`를 null로 준다)
+ */
+export function eventMetaLineOf(event: Pick<MyEvent, 'hostName' | 'dDay' | 'canceledAt'>): string {
+  const when = event.canceledAt
+    ? EVENT_CANCELED_LABEL
+    : event.dDay !== null
+      ? formatDday(event.dDay)
+      : null;
+  return [event.hostName, when].filter(Boolean).join(' · ');
 }
 
 /**
