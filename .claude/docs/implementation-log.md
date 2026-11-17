@@ -3827,7 +3827,7 @@ GUI 파일 코멘트(2026-11-15 13:13~13:20Z) 세 건.
 
 **테스트**: 스토리 `Button/Kakao`(색 · 모서리 6 · 45h · 15px · 심볼 18 · #000000) · `Button/KakaoWidths`. QA `login` 20/0(노란 배경 · 심볼) · `host-home` 24/0(팝업 · 시트 노란 배경) · `host-settings` 38/0(초대 칸 설명) · `gift` 14/0 · `self-checkin` 14/0. e2e auth · host-home · gift-landing · hosting-host · shell · check-in · a11y 241/0. 선택자 이름만 "카카오 로그인"으로(테스트 지우거나 약하게 하지 않음).
 
-## Figma 카카오 로그인 버튼 — GUI 프레임을 코드대로(2026-11-17, `figma-kakao`)
+## Figma 카카오 로그인 버튼 — GUI 프레임을 코드대로(2026-11-17, `figma-kakao` #302)
 
 사용자 결정(2026-11-16, 관제탑 전달): 디자이너가 개발 수정을 요청한 확정 변경이라 **Figma 프레임도 코드대로** 고친다. Desktop Bridge는 GUI 화면 파일(`1Cn4WOu6TDaSajbFIuH6fO`)에만 연결돼 있어(DS 파일 연결 없음) 컴포넌트는 GUI 파일 안에 로컬로 만들었다.
 - **컴포넌트 1**: `↳호스트홈` 페이지 새 `Components` 섹션(`1516:55991`)에 `카카오 로그인 버튼`(`1516:55992`). 가이드(`V17DxZkTnrhtUnUvAceCAP` `124:973`) 값 그대로 — #FEE500 · 글자 #000 85% · 45h · 모서리 6 · 좌우 38 · 간격 8 · 심볼 18(코드 `KakaoSymbol`과 같은 SVG) · Apple SD Gothic Neo SemiBold 15 / 22.5 · 문구 "카카오 로그인". 사이즈 변형은 만들지 않음(코드가 45h 한 벌 — Q236).
