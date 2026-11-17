@@ -3961,3 +3961,12 @@ Design Sync #278 · #279 · #280 · #281 · #287 · #288 · #290 · #291 · #292
   - `loading.md` 상태 코드: "Cache Components에서 페이지 안 요청 시점 검사는 셸을 보낸 뒤라 `instant = false`여도 200"이 더해졌다. 이미 알던 동작이다(브라우저 UA는 200 + not-found 화면, `htmlLimitedBots` 크롤러만 404 — tech-decisions §2·§26, `e2e/event-detail.spec.ts` 주석). 크롤러 404 e2e는 그대로 통과한다.
   - `unstable_cache.md`: "배포를 넘겨 유지해야 하는 비-fetch 데이터에는 계속 써도 된다"로 바뀌었다. 우리는 쓰지 않는다.
 - **검사**: typecheck · lint · vitest 151 파일 2779 통과. build 통과(권고 멈춤 없음). e2e `response-headers` · `event-detail` · `host-home` · `shell` 95 통과 · 1 건너뜀(원래 skip). `pnpm dev:mock`은 권고 없이 바로 뜨고 `/login`이 200.
+
+
+## 카카오 로그인 버튼 모서리 10 · Pretendard(2026-11-17, `fix-1117-kakao`)
+
+디자이너 답(GUI 코멘트 `2008666517`, Nemin 2026-11-16 "radius 10으로 할수없나 / 폰트도 우리 폰트인 pretendard로 / 내가 바꿈") — Q238 닫음.
+- **근거**: GUI 컴포넌트 `카카오 로그인 버튼`(`1516:55992`)을 REST로 다시 받은 값 — 45h · 모서리 10 · 좌우 38 · 간격 8 · 심볼 18 · 문구 Pretendard Bold 14 / 줄높이 120%(16.8) / 자간 -0.14(-1%) · 배경 #FEE500 · 글자 #000 85%.
+- **바꾼 것**: `Button.css.ts` `kakao` compound — 시스템 서체 15 / 600 / 22.5 · 모서리 6 → `typography.labelMdEmphasized`(14 / 700 / 120% / -0.01em, 값이 Figma와 같다) · `vars.radius[3]`(10). 높이 · 패딩 · 간격 · 색 · 심볼 SVG는 그대로. `KAKAO_LABEL_FONT` 뺌. 쓰는 곳(로그인 · 만료 · 로그인 필요 팝업 · 연락처 시트 · 선물 랜딩)은 코드 변경 없이 따라온다.
+- **테스트**: 스토리 `Button/Kakao` 기대값 모서리 10 · 14px · 700 · Pretendard · 간격 8. QA `login`에 모서리 10 · 14px 더함.
+- **다른 코멘트**: `2008391963`(QR 관객 탭 번호 칸 · 전체화면 모바일)은 #303으로 반영돼 답글만. `2008678247`(초대 시트 안내 위치)은 `1422:1911` 제목 아래 설명 두 줄 — #304로 같은 자리(둘째 줄은 서버 정책 Q229, 초대 정책 변경은 서버 먼저라 범위 밖).

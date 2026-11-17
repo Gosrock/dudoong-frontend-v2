@@ -47,11 +47,13 @@ scenario(
         page.getByText('두둥에 로그인하고 다양한 공연을 즐겨보세요!').first(),
       ).toBeVisible();
       await expect(page.getByRole('button', KAKAO_BUTTON)).toBeEnabled();
-      // 카카오 로그인 버튼 가이드(디자이너 요청 2026-11-15) — 노란 배경 · 심볼
+      // 카카오 로그인 버튼(디자이너 요청 2026-11-15) — 노란 배경 · 심볼 · 모서리 10 · Bold 14(GUI `1516:55992`, 2026-11-16)
       await expect(page.getByRole('button', KAKAO_BUTTON)).toHaveCSS(
         'background-color',
         'rgb(254, 229, 0)',
       );
+      await expect(page.getByRole('button', KAKAO_BUTTON)).toHaveCSS('border-radius', '10px');
+      await expect(page.getByRole('button', KAKAO_BUTTON)).toHaveCSS('font-size', '14px');
       await expect(page.getByRole('button', KAKAO_BUTTON).locator('svg')).toBeAttached();
     });
     await step('버튼을 누르면 카카오 인증 화면으로 간다', async () => {

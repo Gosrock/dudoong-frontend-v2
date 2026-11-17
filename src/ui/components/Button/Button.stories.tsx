@@ -30,8 +30,9 @@ export const Warning: Story = {
   },
 };
 /**
- * 카카오 로그인 버튼 — 카카오 공식 디자인 가이드 Figma(`V17DxZkTnrhtUnUvAceCAP` `124:973`): #FEE500 · 레이블 #000000 85% ·
- * 심볼 18 자동 · 45h · 모서리 6 · 간격 8 · 15 / 600. `size`와 상관없이 한 벌, 폭만 글자에 맞춤(184) 또는 꽉 찬 폭(사용자 결정 2026-11-16)
+ * 카카오 로그인 버튼 — GUI 컴포넌트 `카카오 로그인 버튼`(`1516:55992`, 디자이너 2026-11-16): #FEE500 · 레이블 #000000 85% ·
+ * 심볼 18 자동 · 45h · 모서리 10 · 간격 8 · Pretendard Bold 14. 색 · 심볼은 카카오 가이드(`124:973`) 그대로.
+ * `size`와 상관없이 한 벌, 폭만 글자에 맞춤 또는 꽉 찬 폭(사용자 결정 2026-11-16)
  */
 export const Kakao: Story = {
   args: { variant: 'kakao', children: '카카오 로그인' },
@@ -40,9 +41,12 @@ export const Kakao: Story = {
     const style = getComputedStyle(btn);
     await expect(style.backgroundColor).toBe('rgb(254, 229, 0)');
     await expect(style.color).toBe('rgba(0, 0, 0, 0.85)');
-    await expect(style.borderRadius).toBe('6px');
+    await expect(style.borderRadius).toBe('10px');
     await expect(style.height).toBe('45px');
-    await expect(style.fontSize).toBe('15px');
+    await expect(style.fontSize).toBe('14px');
+    await expect(style.fontWeight).toBe('700');
+    await expect(style.fontFamily).toMatch(/^"Pretendard Variable"/);
+    await expect(style.gap).toBe('8px');
     await expect(btn.querySelector('svg')).toHaveAttribute('width', '18');
     await expect(btn.querySelector('svg path')).toHaveAttribute('fill', '#000000');
   },

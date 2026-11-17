@@ -7,7 +7,7 @@ import { KakaoSymbol } from './KakaoSymbol';
 export type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> & {
   /**
    * Figma `Color` — Primary · Secondary · primary 2(`tonal`) · Warning(`warning`, 위험 동작 확인). `dark`는 화면 덮어쓰기.
-   * `kakao` = 카카오 로그인 버튼(카카오 공식 가이드 — 노란 배경 · 심볼 자동 · 45h · 모서리 6, `size` 무시). 로그인으로 가는 버튼에만, 문구는 "카카오 로그인"
+   * `kakao` = 카카오 로그인 버튼(GUI 컴포넌트 `1516:55992` — 노란 배경 · 심볼 자동 · 45h · 모서리 10 · Pretendard Bold 14, `size` 무시). 로그인으로 가는 버튼에만, 문구는 "카카오 로그인"
    */
   variant?: 'primary' | 'secondary' | 'tonal' | 'warning' | 'dark' | 'kakao';
   size?: 'sm' | 'md' | 'lg';
