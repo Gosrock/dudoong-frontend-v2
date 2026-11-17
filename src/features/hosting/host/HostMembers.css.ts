@@ -6,19 +6,52 @@ import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
- * 멤버 화면(`/hosting/hosts/[hostId]/members`) — **GUI 근거**(모바일 Ready, Design Sync #263~#266 · #268 · #269).
- * PC(1024~)는 Ready가 없어 와이어 배치(폭 600에서 멈춤 · 오른쪽 아래 버튼)를 그대로 두고 모바일 모양만 잇는다(🤖).
+ * 멤버 화면(`/hosting/hosts/[hostId]/members`) — **GUI 근거**(모바일 Design Sync #263~#266 · #268 · #269 · #282~#289,
+ * PC 1440 #296~#298). PC(1024~)는 `1496:9302`: 머리 줄 · 본문 모두 960 가운데(1440에서 좌우 240), [+ 멤버 초대하기]는 머리 줄 오른쪽.
  */
 
-/** 본문(`1421:755` "본문") — 세로 간격 8 · 하단 FAB에 마지막 줄이 가리지 않게 */
+/** PC 본문 폭(`1496:9302` `Frame 1707480466` — 1440 − 240 × 2) */
+const DESKTOP_WIDTH = 960;
+
+/** 머리 줄 — PC는 본문과 같은 960 가운데 · 위 20(`Frame 1707480466` p20 → `Top app bar` `1478:35703` 240,78 960×64) */
+export const header = style({
+  '@media': {
+    [media.desktop]: {
+      width: '100%',
+      maxWidth: DESKTOP_WIDTH,
+      marginInline: 'auto',
+      paddingInline: 0,
+      // FIGMA-CUSTOM: 위 20(`1496:9302` `Frame 1707480466` p20/240) — 토큰 스케일(16 · 24)에 없는 Figma 값 그대로
+      marginTop: 20,
+    },
+  },
+});
+
+/** PC 머리 줄 [+ 멤버 초대하기](`1503:13110` 130×46) — 모바일은 FAB(`fab`)라 숨긴다 */
+export const inviteButton = style({
+  display: 'none',
+  '@media': { [media.desktop]: { display: 'inline-flex' } },
+});
+
+/** 버튼 안 `ic_add` 18(`1503:13110` `ic` 18×18) — 아이콘 세트는 24만 있어 줄여 그린다(권한 표 ✓ 20과 같은 방식) */
+globalStyle(`${inviteButton} svg`, { width: 18, height: 18 });
+
+/** 본문(`1421:755` "본문") — 세로 간격 8 · 하단 FAB에 마지막 줄이 가리지 않게. PC는 960 가운데 · FAB 없음 */
 export const body = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.space[2],
   width: '100%',
-  maxWidth: 600,
   paddingTop: vars.space[2],
   paddingBottom: fabClearance.lg,
+  '@media': {
+    [media.desktop]: {
+      maxWidth: DESKTOP_WIDTH,
+      marginInline: 'auto',
+      paddingInline: 0,
+      paddingBottom: vars.space[6],
+    },
+  },
 });
 
 /**
@@ -51,7 +84,7 @@ export const list = style([
 
 /**
  * 멤버 행(GUI 로컬 `멤버 행` `1421:752` — 안에 DS `List` Role tag=false + Avatar 60) — 76h · 위아래 8 · 아바타 ↔ 글자 12 ·
- * 행 ↔ ⋮ 4, ⋮ 칸 44
+ * 행 ↔ ⋮ 4, ⋮ 칸 44. PC는 `프로필 크기=40`(`1546:19828` — 56h)
  */
 export const memberRow = style({
   position: 'relative',
@@ -76,7 +109,13 @@ export const memberRow = style({
     '(hover: hover)': {
       selectors: { '&:hover::before': { background: vars.color.surface.container } },
     },
+    [media.desktop]: { minHeight: 56 },
   },
+});
+
+/** 아바타 60 → PC 40(`1546:19828` `Avatar` 40×40) */
+export const memberAvatar = style({
+  '@media': { [media.desktop]: { width: 40, height: 40 } },
 });
 
 export const memberMain = style({
@@ -141,13 +180,13 @@ export const pendingRow = style({
 
 export const note = style({ margin: 0 });
 
-/** [+] FAB — 모바일 오른쪽 16 · 아래 `fabBottom`, PC 24 · 24(와이어 자리) */
+/** [+] FAB — 모바일 오른쪽 16 · 아래 `fabBottom`. PC는 머리 줄 버튼(`inviteButton`)이라 숨긴다 */
 export const fab = style({
   position: 'fixed',
   right: vars.space[4],
   bottom: fabBottom,
   zIndex: 10,
-  '@media': { [media.desktop]: { right: vars.space[5], bottom: vars.space[5] } },
+  '@media': { [media.desktop]: { display: 'none' } },
 });
 
 // ─── 오버레이 ─────────────────────────────────────────────
@@ -161,12 +200,22 @@ export const roleChange = style({
 
 export const roleChangeField = style({ flex: 1, minWidth: 0 });
 
-/** 초대 시트(`1427:4143`) — 묶음 사이 24(시트 본문) */
+/** 초대 시트(`1427:4143`) — [칸 줄 + 사유] ↔ 회색 상자 24(시트 묶음 간격) */
 export const inviteForm = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.space[5],
 });
+
+/** 칸 줄 ↔ 줄 아래 사유 8(`1427:4143` `Frame 1707480467` · `1476:6806` `Frame 1707480463`) */
+export const inviteField = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[2],
+});
+
+/** 줄바꿈이 있는 문구(설명 두 줄 · `HOST_400_18` 두 줄) */
+export const preLine = style({ whiteSpace: 'pre-line' });
 
 /** 이메일(넓게) + 역할 116, 간격 8 */
 export const inviteRow = style({
@@ -177,14 +226,6 @@ export const inviteRow = style({
 
 export const inviteEmail = style({ flex: 1, minWidth: 0 });
 export const inviteRole = style({ flex: '0 0 116px' });
-
-/** 칸 줄 아래 문구 · 회색 안내 상자, 간격 8 */
-export const inviteMessages = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: vars.space[2],
-  marginTop: vars.space[2],
-});
 
 /**
  * 회색 안내 상자(`초대 링크 안내` · `초대 링크` · 권한 표 없음) — 모서리 12 · 안쪽 16 · `surface/container`.
@@ -201,6 +242,18 @@ export const greyBox = style({
 });
 
 export const linkBox = style([greyBox, { gap: vars.space[1], alignItems: 'stretch' }]);
+
+/**
+ * 회색 상자 안 분홍 안내(`1476:7673` "이전 링크 무효 안내") — 꽉 찬 폭 · 안쪽 16 · 모서리 12 · `status/warning-subtle`(Coral-red 50).
+ * FIGMA-CUSTOM: 화면이 직접 그린 상자(채움 변수) → 커스텀 HostMembers.css.ts. DS 후보(design-system §3 — 회색 안내 상자와 같은 모양)
+ */
+export const dangerBox = style({
+  alignSelf: 'stretch',
+  margin: 0,
+  padding: vars.space[4],
+  borderRadius: vars.radius[4],
+  background: vars.color.status.warningSubtle,
+});
 
 /** 링크 주소 한 줄 말줄임 */
 export const linkUrl = style({
@@ -235,13 +288,23 @@ export const guideCell = style({
   verticalAlign: 'middle',
 });
 
+/** 열 — 모바일 39 · 17.5 · 17.5 · 26%, PC 모달 224 · 60 · 60 · 88 / 432(`1496:10240` "권한 표") */
 export const guideLabelCol = style({
   width: '39%',
   paddingRight: vars.space[2],
   textAlign: 'left',
+  '@media': { [media.desktop]: { width: `${(224 / 432) * 100}%` } },
 });
-export const guideRoleCol = style({ width: '17.5%', textAlign: 'center' });
-export const guideGuestCol = style({ width: '26%', textAlign: 'center' });
+export const guideRoleCol = style({
+  width: '17.5%',
+  textAlign: 'center',
+  '@media': { [media.desktop]: { width: `${(60 / 432) * 100}%` } },
+});
+export const guideGuestCol = style({
+  width: '26%',
+  textAlign: 'center',
+  '@media': { [media.desktop]: { width: `${(88 / 432) * 100}%` } },
+});
 
 export const guideLabel = style({ whiteSpace: 'pre-line' });
 
