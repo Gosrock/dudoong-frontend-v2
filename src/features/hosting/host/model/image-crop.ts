@@ -9,15 +9,15 @@ import type { HostImageSlot } from './host-settings-form';
 /** 자르기 칸 폭 대비 가이드 크기(GUI 자르기 칸 342 — 프로필 원 290 · 커버 340) */
 export const CROP_GUIDE = {
   PROFILE: { widthRatio: 290 / 342, aspect: 1 },
-  // 🤖 커버 가이드 비율은 호스트 홈 모바일 커버(390:246)와 같게 — GUI 가이드는 340×180인데 홈에 보이는 영역과 다르다(Figma 코멘트로 물음)
-  COVER: { widthRatio: 340 / 342, aspect: 390 / 246 },
+  // 커버 가이드 2:1(GUI `1476:8505` "커버 비율 가이드" 340×170 — Design Sync #278). 호스트 홈 모바일 커버도 2:1(#279)
+  COVER: { widthRatio: 340 / 342, aspect: 2 },
 } as const satisfies Record<HostImageSlot, { widthRatio: number; aspect: number }>;
 
 export const CROP_ZOOM_MIN = 1;
 export const CROP_ZOOM_MAX = 3;
 
-/** 결과 이미지 긴 변 상한(px) — 🤖 프로필 512(홈 100 · 3배 여유), 커버 1280(PC 커버 폭) */
-export const CROP_OUTPUT_MAX = { PROFILE: 512, COVER: 1280 } as const satisfies Record<
+/** 결과 이미지 긴 변 상한(px) — 🤖 프로필 512(홈 100 · 3배 여유), 커버 1440(PC 커버 폭 — `1495:8779`) */
+export const CROP_OUTPUT_MAX = { PROFILE: 512, COVER: 1440 } as const satisfies Record<
   HostImageSlot,
   number
 >;

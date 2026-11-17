@@ -6,38 +6,53 @@ import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
- * 호스트 홈 — **GUI 근거**(모바일 390, `741:30896` 등 — Design Sync #257 · #261 · #262). 값은 Figma 그대로, 간격은 토큰.
- * PC(1024~)는 Ready가 없다 — 와이어 배치(셸 상단 바 아래 둥근 커버 · 왼쪽 정렬 프로필 · 같은 세로 순서)에 모바일 GUI의
- * 글자 · 원 · 카드 모양을 그대로 잇는다(🤖, PR 본문).
+ * 호스트 홈 — **GUI 근거**(모바일 390 `741:30896` 등 — Design Sync #257 · #261 · #262 · #279 · #280, PC 1440 `1495:8685` ·
+ * `1495:9022` · `1495:9120` — #290, 2026-11-16 Ready). 값은 Figma 그대로, 간격은 토큰.
+ * 커버는 화면 폭 가득(모바일 2:1 · PC 높이 300), 본문은 모바일 좌우 24 · PC 가운데 960(1024~1279는 좌우 32를 남기고 줄어든다 🤖).
  */
 
 export const page = style({
   position: 'relative',
-  // [+]가 모바일·PC 모두 떠 있다 — 마지막 줄(빈 상태 문구 · 카드)을 가리지 않게(#92-8)
+  width: '100%',
+  // 모바일은 [+]가 떠 있다 — 마지막 줄(빈 상태 문구 · 카드)을 가리지 않게(#92-8). PC는 [+]가 없다(`1495:8685`) — 아래 80(🤖)
   paddingBottom: fabClearance.md,
-  '@media': { [media.desktop]: { paddingTop: vars.space[5] } },
+  '@media': { [media.desktop]: { paddingBottom: vars.space[10] } },
+});
+
+/** 본문 칸 — 모바일 좌우 24, PC 가운데 960(GUI `1522:35938` x 240~1200) */
+export const body = style({
+  position: 'relative',
+  paddingLeft: 24,
+  paddingRight: 24,
+  '@media': {
+    [media.desktop]: {
+      maxWidth: 960 + 32 * 2,
+      marginLeft: 'auto',
+      marginRight: 'auto',
+      paddingLeft: 32,
+      paddingRight: 32,
+    },
+  },
 });
 
 /**
- * 커버 — 모바일은 화면 맨 위부터 폭 가득(Container 좌우 여백 24를 되돌림), 390:246(GUI `741:30950`). 셸 로고 헤더 자리는
- * `HostHomeTopBar`의 표시로 숨는다. PC는 Container 안에 높이 280 · 모서리(🤖 — 와이어 배치 그대로).
+ * 커버 — 화면 폭 가득. 모바일 2:1(GUI `741:30950` 390×195 — #279), 셸 로고 헤더 자리는 `HostHomeTopBar`의 표시로 숨는다.
+ * PC는 셸 상단 바 아래 높이 300(`1495:8779` 1440×300 — 2:1 이미지의 가운데가 보인다)
  */
 export const banner = style({
   position: 'relative',
-  marginLeft: -24,
-  marginRight: -24,
-  aspectRatio: '390 / 246',
+  aspectRatio: '2 / 1',
   background: vars.color.surface.imageBg,
   overflow: 'hidden',
-  '@media': {
-    [media.desktop]: {
-      marginLeft: 0,
-      marginRight: 0,
-      aspectRatio: 'auto',
-      height: 280,
-      borderRadius: vars.radius[5],
-    },
-  },
+  '@media': { [media.desktop]: { aspectRatio: 'auto', height: 300 } },
+});
+
+/** 커버 위 딤 30%(GUI "dimmed" `1522:13269` · 기본 커버 `1522:13532` — #279 · #280, 흰 원 버튼이 잘 보이게) */
+export const coverDim = style({
+  position: 'absolute',
+  inset: 0,
+  background: vars.color.overlay.coverDim,
+  pointerEvents: 'none',
 });
 
 export const cover = style({
@@ -47,40 +62,44 @@ export const cover = style({
   objectFit: 'cover',
 });
 
-/** PC 커버 오른쪽 위 ⚙(와이어 `503:30867`). 모바일은 상단 바가 ⚙를 그린다 */
+/** PC 커버 오른쪽 위 흰 원 ⚙ 44(GUI `1495:8784` — 커버 위 16 · 오른쪽 24). 모바일은 `HostCoverButtons`가 그린다 */
 export const desktopSettings = style({
   position: 'absolute',
   top: vars.space[4],
-  right: vars.space[4],
-  textDecoration: 'none',
+  right: vars.space[5],
   display: 'none',
   '@media': { [media.desktop]: { display: 'inline-flex' } },
 });
 
-/**
- * 프로필 묶음 — 모바일 가운데 정렬(GUI), PC 왼쪽 정렬(와이어 배치 🤖). ♡는 이 묶음 위 오른쪽 끝(커버 아래 13, `741:30969`)에 붙는다
- */
+/** 프로필 묶음 — 가운데 정렬(모바일 · PC 모두). ♡는 이 묶음 위에 붙는다 */
 export const profile = style({
   position: 'relative',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   textAlign: 'center',
-  '@media': { [media.desktop]: { alignItems: 'flex-start', textAlign: 'left' } },
 });
 
-/** 프로필 100 — 커버 아래 가장자리에 68 걸친다(GUI 225~325, 커버 끝 293). 흰 원 위에 이미지 */
+/**
+ * 프로필 원 — 모바일 100이 커버 아래 가장자리에 68 걸친다(GUI 174~274, 커버 끝 242). PC 140이 70 걸친다(`1495:8782` 288~428,
+ * 커버 끝 358). 흰 원 위에 이미지
+ */
 export const logo = style({
   position: 'relative',
   marginTop: -68,
   background: vars.color.background.normal,
+  '@media': { [media.desktop]: { marginTop: -70, width: 140, height: 140 } },
 });
 
-/** ♡ 44 — 아이콘 24의 오른쪽 끝이 화면 끝에서 28(GUI `741:30969` 338~362), 커버 끝에서 아이콘 위 23 */
+/**
+ * ♡ 44 — 모바일: 아이콘 24의 오른쪽 끝이 화면 끝에서 28(GUI `741:30969` 338~362), 커버 끝에서 아이콘 위 23.
+ * PC: 프로필 가운데에서 오른쪽 147(아이콘 왼쪽 — `1495:8786` x 867, 가운데 720), 커버 끝에서 20
+ */
 export const follow = style({
   position: 'absolute',
   top: 13,
   right: -6,
+  '@media': { [media.desktop]: { top: 10, right: 'auto', left: 'calc(50% + 137px)' } },
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -103,8 +122,11 @@ export const follow = style({
 
 globalStyle(`${follow}[aria-pressed="true"] svg path`, { fill: 'currentColor' });
 
-/** 이름 · 소개 — 프로필 아래 17(GUI 325 → 342), 사이 4 */
-export const nameBlock = style({ marginTop: 17 });
+/** 이름 · 소개 — 프로필 아래 17(GUI 274 → 291), PC 20(`1522:35937` 간격 20), 사이 4. PC는 390 칸(`1495:8788` 안쪽 342) */
+export const nameBlock = style({
+  marginTop: 17,
+  '@media': { [media.desktop]: { marginTop: 20, maxWidth: 342 } },
+});
 
 export const name = style({ overflowWrap: 'anywhere' });
 
@@ -119,7 +141,6 @@ export const contacts = style([
     margin: 0,
     marginTop: vars.space[4],
     padding: 0,
-    '@media': { [media.desktop]: { justifyContent: 'flex-start' } },
   },
 ]);
 
@@ -135,6 +156,7 @@ export const contactButton = style({
   borderRadius: vars.radius.full,
   background: vars.color.surface.container,
   color: vars.color.text.primaryLabel,
+  textDecoration: 'none',
   cursor: 'pointer',
   selectors: {
     '&:hover': { background: vars.color.surface.container2 },
@@ -160,13 +182,17 @@ export const metaItem = style({
 /** 메타 줄 아이콘은 16(GUI) — 코드 아이콘은 24만 있어 CSS로 줄인다(AccountMenu와 같은 방식) */
 export const metaIcon = style({ width: 16, height: 16, flexShrink: 0 });
 
-/** 멤버 · 공연 리스트 — 프로필 묶음 아래 17 + 위 여백 12, 섹션 사이 24(GUI `741:30919` · `741:30920`) */
+/**
+ * 멤버 · 공연 리스트 — 모바일: 프로필 묶음 아래 17 + 위 여백 12, 섹션 사이 24(GUI `741:30919` · `741:30920`).
+ * PC: 프로필 묶음 아래 48, 섹션 사이 40(`1522:35938` 간격 48 · `1495:8805` 간격 40)
+ */
 export const sections = style({
   display: 'flex',
   flexDirection: 'column',
   gap: vars.space[5],
   marginTop: 17,
   paddingTop: vars.space[3],
+  '@media': { [media.desktop]: { gap: 40, marginTop: vars.space[8], paddingTop: 0 } },
 });
 
 /** 섹션 — 위 16, 제목과 내용 사이 16(GUI `741:30922` · `741:30942`) */
@@ -244,11 +270,15 @@ export const sentinel = style({
   width: 48,
 });
 
-/** 오른쪽 아래 [+] 56(GUI `741:30958` — 화면 끝에서 오른쪽 21 · 아래 25). PC도 같은 자리(🤖) */
+/**
+ * 오른쪽 아래 [+] 56(GUI `741:30958` — 화면 끝에서 오른쪽 21 · 아래 25). PC는 그리지 않는다 — 마스터 뷰 `1495:8685`에 없다
+ * (관객 뷰 `1495:9022`의 [+]는 모바일 #280처럼 잘못 들어간 것으로 본다 🤖 — Figma 코멘트)
+ */
 export const fab = style({
   position: 'fixed',
   right: vars.space[5],
   bottom: fabBottom,
   zIndex: vars.zIndex.header,
   textDecoration: 'none',
+  '@media': { [media.desktop]: { display: 'none' } },
 });

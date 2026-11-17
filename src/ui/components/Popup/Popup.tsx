@@ -46,8 +46,9 @@ export type PopupProps = {
    * 모양. `dialog`(기본) = DS `다이얼로그`.
    * `summary` = 입금 확인 창(R1e — GUI `567:9756`): 342 · 회색 판 · 안쪽 16 · 간격 8 · 오른쪽 위 ✕ · 제목 `Label/lg-emphasized` ·
    * 설명 `Label/md` 진한색 · 버튼은 확인 하나를 꽉 차게(Large). 본문(children)에 흰 카드를 넣는다. `cancelLabel`은 쓰지 않는다(✕가 취소)
+   * `compact` = 모바일 다이얼로그 모양을 PC에서도 그대로(342) + PC만 오른쪽 위 ✕(GUI 로그인 필요 PC `1539:15046`, Design Sync #291)
    */
-  variant?: 'dialog' | 'summary';
+  variant?: 'dialog' | 'summary' | 'compact';
 };
 
 /**
@@ -84,13 +85,13 @@ export function Popup({
       onOpenChange={onOpenChange}
       title={title}
       description={description}
-      showClose={summary}
+      showClose={summary || variant === 'compact'}
       dismissible={!loading}
       closeOnBack={closeOnBack}
       closeOnOutsideClick={false}
       onExited={onExited}
       role="alertdialog"
-      layout={summary ? 'summary' : 'popup'}
+      layout={summary ? 'summary' : variant === 'compact' ? 'compact' : 'popup'}
       footer={
         <>
           {!summary && cancelLabel !== null && (

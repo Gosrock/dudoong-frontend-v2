@@ -30,6 +30,8 @@ export type ConfirmOptions = {
   onConfirm?: () => Promise<unknown>;
   /** popup(기본) = 확인 팝업, responsive = PC 모달 · 모바일 바텀시트 */
   variant?: 'popup' | 'responsive';
+  /** popup의 모양(`Popup` `variant`) — `compact`는 PC에서도 342 + ✕(GUI 로그인 필요 PC `1539:15046`). 기본 `dialog` */
+  popupVariant?: 'dialog' | 'compact';
   /**
    * 확인 버튼 색 — `delete`면 Warning(DS `다이얼로그_데스크탑` `Property 1=삭제`, #185 · #187). 되돌리기 어려운 동작에 준다.
    * `kakaoLogin`이면 카카오 로그인 버튼(로그인으로 가는 확인). popup · responsive 둘 다
@@ -67,6 +69,7 @@ export function EasyOverlay({
   cancelLabel = '취소',
   onConfirm,
   variant = 'popup',
+  popupVariant = 'dialog',
   intent = 'default',
   sheetVariant = 'raised',
 }: EasyOverlayProps) {
@@ -110,6 +113,7 @@ export function EasyOverlay({
         closeOnBack={false}
         onExited={onExited}
         intent={intent}
+        variant={popupVariant}
       >
         {content}
       </Popup>

@@ -1,15 +1,12 @@
 import { style } from '@vanilla-extract/css';
 
-import { media } from '@/ui/theme/breakpoints';
-
 /**
- * 호스트 홈 가로 줄의 카드 칸 — 카드 모양은 DS `ConcertCard`. 폭만 정한다: 모바일 163(GUI `741:30947`) · PC 200(🤖 — 가로 줄에 4~5장).
+ * 호스트 홈 가로 줄의 카드 칸 — 카드 모양은 DS `ConcertCard`. 폭 163(모바일 GUI `741:30947` · PC `1495:8993` 같은 폭, #290)
  */
 export const item = style({
   flexShrink: 0,
   width: 163,
   scrollSnapAlign: 'start',
-  '@media': { [media.desktop]: { width: 200 } },
 });
 
 /** 로딩 자리 포스터 — DS ConcertCard 포스터 비율(163:231) */
