@@ -25,6 +25,7 @@ import {
   canAddTicket,
   canChangeTicketOptions,
   editTicketHref,
+  isLastTicketOfRegistered,
   isTicketLocked,
   newTicketHref,
   TICKET_MENU_LABEL,
@@ -37,6 +38,9 @@ import {
 /** 목록 동작 오류 문구(patterns §24 P12 — 잠정) */
 export const TICKET_ACTION_ERRORS = {
   Ticket_Item_400_7: '판매되었거나 승인 대기 주문이 있어 지울 수 없어요. 판매 중단만 할 수 있어요',
+  /** 서버 메시지 그대로(이슈 #274 §1-2, Api 2.5.15) — 등록된 공연의 마지막 티켓 */
+  Ticket_Item_400_16:
+    '공개된 공연에는 티켓이 최소 1개 있어야 해요. 판매를 멈추려면 판매 중단을 이용해 주세요.',
   Ticket_Item_404_1: '티켓을 찾을 수 없어요. 목록을 다시 불러왔어요',
   Event_400_17: EVENT_ENDED_MESSAGE,
 } as const;
@@ -63,10 +67,11 @@ export type TicketCard = {
  * 공연 스코프 레이아웃 안에서 쓴다(GE-3 `useEventScope`).
  *
  * - 티켓 없음 공연(`hasTicket=false`)은 추가할 수 없다(`canAdd` false, `noTicketEvent`) — 서버도 `Ticket_Item_400_12`
- * - 메뉴: 수정 · 삭제(잠기지 않은 티켓만) · 판매 중단/재개(`ticketMenuOf`). 일반 멤버·끝난 공연은 메뉴가 없다
+ * - 메뉴: 수정 · 삭제(잠기지 않은 티켓만) · 판매 중단/재개(`ticketMenuOf`). 일반 멤버·끝난 공연은 메뉴가 없다.
+ *   등록된 공연의 마지막 티켓은 삭제 대신 판매 중단(`Ticket_Item_400_16`, Api 2.5.15)
  * - 판매 중단·재개(멱등): 응답을 목록에 넣고 관객 GP-5를 무효화 — 공연 상세 티켓 목록에 바로 반영
  * - 삭제: 응답(남은 목록)을 넣고 체크리스트 ③·GP-5·옵션 풀을 무효화. 잠긴 티켓은 요청하지 않는다
- * - 에러: `Ticket_Item_400_7`(그새 팔림) · 404 → 목록 다시 읽기 + 안내, `Event_400_17` → GE-3 다시 읽기(읽기 전용으로). 그 밖은 공용 토스트(handleError)
+ * - 에러: `Ticket_Item_400_7`(그새 팔림) · `Ticket_Item_400_16`(마지막 티켓) · 404 → 목록 다시 읽기 + 안내, `Event_400_17` → GE-3 다시 읽기(읽기 전용으로). 그 밖은 공용 토스트(handleError)
  */
 export function useTicketList(eventId: string, { now = () => new Date() } = {}) {
   const queryClient = useQueryClient();
@@ -92,6 +97,7 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
 
   const tickets = useMemo(() => list.data ?? [], [list.data]);
   const nowText = formatKstDateTime(now());
+  const keepOne = isLastTicketOfRegistered(scope.registered, tickets.length);
   const cards: TicketCard[] = useMemo(
     () =>
       tickets.map((t) => {
@@ -101,7 +107,7 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
           chip,
           chipLabel: TICKET_SALE_CHIP_LABEL[chip],
           locked: isTicketLocked(t),
-          menu: ticketMenuOf(t, scope.canEdit).map((action) => ({
+          menu: ticketMenuOf(t, scope.canEdit, { keepOne }).map((action) => ({
             action,
             label: TICKET_MENU_LABEL[action],
           })),
@@ -109,7 +115,7 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
           canManageOptions: canChangeTicketOptions(t, scope.canEdit),
         };
       }),
-    [eventId, nowText, scope.canEdit, scope.event.startAt, scope.registered, tickets],
+    [eventId, keepOne, nowText, scope.canEdit, scope.event.startAt, scope.registered, tickets],
   );
 
   /**
@@ -141,6 +147,12 @@ export function useTicketList(eventId: string, { now = () => new Date() } = {}) 
           Ticket_Item_400_7: () => {
             result = 'reread';
             setActionError(TICKET_ACTION_ERRORS.Ticket_Item_400_7);
+            void invalidateTickets(queryClient, eventId);
+          },
+          // 그새 다른 티켓이 지워져 마지막이 됐다 — 안내 + 목록을 다시 읽어 메뉴를 판매 중단으로
+          Ticket_Item_400_16: () => {
+            result = 'reread';
+            setActionError(TICKET_ACTION_ERRORS.Ticket_Item_400_16);
             void invalidateTickets(queryClient, eventId);
           },
           Ticket_Item_404_1: () => {

@@ -33,6 +33,7 @@ import {
   canAddTicket,
   canAttachMoreOptions,
   canChangeTicketOptions,
+  isLastTicketOfRegistered,
   isTicketLocked,
   parseTicketItemIdParam,
   ticketMenuOf,
@@ -103,6 +104,24 @@ describe('잠금 · ⋮ 메뉴(isSold || hasPendingOrders)', () => {
     ['읽기 전용(일반 멤버·끝난 공연)', {}, false, []],
   ] as const)('%s', (_, over, canEdit, menu) => {
     expect(ticketMenuOf(ticket(over as Partial<TicketItemManage>), canEdit)).toEqual(menu);
+  });
+  it.each([
+    ['판매 전 → 삭제 대신 판매 중단', {}, ['edit', 'suspend']],
+    ['판매 중단된 마지막 티켓 → 재개만(삭제 없음)', { saleState: 'SUSPENDED' }, ['edit', 'resume']],
+    ['판매됨 → 그대로 판매 중단', { isSold: true, saleState: 'SOLD' }, ['edit', 'suspend']],
+  ] as const)('등록된 공연의 마지막 티켓(Ticket_Item_400_16): %s', (_, over, menu) => {
+    expect(
+      ticketMenuOf(ticket(over as Partial<TicketItemManage>), true, { keepOne: true }),
+    ).toEqual(menu);
+  });
+
+  it.each([
+    [true, 1, true],
+    [true, 2, false],
+    [false, 1, false],
+    [true, 0, false],
+  ])('등록됨 %s · 티켓 %i장 → 마지막 티켓 지키기 %s', (registered, count, keep) => {
+    expect(isLastTicketOfRegistered(registered, count)).toBe(keep);
   });
 });
 
