@@ -244,8 +244,14 @@ test.describe('공연 상세 — 문의처(사용자별 값)', () => {
     expect(seen).toEqual([{ from: 'server', cookie: false }]);
 
     await open.click();
+    // 연락처 시트(GUI `759:22611`) — 아이콘 줄. 전화 아이콘은 호스트 홈과 같은 연락처 팝업(값 + [전화 걸기])을 연다
     const contacts = page.getByRole('list', { name: '연락처' });
-    await expect(contacts.getByRole('link', { name: /010-1234-5678/ })).toHaveAttribute(
+    const phone = contacts.getByRole('button', { name: '연락처 보기 — 전화' });
+    await expect(phone).toBeEnabled();
+    await phone.click();
+    const popup = page.getByRole('dialog', { name: '전화번호' });
+    await expect(popup.getByText('010-1234-5678')).toBeVisible();
+    await expect(popup.getByRole('link', { name: '전화 걸기' })).toHaveAttribute(
       'href',
       'tel:01012345678',
     );
@@ -263,10 +269,14 @@ test.describe('공연 상세 — 문의처(사용자별 값)', () => {
     await page.goto('/events/101');
     await page.getByRole('button', { name: '문의하기' }).click();
     const contacts = page.getByRole('list', { name: '연락처' });
-    // 행 = 유형 라벨 + 값(와이어 121:2026)
-    const phone = contacts.getByRole('listitem').filter({ hasText: '010-****-5678' });
-    await expect(phone).toContainText('전화');
-    await expect(contacts.getByRole('link', { name: /\*/ })).toHaveCount(0);
+    // 아이콘 줄(GUI `759:22611`) — 가린 전화는 링크가 아니라 버튼이고, 누르면 "로그인이 필요해요"(호스트 홈 `1484:8106`과 같음)
+    const phone = contacts.getByRole('button', { name: '연락처 보기 — 전화' });
+    await expect(phone).toBeVisible();
+    await expect(contacts.getByRole('link', { name: /전화/ })).toHaveCount(0);
+    await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
+    await phone.click();
+    await expect(page.getByRole('alertdialog', { name: '로그인이 필요해요' })).toBeVisible();
+    await expect(page.getByText('010-****-5678')).toHaveCount(0);
     expect(seen).toEqual([{ from: 'server', cookie: false }]);
   });
 });

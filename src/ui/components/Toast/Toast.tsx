@@ -17,7 +17,12 @@ export type ToastOptions = {
    * `default` — DS `Toast popup`(흰 판). `success` — 연두 판 · 초록 `Heading/sm` · 모서리 16 · 테두리 없음 · 글자 폭만큼
    * (R1d — GUI 링크 복사 토스트 `908:21601`이 직접 그린 모양, 2026-11-08). FIGMA-CUSTOM: DS에 없는 변형(2단계 후보)
    */
-  tone?: 'default' | 'success';
+  tone?: 'default' | 'success' | 'danger';
+  /**
+   * 둘째 줄(작은 글자). `danger`와 같이 쓴다 — GUI 공연 상세 "다른 티켓 선택" `759:22289`(제목 `Heading/sm - emphasized` +
+   * 설명 `Label/sm`, 둘 다 빨강 · 연한 빨강 판 · 모서리 16 · 왼쪽 정렬). FIGMA-CUSTOM: DS `Toast popup`에 없는 변형(2단계 후보)
+   */
+  description?: string;
   /** `bottom`(기본 — 화면 아래 가운데) · `top`(머리 아래 — `908:21601` 화면 위 93) */
   position?: 'bottom' | 'top';
 };
@@ -30,7 +35,9 @@ export function toast(message: string, options: ToastOptions = {}) {
   return sonnerToast(message, {
     id: options.id,
     duration: options.duration,
-    className: options.tone === 'success' ? s.success : undefined,
+    description: options.description,
+    className:
+      options.tone === 'success' ? s.success : options.tone === 'danger' ? s.danger : undefined,
     position: options.position === 'top' ? 'top-center' : undefined,
   });
 }
@@ -53,7 +60,10 @@ export function Toaster() {
       mobileOffset={s.toastMobileOffset}
       // sonner 목록 폭 변수 — Figma 358
       style={{ '--width': '358px' } as CSSProperties}
-      toastOptions={{ unstyled: true, classNames: { toast: s.toast, title: s.title } }}
+      toastOptions={{
+        unstyled: true,
+        classNames: { toast: s.toast, title: s.title, description: s.description },
+      }}
     />
   );
 }

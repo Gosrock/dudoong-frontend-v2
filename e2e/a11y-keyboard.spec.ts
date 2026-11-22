@@ -81,11 +81,20 @@ test('상세 → 티켓 선택 → 체크아웃 → 주문 완료를 키보드�
   await tabTo(page, row);
   await page.keyboard.press('Enter');
   await expect(row).toHaveAttribute('aria-pressed', 'true');
+  let buy = area.getByRole('button', { name: '티켓 구매하기' });
+  if (!desktop) {
+    // 모바일 — 시트의 [티켓 구매하기]가 고른 티켓을 확정하며 시트를 닫고, 하단 바 위 고른 티켓 줄(GUI `759:22015`)에서 수량을 고른다
+    await tabTo(page, buy);
+    await page.keyboard.press('Enter');
+    await expect(area).toBeHidden();
+    area = page.getByRole('group', { name: '고른 티켓' });
+    buy = page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true');
+  }
   const plus = area.getByRole('button', { name: '일반 예매 수량 늘리기' });
   await tabTo(page, plus);
   await page.keyboard.press('Enter');
   await expect(area.getByRole('group', { name: '일반 예매 수량' })).toContainText('2');
-  await tabTo(page, area.getByRole('button', { name: '티켓 구매하기' }));
+  await tabTo(page, buy);
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=2/);
 

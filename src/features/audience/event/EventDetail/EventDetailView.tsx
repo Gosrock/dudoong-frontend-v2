@@ -2,16 +2,18 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useId, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 
 import { type EventDetail, isEventCanceled } from '@/api/event/schema';
 import { eventWeek } from '@/features/audience/event/model/week-calendar';
+import { ScrollTopButton } from '@/features/audience/home/ui/ScrollTopButton';
 import { hostHref } from '@/features/shared/routes';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
+import { toast } from '@/ui/components/Toast/Toast';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
 import { Container } from '@/ui/primitives/Container';
@@ -21,32 +23,34 @@ import { colors } from '@/ui/theme/colors';
 
 import type { EventSchedule } from '../model/event-schedule';
 import { useEventDetail } from '../model/useEventDetail';
-import { useTicketSelection } from '../model/useTicketSelection';
+import { ONE_TICKET_KIND_WARNING, useTicketSelection } from '../model/useTicketSelection';
 import { openEventContacts } from './EventContactsOverlay';
 import * as s from './EventDetailView.css';
 import { SaleInfo } from './SaleInfo';
 import { shareEvent } from './shareEvent';
 import { TicketOptionList } from './TicketOptionList';
-import { TicketSelector } from './TicketSelector';
-import { TicketSheet } from './TicketSheet';
+import { PickedTicket, TicketSelector } from './TicketSelector';
+import { BuyButtons, TicketSheet } from './TicketSheet';
 
 /**
- * 공연 상세(P5b-V) — 근거는 와이어(공연상세 GUI `759:12772`는 Ready for dev 아님, gui-screens §0).
- * 모바일 `121:1216`: 포스터(+ 공유) → 제목 → 해시태그 → 호스트·장소·일시 → 티켓 옵션 카드 → 섹션 탭 → 하단 고정 [문의][티켓 구매하기].
- * PC `640:1957`: 두 열 — 왼쪽 포스터 + 정보 표 + 예매 안내 문구, 그 아래 탭·본문 / 오른쪽 고정 카드(주간 달력 · 티켓 옵션 · [공유][티켓 구매하기]).
+ * 공연 상세(P5b-V → GUI 2026-11-22). 모바일 근거는 GUI Ready `759:12772` "공연상세"(#346) · `1948:25129` "공연상세(스크롤)"(#340) ·
+ * 티켓 `759:21725` · `759:21918` · `759:22015` · `759:22129`(#343~#345 · #347) · 연락처 `759:22611`(#337 · #338).
+ * PC(1024~)는 Ready 프레임이 없어 와이어 `640:1957` 배치(두 열 + 오른쪽 고정 카드) 그대로 두고 GUI 글자 · 부품만 맞춘다("섞임").
+ *
+ * 모바일(`759:12772`): 포스터(화면 폭, 머리 아래 고정 — 디자이너 메모 "포스터는 고정") 위로 흰 판(위 모서리 20 · 위로 그림자)이 올라온다.
+ * 판 안: 제목(`Title`, 가운데) → 해시태그 칩 → 일시 · 장소 › · 호스트 › → 티켓 카드(누르면 고름) → 탭(스크롤하면 머리 아래 붙음, #340) →
+ * 탭 본문 → 판매정보. 아래 고정: [고른 티켓 줄(`759:22015`)] + [문의][티켓 구매하기] + 맨 위로(↑).
  * 모바일 하단 바와 PC 카드는 같은 DOM에 있고 CSS가 보일 것을 정한다(patterns §1).
  *
  * 재고(GP-5)는 브라우저에서만 읽는다(`useTicketSelection` — 응답 HTML에 재고 값이 없다).
- * 티켓 고르기(P6-V): 선택 상태는 이 화면의 `useTicketSelection` 하나 — PC는 오른쪽 카드의 `TicketSelector`, 모바일은
- * 하단 [티켓 구매하기]가 여는 바텀시트(`TicketSheet`, 열 때 마운트) 안의 같은 `TicketSelector`. 모바일 "티켓 옵션" 카드는 표시만.
+ * 티켓 고르기: 선택 상태는 이 화면의 `useTicketSelection` 하나 — 모바일은 티켓 카드 · [티켓 구매하기] 시트(`TicketSheet`, 열 때 마운트 —
+ * 줄을 골라 시트의 [티켓 구매하기]로 닫으면 하단 바 위 고른 티켓 줄), PC는 오른쪽 카드의 `TicketSelector`. 고른 뒤 하단 [티켓 구매하기]는
+ * 결제로 간다(#347 — 시트가 닫힌 뒤라 기록은 [상세, 체크아웃]). 1주문 1종류 경고는 토스트(`759:22129`).
  */
 export function EventDetailView({ eventId }: { eventId: string }) {
   const { event, title, schedule, hashtags, tabs } = useEventDetail(eventId);
   const tickets = useTicketSelection(eventId, event.displayStatus);
   const [tab, setTab] = useState(tabs[0]?.key ?? '');
-  const ids = useId();
-  const mobileTicketsId = `${ids}-tickets-m`;
-  const desktopTicketsId = `${ids}-tickets-d`;
   const hasContacts = event.contacts.length > 0;
   // 호스트가 취소한 공연(E-11 `canceledAt`)은 티켓 옵션 · [티켓 구매하기]를 그리지 않는다(이슈 #136 §7 — 상세는 열린다)
   const canceled = isEventCanceled(event);
@@ -65,16 +69,30 @@ export function EventDetailView({ eventId }: { eventId: string }) {
   // 시트를 닫으며 이동하면 닫힘 타이머(`useOnExited`)가 숨김과 함께 정리돼 'closing'에 멈추고, 숨은 화면 안에
   // role=dialog가 남는다(이슈 #92-9). 숨김·언마운트 때만 도는 정리라 처음 그릴 때(닫힌 상태)는 바뀌는 것이 없다
   useLayoutEffect(() => () => setSheet('closed'), []);
+
+  // 1주문 1종류 경고(훅의 `warning`)를 토스트로(GUI `759:22129` — 화면 위 연한 빨강 판 두 줄, #347). 띄우고 바로 끈다 —
+  // 같은 경고를 다시 누르면 다시 뜬다. 토스트 id가 같아 쌓이지 않는다
+  const { warning, dismissWarning } = tickets;
+  useEffect(() => {
+    if (!warning) return;
+    toast(ONE_TICKET_KIND_WARNING[0], {
+      id: 'one-ticket-kind',
+      tone: 'danger',
+      description: ONE_TICKET_KIND_WARNING[1],
+      position: 'top',
+    });
+    dismissWarning();
+  }, [warning, dismissWarning]);
+
   const { checkoutHref } = tickets;
-  const buyFromCard = () => checkoutHref && router.push(checkoutHref);
-  // 시트에서 살 때 — 시트가 자기 기록 항목을 `release()`로 먼저 소비한 뒤 부른다(TicketSheet). 그 뒤 닫고 push하면 기록이
-  // [상세, 체크아웃]이 된다. 시트를 연 채 replace하면 Next가 화면 상태를 보존해 뒤로가기로 돌아왔을 때 시트가 열린 채
-  // 남고, 그 시트에는 닫을 기록 항목이 없다(patterns §6 "오버레이 안 이동은 replace"와 같은 결과를 이 순서로 낸다)
-  const buyFromSheet = () => {
-    if (!checkoutHref) return;
+  const goCheckout = () => checkoutHref && router.push(checkoutHref);
+  // 모바일 하단 [티켓 구매하기] — 고른 티켓이 있으면 결제로(#347), 없으면 시트를 연다(#343)
+  const buyFromBar = () => (checkoutHref ? goCheckout() : setSheetOpen(true));
+  const contactFromSheet = () => {
     setSheetOpen(false);
-    router.push(checkoutHref);
+    openContacts();
   };
+  const placeMapHref = event.place?.name ? kakaoMapSearchHref(event.place) : null;
 
   return (
     <Container as="main" className={s.page}>
@@ -83,6 +101,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
           <section className={s.summary} aria-label="공연 정보">
             <div className={s.posterWrap}>
               <EventPoster src={event.posterImageUrl} alt={`${title} 포스터`} />
+              {/* 모바일 공유 — GUI `759:12772`에 자리가 없어 와이어(`121:1216`) 자리(포스터 오른쪽 위) 그대로(디자인 없음 코멘트 2026-11-22) */}
               <Button
                 className={s.posterShare}
                 variant="tonal"
@@ -93,52 +112,74 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               />
             </div>
 
-            <div className={s.info}>
-              <Txt as="h1" typography="headingXl">
+            <div className={`${s.info} ${s.sheetTop}`}>
+              <Txt as="h1" typography="title" color={colors.textPrimaryLabel} className={s.title}>
                 {title}
               </Txt>
 
               {canceled && <CanceledNotice reason={event.cancelReason ?? null} />}
 
-              {/* 모바일 — 해시태그 칩 + 아이콘 행(와이어 121:1216) */}
+              {/* 모바일 — 해시태그 칩(DS tag_v2 large · round · grey weak, 가운데) + 아이콘 행(일시 · 장소 › · 호스트 ›, GUI `759:13011`) */}
+              {hashtags.length > 0 && (
+                <Flex
+                  as="ul"
+                  wrap
+                  gap={2}
+                  justify="center"
+                  className={`${s.chips} ${s.mobileOnly}`}
+                >
+                  {hashtags.map((tag) => (
+                    <li key={tag.tagId}>
+                      <Chip size="lg" shape="round">
+                        {tag.label}
+                      </Chip>
+                    </li>
+                  ))}
+                </Flex>
+              )}
               <div className={`${s.infoRows} ${s.mobileOnly}`}>
-                {hashtags.length > 0 && (
-                  <Flex as="ul" wrap gap={2} className={s.chips}>
-                    {hashtags.map((tag) => (
-                      <li key={tag.tagId}>
-                        <Chip size="lg">{tag.label}</Chip>
-                      </li>
-                    ))}
-                  </Flex>
-                )}
-                <Link href={hostHref(event.host.hostId)} className={s.iconRow}>
-                  <span className={s.iconRowIcon}>
-                    <Icon name="music" />
-                  </span>
-                  <Txt typography="headingSm" lines={1}>
-                    {event.host.name ?? '호스트'}
-                  </Txt>
-                  <Icon name="chevron-right" size={20} />
-                </Link>
-                {event.place?.name && (
-                  <div className={s.iconRow}>
-                    <span className={s.iconRowIcon}>
-                      <Icon name="location" />
-                    </span>
-                    <Flex direction="column" gap={1}>
-                      <Txt typography="headingSm">{event.place.name}</Txt>
-                      <PlaceAddress place={event.place} />
-                    </Flex>
-                  </div>
-                )}
                 {schedule && (
                   <div className={s.iconRow}>
-                    <span className={s.iconRowIcon}>
-                      <Icon name="clock" />
-                    </span>
-                    <Txt typography="headingSm">{schedule.label}</Txt>
+                    <Icon name="clock" />
+                    <Txt typography="bodyLg" color={colors.textPrimary} className={s.iconRowText}>
+                      {schedule.label}
+                    </Txt>
                   </div>
                 )}
+                {event.place?.name &&
+                  (placeMapHref ? (
+                    // 장소 › — 카카오맵 검색(새 탭). 목적지는 Figma에 없음(디자인 없음 코멘트 2026-11-22)
+                    <a
+                      href={placeMapHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={s.iconRow}
+                      aria-label={`${event.place.name} 지도 보기`}
+                    >
+                      <Icon name="location" />
+                      <Txt
+                        typography="bodyLg"
+                        color={colors.textPrimary}
+                        className={s.iconRowText}
+                        lines={1}
+                      >
+                        {event.place.name}
+                      </Txt>
+                      <Icon name="chevron-right" />
+                    </a>
+                  ) : null)}
+                <Link href={hostHref(event.host.hostId)} className={s.iconRow}>
+                  <Icon name="music" />
+                  <Txt
+                    typography="bodyLg"
+                    color={colors.textPrimary}
+                    className={s.iconRowText}
+                    lines={1}
+                  >
+                    {event.host.name ?? '호스트'}
+                  </Txt>
+                  <Icon name="chevron-right" />
+                </Link>
               </div>
 
               {/* PC — 정보 표(와이어 640:1957 일자·시간·장소·호스트·태그) */}
@@ -181,22 +222,17 @@ export function EventDetailView({ eventId }: { eventId: string }) {
                   <InfoRow label="태그" value={hashtags.map((t) => t.label).join(' ')} />
                 )}
               </div>
-
-              <IntermediaryNotice />
             </div>
           </section>
 
           {sellsTickets && (
-            <section className={`${s.card} ${s.mobileOnly}`} aria-labelledby={mobileTicketsId}>
-              <Txt as="h2" typography="headingSmEmphasized">
-                <span id={mobileTicketsId}>티켓 옵션</span>
-              </Txt>
-              <TicketOptionList selection={tickets} headingId={mobileTicketsId} />
+            <section className={`${s.sheetPart} ${s.mobileOnly}`} aria-label="티켓">
+              <TicketOptionList selection={tickets} label="티켓 옵션" onPick={tickets.select} />
             </section>
           )}
 
           {tabs.length > 0 && (
-            <Tabs value={tab} onValueChange={setTab}>
+            <Tabs value={tab} onValueChange={setTab} className={s.sheetPart}>
               <TabList aria-label="공연 안내" size="responsive" className={s.tabList}>
                 {tabs.map((t) => (
                   <Tab key={t.key} value={t.key}>
@@ -206,6 +242,10 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               </TabList>
               {tabs.map((t) => (
                 <TabPanel key={t.key} value={t.key} className={s.tabPanel}>
+                  {/* 탭 본문 머리(GUI `759:13066` "공연소개" — `Label/lg-emphasized`) */}
+                  <Txt as="h2" typography="labelLgEmphasized" color={colors.textPrimary}>
+                    {t.title}
+                  </Txt>
                   <SectionViewer html={t.html} />
                 </TabPanel>
               ))}
@@ -213,18 +253,24 @@ export function EventDetailView({ eventId }: { eventId: string }) {
           )}
 
           {/* 판매정보(legal-copy A-2 — 약관 제19조③ 굵은 문단 · 청약철회 제한). 탭은 호스트가 정한 섹션이라 그 아래 고정 */}
-          <SaleInfo />
+          <div className={s.sheetPart}>
+            <SaleInfo />
+          </div>
+          {/* 중개자 고지(legal-copy A-1) — 모바일 GUI에 자리가 없어 판매정보 아래. 같은 DOM이라 PC도 여기(와이어는 정보 표 아래 — 🤖) */}
+          <div className={`${s.sheetPart} ${s.sheetEnd}`}>
+            <IntermediaryNotice />
+          </div>
         </article>
 
-        {/* PC 오른쪽 고정 카드(와이어 640:1957) */}
+        {/* PC 오른쪽 고정 카드(와이어 640:1957 배치 · GUI 티켓 목록 모양) */}
         <aside className={s.aside} aria-label="예매">
           <WeekCalendar startAt={event.startAt} />
           {sellsTickets && (
             <>
               <Txt as="h2" typography="headingMdEmphasized">
-                <span id={desktopTicketsId}>티켓 옵션</span>
+                티켓 옵션
               </Txt>
-              <TicketSelector selection={tickets} headingId={desktopTicketsId} />
+              <TicketSelector selection={tickets} label="티켓 옵션" showPicked />
             </>
           )}
           <Flex gap={2}>
@@ -241,7 +287,7 @@ export function EventDetailView({ eventId }: { eventId: string }) {
                 size="lg"
                 fullWidth
                 disabled={!checkoutHref}
-                onClick={buyFromCard}
+                onClick={goCheckout}
               >
                 티켓 구매하기
               </Button>
@@ -250,34 +296,24 @@ export function EventDetailView({ eventId }: { eventId: string }) {
         </aside>
       </div>
 
-      {/* 모바일 하단 고정 바 — PC에서는 CSS로 숨긴다 */}
+      {/* 모바일 하단 고정 — 고른 티켓 줄(`759:22112`) + [문의][티켓 구매하기](`759:14901`) + 맨 위로. PC에서는 CSS로 숨긴다 */}
       {(hasContacts || sellsTickets) && (
-        <>
-          <div className={s.bottomSpacer} aria-hidden />
+        <div className={s.dock}>
+          <ScrollTopButton className={s.scrollTop} />
+          {sellsTickets && tickets.selected && (
+            <div className={s.pickedBar} aria-label="고른 티켓" role="group">
+              <PickedTicket selection={tickets} />
+            </div>
+          )}
           <div className={s.bottomBar}>
-            {hasContacts && (
-              <Button
-                variant="tonal"
-                size="lg"
-                icon={<Icon name="chat" />}
-                aria-label="문의하기"
-                onClick={openContacts}
-              />
-            )}
-            {sellsTickets && (
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={!canBuy}
-                aria-haspopup="dialog"
-                onClick={() => setSheetOpen(true)}
-              >
-                티켓 구매하기
-              </Button>
-            )}
+            <BuyButtons
+              onContact={hasContacts ? openContacts : undefined}
+              onBuy={sellsTickets ? buyFromBar : undefined}
+              buyDisabled={!canBuy}
+              buyHasPopup={!checkoutHref}
+            />
           </div>
-        </>
+        </div>
       )}
 
       {sheet !== 'closed' && sellsTickets && (
@@ -286,11 +322,17 @@ export function EventDetailView({ eventId }: { eventId: string }) {
           onOpenChange={setSheetOpen}
           onExited={() => setSheet('closed')}
           selection={tickets}
-          onBuy={buyFromSheet}
+          onContact={hasContacts ? contactFromSheet : undefined}
         />
       )}
     </Container>
   );
+}
+
+/** 카카오맵 검색 링크(장소 ›) — 주소가 있으면 주소, 없으면 장소 이름으로 */
+function kakaoMapSearchHref(place: NonNullable<EventDetail['place']>) {
+  const q = place.address || place.name;
+  return q ? `https://map.kakao.com/link/search/${encodeURIComponent(q)}` : null;
 }
 
 /** 취소된 공연 안내 — 디자인 없음(Q125). 사유는 호스트가 입력한 값(1~100자) */

@@ -26,6 +26,18 @@ function Demo() {
       >
         성공 토스트
       </Button>
+      <Button
+        variant="secondary"
+        onClick={() =>
+          toast('티켓은 한 주문당 한 종류만 구매할 수 있습니다.', {
+            tone: 'danger',
+            description: '다른 티켓의 구매를 원하실 경우 티켓 선택을 취소해주세요.',
+            position: 'top',
+          })
+        }
+      >
+        경고 토스트
+      </Button>
       <Toaster />
     </Flex>
   );
@@ -100,6 +112,22 @@ export const Success: Story = {
     await waitFor(() => expect(el.getAttribute('data-y-position')).toBe('top'));
     const css = getComputedStyle(el);
     await expect(css.backgroundColor).toBe('rgb(237, 250, 238)');
+    await expect(css.borderTopLeftRadius).toBe('16px');
+  },
+};
+
+/** 경고 토스트(GUI 공연 상세 "다른 티켓 선택" `759:22289`): 연한 빨강 판 · 빨강 제목 16 Bold + 설명 12 · 모서리 16 · 왼쪽 정렬 · 머리 아래 */
+export const Danger: Story = {
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '경고 토스트' }));
+    const title = await screen.findByText('티켓은 한 주문당 한 종류만 구매할 수 있습니다.');
+    await screen.findByText('다른 티켓의 구매를 원하실 경우 티켓 선택을 취소해주세요.');
+    const el = title.closest('[data-sonner-toast]') as HTMLElement;
+    await waitFor(() => expect(el.getAttribute('data-y-position')).toBe('top'));
+    const css = getComputedStyle(el);
+    await expect(css.backgroundColor).toBe('rgb(254, 237, 236)');
+    await expect(css.color).toBe('rgb(232, 66, 48)');
+    await expect(css.fontWeight).toBe('700');
     await expect(css.borderTopLeftRadius).toBe('16px');
   },
 };

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 
+import { Icon } from '../../icons/Icon';
 import { Flex } from '../../primitives/Flex';
 import { Txt } from '../../primitives/Txt';
 import { playOverlayBasics } from '../../stories/overlayPlay';
@@ -162,4 +163,23 @@ export const Raised: Story = {
   },
   play: ({ canvasElement }) =>
     playOverlayBasics({ canvasElement, trigger: '열기', name: '선물을 거절하시겠습니까?' }),
+};
+
+/** rounded — 공연 상세 시트(GUI `1948:39697` 티켓 구매하기 · `1383:40495` 호스트 연락처): raised + 위 모서리 16 · 제목 숨김 · 버튼 줄 한 덩어리 */
+export const Rounded: Story = {
+  args: {
+    variant: 'rounded',
+    hideTitle: true,
+    title: '티켓 종류',
+    footer: (
+      <div style={{ display: 'flex', gap: 12, width: '100%' }}>
+        <Button variant="tonal" size="lg" icon={<Icon name="chat" />} aria-label="문의하기" />
+        <Button size="lg" fullWidth>
+          티켓 구매하기
+        </Button>
+      </div>
+    ),
+  },
+  play: ({ canvasElement }) =>
+    playOverlayBasics({ canvasElement, trigger: '열기', name: '티켓 종류' }),
 };
