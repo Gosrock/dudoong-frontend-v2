@@ -3,15 +3,20 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { installLoggedInFetch } from '@/test/login-fetch';
 
-import { MOCK_INVITE_LIMIT_EMAIL, resetHostMockState } from '../__mocks__/host.handlers';
+import { hostSets, MOCK_INVITE_LIMIT_EMAIL, resetHostMockState } from '../__mocks__/host.handlers';
 import { actAsRole, MOCK_INVITE_TOKEN } from '../__mocks__/host-store';
 import { resetHostingStore } from '../__mocks__/hosting.handlers';
+import { server } from '../__mocks__/server';
 import { ApiError } from '../errors';
+import { deleteHostMutation } from '../host/mutations';
 import { hostMembersQuery } from '../host/queries';
+import { hostViewerQuery, myHostsQuery } from '../host/queries';
+import { followingHostsQuery } from '../me/queries';
 import {
   acceptHostInvitationMutation,
   cancelHostInvitationMutation,
   createHostInvitationMutation,
+  rejectHostInvitationMutation,
 } from './mutations';
 import { hostInvitationLandingQuery, hostInvitationsQuery } from './queries';
 
@@ -140,5 +145,86 @@ describe('H-19 · H-20 초대 수락', () => {
     expect(await codeOf(new QueryClient().fetchQuery(hostInvitationLandingQuery(token)))).toEqual(
       expected,
     );
+  });
+});
+
+describe('#348 — H-16 가입한 이메일 · H-17 닉네임 · H-21 거절 · H-22 호스트 삭제(Api 2.5.16)', () => {
+  it('가입한 이메일도 H-16으로 대기 초대가 되고, H-17에 그 계정 닉네임이 온다(미가입 · 계정 여럿은 null)', async () => {
+    await call(createHostInvitationMutation(11), { email: 'guitar@example.com', role: 'GUEST' });
+    await call(createHostInvitationMutation(11), { email: 'twin@example.com', role: 'GUEST' });
+    await call(createHostInvitationMutation(11), { email: 'nobody@example.com', role: 'GUEST' });
+    const list = await new QueryClient().fetchQuery(hostInvitationsQuery(11));
+    const byEmail = Object.fromEntries(list.map((i) => [i.email, i.inviteeNickname]));
+    expect(byEmail).toMatchObject({
+      'guitar@example.com': '박기타',
+      'twin@example.com': null,
+      'nobody@example.com': null,
+    });
+    // 수락 전이라 멤버가 아니다
+    const members = await new QueryClient().fetchQuery(hostMembersQuery(11));
+    expect(members.some((m) => m.name === '박기타')).toBe(false);
+  });
+
+  it('H-21 거절 → {hostId, hostName}, 대기에서 빠지고 같은 링크는 HOST_400_20', async () => {
+    expect(await call(rejectHostInvitationMutation(MOCK_INVITE_TOKEN.valid), undefined)).toEqual({
+      hostId: 12,
+      hostName: '소음공작소',
+    });
+    expect(await codeOf(call(rejectHostInvitationMutation(MOCK_INVITE_TOKEN.valid), undefined))).toEqual([
+      400,
+      'HOST_400_20',
+    ]);
+    expect(await codeOf(call(acceptHostInvitationMutation(MOCK_INVITE_TOKEN.valid), undefined))).toEqual([
+      400,
+      'HOST_400_20',
+    ]);
+    expect(await codeOf(new QueryClient().fetchQuery(hostInvitationLandingQuery(MOCK_INVITE_TOKEN.valid)))).toEqual([
+      400,
+      'HOST_400_20',
+    ]);
+  });
+
+  it.each([
+    [MOCK_INVITE_TOKEN.expired, [400, 'HOST_400_19']],
+    [MOCK_INVITE_TOKEN.used, [400, 'HOST_400_20']],
+    [MOCK_INVITE_TOKEN.missing, [404, 'HOST_404_3']],
+  ] as const)('H-21 오류는 수락과 같다 — %s → %o', async (token, expected) => {
+    expect(await codeOf(call(rejectHostInvitationMutation(token), undefined))).toEqual(expected);
+  });
+
+  it('H-3 삭제 값은 활성 마스터에게만 — 등록한 공연이 있는 고스락(11)은 막힘(HOST_400_22), H-22도 400', async () => {
+    const host = await new QueryClient().fetchQuery(hostViewerQuery(11));
+    expect(host).toMatchObject({ deletable: false, deleteBlockedReason: 'HOST_400_22' });
+    expect(typeof host.preparingEventCount).toBe('number');
+    expect(await codeOf(call(deleteHostMutation(11), undefined))).toEqual([400, 'HOST_400_22']);
+    actAsRole(11, 'MANAGER');
+    expect(await new QueryClient().fetchQuery(hostViewerQuery(11))).toMatchObject({
+      preparingEventCount: null,
+      deletable: null,
+      deleteBlockedReason: null,
+    });
+    expect(await codeOf(call(deleteHostMutation(11), undefined))).toEqual([403, 'HOST_400_4']);
+  });
+
+  it('H-22 성공 → {hostId, deletedEventCount}, 그 뒤 GH-3 404 · 내 호스트 · 관심 호스트에서 빠진다', async () => {
+    server.use(...hostSets.deletable(12, 2));
+    expect(await new QueryClient().fetchQuery(hostViewerQuery(12))).toMatchObject({
+      preparingEventCount: 2,
+      deletable: true,
+      deleteBlockedReason: null,
+    });
+    const following = async () =>
+      (await new QueryClient().fetchInfiniteQuery(followingHostsQuery())).pages[0]!.content.map(
+        (h) => h.hostId,
+      );
+    expect(await following()).toContain(12);
+    expect(await call(deleteHostMutation(12), undefined)).toEqual({
+      hostId: 12,
+      deletedEventCount: 2,
+    });
+    expect(await codeOf(new QueryClient().fetchQuery(hostViewerQuery(12)))).toEqual([404, 'Host_404_1']);
+    expect(await following()).not.toContain(12);
+    const mine = await new QueryClient().fetchInfiniteQuery(myHostsQuery());
+    expect(mine.pages[0]!.content.some((h) => h.hostId === 12)).toBe(false);
   });
 });

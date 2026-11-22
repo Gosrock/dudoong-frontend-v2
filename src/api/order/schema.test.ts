@@ -15,6 +15,7 @@ import {
   HostOrderElementSchema,
   MyOrderDetailSchema,
   MyOrderPageSchema,
+  OrderOptionAnswerSchema,
   RefundAccountRequestSchema,
 } from './schema';
 
@@ -316,5 +317,31 @@ describe('P9 주문 스키마', () => {
   it('취소 본문은 { refundAccount }만(유료). 무료는 본문 없이 보낸다', () => {
     expect(CancelMyOrderRequestSchema.safeParse({ refundAccount: account }).success).toBe(true);
     expect(CancelMyOrderRequestSchema.safeParse({}).success).toBe(false);
+  });
+});
+
+describe('O-3 optionAnswers optionType · choices, issuedTickets giftMemo(Api 2.5.16 — #348 B67)', () => {
+  const base = { optionName: '뒤풀이', description: null, answer: '아니요', additionalPrice: 0 };
+  it('2.5.15 이하(필드 없음)도 통과한다', () => {
+    expect(OrderOptionAnswerSchema.parse(base)).toEqual(base);
+  });
+  it('YES_NO 선택지 · 옵션 삭제(null) · 모르는 종류(UNKNOWN)', () => {
+    expect(
+      OrderOptionAnswerSchema.parse({ ...base, optionType: 'YES_NO', choices: ['예', '아니요'] }),
+    ).toMatchObject({ optionType: 'YES_NO', choices: ['예', '아니요'] });
+    expect(OrderOptionAnswerSchema.parse({ ...base, optionType: null, choices: null })).toMatchObject({
+      optionType: null,
+      choices: null,
+    });
+    expect(OrderOptionAnswerSchema.parse({ ...base, optionType: 'RATING' }).optionType).toBe('UNKNOWN');
+  });
+  it('선물 대기 · 완료 티켓은 giftMemo, 그 밖은 null(mock 주문)', () => {
+    const tickets = Object.values(p9SeededOrders)
+      .map((o) => MyOrderDetailSchema.parse(o))
+      .flatMap((o) => o.issuedTickets);
+    expect(tickets.some((t) => t.giftMemo)).toBe(true);
+    for (const t of tickets) {
+      expect(Boolean(t.giftMemo)).toBe(t.giftState === 'PENDING' || t.giftState === 'SENT');
+    }
   });
 });

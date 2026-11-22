@@ -21,7 +21,7 @@ import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 
 import { useArchive } from './useArchive';
-import { useFollowingHosts } from './useFollowingHosts';
+import { FOLLOWING_SORT, useFollowingHosts } from './useFollowingHosts';
 import { useMarketingSetting } from './useMarketingSetting';
 import { useProfileEdit } from './useProfileEdit';
 import { useWithdraw, WITHDRAW_MASTER_MESSAGE } from './useWithdraw';
@@ -245,7 +245,8 @@ describe('관심 호스트 — useFollowingHosts(GM-4 · PH-13 DELETE)', () => {
     const { result } = renderHook(() => useFollowingHosts(), { wrapper });
     await waitFor(() => expect(result.current.listStatus).toBe('success'));
     expect((await sent.list()).find((r) => r.path === '/api/v2/me/following-hosts')).toMatchObject({
-      query: { status: 'ALL', page: '0' },
+      // 화면 라벨 "최신공연순" — GM-4 sort=LATEST_EVENT(#348 B68)
+      query: { status: 'ALL', sort: 'LATEST_EVENT', page: '0' },
       credentials: 'include',
     });
     expect(result.current.hosts).toHaveLength(20);
@@ -254,6 +255,17 @@ describe('관심 호스트 — useFollowingHosts(GM-4 · PH-13 DELETE)', () => {
     expect(byId(12)).toMatchObject({ badge: 'D-7', href: '/hosts/12', eventHref: '/events/102' });
     expect(byId(31).badge).toBe('공연 종료');
     expect(byId(32)).toMatchObject({ badge: null, eventHref: null });
+  });
+
+  it('최신공연순(sort=LATEST_EVENT) — 다가오는 공연이 있는 호스트가 앞, 없는 호스트(종료 · 대표 공연 없음)는 뒤', async () => {
+    const { wrapper } = setup();
+    const { result } = renderHook(() => useFollowingHosts(), { wrapper });
+    await waitFor(() => expect(result.current.listStatus).toBe('success'));
+    const upcoming = (b: string | null) => b !== null && /^D-|공연 중/.test(b);
+    const flags = result.current.hosts.map((h) => upcoming(h.badge));
+    const firstWithout = flags.indexOf(false);
+    expect(firstWithout).toBeGreaterThan(0);
+    expect(flags.slice(firstWithout).every((f) => !f)).toBe(true);
   });
 
   it.each([
@@ -271,7 +283,7 @@ describe('관심 호스트 — useFollowingHosts(GM-4 · PH-13 DELETE)', () => {
     const queries = (await sent.list())
       .filter((r) => r.path === '/api/v2/me/following-hosts')
       .map((r) => r.query);
-    expect(queries.at(-1)).toEqual({ status, page: '0' });
+    expect(queries.at(-1)).toEqual({ status, sort: 'LATEST_EVENT', page: '0' });
   });
 
   it('해제하면 DELETE 뒤 모든 필터의 목록에서 빠지고, 목록을 다시 읽지 않는다', async () => {
@@ -317,7 +329,9 @@ describe('관심 호스트 — useFollowingHosts(GM-4 · PH-13 DELETE)', () => {
     act(() => result.current.loadMore());
     await waitFor(() => expect(result.current.nextPageError).toBe(true));
     expect(result.current.hosts).toHaveLength(20);
-    const q = queryClient.getQueryCache().find({ queryKey: followingHostsQuery().queryKey })!;
+    const q = queryClient
+      .getQueryCache()
+      .find({ queryKey: followingHostsQuery({ sort: FOLLOWING_SORT }).queryKey })!;
     expect(shouldToastQueryError(q.state.error, q.state)).toBe(false);
     server.resetHandlers();
     act(() => result.current.retry());
