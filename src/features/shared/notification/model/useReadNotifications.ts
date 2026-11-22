@@ -10,9 +10,15 @@ import {
   NOTIFICATIONS_INFINITE_KEY,
   unreadNotificationCountQuery,
 } from '@/api/notification/queries';
-import type { NotificationPage, UnreadCount } from '@/api/notification/schema';
+import { type NotificationPage, READ_IDS_MAX, type UnreadCount } from '@/api/notification/schema';
 
-import { affectsTicketNotice, readRequestOf, type ReadTarget } from './notification-kind';
+import {
+  affectsTicketNotice,
+  chunkReadIds,
+  readRequestOf,
+  type ReadTarget,
+  readTargetIncludes,
+} from './notification-kind';
 
 type InboxData = InfiniteData<NotificationPage>;
 
@@ -38,6 +44,8 @@ function setRead(data: InboxData | undefined, ids: Set<number>, isRead: boolean)
  * - 승인·거절 알림(`ORDER_APPROVED`·`ORDER_REFUSED`)을 읽었거나 전체 읽음이면 티켓탭 공지 바(G11/T-3)를 다시 읽는다 — 그 알림을 읽으면 승인 띠·거절 띠가 풀린다(#208)
  * - 같은 `scope`로 묶어 하나씩 보낸다 — 나중 응답의 `unreadCount`가 언제나 더 최신이다
  * - 캐시 반영은 `useMutation` 옵션에 둔다 — 알림을 누르고 바로 다른 화면으로 가도(언마운트) 벨·공지 바가 갱신된다
+ * - `readSeen(ids)` — 창을 열어 본 안 읽은 알림(GUI #375 "창 열면 모든 새 알림 읽음"). 100개씩 나눠 보내고, 실패해도 토스트를
+ *   띄우지 않는다(사용자가 누른 일이 아니다 — 행만 되돌리고 다음에 열 때 다시)
  */
 export function useReadNotifications() {
   const queryClient = useQueryClient();
@@ -56,7 +64,7 @@ export function useReadNotifications() {
         queryKey: NOTIFICATIONS_INFINITE_KEY,
       })) {
         for (const n of data?.pages.flatMap((p) => p.content) ?? []) {
-          if (n.isRead || (target !== 'all' && n.notificationId !== target)) continue;
+          if (n.isRead || !readTargetIncludes(target, n.notificationId)) continue;
           changed.add(n.notificationId);
           if (affectsTicketNotice(n.type)) ticketNotice = true;
         }
@@ -90,11 +98,11 @@ export function useReadNotifications() {
   });
 
   const send = useCallback(
-    async (target: ReadTarget) => {
+    async (target: ReadTarget, silent = false) => {
       try {
         await mutateAsync(target);
       } catch (e) {
-        handleError(e);
+        if (!silent) handleError(e);
       }
     },
     [mutateAsync],
@@ -103,6 +111,13 @@ export function useReadNotifications() {
   const read = useCallback((id: number) => void send(id), [send]);
   /** 모두 읽음 */
   const readAll = useCallback(() => void send('all'), [send]);
+  /** 창에서 본 안 읽은 알림 — 100개씩, 조용히 */
+  const readSeen = useCallback(
+    (ids: readonly number[]) => {
+      for (const chunk of chunkReadIds(ids, READ_IDS_MAX)) void send(chunk, true);
+    },
+    [send],
+  );
 
-  return { read, readAll, isPending };
+  return { read, readAll, readSeen, isPending };
 }

@@ -5,57 +5,51 @@ import { NOTIFICATION_TYPES } from '@/api/notification/schema';
 
 import {
   affectsTicketNotice,
-  NOTIFICATION_CATEGORIES,
+  chunkReadIds,
   notificationAudience,
-  notificationCategory,
   notificationHref,
+  notificationIcon,
+  notificationLabel,
+  notificationTab,
+  notificationTabSearch,
+  parseNotificationTab,
   readRequestOf,
+  readTargetIncludes,
   toNotificationView,
 } from './notification-kind';
 
-describe('알림 17종 → 카테고리·아이콘(plan P9b, Q13 · #106 운영자 type 표)', () => {
-  it.each<[NotificationType, string | null, string]>([
-    ['HOST_MEMBER_ADDED', '호스트 · 멤버', 'people'],
-    ['ORDER_PENDING_APPROVE', '호스트 · 새 주문', 'order-detail'],
-    ['ORDER_APPROVED', '티켓승인 안내', 'ticket'],
-    ['ORDER_REFUSED', '티켓승인 안내', 'ticket'],
-    ['ORDER_REFUND_REQUESTED', '호스트 · 취소·환불 요청', 'order-detail'],
-    ['ORDER_CANCELED_BY_USER', '호스트 · 취소·환불 요청', 'order-detail'],
-    ['ORDER_CANCELED_BY_HOST', '주문취소·환불 안내', 'ticket'],
-    ['ORDER_REFUND_COMPLETED', '주문취소·환불 안내', 'ticket'],
-    ['REFUND_ACCOUNT_CHANGED', '호스트 · 취소·환불 요청', 'order-detail'],
-    ['GIFT_SENT', '티켓선물 안내', 'gift'],
-    ['GIFT_ACCEPTED', '티켓선물 안내', 'gift'],
-    ['GIFT_RECEIVED', '티켓선물 안내', 'gift'],
-    ['GIFT_REJECTED', '티켓선물 안내', 'gift'],
-    ['GIFT_RETURNED', '티켓선물 안내', 'gift'],
-    ['GIFT_TICKET_CANCELED', '티켓선물 안내', 'gift'],
-    ['EVENT_REMINDER_D1', '공연 알림', 'alarm-clock'],
-    ['EVENT_STARTING_SOON', '공연 알림', 'alarm-clock'],
-    ['UNKNOWN', null, 'default'],
-  ])('%s → %s(%s)', (type, label, icon) => {
-    expect(NOTIFICATION_CATEGORIES[notificationCategory(type)]).toEqual({ label, icon });
+describe('알림 17종 → 창 · 이름 · 아이콘(GUI 알림함 #375 관객 `1047:4070` · #376 호스트 `2025:1471`)', () => {
+  it.each<[NotificationType, 'audience' | 'host', string, string]>([
+    ['HOST_MEMBER_ADDED', 'host', '호스트 멤버 추가', 'people'],
+    ['ORDER_PENDING_APPROVE', 'host', '신규 주문 알림', 'order-detail'],
+    ['ORDER_APPROVED', 'audience', '주문 승인', 'ticket'],
+    ['ORDER_REFUSED', 'audience', '주문 거절', 'ticket'],
+    ['ORDER_REFUND_REQUESTED', 'host', '주문 취소 요청', 'order-detail'],
+    ['ORDER_CANCELED_BY_USER', 'host', '주문 취소 알림', 'order-detail'],
+    ['ORDER_CANCELED_BY_HOST', 'audience', '주문 취소', 'ticket'],
+    ['ORDER_REFUND_COMPLETED', 'audience', '환불 완료', 'ticket'],
+    ['REFUND_ACCOUNT_CHANGED', 'host', '환불 계좌 변경', 'order-detail'],
+    ['GIFT_SENT', 'audience', '선물 발송 알림', 'gift'],
+    ['GIFT_ACCEPTED', 'audience', '선물 수령 알림', 'gift'],
+    ['GIFT_RECEIVED', 'audience', '선물 도착 알림', 'gift'],
+    ['GIFT_REJECTED', 'audience', '선물 반송 알림', 'gift'],
+    ['GIFT_RETURNED', 'audience', '선물 반환 알림', 'gift'],
+    ['GIFT_TICKET_CANCELED', 'audience', '선물 취소 알림', 'gift'],
+    ['EVENT_REMINDER_D1', 'audience', '공연 알림', 'clock'],
+    ['EVENT_STARTING_SOON', 'audience', '공연 알림', 'clock'],
+    ['UNKNOWN', 'audience', '알림', 'default'],
+  ])('%s → %s 창 · %s(%s)', (type, tab, label, icon) => {
+    expect(notificationTab(type)).toBe(tab);
+    expect(notificationLabel(type)).toBe(label);
+    expect(notificationIcon(type)).toBe(icon);
   });
 
-  it('17종 모두 OTHER가 아닌 카테고리 7종 중 하나로 간다', () => {
-    const categories = new Set(NOTIFICATION_TYPES.map(notificationCategory));
-    expect([...categories].sort()).toEqual([
-      'EVENT',
-      'GIFT',
-      'HOST_MEMBER',
-      'HOST_ORDER',
-      'HOST_REFUND',
-      'ORDER',
-      'TICKET',
-    ]);
-  });
-
-  it('호스트가 받는 주문 알림은 모두 "호스트 ·" 카테고리다(관객 알림과 한 목록에서 구분)', () => {
+  it('호스트가 받는 주문 알림은 모두 호스트 창이다(멤버 추가도 호스트 창 — 받는 사람은 본인)', () => {
     for (const t of NOTIFICATION_TYPES) {
-      if (notificationAudience(t) === 'host') {
-        expect(NOTIFICATION_CATEGORIES[notificationCategory(t)].label).toMatch(/^호스트 · /);
-      }
+      if (notificationAudience(t) === 'host') expect(notificationTab(t)).toBe('host');
     }
+    expect(notificationAudience('HOST_MEMBER_ADDED')).toBe('user');
+    expect(NOTIFICATION_TYPES.filter((t) => notificationTab(t) === 'host')).toHaveLength(5);
   });
 
   it('승인·거절 알림(ORDER_APPROVED·ORDER_REFUSED)만 티켓탭 공지 바를 푸는 알림이다(#208)', () => {
@@ -64,6 +58,23 @@ describe('알림 17종 → 카테고리·아이콘(plan P9b, Q13 · #106 운영�
       'ORDER_REFUSED',
     ]);
     expect(affectsTicketNotice('UNKNOWN')).toBe(false);
+  });
+});
+
+describe('창 주소(?tab=)', () => {
+  it.each([
+    ['', 'audience'],
+    ['?tab=host', 'host'],
+    ['?tab=audience', 'audience'],
+    ['?tab=x', 'audience'],
+  ])('%s → %s', (search, tab) => {
+    expect(parseNotificationTab(new URLSearchParams(search))).toBe(tab);
+  });
+
+  it('관객 창(기본)은 주소에 쓰지 않고, 다른 쿼리는 남긴다', () => {
+    expect(notificationTabSearch('host', '')).toBe('?tab=host');
+    expect(notificationTabSearch('audience', '?tab=host')).toBe('');
+    expect(notificationTabSearch('host', '?a=1')).toBe('?a=1&tab=host');
   });
 });
 
@@ -145,35 +156,45 @@ describe('알림을 누르면 갈 곳 — target.type별(Q1 기본안 + #810)', 
 });
 
 describe('행 값·PN-3 본문', () => {
-  it('문구는 서버 title·body 그대로, 모르는 타입도 깨지지 않는다', () => {
-    const view = toNotificationView({
+  it('본문은 서버 body 그대로(HTML로 넣지 않는다), 비었으면 title — 모르는 타입도 깨지지 않는다', () => {
+    const base = {
       notificationId: 9,
-      type: 'UNKNOWN',
-      title: '<b>새 알림</b>',
-      body: '본문',
-      target: { type: 'HOST', targetId: '11', eventId: null },
+      type: 'UNKNOWN' as const,
+      title: '새 알림',
+      body: '<b>본문</b>',
+      target: { type: 'HOST' as const, targetId: '11', eventId: null },
       extra: {},
       isRead: false,
       createdAt: null,
-    });
-    expect(view).toEqual({
+    };
+    expect(toNotificationView(base)).toEqual({
       id: 9,
       type: 'UNKNOWN',
-      category: 'OTHER',
-      categoryLabel: null,
+      tab: 'audience',
+      label: '알림',
       icon: 'default',
-      title: '<b>새 알림</b>',
-      body: '본문',
+      text: '<b>본문</b>',
       createdAt: null,
       isRead: false,
       href: '/hosts/11',
     });
+    expect(toNotificationView({ ...base, body: '  ' }).text).toBe('새 알림');
   });
 
   it.each([
     ['단건', 7, { notificationIds: [7] }],
+    ['여러 건(창에서 본 알림)', [7, 8] as const, { notificationIds: [7, 8] }],
     ['전체', 'all' as const, { readAll: true }],
   ])('%s 읽음 본문', (_, target, body) => {
     expect(readRequestOf(target)).toEqual(body);
+  });
+
+  it('읽음 대상에 그 알림이 드는지 · 100개씩 나누기', () => {
+    expect(readTargetIncludes(7, 7)).toBe(true);
+    expect(readTargetIncludes(7, 8)).toBe(false);
+    expect(readTargetIncludes([7, 8], 8)).toBe(true);
+    expect(readTargetIncludes('all', 1)).toBe(true);
+    expect(chunkReadIds([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+    expect(chunkReadIds([], 100)).toEqual([]);
   });
 });

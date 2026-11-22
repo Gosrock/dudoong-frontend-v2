@@ -13,6 +13,9 @@ export const toolbar = style({
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
 });
 
+/** DS SortButton — 라벨 + chevron-down 12, 간격 4(GUI `1047:32385`) */
+export const sort = style({ display: 'inline-flex', alignItems: 'center', gap: vars.space[1] });
+
 /** 주문 카드(GUI `Frame 1707480431` — 위 12 · 아래 16 · 좌우 24 · 간격 8, + 구분선 묶음의 위아래 4) */
 export const cardLink = style({
   display: 'flex',
