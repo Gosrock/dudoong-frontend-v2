@@ -5,8 +5,9 @@ import { HostRoleSchema } from '../shared/common-schema';
 import { kstDateTime } from '../shared/date';
 
 /**
- * 미가입자 호스트 초대 링크 H-16~H-20(백엔드 #933, Api 2.5.7 — 스테이징 DDL V024 뒤에만 동작, 그 전 500. 운영 2.5.3에는 없다 — 404).
- * 기준: `V2HostInvitationResponses.kt`·`V2CreateHostInvitationRequest.kt`(dev, 2026-11-04). 프론트는 PH-7이 `HOST_400_13`(미가입)일 때만 H-16을 부른다.
+ * 호스트 초대 H-16~H-21(백엔드 #933 · Api 2.5.7, 거절 H-21 · 닉네임은 #961 → Api 2.5.16 — Frontend #348).
+ * 기준: `V2HostInvitationResponses.kt`·`V2CreateHostInvitationRequest.kt`(dev, 2026-11-04) + #348 계약.
+ * **모든 멤버 초대는 H-16**(B71 — 가입한 이메일도 상대가 수락해야 멤버, DEC-015 폐기 · DEC-042). PH-7 즉시 추가는 부르지 않는다.
  *
  * **토큰**: base64url 43자 · 1회용 · 7일. H-16 응답에서만 받는다(H-17은 주지 않는다). 로그·주소창·분석 스크립트에 남기지 않는다
  * (화면 `/host-invitations/{token}` — 진입 직후 주소에서 지운다, implementation-log "backend-928-misc").
@@ -39,6 +40,13 @@ export const HostInvitationSchema = z.object({
   role: HostRoleSchema,
   inviterUserId: z.number().int().optional(),
   expiresAt: kstDateTime,
+  /**
+   * 초대 이메일로 가입한 계정이 하나일 때 그 닉네임(Api 2.5.16 — #348 B71). 미가입 · 같은 이메일 계정이 여럿이면 null.
+   * 있으면 대기 줄이 아바타 + 이름으로 보인다(GUI `1476:7882`). 2.5.15 이하는 필드 없음
+   */
+  inviteeNickname: z.string().nullable().optional(),
+  /** 그 계정의 프로필 이미지(Api 2.5.16). 없으면 null */
+  inviteeProfileImageUrl: z.string().nullable().optional(),
 });
 export type HostInvitation = z.infer<typeof HostInvitationSchema>;
 
@@ -70,6 +78,16 @@ export const HostInvitationAcceptSchema = z.object({
   alreadyMember: z.boolean(),
 });
 export type HostInvitationAccept = z.infer<typeof HostInvitationAcceptSchema>;
+
+/**
+ * H-21 초대 거절 결과(Api 2.5.16 — #348 B72). [호스트 홈으로 가기]에 쓴다. 거절한 링크는 다시 쓸 수 없고 H-17 대기에서 빠진다.
+ * 이미 멤버인 사람이 거절해도 200이고 멤버십은 그대로다
+ */
+export const HostInvitationRejectSchema = z.object({
+  hostId: z.number().int(),
+  hostName: z.string().nullable(),
+});
+export type HostInvitationReject = z.infer<typeof HostInvitationRejectSchema>;
 
 /** `inviteUrlPath`의 모양. 다르면 토큰으로 경로를 만든다(서버 값을 그대로 링크로 쓰지 않는다) */
 export const HOST_INVITATION_PATH_PREFIX = '/host-invitations/';

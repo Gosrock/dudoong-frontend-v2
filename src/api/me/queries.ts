@@ -7,6 +7,7 @@ import { pageInfinite, type PageParams } from '../shared/page';
 import {
   ArchiveSchema,
   type FollowingHostFilter,
+  type FollowingHostSort,
   FollowingHostPageSchema,
   type Me,
   MeSchema,
@@ -46,15 +47,21 @@ export const meQuery = () =>
 /** 관심 호스트 목록 전체(필터마다 키가 다르다)의 접두 키 — 해제 뒤 모든 필터의 캐시에서 뺄 때 */
 export const FOLLOWING_HOSTS_KEY = ['me', 'following-hosts'] as const;
 
-export type FollowingHostsParams = PageParams & { status?: FollowingHostFilter };
+export type FollowingHostsParams = PageParams & {
+  status?: FollowingHostFilter;
+  /** 기본 `FOLLOWED`(서버 기본값 — 보내지 않는다) */
+  sort?: FollowingHostSort;
+};
 
 /**
- * GM-4 관심 호스트(로그인, 무한 목록 — patterns §12). 최근 팔로우 순. `status` 기본 `ALL`.
+ * GM-4 관심 호스트(로그인, 무한 목록 — patterns §12). 기본 최근 팔로우 순, `sort: 'LATEST_EVENT'`면 "최신공연순"(#348 B68).
+ * `status` 기본 `ALL`.
  * 해제는 PH-13 DELETE(`unfollowHostMutation`) — 화면이 응답 뒤 이 키들에서 그 호스트를 뺀다.
  */
 export const followingHostsQuery = (params: FollowingHostsParams = {}) => {
   const p = {
     status: params.status ?? 'ALL',
+    ...(params.sort && params.sort !== 'FOLLOWED' && { sort: params.sort }),
     ...(params.size !== undefined && { size: params.size }),
   };
   return infiniteQueryOptions({

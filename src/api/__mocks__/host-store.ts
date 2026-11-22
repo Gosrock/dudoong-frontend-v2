@@ -19,6 +19,8 @@ const ROLE_ORDER: Record<HostRole, number> = { MASTER: 0, MANAGER: 1, GUEST: 2, 
 let members = new Map<number, Stored[]>();
 let edits = new Map<number, ProfileEdit>();
 let joinSeq = 0;
+/** H-22로 지운 호스트(#348 B73) — 그 뒤 GH-3 · GH-14 · GH-1 · GM-4에서 없는 호스트 */
+let deleted = new Set<number>();
 
 function seed() {
   joinSeq = 0;
@@ -29,8 +31,15 @@ function seed() {
     ]),
   );
   edits = new Map();
+  deleted = new Set();
 }
 seed();
+
+export const isHostDeleted = (hostId: number) => deleted.has(hostId);
+
+export function deleteStoredHost(hostId: number) {
+  deleted.add(hostId);
+}
 
 /** 처음 값으로 되돌린다(vitest `beforeEach`·e2e `test.beforeEach`). 초대 저장소도 함께 */
 export function resetHostStore() {
@@ -118,7 +127,8 @@ export type StoredInvitation = {
   inviterUserId: number;
   expiresAt: string;
   token: string;
-  state: 'PENDING' | 'ACCEPTED' | 'CANCELED' | 'EXPIRED';
+  /** REJECTED — H-21 거절(#348 B72). 사용됨(`HOST_400_20`)으로 본다 */
+  state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELED' | 'EXPIRED';
 };
 
 /**

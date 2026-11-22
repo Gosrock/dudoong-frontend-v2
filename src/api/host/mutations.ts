@@ -6,6 +6,7 @@ import {
   type AssignableHostRole,
   type CreateHostRequest,
   CreateHostResponseSchema,
+  DeleteHostResponseSchema,
   HostFollowSchema,
   HostMembersSchema,
   type TransferMasterRequest,
@@ -51,12 +52,23 @@ export const updateHostMutation = (hostId: string | number) =>
       api.patch(hostPath(hostId), UpdateHostResponseSchema, body),
   });
 
+/**
+ * H-22 호스트 삭제(활성 마스터만 — 아니면 403, Api 2.5.16 · #348 B73). 준비중 공연은 함께 지운다(다른 멤버가 있어도 삭제).
+ * - `HOST_400_22` 준비중이 아닌 공연(등록 · 정산중 · 종료 · 취소 포함)이 있음 — 화면은 H-3 `deletable`로 먼저 막는다
+ * 성공 뒤 화면이 내 호스트 · 관심 호스트 · 그 호스트 키를 정리한다(`useDeleteHost`)
+ */
+export const deleteHostMutation = (hostId: string | number) =>
+  mutationOptions({
+    mutationFn: () => api.delete(hostPath(hostId), DeleteHostResponseSchema),
+  });
+
 /*
  * 멤버 변경 4종(PH-7 · PH-10 · DH-11 · PH-12)은 모두 **변경 뒤 활성 멤버 전체 목록**을 돌려준다(GH-6과 같은 모양·순서,
  * `V2ReadHostMembersUseCase.toMemberResponses`, 432cce4) — 화면이 GH-6 키에 그대로 넣는다(patterns §22).
  */
 
 /**
+ * @deprecated 화면은 부르지 않는다 — 모든 초대는 H-16 `createHostInvitationMutation`(B71, #348 — DEC-015 폐기). 백엔드가 곧 없앤다.
  * PH-7 멤버 추가(매니저 이상, 수락 없이 바로 활성). 하나라도 문제가 있으면 아무도 추가하지 않고, 문제 이메일을
  * `reason` 끝 괄호에 `, `로 이어 붙인다(`HostErrorCode.toDetailException`): `HOST_400_13` 미가입 · `HOST_400_14` 중복(소문자) ·
  * `HOST_400_15` 이미 멤버 · `HOST_400_18` 같은 이메일 계정이 여럿. 매니저가 `MANAGER`를 보내면 403 `HOST_400_11`

@@ -114,6 +114,9 @@ export type MockOrderInput = {
   depositorName: string | null;
 };
 
+/** 선물 대기 · 완료 티켓의 메모(O-3 `giftMemo`) */
+export const MOCK_GIFT_MEMO = '생일 축하해! 같이 보러 가자';
+
 const KR_YES = '예';
 const KR_NO = '아니요';
 
@@ -142,6 +145,9 @@ export function buildMockOrder(input: MockOrderInput): MyOrderDetail {
           description: option?.description ?? null,
           answer: yesNo ? (isYes ? KR_YES : KR_NO) : a.answer.trim(),
           additionalPrice: isYes ? (option?.yesAdditionalPrice ?? 0) : 0,
+          // Api 2.5.16(#348 B67) — 지금 옵션 기준의 종류 · 선택지(YES_NO는 서버 문구 "예" · "아니요")
+          optionType: option?.type ?? null,
+          choices: yesNo ? [KR_YES, KR_NO] : null,
         };
       });
       const optionPrice = optionAnswers.reduce((acc, a) => acc + a.additionalPrice, 0);
@@ -218,6 +224,7 @@ export function buildMockOrder(input: MockOrderInput): MyOrderDetail {
           giftState: 'NONE' as const,
           isGiftExpired: false,
           giftId: null,
+          giftMemo: null,
         })),
     canCancel: event.displayStatus !== 'PAST',
   };
@@ -357,6 +364,8 @@ function p9Orders(): MyOrderDetail[] {
       giftState: 'NONE' as const,
       isGiftExpired: false,
       giftId: null,
+      // 선물 대기 · 완료 티켓만 메모(Api 2.5.16 — #348 B67)
+      giftMemo: t.giftState === 'PENDING' || t.giftState === 'SENT' ? MOCK_GIFT_MEMO : null,
       ...t,
     }));
     return {

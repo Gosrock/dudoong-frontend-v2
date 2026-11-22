@@ -18,6 +18,9 @@ import { eventHref, hostHref } from '@/features/shared/routes';
 
 import { FOLLOWING_TABS, representativeBadge } from './lists';
 
+/** 관심 호스트 정렬 — 화면 라벨 "최신공연순" */
+export const FOLLOWING_SORT = 'LATEST_EVENT' as const;
+
 type FollowingPages = InfiniteData<Page<FollowingHost>, number>;
 
 /** 모든 필터의 캐시에서 그 호스트를 뺀다 */
@@ -38,7 +41,8 @@ const withoutHost = (data: FollowingPages | undefined, hostId: number) =>
 export function useFollowingHosts() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<FollowingHostFilter>('ALL');
-  const list = useInfiniteQuery(followingHostsQuery({ status }));
+  // 화면 라벨이 "최신공연순"(GUI `1175:20346`) 하나라 그 정렬로 읽는다(GM-4 `sort=LATEST_EVENT`, #348 B68)
+  const list = useInfiniteQuery(followingHostsQuery({ status, sort: FOLLOWING_SORT }));
 
   // 캐시 반영은 화면이 사라져도(연달아 해제해도) 해야 하므로 옵션의 onSuccess에 둔다
   const { mutateAsync } = useMutation({

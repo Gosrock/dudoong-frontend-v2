@@ -21,7 +21,7 @@ import {
   toMyHost,
 } from './fixtures/hosting';
 import { resetGuestStore } from './guest-store';
-import { mockUserRoleIn, profileEditOf, resetHostStore } from './host-store';
+import { isHostDeleted, mockUserRoleIn, profileEditOf, resetHostStore } from './host-store';
 import { errors, fail, ok, paginate, readPageParams, requireAuth } from './respond';
 import { resetTicketStore } from './ticket-store';
 
@@ -92,6 +92,8 @@ function listHandlers(memberships: () => MockMembership[]): HttpHandler[] {
       const keyword = readKeyword(url);
       if (!paging || keyword === null) return errors.badRequest(request);
       const list = memberships()
+        // H-22로 지운 호스트는 빠진다(#348 B73)
+        .filter((m) => !isHostDeleted(m.hostId))
         .map(managed)
         .filter((m) => includes(m.name, keyword))
         .map((m) => toMyHost(m, hostEventsOf(m.hostId).length));

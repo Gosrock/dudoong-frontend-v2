@@ -22,6 +22,8 @@ const TABLE: Row[] = [
   ['cancelEvent', false, false, true, true],
   ['changeMemberRole', false, false, true, true],
   ['transferMaster', false, false, true, false],
+  // H-22 활성 마스터만(#348 B73)
+  ['deleteHost', false, false, true, false],
 ];
 
 describe('권한 판정 can(role, action)', () => {

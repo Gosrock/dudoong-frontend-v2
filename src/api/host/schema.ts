@@ -48,6 +48,15 @@ export const HostViewerSchema = HostDetailSchema.extend({
   isFollowing: z.boolean(),
   /** 활성 멤버가 아니면 null. 버튼 숨김용이지 권한의 근거가 아니다 */
   myRole: HostRoleSchema.nullable(),
+  /**
+   * 호스트 삭제 확인 창 값(H-3 · PH-4 응답, Api 2.5.16 — #348 B73). **활성 마스터에게만 값이 있고 그 밖에는 null**.
+   * 함께 삭제될 준비중 공연 수 — 0이면 기본 확인 창(`1549:15221`), 1 이상이면 "준비중 공연 n개도 함께 삭제돼요"(`1551:104649`)
+   */
+  preparingEventCount: z.number().int().nullable().optional(),
+  /** false면 [호스트 삭제하기]를 막고 사유를 보인다(준비중이 아닌 공연이 있음) */
+  deletable: z.boolean().nullable().optional(),
+  /** 막힌 사유 코드 — 지금은 `"HOST_400_22"`(등록한 공연이 있는 호스트)만 */
+  deleteBlockedReason: z.string().nullable().optional(),
 });
 export type HostViewer = z.infer<typeof HostViewerSchema>;
 
@@ -180,6 +189,18 @@ export type UpdateHostRequest = z.infer<typeof UpdateHostRequestSchema>;
  */
 export const UpdateHostResponseSchema = HostViewerSchema;
 
+// ─── 호스트 삭제 (H-22) ──────────────────────────────────────
+
+/**
+ * H-22 `DELETE /hosts/{hostId}` 응답(Api 2.5.16 — #348 B73, DEC-013 폐기). 함께 지운 준비중 공연 수.
+ * 삭제 뒤 그 호스트의 GH-3 · GH-14 등은 404, 내 호스트 · 관심 호스트 목록에서도 빠진다
+ */
+export const DeleteHostResponseSchema = z.object({
+  hostId: z.number().int(),
+  deletedEventCount: z.number().int(),
+});
+export type DeleteHostResponse = z.infer<typeof DeleteHostResponseSchema>;
+
 // ─── 멤버 (PH-7 · PH-10 · DH-11 · PH-12) ─────────────────────
 
 /** 한 번에 추가할 수 있는 멤버 수(`V2AddHostMembersRequest.MAX_MEMBERS`, 432cce4) */
@@ -193,6 +214,7 @@ export const AssignableHostRoleSchema = z.enum(['MANAGER', 'GUEST']);
 export type AssignableHostRole = z.infer<typeof AssignableHostRoleSchema>;
 
 /**
+ * @deprecated 화면은 부르지 않는다 — 모든 초대는 H-16(B71, #348). 백엔드가 옮긴 뒤 없앤다고 했다.
  * PH-7 본문 `V2AddHostMembersRequest`(432cce4) — 가입된 이메일, 1~20명, 수락 없이 바로 활성 멤버.
  * 매니저 요청자는 `GUEST`만(아니면 403 `HOST_400_11`). 한 명이라도 문제가 있으면 아무도 추가하지 않는다.
  */
