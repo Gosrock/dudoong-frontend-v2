@@ -4228,7 +4228,9 @@ Design Sync #349~#354 · #356 · #357(Tomato 2026-11-22 08:31~08:59Z) + 관제�
 **확인만(코드 변경 없음)**
 - #378 ①: 옵션 답 `optionType` · `choices`는 #358(BE-961)에서 이미 씀 — 내 주문 상세는 `SelectButton readOnly`, 호스트 주문 상세 · 발급 티켓(`hosting/guest` `OptionAnswers`)은 답 글자를 그대로(서버 "아니요"를 바꾸지 않음). 관객 선물 · 티켓 화면에는 옵션 답을 그리는 곳이 없다.
 - #378 ②: 알림 읽음 PN-3 `readAll` · `notificationIds`(100개씩)는 #379에서 씀, 응답 `unreadCount`로 벨 캐시(`useNotificationBell`)를 바로 채움(`useReadNotifications`).
-- #381 ②③: 정렬 라벨("최신순" + chevron-down 12, 누를 수 없음 — #372 GUI · Q268) · 데스크탑 배치(가운데 열) 그대로. 이슈 본문의 "⌄는 뺀 상태"는 지금 코드(#379 — #372 GUI대로 ⌄ 있음)와 다르다 — "지금대로"라 손대지 않음.
+- #381 ③: 데스크탑 배치(가운데 열) 그대로.
+
+**#381 ② 정렬 라벨(관제탑 검토 뒤)**: #379가 #372 GUI대로 넣은 ⌄(chevron-down 12)를 뺌 — "최신순" 글자만. 누를 수 있는 메뉴가 아니고(O-2 정렬 없음 B75) 회의 결정이 "글자만". 공연 리스트 "공연임박순 ⌄"(사용자 지정 2026-11-08)와 알림함 "최신순 ⌄"(Q268)는 이 결정 범위 밖이라 그대로.
 
 **결정**
 - 🤖 Claude 판단 — 카드만 숨기지 않고 **매핑을 나눔**(`orderCardChip` 따로) / 근거: 카드와 상세가 보여 줄 칩 종류가 달라졌다(카드 3개 · 상세 그대로). UI에서 상태를 골라 숨기면 상태 규칙이 화면으로 샌다(plan §0 — 규칙은 model) / 되돌리려면 `useMyOrders`에서 `statusView: orderStatusView(o.status, o.refundStatus)`.

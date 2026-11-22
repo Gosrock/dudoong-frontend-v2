@@ -170,7 +170,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI `1047:32381` 구성(정렬 라벨 "최신순 ⌄" 고정 — #372, 서버 정렬 없음 B75). 상태 칩은 tag_v2 round로 승인대기 · 승인완료 · 승인거절 3개만 — 취소 · 환불 주문 카드는 칩 없음, "환불 대기" / "환불 완료" 보조 칩 없음(#381, 2026-11-22 회의).',
+      'GUI `1047:32381` 구성(정렬 라벨 "최신순" 글자만 고정 — ⌄ 없음 #381, 서버 정렬 없음 B75). 상태 칩은 tag_v2 round로 승인대기 · 승인완료 · 승인거절 3개만 — 취소 · 환불 주문 카드는 칩 없음, "환불 대기" / "환불 완료" 보조 칩 없음(#381, 2026-11-22 회의).',
     basis: [
       'plan P9 V 범위 주문내역',
       'GUI 1047:32381 주문내역(2026-11-07 Ready)',
@@ -184,6 +184,10 @@ scenario(
     await step('주문내역을 열면 "최신순"과 주문 카드가 보인다', async () => {
       await page.goto('/orders');
       await expect(page.getByText('최신순', { exact: true })).toBeVisible();
+      // 고를 것이 없어 ⌄ 없이 글자만(#381 결정 2) — 누를 수 있는 컨트롤도 아니다
+      const sort = page.getByText('최신순', { exact: true }).locator('..');
+      await expect(sort.locator('svg')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: /최신순/ })).toHaveCount(0);
       await expect(page.getByTestId('order-row').first()).toBeVisible();
     });
     const card = (uuid: string) =>
