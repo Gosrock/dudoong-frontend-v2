@@ -16,8 +16,9 @@ import { loadKakaoMaps } from '../model/kakao-geocoder';
 import * as s from './PlaceParts.css';
 
 /**
- * 주소 검색 창(Daum 우편번호 `embed`) — 디자인 없음. PC 모달 · 모바일 바텀시트(`ResponsiveOverlay`) 안에 띄운다.
- * 고르면 주소 한 줄(도로명 우선), 닫으면 null
+ * 주소 검색 창(Daum 우편번호 `embed`) — GUI PC 모달 `1592:16734`(480 · 모서리 16 · 제목 18 Bold + ✕) · 모바일 바텀시트 `1592:16559`
+ * (Design Sync #314 · #315). 안쪽은 "카카오에서 제공하는 검색 화면이 그대로 들어가요" — 그 서비스를 담는 칸(`1592:16739` · `1592:16565`
+ * 모서리 12 · 테두리 · 회색 바탕)만 그리고 검색 화면은 카카오 것 그대로. 고르면 주소 한 줄(도로명 우선), 닫으면 null
  */
 export function openAddressSearch(): Promise<string | null> {
   return overlay.openAsync<string | null>(({ isOpen, close, unmount }) => (
@@ -26,6 +27,9 @@ export function openAddressSearch(): Promise<string | null> {
       onOpenChange={(o) => !o && close(null)}
       onExited={unmount}
       title="주소 검색"
+      titleSize="md2"
+      // 모바일 시트: 막대 손잡이 + 머리 오른쪽 ✕(`1592:16560` · `1592:16563`) — 호스팅 시트 `flat`
+      sheetVariant="flat"
     >
       <PostcodeEmbed onPick={(address) => close(address)} />
     </ResponsiveOverlay>
@@ -97,7 +101,8 @@ function PostcodeEmbed({ onPick }: { onPick: (address: string) => void }) {
 
 /**
  * 장소 아래 지도 미리보기(GUI `748:33492` 모바일 342×147 — #180, PC `748:34508` 600×144 → 147로 맞춤 Q210 — 디자이너 코멘트 "지도 프리뷰", Q3 해결).
- * 카카오맵 SDK `kakao.maps.Map` + 마커(Geocoder와 같은 SDK). 좌표가 없으면 GUI `748:33391`대로 빈 회색 칸(안내 글자 없음 — 관제탑 검토 #184, R1),
+ * 카카오맵 SDK `kakao.maps.Map` + 마커(Geocoder와 같은 SDK). 좌표가 없으면 GUI `1588:53077`(PC) · `748:33351` 모바일대로
+ * 돋보기 일러스트 + "지도를 검색하면 지도가 보여요"(Design Sync #313 — 2026-11-08의 빈 회색 칸을 대신한다),
  * 지도 서비스를 불러오지 못하면(키 없음 · SDK 실패 · 좌표 찾기에서 이미 실패) GUI `1269:29539`·`1277:30239`대로 일러스트 + 문구(#181)
  */
 export function KakaoMapPreview({
@@ -147,6 +152,21 @@ export function KakaoMapPreview({
     >
       <div ref={ref} className={s.mapCanvas} />
       {(has ? failed : unavailable) && <MapUnavailable />}
+      {!has && !unavailable && <MapSearchHint />}
+    </div>
+  );
+}
+
+/** 주소를 고르기 전(GUI `1588:53077` — 세로 쌓기 간격 12, DS `img_지도 검색전` 91×70 + Label/md surface/strong-border, #313) */
+function MapSearchHint() {
+  return (
+    <div className={s.overlayText} data-testid="place-map-empty">
+      <Flex direction="column" gap={3} align="center">
+        <Illustration name="map-search" />
+        <Txt typography="labelMd" color={colors.surfaceStrongBorder}>
+          지도를 검색하면 지도가 보여요
+        </Txt>
+      </Flex>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
   FormSection,
   useLeaveGuard,
 } from '@/features/hosting/shared/ui/EditorParts';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { Input } from '@/ui/components/Input/Input';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
@@ -23,12 +24,12 @@ import {
   TagsSection,
 } from './ui/BasicInfoSections';
 import { openInfoPreview } from './ui/InfoPreview';
-import { SavedNotice } from './ui/SavedNotice';
+import { REGISTERED_SAVE_DESCRIPTION, REGISTERED_SAVE_TITLE, SavedNotice } from './ui/SavedNotice';
 
 /**
  * `/hosting/events/[eventId]/info` 기본 정보 — GUI Ready 모바일 `748:33351`(입력 전)·`748:33451`(입력 후) · PC `748:34006`(1440).
  * 모바일 한 열, PC 1280~ 두 열(왼쪽 342 포스터 | 간격 48 | 오른쪽 칸 최대 600), 1024~1279는 한 열(Q39 7번 — 2열 접힘 폭이 Figma에 없다).
- * 하단 고정 바 [미리보기][저장하기]. 주소는 Daum 우편번호 창 → 카카오 Geocoder 좌표 → 지도 미리보기(카카오맵 SDK).
+ * 하단 고정 바 [미리보기][저장하기] — 등록된 공연은 저장 전 확인 "변경 내용을 저장할까요?"(`1595:2407`, #319), 뒤에는 토스트. 주소는 Daum 우편번호 창 → 카카오 Geocoder 좌표 → 지도 미리보기(카카오맵 SDK).
  * 칸 묶음은 `ui/BasicInfoSections.tsx` — 묶음마다 훅 결과에서 자기 몫만 받는다.
  */
 export function EventInfoView({ eventId }: { eventId: string }) {
@@ -59,6 +60,17 @@ export function EventInfoView({ eventId }: { eventId: string }) {
           className={s.columns}
           onSubmit={(e) => {
             e.preventDefault();
+            // 등록된 공연은 저장 전에 묻는다(GUI `1595:2407`, #319). 칸 오류가 있으면 묻지 않고 저장 시도로 오류를 보인다
+            if (info.registered && status.canSave) {
+              void openConfirm({
+                title: REGISTERED_SAVE_TITLE,
+                description: REGISTERED_SAVE_DESCRIPTION,
+                cancelLabel: '취소',
+                confirmLabel: '저장하기',
+                onConfirm: () => info.save(),
+              });
+              return;
+            }
             void info.save();
           }}
         >
@@ -122,7 +134,7 @@ export function EventInfoView({ eventId }: { eventId: string }) {
           saving={status.saving}
         />
       )}
-      <SavedNotice notice={info.savedNotice} />
+      <SavedNotice notice={info.savedNotice} confirmedBeforeSave />
     </section>
   );
 }

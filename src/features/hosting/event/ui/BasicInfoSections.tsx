@@ -7,6 +7,7 @@ import { EVENT_CONTACT_VALUE_MAX, EVENT_TAGS_MAX } from '@/api/event/schema';
 import type { HostContactInput } from '@/features/hosting/shared/model/host-fields';
 import { ContactRows } from '@/features/hosting/shared/ui/ContactRows';
 import { FieldError, FormSection } from '@/features/hosting/shared/ui/EditorParts';
+import { TAG_CATEGORY_LABEL } from '@/features/shared/event-labels';
 import { Button } from '@/ui/components/Button/Button';
 import { DatePicker } from '@/ui/components/DatePicker/DatePicker';
 import { Input } from '@/ui/components/Input/Input';
@@ -346,7 +347,11 @@ const CONTACT_CLASSES = {
   remove: s.removeButton,
 };
 
-/** 태그 — 4열(PC 7열), 10개까지 */
+/**
+ * 태그 — 서버 분류(`category`)별 묶음(GUI `1590:805` 모바일 · `1590:832` PC, Design Sync #316 · #317): 분류 이름 Label/md
+ * `text/secondary-label` + 칩 줄(글자 폭대로 줄바꿈, 칸 · 줄 사이 10). 묶음 사이 16 · 이름 ↔ 칩 8. 10개 한도는 모든 묶음 합이다.
+ * 안내 문구는 모바일 "(다중선택 가능)" · PC "(최대 10개까지 선택 가능)" — Ready 프레임대로(같은 DOM, CSS로 하나만)
+ */
 export function TagsSection({
   value,
   tags,
@@ -358,25 +363,49 @@ export function TagsSection({
   serverError: string | undefined;
   readOnly: boolean;
 }) {
+  const full = value.length >= EVENT_TAGS_MAX;
   return (
-    <FormSection title="태그" description="공연과 관련된 태그를 선택해주세요. (다중선택 가능)">
-      <TagButtonGroup
-        aria-label="태그"
-        className={s.tags}
-        columns={4}
-        max={EVENT_TAGS_MAX}
-        disabled={readOnly}
-        options={tags.groups.flatMap((g) =>
-          g.tags.map((t) => ({ value: String(t.tagId), label: t.name })),
-        )}
-        value={value.map(String)}
-        onChange={(next) => {
-          const now = new Set(value.map(String));
-          const changed =
-            next.find((v) => !now.has(v)) ?? [...now].find((v) => !next.includes(v)) ?? null;
-          if (changed !== null) tags.toggle(Number(changed));
-        }}
-      />
+    <FormSection
+      title="태그"
+      description={
+        <>
+          공연과 관련된 태그를 선택해주세요. <span className={s.mobileOnly}>(다중선택 가능)</span>
+          <span className={s.desktopOnly}>(최대 {EVENT_TAGS_MAX}개까지 선택 가능)</span>
+        </>
+      }
+    >
+      <Flex direction="column" gap={4} data-testid="tag-groups">
+        {tags.groups.map((g, i) => {
+          const label = TAG_CATEGORY_LABEL[g.category];
+          const labelId = `tag-group-${i}`;
+          const ids = new Set(g.tags.map((t) => t.tagId));
+          const inGroup = value.filter((id) => ids.has(id)).map(String);
+          return (
+            // 모르는 분류가 여럿이면 모두 UNKNOWN — 순서를 key에 섞는다
+            <Flex key={`${g.category}-${i}`} direction="column" gap={2}>
+              <span id={labelId}>
+                <Txt typography="labelMd" color={colors.textSecondaryLabel}>
+                  {label}
+                </Txt>
+              </span>
+              <TagButtonGroup
+                aria-labelledby={labelId}
+                className={s.tags}
+                full={full}
+                disabled={readOnly}
+                options={g.tags.map((t) => ({ value: String(t.tagId), label: t.name }))}
+                value={inGroup}
+                onChange={(next) => {
+                  const now = new Set(inGroup);
+                  const changed =
+                    next.find((v) => !now.has(v)) ?? inGroup.find((v) => !next.includes(v)) ?? null;
+                  if (changed !== null) tags.toggle(Number(changed));
+                }}
+              />
+            </Flex>
+          );
+        })}
+      </Flex>
       <FieldError>{serverError}</FieldError>
     </FormSection>
   );

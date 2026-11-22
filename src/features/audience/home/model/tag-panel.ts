@@ -1,13 +1,8 @@
 import type { TagGroup } from '@/api/event/schema';
+import { TAG_CATEGORY_LABEL } from '@/features/shared/event-labels';
 
-/** 태그 분류 이름(GUI 태그 패널 `324:3237` — 공연구분 · 장르 · 장소 · 팀). 모르는 분류는 "기타" */
-export const TAG_CATEGORY_LABEL: Record<TagGroup['category'], string> = {
-  EVENT_TYPE: '공연구분',
-  GENRE: '장르',
-  AREA: '장소',
-  TEAM: '팀',
-  UNKNOWN: '기타',
-};
+/** 태그 분류 이름 — 호스팅 기본 정보와 같이 쓴다(`features/shared/event-labels`) */
+export { TAG_CATEGORY_LABEL };
 
 export type TagPanelGroup = {
   category: TagGroup['category'];

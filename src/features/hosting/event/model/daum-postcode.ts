@@ -3,8 +3,12 @@
  * 화면은 `embed`로 오버레이 안에 띄운다(새 창 `open()`은 모바일 웹뷰에서 막힐 수 있다). 처음 쓸 때 한 번만 넣고, 실패하면 다음에 다시 시도한다.
  * e2e·QA는 이 스크립트 주소를 가짜로 바꾼다(`window.daum.Postcode`가 같은 모양이면 된다).
  */
+/**
+ * 2026-11-22 `t1.daumcdn.net` → `t1.kakaocdn.net` — 우편번호 창 안 공지 "t1.daumcdn.net 도메인 종료 안내 - 2026년 11월 30일까지
+ * t1.kakaocdn.net으로 변경해 주세요"(같은 경로 · 같은 스크립트, VERSION 261109)
+ */
 export const DAUM_POSTCODE_SRC =
-  'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
+  'https://t1.kakaocdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js';
 
 /** 우편번호 창이 넘기는 값 중 쓰는 것. 도로명 주소를 먼저, 없으면 지번 */
 export type PostcodeResult = { address: string; roadAddress?: string; jibunAddress?: string };
