@@ -62,20 +62,21 @@ export function CanceledEventNotice({ cancel }: { cancel: EventCancel }) {
         </Txt>
       )}
       {lines.length > 0 && (
-        <Txt
-          as="p"
-          typography="labelMdEmphasized"
-          color={colors.textDangerLabel}
-          className={s.lines}
-          data-testid="event-cancel-result"
-        >
-          {lines.map((line, i) => (
-            <span key={line} className={s.line}>
-              {i > 0 && <br />}
-              {line}
-            </span>
-          ))}
-        </Txt>
+        <div data-testid="event-cancel-result">
+          <Txt
+            as="p"
+            typography="labelMdEmphasized"
+            color={colors.textDangerLabel}
+            className={s.lines}
+          >
+            {lines.map((line, i) => (
+              <span key={line} className={s.line}>
+                {i > 0 && <br />}
+                {line}
+              </span>
+            ))}
+          </Txt>
+        </div>
       )}
       {cancel.error && (
         <p role="alert">

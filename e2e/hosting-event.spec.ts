@@ -234,7 +234,8 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
     // 대시보드 — ①이 찼다
     await goMenu(page, '대시보드');
     await expect(page.getByTestId('checklist-basic')).toHaveAttribute('data-done', 'true');
-    await expect(page.getByTestId('checklist-progress')).toHaveText('2/3');
+    // 티켓 없는 공연이라 ③ 줄이 없다 — 두 줄 중 하나
+    await expect(page.getByTestId('checklist-progress')).toHaveText('1/2');
 
     // 상세 정보 — 첫 탭 본문
     await goMenu(page, '상세 정보');

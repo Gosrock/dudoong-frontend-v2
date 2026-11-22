@@ -91,7 +91,7 @@ scenario(
         await page.getByRole('radio', { name: '티켓 없음' }).click();
         await page.getByRole('button', { name: '완료' }).click();
         await expect(page).toHaveURL(/\/hosting\/events\/7001\/dashboard/);
-        await expect(page.getByTestId('checklist-progress')).toHaveText('1/3');
+        await expect(page.getByTestId('checklist-progress')).toHaveText('0/2'); // 티켓 없는 공연 — ③ 줄 없음(GUI 1929:6909)
       },
     );
     await step(
