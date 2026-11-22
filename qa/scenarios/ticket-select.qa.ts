@@ -188,7 +188,7 @@ scenario(
   {
     kind: '반응형',
     summary:
-      '바텀시트 없이 카드 안에서 선택 — 고른 줄 강조 → "이름 · × / − 1 + · 금액" 줄 → [공유][티켓 구매하기].',
+      '바텀시트 없이 카드 안에서 선택 — 고른 줄 강조 → "이름 · × / − 1 + · 금액" 줄 → [공유][티켓 구매하기]. 두둥 티켓 안내(A-4)는 PC 패널에 없다(사용자 지시 2026-11-22).',
     basis: ['plan P6 PC', '와이어 640:15617'],
     viewports: ['desktop'],
   },
@@ -207,6 +207,13 @@ scenario(
       await expect(aside.getByRole('group', { name: '일반 예매 수량' })).toContainText('2');
       await expect(aside.getByText('30,000원')).toBeVisible();
     });
+    await step(
+      '두둥 티켓(일반 예매)을 골라도 PC 오른쪽 패널에는 두둥 티켓 안내(legal-copy A-4)가 없다 — 사용자 지시 2026-11-22, 모바일 고른 티켓 줄은 유지(TKS-1)',
+      async () => {
+        await expect(aside.getByText(/호스트 계좌로 입금하면/)).toHaveCount(0);
+        await expect(aside.getByText(/자동으로 환불되지 않아요/)).toHaveCount(0);
+      },
+    );
     await step('[티켓 구매하기]를 누르면 체크아웃으로 간다', async () => {
       await aside.getByRole('button', { name: '티켓 구매하기' }).click();
       await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=2/);
