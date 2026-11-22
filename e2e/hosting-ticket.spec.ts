@@ -396,14 +396,12 @@ test.describe('티켓 있는 공연의 등록 완주(P11이 남긴 것)', () => 
 
     // ③이 찼다 → 등록
     await goEventMenu(page, '대시보드');
-    // 다 채운 순간 → "등록 준비 완료" 팝업을 닫고 등록
-    const ready = page.getByRole('alertdialog', { name: '공연 등록 준비가 완료되었어요!' });
-    await expect(ready).toBeVisible();
-    await ready.getByRole('button', { name: '확인' }).click();
+    // 다 채우면 등록 준비 끝(GUI 1929:6663 — 팝업 없이 버튼이 켜진다)
     await expect(page.getByTestId('checklist-progress')).toHaveText('3/3');
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await page.getByRole('button', { name: '공연 등록하기' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: '등록' }).click();
-    await expect(page.getByText('공연이 등록되었습니다.')).toBeVisible();
+    await page.getByRole('alertdialog').getByRole('button', { name: '등록하기' }).click();
+    await expect(page.getByText('공연을 등록했어요.')).toBeVisible();
     await expect(menu(page)).toHaveCount(6);
     expect(await publicTicketIds(page, 7001)).toEqual([8101]);
   });

@@ -118,16 +118,17 @@ scenario(
       await page.getByRole('button', { name: '저장하기' }).click();
       await expect(page.getByText('저장했어요')).toBeVisible();
     });
-    await step('[호스팅] 대시보드 3/3 → [공연 등록하기] → [등록]', async () => {
-      await goEventMenu(page, '대시보드');
-      const ready = page.getByRole('alertdialog', { name: '공연 등록 준비가 완료되었어요!' });
-      await ready.getByRole('button', { name: '확인' }).click();
-      await expect(page.getByTestId('checklist-progress')).toHaveText('3/3');
-      await page.getByRole('button', { name: '공연 등록하기' }).click();
-      await page.getByRole('alertdialog').getByRole('button', { name: '등록' }).click();
-      await expect(page.getByText('공연이 등록되었습니다.')).toBeVisible();
-      await expect(page.getByTestId('dashboard-registered')).toBeVisible();
-    });
+    await step(
+      '[호스팅] 대시보드 2/2(티켓 없는 공연 — ③ 행 없음) → [공연 등록하기] → [등록하기]',
+      async () => {
+        await goEventMenu(page, '대시보드');
+        await expect(page.getByTestId('checklist-progress')).toHaveText('2/2');
+        await page.getByRole('button', { name: '공연 등록하기' }).click();
+        await page.getByRole('alertdialog').getByRole('button', { name: '등록하기' }).click();
+        await expect(page.getByText('공연을 등록했어요.')).toBeVisible();
+        await expect(page.getByTestId('dashboard-registered')).toBeVisible();
+      },
+    );
     await step(
       '[관객] 공연 상세 — 이름 · 장소 · 섹션 본문이 호스팅에서 넣은 그대로(200)',
       async () => {

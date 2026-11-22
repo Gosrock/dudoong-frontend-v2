@@ -64,10 +64,10 @@ scenario(
   {
     kind: '정상',
     summary:
-      'PC: 검정 사이드바(‹ 내 공연 · 포스터 + 공연명 + 호스트 · 메뉴 4 · "공연 페이지 보기" 없음) + 머리(포스터 · 일자 · 시간) + 체크리스트. 모바일: "대시보드 ▾ / 공연명" 헤더.',
+      'PC: 검정 사이드바(← 내 공연 · 공연명 · 호스트 · 메뉴 4 · "공연 페이지 보기" 없음 — GUI `사이드바_공연 정보` 1861:2065) + 머리(포스터 · 일자 · 시간) + 체크리스트. 모바일: "대시보드 ▾ / 공연명" 헤더.',
     basis: [
       'plan P11 완료 기준 V(사이드바 등록 전 4개 · 모바일 헤더)',
-      'GUI 727:23210 · 727:23088',
+      'GUI 1929:6181 · 727:23088 · 1861:2065(Design Sync #333 · #335)',
       'gui-screens §3 셸',
     ],
   },
@@ -99,7 +99,9 @@ scenario(
           await expect(side.getByText('공연 페이지 보기')).toHaveCount(0);
         } else {
           await expect(
-            page.getByRole('button', { name: /^대시보드 — 고스락 신입 환영 공연/ }),
+            page.getByRole('button', {
+              name: /^대시보드 — 고스락 신입 환영 공연.*공연 화면 바꾸기/,
+            }),
           ).toBeVisible();
         }
       },
@@ -109,12 +111,16 @@ scenario(
 
 scenario(
   'HE-2',
-  '체크리스트 3/3 — [공연 등록하기] → 확인 팝업(와이어 문구), 취소하면 그대로',
+  '체크리스트 3/3 — [공연 등록하기] → 등록 확인 팝업(GUI 1929:7633), 돌아가기면 그대로',
   {
     kind: '정상',
     summary:
-      '세 항목이 모두 찬 상태(GE-7)면 검정 체크 3개 + 보라 버튼. 누르면 DS 팝업으로 한 번 묻는다.',
-    basis: ['GUI 745:32167', '와이어 424:9837 등록 확인 팝업', 'plan P11 V'],
+      '세 항목이 모두 찬 상태(GE-7)면 검정 체크 3개 + 보라 버튼(등록 준비 끝 — 팝업 없음). 누르면 "공연을 등록할까요?" 팝업(돌아가기 / 등록하기).',
+    basis: [
+      'GUI 1929:6663 · 745:32167',
+      'GUI 1929:7633 · 1913:46515 등록 확인 팝업(#333 · #334)',
+      'plan P11 V',
+    ],
     mocks: [
       http.get('*/api/v2/events/140/checklist', () =>
         HttpResponse.json(
@@ -139,10 +145,11 @@ scenario(
     await step('누르면 등록 확인 팝업이 뜬다', async () => {
       await page.getByRole('button', { name: '공연 등록하기' }).click();
       const dialog = page.getByRole('alertdialog', { name: '공연을 등록할까요?' });
-      await expect(dialog).toContainText('모든 사용자에게 공개되며 삭제할 수 없어요');
+      await expect(dialog).toContainText('모든 사용자에게 공개되고 삭제할 수 없어요');
+      await expect(dialog).toContainText('대시보드에서 공연을 취소할 수 있어요');
     });
-    await step('[취소]하면 닫히고 등록 요청은 없다', async () => {
-      await page.getByRole('alertdialog').getByRole('button', { name: '취소' }).click();
+    await step('[돌아가기]하면 닫히고 등록 요청은 없다', async () => {
+      await page.getByRole('alertdialog').getByRole('button', { name: '돌아가기' }).click();
       await expect(page.getByRole('alertdialog')).toHaveCount(0);
     });
   },
@@ -150,7 +157,7 @@ scenario(
 
 scenario(
   'HE-3',
-  '등록된 공연 — 메뉴 6개 · 예매자 관리 배지 · "공연 페이지 보기", 모바일 ☰ 드로어 · 제목 ▾ 공연 바꾸기',
+  '등록된 공연 — 메뉴 6개 · 예매자 관리 배지 · "공연 페이지 보기", 모바일 ☰ 드로어 · 제목 ▾ 화면 메뉴',
   {
     kind: '반응형',
     summary:
@@ -183,15 +190,19 @@ scenario(
         await expect(page.getByRole('dialog').locator('li')).toHaveCount(6);
       });
       await step(
-        '드로어를 닫고 제목 ▾를 누르면 "공연 바꾸기" 시트에 내 공연이 보인다',
+        '드로어를 닫고 제목 ▾를 누르면 이 공연의 화면 메뉴(대시보드 ✓) — 기본 정보로 간다(GUI 1880:34018)',
         async () => {
           await page.keyboard.press('Escape');
           await expect(page.getByRole('dialog')).toHaveCount(0);
-          await page.getByRole('button', { name: /다른 공연으로 바꾸기/ }).click();
-          const sheet = page.getByRole('dialog', { name: '공연 바꾸기' });
-          await expect(
-            sheet.getByRole('list', { name: '내 공연' }).locator('li').first(),
-          ).toBeVisible();
+          await page.getByRole('button', { name: /공연 화면 바꾸기/ }).click();
+          const menu = page.getByRole('menu');
+          await expect(menu.getByRole('menuitem')).toHaveCount(6);
+          await expect(menu.getByRole('menuitem', { name: '대시보드' })).toHaveAttribute(
+            'aria-current',
+            'page',
+          );
+          await menu.getByRole('menuitem', { name: '기본 정보' }).click();
+          await expect(page).toHaveURL(/\/hosting\/events\/101\/info$/);
         },
       );
     }
@@ -514,8 +525,9 @@ scenario(
   '체크리스트를 불러오지 못하면 안내 + [다시 시도]',
   {
     kind: '에러',
-    summary: 'GE-7 실패 — 카드 안에 실패 문구와 재시도. 머리·사이드바는 그대로.',
-    basis: ['patterns §11', '디자인 없음(Figma 코멘트 727:26249)'],
+    summary:
+      'GE-7 실패 — 카드 안 행 자리에 실패 문구와 재시도(가운데), [공연 등록하기]는 꺼진 채. 머리·사이드바는 그대로.',
+    basis: ['patterns §11', 'GUI 1929:7393 · 1913:39956(Design Sync #333 · #334)'],
     mocks: [
       http.get('*/api/v2/events/140/checklist', () =>
         HttpResponse.json(envelope.error(500, 'INTERNAL_SERVER_ERROR'), { status: 500 }),
@@ -580,15 +592,15 @@ scenario.manual('HE-11', '실제 카카오맵 · 우편번호 SDK로 주소 검�
 
 scenario(
   'HE-12',
-  '공연 취소(E-11) — 마스터: 사유 입력 → 취소, 남은 주문이 있으면 [남은 주문 다시 처리]',
+  '공연 취소(E-11) — 마스터: 사유 · 확인 체크 → 취소, 남은 주문이 있으면 [주문 처리하기]',
   {
     kind: '정상',
     summary:
-      '대시보드(등록 후) 맨 아래 "공연 취소" + [공연 취소하기](마스터 · 시작 전 OPEN). 오버레이(PC 모달 · 모바일 시트)에 되돌릴 수 없다는 안내 + 사유(1~100자). 취소하면 머리 아래 "취소된 공연이에요" · 사유 · 처리 결과, 포스터 칩 "취소됨". 한 번에 다 처리하지 못하면 [남은 주문 다시 처리](같은 API — 멱등). 디자인 · 와이어 없음 — design-requests Q122 · Q123 · Q124.',
+      '대시보드(등록 후) 맨 아래 "공연 취소" + 빨간 [공연 취소하기](마스터 · 시작 전 OPEN). 확인 창(PC 모달 · 모바일 시트)에 분홍 안내(남은 주문 n건 · 결제한 주문 m건) + 사유(필수 · 100자) + 확인 체크 — 둘 다 있어야 [취소하기]. 취소하면 머리 아래 분홍 "취소된 공연이에요" · 날짜 · 사유 · 결과, 포스터 칩 "취소됨". 한 번에 다 처리하지 못하면 "처리하지 못한 주문이 n건 있어요." + [주문 처리하기](같은 API — 멱등).',
     basis: [
       '이슈 #136 §7',
       '백엔드 #932(E-11 응답 remaining · failed)',
-      'design-requests Q122~Q124',
+      'GUI 1912:3126 · 1912:3581 · 1913:37541 · 1912:3661 · 1912:4413 · 1913:37303 · 1912:4466(Design Sync #326 · #332)',
     ],
   },
   async ({ page, step, testInfo }) => {
@@ -598,30 +610,44 @@ scenario(
     const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
     await step('등록된 공연(101) 대시보드 맨 아래 [공연 취소하기]', async () => {
       await page.goto('/hosting/events/101/dashboard');
-      await expect(page.getByTestId('event-cancel')).toContainText('되돌릴 수 없어요');
-    });
-    await step('누르면 안내 + 취소 사유 칸 — 비우고 누르면 칸 오류', async () => {
-      await page.getByRole('button', { name: '공연 취소하기' }).click();
-      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
-      await expect(dialog).toContainText('취소 사유를 입력해 주세요.');
-    });
-    await step('사유를 넣고 취소하면 "취소된 공연" 안내 · 결과 · 남은 주문 안내', async () => {
-      await dialog
-        .getByRole('textbox', { name: '취소 사유' })
-        .fill('공연장 사정으로 공연을 취소합니다');
-      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
-      await expect(dialog).toHaveCount(0);
-      await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
-      await expect(page.getByTestId('event-cancel-result')).toContainText(
-        '아직 처리하지 못한 주문이',
+      await expect(page.getByTestId('event-cancel')).toContainText(
+        '시작 전 공연만 취소할 수 있어요.',
       );
-      await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toBeVisible();
     });
-    await step('[남은 주문 다시 처리]를 다 끝날 때까지 누르면 버튼이 사라진다', async () => {
+    await step(
+      '누르면 분홍 안내(남은 주문 수) + 사유 칸 + 확인 체크 — 둘 다 없으면 [취소하기]가 꺼져 있다',
+      async () => {
+        await page.getByRole('button', { name: '공연 취소하기' }).click();
+        await expect(dialog).toContainText(/남은 주문 \d+건이 모두 거절·취소되고/);
+        await expect(dialog.getByRole('button', { name: '취소하기', exact: true })).toBeDisabled();
+      },
+    );
+    await step(
+      '사유 · 확인 체크를 하면 [취소하기]가 켜진다(GUI 1913:37541 · 1913:37303)',
+      async () => {
+        await dialog
+          .getByRole('textbox', { name: '취소 사유' })
+          .fill('공연장 사정으로 공연을 취소합니다');
+        await dialog.getByRole('checkbox').check();
+        await expect(dialog.getByRole('button', { name: '취소하기', exact: true })).toBeEnabled();
+      },
+    );
+    await step(
+      '취소하면 "취소된 공연" 안내 · 결과 · 남은 주문 안내 + [주문 처리하기](GUI 1912:3661)',
+      async () => {
+        await dialog.getByRole('button', { name: '취소하기', exact: true }).click();
+        await expect(dialog).toHaveCount(0);
+        await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+        await expect(page.getByTestId('event-canceled')).toContainText('사유: 공연장 사정으로');
+        await expect(page.getByTestId('event-cancel-result')).toContainText('처리하지 못한 주문이');
+        await expect(page.getByRole('button', { name: '주문 처리하기' })).toBeVisible();
+      },
+    );
+    await step('[주문 처리하기]를 다 끝날 때까지 누르면 버튼이 사라진다', async () => {
       setEventCancelScenario({ limit: 100 });
-      await page.getByRole('button', { name: '남은 주문 다시 처리' }).click();
-      await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
-      await expect(page.getByTestId('event-cancel-result')).not.toContainText('아직 처리하지 못한');
+      await page.getByRole('button', { name: '주문 처리하기' }).click();
+      await expect(page.getByRole('button', { name: '주문 처리하기' })).toHaveCount(0);
+      await expect(page.getByTestId('event-cancel-result')).not.toContainText('처리하지 못한');
     });
   },
 );
@@ -647,7 +673,8 @@ scenario(
       await page.getByRole('button', { name: '공연 취소하기' }).click();
       const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
       await dialog.getByRole('textbox', { name: '취소 사유' }).fill('사유');
-      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+      await dialog.getByRole('checkbox').check();
+      await dialog.getByRole('button', { name: '취소하기', exact: true }).click();
       await expect(dialog.getByRole('alert')).toHaveText(
         '이미 시작했거나 끝난 공연은 취소할 수 없어요.',
       );
@@ -663,15 +690,15 @@ scenario(
 
 scenario(
   'HE-14',
-  '취소된 공연을 다시 열면 GE-3 남은 수로 — [남은 주문 다시 처리] 또는 고객센터 안내(Api 2.5.9)',
+  '취소된 공연을 다시 열면 GE-3 남은 수로 — [주문 처리하기] 또는 고객센터 안내 + [문의하기](Api 2.5.9)',
   {
     kind: '정상',
     summary:
-      '취소된 공연을 새로 열면 이 화면의 처리 결과가 없다. GE-3 `cancelRemainingCount > 0` · `cancelRetryable true`면 마스터에게 [남은 주문 다시 처리], `cancelRetryable false`(지난 공연 · 정산 기록)면 버튼 대신 "처리하지 못한 주문 n건이 있어요. 두둥 고객센터로 문의해 주세요.", 0이면 둘 다 없다. 디자인 없음 — design-requests Q165 · Q166.',
+      '취소된 공연을 새로 열면 이 화면의 처리 결과가 없다. GE-3 `cancelRemainingCount > 0` · `cancelRetryable true`면 마스터에게 "처리하지 못한 주문이 n건 있어요." + [주문 처리하기], `cancelRetryable false`(지난 공연 · 정산 기록)면 "… 두둥 고객센터에 문의해 주세요." + [문의하기](GUI 1912:4037 — 목적지 🤖 카카오톡 채널), 0이면 둘 다 없다.',
     basis: [
       '이슈 #150 · 백엔드 #940(B44)',
       'api-contract GE-3 cancelRemainingCount · cancelRetryable(2.5.9)',
-      'design-requests Q165 · Q166',
+      'GUI 1912:3661 · 1912:4037(Design Sync #332)',
     ],
   },
   async ({ page, step, testInfo }) => {
@@ -682,25 +709,77 @@ scenario(
       await page.getByRole('button', { name: '공연 취소하기' }).click();
       const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
       await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
-      await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+      await dialog.getByRole('checkbox').check();
+      await dialog.getByRole('button', { name: '취소하기', exact: true }).click();
       await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
     });
-    await step('새로고침 — 결과 줄은 없고 GE-3 남은 수로 [남은 주문 다시 처리]', async () => {
-      await page.reload();
-      await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
-      await expect(page.getByTestId('event-cancel-result')).toHaveCount(0);
-      await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toBeVisible();
-    });
+    await step(
+      '새로고침 — 처리 결과 줄은 없고 GE-3 남은 수로 남은 주문 안내 + [주문 처리하기]',
+      async () => {
+        await page.reload();
+        await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
+        await expect(page.getByTestId('event-cancel-result')).not.toContainText('거절·취소했');
+        await expect(page.getByTestId('event-cancel-result')).toContainText(
+          /처리하지 못한 주문이 \d+건 있어요\./,
+        );
+        await expect(page.getByRole('button', { name: '주문 처리하기' })).toBeVisible();
+      },
+    );
     await step(
       '정산 기록이 생긴 공연(cancelRetryable false) — 버튼 대신 고객센터 안내',
       async () => {
         setEventCancelScenario({ settled: [101] });
         await page.reload();
-        await expect(page.getByTestId('event-cancel-contact')).toContainText(
-          '두둥 고객센터로 문의해 주세요.',
+        await expect(page.getByTestId('event-cancel-result')).toContainText(
+          '두둥 고객센터에 문의해 주세요.',
         );
-        await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+        await expect(
+          page.getByTestId('event-cancel-contact').getByRole('link', { name: '문의하기' }),
+        ).toBeVisible();
+        await expect(page.getByRole('button', { name: '주문 처리하기' })).toHaveCount(0);
       },
     );
+  },
+);
+
+scenario(
+  'HE-17',
+  '등록 전 체크리스트 — 불러오는 중 스켈레톤 · 티켓 없는 공연은 두 줄',
+  {
+    kind: '정상',
+    summary:
+      'GE-7을 기다리는 동안 행 자리에 스켈레톤 3줄(160×20). 티켓 없는 공연(`ticketRequired=false`)은 ③ "하나 이상의 티켓 생성" 줄이 없다.',
+    basis: [
+      'GUI 1929:7153 · 1913:40061 불러오는 중 · 1929:6909 · 1913:39649 티켓 없는 공연(Design Sync #333 · #334)',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('GE-7이 오기 전 — 스켈레톤 3줄, [공연 등록하기]는 꺼짐', async () => {
+      await page.route(/\/api\/v2\/events\/140\/checklist(\?|$)/, () => {
+        // 응답하지 않는다
+      });
+      await page.goto('/hosting/events/140/dashboard');
+      await expect(page.getByLabel('체크리스트 불러오는 중')).toBeVisible();
+      await expect(page.getByRole('button', { name: '공연 등록하기' })).toBeDisabled();
+    });
+    await step('티켓 없는 공연 — 행 두 줄(기본 정보 · 상세 정보)', async () => {
+      await page.unroute(/\/api\/v2\/events\/140\/checklist(\?|$)/);
+      await page.route(/\/api\/v2\/events\/140\/checklist(\?|$)/, (r) =>
+        r.fulfill({
+          json: envelope.ok({
+            isBasicFilled: true,
+            isDetailFilled: true,
+            hasValidTicket: false,
+            ticketRequired: false,
+            canOpen: true,
+          }),
+        }),
+      );
+      await page.goto('/hosting/events/140/dashboard');
+      await expect(page.getByTestId('checklist-progress')).toHaveText('2/2');
+      await expect(page.getByTestId('checklist-ticket')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '공연 등록하기' })).toBeEnabled();
+    });
   },
 );

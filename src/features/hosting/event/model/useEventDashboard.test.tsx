@@ -270,9 +270,9 @@ describe('대시보드 — 등록 후 통계(GD-1, P13a)', () => {
     const { result } = setup('101');
     await waitFor(() => expect(result.current?.stats).toBeTruthy());
     expect(result.current.stats!.timeline.map((s) => [s.key, s.from, s.to])).toEqual([
-      ['promotion', null, '2027.02.20 19:00'],
-      ['start', '2027.02.20 19:00', null],
-      ['done', '2027.02.20 21:00', null],
+      ['promotion', null, '2026.11.21 19:00'],
+      ['start', '2026.11.21 19:00', null],
+      ['done', '2026.11.21 21:00', null],
     ]);
   });
 

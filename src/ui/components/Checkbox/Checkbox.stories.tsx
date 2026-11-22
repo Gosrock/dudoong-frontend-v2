@@ -51,3 +51,12 @@ export const Keyboard: Story = {
     await expect(box).toHaveAttribute('aria-checked', 'false');
   },
 };
+
+/** 켜짐 보라(`tone="brand"`) — 공연 취소 확인 체크(GUI `1913:37303`, 화면이 DS `Box` 채움을 덮어씀) */
+export const Brand: Story = {
+  args: { tone: 'brand', defaultChecked: true },
+  play: async ({ canvasElement }) => {
+    const box = within(canvasElement).getByRole('checkbox');
+    await expect(box).toHaveAttribute('aria-checked', 'true');
+  },
+};
