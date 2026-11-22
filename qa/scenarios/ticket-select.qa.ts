@@ -133,7 +133,7 @@ scenario(
       await openSheet(page);
       await sheet(page).getByRole('button', { name: '문의하기' }).click();
       await expect(sheet(page)).toBeHidden();
-      await expect(page.getByRole('dialog', { name: '고스락 연락처' })).toBeVisible();
+      await expect(page.getByRole('dialog', { name: '호스트 연락처' })).toBeVisible();
     });
   },
 );

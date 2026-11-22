@@ -166,8 +166,9 @@ scenario(
       await step('햄버거를 열면 벨이 드로어 머리 줄에 있고 같은 메뉴가 보인다', async () => {
         const drawer = await openDrawer(page);
         await expect(drawer.getByRole('link', { name: /^알림/ })).toBeVisible();
-        // GUI 햄버거(1047:19428, Ready 2026-11-07) — 섹션 이름 "호스팅 센터", 말풍선 없음(Q131 · Q184)
-        await expect(drawer.getByRole('link', { name: /호스팅 센터/ })).toBeVisible();
+        // GUI 햄버거(1047:19428) — 섹션 이름 "공연 준비"(2026-11-22 Design Sync #369 · #370), 말풍선 없음(Q184)
+        await expect(drawer.getByRole('link', { name: /공연 준비/ })).toBeVisible();
+        await expect(drawer.getByRole('link', { name: /호스팅 센터/ })).toHaveCount(0);
         await expect(page.getByRole('tooltip')).toHaveCount(0);
         // 로그아웃 위 "공지사항" — 호스팅 드로어는 호스팅 공지 목록(P9c-V · Q4)
         await expect(drawer.getByRole('link', { name: '공지사항' })).toHaveAttribute(
@@ -220,7 +221,7 @@ scenario(
       return;
     }
     await step(
-      '햄버거를 열면 [로그인 ›] · 주문내역 · 관심 호스트 · 지난 관람 아카이빙 · 공연 둘러보기 ↗ · 호스팅 센터 ↗가 보이고 로그아웃은 없다',
+      '햄버거를 열면 [로그인 ›] · 주문내역 · 관심 호스트 · 지난 관람 아카이빙 · 공연 둘러보기 ↗ · 공연 준비 ↗가 보이고 로그아웃은 없다',
       async () => {
         const drawer = await openDrawer(page);
         await expect(drawer.getByRole('link', { name: /로그인/ })).toBeVisible();
@@ -236,7 +237,7 @@ scenario(
             `/login?redirect=${encodeURIComponent(to)}`,
           );
         }
-        await expect(drawer.getByRole('link', { name: /호스팅 센터/ })).toBeVisible();
+        await expect(drawer.getByRole('link', { name: /공연 준비/ })).toBeVisible();
         // 호스트가 없으면 회색 칸 안내(1175:15425 — 마침표 없음). 말풍선은 GUI에서 빠졌다(Q184)
         await expect(
           drawer.getByText('아직 두둥에서 호스트가 없어요', { exact: true }),
@@ -255,14 +256,15 @@ scenario(
 
 scenario(
   'SHELL-4',
-  '관객 로그인 — 햄버거의 호스트 줄이 0개 · 10개 · 10개 초과에서 맞게 그려진다',
+  '관객 로그인 — 햄버거의 호스트 줄은 0개면 안내, 1~4개 그대로, 4개 넘으면 앞 4개만',
   {
     kind: '정상',
-    summary: 'GM-1 hosts(최대 10) + hostCount. 0개 문구, 10개 그대로, 초과면 "N개 더 보기".',
+    summary:
+      'GM-1 hosts(최대 10) + hostCount. 0개 문구, 드로어는 최대 4개(Design Sync #370 — GUI 1989:37165 네 칸), "더 보기" 칸 없음(🤖 — 나머지는 공연 준비 ↗).',
     basis: [
       'plan P4s 완료 기준 V 3',
       'P4s-L shellHostRow',
-      'GUI 1047:19428 햄버거바 - 로그인(Ready 2026-11-07)',
+      'GUI 1047:19428 햄버거바 - 로그인(Ready, 2026-11-22 #370)',
     ],
     viewports: ['mobile'],
   },
@@ -270,23 +272,23 @@ scenario(
     await setMockSession(page, 'loggedIn');
     const cases: [string, number, number][] = [
       ['0개', 0, 0],
+      ['3개', 3, 3],
       ['10개', 10, 10],
       ['13개', 10, 13],
     ];
-    for (const [label, shown, total] of cases) {
+    for (const [label, given, total] of cases) {
       await step(`호스트 ${label}면 햄버거 호스트 줄이 그에 맞다`, async () => {
-        mockApi.use(meWith(shown, total));
+        mockApi.use(meWith(given, total));
         await page.goto('/');
         const drawer = await openDrawer(page);
         const row = drawer.getByRole('list', { name: '내 호스트' });
-        if (shown === 0) {
+        if (given === 0) {
           await expect(
             drawer.getByText('아직 두둥에서 호스트가 없어요', { exact: true }),
           ).toBeVisible();
         } else {
-          await expect(row.getByRole('link')).toHaveCount(total > shown ? shown + 1 : shown);
-          if (total > shown)
-            await expect(row.getByText(`${total - shown}개 더 보기`)).toBeVisible();
+          await expect(row.getByRole('link')).toHaveCount(Math.min(given, 4));
+          await expect(row.getByText(/개 더 보기/)).toHaveCount(0);
         }
         await page.keyboard.press('Escape');
       });
