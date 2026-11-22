@@ -45,7 +45,7 @@ export function PaymentInfo({ c }: { c: CheckoutState }) {
         </Txt>
       </div>
       <InfoRow label="입금자명" value={c.depositorName ?? '—'} />
-      <DepositAccountRows account={c.account} toastId="checkout:copy" />
+      <DepositAccountRows account={c.account} toastId="checkout:copy" bankAfterAccount />
     </section>
   );
 }
@@ -58,10 +58,12 @@ function amounts(c: CheckoutState) {
 
 const WON_FORMAT = { ticket: won, option: won, total: won };
 
-export function AmountInfo({ c }: { c: CheckoutState }) {
+/** 결제금액 줄들. PC 최종 결제정보 패널(GUI `1999:3016`)은 총액 위 선이 없다(`divider={false}`) */
+export function AmountInfo({ c, divider = true }: { c: CheckoutState; divider?: boolean }) {
   const { ticketAmount, optionAmount, total } = amounts(c);
   return (
     <AmountRows
+      divider={divider}
       ticketAmount={ticketAmount}
       optionAmount={optionAmount}
       total={total}
@@ -83,7 +85,7 @@ export function PaymentChannelField({ c }: { c: CheckoutState }) {
   return (
     <section aria-labelledby={titleId}>
       <InfoRow hierarchy="first" label={<span id={titleId}>결제방식</span>} />
-      <Flex direction="column" paddingX={5} paddingY={4}>
+      <Flex direction="column" className={s.channelRow}>
         <Controller
           control={c.form.control}
           name="paymentChannel"
@@ -104,9 +106,9 @@ export function PaymentChannelField({ c }: { c: CheckoutState }) {
 }
 
 /**
- * 입금 확인 창 본문 — 흰 카드 둘(R1e — GUI `567:9756`, Ready `567:9468`): 결제정보(입금자명 · 결제방식 · 입금은행 · 결제계좌[복사] · 예금주) ·
+ * 입금 확인 창 본문 — 흰 카드 둘(R1e — GUI `567:9756`, Ready `567:9468`): 결제정보(입금자명 · 결제방식 · 결제계좌[복사] · 입금은행 · 예금주 — #353) ·
  * 결제금액(티켓금액 · 옵션금액 · 선 · 총 결제금액). 카드 = 흰 판 · 테두리 `surface/default-border` · 모서리 12 · 사이 16, 줄은 DS `list`(InfoRow).
- * 입금은행 줄은 유지(U7 — 토스 송금 · 입금에 은행이 필요). A19 · A21(옛 DS `다이얼로그 - 결제 요약` 판)은 이 카드로 흡수.
+ * 입금은행 줄은 2026-11-22 GUI에도 들어왔다(#353). A19 · A21(옛 DS `다이얼로그 - 결제 요약` 판)은 이 카드로 흡수.
  */
 export function DepositSummary({ c }: { c: CheckoutState }) {
   const { ticketAmount, optionAmount, total } = amounts(c);
@@ -128,7 +130,7 @@ export function DepositSummary({ c }: { c: CheckoutState }) {
         />
         <InfoRow label="입금자명" value={c.depositorName ?? '—'} />
         <InfoRow label="결제방식" value={CHANNEL_LABEL[channel]} />
-        <DepositAccountRows account={c.account} toastId="checkout:copy" />
+        <DepositAccountRows account={c.account} toastId="checkout:copy" bankAfterAccount />
       </section>
       <section aria-label="결제금액" className={s.summaryCard}>
         <InfoRow hierarchy="first" label="결제금액" />

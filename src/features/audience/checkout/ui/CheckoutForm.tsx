@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 
 import type { Checkout } from '@/api/order/schema';
@@ -14,6 +14,7 @@ import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Popup } from '@/ui/components/Popup/Popup';
 import { useCloseOnBack } from '@/ui/hooks/useCloseOnBack';
+import { useMediaQueries } from '@/ui/hooks/useMediaQueries';
 import { Divider } from '@/ui/primitives/Divider';
 import { Flex } from '@/ui/primitives/Flex';
 import { Spacing } from '@/ui/primitives/Spacing';
@@ -21,11 +22,13 @@ import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import { firstInvalidTicket } from '../model/option-form';
+import { refundPolicyItems } from '../model/refund-policy';
 import { type CheckoutState, useCheckout } from '../model/useCheckout';
 import { collapseTopLine } from './checkout.css';
 import { DudoongNoticeField, HostProvisionField } from './CheckoutAgreements';
 import * as s from './CheckoutForm.css';
 import { AmountInfo, DepositSummary, PaymentChannelField, PaymentInfo } from './CheckoutPayment';
+import { CheckoutAmountPanel, CheckoutSaleInfoPanel } from './CheckoutSidePanel';
 import { OptionFields } from './OptionFields';
 import { RefundPolicy } from './RefundPolicy';
 
@@ -33,22 +36,17 @@ import { RefundPolicy } from './RefundPolicy';
 const AGREE_LABEL = '주문내용과 환불/취소 규정을 확인하였으며 이에 동의합니다.';
 
 /**
- * 예매 확인 화면 중개자 문장 — legal-copy A-5 첫 줄 원문(약관 제24조① · 제3조③ "결제(예매) 확인 화면"). 바꾸거나 빼지 않는다.
- * v1은 CTA 바로 위 — 같은 자리(하단 바, 동의 줄 위). A-5 둘째 줄 "위 내용을 확인하였으며 {결제|예매}에 동의합니다"는 GUI 동의 줄
- * (`AGREE_LABEL`)이 같은 역할이라 넣지 않았다(🤖 Claude 판단 2026-11-07 — 동의 두 줄이 겹친다). FIGMA-CUSTOM: 디자인 없음(Q151)
- */
-const CHECKOUT_INTERMEDIARY_NOTICE =
-  '두둥은 통신판매중개자로서 공연의 당사자가 아니며, 공연에 관한 의무와 책임은 호스트에게 있습니다.';
-
-/**
- * 체크아웃 폼 — 순서(GUI `564:4156`): 폼 위 안내 / 옵션적용 / 예매정보(티켓 아코디언) / 결제정보 · 결제금액 · 결제방식(두둥만) /
- * 호스트 제공 동의 / 취소·환불 규정 / 하단 동의 + CTA. 두둥은 CTA 뒤 주문 확인 다이얼로그(요약 + 입금 전 확인)를 거친다.
+ * 체크아웃 폼 — 순서(GUI `564:4156` · `567:9159`, 2026-11-22 Design Sync #349~#352): 폼 위 안내 / 옵션적용 / 예매정보(티켓 아코디언) /
+ * 결제정보 · 결제금액 · 결제방식(두둥만) / 판매정보(호스트 제공 동의 · 취소·환불 규정 — 중개자 문장 포함) / 하단 동의 + CTA. 두둥은 CTA 뒤 주문 확인 다이얼로그(요약 + 입금 전 확인)를 거친다.
  */
 export function CheckoutForm({
   eventName,
   eventStartAt,
+  summary,
   ...props
 }: {
+  /** 맨 위 공연 요약(PC는 왼쪽 열 맨 위) */
+  summary?: ReactNode;
   eventId: number;
   checkout: Checkout;
   depositorName: string | null;
@@ -69,7 +67,12 @@ export function CheckoutForm({
     hold: c.submission.pending,
   });
 
+  // PC 판매정보 패널 펼침(처음 펼침) — 동의 오류면 다시 펼쳐 칸이 보이고 포커스가 가게
+  const [saleOpen, setSaleOpen] = useState(true);
+
   const focusFirstError = () => {
+    const { hostProvisionAgreed, agreeRefundPolicy } = c.form.formState.errors;
+    if (hostProvisionAgreed || agreeRefundPolicy) setSaleOpen(true);
     // 첫 오류 티켓의 아코디언을 열고(tech-decisions §18) 다음 프레임에 포커스 — 닫힌 Collapsible 안 칸은 그려져 있지 않다
     const ticket =
       c.options.mode === 'individual' ? firstInvalidTicket(c.form.formState.errors) : null;
@@ -95,15 +98,13 @@ export function CheckoutForm({
 
   const isTransfer = c.kind === 'TRANSFER';
 
-  return (
-    <form
-      className={s.form}
-      onSubmit={(e) => {
-        e.preventDefault();
-        void onCta();
-      }}
-      noValidate
-    >
+  // PC(1024~)는 두 열(GUI `[WEB] 공연결제` `1999:2832` — #363): 왼쪽 본문 · 오른쪽 최종 결제정보 + 판매정보 패널.
+  // 마운트 뒤에 판정한다(patterns §1-4) — 첫 그림은 모바일 한 열이고, 입력 값은 폼 상태라 바뀌어도 남는다
+  const desktop = useMediaQueries() === 'desktop';
+
+  const main = (
+    <>
+      {summary}
       <SubmitBanners c={c} />
       {c.options.canChooseMode && <OptionModeSection c={c} />}
       <TicketsSection c={c} openTickets={openTickets} setTicketOpen={setTicketOpen} />
@@ -112,31 +113,63 @@ export function CheckoutForm({
         <>
           <Divider variant="section" />
           <PaymentInfo c={c} />
-          <Divider variant="section" />
-          <AmountInfo c={c} />
+          {!desktop && (
+            <>
+              <Divider variant="section" />
+              <AmountInfo c={c} />
+            </>
+          )}
           <Divider variant="section" />
           <PaymentChannelField c={c} />
         </>
       )}
+    </>
+  );
 
-      {c.agreementFields.hostProvision && (
+  return (
+    <form
+      className={desktop ? s.formDesktop : s.form}
+      onSubmit={(e) => {
+        e.preventDefault();
+        void onCta();
+      }}
+      noValidate
+    >
+      {desktop ? (
         <>
-          <Divider variant="section" />
-          <HostProvisionField c={c} eventName={eventName} />
+          <div className={s.mainColumn}>{main}</div>
+          <div className={s.sideColumn}>
+            <CheckoutAmountPanel c={c} isTransfer={isTransfer} />
+            <CheckoutSaleInfoPanel
+              c={c}
+              eventId={props.eventId}
+              eventName={eventName}
+              eventStartAt={eventStartAt}
+              agreeField={<AgreeRefundPolicyField c={c} placement="panel" />}
+              open={saleOpen}
+              onOpenChange={setSaleOpen}
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          {main}
+          <SaleInfoSection
+            c={c}
+            eventId={props.eventId}
+            eventName={eventName}
+            eventStartAt={eventStartAt}
+          />
+
+          <div className={s.bottomBarSpace} aria-hidden />
+          <div className={s.bottomBar}>
+            <AgreeRefundPolicyField c={c} placement="bar" />
+            <Button type="submit" size="lg" fullWidth disabled={c.submission.pending}>
+              {c.ctaLabel}
+            </Button>
+          </div>
         </>
       )}
-
-      <RefundPolicy c={c} eventId={props.eventId} startAt={eventStartAt} />
-
-      <div className={s.bottomBar}>
-        <Txt as="p" typography="labelSm" color={colors.textTertiaryLabel} className={s.notice}>
-          {CHECKOUT_INTERMEDIARY_NOTICE}
-        </Txt>
-        <AgreeRefundPolicyField c={c} />
-        <Button type="submit" size="lg" fullWidth disabled={c.submission.pending}>
-          {c.ctaLabel}
-        </Button>
-      </div>
 
       {isTransfer && (
         <OrderConfirmPopup
@@ -279,14 +312,53 @@ function TicketsSection({
   );
 }
 
-/** 하단 동의 줄(환불/취소 규정) */
-function AgreeRefundPolicyField({ c }: { c: CheckoutState }) {
+/**
+ * 판매정보(GUI `567:9159` "판매정보" — Design Sync #349): 머리 줄 + 호스트 제공 동의 + 취소·환불 규정.
+ * 둘 다 없으면(v2에 없는 결제 방식) 그리지 않는다
+ */
+function SaleInfoSection({
+  c,
+  eventId,
+  eventName,
+  eventStartAt,
+}: {
+  c: CheckoutState;
+  eventId: number;
+  eventName: string;
+  eventStartAt: string | null;
+}) {
+  const hasRefundPolicy = refundPolicyItems(c.ticket.payType) !== null;
+  if (!c.agreementFields.hostProvision && !hasRefundPolicy) return null;
+  return (
+    <>
+      <Divider variant="section" />
+      <section aria-labelledby="checkout-sale-info">
+        <InfoRow hierarchy="first" label={<span id="checkout-sale-info">판매정보</span>} />
+        {c.agreementFields.hostProvision && <HostProvisionField c={c} eventName={eventName} />}
+        <RefundPolicy c={c} eventId={eventId} startAt={eventStartAt} />
+      </section>
+    </>
+  );
+}
+
+/**
+ * 환불/취소 규정 동의 줄 — 모바일은 하단 고정 바 가운데(`bar`, `Label/sm` 진한 글자), PC는 판매정보 패널 안 왼쪽(`panel` — GUI `1999:3036`
+ * `Body/sm` 회색 + 빨간 `*` 장식). 문구는 같다
+ */
+function AgreeRefundPolicyField({
+  c,
+  placement,
+}: {
+  c: CheckoutState;
+  placement: 'bar' | 'panel';
+}) {
+  const panel = placement === 'panel';
   return (
     <Controller
       control={c.form.control}
       name="agreeRefundPolicy"
       render={({ field, fieldState }) => (
-        <Flex direction="column" align="center" gap={1}>
+        <Flex direction="column" align={panel ? 'flex-start' : 'center'} gap={1}>
           <Checkbox
             ref={field.ref}
             checked={field.value}
@@ -294,9 +366,18 @@ function AgreeRefundPolicyField({ c }: { c: CheckoutState }) {
             onBlur={field.onBlur}
             aria-invalid={fieldState.error ? true : undefined}
             label={
-              <Txt typography="labelSm" color={colors.textPrimaryLabel}>
-                {AGREE_LABEL}
-              </Txt>
+              panel ? (
+                <Txt typography="bodySm" color={colors.textSecondaryLabel}>
+                  <span aria-hidden className={s.requiredMark}>
+                    *
+                  </span>
+                  {AGREE_LABEL}
+                </Txt>
+              ) : (
+                <Txt typography="labelSm" color={colors.textPrimaryLabel}>
+                  {AGREE_LABEL}
+                </Txt>
+              )
             }
           />
           {fieldState.error && (
@@ -310,7 +391,7 @@ function AgreeRefundPolicyField({ c }: { c: CheckoutState }) {
   );
 }
 
-/** 주문 확인 다이얼로그(두둥) — 결제 요약 + 입금 전 확인(③) → [주문 완료하기] */
+/** 주문 확인 다이얼로그(두둥) — 결제 요약 + 입금 전 확인(③) → [입금완료](주문 생성) */
 function OrderConfirmPopup({
   c,
   open,
@@ -336,16 +417,15 @@ function OrderConfirmPopup({
       // 모양 = 입금 확인 창(R1e — GUI `567:9756`): 342 · 회색 판 · ✕ · 흰 카드 둘 · 버튼 하나(✕가 취소). 문구 · 버튼 이름은 U11 유지
       variant="summary"
       title="주문 완료하기"
-      // FIGMA-CUSTOM: GUI 567:9468은 "입금 하셨나요?" + [결제완료](입금 뒤 주문). B23(사용자 결정 2026-11-02)으로 주문을 입금 전에
-      // 먼저 만든다 — 같은 DS Popup에 문구·버튼만 바꿨다. 계좌·금액 안내는 주문 완료 화면. 🤖 Claude 판단, design-requests Q97. Figma 코멘트 2026-11-02
+      // 설명 · 버튼 이름은 GUI `567:9814` · `567:9810` 글자 그대로(Design Sync #353, 2026-11-22). 버튼이 주문을 만든다(B23 — 주문 먼저)
       description={
         <>
-          확인을 누르면 주문이 호스트에게 전달되고 티켓이 잡혀요.
+          아래 버튼을 누르면 즉시 호스트에게 주문이 전달됩니다.
           <br />
-          다음 화면에서 안내하는 계좌로 입금해 주세요.
+          화면에서 안내하는 계좌로 입금해주세요.
         </>
       }
-      confirmLabel="주문 완료하기"
+      confirmLabel="입금완료"
       onConfirm={onConfirm}
       loading={c.submission.pending}
       confirmDisabled={c.agreementFields.dudoongNotice && !noticeConfirmed}

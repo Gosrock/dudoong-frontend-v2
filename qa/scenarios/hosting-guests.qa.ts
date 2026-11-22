@@ -867,7 +867,7 @@ scenario(
         .click();
       await page
         .getByRole('alertdialog', { name: '주문 완료하기' })
-        .getByRole('button', { name: '주문 완료하기' })
+        .getByRole('button', { name: '입금완료' })
         .click();
       await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
       orderUuid = new URL(page.url()).pathname.split('/').at(-1)!;

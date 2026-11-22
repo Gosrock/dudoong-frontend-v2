@@ -1,5 +1,6 @@
 import { style, styleVariants } from '@vanilla-extract/css';
 
+import { rowInline } from '../../theme/row-inset.css';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
@@ -15,7 +16,7 @@ export const row = style({
   width: '100%',
   minHeight: 48,
   margin: 0,
-  padding: `${vars.space[3]} ${vars.space[5]}`,
+  padding: `${vars.space[3]} ${rowInline}`,
   boxSizing: 'border-box',
 });
 

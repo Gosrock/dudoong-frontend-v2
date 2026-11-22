@@ -47,13 +47,13 @@ test.describe('체크아웃 → 주문 완료', () => {
     );
     await page
       .getByRole('alertdialog', { name: '주문 완료하기' })
-      .getByRole('button', { name: '주문 완료하기' })
+      .getByRole('button', { name: '입금완료' })
       .click();
     // 주문 시도마다 Idempotency-Key(#923 — 영문·숫자·_·- 8~64자)
     expect((await post).headers()['idempotency-key']).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
 
     await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
-    await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
     // B23 — 주문을 입금 전에 만들고, 완료 화면이 계좌·금액을 안내한다
     await expect(page.getByTestId('deposit-guide').getByTestId('deposit-amount')).toHaveText(
       '50,000원',
@@ -72,7 +72,7 @@ test.describe('체크아웃 → 주문 완료', () => {
     ).toHaveLength(1);
 
     await page.reload();
-    await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
     await expect(page.getByTestId('order-result')).toHaveAttribute(
       'data-kind',
       'AWAITING_DEPOSIT_APPROVAL',
@@ -171,9 +171,9 @@ test.describe('체크아웃 → 주문 완료', () => {
     await page.getByRole('checkbox', { name: /환불\/취소 규정/ }).click();
     await host.click();
     await page.getByRole('button', { name: '결제하기' }).click();
-    await expect(dialog.getByRole('button', { name: '주문 완료하기' })).toBeDisabled();
+    await expect(dialog.getByRole('button', { name: '입금완료' })).toBeDisabled();
     await notice.click();
-    await dialog.getByRole('button', { name: '주문 완료하기' }).click();
+    await dialog.getByRole('button', { name: '입금완료' }).click();
 
     await expect(
       page.getByRole('alert').filter({ hasText: '필수 동의를 다시 확인하고 체크해 주세요.' }),
@@ -187,7 +187,7 @@ test.describe('체크아웃 → 주문 완료', () => {
     const post = page.waitForRequest(
       (r) => r.method() === 'POST' && r.url().endsWith('/api/v2/me/orders'),
     );
-    await dialog.getByRole('button', { name: '주문 완료하기' }).click();
+    await dialog.getByRole('button', { name: '입금완료' }).click();
     expect((await post).postDataJSON()).toMatchObject({
       hostProvisionAgreed: true,
       dudoongTicketNoticeConfirmed: true,
@@ -222,7 +222,7 @@ test.describe('취소된 공연(E-11) — 주문 Event_400_30', () => {
     // 호스트가 공연을 취소한다(E-11 — 상태는 OPEN 그대로, canceledAt만)
     const e = storedEvent(101)!;
     saveStoredEvent({ ...e, canceledAt: '2026.11.07 14:30', cancelReason: '공연장 사정' });
-    await dialog.getByRole('button', { name: '주문 완료하기' }).click();
+    await dialog.getByRole('button', { name: '입금완료' }).click();
 
     await expect(page).toHaveURL(/\/events\/101$/);
     await expect(page.getByText('호스트가 취소한 공연이라 예매할 수 없어요.')).toBeVisible();
