@@ -118,3 +118,49 @@ describe('수락(H-19 · H-20)', () => {
     await waitFor(() => expect(result.current.state).toEqual({ status: 'invalid', reason }));
   });
 });
+
+describe('거절(H-21 — Api 2.5.16, #348 B72)', () => {
+  it('거절하면 {hostId, hostName} 결과 — 같은 링크로는 다시 수락 · 거절할 수 없다(HOST_400_20)', async () => {
+    restore = installLoggedInFetch();
+    const sent = recordRequests();
+    const { result } = open(MOCK_INVITE_TOKEN.valid);
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.reject();
+    });
+    expect(ok).toBe(true);
+    expect(result.current.state).toEqual({
+      status: 'rejected',
+      result: { hostId: 12, hostName: '소음공작소' },
+    });
+    expect((await sent.list()).filter((r) => r.method === 'POST').map((r) => r.path)).toEqual([
+      `/api/v2/host-invitations/${MOCK_INVITE_TOKEN.valid}/reject`,
+    ]);
+    // 결과 화면에서는 더 부르지 않는다
+    expect(await result.current.accept()).toBe(false);
+    expect(await result.current.reject()).toBe(false);
+    // 같은 링크를 새로 열면 이미 사용된 초대
+    const again = open(MOCK_INVITE_TOKEN.valid);
+    await waitFor(() =>
+      expect(again.result.current.state).toEqual({ status: 'invalid', reason: 'used' }),
+    );
+  });
+
+  it('거절 사이에 초대가 쓸 수 없게 되면(취소 · 만료 등) 그 결과 화면으로 — 확인 창은 닫힌다(true)', async () => {
+    restore = installLoggedInFetch();
+    const { result } = open(MOCK_INVITE_TOKEN.valid);
+    await waitFor(() => expect(result.current.state.status).toBe('ready'));
+    // 다른 탭에서 먼저 수락
+    await fetch(`http://localhost:8080/api/v2/host-invitations/${MOCK_INVITE_TOKEN.valid}/accept`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    let ok: boolean | undefined;
+    await act(async () => {
+      ok = await result.current.reject();
+    });
+    expect(ok).toBe(true);
+    expect(result.current.state).toEqual({ status: 'invalid', reason: 'used' });
+  });
+});

@@ -158,6 +158,9 @@ const NO = {
   description: '공연 끝나고 근처 식당에서 함께해요',
   answer: '아니요',
   additionalPrice: 0,
+  // Api 2.5.16(#348 B67) — R-2 · I-2에도 같은 필드
+  optionType: 'YES_NO' as const,
+  choices: ['예', '아니요'],
 };
 const YES = { ...NO, answer: '예', additionalPrice: 10000 };
 const MEMBER = (answer: string) => ({
@@ -165,6 +168,8 @@ const MEMBER = (answer: string) => ({
   description: '한 명만 적어 주세요',
   answer,
   additionalPrice: 0,
+  optionType: 'SUBJECTIVE' as const,
+  choices: null,
 });
 
 let seq = 0;

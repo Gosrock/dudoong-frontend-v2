@@ -7,9 +7,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { isApiError } from '@/api/errors';
 import { handleError } from '@/api/handle-error';
 import { MY_HOSTS_KEY } from '@/api/host/queries';
-import { acceptHostInvitationMutation } from '@/api/host-invitation/mutations';
+import {
+  acceptHostInvitationMutation,
+  rejectHostInvitationMutation,
+} from '@/api/host-invitation/mutations';
 import { hostInvitationLandingQuery } from '@/api/host-invitation/queries';
-import type { HostInvitationAccept, HostInvitationLanding } from '@/api/host-invitation/schema';
+import type {
+  HostInvitationAccept,
+  HostInvitationLanding,
+  HostInvitationReject,
+} from '@/api/host-invitation/schema';
 import { meQuery } from '@/api/me/queries';
 import { loginHref } from '@/features/shared/auth/model/login-href';
 
@@ -39,7 +46,9 @@ export type HostInvitationState =
   /** GM-1 · H-19의 5xx · 네트워크 · 서버에 API 없음(운영 2.5.3 404) */
   | { status: 'error'; retry: () => void }
   | { status: 'ready'; landing: HostInvitationLanding }
-  | { status: 'accepted'; result: HostInvitationAccept; hostName: string | null };
+  | { status: 'accepted'; result: HostInvitationAccept; hostName: string | null }
+  /** 거절함(H-21 — #348 B72) — [호스트 홈으로 가기] */
+  | { status: 'rejected'; result: HostInvitationReject };
 
 const invalidOf = (error: unknown): InvalidInvitation | null =>
   isApiError(error) && error.code ? (INVALID_BY_CODE[error.code] ?? null) : null;
@@ -53,6 +62,8 @@ const invalidOf = (error: unknown): InvalidInvitation | null =>
  * - 수락 뒤 `myRole`을 주는 쿼리(GM-1 `hosts` · GH-1 · 그 호스트 키)를 무효화한다
  * - 수락 실패: 만료 · 사용됨 · 없음은 `invalid`, 그 밖은 공용 토스트(handleError)
  * - 이미 멤버(`landing.alreadyMember`)면 수락을 스스로 한 번 부른다 — 화면에 [수락하기]가 없다(GUI `1427:4836`)
+ * - 거절(H-21, Api 2.5.16 — #348 B72): 확인 창 계약(patterns §6) — 성공 `true`(결과 화면 `rejected`), 만료 · 사용됨 · 없음은 `invalid`로
+ *   바꾸고 `true`(창은 닫고 그 결과 화면), 그 밖 실패는 공용 토스트 + `false`(창은 열린 채)
  */
 export function useHostInvitation(routeToken: string | null) {
   const router = useRouter();
@@ -103,8 +114,29 @@ export function useHostInvitation(routeToken: string | null) {
     },
   });
 
+  const [rejected, setRejected] = useState<HostInvitationReject | null>(null);
+  const rejectMutation = useMutation(rejectHostInvitationMutation(token ?? ''));
+
+  const reject = useCallback(async () => {
+    if (rejectMutation.isPending || mutation.isPending || !token || accepted || rejected) {
+      return false;
+    }
+    try {
+      setRejected(await rejectMutation.mutateAsync());
+      return true;
+    } catch (e) {
+      const invalid = invalidOf(e);
+      if (!invalid) {
+        handleError(e);
+        return false;
+      }
+      setAcceptInvalid(invalid);
+      return true;
+    }
+  }, [accepted, mutation.isPending, rejectMutation, rejected, token]);
+
   const accept = useCallback(async () => {
-    if (mutation.isPending || !token || accepted) return false;
+    if (mutation.isPending || rejectMutation.isPending || !token || accepted) return false;
     try {
       setAccepted(await mutation.mutateAsync());
       return true;
@@ -114,7 +146,7 @@ export function useHostInvitation(routeToken: string | null) {
       else handleError(e);
       return false;
     }
-  }, [accepted, mutation, token]);
+  }, [accepted, mutation, rejectMutation.isPending, token]);
 
   // 이미 멤버면 화면은 바로 "이미 멤버" 결과(GUI `1427:4836`)지만, 수락(H-20)은 한 번 불러 초대를 소비한다 — 안 부르면 초대 대기
   // 줄이 남고, 링크 소지가 자격이라 만료 전까지 다른 사람이 쓸 수 있다(api-contract H-20, tap-review #271). 역할은 그대로(백엔드 #928)
@@ -137,6 +169,7 @@ export function useHostInvitation(routeToken: string | null) {
     if (accepted) {
       return { status: 'accepted', result: accepted, hostName: landing.data?.hostName ?? null };
     }
+    if (rejected) return { status: 'rejected', result: rejected };
     if (acceptInvalid) return { status: 'invalid', reason: acceptInvalid };
     if (landing.status === 'error') {
       const invalid = invalidOf(landing.error);
@@ -148,5 +181,11 @@ export function useHostInvitation(routeToken: string | null) {
     return { status: 'ready', landing: landing.data };
   })();
 
-  return { state, accept, accepting: mutation.isPending };
+  return {
+    state,
+    accept,
+    accepting: mutation.isPending,
+    reject,
+    rejecting: rejectMutation.isPending,
+  };
 }

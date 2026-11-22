@@ -1,5 +1,4 @@
 import {
-  type AddHostMembersRequest,
   type AssignableHostRole,
   HOST_MEMBERS_INVITE_MAX,
   type HostMember,
@@ -7,7 +6,8 @@ import {
 import { type ActorRole, can, type HostAction } from '@/features/shared/permission/model/can';
 
 /**
- * 멤버 관리(`/hosting/hosts/[hostId]/members`, GH-6 · PH-7 · PH-10 · DH-11 · PH-12, plan P10b) 규칙.
+ * 멤버 관리(`/hosting/hosts/[hostId]/members`, GH-6 · H-16 · PH-10 · DH-11 · PH-12, plan P10b) 규칙.
+ * 초대는 모두 H-16(가입한 이메일도 상대가 수락해야 멤버 — B71, #348 · DEC-042).
  * 역할 문자열을 직접 비교하지 않고 `can(role, action)`으로 판정한다(patterns §22). 버튼 숨김용이고 서버가 다시 막는다(patterns §11).
  * 서버 규칙(432cce4): `Host.validateCanManageRole`(MASTER 지정 불가 · 매니저는 GUEST만), `V2HostDomainService.removeMember`
  * (마스터 삭제 불가), `Host.changeActiveHostUserRole`(마스터 대상 불가), `Host.transferMaster`(활성 멤버에게만).
@@ -63,24 +63,25 @@ export function inviteRoleOptions(myRole: ActorRole | null | undefined): Assigna
 /** 초대 역할 기본값 "일반"(와이어 `503:32779`) */
 export const DEFAULT_INVITE_ROLE: AssignableHostRole = 'GUEST';
 
-/** 초대 한 줄. V는 한 줄만 그린다(와이어 `503:32779` — 한 명씩), L은 PH-7이 받는 1~20줄을 다룬다 */
+/** 초대 한 줄. V는 한 줄만 그린다(GUI `1422:1911` — 한 명씩), L은 1~20줄을 다룬다(줄마다 H-16 — 묶음 API 없음, #348) */
 export type InviteRow = { email: string; role: AssignableHostRole };
 
 export const emptyInviteRow = (): InviteRow => ({ email: '', role: DEFAULT_INVITE_ROLE });
 
+/** 한 번에 넣을 수 있는 줄 수 — H-16 발급 한도(호스트 24시간 20건)와 같다 */
 export const canAddInviteRow = (rows: readonly InviteRow[]) =>
   rows.length < HOST_MEMBERS_INVITE_MAX;
 export const canRemoveInviteRow = (rows: readonly InviteRow[]) => rows.length > 1;
 
 /**
- * 이메일 모양 — 빈칸·`@` 없음 같은 명백한 실수만 거른다. 서버는 Bean Validation `@Email`(통과 못 하면 HTTP 400 `BAD_REQUEST` → 공용 토스트)이고
- * 가입 여부는 서버만 안다(`HOST_400_13`).
+ * 이메일 모양 — 빈칸·`@` 없음 같은 명백한 실수만 거른다. 서버는 Bean Validation `@Email`(통과 못 하면 HTTP 400 `BAD_REQUEST` → 공용 토스트).
+ * 가입하지 않은 이메일도 초대할 수 있다(H-16).
  */
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+$/;
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-/** 줄마다 칸 오류. 같은 요청 안의 같은 이메일(대소문자 무시 — 서버 `HOST_400_14`와 같은 기준)은 뒤 줄에 표시한다 */
+/** 줄마다 칸 오류. 같은 요청 안의 같은 이메일(대소문자 무시 — 서버도 소문자로 저장)은 뒤 줄에 표시한다 */
 export function inviteRowErrors(rows: readonly InviteRow[]): (string | null)[] {
   const seen = new Set<string>();
   return rows.map((row) => {
@@ -94,55 +95,20 @@ export function inviteRowErrors(rows: readonly InviteRow[]): (string | null)[] {
   });
 }
 
-/** 보내는 본문(PH-7). 이메일 앞뒤 공백을 지운다(서버도 지운다). 칸 오류가 없을 때만 부른다 */
-export const toAddMembersBody = (rows: readonly InviteRow[]): AddHostMembersRequest => ({
-  members: rows.map((r) => ({ email: r.email.trim(), role: r.role })),
-});
+/** H-16 본문 한 줄. 이메일 앞뒤 공백을 지운다(서버도 지운다). 칸 오류가 없을 때만 부른다 */
+export const toInvitationBody = (row: InviteRow) => ({ email: row.email.trim(), role: row.role });
 
 /**
- * 초대 실패의 줄별 사유(patterns §24 P10b). 백엔드는 문제 이메일을 `reason` 끝 괄호에 `, `로 이어 붙인다
- * — `"가입되지 않은 이메일입니다. (a@x.com, b@y.com)"`(`HostErrorCode.toDetailException`, 432cce4). `HOST_400_14`의 이메일은 소문자다.
- * 검사 순서가 정해져 있어(중복 14 → 동명 계정 18 → 미가입 13 → 이미 멤버 15) 한 번에 한 사유만 온다.
- * 문구는 GUI 초대 시트 오류 화면(13 `1427:4143` · 15 `1476:6806` · 18 `1476:7024`, Design Sync #286 · #289). 14는 화면이 한 줄이라
- * 나오지 않는다(잠정 문구).
+ * 초대(H-16) 실패 중 그 줄에 사유를 다는 것(patterns §24 P10b). 그 밖(403 · 400 `BAD_REQUEST` · 5xx)은 공용 토스트.
+ * - `HOST_400_15` 이미 멤버 — GUI `1476:6806` 문구
+ * - `HOST_400_21` 발급 한도(호스트 24시간 20건) — GUI `1476:7242`는 "가입되지 않은 이메일이에요. 초대 링크를 보내야 하는데, …"였으나
+ *   모든 초대가 링크(H-16)가 되어 앞 문장을 뺐다 🤖(되돌리려면 이 문구만)
  */
 export const INVITE_ERROR_MESSAGE = {
-  // 다음 행동을 함께(스테이징 QA #106 §5) — 초대 링크(H-16, B33② · 백엔드 #933)로 이어진다
-  HOST_400_13: '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
-  HOST_400_14: '같은 이메일을 두 번 넣었어요',
   HOST_400_15: '이미 이 호스트의 멤버예요.',
-  HOST_400_18:
-    '같은 이메일로 가입한 계정이 여러 개라 초대할 수 없어요.\n다른 이메일로 초대해 주세요.',
+  HOST_400_21: '오늘은 더 초대할 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
 } as const;
 export type InviteErrorCode = keyof typeof INVITE_ERROR_MESSAGE;
-
-/** `reason` 끝 괄호 안의 이메일 목록. 모양이 다르면 빈 배열 */
-export function inviteFailureEmails(reason: string): string[] {
-  const match = /\(([^()]*)\)\s*$/.exec(reason);
-  if (!match) return [];
-  return match[1]!
-    .split(',')
-    .map((e) => e.trim())
-    .filter(Boolean);
-}
-
-/**
- * 서버 실패 → 줄별 오류. 사유의 이메일과 같은 줄(대소문자·앞뒤 공백 무시)에 문구를 단다.
- * 어느 줄에도 맞지 않으면(사유 모양이 바뀐 경우 등) `form`에 문구를 둔다 — 실패가 소리 없이 묻히지 않게.
- */
-export function inviteServerErrors(
-  code: InviteErrorCode,
-  reason: string,
-  rows: readonly InviteRow[],
-): { rows: (string | null)[]; form: string | null } {
-  const emails = new Set(inviteFailureEmails(reason).map(normalizeEmail));
-  const message = INVITE_ERROR_MESSAGE[code];
-  const rowErrors = rows.map((r) => (emails.has(normalizeEmail(r.email)) ? message : null));
-  return {
-    rows: rowErrors,
-    form: rowErrors.some((e) => e !== null) ? null : message,
-  };
-}
 
 /** 멤버 관리(역할 변경·삭제·양도)에서 화면이 처리하는 코드(patterns §24 P10b, `handleError` 표). 그 밖은 공용 토스트 */
 export const MEMBER_ACTION_ERROR_MESSAGE = {
@@ -169,7 +135,8 @@ type GuideSource = {
 
 /**
  * 행 · 문구 · 순서는 GUI 권한 안내 시트(`1452:54461`, Design Sync #265 — 디자이너가 api-contract §2 표를 합치고 문구를 다듬음).
- * 칸의 가능 여부는 `can()`에서 만든다(표와 판정이 어긋나지 않게). "호스트 삭제" 행은 서버에 없다(plan P10b, patterns §22).
+ * 칸의 가능 여부는 `can()`에서 만든다(표와 판정이 어긋나지 않게). "호스트 삭제"(`deleteHost` — H-22, #348)는 GUI 시트에 행이
+ * 없어 넣지 않는다(시트가 근거 — 행이 생기면 여기에 `actions: ['deleteHost']`로).
  */
 const GUIDE: GuideSource[] = [
   {

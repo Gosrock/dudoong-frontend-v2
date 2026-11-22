@@ -36,6 +36,10 @@ export const HOST_ACTIONS = {
   changeMemberRole: 'MASTER',
   /** 마스터 양도 */
   transferMaster: 'MASTER',
+  /**
+   * 호스트 삭제(H-22 — Api 2.5.16, #348 B73 · DEC-013 폐기). 활성 마스터만(아니면 403). 막힘 여부는 H-3 `deletable`이 따로 말한다
+   */
+  deleteHost: 'MASTER',
 } as const satisfies Record<string, Exclude<HostRole, 'UNKNOWN'>>;
 
 export type HostAction = keyof typeof HOST_ACTIONS;
@@ -51,9 +55,15 @@ export type ActorRole = HostRole | 'SUPER_ADMIN';
  * SUPER_ADMIN이 권한 검사를 건너뛰어도 도메인 규칙에서 막히는 동작(fe423ed4):
  * - `manageManagers` — `Host.validateCanManageRole`이 요청자 = 마스터를 본다(`HOST_400_11`)
  * - `transferMaster` — `Host.transferMaster`가 요청자를 `validateMasterHostUser`로 다시 본다(403)
+ * - `deleteHost` — H-22는 "활성 마스터만"(#348 B73)
  * 역할 변경(`changeMemberRole`)은 요청자를 다시 보지 않아(`changeActiveHostUserRole`) 된다
  */
-const SUPER_ADMIN_BLOCKED: ReadonlySet<HostAction> = new Set(['manageManagers', 'transferMaster']);
+const SUPER_ADMIN_BLOCKED: ReadonlySet<HostAction> = new Set([
+  'manageManagers',
+  'transferMaster',
+  // "활성 마스터만"(#348) — 멤버가 아닌 운영 계정은 확인 창 값(`deletable` 등)도 null이라 열지 않는다
+  'deleteHost',
+]);
 
 const RANK: Record<HostRole, number> = { GUEST: 1, MANAGER: 2, MASTER: 3, UNKNOWN: 0 };
 

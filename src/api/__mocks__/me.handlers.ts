@@ -1,6 +1,12 @@
 import { http, type HttpHandler } from 'msw';
 
-import { ARCHIVE_YEAR_MAX, ARCHIVE_YEAR_MIN, FOLLOWING_HOST_FILTERS, type Me } from '../me/schema';
+import {
+  ARCHIVE_YEAR_MAX,
+  ARCHIVE_YEAR_MIN,
+  FOLLOWING_HOST_FILTERS,
+  FOLLOWING_HOST_SORTS,
+  type Me,
+} from '../me/schema';
 import { findPublicEvent } from './fixtures/event';
 import { hosts } from './fixtures/host';
 import { me } from './fixtures/me';
@@ -10,6 +16,7 @@ import {
   followingHosts,
   matchesFollowingFilter,
 } from './fixtures/mypage';
+import { isHostDeleted } from './host-store';
 import {
   errors,
   fail,
@@ -95,7 +102,12 @@ function listFollowingHosts(request: Request) {
   const url = new URL(request.url);
   const paging = readPageParams(url, 20);
   const status = url.searchParams.get('status') ?? 'ALL';
-  if (!paging || !(FOLLOWING_HOST_FILTERS as readonly string[]).includes(status)) {
+  const sort = url.searchParams.get('sort') ?? 'FOLLOWED';
+  if (
+    !paging ||
+    !(FOLLOWING_HOST_FILTERS as readonly string[]).includes(status) ||
+    !(FOLLOWING_HOST_SORTS as readonly string[]).includes(sort)
+  ) {
     return errors.badRequest(request);
   }
   const extra = [...followOverrides]
@@ -121,10 +133,32 @@ function listFollowingHosts(request: Request) {
           : null,
       };
     });
-  const list = [...extra, ...followingHosts]
-    .filter((h) => followOverrides.get(h.hostId) !== false)
+  const followed = [...extra, ...followingHosts]
+    .filter((h) => followOverrides.get(h.hostId) !== false && !isHostDeleted(h.hostId))
     .filter((h) => matchesFollowingFilter(h, status));
+  const list = sort === 'LATEST_EVENT' ? byLatestEvent(followed) : followed;
   return ok(paginate(list, paging.page, paging.size));
+}
+
+/**
+ * GM-4 `sort=LATEST_EVENT`(#348 B68) — 다가오는 공연(진행 중 · 예정)의 시작이 가까운 호스트부터. 없는 호스트는 뒤로, 그 안에서는
+ * 팔로우 순 그대로(안정 정렬). mock은 대표 공연을 "다가오는 공연"으로 본다(서버는 취소 제외 — fixture에 취소 대표 공연은 없다)
+ */
+function byLatestEvent<
+  T extends { representativeEvent: { startAt: string | null; displayStatus: string } | null },
+>(list: T[]): T[] {
+  const upcoming = (h: T) => {
+    const e = h.representativeEvent;
+    return e && e.startAt && e.displayStatus !== 'PAST' ? e.startAt : null;
+  };
+  return [...list].sort((a, b) => {
+    const x = upcoming(a);
+    const y = upcoming(b);
+    if (x === y) return 0;
+    if (x === null) return 1;
+    if (y === null) return -1;
+    return x < y ? -1 : 1;
+  });
 }
 
 /** GM-5 — `year`(2000~9998, 없으면 전체). `years`는 필터와 상관없이 전체 기준 */

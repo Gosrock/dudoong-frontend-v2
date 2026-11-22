@@ -8,8 +8,8 @@ import { HOST_ROLE_LABEL } from '@/features/hosting/shared/model/host-role';
 import { type ActorRole, can } from '@/features/shared/permission/model/can';
 
 /**
- * 미가입자 초대 링크(H-16~H-18, 백엔드 #933 — B33②) 규칙. 화면 동작은 없다.
- * PH-7이 `HOST_400_13`(미가입)이면 같은 이메일 · 역할로 링크를 만든다(매니저는 GUEST만 — `inviteRoleOptions`와 같은 `can()`).
+ * 호스트 초대(H-16~H-18, 백엔드 #933 — B33②, 모든 초대 승인 방식 #348 B71) 규칙. 화면 동작은 없다.
+ * 초대는 매니저 이상, 매니저는 GUEST만(`inviteRoleOptions`와 같은 `can()`).
  */
 
 /**
@@ -44,7 +44,10 @@ export function canCreateInvitation(
   return role === 'GUEST' ? can(myRole, 'manageMembers') : can(myRole, 'manageManagers');
 }
 
-/** 대기 초대 줄 */
+/**
+ * 대기 초대 줄. 초대 이메일로 가입한 계정의 닉네임이 있으면(H-17 `inviteeNickname` — Api 2.5.16, #348 B71) 이름 줄
+ * (`name` · `profileImageUrl` — GUI `1476:7882` 아바타 + 이름 + 역할), 없으면 이메일 줄(`1452:57010` 이메일 + "역할 · 만료까지")
+ */
 export function invitationRowsOf(
   list: readonly HostInvitation[],
   myRole: ActorRole | null | undefined,
@@ -52,6 +55,8 @@ export function invitationRowsOf(
   return list.map((i) => ({
     invitationId: i.invitationId,
     email: i.email,
+    name: i.inviteeNickname?.trim() || null,
+    profileImageUrl: i.inviteeProfileImageUrl ?? null,
     roleLabel: HOST_ROLE_LABEL[i.role],
     expiresAt: i.expiresAt,
     cancelable: canCancelInvitation(myRole, i.role),
@@ -59,17 +64,7 @@ export function invitationRowsOf(
 }
 
 /**
- * 링크 발급 실패 중 화면이 문구를 정하는 것(patterns §24 P10b). 그 밖(403 · 400 · 5xx · 운영 2.5.3의 404)은 공용 토스트.
- * 한도(`HOST_400_21`)는 GUI `1476:7242` 문구 — 호스트 24시간 20건(api-contract H-16, 초대한 사람 50건 한도는 문구에 없다)
- */
-export const CREATE_INVITATION_ERROR_MESSAGE = {
-  HOST_400_15: '이미 이 호스트의 멤버예요.',
-  HOST_400_21:
-    '가입되지 않은 이메일이에요. 초대 링크를 보내야 하는데, 오늘은 더 만들 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
-} as const;
-
-/**
- * 이 이메일로 보낸 대기 초대가 있는지 — 있으면 새 링크를 만들 때 옛 링크가 무효가 된다(H-16 "같은 이메일에 대기 초대가 있으면 새 링크로
+ * 이 이메일로 보낸 대기 초대가 있는지 — 있으면 다시 초대할 때 옛 링크가 무효가 된다(H-16 "같은 이메일에 대기 초대가 있으면 새 링크로
  * 바꾼다", GUI `1476:7459` 안내). 서버는 이메일을 소문자로 저장 · 비교한다(`V2HostInvitationDomainService.issue`) — 여기도 대소문자를 가리지 않는다
  */
 export function hasPendingInvitation(

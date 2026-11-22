@@ -7,6 +7,7 @@ import { hostHref } from '@/features/shared/routes';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Button } from '@/ui/components/Button/Button';
 import { button } from '@/ui/components/Button/Button.css';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { EmptyState } from '@/ui/components/EmptyState/EmptyState';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Skeleton, SkeletonText } from '@/ui/components/Skeleton/Skeleton';
@@ -37,12 +38,13 @@ const HOST_HOME_LABEL = '호스트 홈으로 가기';
 /**
  * 호스트 초대 수락(`/host-invitations/{token}`, H-19 · H-20 — B33② · 백엔드 #933). **GUI 근거**(모바일 Ready, Design Sync #267):
  * 초대 `1427:4596` · 수락 완료 `1427:4638` · 만료 `1427:4701` · 이미 사용 `1427:4746` · 없는 초대 `1427:4791` · 이미 멤버 `1427:4836`.
- * 결과 화면은 DS `Empty state size=medium` + DS `img_초대장` · `img_초대장_error`(#239).
- * **거절**(`1470:5877` · `1470:5905`)은 서버에 API가 없어(#267 본문 "회의 후 지원할지 확정") [거절하기]를 두지 않았다 — PR "사용자 대기".
+ * 결과 화면은 DS `Empty state size=medium` + DS `img_초대장` · `img_초대장_error`(#239) · `img_초대장_decline`.
+ * **거절**(H-21 — Api 2.5.16, #348 B72): [거절하기](Secondary) · [수락하기](Primary) 나란히(`1427:4596`) → 확인 창 `1470:5877` →
+ * 거절 완료 `1470:5905`(호스트 홈으로).
  * PC(1024~)는 Ready가 없어 같은 묶음을 342 폭 가운데로(🤖). 로그인 필요, 토큰은 진입 직후 주소에서 지운다.
  */
 export function HostInvitationView({ token }: { token: string | null }) {
-  const { state, accept, accepting } = useHostInvitation(token);
+  const { state, accept, accepting, reject, rejecting } = useHostInvitation(token);
 
   switch (state.status) {
     case 'checking':
@@ -94,6 +96,18 @@ export function HostInvitationView({ token }: { token: string | null }) {
           />
         </Page>
       );
+    case 'rejected':
+      return (
+        <Page>
+          <Result
+            illustration="invitation-decline"
+            title="초대를 거절했어요"
+            description={['다시 참여하려면 호스트에게 새 초대를 요청해 주세요.']}
+            href={hostHref(state.result.hostId)}
+            actionLabel={HOST_HOME_LABEL}
+          />
+        </Page>
+      );
     case 'accepted': {
       const { result, hostName } = state;
       const name = hostName ?? '호스트';
@@ -124,12 +138,38 @@ export function HostInvitationView({ token }: { token: string | null }) {
           </Page>
         );
       }
+      // 확인 창 계약(patterns §6) — 성공 · 쓸 수 없는 초대면 닫고 결과 화면, 그 밖 실패(공용 토스트)는 열린 채. 확인 버튼 보라(Primary) — `1470:5877`
+      const confirmReject = () =>
+        void openConfirm({
+          title: '초대를 거절할까요?',
+          description: '거절하면 이 초대 링크는 다시 쓸 수 없어요.',
+          confirmLabel: '거절하기',
+          onConfirm: () => reject(),
+        });
       return (
         <Page
           actions={
-            <Button size="lg" fullWidth loading={accepting} onClick={() => void accept()}>
-              수락하기
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                size="lg"
+                fullWidth
+                disabled={accepting}
+                loading={rejecting}
+                onClick={confirmReject}
+              >
+                거절하기
+              </Button>
+              <Button
+                size="lg"
+                fullWidth
+                loading={accepting}
+                disabled={rejecting}
+                onClick={() => void accept()}
+              >
+                수락하기
+              </Button>
+            </>
           }
         >
           <div className={s.invite}>
@@ -185,7 +225,7 @@ function Result({
   href,
   actionLabel,
 }: {
-  illustration: 'invitation' | 'invitation-error';
+  illustration: 'invitation' | 'invitation-error' | 'invitation-decline';
   title: string;
   description: string[];
   href: string;

@@ -13,6 +13,7 @@ import { parseHostIdParam } from '@/features/shared/host-home/model/host-home-ru
 import { hostHref } from '@/features/shared/routes';
 import { SHELL_IMMERSIVE_ATTR } from '@/features/shared/shell/shell.css';
 import { Button } from '@/ui/components/Button/Button';
+import { openConfirm } from '@/ui/components/EasyOverlay/EasyOverlay';
 import { Header } from '@/ui/components/Header/Header';
 import { Input } from '@/ui/components/Input/Input';
 import * as field from '@/ui/components/Input/Input.css';
@@ -26,7 +27,9 @@ import { colors } from '@/ui/theme/colors';
 import * as c from './CreateHostView.css';
 import * as s from './HostManage.css';
 import * as v from './HostSettingsView.css';
+import { deleteHostConfirmDescription } from './model/host-delete-rules';
 import { HOST_IMAGE_SLOTS } from './model/host-settings-form';
+import { type DeleteHostResult, useDeleteHost } from './model/useDeleteHost';
 import { useHostSettings } from './model/useHostSettings';
 import { HostImageField } from './ui/HostImageField';
 
@@ -35,8 +38,8 @@ import { HostImageField } from './ui/HostImageField';
  * `1524:13269` · `1524:13380` · 자르기 `1458:4961` · `1476:8399`(Design Sync #260 · #278), PC 1440 `1496:12683` · `1556:15393` ·
  * `1556:15548` · `1556:15687` · `1556:15762`(#294 — 가운데 960, 제목 줄 포함) · 저장 바 `1584:19829`(#311 — 화면 폭 바 + Large [저장하기]) ·
  * 연락처 여러 개 `1586:15515`(#312 — 유형 116 · 값 358 · ✕, 줄 사이 10).
- * GUI의 "호스트 삭제하기"(`741:31204` · `1551:104649` · `1556:15836`, #293)는 서버에 기능이 없어(DEC-013, Backend #274 §3 —
- * `DELETE /hosts/{id}` 405) 그리지 않는다.
+ * 맨 아래 "호스트 삭제하기"(`741:31204`, 확인 창 `1549:15221` · `1551:104649` · PC `1556:15836` — Design Sync #293, H-22 Api 2.5.16 ·
+ * #348 B73)는 마스터에게만(`can(deleteHost)` + H-3 `deletable`) — `DeleteHostSection`.
  * 주소의 id가 숫자가 아니면 요청 없이 공용 404, 비멤버는 공용 403(호스팅 센터는 서버 조회가 없어 상태 코드는 200).
  */
 export function HostSettingsView({ hostId }: { hostId: string }) {
@@ -148,6 +151,7 @@ function HostSettings({ hostId }: { hostId: string }) {
           />
         ))}
       </form>
+      <DeleteHostSection hostId={hostId} />
       {settings.canEdit && (
         <div className={v.bottom}>
           <EditorBottomBar
@@ -175,5 +179,61 @@ function HostSettingsHeader({ hostId }: { hostId: string }) {
     <div ref={ref} className={v.bleed} {...{ [SHELL_IMMERSIVE_ATTR]: '' }}>
       <Header title="호스트 홈 설정" backHref={hostHref(hostId)} linkAs={Link} />
     </div>
+  );
+}
+
+/**
+ * "호스트 삭제하기"(`741:31204` — 위 선 + 빨간 글자 버튼). 마스터가 아니면 없다. 막혔으면(`deletable: false` — 등록한 공연이 있음) 버튼을 막고
+ * 아래에 사유(GUI에 막힌 상태가 없다 🤖). 누르면 확인 창(Warning 빨강 [삭제하기] — `1549:15221`, 준비중 공연이 있으면 n개 안내 `1551:104649`)
+ * → 성공 토스트 "호스트를 삭제했습니다."(#293 본문) + 공연 준비 홈(훅이 `replace`)
+ */
+function DeleteHostSection({ hostId }: { hostId: string }) {
+  const del = useDeleteHost(hostId);
+  const { deletion } = del;
+  if (deletion.kind === 'hidden') return null;
+  const blocked = deletion.kind === 'blocked';
+
+  const confirmDelete = async () => {
+    if (deletion.kind !== 'ready') return;
+    const outcome: { result: DeleteHostResult } = { result: false };
+    const closed = await openConfirm({
+      intent: 'delete',
+      title: '호스트를 삭제할까요?',
+      description: deleteHostConfirmDescription(deletion.preparingEventCount),
+      confirmLabel: '삭제하기',
+      onConfirm: async () => {
+        outcome.result = await del.remove();
+        // 막힘(`HOST_400_22`)은 창을 닫고 영역의 사유로 답한다. 그 밖 실패(`false`)는 열린 채
+        return outcome.result !== false;
+      },
+    });
+    // 창이 history 항목을 소비한 뒤에 옮긴다(patterns §6)
+    if (closed && outcome.result === true) {
+      toast('호스트를 삭제했습니다.');
+      del.leave();
+    }
+  };
+
+  return (
+    <section aria-label="호스트 삭제" className={v.deleteSection} data-testid="host-delete">
+      <button
+        type="button"
+        className={v.deleteButton}
+        disabled={blocked || del.deleting}
+        aria-describedby={blocked ? 'host-delete-blocked' : undefined}
+        onClick={() => void confirmDelete()}
+      >
+        <Txt typography="labelLgEmphasized" color="inherit">
+          호스트 삭제하기
+        </Txt>
+      </button>
+      {blocked && (
+        <p id="host-delete-blocked" className={s.note}>
+          <Txt typography="labelMd" color={colors.textTertiaryLabel}>
+            {del.blockedMessage}
+          </Txt>
+        </p>
+      )}
+    </section>
   );
 }

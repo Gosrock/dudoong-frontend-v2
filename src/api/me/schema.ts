@@ -67,6 +67,13 @@ export type UpdateMeRequest = z.infer<typeof UpdateMeRequestSchema>;
 export const FOLLOWING_HOST_FILTERS = ['ALL', 'ACTIVE', 'ENDED'] as const;
 export type FollowingHostFilter = (typeof FOLLOWING_HOST_FILTERS)[number];
 
+/**
+ * GM-4 `sort`(Api 2.5.16 — #348 B68). `FOLLOWED`(기본, 최근 팔로우 순) · `LATEST_EVENT`("최신공연순" — 다가오는 공연(진행 중 · 예정,
+ * 취소 제외)의 시작이 가까운 호스트부터, 없는 호스트는 뒤에서 최근 팔로우 순). `status` 필터 · 페이지와 함께 쓴다
+ */
+export const FOLLOWING_HOST_SORTS = ['FOLLOWED', 'LATEST_EVENT'] as const;
+export type FollowingHostSort = (typeof FOLLOWING_HOST_SORTS)[number];
+
 /** 관심 호스트의 대표 공연: 진행 중·예정 공개 공연 중 가장 가까운 것, 없으면 가장 최근에 끝난 것 */
 export const RepresentativeEventSchema = z.object({
   eventId: z.number().int(),

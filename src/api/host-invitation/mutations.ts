@@ -6,13 +6,14 @@ import {
   type CreateHostInvitationRequest,
   HostInvitationAcceptSchema,
   HostInvitationCreatedSchema,
+  HostInvitationRejectSchema,
   HostInvitationsSchema,
 } from './schema';
 
 /**
- * H-16 초대 링크 발급(매니저 이상, 매니저는 `GUEST`만 — 403 `HOST_400_11`). 같은 이메일에 대기 초대가 있으면 새 링크로 바꾼다(옛 링크 무효).
+ * H-16 멤버 초대(매니저 이상, 매니저는 `GUEST`만 — 403 `HOST_400_11`). **가입한 이메일도 이것으로 보낸다**(B71 — 상대가 수락해야 멤버).
+ * 같은 이메일에 대기 초대가 있으면 새 링크로 바꾼다(옛 링크 무효). 서버가 초대 메일을 보낸다. 여러 명은 이메일마다 부른다(묶음 API 없음).
  * - `HOST_400_15` 이미 멤버인 계정의 이메일 · `HOST_400_21` 발급 한도(호스트 24시간 20건 · 초대한 사람 24시간 50건)
- * - 서버가 링크 메일을 보내지만 실패할 수 있어 화면은 링크 복사를 준다
  */
 export const createHostInvitationMutation = (hostId: string | number) =>
   mutationOptions({
@@ -35,4 +36,14 @@ export const acceptHostInvitationMutation = (token: string) =>
   mutationOptions({
     mutationFn: () =>
       api.post(`host-invitations/${encodeURIComponent(token)}/accept`, HostInvitationAcceptSchema),
+  });
+
+/**
+ * H-21 초대 거절(로그인, 본문 없음 — Api 2.5.16, #348 B72). 응답 `{hostId, hostName}`.
+ * 에러는 H-20 수락과 같다(`HOST_404_3` 없음 · 취소 · 옛 링크 · `HOST_400_20` 사용됨(수락 · 거절) · `HOST_400_19` 만료)
+ */
+export const rejectHostInvitationMutation = (token: string) =>
+  mutationOptions({
+    mutationFn: () =>
+      api.post(`host-invitations/${encodeURIComponent(token)}/reject`, HostInvitationRejectSchema),
   });
