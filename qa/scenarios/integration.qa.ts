@@ -169,18 +169,30 @@ scenario(
       '[관객] 공연 상세에서 일반 예매 2매 → 체크아웃 총액 50,000 원(옵션 +10,000 × 2)',
       async () => {
         await page.goto('/events/101');
-        if (!desktop) {
+        if (desktop) {
+          const area = page.getByRole('complementary', { name: '예매' });
+          await area
+            .getByRole('listitem')
+            .getByRole('button', { name: /일반 예매/ })
+            .click();
+          await area.getByRole('button', { name: '일반 예매 수량 늘리기' }).click();
+          await area.getByRole('button', { name: '티켓 구매하기' }).click();
+        } else {
+          // 모바일(#343~#347): 시트에서 고르고 닫음 → 고른 티켓 줄에서 수량 → 하단 [티켓 구매하기]
+          await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
+          const sheet = page.getByRole('dialog', { name: '티켓 종류' });
+          await sheet
+            .getByRole('listitem')
+            .getByRole('button', { name: /일반 예매/ })
+            .click();
+          await sheet.getByRole('button', { name: '티켓 구매하기' }).click();
+          await expect(sheet).toBeHidden();
+          await page
+            .getByRole('group', { name: '고른 티켓' })
+            .getByRole('button', { name: '일반 예매 수량 늘리기' })
+            .click();
           await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
         }
-        const area = desktop
-          ? page.getByRole('complementary', { name: '예매' })
-          : page.getByRole('dialog', { name: '티켓 종류' });
-        await area
-          .getByRole('listitem')
-          .getByRole('button', { name: /일반 예매/ })
-          .click();
-        await area.getByRole('button', { name: '일반 예매 수량 늘리기' }).click();
-        await area.getByRole('button', { name: '티켓 구매하기' }).click();
         await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=2/);
         await page
           .getByRole('radiogroup', { name: /뒤풀이 참석/ })
@@ -191,7 +203,7 @@ scenario(
       },
     );
     await step(
-      '[관객] 동의 → [결제하기] → 입금 확인 금액도 50,000 원 → [결제완료] → 주문 완료',
+      '[관객] 동의 → [결제하기] → 입금 확인 금액도 50,000 원 → [입금완료] → 주문 완료',
       async () => {
         await page.getByRole('checkbox', { name: /주문내용과 환불\/취소 규정/ }).click();
         await page.getByRole('checkbox', { name: '(필수) 호스트에게 개인정보 제공 동의' }).click();

@@ -70,18 +70,30 @@ scenario(
     await step(
       '상세에서 일반 예매 2매를 고르고 [티켓 구매하기]를 누르면 체크아웃이다',
       async () => {
-        if (!desktop) {
+        if (desktop) {
+          const area = page.getByRole('complementary', { name: '예매' });
+          await area
+            .getByRole('listitem')
+            .getByRole('button', { name: /일반 예매/ })
+            .click();
+          await area.getByRole('button', { name: '일반 예매 수량 늘리기' }).click();
+          await area.getByRole('button', { name: '티켓 구매하기' }).click();
+        } else {
+          // 모바일(#343~#347): 시트에서 고르고 [티켓 구매하기]로 닫음 → 아래 고른 티켓 줄에서 수량 → 하단 [티켓 구매하기]
+          await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
+          const sheet = page.getByRole('dialog', { name: '티켓 종류' });
+          await sheet
+            .getByRole('listitem')
+            .getByRole('button', { name: /일반 예매/ })
+            .click();
+          await sheet.getByRole('button', { name: '티켓 구매하기' }).click();
+          await expect(sheet).toBeHidden();
+          await page
+            .getByRole('group', { name: '고른 티켓' })
+            .getByRole('button', { name: '일반 예매 수량 늘리기' })
+            .click();
           await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
         }
-        const area = desktop
-          ? page.getByRole('complementary', { name: '예매' })
-          : page.getByRole('dialog', { name: '티켓 종류' });
-        await area
-          .getByRole('listitem')
-          .getByRole('button', { name: /일반 예매/ })
-          .click();
-        await area.getByRole('button', { name: '일반 예매 수량 늘리기' }).click();
-        await area.getByRole('button', { name: '티켓 구매하기' }).click();
         await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=2/);
         await expect(page.getByRole('button', { name: '결제하기' })).toBeVisible();
         // 소제목 "주문/결제" + 공연 요약(포스터 · 이름 · 호스트 · 일자 · 시간 · 장소 — Design Sync #349)
