@@ -1,5 +1,6 @@
 import { eventBrowseSets } from '@/api/__mocks__/event.handlers';
-import { events } from '@/api/__mocks__/fixtures/event';
+import { events, liveListedEvents } from '@/api/__mocks__/fixtures/event';
+import { formatKstDateTime } from '@/api/shared/date';
 
 import { MOCK_ORIGIN } from './support/env';
 import { expect, test } from './support/fixtures';
@@ -14,11 +15,10 @@ const isoDay101 = events
  * 브라우저 없이 응답 본문만 본다.
  */
 
-/** 가짜 GP-2 `includePast=false`가 돌려주는 공연(종료 전 OPEN — 진행 중 + 시작 전) */
-const upcoming = events.filter(
-  (e) => e.status !== 'PREPARING' && e.status !== 'DELETED' && e.displayStatus !== 'PAST',
-);
-const hidden = events.filter((e) => !upcoming.includes(e));
+/** 가짜 GP-2 `includePast=false`가 돌려주는 공연(종료 전 OPEN — 진행 중 + 시작 전, 요청 시각 기준 `liveDisplayStatus`) */
+const upcomingIds = new Set(liveListedEvents(formatKstDateTime(new Date())).map((e) => e.eventId));
+const upcoming = events.filter((e) => upcomingIds.has(e.eventId));
+const hidden = events.filter((e) => !upcomingIds.has(e.eventId));
 
 const PRIVATE_PATHS = [
   '/hosting',

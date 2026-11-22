@@ -98,12 +98,23 @@ describe('공연 탐색', () => {
     const byHost = await qc.fetchInfiniteQuery(eventListQuery({ keyword: '고스락' }));
     expect(byHost.pages[0]!.content.length).toBeGreaterThan(0);
 
-    // 부산(8) AND 어쿠스틱·포크(5) → 102만
-    const both = await qc.fetchInfiniteQuery(eventListQuery({ tagIds: [8, 5] }));
+    // 부산(8) AND 어쿠스틱·포크(5) → 102만. 102(10.24)는 요청 시각 기준 지난 공연이라(목록 displayStatus 계산) 지난 공연 포함으로
+    const both = await qc.fetchInfiniteQuery(eventListQuery({ tagIds: [8, 5], includePast: true }));
     expect(both.pages[0]!.content.map((e) => e.eventId)).toEqual([102]);
 
     const none = await qc.fetchInfiniteQuery(eventListQuery({ keyword: '없는공연이름' }));
     expect(none.pages[0]).toMatchObject({ content: [], totalElements: 0, hasNext: false });
+  });
+
+  it('GP-2 displayStatus는 요청 시각으로 — 종료가 지난 공연은 PAST(지난 공연 빼면 목록에서 빠짐)', async () => {
+    // TEST_NOW 2026-11-18: 102(10.24) · 103(11.07) · 104(10.17)는 끝났고 101(11.21)은 시작 전
+    const all = await client().fetchInfiniteQuery(eventListQuery({ includePast: true, size: 50 }));
+    const status = Object.fromEntries(
+      all.pages[0]!.content.map((e) => [e.eventId, e.displayStatus]),
+    );
+    expect(status).toMatchObject({ 101: 'UPCOMING', 102: 'PAST', 103: 'PAST', 104: 'PAST' });
+    const live = await client().fetchInfiniteQuery(eventListQuery({ size: 50 }));
+    expect(live.pages[0]!.content.map((e) => e.eventId)).not.toContain(102);
   });
 
   it('GP-2 없는 태그는 400 Event_400_23', async () => {

@@ -1,10 +1,11 @@
 import { http } from 'msw';
 
-import { storedEvent, storedPublicEvent } from './event-store';
+import { mockNow, storedEvent, storedPublicEvent } from './event-store';
 import {
   events,
   homeEvents,
   knownTagIds,
+  liveDisplayStatus,
   tagGroups,
   toDetail,
   toListItem,
@@ -65,7 +66,9 @@ export const eventHandlers = [
       const inGroup = g.tags.filter((t) => tagIds.includes(t.tagId)).map((t) => t.tagId);
       if (inGroup.length) wanted.set(g.category, new Set(inGroup));
     }
+    const now = mockNow();
     const matched = events
+      .map((e) => liveDisplayStatus(e, now))
       .filter((e) => e.status !== 'PREPARING' && e.status !== 'DELETED')
       .filter((e) => includePast || e.displayStatus !== 'PAST')
       .filter((e) => !isStoredCanceled(e.eventId))

@@ -476,3 +476,25 @@ export function upcomingOrder(a: MockEvent, b: MockEvent) {
   const cmp = (a.startAt ?? '').localeCompare(b.startAt ?? '');
   return rank(a) === 2 ? -cmp : cmp;
 }
+
+/**
+ * 공연 목록 응답의 `displayStatus`를 서버처럼 요청 시각으로 — 시작 전 `UPCOMING` · 시작 ≤ 지금 < 종료 `ONGOING` · 종료가 지나면 `PAST`
+ * (api-contract T-1 주석 "서버가 요청 시점에 계산한 `displayStatus`"). 픽스처는 2026-10~11 절대 시각이라 dev:mock · e2e(실제 시각)에서 102 · 103 · 104가
+ * 지난 공연이 된다(관제탑 #373 검토). 준비중 · 지난(픽스처) 공연은 그대로
+ */
+export function liveDisplayStatus(e: MockEvent, now: string): MockEvent {
+  if (e.displayStatus !== 'UPCOMING' && e.displayStatus !== 'ONGOING') return e;
+  const end = e.endAt ?? e.startAt;
+  if (end && end <= now) return { ...e, displayStatus: 'PAST', dDay: null };
+  if (e.startAt && e.startAt <= now) return { ...e, displayStatus: 'ONGOING', dDay: null };
+  return e;
+}
+
+/** 가짜 GP-2 `includePast=false`가 지금 돌려주는 공연(공개 · 종료 전 — 진행 중 + 시작 전). e2e · QA 기대값용 */
+export function liveListedEvents(now: string) {
+  return events
+    .map((e) => liveDisplayStatus(e, now))
+    .filter(
+      (e) => e.status !== 'PREPARING' && e.status !== 'DELETED' && e.displayStatus !== 'PAST',
+    );
+}
