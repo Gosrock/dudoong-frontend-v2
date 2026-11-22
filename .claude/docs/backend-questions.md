@@ -49,7 +49,7 @@
 
 ---
 
-### B75. 알림 목록 창 · 정렬 · 주문 목록 정렬 · 관심 호스트 새 공연 알림(2026-11-22, `gui-notifications` — 초안, 관제탑이 백엔드 이슈로)
+### B75. 알림 목록 창 · 정렬 · 주문 목록 정렬 · 관심 호스트 새 공연 알림(2026-11-22, `gui-notifications`) — 보냄(Backend #968)
 
 GUI 알림함(관객 `1047:4070` · 호스트 `2025:1471`, Design Sync #375 · #376)과 주문내역(`1047:32381`, #372)이 2026-11-22 Ready. 서버 `dev`(2.5.16) 코드로 확인한 사실: GN-1 `GET /me/notifications`는 `page` · `size`만(`V2NotificationController`), O-2 `GET /me/orders`는 `status` · `page` · `size`만(`V2OrderController`), `NotificationType`은 17종 그대로.
 

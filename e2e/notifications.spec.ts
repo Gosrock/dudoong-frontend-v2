@@ -65,6 +65,7 @@ test.describe('알림함', () => {
       'data-read',
       'true',
     );
+    await done;
 
     await page.goto('/tickets');
     await expect(page.getByTestId('ticket-group').first()).toBeVisible();
