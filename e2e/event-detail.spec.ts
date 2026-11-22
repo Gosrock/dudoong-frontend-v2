@@ -37,7 +37,7 @@ test.describe('공연 상세 — 카카오 크롤러 계약', () => {
     expect(head).toContain('<title>고스락 제37회 정기공연 | 두둥</title>');
     expect(meta(head, 'og:title')).toBe('고스락 제37회 정기공연');
     expect(meta(head, 'og:description')).toBe(
-      '2027.02.20 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
+      '2026.11.21 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
     );
     expect(meta(head, 'og:image')).toBe('https://image.mock.dudoong.test/event/101/poster.jpeg');
     expect(meta(head, 'og:url')).toBe(`${MOCK_ORIGIN}/events/101`);

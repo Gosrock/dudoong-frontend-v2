@@ -161,7 +161,7 @@ describe('랜딩 OG', () => {
     eventId: 101,
     name: '고스락 제37회 정기공연',
     posterImageUrl: 'https://image.dudoong.com/p.jpeg',
-    startAt: '2027.02.20 19:00',
+    startAt: '2026.11.21 19:00',
     placeName: '홍대 롤링홀',
   };
 
@@ -169,7 +169,7 @@ describe('랜딩 OG', () => {
     const meta = giftMetadata({ event, ticket: { ticketName: '일반 예매', unitPrice: 15000 } });
     expect(meta).toMatchObject({
       title: '고스락 제37회 정기공연 티켓 선물',
-      description: '2027.02.20 19:00 · 홍대 롤링홀 · 일반 예매',
+      description: '2026.11.21 19:00 · 홍대 롤링홀 · 일반 예매',
       robots: { index: false, follow: false },
     });
     expect(JSON.stringify(meta)).not.toMatch(/\*|김|senderName/);

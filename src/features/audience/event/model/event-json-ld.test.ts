@@ -15,9 +15,9 @@ describe('공연 구조화 데이터(schema.org/Event)', () => {
       '@context': 'https://schema.org',
       '@type': 'Event',
       name: '고스락 제37회 정기공연',
-      description: '2027.02.20 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
-      startDate: '2027-02-20T19:00:00+09:00',
-      endDate: '2027-02-20T21:00:00+09:00',
+      description: '2026.11.21 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
+      startDate: '2026-11-21T19:00:00+09:00',
+      endDate: '2026-11-21T21:00:00+09:00',
       eventStatus: 'https://schema.org/EventScheduled',
       eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
       location: {
@@ -46,9 +46,9 @@ describe('공연 구조화 데이터(schema.org/Event)', () => {
   });
 
   it('종료가 없으면 시작 + 러닝타임(분), 둘 다 없거나 0분이면 endDate 없음', () => {
-    expect(ld({ endAt: null, runTime: 90 }).endDate).toBe('2027-02-20T20:30:00+09:00');
+    expect(ld({ endAt: null, runTime: 90 }).endDate).toBe('2026-11-21T20:30:00+09:00');
     expect(ld({ endAt: null, runTime: null })).not.toHaveProperty('endDate');
-    expect(ld({ endAt: '2027.02.20 19:00', runTime: 0 })).not.toHaveProperty('endDate');
+    expect(ld({ endAt: '2026.11.21 19:00', runTime: 0 })).not.toHaveProperty('endDate');
   });
 
   it('자정을 넘기면 다음 날 날짜로', () => {

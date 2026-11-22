@@ -33,7 +33,7 @@ test.describe('선물 랜딩 — 서버 조회와 OG', () => {
     expect(res.status()).toBe(200);
     const head = headOf(await res.text());
     expect(meta(head, 'og:title')).toBe('고스락 제37회 정기공연 티켓 선물');
-    expect(meta(head, 'og:description')).toBe('2027.02.20 19:00 · 홍대 롤링홀 · 일반 예매');
+    expect(meta(head, 'og:description')).toBe('2026.11.21 19:00 · 홍대 롤링홀 · 일반 예매');
     expect(meta(head, 'og:image')).toBe('https://image.mock.dudoong.test/event/101/poster.jpeg');
     expect(meta(head, 'robots')).toBe('noindex, nofollow');
     expect(head).not.toContain('김*수');

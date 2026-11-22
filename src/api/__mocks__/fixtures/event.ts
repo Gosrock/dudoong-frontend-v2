@@ -203,8 +203,8 @@ export const events: MockEvent[] = [
     eventId: 101,
     name: '고스락 제37회 정기공연',
     posterImageUrl: poster(101),
-    startAt: '2027.02.20 19:00',
-    endAt: '2027.02.20 21:00',
+    startAt: '2026.11.21 19:00',
+    endAt: '2026.11.21 21:00',
     place: {
       name: '홍대 롤링홀',
       address: '서울 마포구 어울마당로 35',
@@ -305,8 +305,8 @@ export const events: MockEvent[] = [
       eventId: 120 + i,
       name: `소음공작소 연말 공연 ${i + 1}회차`,
       posterImageUrl: poster(120 + i),
-      startAt: `2027.12.${day} 19:30`,
-      endAt: `2027.12.${day} 21:30`,
+      startAt: `2026.12.${day} 19:30`,
+      endAt: `2026.12.${day} 21:30`,
       place: {
         name: '롤링홀',
         address: '서울 마포구 어울마당로 35',

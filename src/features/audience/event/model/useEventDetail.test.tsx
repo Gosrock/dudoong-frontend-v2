@@ -47,7 +47,7 @@ describe('공연 상세 화면 상태(useEventDetail)', () => {
     await waitFor(() => expect(result.current).not.toBeNull());
     const s = result.current;
     expect(s.title).toBe('고스락 제37회 정기공연');
-    expect(s.schedule?.label).toBe('2027.02.20 (토) 19:00 (120분)');
+    expect(s.schedule?.label).toBe('2026.11.21 (토) 19:00 (120분)');
     expect(s.hashtags.map((h) => h.label)).toEqual([
       '#정기공연',
       '#락밴드',
