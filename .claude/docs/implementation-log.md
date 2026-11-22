@@ -4039,7 +4039,7 @@ Design Sync #321~#335(디자이너 2026-11-21 08:14~17:25Z) — 대상은 GUI �
 
 **테스트**: unit `src/features` · `src/api` 131 파일 2671 통과(main #336 날짜 고정 위). e2e 대시보드 관련 9 spec 270 통과 · 실패 20 — 실패는 a11y 사이드바 색 예외 쌍(고침, `#5f5e5a #0a0a09`)과 공연 101 시작일(2026.11.21)이 지난 날짜 탓(취소 3 · 티켓 2, main도 같음). 101을 임시로 2027.02.20에 두고(커밋 안 함) 취소 · 등록 완주 · 대시보드 a11y 16/0, QA `hosting-event` 32/0. QA `hosting-guests` 41/0(새 HG-22 · HG-23). 그대로 날짜면 QA `hosting-event` HE-12 · HE-14 날짜로 실패.
 
-## 공연 상세 · 티켓 선택 — 와이어 → GUI(모바일, 2026-11-22, `gui-event-detail` #PR)
+## 공연 상세 · 티켓 선택 — 와이어 → GUI(모바일, 2026-11-22, `gui-event-detail` #355)
 
 Design Sync #337 · #338 · #340 · #343~#347(Tomato 2026-11-22) — 공연 상세(P5b)와 티켓 선택(P6)의 모바일 GUI가 Ready for dev가 됐다. 둘 다 "와이어로 구현됨"이던 화면을 다시 입힘(선례 `p5c-gui-host-home`). PC 공연 상세 Ready는 없다(`figma_nodes.py ready` 398개 중 이 페이지는 390 프레임뿐) — PC는 와이어 배치 그대로 두고 글자 · 부품만 GUI("섞임").
 
