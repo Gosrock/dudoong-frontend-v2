@@ -539,7 +539,7 @@ describe('상세 정보 섹션 — 전체 교체', () => {
 });
 
 describe('체크리스트 행', () => {
-  it('티켓 없음 공연은 ③ 면제(찬 것으로 센다)', () => {
+  it('티켓 없음 공연은 ③ 행을 뺀다(두 줄)', () => {
     const items = checklistItemsOf(7001, {
       isBasicFilled: true,
       isDetailFilled: false,
@@ -547,12 +547,12 @@ describe('체크리스트 행', () => {
       ticketRequired: false,
       canOpen: false,
     });
-    expect(items.map((i) => [i.key, i.done, i.exempt, i.href])).toEqual([
-      ['basic', true, false, '/hosting/events/7001/info'],
-      ['detail', false, false, '/hosting/events/7001/detail'],
-      ['ticket', true, true, '/hosting/events/7001/tickets'],
+    // 티켓 없는 공연은 ③ 행을 뺀다(GUI 1929:6909 · 1913:39649 — #333 · #334)
+    expect(items.map((i) => [i.key, i.done, i.href])).toEqual([
+      ['basic', true, '/hosting/events/7001/info'],
+      ['detail', false, '/hosting/events/7001/detail'],
     ]);
-    expect(checklistProgress(items)).toEqual({ done: 2, total: 3 });
+    expect(checklistProgress(items)).toEqual({ done: 1, total: 2 });
   });
 });
 

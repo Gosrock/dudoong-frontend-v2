@@ -88,18 +88,17 @@ const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET');
 
 describe('대시보드 — 체크리스트 모드(준비중)', () => {
-  it('GE-3 + GE-7을 읽고 행 3개(티켓 없음 공연은 ③ 면제) — 아직 등록할 수 없다', async () => {
+  it('GE-3 + GE-7을 읽고 행(티켓 없음 공연은 ③을 빼고 두 줄) — 아직 등록할 수 없다', async () => {
     const id = arrangeEvent({ filled: false });
     const sent = recordRequests();
     const { result } = setup(id);
     await checklistLoaded(result);
     expect(result.current.mode).toBe('checklist');
-    expect(result.current.checklistItems?.map((i) => [i.key, i.done, i.exempt])).toEqual([
-      ['basic', false, false],
-      ['detail', false, false],
-      ['ticket', true, true],
+    expect(result.current.checklistItems?.map((i) => [i.key, i.done])).toEqual([
+      ['basic', false],
+      ['detail', false],
     ]);
-    expect(result.current.progress).toEqual({ done: 1, total: 3 });
+    expect(result.current.progress).toEqual({ done: 0, total: 2 });
     expect(result.current.showRegister).toBe(true);
     expect(result.current.canRegister).toBe(false);
     expect(await sent.lines()).toEqual([
@@ -271,9 +270,9 @@ describe('대시보드 — 등록 후 통계(GD-1, P13a)', () => {
     const { result } = setup('101');
     await waitFor(() => expect(result.current?.stats).toBeTruthy());
     expect(result.current.stats!.timeline.map((s) => [s.key, s.from, s.to])).toEqual([
-      ['promotion', null, '2026.11.21 19:00'],
-      ['start', '2026.11.21 19:00', null],
-      ['done', null, null],
+      ['promotion', null, '2027.02.20 19:00'],
+      ['start', '2027.02.20 19:00', null],
+      ['done', '2027.02.20 21:00', null],
     ]);
   });
 

@@ -6,41 +6,53 @@ import { vars } from '@/ui/theme/tokens.css';
 import { typographySpecs } from '@/ui/theme/typography.css';
 
 /**
- * 공연 대시보드(등록 전) — GUI Ready 모바일 `727:23088`·`745:32167`(390) · PC `727:23210`(1440, 가운데 1172, 우측 패널 없음).
- * 모바일은 가운데 정렬 한 열(포스터 → 호스트 · 공연명 → 체크리스트 → 유의사항), PC는 머리(포스터 + 정보 4줄, 아래 선) 아래 체크리스트.
- * 간격은 Figma 값 그대로(토큰에 없는 28 · 36 · 26 · 22 · 20 · 10 포함 — 분류표 H1 · H2, M-4 2026-11-08).
- * 아래 여백 — 모바일 10(GUI 본문 묶음 `727:23105` 아래 10), PC는 유의사항 아래 28뿐
+ * 공연 대시보드 — GUI Ready 등록 전 모바일 `727:23088`·`745:32167` · PC `1929:6181`~(Design Sync #333 · #334) / 등록 후 모바일 `669:2787` ·
+ * PC `712:1646` 등(#321 · #327 — 2026-11-21 "컴포넌트 간격 토큰값으로 수정"). 모바일은 가운데 정렬 한 열(포스터 → 호스트 · 공연명 →
+ * 본문), PC는 머리(포스터 + 정보 4줄, 아래 선) 아래 본문. 간격은 모두 토큰(32 · 24 · 16 · 12 · 8).
  */
-export const page = style({
+export const page = style({ display: 'flex', flexDirection: 'column' });
+
+/** 모바일 본문 좌우 32(GUI `669:2787` · `727:23088` 본문 묶음 좌우 32 — 2026-11-21, 전에는 36) */
+const MOBILE_SIDE = vars.space[6];
+/** PC 묶음 안쪽 24(GUI `712:1646` 머리 · 통계 · 판매 · 체크리스트 묶음 패딩 24 — 전에는 28) */
+const DESKTOP_BLOCK = vars.space[5];
+
+/** 머리 묶음 — 머리 줄 + (취소된 공연이면) 취소 안내. PC: 패딩 24 · 오른쪽 16, 간격 24, 아래 선 #F7F7F6(GUI `712:1646` · `1912:3661`) */
+export const headBlock = style({
   display: 'flex',
   flexDirection: 'column',
-  paddingBottom: 10,
-  '@media': { [media.desktop]: { paddingBottom: 0 } },
+  gap: vars.space[4],
+  '@media': {
+    [media.desktop]: {
+      gap: vars.space[5],
+      padding: `${DESKTOP_BLOCK} ${vars.space[4]} ${DESKTOP_BLOCK} ${DESKTOP_BLOCK}`,
+      borderBottom: `1px solid ${vars.color.surface.container}`,
+    },
+  },
 });
 
-/** 모바일 본문 좌우 36(GUI `669:2803` · `727:23105` 좌우 36 — H1). 머리 글자 줄은 24 그대로 */
-const MOBILE_SIDE = 36;
-/** PC 묶음 위아래 28(GUI `727:23242` · `727:23264` · `712:1699` · `712:1705` — H2) */
-const DESKTOP_BLOCK = 28;
+/** 취소 안내 자리 — 모바일 좌우 32 · 아래 4(본문 위 8과 합쳐 12 — GUI `1912:4466`) */
+export const canceledSlot = style({
+  padding: `0 ${MOBILE_SIDE} ${vars.space[1]}`,
+  '@media': { [media.desktop]: { padding: 0 } },
+});
 
 /**
- * 머리 — 모바일: 위 24 · 가운데 정렬, 포스터 ↔ 글자 24(+ 글자 묶음 위 4) / PC: 위아래 28 · 좌 24 · 우 16, 포스터 ↔ 글자 26,
- * 아래 선 #F7F7F6(GUI `727:23242` · `727:23243`)
+ * 머리 줄 — 모바일: 위 16 · 가운데 정렬, 포스터 ↔ 글자 16(GUI `669:2787` 묶음 간격 16) / PC: 포스터 176 + 간격 24 + 정보
  */
 export const head = style({
   position: 'relative',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  gap: vars.space[5],
-  padding: `${vars.space[5]} ${vars.space[5]} 0`,
+  gap: vars.space[4],
+  padding: `${vars.space[4]} ${vars.space[5]} 0`,
   '@media': {
     [media.desktop]: {
       flexDirection: 'row',
       alignItems: 'stretch',
-      gap: 26,
-      padding: `${DESKTOP_BLOCK}px ${vars.space[4]} ${DESKTOP_BLOCK}px ${vars.space[5]}`,
-      borderBottom: `1px solid ${vars.color.surface.container}`,
+      gap: vars.space[5],
+      padding: 0,
     },
   },
 });
@@ -73,8 +85,8 @@ export const posterChip = style({
 });
 
 /**
- * 글자 묶음 — 모바일: 위 4 · 아래 12, 호스트 ↔ 공연명 2(GUI `727:23099`) / PC: 포스터 높이 안에서 세로 가운데,
- * 호스트 ↔ 공연명 4(GUI `727:23246` — 위 37.5는 가운데 정렬의 결과)
+ * 글자 묶음 — 모바일: 위 4 · 아래 12, 호스트 ↔ 공연명 2(GUI `669:2787` `Frame 1707480406`) / PC: 포스터 높이 안에서 세로 가운데,
+ * 호스트 ↔ 공연명 4 · 공연명 ↔ 정보 16(GUI `712:1646` `Frame 1707480319` · `1707480387`)
  */
 export const info = style({
   display: 'flex',
@@ -108,6 +120,8 @@ export const hostName = style({
           fontWeight: hostPc.weight,
           lineHeight: hostPc.lineHeight,
           letterSpacing: hostPc.letterSpacing,
+          // GUI `712:1646` 호스트 줄 opacity 0.8
+          opacity: 0.8,
         },
       },
     },
@@ -125,31 +139,16 @@ export const facts = style({
       rowGap: vars.space[1],
       marginTop: vars.space[3],
       marginBlockEnd: 0,
+      // 공연명 ↔ 정보 16(GUI `Frame 1707480387` 간격 16) — info 간격 4 + 12
     },
   },
 });
 
-/** 연필(기본 정보로) — PC 머리 오른쪽 위 34×34 검정 원(GUI `727:23261`). 모바일 GUI에는 없다 */
-export const edit = style({
-  display: 'none',
-  '@media': {
-    [media.desktop]: {
-      display: 'inline-flex',
-      position: 'absolute',
-      top: vars.space[5],
-      right: vars.space[4],
-    },
-  },
-});
-
-/**
- * 체크리스트 자리 — 모바일 좌우 36 · 위 22(머리 묶음 사이 12 + 본문 묶음 위 10 — GUI `727:23105`),
- * PC 위아래 28 · 좌우 24(`727:23264`)
- */
+/** 체크리스트 자리 — 모바일 위 12 · 좌우 32(GUI `727:23088` 본문 묶음) / PC 패딩 24(`1929:6181`) */
 export const checklistWrap = style({
-  padding: `22px ${MOBILE_SIDE}px 0`,
+  padding: `${vars.space[3]} ${MOBILE_SIDE} 0`,
   '@media': {
-    [media.desktop]: { padding: `${DESKTOP_BLOCK}px ${vars.space[5]}` },
+    [media.desktop]: { padding: DESKTOP_BLOCK },
   },
 });
 
@@ -211,21 +210,24 @@ export const checkMark = style({
 });
 
 /**
- * 유의사항 — 아이콘 16(칸 20) + 간격 12. 모바일: 위 24(묶음 사이 12 + 위 12) · 좌우 36 · 아래 28(GUI `727:23126` · `741:31929`),
- * PC: 위 12 · 좌우 24 · 아래 28(등록 전 `748:35527`)
+ * 유의사항 — 아이콘 16(칸 20) + 간격 12. 모바일: 위 24(묶음 사이 12 + 위 12) · 좌우 32 · 아래 24(GUI `669:2787` · `727:23088` `AL`),
+ * PC: 위 12 · 좌우 24 · 아래 24(등록 전 `1929:6181`)
  */
 export const notice = style({
   display: 'flex',
   gap: vars.space[3],
-  padding: `${vars.space[5]} ${MOBILE_SIDE}px ${DESKTOP_BLOCK}px`,
+  padding: `${vars.space[5]} ${MOBILE_SIDE}`,
   '@media': {
-    [media.desktop]: { padding: `${vars.space[3]} ${vars.space[5]} ${DESKTOP_BLOCK}px` },
+    [media.desktop]: { padding: `${vars.space[3]} ${DESKTOP_BLOCK} ${DESKTOP_BLOCK}` },
   },
 });
 
-/** 등록 후 유의사항 — PC 왼쪽 28 · 오른쪽 0(GUI `748:33135`. 등록 전 `748:35527`은 24 · 24 — 화면대로) */
+/** 등록 후 유의사항 — 모바일은 본문 묶음 안(좌우 0 · 위 12) / PC 오른쪽 0(GUI `712:1646` `AL` 12 · 0 · 24 · 24) */
 export const registeredNotice = style({
-  '@media': { [media.desktop]: { paddingLeft: DESKTOP_BLOCK, paddingRight: 0 } },
+  padding: `${vars.space[3]} 0 ${vars.space[5]}`,
+  '@media': {
+    [media.desktop]: { padding: `${vars.space[3]} 0 ${DESKTOP_BLOCK} ${DESKTOP_BLOCK}` },
+  },
 });
 
 export const noticeIcon = style({
@@ -240,17 +242,22 @@ globalStyle(`${noticeIcon} > svg`, { width: 16, height: 16 });
 
 // ─── 등록 후(P13a-V) — GUI `669:2787`(모바일) · `712:1646`(1440) 등 ───
 
-export const registered = style({ display: 'flex', flexDirection: 'column' });
+/** 모바일: 본문 묶음(위 8 · 좌우 32 · 간격 12 — GUI `669:2787` `Frame 1707480325`) / PC: 묶음마다 패딩 */
+export const registered = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[3],
+  padding: `${vars.space[2]} ${MOBILE_SIDE} 0`,
+  '@media': { [media.desktop]: { gap: 0, padding: 0 } },
+});
 
-/** 불러오는 중 · 실패 줄(디자인 없음) — 통계 카드 자리와 같은 여백 */
+/** 통계 불러오기 실패(GUI `1887:2382` PC 패딩 24 · `1913:36842` 모바일) — 문구 + [다시 시도] 가운데 */
 export const statsState = style({
-  padding: `22px ${MOBILE_SIDE}px 0`,
-  '@media': { [media.desktop]: { padding: `${DESKTOP_BLOCK}px ${vars.space[5]} 0` } },
+  '@media': { [media.desktop]: { padding: DESKTOP_BLOCK } },
 });
 
 /**
- * 통계 카드 — 모바일 2×2(줄 사이 12 · 칸 사이 8, 위 22 · 좌우 36 — GUI `669:2803`),
- * PC 한 줄 4개(위아래 28 · 좌우 24 · 간격 16 — `712:1699`)
+ * 통계 카드 — 모바일 2×2(줄 사이 12 · 칸 사이 8 — GUI `669:2787`), PC 한 줄 4개(패딩 24 · 간격 16 — `712:1646`)
  */
 export const stats = style([
   sprinkles({ listStyle: 'none' }),
@@ -259,54 +266,52 @@ export const stats = style([
     gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
     gap: `${vars.space[3]} ${vars.space[2]}`,
     margin: 0,
-    padding: `22px ${MOBILE_SIDE}px 0`,
+    padding: 0,
     '@media': {
       [media.desktop]: {
         gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
         gap: vars.space[4],
-        padding: `${DESKTOP_BLOCK}px ${vars.space[5]}`,
+        padding: DESKTOP_BLOCK,
       },
     },
   },
 ]);
 
 /**
- * 판매 · 입장 — 모바일 한 열(간격 12), PC 두 칸(간격 16 · 위아래 28 · 좌우 24, 위 선 #F7F7F6 — `712:1705`). 높이는 각자(입장 카드가 짧다)
+ * 판매 · 입장 — 모바일 한 열(간격 12), PC 두 칸(간격 16 · 패딩 24, 위 선 #F7F7F6 — `712:1646`). 높이는 각자(입장 카드가 짧다)
  */
 export const salesRow = style({
   display: 'grid',
   gridTemplateColumns: 'minmax(0, 1fr)',
   alignItems: 'start',
   gap: vars.space[3],
-  padding: `${vars.space[3]} ${MOBILE_SIDE}px 0`,
   '@media': {
     [media.desktop]: {
       gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
       gap: vars.space[4],
-      padding: `${DESKTOP_BLOCK}px ${vars.space[5]}`,
+      padding: DESKTOP_BLOCK,
       borderTop: `1px solid ${vars.color.surface.container}`,
     },
   },
 });
 
-/**
- * 우측 일정 패널 본문(DS `일정 패널` `605:1951`) — 위아래 28 · 좌우 24(값 그대로 — H2 M-4 2026-11-08), 주간 줄 아래 19(값 그대로 —
- * A14 M-2 2026-11-08), 단계 사이 12
- */
-export const panel = style({
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 19,
-  padding: `${DESKTOP_BLOCK}px ${vars.space[5]}`,
+/** 유의사항 한 줄(아이콘 칸 + 글자) — 등록 후는 여백을 `registeredNotice`가 준다 */
+export const noticeRow = style({ display: 'flex', gap: vars.space[3] });
+
+/** PC 정보 값 — 글자 80%(GUI `712:1646` 값 줄 opacity 0.8) */
+export const factValue = style({ margin: 0, opacity: 0.8 });
+
+/** 체크리스트 불러오는 중 — 행 자리(높이 28 · 위아래 4)에 스켈레톤 160×20 모서리 6 #DDDCDA(GUI `1929:7153`) */
+export const checkSkeleton = style({ display: 'flex', alignItems: 'center', height: 28 });
+globalStyle(`${checkSkeleton} > span`, {
+  borderRadius: 6,
+  backgroundColor: vars.color.surface.defaultBorder,
 });
 
-export const timeline = style([
-  sprinkles({ listStyle: 'none' }),
-  {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: vars.space[3],
-    margin: 0,
-    padding: 0,
-  },
-]);
+/** 체크리스트 실패 — 행 자리(높이 116)에 가운데 문구 + [다시 시도](GUI `1929:7393`) */
+export const checkError = style({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: 116,
+});

@@ -10,6 +10,12 @@ import { recordRequests } from '@/test/requests';
 
 import { EventScopeView } from './EventScopeView';
 
+// 모바일 머리 ▾ 화면 메뉴(DropdownMenu → router.push — GUI `1880:34018`)
+vi.mock('next/navigation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/navigation')>()),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), prefetch: vi.fn() }),
+}));
+
 /**
  * 실제 공연 하위 화면(`/hosting/events/[eventId]/…` 레이아웃)의 403·404 판정(plan P10a "비멤버 403"을 P11 라우트에서)과
  * 등록 상태별 메뉴. 라우트 자체(로그인 게이트·상태 코드)는 e2e `hosting-event.spec`.

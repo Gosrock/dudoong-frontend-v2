@@ -134,12 +134,21 @@ export function useEventDashboard(eventId: string) {
       timeline: scheduleTimelineOf({
         openedAt: d.openedAt,
         startAt: scope.event.startAt,
+        endAt: scope.event.endAt,
         displayStatus: d.displayStatus,
+        canceledAt: scope.event.canceledAt ?? null,
       }),
       /** "QR 체크인 열기 →" */
       qrHref: eventHref(eventId, 'qr'),
     };
-  }, [eventId, mode, scope.event.startAt, statsQuery.data]);
+  }, [
+    eventId,
+    mode,
+    scope.event.startAt,
+    scope.event.endAt,
+    scope.event.canceledAt,
+    statsQuery.data,
+  ]);
 
   // ─── 만든 직후 ───
   const createdNotice = searchParams.get('created') === '1';

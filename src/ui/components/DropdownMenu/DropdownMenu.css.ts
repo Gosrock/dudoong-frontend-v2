@@ -1,7 +1,7 @@
 import { style } from '@vanilla-extract/css';
 
 import { vars } from '../../theme/tokens.css';
-import { typography } from '../../theme/typography.css';
+import { typography, typographySpecs } from '../../theme/typography.css';
 
 /** GUI `958:20518` "dropdown open" 116폭(항목 100 + 좌우 8) — 면은 `theme/surface.css` `dropdownSurface` */
 export const content = style({ minWidth: 116 });
@@ -25,11 +25,35 @@ export const item = style([
     userSelect: 'none',
     selectors: {
       '&[data-highlighted]': { background: vars.color.surface.container },
+      '&[data-selected="true"]': { background: vars.color.surface.container },
       '&[data-disabled]': { color: vars.color.interaction.disabledText, cursor: 'not-allowed' },
       '&[data-danger="true"]:not([data-disabled])': { color: vars.color.text.dangerLabel },
     },
   },
 ]);
+
+/** `size="larger"` 면 — 안쪽 위아래 12 · 좌우 16, 항목 사이 8(GUI `1880:34018` `dropdown open` 132×234) */
+export const contentLarger = style({
+  minWidth: 132,
+  gap: vars.space[2],
+  padding: `${vars.space[3]} ${vars.space[4]}`,
+});
+
+/**
+ * `size="larger"` 항목 — `Heading/sm`(16 · 500), 높이 29(안쪽 4). 글자 값을 직접 쓴다 — `typography.headingSm` 클래스는 `item`의
+ * `typography.labelMd`와 특이도가 같아 typography.css.ts 정의 순서로 labelMd가 이긴다
+ */
+const larger = typographySpecs.headingSm;
+export const itemLarger = style({
+  minHeight: 29,
+  fontSize: larger.size,
+  fontWeight: larger.weight,
+  lineHeight: larger.lineHeight,
+  letterSpacing: larger.letterSpacing,
+});
+
+/** 고른 항목 ✓ 12 — 오른쪽 끝(정렬 SPACE_BETWEEN, design-system §3 I-h3) */
+export const selectedMark = style({ display: 'inline-flex', marginLeft: 'auto' });
 
 /**
  * `variant="card"` — GUI 상세정보 탭 메뉴(`1318:385`, #191): 흰 판 200 · 테두리 `surface/default-border` · 모서리 12 ·

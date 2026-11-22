@@ -1,4 +1,4 @@
-import type { ComponentPropsWithRef, ElementType, ReactNode } from 'react';
+import type { ComponentPropsWithRef, ElementType, ReactElement, ReactNode } from 'react';
 
 import { Logo } from '../../brand/Logo';
 import { Icon } from '../../icons/Icon';
@@ -28,6 +28,8 @@ export type HeaderProps = {
     onClick?: () => void;
     /** 버튼 접근성 이름. 기본은 제목 글자 */
     'aria-label'?: string;
+    /** 제목 버튼을 감싼다 — 드롭다운 메뉴의 트리거로 쓸 때(`(button) => <DropdownMenu trigger={button} … />`) */
+    wrap?: (button: ReactElement) => ReactNode;
   };
   /** 뒤로가기 버튼. `leading`보다 먼저 그린다 */
   onBack?: () => void;
@@ -92,17 +94,19 @@ export function Header({
     center = (
       <>
         <TitleTag className={s.title}>
-          <button
-            type="button"
-            className={s.titleButton}
-            onClick={switcher.onClick}
-            aria-label={switcher['aria-label']}
-          >
-            <span className={s.ellipsis}>{title}</span>
-            <span className={s.switchMark} aria-hidden>
-              <Icon name="chevron-down" size={12} />
-            </span>
-          </button>
+          {(switcher.wrap ?? ((b: ReactElement) => b))(
+            <button
+              type="button"
+              className={s.titleButton}
+              onClick={switcher.onClick}
+              aria-label={switcher['aria-label']}
+            >
+              <span className={s.ellipsis}>{title}</span>
+              <span className={s.switchMark} aria-hidden>
+                <Icon name="chevron-down" size={12} />
+              </span>
+            </button>,
+          )}
         </TitleTag>
         <span className={s.subtitle}>{switcher.subtitle}</span>
       </>

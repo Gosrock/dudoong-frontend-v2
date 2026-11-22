@@ -3,16 +3,15 @@ import { eventHref, type EventMenuKey } from '@/features/hosting/shared/model/ev
 
 /**
  * 대시보드 등록 체크리스트(GE-7, plan P11). GUI `727:23088`(0/3) · `745:32167`(3/3) — 행 ›는 각 화면으로 간다.
- * ③ 티켓은 "티켓 없음" 공연이면 면제(`ticketRequired=false`)다 — GUI에 면제 표시가 없어 계획대로 행에 `exempt`를 둔다.
+ * ③ 티켓은 "티켓 없음" 공연이면 면제(`ticketRequired=false`)다 — 그때는 ③ 행을 빼고 두 줄만 보인다(GUI `체크리스트_티켓 없는 공연`
+ * `1929:6909` · `1913:39649` — Design Sync #333 · #334, 2026-11-21. 전에는 "필요 없어요" 표시를 단 채 찬 행으로 두었다).
  */
 
 export type ChecklistItem = {
   key: 'basic' | 'detail' | 'ticket';
   label: string;
-  /** 찼는지(면제면 찬 것으로 센다) */
+  /** 찼는지 */
   done: boolean;
-  /** 티켓 없음 공연의 ③ */
-  exempt: boolean;
   href: string;
 };
 
@@ -23,19 +22,18 @@ const ROWS: { key: ChecklistItem['key']; label: string; menu: EventMenuKey }[] =
 ];
 
 export function checklistItemsOf(eventId: string | number, c: EventChecklist): ChecklistItem[] {
-  return ROWS.map((row) => {
-    const exempt = row.key === 'ticket' && !c.ticketRequired;
+  return ROWS.filter((row) => row.key !== 'ticket' || c.ticketRequired).map((row) => {
     const done =
       row.key === 'basic'
         ? c.isBasicFilled
         : row.key === 'detail'
           ? c.isDetailFilled
-          : exempt || c.hasValidTicket;
-    return { key: row.key, label: row.label, done, exempt, href: eventHref(eventId, row.menu) };
+          : c.hasValidTicket;
+    return { key: row.key, label: row.label, done, href: eventHref(eventId, row.menu) };
   });
 }
 
-/** "n/3" 진행 — 면제 행은 찬 것으로 센다 */
+/** "n/3" 진행(티켓 없는 공연은 "n/2") */
 export const checklistProgress = (items: readonly ChecklistItem[]) => ({
   done: items.filter((i) => i.done).length,
   total: items.length,

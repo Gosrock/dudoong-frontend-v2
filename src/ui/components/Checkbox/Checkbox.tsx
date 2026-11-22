@@ -17,6 +17,8 @@ export type CheckboxProps = Omit<
   label?: ReactNode;
   /** Figma `type` round(원형, 기본) · square(모서리 4). `type`은 버튼 속성과 겹쳐 `shape`로 부른다(2026-11-01) */
   shape?: 'round' | 'square';
+  /** 켜짐 색 — 기본 검정(DS `Box`), `brand`는 보라(공연 취소 확인 GUI `1913:37303`) */
+  tone?: 'default' | 'brand';
 };
 
 /**
@@ -26,6 +28,7 @@ export type CheckboxProps = Omit<
 export function Checkbox({
   label,
   shape = 'round',
+  tone = 'default',
   className,
   onCheckedChange,
   disabled,
@@ -33,7 +36,7 @@ export function Checkbox({
 }: CheckboxProps) {
   const box = (
     <RadixCheckbox.Root
-      className={[s.root({ shape }), className].filter(Boolean).join(' ')}
+      className={[s.root({ shape, tone }), className].filter(Boolean).join(' ')}
       disabled={disabled}
       onCheckedChange={(c) => onCheckedChange?.(c === true)}
       {...rest}

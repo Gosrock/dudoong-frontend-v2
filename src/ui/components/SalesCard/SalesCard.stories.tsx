@@ -8,12 +8,13 @@ const meta = {
   component: SalesCard,
   args: {
     items: [
-      { id: 1, name: '무적티켓어쩌고', count: 30 },
-      { id: 2, name: '티켓이름길면말줄임표하세요', count: 20 },
-      { id: 3, name: '색상은 고정하려고', count: 4 },
+      { id: 1, name: '얼리버드 티켓', count: 30, tone: 1 },
+      { id: 2, name: '일반 티켓', count: 20, tone: 2 },
+      { id: 3, name: '현장 티켓', count: 10, tone: 3 },
+      { id: 4, name: 'VIP 티켓', count: 0, tone: 'other', faded: true },
     ],
-    soldCount: 54,
-    amount: 170000,
+    soldCount: 60,
+    amount: 540000,
   },
   decorators: [
     (Story) => (
@@ -27,45 +28,50 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-/** `판매 후` — 도넛 + 범례(1줄 말줄임) + 판매 장수 · 총액 */
+/** `레이아웃=가로`(GUI `1905:3535`) — 도넛 가운데 총 매수 + 범례(N장) + 총액. 판매 0은 맨 아래 흐리게(가이드 `1904:2952` 예시 A) */
 export const Selling: Story = {
   play: async ({ canvasElement }) => {
     const c = within(canvasElement);
-    await expect(c.getByRole('list', { name: '티켓별 판매' }).children).toHaveLength(3);
-    await expect(c.getByText('54')).toBeVisible();
-    await expect(c.getByText('170,000')).toBeVisible();
+    await expect(c.getByRole('list', { name: '티켓별 판매' }).children).toHaveLength(4);
+    await expect(c.getByText('60')).toBeVisible();
+    await expect(c.getByText('30장')).toBeVisible();
+    await expect(c.getByText('540,000')).toBeVisible();
   },
 };
 
 /** `판매 전` — 판매 0장 */
 export const BeforeSale: Story = {
-  args: { items: [{ id: 1, name: '일반 예매', count: 0 }], soldCount: 0, amount: 0 },
+  args: {
+    items: [{ id: 1, name: '일반 예매', count: 0, tone: 'other', faded: true }],
+    soldCount: 0,
+    amount: 0,
+  },
   play: async ({ canvasElement }) => {
     await expect(within(canvasElement).getByText('아직 판매된 티켓이 없어요!')).toBeVisible();
   },
 };
 
-/** 티켓 6종 — 4번째부터는 Figma에 없는 색(팔레트로 이음, Figma 코멘트) · 판매 0장은 범례에만 */
+/** 티켓 8종 — 상위 5개 + 「기타 (3종)」 회색(가이드 `1904:2952` 예시 B) */
 export const ManyTickets: Story = {
   args: {
     items: [
-      { id: 1, name: '일반 예매', count: 40 },
-      { id: 2, name: '학생 할인', count: 25 },
-      { id: 3, name: '초대권', count: 10 },
-      { id: 4, name: '얼리버드', count: 8 },
-      { id: 5, name: 'VIP', count: 3 },
-      { id: 6, name: '현장 판매', count: 0 },
+      { id: 1, name: '얼리버드 티켓', count: 32, tone: 1 },
+      { id: 2, name: '일반 티켓', count: 24, tone: 2 },
+      { id: 3, name: '학생 할인 티켓', count: 18, tone: 3 },
+      { id: 4, name: '2인 묶음 티켓', count: 12, tone: 4 },
+      { id: 5, name: '현장 티켓', count: 8, tone: 5 },
+      { id: 'other', name: '기타 (3종)', count: 3, tone: 'other' },
     ],
-    soldCount: 86,
-    amount: 1290000,
+    soldCount: 97,
+    amount: 1060000,
   },
 };
 
-/** 1133 폭(가운데 579)의 좁은 카드 — 범례 이름이 말줄임 */
+/** `레이아웃=세로` — 좁은 카드(1133 2단, 폭 258) */
 export const Narrow: Story = {
   decorators: [
     (Story) => (
-      <div style={{ width: 230 }}>
+      <div style={{ width: 258 }}>
         <Story />
       </div>
     ),
