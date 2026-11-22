@@ -53,6 +53,12 @@ export const contentVariant = styleVariants({
     borderTopRightRadius: vars.radius[5],
   },
   raised: raisedSurface,
+  // FIGMA-CUSTOM: 공연 상세 시트(gui 1948:39697 "Bottom sheet" · 1383:40495 "Bottom sheet") — raised(위 테두리 + 위로 그림자)에 위 모서리 16. 개발 공용 시트 변형(2단계 후보)
+  rounded: {
+    ...raisedSurface,
+    borderTopLeftRadius: vars.radius[5],
+    borderTopRightRadius: vars.radius[5],
+  },
 });
 
 /** 막대 손잡이 줄 — flat 위 12(`994:1154` 안쪽 위 12), raised 위 16(`908:21340` 안쪽 4 + 묶음 12) */
@@ -60,6 +66,7 @@ export const barRow = styleVariants({
   default: {},
   flat: { display: 'flex', justifyContent: 'center', flexShrink: 0, paddingTop: vars.space[3] },
   raised: { display: 'flex', justifyContent: 'center', flexShrink: 0, paddingTop: vars.space[4] },
+  rounded: { display: 'flex', justifyContent: 'center', flexShrink: 0, paddingTop: vars.space[4] },
 });
 
 /** 막대 손잡이(장식) — 40×4 · 모서리 2 · `surface/default-border`(GUI `Handle`) */
@@ -115,6 +122,7 @@ export const headerVariant = styleVariants({
   default: {},
   flat: { flexShrink: 0, padding: `0 ${vars.space[5]}`, marginTop: vars.space[5] },
   raised: { flexShrink: 0, padding: `0 ${vars.space[5]}`, marginTop: vars.space[5] },
+  rounded: { flexShrink: 0, padding: `0 ${vars.space[5]}`, marginTop: vars.space[5] },
 });
 
 /** raised(선물 확인 시트)는 제목 · 설명 가운데(`908:12096`) */
@@ -122,6 +130,7 @@ export const headerAlign = styleVariants({
   default: {},
   flat: {},
   raised: { textAlign: 'center' },
+  rounded: { textAlign: 'center' },
 });
 
 /** 제목 행 — 앞 슬롯 · 제목 · ✕, 간격 8, 세로 가운데(`994:1162` · `943:2221`) */
@@ -165,6 +174,7 @@ export const bodyVariant = styleVariants({
   default: {},
   flat: { padding: `0 ${vars.space[5]}`, marginTop: vars.space[5] },
   raised: { padding: `0 ${vars.space[5]}`, marginTop: vars.space[5] },
+  rounded: { padding: `0 ${vars.space[5]}`, marginTop: vars.space[5] },
 });
 
 /** 하단 고정 버튼 영역. 본문만 스크롤되고 이 줄은 남는다. iOS 홈 인디케이터 영역만큼 띄운다 */
@@ -192,6 +202,13 @@ export const footerVariant = styleVariants({
     borderTop: 'none',
   },
   raised: {
+    marginTop: `calc(${vars.space[3]} + ${vars.space[2]})`,
+    paddingTop: 0,
+    borderTop: 'none',
+    gap: vars.space[3],
+  },
+  /** 공연 상세 시트(`1948:39697`) — 목록 묶음 아래 12 + 간격 8 = 20, 버튼 줄 [문의 56][티켓 구매하기]는 화면 하단 바와 같은 모양 */
+  rounded: {
     marginTop: `calc(${vars.space[3]} + ${vars.space[2]})`,
     paddingTop: 0,
     borderTop: 'none',

@@ -24,8 +24,10 @@ import * as s from './BottomSheet.css';
  *   테두리 · 그림자 없음 · 안쪽 위 12 · 좌우 24 · 손잡이 · 머리 · 본문 · 버튼 사이 24 · 버튼 위 구분선 없음.
  * - `raised` — 선물 확인 시트(GUI `908:12096` · `908:21340` · `939:26914`): 막대 손잡이 · 머리 가운데 · 위 테두리 + 위로 그림자 ·
  *   손잡이 → 제목 24 · 글자 → 버튼 20(안 12 + 간격 8) · 버튼 사이 12 · 버튼 위 구분선 없음.
+ * - `rounded` — 공연 상세 시트(GUI `1948:39697` 티켓 구매하기 · `1383:40495` 호스트 연락처): `raised`에 위 모서리 16.
+ *   보통 제목을 숨긴다(`hideTitle`). 버튼 줄은 `footer`에 한 덩어리로 넘긴다(버튼 폭은 쓰는 쪽이 정한다).
  */
-export type BottomSheetVariant = 'default' | 'flat' | 'raised';
+export type BottomSheetVariant = 'default' | 'flat' | 'raised' | 'rounded';
 
 export type BottomSheetProps = {
   open: boolean;

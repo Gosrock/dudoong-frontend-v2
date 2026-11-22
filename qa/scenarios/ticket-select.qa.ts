@@ -3,9 +3,9 @@ import { ticketItemHandlers } from '../../src/api/__mocks__/ticket-item.handlers
 import { expect, scenario } from '../scenario';
 
 /**
- * 티켓 선택(plan P6 완료 기준 V). 근거는 와이어 — 모바일 바텀시트 `528:2484`(구매하기 선택) · `121:1406`(선택) ·
- * `121:1517`(다른 티켓 선택 경고), PC 오른쪽 카드 `640:15617`(gui-screens §0 — 티켓 선택 GUI `759:*`는 Ready for dev 아님).
- * 선택 상태는 공연 상세의 `useTicketSelection` 하나를 모바일 시트와 PC 카드가 같이 쓴다.
+ * 티켓 선택(plan P6 완료 기준 V). 모바일 근거는 GUI Ready(2026-11-22) — 시트 `759:21725` · `759:21918`(#343 · #344),
+ * 고른 티켓 줄 `759:22015`(#345), 다른 티켓 토스트 `759:22129`(#347). PC 오른쪽 카드는 와이어 `640:15617` 배치(모양만 GUI).
+ * 선택 상태는 공연 상세의 `useTicketSelection` 하나를 모바일(화면 카드 · 시트 · 아래 고른 티켓 줄)과 PC 카드가 같이 쓴다.
  *
  * 공연 101의 티켓(fixtures): 일반 예매 501(15,000원 · 인당 4매 · 잔여 42) · 학생 할인(매진) · 초대권(무료).
  *
@@ -26,6 +26,14 @@ const row = (
   name: RegExp,
 ) => area.getByRole('listitem').getByRole('button', { name });
 
+/** 모바일 아래 고른 티켓 줄(`759:22112`) */
+const picked = (page: import('@playwright/test').Page) =>
+  page.getByRole('group', { name: '고른 티켓' });
+
+/** 모바일 화면 티켓 카드 목록(`759:13039`) */
+const cards = (page: import('@playwright/test').Page) =>
+  page.getByRole('list', { name: '티켓 옵션' }).locator('visible=true');
+
 async function openSheet(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
   await expect(sheet(page)).toBeVisible();
@@ -33,19 +41,23 @@ async function openSheet(page: import('@playwright/test').Page) {
 
 scenario(
   'TKS-1',
-  '모바일: [티켓 구매하기] → 시트에서 티켓을 고르고 수량을 올리면 금액이 바뀌고, 구매하면 체크아웃으로 간다',
+  '모바일: [티켓 구매하기] → 시트에서 티켓을 고르고 [티켓 구매하기]로 닫으면 아래 고른 티켓 줄이 뜬다, 다시 [티켓 구매하기]는 체크아웃으로',
   {
     kind: '정상',
     summary:
-      '하단 [티켓 구매하기]가 바텀시트(열 때 마운트)를 연다. 줄을 누르면 고른 줄 강조 + "이름 · × / − 1 + · 금액" 줄. 수량 상한은 min(인당 제한, 잔여, 100). 시트의 [티켓 구매하기]는 시트를 닫고 체크아웃으로 — 뒤로가기는 상세(시트 닫힘).',
-    basis: ['plan P6 V 범위', '와이어 528:2484 · 121:1406', 'patterns §6 오버레이 · §15 상한'],
+      '하단 [티켓 구매하기]가 바텀시트(열 때 마운트, #343)를 연다. 줄을 누르면 회색으로 골라지고(#344) 시트의 [티켓 구매하기]가 시트를 닫는다 → 하단 바 위 고른 티켓 줄 "이름 · × / − 1 + · 금액"(#345). 수량 상한은 min(인당 제한, 잔여, 100). 고른 뒤 하단 [티켓 구매하기]는 체크아웃으로(#347) — 뒤로가기는 상세.',
+    basis: [
+      'plan P6 V 범위',
+      'GUI 759:21725 · 759:21918 · 759:22015 · 759:22129',
+      'patterns §6 오버레이 · §15 상한',
+    ],
     viewports: ['mobile'],
   },
   async ({ page, step }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto(EVENT);
     await step(
-      '[티켓 구매하기]를 누르면 티켓 종류 시트가 열리고 구매 버튼은 비활성이다',
+      '[티켓 구매하기]를 누르면 티켓 종류 시트가 열리고, 고르기 전 시트의 구매 버튼은 비활성이다',
       async () => {
         await openSheet(page);
         await expect(sheet(page).getByRole('button', { name: '티켓 구매하기' })).toBeDisabled();
@@ -53,42 +65,39 @@ scenario(
       },
     );
     await step(
-      '일반 예매(두둥 티켓)를 누르면 고른 줄 강조 · 수량 1 · 15,000원 줄과 두둥 티켓 안내 3줄이 나온다',
+      '일반 예매(두둥 티켓)를 누르면 그 줄이 골라지고, 시트의 [티켓 구매하기]를 누르면 시트가 닫히며 아래 고른 티켓 줄(수량 1 · 15,000원)과 두둥 티켓 안내 3줄이 나온다',
       async () => {
         await row(sheet(page), /일반 예매/).click();
         await expect(row(sheet(page), /일반 예매/)).toHaveAttribute('aria-pressed', 'true');
-        await expect(sheet(page).getByRole('group', { name: '일반 예매 수량' })).toContainText('1');
-        await expect(sheet(page).getByText('15,000원').last()).toBeVisible();
+        await sheet(page).getByRole('button', { name: '티켓 구매하기' }).click();
+        await expect(sheet(page)).toBeHidden();
+        await expect(picked(page).getByRole('group', { name: '일반 예매 수량' })).toContainText(
+          '1',
+        );
+        await expect(picked(page).getByText('15,000원')).toBeVisible();
         // legal-copy A-4 원문
         await expect(
-          sheet(page).getByText('호스트 계좌로 입금하면, 호스트가 확인한 뒤 티켓이 발급돼요.'),
+          picked(page).getByText('호스트 계좌로 입금하면, 호스트가 확인한 뒤 티켓이 발급돼요.'),
         ).toBeVisible();
         await expect(
-          sheet(page).getByText(
+          picked(page).getByText(
             '예매를 취소해도 자동으로 환불되지 않아요. 호스트에게 연락해 환불받아야 해요.',
           ),
         ).toBeVisible();
         await expect(
-          sheet(page).getByText("호스트 연락처는 공연 상세의 '호스트'에서 볼 수 있어요."),
+          picked(page).getByText("호스트 연락처는 공연 상세의 '호스트'에서 볼 수 있어요."),
         ).toBeVisible();
       },
     );
     await step('+를 눌러 상한(인당 4매)까지 올리면 60,000원이고 +가 잠긴다', async () => {
-      const plus = sheet(page).getByRole('button', { name: '일반 예매 수량 늘리기' });
+      const plus = picked(page).getByRole('button', { name: '일반 예매 수량 늘리기' });
       for (let i = 0; i < 3; i++) await plus.click();
-      await expect(sheet(page).getByRole('group', { name: '일반 예매 수량' })).toContainText('4');
-      await expect(sheet(page).getByText('60,000원')).toBeVisible();
+      await expect(picked(page).getByRole('group', { name: '일반 예매 수량' })).toContainText('4');
+      await expect(picked(page).getByText('60,000원')).toBeVisible();
       await expect(plus).toBeDisabled();
     });
-    await step('뒤로가기를 누르면 시트만 닫히고, 다시 열면 고른 것이 남아 있다', async () => {
-      await page.goBack();
-      await expect(sheet(page)).toBeHidden();
-      await expect(page).toHaveURL(/\/events\/101$/);
-      await openSheet(page);
-      await expect(sheet(page).getByRole('group', { name: '일반 예매 수량' })).toContainText('4');
-    });
-    await step('시트의 [티켓 구매하기]를 누르면 체크아웃 주소(티켓·수량)로 간다', async () => {
-      await sheet(page).getByRole('button', { name: '티켓 구매하기' }).click();
+    await step('[티켓 구매하기]를 누르면 시트 없이 체크아웃 주소(티켓·수량)로 간다', async () => {
+      await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
       await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=4/);
     });
     await step('체크아웃에서 뒤로가기를 누르면 시트가 닫힌 공연 상세다', async () => {
@@ -103,44 +112,73 @@ scenario(
 );
 
 scenario(
-  'TKS-2',
-  '다른 티켓을 누르면 1주문 1종류 경고가 뜨고, × 로 선택을 취소하면 다른 티켓을 고를 수 있다',
+  'TKS-1b',
+  '모바일: 시트를 뒤로가기로 닫으면 상세에 남고, 시트 안 [문의]는 시트를 닫고 연락처 시트를 연다',
   {
     kind: '정상',
     summary:
-      '이미 고른 티켓이 있을 때 다른 티켓을 누르면 선택은 그대로, 경고 두 줄(role=alert). 고른 줄의 ×(선택 취소)가 경고도 끈다. 무료 티켓에는 두둥 티켓 안내가 없다.',
-    basis: ['plan P6 L 범위 1주문 1종류', '와이어 121:1517', 'patterns §15'],
+      '시트 버튼 줄은 하단 바와 같은 [문의][티켓 구매하기](`1948:25358`). 뒤로가기는 시트만 닫는다(patterns §6).',
+    basis: ['GUI 759:21725 · 1948:39697', 'patterns §6'],
+    viewports: ['mobile'],
+  },
+  async ({ page, step }) => {
+    await page.goto(EVENT);
+    await step('시트를 열고 뒤로가기를 누르면 시트만 닫힌다', async () => {
+      await openSheet(page);
+      await page.goBack();
+      await expect(sheet(page)).toBeHidden();
+      await expect(page).toHaveURL(/\/events\/101$/);
+    });
+    await step('시트의 [문의]를 누르면 시트가 닫히고 호스트 연락처 시트가 열린다', async () => {
+      await openSheet(page);
+      await sheet(page).getByRole('button', { name: '문의하기' }).click();
+      await expect(sheet(page)).toBeHidden();
+      await expect(page.getByRole('dialog', { name: '고스락 연락처' })).toBeVisible();
+    });
+  },
+);
+
+scenario(
+  'TKS-2',
+  '다른 티켓을 누르면 1주문 1종류 토스트가 뜨고, × 로 선택을 취소하면 다른 티켓을 고를 수 있다',
+  {
+    kind: '정상',
+    summary:
+      '이미 고른 티켓이 있을 때 다른 티켓을 누르면 선택은 그대로, 화면 위 연한 빨강 토스트 두 줄(GUI `759:22129`, #347). 고른 줄의 ×(선택 취소) 뒤에 다른 티켓을 고를 수 있다. 무료 티켓에는 두둥 티켓 안내가 없다. 모바일은 화면 티켓 카드를 누른다.',
+    basis: ['plan P6 L 범위 1주문 1종류', 'GUI 759:22129', 'patterns §15'],
   },
   async ({ page, step, testInfo }) => {
     const desktop = testInfo.project.name === 'desktop';
     await page.goto(EVENT);
-    const area = desktop ? page.getByRole('complementary', { name: '예매' }) : sheet(page);
-    if (!desktop) await openSheet(page);
+    const list = desktop ? page.getByRole('complementary', { name: '예매' }) : cards(page);
+    const area = desktop ? page.getByRole('complementary', { name: '예매' }) : picked(page);
     await step(
-      '일반 예매를 고른 뒤 초대권을 누르면 경고가 뜨고 선택은 일반 예매 그대로다',
+      '일반 예매를 고른 뒤 초대권을 누르면 경고 토스트가 뜨고 선택은 일반 예매 그대로다',
       async () => {
-        await row(area, /일반 예매/).click();
-        await row(area, /초대권/).click();
-        const alert = area.getByRole('alert');
-        await expect(alert).toContainText('티켓은 한 주문당 한 종류만 구매할 수 있습니다.');
-        await expect(alert).toContainText(
-          '다른 티켓의 구매를 원하실 경우 티켓 선택을 취소해주세요.',
-        );
+        await row(list, /일반 예매/).click();
+        await expect(area.getByRole('group', { name: '일반 예매 수량' })).toBeVisible();
+        await row(list, /초대권/).click();
+        await expect(
+          page.getByText('티켓은 한 주문당 한 종류만 구매할 수 있습니다.'),
+        ).toBeVisible();
+        await expect(
+          page.getByText('다른 티켓의 구매를 원하실 경우 티켓 선택을 취소해주세요.'),
+        ).toBeVisible();
         await expect(area.getByRole('group', { name: '일반 예매 수량' })).toBeVisible();
       },
     );
-    await step(
-      '×(티켓 선택 취소)를 누르면 경고와 수량 줄이 사라지고 초대권을 고를 수 있다',
-      async () => {
-        await area.getByRole('button', { name: '티켓 선택 취소' }).click();
-        await expect(area.getByRole('alert')).toHaveCount(0);
-        await row(area, /초대권/).click();
-        await expect(area.getByRole('group', { name: '초대권 수량' })).toBeVisible();
-        await expect(area.getByText('무료').last()).toBeVisible();
-        // 무료 티켓에는 두둥 티켓 안내(legal-copy A-4)가 없다
-        await expect(area.getByText(/호스트 계좌로 입금하면/)).toHaveCount(0);
-      },
-    );
+    await step('×(티켓 선택 취소)를 누르면 수량 줄이 사라지고 초대권을 고를 수 있다', async () => {
+      await area.getByRole('button', { name: '티켓 선택 취소' }).click();
+      await expect(
+        page.getByRole('group', { name: '일반 예매 수량' }).locator('visible=true'),
+      ).toHaveCount(0);
+      await row(list, /초대권/).click();
+      const after = desktop ? area : picked(page);
+      await expect(after.getByRole('group', { name: '초대권 수량' })).toBeVisible();
+      await expect(after.getByText('무료').last()).toBeVisible();
+      // 무료 티켓에는 두둥 티켓 안내(legal-copy A-4)가 없다
+      await expect(after.getByText(/호스트 계좌로 입금하면/)).toHaveCount(0);
+    });
   },
 );
 
@@ -182,13 +220,19 @@ scenario(
   {
     kind: '반응형',
     summary:
-      'PC 카드에서 고른 뒤 모바일 폭으로 줄여 시트를 열면 같은 선택. 시트를 연 채 다시 넓히면 시트는 닫히고 카드에 같은 선택.',
+      '모바일 폭에서 시트를 연 채 넓히면 시트는 닫힌다. PC 카드에서 고른 뒤 모바일 폭으로 줄이면 아래 고른 티켓 줄에 같은 선택, 다시 넓히면 카드에 같은 선택.',
     basis: ['plan P6 완료 기준 V(1024 경계)', 'patterns §1'],
     viewports: ['desktop'],
   },
   async ({ page, step }) => {
     await page.goto(EVENT);
     const aside = page.getByRole('complementary', { name: '예매' });
+    await step('390에서 시트를 연 채 1280으로 넓히면 시트가 닫힌다', async () => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openSheet(page);
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await expect(sheet(page)).toBeHidden();
+    });
     await step('PC(1280)에서 일반 예매 3매를 고른다', async () => {
       await row(aside, /일반 예매/).click();
       const plus = aside.getByRole('button', { name: '일반 예매 수량 늘리기' });
@@ -196,14 +240,12 @@ scenario(
       await plus.click();
       await expect(aside.getByRole('group', { name: '일반 예매 수량' })).toContainText('3');
     });
-    await step('390으로 줄여 [티켓 구매하기]로 시트를 열면 3매가 그대로다', async () => {
+    await step('390으로 줄이면 아래 고른 티켓 줄에 3매가 그대로다', async () => {
       await page.setViewportSize({ width: 390, height: 844 });
-      await openSheet(page);
-      await expect(sheet(page).getByRole('group', { name: '일반 예매 수량' })).toContainText('3');
+      await expect(picked(page).getByRole('group', { name: '일반 예매 수량' })).toContainText('3');
     });
-    await step('시트를 연 채 1280으로 넓히면 시트가 닫히고 카드에 3매가 남는다', async () => {
+    await step('다시 1280으로 넓히면 카드에 3매가 남는다', async () => {
       await page.setViewportSize({ width: 1280, height: 800 });
-      await expect(sheet(page)).toBeHidden();
       await expect(aside.getByRole('group', { name: '일반 예매 수량' })).toContainText('3');
     });
   },
@@ -269,12 +311,17 @@ scenario(
     const desktop = testInfo.project.name === 'desktop';
     await page.goto(EVENT);
     if (!desktop) await openSheet(page);
-    const area = desktop ? page.getByRole('complementary', { name: '예매' }) : sheet(page);
+    const list = desktop ? page.getByRole('complementary', { name: '예매' }) : sheet(page);
     await step('현장 판매분(판매 중단)은 잠겨 있고 일반을 고르면 수량 줄이 나온다', async () => {
-      await expect(row(area, /현장 판매분/)).toBeDisabled();
-      await row(area, /^일반/).click();
+      await expect(row(list, /현장 판매분/)).toBeDisabled();
+      await row(list, /^일반/).click();
+      // 모바일은 시트의 [티켓 구매하기]로 확정해야 아래 고른 티켓 줄이 뜬다
+      if (!desktop) await list.getByRole('button', { name: '티켓 구매하기' }).click();
+      const area = desktop ? list : picked(page);
       await expect(area.getByRole('group', { name: '일반 수량' })).toBeVisible();
-      await expect(area.getByRole('button', { name: '티켓 구매하기' })).toBeEnabled();
+      await expect(
+        page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true'),
+      ).toBeEnabled();
     });
   },
 );

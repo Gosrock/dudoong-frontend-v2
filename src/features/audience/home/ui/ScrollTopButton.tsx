@@ -18,11 +18,12 @@ const SHOW_AFTER_VIEWPORT = 0.5;
  * 🤖 Claude 판단). 서버와 첫 렌더는 숨김으로 같고(patterns §1), 마운트 뒤 스크롤 위치로 바꾼다. 숨김은 CSS
  * (`visibility: hidden`)라 탭 이동·스크린리더에도 빠진다.
  */
-export function ScrollTopButton() {
+export function ScrollTopButton({ className }: { className?: string } = {}) {
   const visible = useScrolledPast();
   return (
     <Fab
-      className={s.root}
+      // 자리(아래 여백)는 쓰는 화면이 덮을 수 있다 — 공연 상세는 하단 바 위(GUI `759:12772`)
+      className={className ? `${s.root} ${className}` : s.root}
       data-visible={visible || undefined}
       // 스크롤 전에는 숨겨 두므로 토스트를 이 버튼 위로 올리지 않는다(Toast I-h2)
       {...{ [FAB_HIDDEN_ATTR]: visible ? undefined : '' }}

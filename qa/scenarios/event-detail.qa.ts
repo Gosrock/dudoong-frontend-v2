@@ -5,8 +5,8 @@ import { resetHostingStore } from '../../src/api/__mocks__/hosting.handlers';
 import { envelope, expect, scenario } from '../scenario';
 
 /**
- * 공연 상세(plan P5b 완료 기준 V). 근거는 전부 와이어 — 모바일 `121:1216`, 연락처 `500:929`·`121:2026`,
- * PC 두 열 `640:1957`, PC 연락처 모달 `666:14989`(gui-screens §0 — 공연상세 GUI `759:*`는 Ready for dev 아님).
+ * 공연 상세(plan P5b 완료 기준 V). 모바일 근거는 GUI Ready(2026-11-22) — 공연상세 `759:12772`(#346) · 스크롤 `1948:25129`(#340) ·
+ * 호스트 연락처 시트 `759:22611`(#337 · #338). PC는 Ready가 없어 와이어 두 열 `640:1957` · 연락처 모달 `666:14989` 자리(섞임).
  *
  * 범주 검토
  * - 크롤러: 카카오 UA OG·404·5xx·응답 HTML에 재고 없음은 e2e `event-detail.spec`(P5b-L)이 본다 — 여기서는 화면만
@@ -23,8 +23,13 @@ scenario(
   {
     kind: '정상',
     summary:
-      '포스터 · 제목 · 해시태그 · 호스트/장소/일시 · 티켓 옵션(GP-5 — 모바일 카드는 표시만, PC 카드는 고르기) · 섹션 탭. 모바일 하단 [문의][티켓 구매하기]는 PC에서 CSS로 숨고, PC는 주간 달력 + 티켓 옵션 + [공유][티켓 구매하기].',
-    basis: ['plan P5b V 범위 · PC', '와이어 121:1216 · 640:1957', 'patterns §1 같은 DOM'],
+      '모바일(GUI `759:12772`): 포스터(머리 아래 고정) 위로 흰 판 — 제목 · 해시태그 · 일시/장소/호스트 · 티켓 카드(누르면 고름, GP-5) · 섹션 탭(스크롤하면 머리 아래 붙음, `1948:25129`). 모바일 하단 [문의][티켓 구매하기]는 PC에서 CSS로 숨고, PC는 와이어 두 열 — 주간 달력 + 티켓 옵션 + [공유][티켓 구매하기].',
+    basis: [
+      'plan P5b V 범위 · PC',
+      'GUI 759:12772 · 1948:25129',
+      '와이어 640:1957',
+      'patterns §1 같은 DOM',
+    ],
   },
   async ({ page, step, mockApi, testInfo }) => {
     const desktop = testInfo.project.name === 'desktop';
@@ -69,6 +74,13 @@ scenario(
           await page.mouse.wheel(0, 600);
         },
       );
+      await step('탭 줄은 스크롤하면 머리(64) 아래에 붙는다(#340 — sticky)', async () => {
+        const style = await page.evaluate(() => {
+          const cs = getComputedStyle(document.querySelector('[role=tablist]')!);
+          return { position: cs.position, top: cs.top };
+        });
+        expect(style).toEqual({ position: 'sticky', top: '64px' });
+      });
     }
   },
 );
@@ -99,28 +111,38 @@ scenario(
   },
 );
 
+const contactDialog = (page: import('@playwright/test').Page) =>
+  page.getByRole('dialog', { name: '고스락 연락처' });
+
 scenario(
   'EVT-3',
-  '비로그인이 문의를 열면 가린 값은 링크 없이 보이고 "로그인하면 볼 수 있어요"가 붙는다',
+  '비로그인이 문의를 열면 호스트 사진 · 이름 · 소개 · 연락처 아이콘 + 호스트 홈, 가린 전화는 "로그인이 필요해요"',
   {
     kind: '권한',
     summary:
-      '익명은 요청 없이 공개(가린) 값을 그린다(A안). 모바일은 바텀시트, PC는 모달. 인스타그램은 링크, 가린 전화는 글자.',
-    basis: ['plan P5b 연락처 A안', 'design-requests Q41 기본안', '와이어 500:929 · 666:14989'],
+      '익명은 요청 없이 공개(가린) 값을 쓴다(A안). 모바일 바텀시트(GUI `759:22611`, #337 · #338), PC는 모달. 인스타그램은 새 탭 링크, 가린 전화 아이콘은 호스트 홈과 같이 "로그인이 필요해요" 창(`1484:8106`). 맨 끝 호스트 홈 아이콘.',
+    basis: ['plan P5b 연락처 A안', 'GUI 759:22611 · 1383:40495', '호스트 홈 연락처 1484:8106'],
   },
   async ({ page, step, mockApi }) => {
     await setMockSession(page, 'anonymous');
     await page.goto(EVENT);
-    await step('[문의하기]를 누르면 문의하기 창에 호스트와 연락처가 보인다', async () => {
+    await step('[문의하기]를 누르면 연락처 시트에 호스트 · 소개 · 아이콘 줄이 보인다', async () => {
       await page.getByRole('button', { name: '문의하기' }).locator('visible=true').click();
-      const dialog = page.getByRole('dialog', { name: '문의하기' });
-      await expect(dialog.getByText('고스락')).toBeVisible();
-      await expect(dialog.getByRole('link', { name: /gosrock_official/ })).toBeVisible();
-      await expect(dialog.getByText('010-****-5678')).toBeVisible();
-      await expect(dialog.getByRole('link', { name: '로그인하면 볼 수 있어요' })).toHaveAttribute(
+      const dialog = contactDialog(page);
+      await expect(dialog.getByText('고스락', { exact: true })).toBeVisible();
+      await expect(dialog.getByRole('link', { name: '인스타그램 열기' })).toHaveAttribute(
         'href',
-        /\/login\?redirect=%2Fevents%2F101/,
+        /instagram\.com\/gosrock_official/,
       );
+      await expect(dialog.getByRole('link', { name: '호스트 홈' })).toHaveAttribute(
+        'href',
+        /\/hosts\/\d+$/,
+      );
+      await page.waitForTimeout(600);
+    });
+    await step('가린 전화 아이콘을 누르면 "로그인이 필요해요" 창이 뜬다', async () => {
+      await contactDialog(page).getByRole('button', { name: '연락처 보기 — 전화' }).click();
+      await expect(page.getByRole('alertdialog', { name: '로그인이 필요해요' })).toBeVisible();
       await page.waitForTimeout(600);
     });
     await step(
@@ -136,11 +158,12 @@ scenario(
 
 scenario(
   'EVT-4',
-  '로그인 사용자가 문의를 열면 그때 원문을 읽어 전화가 링크로 보인다',
+  '로그인 사용자가 문의를 열면 그때 원문을 읽고, 전화 아이콘은 값 · [전화 걸기] 팝업을 연다',
   {
     kind: '권한',
-    summary: '시트를 열 때만 GP-3을 쿠키와 함께 한 번 더 읽는다(viewer). 원문 전화는 tel: 링크.',
-    basis: ['plan P5b 연락처 A안', 'implementation-log 연락처 마스킹 대응'],
+    summary:
+      '시트를 열 때만 GP-3을 쿠키와 함께 한 번 더 읽는다(viewer). 전화 아이콘 → 연락처 팝업(`1529:13695` — 값 + 복사 + [전화 걸기] tel:).',
+    basis: ['plan P5b 연락처 A안', 'implementation-log 연락처 마스킹 대응', 'GUI 1529:13695'],
   },
   async ({ page, step, mockApi }) => {
     await setMockSession(page, 'loggedIn');
@@ -158,14 +181,17 @@ scenario(
       },
       { capture: false },
     );
-    await step('[문의하기]를 누르면 원문 전화번호가 링크로 보인다', async () => {
+    await step('[문의하기] → 전화 아이콘을 누르면 원문 번호와 [전화 걸기]가 보인다', async () => {
       await page.getByRole('button', { name: '문의하기' }).locator('visible=true').click();
-      const dialog = page.getByRole('dialog', { name: '문의하기' });
-      await expect(dialog.getByRole('link', { name: /010-1234-5678/ })).toHaveAttribute(
+      const phone = contactDialog(page).getByRole('button', { name: '연락처 보기 — 전화' });
+      await expect(phone).toBeEnabled();
+      await phone.click();
+      const popup = page.getByRole('dialog', { name: '전화번호' });
+      await expect(popup.getByText('010-1234-5678')).toBeVisible();
+      await expect(popup.getByRole('link', { name: '전화 걸기' })).toHaveAttribute(
         'href',
         'tel:01012345678',
       );
-      await expect(dialog.getByText('로그인하면 볼 수 있어요')).toHaveCount(0);
       await page.waitForTimeout(600);
     });
   },
@@ -173,10 +199,11 @@ scenario(
 
 scenario(
   'EVT-5',
-  '연락처를 다시 읽다 실패하면 [다시 시도]가 보이고 누르면 원문이 보인다',
+  '연락처를 다시 읽다 실패하면 [다시 시도]가 보이고 누르면 아이콘 줄이 보인다',
   {
     kind: '에러',
-    summary: 'viewer 조회 5xx → "연락처를 불러오지 못했어요." + [다시 시도].',
+    summary:
+      'viewer 조회 5xx → 아이콘 줄 자리에 "연락처를 불러오지 못했어요." + [다시 시도](디자인 없음 — 코멘트 2026-11-22).',
     basis: ['patterns §24 P5b', 'useEventContacts retry'],
   },
   async ({ page, step, testInfo }) => {
@@ -196,19 +223,18 @@ scenario(
     await page.goto(EVENT);
     await step('[문의하기]를 누르면 실패 안내와 [다시 시도]가 보인다', async () => {
       await page.getByRole('button', { name: '문의하기' }).locator('visible=true').click();
-      const dialog = page.getByRole('dialog', { name: '문의하기' });
-      await expect(dialog.getByText('연락처를 불러오지 못했어요.')).toBeVisible({
+      await expect(contactDialog(page).getByText('연락처를 불러오지 못했어요.')).toBeVisible({
         timeout: 45_000,
       });
       await page.waitForTimeout(600);
     });
-    await step('[다시 시도]를 누르면 연락처가 보인다', async () => {
+    await step('[다시 시도]를 누르면 연락처 아이콘이 보인다', async () => {
       fail = false;
-      const dialog = page.getByRole('dialog', { name: '문의하기' });
+      const dialog = contactDialog(page);
       // 데스크탑은 캡처(전체 페이지) 뒤 포커스 재조회로 먼저 풀릴 수 있다 — 버튼이 남아 있을 때만 누른다
       const retry = dialog.getByRole('button', { name: '다시 시도' });
       if (await retry.isVisible()) await retry.click();
-      await expect(dialog.getByRole('link', { name: /010-1234-5678/ })).toBeVisible();
+      await expect(dialog.getByRole('button', { name: '연락처 보기 — 전화' })).toBeEnabled();
     });
   },
 );
