@@ -42,24 +42,28 @@ export function RefundPolicy({
   const items = refundPolicyItems(c.ticket.payType);
   if (!items) return null;
   return (
-    <Accordion label={REFUND_POLICY_TITLE} defaultOpen className={collapseTopLine}>
-      <div className={grayBox}>
-        <RefundPolicyBody eventId={eventId} startAt={startAt} items={items} />
+    <>
+      <Accordion label={REFUND_POLICY_TITLE} defaultOpen className={collapseTopLine}>
+        <div className={`${grayBox} ${s.boxHead}`}>
+          <RefundPolicyBody startAt={startAt} items={items} />
+        </div>
+      </Accordion>
+      {/* 중개자 문장(A-5)은 접어도 보이게 접히는 영역 밖 — 펼치면 같은 회색 상자로 이어진다 */}
+      <div className={`${grayBox} ${s.boxTail}`}>
+        <RefundPolicyNotice eventId={eventId} />
       </div>
-    </Accordion>
+    </>
   );
 }
 
 /**
- * 규정 상자 안 — 취소 기한 줄(A-7 공통 행) · 공연 시작 · A-7 목록 · 중개자 문장(A-5) · 링크. 모바일 회색 상자와 PC 판매정보 카드가 같이 쓴다.
+ * 규정 상자 안 — 취소 기한 줄(A-7 공통 행) · 공연 시작 · A-7 목록. 모바일 회색 상자와 PC 판매정보 카드가 같이 쓴다.
  * PC(GUI `1999:3043`)는 위에 "환불/취소 규정" 제목이 있고 취소 기한 줄이 없지만, 공통 행은 약관 문구라 남긴다(Figma 코멘트 2026-11-22)
  */
 export function RefundPolicyBody({
-  eventId,
   startAt,
   items,
 }: {
-  eventId: number;
   startAt: string | null;
   items: readonly string[];
 }) {
@@ -77,14 +81,22 @@ export function RefundPolicyBody({
           </div>
         )}
       </Flex>
-      <div>
-        <ol className={bodyList}>
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
-        <p className={`${bodyText} ${s.notice}`}>{CHECKOUT_INTERMEDIARY_NOTICE}</p>
-      </div>
+      <ol className={bodyList}>
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ol>
+    </>
+  );
+}
+
+/**
+ * 중개자 문장(A-5) + [호스트 환불 기준] [이용약관]. 약관상 결제 화면에 늘 보여야 해 규정 목록과 달리 접히는 영역 밖에 둔다(GUI 순서는 같다)
+ */
+export function RefundPolicyNotice({ eventId }: { eventId: number }) {
+  return (
+    <>
+      <p className={bodyText}>{CHECKOUT_INTERMEDIARY_NOTICE}</p>
       <Flex gap={3} wrap className={bodyText}>
         <a href={eventHref(eventId)} target="_blank" rel="noopener noreferrer" className={textLink}>
           호스트 환불 기준

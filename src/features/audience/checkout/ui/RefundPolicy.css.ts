@@ -14,5 +14,8 @@ export const deadlineRow = style([
   },
 ]);
 
-/** 규정 목록 ↔ 중개자 문장 — GUI는 같은 글자 상자 안 빈 줄 하나(줄 높이 18.2 → 토큰 16) */
-export const notice = style({ marginTop: vars.space[4] });
+/** 접히는 규정 상자 — 아래 상자(중개자 문장)와 한 판으로 보이게 아래 안쪽 없음 */
+export const boxHead = style({ paddingBottom: 0 });
+
+/** 늘 보이는 아래 상자(중개자 문장 · 링크). 펼치면 목록 아래 16(GUI 빈 줄)로 이어진다 */
+export const boxTail = style({ paddingTop: vars.space[4] });

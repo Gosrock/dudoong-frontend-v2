@@ -67,7 +67,12 @@ export function CheckoutForm({
     hold: c.submission.pending,
   });
 
+  // PC 판매정보 패널 펼침(처음 펼침) — 동의 오류면 다시 펼쳐 칸이 보이고 포커스가 가게
+  const [saleOpen, setSaleOpen] = useState(true);
+
   const focusFirstError = () => {
+    const { hostProvisionAgreed, agreeRefundPolicy } = c.form.formState.errors;
+    if (hostProvisionAgreed || agreeRefundPolicy) setSaleOpen(true);
     // 첫 오류 티켓의 아코디언을 열고(tech-decisions §18) 다음 프레임에 포커스 — 닫힌 Collapsible 안 칸은 그려져 있지 않다
     const ticket =
       c.options.mode === 'individual' ? firstInvalidTicket(c.form.formState.errors) : null;
@@ -141,6 +146,8 @@ export function CheckoutForm({
               eventName={eventName}
               eventStartAt={eventStartAt}
               agreeField={<AgreeRefundPolicyField c={c} placement="panel" />}
+              open={saleOpen}
+              onOpenChange={setSaleOpen}
             />
           </div>
         </>

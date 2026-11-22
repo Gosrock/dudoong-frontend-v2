@@ -72,3 +72,6 @@ export const rule = style({
 export const policy = style({ display: 'flex', flexDirection: 'column', gap: vars.space[2] });
 
 export const policyTitle = style({ margin: 0, color: vars.color.text.primary });
+
+/** 중개자 문장 · 링크 — 문장 ↔ 링크 8 */
+export const notice = style({ display: 'flex', flexDirection: 'column', gap: vars.space[2] });

@@ -12,7 +12,7 @@ import type { CheckoutState } from '../model/useCheckout';
 import { HostProvisionCheck } from './CheckoutAgreements';
 import { AmountInfo } from './CheckoutPayment';
 import * as s from './CheckoutSidePanel.css';
-import { RefundPolicyBody } from './RefundPolicy';
+import { RefundPolicyBody, RefundPolicyNotice } from './RefundPolicy';
 
 /**
  * PC 오른쪽 열(GUI `[WEB] 공연결제` `1999:3012` — Design Sync #363): "최종 결제정보" 패널(금액 + CTA) · "판매정보" 패널.
@@ -52,6 +52,8 @@ export function CheckoutSaleInfoPanel({
   eventName,
   eventStartAt,
   agreeField,
+  open,
+  onOpenChange,
 }: {
   c: CheckoutState;
   eventId: number;
@@ -59,10 +61,13 @@ export function CheckoutSaleInfoPanel({
   eventStartAt: string | null;
   /** 환불/취소 규정 동의 칸(폼이 그린다 — 모바일은 하단 바) */
   agreeField: ReactNode;
+  /** 펼침(제어형) — 동의하지 않고 내면 폼이 다시 펼친다 */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const items = refundPolicyItems(c.ticket.payType);
   return (
-    <Collapsible.Root defaultOpen className={s.salePanel} asChild>
+    <Collapsible.Root open={open} onOpenChange={onOpenChange} className={s.salePanel} asChild>
       <section aria-labelledby="checkout-sale-info">
         <Collapsible.Trigger className={s.saleHead}>
           <Txt typography="headingMdEmphasized">
@@ -72,7 +77,7 @@ export function CheckoutSaleInfoPanel({
             <Icon name="chevron-down" />
           </span>
         </Collapsible.Trigger>
-        {/* 접어도 동의 칸은 그려 둔다 — 체크하지 않고 내면 포커스가 가야 한다(forceMount + 숨김) */}
+        {/* 접어도 동의 칸은 그려 둔다(값 · ref 유지). 동의하지 않고 내면 폼이 패널을 펼친 뒤 포커스한다(`focusFirstError`) */}
         <Collapsible.Content forceMount className={s.saleBody}>
           {c.agreementFields.hostProvision && (
             <>
@@ -86,10 +91,16 @@ export function CheckoutSaleInfoPanel({
               <Txt as="h3" typography="labelMd" className={s.policyTitle}>
                 환불/취소 규정
               </Txt>
-              <RefundPolicyBody eventId={eventId} startAt={eventStartAt} items={items} />
+              <RefundPolicyBody startAt={eventStartAt} items={items} />
             </div>
           )}
         </Collapsible.Content>
+        {/* 중개자 문장(A-5)은 접어도 보이게 접히는 영역 밖(GUI 순서는 같다) */}
+        {items && (
+          <div className={s.notice}>
+            <RefundPolicyNotice eventId={eventId} />
+          </div>
+        )}
       </section>
     </Collapsible.Root>
   );
