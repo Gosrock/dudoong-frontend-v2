@@ -27,10 +27,13 @@ export function TicketSelector({
   label,
   showPicked = false,
   framed = true,
+  onPicked,
 }: {
   selection: TicketSelection;
   label: string;
   showPicked?: boolean;
+  /** 줄을 눌러 그 티켓이 고른 상태가 되면(1주문 1종류 경고 · 살 수 없는 줄은 제외) — 모바일 시트가 닫는다(#386) */
+  onPicked?: () => void;
   /** 바깥 테두리 상자(모바일 시트 `1948:39630`). PC 예매 패널은 false */
   framed?: boolean;
 }) {
@@ -54,7 +57,9 @@ export function TicketSelector({
                 aria-pressed={canPick ? isSelected : undefined}
                 disabled={!canPick}
                 data-selected={isSelected || undefined}
-                onClick={() => selection.select(id)}
+                onClick={() => {
+                  if (selection.select(id)) onPicked?.();
+                }}
               >
                 <TicketRowContent view={view} />
               </button>

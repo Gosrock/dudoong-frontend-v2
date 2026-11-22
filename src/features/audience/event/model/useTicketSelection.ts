@@ -58,16 +58,18 @@ export function useTicketSelection(
   const quantity = selected?.quantity ?? 0;
   const maxQuantity = selected?.maxQuantity ?? 0;
 
-  const select = (ticketItemId: number) => {
+  /** 고른다. 그 티켓이 고른 상태가 되면(새로 골랐거나 이미 고른 티켓) `true` — 모바일 시트가 닫을지 정한다(#386) */
+  const select = (ticketItemId: number): boolean => {
     const view = tickets.find((t) => t.ticket.ticketItemId === ticketItemId);
-    if (!view || view.state !== 'PURCHASABLE') return;
+    if (!view || view.state !== 'PURCHASABLE') return false;
     if (selected && selected.ticket.ticketItemId !== ticketItemId) {
       setWarning(true);
-      return;
+      return false;
     }
-    if (selected) return;
+    if (selected) return true;
     setWarning(false);
     setPicked({ ticketItemId, quantity: 1 });
+    return true;
   };
 
   const setQuantity = (next: number) => {
