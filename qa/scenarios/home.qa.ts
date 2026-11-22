@@ -6,7 +6,7 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
  * 공연홈 `/` — P5a-V(2026-11-01): GUI `759:22391`(모바일 390) · PC `1974:63985` · `1960:2475`(1440, Design Sync #356 · #357).
- * 히어로 → "더 많은 공연 둘러보기 →" 근래 공연 6개(모바일 캐러셀 · PC 6칸 고정, 끝난 공연은 흐리게) → ↑.
+ * 히어로 → "더 많은 공연 둘러보기 →" 근래 공연 6개(모바일 캐러셀 · PC 1440 6칸 · 1024 4칸, 끝난 공연은 흐리게) → ↑.
  * 근거: plan P0 산출물 A·B·P5a(완료 기준 V), tech-decisions §2·§31(상태 코드 표), api-contract GP-2(지난 공연 포함 · 공연임박순).
  * 권한: 공개 화면이라 로그인 여부로 본문이 다르지 않다(헤더는 shell 시나리오).
  */
@@ -82,15 +82,15 @@ scenario(
   {
     kind: '정상',
     summary:
-      '글자와 화살표가 한 링크다(GUI 759:22411). 카드는 6장 — 모바일은 가로로 넘기고, PC는 6칸 고정이라 넘치지 않는다(GUI 1974:63993, #356).',
-    basis: ['plan P5a', 'GUI 759:22411·759:22414 · 1974:63993'],
+      '글자와 화살표가 한 링크다(GUI 759:22411). 카드는 6장 — 모바일은 가로로 넘기고, PC는 고정 격자라 넘치지 않는다 — 1440 6칸(GUI 1974:63993, #356) · 1024 4칸에 앞 4장(GUI 1989:33304, #367).',
+    basis: ['plan P5a', 'GUI 759:22411·759:22414 · 1974:63993 · 1989:33304'],
   },
   async ({ page, step, testInfo }) => {
     const desktop = testInfo.project.name === 'desktop';
     if (desktop) await page.setViewportSize({ width: 1440, height: 1024 });
     await step(
       desktop
-        ? 'PC는 카드 6장이 한 줄 6칸에 다 보인다(가로 스크롤 없음)'
+        ? 'PC 1440은 카드 6장이 한 줄 6칸, 1024는 앞 4장(가로 스크롤 없음)'
         : '캐러셀이 가로로 넘친다(6장)',
       async () => {
         await page.goto('/');
@@ -103,6 +103,13 @@ scenario(
             .getByRole('listitem')
             .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
           expect(new Set(tops).size).toBe(1);
+        }
+        if (desktop) {
+          // 1024 ~ 1439는 4칸에 앞 4개만(#367 — GUI `1989:33304`)
+          await page.setViewportSize({ width: 1024, height: 900 });
+          await expect(list.getByRole('listitem').locator('visible=true')).toHaveCount(4);
+          expect(await list.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false);
+          await page.setViewportSize({ width: 1440, height: 1024 });
         }
       },
       { fullPage: false },

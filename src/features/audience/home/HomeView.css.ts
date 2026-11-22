@@ -87,8 +87,8 @@ export const moreLink = style({
 });
 
 /**
- * 모바일 가로 캐러셀(GUI `759:22414` 카드 163 · 간격 16). PC는 6칸 고정 격자(GUI `1974:63993` 1280 · 간격 24 · 카드 193 — 가로 스크롤 없음,
- * Design Sync #356). 1024~1279도 6칸(🤖 — PC 그림은 1440 하나)
+ * 모바일 가로 캐러셀(GUI `759:22414` 카드 163 · 간격 16). PC는 고정 격자(가로 스크롤 없음): 1440~ 6칸(GUI `1974:63993` 1280 · 간격 24 ·
+ * 카드 193 — #356), 1024~1439 4칸에 앞 4개만(GUI `1989:33304` — #367)
  */
 export const carousel = style([
   sprinkles({ listStyle: 'none' }),
@@ -107,12 +107,14 @@ export const carousel = style([
     '@media': {
       [media.desktop]: {
         display: 'grid',
-        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+        // 1024 ~ 1439는 4칸(GUI `1989:33304` "1024 · 4개" — #367), 1440부터 6칸(`1974:63993`)
+        gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
         gap: vars.space[5],
         paddingInline: edgeDesktop,
         overflowX: 'visible',
         scrollSnapType: 'none',
       },
+      [media.desktopL]: { gridTemplateColumns: 'repeat(6, minmax(0, 1fr))' },
     },
   },
 ]);
@@ -121,6 +123,11 @@ export const carouselItem = style({
   flex: '0 0 163px',
   minWidth: 0,
   scrollSnapAlign: 'start',
+  // 4칸 폭에서는 앞 4개만(#367 "미리 보이는 공연 4개") — 같은 DOM, CSS로(patterns §1). 모바일 캐러셀 · 1440~는 6개
+  '@media': {
+    [media.desktop]: { selectors: { '&:nth-child(n + 5)': { display: 'none' } } },
+    [media.desktopL]: { selectors: { '&:nth-child(n + 5)': { display: 'list-item' } } },
+  },
 });
 
 /**
