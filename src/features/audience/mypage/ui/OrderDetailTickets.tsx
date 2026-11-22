@@ -8,12 +8,14 @@ import { Checkbox } from '@/ui/components/Checkbox/Checkbox';
 import { Chip, formatOptionAmount } from '@/ui/components/Chip/Chip';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Input } from '@/ui/components/Input/Input';
+import { SelectButton } from '@/ui/components/SelectButton/SelectButton';
 import { Divider } from '@/ui/primitives/Divider';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
 import { issuedTicketStateLabel } from '../model/order-card';
+import { optionAnswerView } from '../model/option-answer';
 import type { OrderDetailState } from '../model/useOrderDetail';
 import * as p from './OrderDetail.css';
 
@@ -87,6 +89,8 @@ export function OrderTickets({ detail }: { detail: OrderDetailState }) {
                       : state.label
                   }
                 />
+                {/* 선물할 때 쓴 메모(gui `1175:19358` "선물메모" — O-3 `giftMemo`, Api 2.5.16 · #348 B67). 선물 대기 · 완료 티켓만 값 */}
+                {t.giftMemo?.trim() && <InfoRow label="선물메모" value={t.giftMemo} />}
               </Accordion>
             );
           })
@@ -124,8 +128,9 @@ function OptionAmountChip({ answers }: { answers: readonly Answer[] }) {
 /**
  * 옵션 답 — 회색 판(gui `1175:19385` `list` 채움 `surface/container` · 안쪽 12/24 · 간격 16). 질문(Label/md-emphasized
  * `text/secondary-label`) + 추가금(브랜드 색) · 설명(Label/md `text/tertiary-label`) · 답.
- * 답은 GUI에서 객관식이 [예][아니오](로컬 `Check Button`), 주관식이 채워진 `input Field`다. O-3 응답에는 옵션 종류와 선택지가 없어
- * (서버 B61) 모든 답을 읽기 전용 `input Field`(Filled)로 그린다(🤖 디자인 Q177). 답 사이는 가는 선(gui `Line 49`).
+ * 답은 GUI대로 객관식(`YES_NO` · `MULTIPLE_CHOICE`)이면 선택지 버튼(로컬 `Check Button` — 고른 것 Default `1175:19192` · 나머지 disabled
+ * `1175:19193`, `SelectButton readOnly`), 주관식이면 채워진 `input Field`. 종류 · 선택지는 O-3 `optionType` · `choices`(Api 2.5.16 — #348 B67,
+ * 지금 옵션 기준). 옵션이 지워졌거나(null) 답이 지금 선택지에 없으면 입력칸으로(`optionAnswerView`). 답 사이는 가는 선(gui `Line 49`).
  */
 function OptionAnswers({ answers }: { answers: readonly Answer[] }) {
   if (answers.length === 0) return null;
@@ -151,15 +156,26 @@ function OptionAnswers({ answers }: { answers: readonly Answer[] }) {
                 </Txt>
               )}
             </Flex>
-            <Input
-              readOnly
-              value={a.answer ?? '—'}
-              aria-label={`${a.optionName ?? '옵션'} 답`}
-              showCount={false}
-            />
+            <AnswerValue answer={a} />
           </Flex>
         </Fragment>
       ))}
     </div>
   );
+}
+
+function AnswerValue({ answer }: { answer: Answer }) {
+  const view = optionAnswerView(answer);
+  const label = `${answer.optionName ?? '옵션'} 답`;
+  if (view.kind === 'choice') {
+    return (
+      <SelectButton
+        readOnly
+        aria-label={label}
+        value={view.value}
+        options={view.choices.map((c) => ({ value: c.value, label: c.label }))}
+      />
+    );
+  }
+  return <Input readOnly value={view.text} aria-label={label} showCount={false} />;
 }

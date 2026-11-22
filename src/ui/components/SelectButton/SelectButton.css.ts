@@ -44,6 +44,15 @@ export const item = style([
         borderColor: vars.color.interaction.disabled,
         color: vars.color.interaction.disabledText,
       },
+      // 읽기 전용(`readOnly`) — 고른 버튼도 Default 모양 그대로(GUI 주문상세 `1175:19192`), 누를 것이 없다
+      [`${group}[data-readonly] &`]: { cursor: 'default' },
+      [`${group}[data-readonly] &[data-state="checked"]`]: {
+        borderColor: vars.color.surface.defaultBorder,
+        color: vars.color.text.primary,
+      },
+      [`${group}[data-readonly] &:hover:not(:disabled)`]: {
+        background: vars.color.background.normal,
+      },
     },
   },
 ]);

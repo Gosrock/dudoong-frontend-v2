@@ -24,6 +24,11 @@ export type SelectButtonProps = {
   ref?: Ref<HTMLDivElement>;
   onBlur?: () => void;
   className?: string;
+  /**
+   * 고른 값을 보여 주기만 한다(주문상세 옵션 답 — GUI `1175:19192` Default · `1175:19193` disabled). 고른 버튼은 Default 모양,
+   * 나머지는 disabled 모양이고 값은 바뀌지 않는다. `value`와 함께 쓴다
+   */
+  readOnly?: boolean;
 };
 
 /**
@@ -42,6 +47,7 @@ export function SelectButton({
   ref,
   onBlur,
   className,
+  readOnly,
   ...aria
 }: SelectButtonProps) {
   return (
@@ -50,7 +56,9 @@ export function SelectButton({
       className={className ? `${s.group} ${className}` : s.group}
       value={value}
       defaultValue={defaultValue}
-      onValueChange={onValueChange}
+      onValueChange={readOnly ? undefined : onValueChange}
+      aria-readonly={readOnly || undefined}
+      data-readonly={readOnly || undefined}
       disabled={disabled}
       required={required}
       name={name}
@@ -59,7 +67,12 @@ export function SelectButton({
       {...aria}
     >
       {options.map((o) => (
-        <RadioGroup.Item key={o.value} value={o.value} disabled={o.disabled} className={s.item}>
+        <RadioGroup.Item
+          key={o.value}
+          value={o.value}
+          disabled={o.disabled || (readOnly && o.value !== value)}
+          className={s.item}
+        >
           {o.label}
         </RadioGroup.Item>
       ))}
