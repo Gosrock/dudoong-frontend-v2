@@ -3999,3 +3999,4 @@ Design Sync #311~#319(디자이너 2026-11-17 15:18~16:44Z) — 대상은 GUI �
 
 **테스트**: QA `host-settings` 43/0(HS-20에 PC 저장 바 · 연락처 10줄) · `hosting-event` 26/4(HE-4 주소 검색 틀 · 태그 묶음 · 지도 안내, HE-5 저장 전 확인, HE-15 기대값 — 실패 4는 공연 취소 HE-12 · HE-14, 가짜 공연 101 시작 2026-11-21이 지나서 `Event_400_29`, 범위 밖). e2e 6 spec 255/8(실패 8 같은 날짜 원인 — 공연 취소 · 티켓 목록 a11y). 스토리 `TagButton` `FullFromOutside`.
 **코드 리뷰(tap-review)**: 지적 12(70 이상 0) · 고침 3(70 미만 — 저장 바 여백 세기 `.bottom.bottom > *` · PC 연락처 값 칸 358 고정 · 우편번호 칸 주석 정리).
+**날짜 고정(관제탑 지시)**: `vitest.setup.ts` 단위 테스트 오늘 = 2026-11-18 12:00 KST(`Date`만 가짜 · 실제 속도로 흐름). 가짜 백엔드 `mockNow()`가 실제 오늘을 써서 11-22부터 E-11 공연 취소 6 · `useEventCancel` 5 · 공연준비 홈 myRole 1이 실패하던 것. 멈춘 시각(`setSystemTime`)은 Web Locks 테스트(시각 차이)를 깨서 흐르는 시계로. `pnpm test` 152 · 2805 통과. e2e · QA는 고정 밖(가짜 백엔드 env + Playwright clock이 필요) — 남음.
