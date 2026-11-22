@@ -11,7 +11,6 @@ import { hostHref } from '@/features/shared/routes';
 import { SectionViewer } from '@/features/shared/section-viewer/ui/SectionViewer';
 import { Button } from '@/ui/components/Button/Button';
 import { Chip } from '@/ui/components/Chip/Chip';
-import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { Tab, TabList, TabPanel, Tabs } from '@/ui/components/Tabs/Tabs';
 import { toast } from '@/ui/components/Toast/Toast';
 import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
@@ -35,7 +34,8 @@ import { BuyButtons, TicketSheet } from './TicketSheet';
 /**
  * 공연 상세(P5b-V → GUI 2026-11-22). 모바일 근거는 GUI Ready `759:12772` "공연상세"(#346) · `1948:25129` "공연상세(스크롤)"(#340) ·
  * 티켓 `759:21725` · `759:21918` · `759:22015` · `759:22129`(#343~#345 · #347) · 연락처 `759:22611`(#337 · #338).
- * PC(1024~)는 Ready 프레임이 없어 와이어 `640:1957` 배치(두 열 + 오른쪽 고정 카드) 그대로 두고 GUI 글자 · 부품만 맞춘다("섞임").
+ * PC(1024~)는 GUI Ready `1989:28064` "[WEB] 공연상세"(#361) · `1989:28341` 티켓 선택(#362) · `1989:28614` 문의하기(#366, 2026-11-22):
+ * 본문 1280을 12열로 나눠 왼쪽 8열(포스터 2열 + 요약 표 · 그 아래 예매 안내 문구) · 오른쪽 4열 예매 패널(주간 달력 · 티켓 옵션 · [문의][티켓 구매하기]).
  *
  * 모바일(`759:12772`): 포스터(화면 폭, 머리 아래 고정 — 디자이너 메모 "포스터는 고정") 위로 흰 판(위 모서리 20 · 위로 그림자)이 올라온다.
  * 판 안: 제목(`Title`, 가운데) → 해시태그 칩 → 일시 · 장소 › · 호스트 › → 티켓 카드(누르면 고름) → 탭(스크롤하면 머리 아래 붙음, #340) →
@@ -182,46 +182,36 @@ export function EventDetailView({ eventId }: { eventId: string }) {
                 </Link>
               </div>
 
-              {/* PC — 정보 표(와이어 640:1957 일자·시간·장소·호스트·태그) */}
-              <div className={s.desktopTable}>
-                {schedule && <InfoRow label="일자" value={schedule.date} />}
-                {schedule && <InfoRow label="시간" value={timeRange(schedule)} />}
+              {/* PC — 요약 표(GUI `1989:28263` — 이름 열 `Heading/sm - emphasized` · 값 `Heading/sm`, 줄 사이 4 · 열 사이 12).
+                  장소는 이름만(주소 줄 없음 — GUI대로), 호스트는 호스트 홈 링크. 문의 입구는 오른쪽 예매 패널 [문의](GUI `1989:28154`) */}
+              <dl className={s.desktopTable}>
+                <dt>호스트</dt>
+                <dd>
+                  <Link href={hostHref(event.host.hostId)} className={s.textLink}>
+                    {event.host.name ?? '호스트'}
+                  </Link>
+                </dd>
+                {schedule && (
+                  <>
+                    <dt>일자</dt>
+                    <dd>{schedule.date}</dd>
+                    <dt>시간</dt>
+                    <dd>{timeRange(schedule)}</dd>
+                  </>
+                )}
                 {event.place?.name && (
-                  <InfoRow
-                    label="장소"
-                    value={
-                      <Flex direction="column" gap={1}>
-                        <Txt typography="bodyLg">{event.place.name}</Txt>
-                        <PlaceAddress place={event.place} />
-                      </Flex>
-                    }
-                  />
+                  <>
+                    <dt>장소</dt>
+                    <dd>{event.place.name}</dd>
+                  </>
                 )}
-                <InfoRow
-                  label="호스트"
-                  value={
-                    <span className={s.hostValue}>
-                      <Link href={hostHref(event.host.hostId)} className={s.textLink}>
-                        <Txt typography="bodyLg">{event.host.name ?? '호스트'}</Txt>
-                      </Link>
-                      {/* PC 문의 입구는 와이어에 없다(PC 연락처 모달 666:14989만) — 호스트 옆에 둔다(디자인 없음 코멘트 2026-11-01) */}
-                      {hasContacts && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          icon={<Icon name="chat" />}
-                          onClick={openContacts}
-                        >
-                          문의하기
-                        </Button>
-                      )}
-                    </span>
-                  }
-                />
                 {hashtags.length > 0 && (
-                  <InfoRow label="태그" value={hashtags.map((t) => t.label).join(' ')} />
+                  <>
+                    <dt>태그</dt>
+                    <dd>{hashtags.map((t) => t.label).join(' ')}</dd>
+                  </>
                 )}
-              </div>
+              </dl>
             </div>
           </section>
 
@@ -242,8 +232,13 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               </TabList>
               {tabs.map((t) => (
                 <TabPanel key={t.key} value={t.key} className={s.tabPanel}>
-                  {/* 탭 본문 머리(GUI `759:13066` "공연소개" — `Label/lg-emphasized`) */}
-                  <Txt as="h2" typography="labelLgEmphasized" color={colors.textPrimary}>
+                  {/* 탭 본문 머리(GUI `759:13066` "공연소개" — `Label/lg-emphasized`). PC GUI `1989:28100`에는 없어 모바일만 */}
+                  <Txt
+                    as="h2"
+                    typography="labelLgEmphasized"
+                    color={colors.textPrimary}
+                    className={s.mobileOnly}
+                  >
                     {t.title}
                   </Txt>
                   <SectionViewer html={t.html} />
@@ -256,45 +251,38 @@ export function EventDetailView({ eventId }: { eventId: string }) {
           <div className={s.sheetPart}>
             <SaleInfo />
           </div>
-          {/* 중개자 고지(legal-copy A-1) — 모바일 GUI에 자리가 없어 판매정보 아래. 같은 DOM이라 PC도 여기(와이어는 정보 표 아래 — 🤖) */}
-          <div className={`${s.sheetPart} ${s.sheetEnd}`}>
+          {/* 중개자 고지(legal-copy A-1) — 모바일 GUI에 자리가 없어 판매정보 아래. PC는 CSS grid로 요약 표 아래 구분선 밑
+              "예매 안내 문구" 자리(GUI `1989:28333`)에 놓는다(같은 DOM 하나). 문구는 Figma 견본이 아니라 legal-copy A-1 원문 */}
+          <div className={`${s.sheetPart} ${s.sheetEnd} ${s.noticePart}`}>
             <IntermediaryNotice />
           </div>
         </article>
 
-        {/* PC 오른쪽 고정 카드(와이어 640:1957 배치 · GUI 티켓 목록 모양) */}
+        {/* PC 오른쪽 예매 패널(GUI `1989:28118` — 테두리 · 모서리 16 · 안쪽 24 · 사이 24) */}
         <aside className={s.aside} aria-label="예매">
           <WeekCalendar startAt={event.startAt} />
           {sellsTickets && (
             <>
-              <Txt as="h2" typography="headingMdEmphasized">
+              <Txt as="h2" typography="headingMdEmphasized" color={colors.textPrimaryLabel}>
                 티켓 옵션
               </Txt>
-              <TicketSelector selection={tickets} label="티켓 옵션" showPicked />
+              <TicketSelector selection={tickets} label="티켓 옵션" showPicked framed={false} />
             </>
           )}
-          <Flex gap={2}>
-            <Button
-              variant="tonal"
-              size="lg"
-              icon={<Icon name="link" />}
-              aria-label="공유하기"
-              onClick={share}
+          {/* [문의 56][티켓 구매하기](GUI `1989:28153` — 모바일 하단 바와 같은 버튼 줄). 공유는 PC GUI에 자리가 없어 뺐다
+              (🤖 2026-11-22 — 디자인 없음 코멘트. 모바일은 포스터 위 공유 그대로) */}
+          {(hasContacts || sellsTickets) && (
+            <BuyButtons
+              onContact={hasContacts ? openContacts : undefined}
+              onBuy={sellsTickets ? goCheckout : undefined}
+              buyDisabled={!checkoutHref}
             />
-            {sellsTickets && (
-              <Button
-                variant="primary"
-                size="lg"
-                fullWidth
-                disabled={!checkoutHref}
-                onClick={goCheckout}
-              >
-                티켓 구매하기
-              </Button>
-            )}
-          </Flex>
+          )}
         </aside>
       </div>
+
+      {/* PC 맨 위로(GUI `1989:28156` — 본문 오른쪽 아래) */}
+      <ScrollTopButton className={s.desktopScrollTop} />
 
       {/* 모바일 하단 고정 — 고른 티켓 줄(`759:22112`) + [문의][티켓 구매하기](`759:14901`) + 맨 위로. PC에서는 CSS로 숨긴다 */}
       {(hasContacts || sellsTickets) && (
@@ -362,16 +350,6 @@ function timeRange(schedule: EventSchedule) {
   return [`${schedule.startTime}${end}`, schedule.runTimeLabel].filter(Boolean).join(' ');
 }
 
-function PlaceAddress({ place }: { place: NonNullable<EventDetail['place']> }) {
-  const address = [place.address, place.detailAddress].filter(Boolean).join(' ');
-  if (!address) return null;
-  return (
-    <Txt typography="bodyMd" color={colors.textTertiary}>
-      {address}
-    </Txt>
-  );
-}
-
 /** 포스터. 없거나 못 불러오면 빈 상자(기본 이미지 자산 없음 — design-requests Q26) */
 function EventPoster({ src, alt }: { src: string | null; alt: string }) {
   if (!src) return null;
@@ -411,31 +389,34 @@ function IntermediaryNotice() {
   );
 }
 
-/** 주간 달력 — 표시용(누를 수 없음, Q21 기본안) */
+/**
+ * 주간 달력 — 표시용(누를 수 없음, Q21 기본안). GUI `1989:28119`: "2026년 1월"(20) → 요일(`Label/md` 회색) 아래 날짜(`Label/md - emphasized`),
+ * 공연일은 요일 보라 · 날짜 보라 원 24 안 흰 글자 → 아래 구분선
+ */
 function WeekCalendar({ startAt }: { startAt: string | null }) {
   const week = eventWeek(startAt);
   if (!week) return null;
   return (
-    <Flex direction="column" gap={3}>
-      <Txt typography="headingSmEmphasized">
+    <div className={s.weekBox}>
+      {/* FIGMA-CUSTOM: 달력 머리(gui 1989:34364 "2026년 1월") 글자 스타일 없음(20 · 600) → 가장 가까운 Heading/md - emphasized. Figma 코멘트 2026-11-22 */}
+      <Txt typography="headingMdEmphasized" color={colors.textPrimaryLabel}>
         {week.year}년 {week.month}월
       </Txt>
       <div className={s.week} aria-hidden>
         {week.days.map((d) => (
-          <Txt key={d.weekday} typography="labelSm" color={colors.textTertiary}>
-            {d.weekday}
-          </Txt>
-        ))}
-        {week.days.map((d) => (
-          <span
-            key={`d-${d.weekday}`}
-            className={s.weekDay}
-            data-event-day={d.isEventDay || undefined}
-          >
-            <Txt typography="labelLgEmphasized">{d.day}</Txt>
+          <span key={d.weekday} className={s.weekCell} data-event-day={d.isEventDay || undefined}>
+            <Txt
+              typography={d.isEventDay ? 'labelMdEmphasized' : 'labelMd'}
+              className={s.weekdayLabel}
+            >
+              {d.weekday}
+            </Txt>
+            <span className={s.weekDay}>
+              <Txt typography="labelMdEmphasized">{d.day}</Txt>
+            </span>
           </span>
         ))}
       </div>
-    </Flex>
+    </div>
   );
 }

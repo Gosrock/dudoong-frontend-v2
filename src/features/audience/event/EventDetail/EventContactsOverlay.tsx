@@ -32,7 +32,8 @@ import * as s from './EventContactsOverlay.css';
  * 맨 끝 호스트 홈 아이콘. 기본으로 호스트 홈 아이콘 + 등록한 연락처 1개 이상.
  * 연락처 아이콘은 호스트 홈(GUI 구현됨 — `1481:*` · `1529:*`)과 같은 부품 · 같은 동작: 전화 · 이메일 · 기타 글자 → 연락처 팝업(`1529:13695`),
  * 인스타그램 · 유튜브 · 오픈채팅 → 새 탭, 로그인 전 가린 값 → "로그인이 필요해요"(`1484:8106`).
- * PC(1024~)는 같은 내용을 모달로(`ResponsiveOverlay` — PC Ready 프레임 없음, 와이어 `666:14989` 자리).
+ * PC(1024~)는 같은 내용을 모달로(`ResponsiveOverlay` — GUI `1989:28614` "[WEB] 공연상세 - 문의하기"(#366): 310 · 머리 "호스트 연락처" + ✕,
+ * 2026-11-22). 모바일 시트는 머리 글자 없이 손잡이(제목은 읽어 주는 이름으로만).
  * 연 동안만 `useEventContacts`가 로그인 사용자의 원문을 읽는다(A안 — 익명은 요청 없이 가린 값). 소개 글은 GH-3 공개 값(`hostDetailQuery`)을 연 동안 읽는다.
  */
 export function openEventContacts(eventId: string, host: EventDetail['host']) {
@@ -41,8 +42,11 @@ export function openEventContacts(eventId: string, host: EventDetail['host']) {
       open={isOpen}
       onOpenChange={(o) => !o && close()}
       onExited={unmount}
-      title={`${host.name ?? '호스트'} 연락처`}
+      title="호스트 연락처"
       hideTitle
+      showModalTitle
+      titleSize="label"
+      modalSize="sm"
       sheetVariant="rounded"
     >
       <EventContactsBody eventId={eventId} host={host} open={isOpen} />

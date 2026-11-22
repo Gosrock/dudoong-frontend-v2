@@ -96,6 +96,7 @@ export function BuyButtons({
           size="lg"
           icon={<Icon name="chat" />}
           aria-label="문의하기"
+          className={s.contactButton}
           onClick={onContact}
         />
       )}

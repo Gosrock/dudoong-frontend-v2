@@ -6,6 +6,7 @@ import type { RepresentativeEvent } from '@/api/me/schema';
 import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { Chip, type ChipColor } from '@/ui/components/Chip/Chip';
+import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';
 import { EmptyState, EmptyStateAction } from '@/ui/components/EmptyState/EmptyState';
 import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { LoadMoreSentinel } from '@/ui/components/LoadMoreSentinel/LoadMoreSentinel';
@@ -39,22 +40,35 @@ function badgeChip(
 
 /**
  * `/mypage/following` 관심 호스트 — GUI `1175:20346` 관심호스트(2026-11-07 Ready, 모바일 390). PC 프레임은 없어 PC는 와이어 때 가운데 열.
- * 위 오른쪽 정렬 라벨 "최신공연순"(DS SortButton — 고정 라벨, 누를 수 없다. 목록은 GM-4 `sort=LATEST_EVENT` — #348 B68). 와이어 때의 상태 필터
- * 드롭다운(서버 `status` 3값)은 GUI에 없어 뺐다(GUI가 이긴다 — 디자인 Q180, 서버 정렬 기준 B61).
- * 행: 아바타 60 + 오른쪽 아래 ♥(누르면 관심 해제 — 목록에서 빠진다) · 호스트 이름(→ 호스트 홈) · 대표 공연 제목(→ 공연 상세) · 배지.
+ * 위 오른쪽 정렬(DS SortButton ▾ → DS `dropdown` — Design Sync #371 annotation: 최신공연순 `LATEST_EVENT` · 최근저장순 `FOLLOWED`,
+ * 이름순은 서버 값 대기). 와이어 때의 상태 필터 드롭다운(서버 `status` 3값)은 GUI에 없어 뺐다(GUI가 이긴다 — 디자인 Q180, 서버 정렬 기준 B61).
+ * 행(#371): 호스트 영역(아바타 · 이름 · 대표 공연 제목 · 배지) 전체가 호스트 홈 링크, 아바타 오른쪽 아래 ♥는 관심 해제(목록에서 빠진다).
  */
 export function FollowingHostsView() {
   const f = useFollowingHosts();
+  const sortLabel = f.sortOptions.find((o) => o.sort === f.sort)?.label ?? f.sortOptions[0].label;
   return (
     <main className={s.page}>
       <Txt as="h1" typography="headingMdEmphasized" className={s.title}>
         관심 호스트
       </Txt>
       <div className={p.sortBar}>
-        {/* DS SortButton(gui `1175:20350`) — 고정 라벨. Figma의 ▾는 누를 수 있어 보이지 않게 그리지 않는다(주문내역 · 공연 리스트와 같게) */}
-        <Txt typography="labelMd" color={colors.textPrimaryLabel}>
-          최신공연순
-        </Txt>
+        {/* DS SortButton(gui `1175:20350` — 라벨 + ▾ 12) → DS dropdown(고른 항목 ✓). 고르면 첫 페이지부터 다시 읽는다 */}
+        <DropdownMenu
+          trigger={
+            <button type="button" className={p.sortButton} aria-label={`정렬: ${sortLabel}`}>
+              <Txt typography="labelMd" color={colors.textPrimaryLabel}>
+                {sortLabel}
+              </Txt>
+              <Icon name="chevron-down" size={12} />
+            </button>
+          }
+          items={f.sortOptions.map((o) => ({
+            label: o.label,
+            selected: o.sort === f.sort,
+            onSelect: () => f.setSort(o.sort),
+          }))}
+        />
       </div>
 
       {f.listStatus === 'pending' && (
@@ -84,41 +98,36 @@ export function FollowingHostsView() {
             h.representativeEvent && h.badge ? badgeChip(h.representativeEvent, h.badge) : null;
           return (
             <li key={h.hostId} className={p.hostRow} data-testid="following-host">
-              <span className={p.avatarBox}>
-                <Link href={h.href} className={s.plainLink} aria-hidden tabIndex={-1}>
-                  <Avatar size={60} src={h.profileImageUrl} />
-                </Link>
-                {/* ♥(gui `1175:21260` DS ic_favorite filled 24 · 채움 `brand/accent`) — 아바타 오른쪽 아래에 겹친다. 누르는 칸은 44 */}
-                <button
-                  type="button"
-                  className={p.heart}
-                  aria-label={`${h.name ?? '호스트'} 관심 해제`}
-                  aria-pressed
-                  onClick={() => f.unfollow(h.hostId)}
-                  disabled={f.isUnfollowing(h.hostId)}
-                >
-                  <Icon name="favorite" />
-                </button>
-              </span>
-              <Flex direction="column" gap={1} className={s.grow}>
-                <Link href={h.href} className={s.plainLink}>
+              {/* 호스트 영역 전체 → 호스트 홈(#371). ♥는 링크 밖 형제(누르는 칸이 겹쳐도 버튼이 위) */}
+              <Link href={h.href} className={p.hostLink}>
+                <Avatar size={60} src={h.profileImageUrl} />
+                <Flex direction="column" gap={1} className={s.grow}>
                   <Txt typography="headingMd2Emphasized" lines={1}>
                     {h.name ?? '이름 없는 호스트'}
                   </Txt>
-                </Link>
-                {h.representativeEvent && h.eventHref && (
-                  <Link href={h.eventHref} className={s.plainLink}>
+                  {h.representativeEvent && (
                     <Txt typography="headingSm" lines={1}>
                       {h.representativeEvent.name ?? UNNAMED_EVENT}
                     </Txt>
-                  </Link>
+                  )}
+                </Flex>
+                {badge && (
+                  <Chip size="sm" shape="round" color={badge.color} theme={badge.theme}>
+                    {badge.text}
+                  </Chip>
                 )}
-              </Flex>
-              {badge && (
-                <Chip size="sm" shape="round" color={badge.color} theme={badge.theme}>
-                  {badge.text}
-                </Chip>
-              )}
+              </Link>
+              {/* ♥(gui `1175:21260` DS ic_favorite filled 24 · 채움 `brand/accent`) — 아바타 오른쪽 아래에 겹친다. 누르는 칸은 44 */}
+              <button
+                type="button"
+                className={p.heart}
+                aria-label={`${h.name ?? '호스트'} 관심 해제`}
+                aria-pressed
+                onClick={() => f.unfollow(h.hostId)}
+                disabled={f.isUnfollowing(h.hostId)}
+              >
+                <Icon name="favorite" />
+              </button>
             </li>
           );
         })}

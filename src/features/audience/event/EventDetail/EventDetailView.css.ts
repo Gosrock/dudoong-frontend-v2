@@ -1,13 +1,14 @@
-import { style } from '@vanilla-extract/css';
+import { globalStyle, style } from '@vanilla-extract/css';
 
 import { HEADER_HEIGHT, TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
 import { colors } from '@/ui/theme/colors';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
+import { typographySpecs } from '@/ui/theme/typography.css';
 
 /**
- * 공연 상세 — 모바일 GUI `759:12772` · `1948:25129`(Ready 2026-11-22), PC 와이어 `640:1957`(두 열 — PC Ready 없음).
+ * 공연 상세 — 모바일 GUI `759:12772` · `1948:25129`, PC GUI `1989:28064` · `1989:28341`(모두 Ready 2026-11-22).
  * 서버 · 클라이언트가 같은 DOM을 그리고 모바일/PC에서 보일 것은 CSS가 정한다(patterns §1).
  *
  * 모바일 구조: 포스터가 머리 아래에 붙어 있고(sticky) 그 위로 흰 판이 스크롤해 올라온다. 흰 판은 한 덩어리가 아니라
@@ -27,35 +28,49 @@ export const page = style({
   '@media': { [media.desktop]: { paddingTop: vars.space[7], paddingBottom: vars.space[9] } },
 });
 
-/** PC 두 열 — 왼쪽 본문 + 오른쪽 고정 카드 382(와이어 `640:1957`) */
+const GUTTER = vars.space[5]; // PC 12열 격자 간격 24
+
+/**
+ * PC 두 열 — 본문 1280을 12열(간격 24)로 보고 왼쪽 8열 · 오른쪽 예매 패널 4열(GUI `1989:28067` — 1440에서 845 · 411).
+ * 4열 = (100% − 11 × 24) / 12 × 4 + 3 × 24
+ */
 export const grid = style({
   display: 'grid',
   gridTemplateColumns: 'minmax(0, 1fr)',
   '@media': {
     [media.desktop]: {
-      gridTemplateColumns: 'minmax(0, 1fr) 382px',
-      columnGap: vars.space[5],
+      gridTemplateColumns: `minmax(0, 1fr) calc((100% - ${GUTTER} * 11) / 12 * 4 + ${GUTTER} * 3)`,
+      columnGap: GUTTER,
       alignItems: 'start',
     },
   },
 });
 
+/**
+ * 왼쪽 열. PC는 두 칸 격자 — 포스터(8열 중 2열, 1440에서 193 · GUI `1989:28318`)가 위 두 줄(요약 표 · 예매 안내 문구)에 걸치고
+ * 탭 · 판매정보는 아래에 폭 가득(GUI `1989:28068` — 사이 24). 2열 = (100% − 7 × 24) / 4 + 24
+ */
 export const mainCol = style({
   display: 'flex',
   flexDirection: 'column',
   minWidth: 0,
-  '@media': { [media.desktop]: { gap: vars.space[6] } },
+  '@media': {
+    [media.desktop]: {
+      display: 'grid',
+      gridTemplateColumns: `calc((100% - ${GUTTER} * 7) / 4 + ${GUTTER}) minmax(0, 1fr)`,
+      columnGap: GUTTER,
+      rowGap: GUTTER,
+      alignItems: 'start',
+    },
+  },
 });
 
-/** 포스터 + 요약. 모바일은 풀어서(`contents`) 포스터가 글 전체 범위에서 붙어 있게, PC는 포스터 282 옆에 정보 표 */
-export const summary = style({
-  display: 'contents',
-  '@media': { [media.desktop]: { display: 'flex', flexDirection: 'row', gap: vars.space[5] } },
-});
+/** 포스터 + 요약. 모바일은 풀어서(`contents`) 포스터가 글 전체 범위에서 붙어 있게, PC도 풀어서 `mainCol` 격자에 놓는다 */
+export const summary = style({ display: 'contents' });
 
 /**
  * 포스터 — 모바일은 화면 폭 390 × 551(GUI `759:13002`, 비율 282:400과 같다) · 모서리 없음 · 머리(64) 아래 고정
- * (디자이너 메모 `759:12772` "포스터는 고정"). PC는 282 · 모서리 8(와이어)
+ * (디자이너 메모 `759:12772` "포스터는 고정"). PC는 왼쪽 격자 첫 칸(1440에서 193 × 273) · 모서리 8(GUI `1989:28318`)
  */
 export const posterWrap = style({
   position: 'sticky',
@@ -70,8 +85,9 @@ export const posterWrap = style({
     [media.desktop]: {
       position: 'relative',
       top: 'auto',
+      gridColumn: 1,
+      gridRow: '1 / span 2',
       marginInline: 0,
-      width: 282,
       borderRadius: vars.radius[2],
     },
   },
@@ -154,14 +170,19 @@ export const title = style({
   '@media': { [media.desktop]: { textAlign: 'left' } },
 });
 
-/** 정보 — 모바일 덩어리 사이 20(제목 · 칩 · 아이콘 행), PC 16 */
+/** 정보 — 모바일 덩어리 사이 20(제목 · 칩 · 아이콘 행), PC 제목 ↔ 표 16(GUI `1989:28261`) */
 export const info = style({
   display: 'flex',
   flexDirection: 'column',
   gap: 20,
   flex: 1,
   minWidth: 0,
-  '@media': { [media.desktop]: { gap: vars.space[4] } },
+  '@media': { [media.desktop]: { gridColumn: 2, gridRow: 1, gap: vars.space[4] } },
+});
+
+/** PC 탭 · 판매정보는 왼쪽 열 폭 가득 */
+globalStyle(`${mainCol} > :not(${summary})`, {
+  '@media': { [media.desktop]: { gridColumn: '1 / -1' } },
 });
 
 /** 아이콘 행 사이 8(GUI `759:13011`) */
@@ -185,25 +206,54 @@ export const iconRow = style({
 
 export const iconRowText = style({ flex: 1, minWidth: 0 });
 
+/**
+ * PC 요약 표(GUI `1989:28263`) — 이름 열(`Heading/sm - emphasized`) · 값 열(`Heading/sm`), 줄 사이 4 · 열 사이 12, `text/primary-label`
+ */
 export const desktopTable = style({
   display: 'none',
+  margin: 0,
+  color: vars.color.text.primaryLabel,
   '@media': {
     [media.desktop]: {
-      display: 'flex',
-      flexDirection: 'column',
-      paddingTop: vars.space[2],
-      paddingBottom: vars.space[2],
-      borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
-      borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,
+      display: 'grid',
+      gridTemplateColumns: 'max-content minmax(0, 1fr)',
+      columnGap: vars.space[3],
+      rowGap: vars.space[1],
     },
   },
 });
 
-export const hostValue = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.space[3],
-  flexWrap: 'wrap',
+globalStyle(`${desktopTable} > dt`, {
+  fontSize: typographySpecs.headingSmEmphasized.size,
+  fontWeight: typographySpecs.headingSmEmphasized.weight,
+  lineHeight: typographySpecs.headingSmEmphasized.lineHeight,
+  letterSpacing: typographySpecs.headingSmEmphasized.letterSpacing,
+});
+
+globalStyle(`${desktopTable} > dd`, {
+  margin: 0,
+  minWidth: 0,
+  overflowWrap: 'anywhere',
+  fontSize: typographySpecs.headingSm.size,
+  fontWeight: typographySpecs.headingSm.weight,
+  lineHeight: typographySpecs.headingSm.lineHeight,
+  letterSpacing: typographySpecs.headingSm.letterSpacing,
+});
+
+/**
+ * 중개자 고지 묶음 — PC는 요약 표 아래 구분선(1 `#f7f7f6` = `surface/container`) + 12 뒤 문구(GUI `1989:28332` · `1989:28333`).
+ * 격자 줄 사이 24에서 표 ↔ 구분선 12로 당긴다
+ */
+export const noticePart = style({
+  '@media': {
+    [media.desktop]: {
+      gridColumn: '2 !important',
+      gridRow: 2,
+      marginTop: `calc(${vars.space[3]} - ${GUTTER})`,
+      paddingTop: vars.space[3],
+      borderTop: `1px solid ${vars.color.surface.container}`,
+    },
+  },
 });
 
 export const textLink = style({ color: 'inherit', textDecoration: 'underline' });
@@ -218,6 +268,7 @@ export const card = style({
   gap: vars.space[2],
 });
 
+/** PC 예매 패널(GUI `1989:28118` — 테두리 `#dddcda` · 모서리 16 · 안쪽 24 · 사이 24) */
 export const aside = style([
   card,
   {
@@ -225,8 +276,9 @@ export const aside = style([
     '@media': {
       [media.desktop]: {
         display: 'flex',
-        gap: vars.space[4],
-        padding: vars.space[5],
+        gap: GUTTER,
+        padding: GUTTER,
+        borderRadius: vars.radius[5],
         position: 'sticky',
         // 고정 상단 바(58) 아래 + space[5](fix-qa-1101)
         top: `calc(${TOP_BAR_HEIGHT}px + ${vars.space[5]})`,
@@ -290,27 +342,59 @@ export const bottomBar = style({
 /** [문의 56][티켓 구매하기] — 화면 하단 바 사이 8(`759:14902`), 시트 버튼 줄 사이 12(`1948:25358`) */
 export const buyButtons = style({ display: 'flex', gap: vars.space[2], width: '100%' });
 export const buyButtonsSheet = style({ gap: vars.space[3] });
+/** [문의] 56 정사각 — 옆 [티켓 구매하기](폭 가득)에 밀려 줄지 않게(GUI `1989:28154` · `759:14902` 56×56) */
+export const contactButton = style({ flexShrink: 0 });
 
-/** 주간 달력 7칸(와이어 `640:1957`) */
-export const week = style({
-  display: 'grid',
-  gridTemplateColumns: 'repeat(7, 1fr)',
-  rowGap: vars.space[2],
-  textAlign: 'center',
+/** PC 맨 위로 — 모바일은 하단 묶음 안 버튼(`scrollTop`)이 맡는다 */
+export const desktopScrollTop = style({
+  display: 'none',
+  '@media': { [media.desktop]: { display: 'inline-flex' } },
+});
+
+/** 주간 달력 묶음(GUI `1989:28119` — 머리 · 요일 줄 사이 16, 아래 구분선) */
+export const weekBox = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[4],
   paddingBottom: vars.space[4],
   borderBottom: `1px solid ${vars.color.surface.strongBorder}`,
 });
 
+/** 요일 7칸(GUI `1989:28123` — 위아래 9, 칸 36 고르게) */
+export const week = style({
+  display: 'grid',
+  gridTemplateColumns: 'repeat(7, 1fr)',
+  paddingBlock: 9,
+  textAlign: 'center',
+});
+
+/** 한 칸 — 요일 ↔ 날짜 8(GUI `1989:28124`) */
+export const weekCell = style({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: vars.space[2],
+});
+
+export const weekdayLabel = style({
+  color: vars.color.text.tertiary,
+  selectors: { [`${weekCell}[data-event-day] &`]: { color: vars.color.brand.primary } },
+});
+
+/** 날짜 — 공연일은 보라 원 24 안 흰 글자(GUI `1989:28143`) */
 export const weekDay = style({
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  width: 32,
-  height: 32,
-  margin: '0 auto',
+  width: 24,
+  height: 24,
   borderRadius: vars.radius.full,
+  color: vars.color.text.primaryLabel,
   selectors: {
-    '&[data-event-day]': { background: vars.color.brand.primary, color: vars.color.text.onBrand },
+    [`${weekCell}[data-event-day] &`]: {
+      background: vars.color.brand.primary,
+      color: vars.color.text.onBrand,
+    },
   },
 });
 

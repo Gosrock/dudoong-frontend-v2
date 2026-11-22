@@ -19,24 +19,29 @@ import * as s from './TicketSelector.css';
  * GUI 로컬 "ticket option list"(`1948:39630`): 테두리 상자 · 모서리 20 · 안쪽 8, 줄은 "ticket options"(모서리 16 · 안쪽 16),
  * 고른 줄은 회색 바탕(`1948:26087` `#eeeeed`). 살 수 있는 줄을 누르면 고른다.
  * 1주문 1종류 경고는 부모가 토스트로 띄운다(`759:22129`, #347). `showPicked`면 목록 아래 고른 티켓 줄(PC 카드).
+ * PC 예매 패널(GUI `1989:28149` · `1989:28557`, #361 · #362)은 바깥 테두리 상자 없이 줄 사이 4(`framed={false}`),
+ * 고른 티켓 줄은 구분선 아래 안쪽 16.
  */
 export function TicketSelector({
   selection,
   label,
   showPicked = false,
+  framed = true,
 }: {
   selection: TicketSelection;
   label: string;
   showPicked?: boolean;
+  /** 바깥 테두리 상자(모바일 시트 `1948:39630`). PC 예매 패널은 false */
+  framed?: boolean;
 }) {
   if (!canListTickets(selection)) {
     return <TicketListFallback selection={selection} />;
   }
   const { selected } = selection;
   return (
-    <Flex direction="column" gap={4} fullWidth>
+    <Flex direction="column" gap={framed ? 4 : 1} fullWidth>
       {/* FIGMA-CUSTOM: 티켓 고르는 목록(gui 1948:39630 "ticket option list" — GUI 로컬 컴포넌트) 커스텀 → 커스텀 TicketSelector.css.ts. DS 후보(design-system §3) */}
-      <ul className={s.list} aria-label={label}>
+      <ul className={framed ? s.list : s.listPlain} aria-label={label}>
         {selection.tickets.map((view) => {
           const id = view.ticket.ticketItemId;
           const isSelected = selected?.ticket.ticketItemId === id;
@@ -58,7 +63,11 @@ export function TicketSelector({
         })}
       </ul>
 
-      {showPicked && selected && <PickedTicket selection={selection} />}
+      {showPicked && selected && (
+        <div className={framed ? undefined : s.pickedPlain}>
+          <PickedTicket selection={selection} />
+        </div>
+      )}
     </Flex>
   );
 }

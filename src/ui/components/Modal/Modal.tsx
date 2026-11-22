@@ -43,8 +43,9 @@ export type ModalProps = {
    * 크기 — 둘 다 흰 판 · 안쪽 24 · 묶음(머리 · 본문 · 버튼) 사이 24 · 모서리 16. 폭만 다르다.
    * `md`(기본) — 최대 480(GUI 예매자 주문 상세 `1029:6888`, 2026-11-08 `fm-ds-overlays` — 옛 회색 판 · 안쪽 16에서 바꿈).
    * `lg` — 520(GUI 호스팅 PC 티켓 옵션 모달 `956:3157` 등 13장, 2026-11-07 I-h1)
+   * `sm` — 310(GUI 공연 상세 PC 문의하기 `1989:28800` "다이얼로그-버튼하나", 2026-11-22 #366)
    */
-  size?: 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
   /** 제목 크기 — sm 16(기본) · md2 18 · lg 24 · label `Label/lg-emphasized` */
   titleSize?: OverlayTitleSize;
   /** 설명 글자(`theme/overlay-text`). 기본 `default` */
@@ -71,6 +72,7 @@ const LAYOUT_CLASS: Record<NonNullable<ModalProps['layout']>, string> = {
   compact: s.contentCompact,
 };
 const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
+  sm: s.contentSmall,
   md: s.contentMedium,
   lg: s.contentLarge,
 };

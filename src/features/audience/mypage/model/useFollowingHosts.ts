@@ -12,14 +12,23 @@ import { handleError } from '@/api/handle-error';
 import { unfollowHostMutation } from '@/api/host/mutations';
 import { hostViewerQuery } from '@/api/host/queries';
 import { FOLLOWING_HOSTS_KEY, followingHostsQuery } from '@/api/me/queries';
-import type { FollowingHost, FollowingHostFilter } from '@/api/me/schema';
+import type { FollowingHost, FollowingHostFilter, FollowingHostSort } from '@/api/me/schema';
 import { flattenPages, infiniteListControls, type Page } from '@/api/shared/page';
 import { eventHref, hostHref } from '@/features/shared/routes';
 
 import { FOLLOWING_TABS, representativeBadge } from './lists';
 
-/** 관심 호스트 정렬 — 화면 라벨 "최신공연순" */
+/** 관심 호스트 기본 정렬 — 화면 라벨 "최신공연순" */
 export const FOLLOWING_SORT = 'LATEST_EVENT' as const;
+
+/**
+ * 정렬 고르기(GUI `1175:20346` annotation "최근공연순 / 최근저장순 / 이름순(가-하, A-Z)", Design Sync #371). 서버(GM-4)가 주는
+ * `LATEST_EVENT` · `FOLLOWED` 둘만 둔다 — 이름순은 서버 값이 없어 대기(PR "사용자 대기"). 라벨은 프레임 글자 "최신공연순" · annotation "최근저장순"
+ */
+export const FOLLOWING_SORT_OPTIONS = [
+  { sort: 'LATEST_EVENT', label: '최신공연순' },
+  { sort: 'FOLLOWED', label: '최근저장순' },
+] as const satisfies readonly { sort: FollowingHostSort; label: string }[];
 
 type FollowingPages = InfiniteData<Page<FollowingHost>, number>;
 
@@ -41,8 +50,9 @@ const withoutHost = (data: FollowingPages | undefined, hostId: number) =>
 export function useFollowingHosts() {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<FollowingHostFilter>('ALL');
-  // 화면 라벨이 "최신공연순"(GUI `1175:20346`) 하나라 그 정렬로 읽는다(GM-4 `sort=LATEST_EVENT`, #348 B68)
-  const list = useInfiniteQuery(followingHostsQuery({ status, sort: FOLLOWING_SORT }));
+  // 처음은 "최신공연순"(GM-4 `sort=LATEST_EVENT`, #348 B68). 바꾸면 새 키의 첫 페이지부터 읽는다
+  const [sort, setSort] = useState<FollowingHostSort>(FOLLOWING_SORT);
+  const list = useInfiniteQuery(followingHostsQuery({ status, sort }));
 
   // 캐시 반영은 화면이 사라져도(연달아 해제해도) 해야 하므로 옵션의 onSuccess에 둔다
   const { mutateAsync } = useMutation({
@@ -98,6 +108,9 @@ export function useFollowingHosts() {
     tabs: FOLLOWING_TABS,
     status,
     setStatus,
+    sort,
+    setSort,
+    sortOptions: FOLLOWING_SORT_OPTIONS,
     hosts,
     /** 첫 페이지 상태(`pending` 동안 목록 자리 스켈레톤, `error`면 `retry`) */
     listStatus: list.status,
