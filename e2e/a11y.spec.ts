@@ -52,8 +52,9 @@ const CONTRAST_PENDING_DESIGN = new Set([
   // teal 500 — 호스트 멤버 행 "매니저" 역할 글자(GUI `멤버 행` `1421:752`, Q234 답으로 400 → 500 — Design Sync #282). 흰 바탕 3.0:1로
   // 나아졌지만 작은 글자(13px) 4.5:1에는 못 미친다(Q234 남은 질문)
   '#2da3a9 #ffffff',
-  // 호스팅 사이드바 어두운 공연 카드의 text/secondary(GUI)
-  '#5f5e5a #222221',
+  // 호스팅 공연 사이드바 "호스트 · D-n" text/secondary — 검정 면 바로 위(GUI `사이드바_공연 정보` `1861:2065` #5F5E5A on #0A0A09,
+  // 3.05:1 · Design Sync #335 2026-11-21 — 전에는 어두운 공연 카드 #222221 위)
+  '#5f5e5a #0a0a09',
 ]);
 
 type Screen = { name: string; path: string; session: MockSession };
