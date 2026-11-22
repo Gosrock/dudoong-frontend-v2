@@ -44,7 +44,7 @@ import { BuyButtons, TicketSheet } from './TicketSheet';
  *
  * 재고(GP-5)는 브라우저에서만 읽는다(`useTicketSelection` — 응답 HTML에 재고 값이 없다).
  * 티켓 고르기: 선택 상태는 이 화면의 `useTicketSelection` 하나 — 모바일은 티켓 카드 · [티켓 구매하기] 시트(`TicketSheet`, 열 때 마운트 —
- * 줄을 골라 시트의 [티켓 구매하기]로 닫으면 하단 바 위 고른 티켓 줄), PC는 오른쪽 카드의 `TicketSelector`. 고른 뒤 하단 [티켓 구매하기]는
+ * 줄을 누르면 바로 닫히고 하단 바 위 고른 티켓 줄 — #386), PC는 오른쪽 카드의 `TicketSelector`. 고른 뒤 하단 [티켓 구매하기]는
  * 결제로 간다(#347 — 시트가 닫힌 뒤라 기록은 [상세, 체크아웃]). 1주문 1종류 경고는 토스트(`759:22129`).
  */
 export function EventDetailView({ eventId }: { eventId: string }) {
@@ -88,10 +88,6 @@ export function EventDetailView({ eventId }: { eventId: string }) {
   const goCheckout = () => checkoutHref && router.push(checkoutHref);
   // 모바일 하단 [티켓 구매하기] — 고른 티켓이 있으면 결제로(#347), 없으면 시트를 연다(#343)
   const buyFromBar = () => (checkoutHref ? goCheckout() : setSheetOpen(true));
-  const contactFromSheet = () => {
-    setSheetOpen(false);
-    openContacts();
-  };
   const placeMapHref = event.place?.name ? kakaoMapSearchHref(event.place) : null;
 
   return (
@@ -308,7 +304,6 @@ export function EventDetailView({ eventId }: { eventId: string }) {
           onOpenChange={setSheetOpen}
           onExited={() => setSheet('closed')}
           selection={tickets}
-          onContact={hasContacts ? contactFromSheet : undefined}
         />
       )}
     </Container>

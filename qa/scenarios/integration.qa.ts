@@ -178,14 +178,13 @@ scenario(
           await area.getByRole('button', { name: '일반 예매 수량 늘리기' }).click();
           await area.getByRole('button', { name: '티켓 구매하기' }).click();
         } else {
-          // 모바일(#343~#347): 시트에서 고르고 닫음 → 고른 티켓 줄에서 수량 → 하단 [티켓 구매하기]
+          // 모바일(#343 · #345 · #347 · #386): 시트에서 고르면 바로 닫힘 → 아래 고른 티켓 줄에서 수량 → 하단 [티켓 구매하기]
           await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
           const sheet = page.getByRole('dialog', { name: '티켓 종류' });
           await sheet
             .getByRole('listitem')
             .getByRole('button', { name: /일반 예매/ })
             .click();
-          await sheet.getByRole('button', { name: '티켓 구매하기' }).click();
           await expect(sheet).toBeHidden();
           await page
             .getByRole('group', { name: '고른 티켓' })
