@@ -167,14 +167,19 @@ export const pendingList = style([
   { display: 'flex', flexDirection: 'column', margin: 0, padding: 0 },
 ]);
 
-/** 초대 대기 행(GUI 로컬 `초대 대기 행` `1468:5362`) — 60h · 위아래 12 · 글자 ↔ [취소] 12, 행 사이 1px `surface/default-border` */
+/**
+ * 초대 대기 행(GUI 로컬 `초대 대기 행` `1468:5362`) — 60h · 위아래 12 · 글자 ↔ [취소] 12, 이메일 행 사이 1px `surface/default-border`.
+ * 이름 행(아바타 — `1476:7882` 첫 줄, #348 B71)은 멤버 행처럼 선이 없다
+ */
 export const pendingRow = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.space[3],
   padding: `${vars.space[3]} 0`,
   selectors: {
-    '& + &': { borderTop: `1px solid ${vars.color.surface.defaultBorder}` },
+    '&[data-kind="email"] + &[data-kind="email"]': {
+      borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
+    },
   },
 });
 

@@ -85,7 +85,6 @@ export const deleteSection = style([
     flexDirection: 'column',
     alignItems: 'flex-start',
     gap: vars.space[2],
-    marginTop: vars.space[8],
     padding: `${vars.space[6]} 24px`,
     borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
     '@media': { [media.desktop]: { paddingLeft: 0, paddingRight: 0 } },

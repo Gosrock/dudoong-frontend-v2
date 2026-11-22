@@ -530,7 +530,12 @@ function PendingInvitations({ hostId, myRole }: { hostId: string; myRole: ActorR
       )}
       <ul aria-label="초대 대기 목록" className={s.pendingList}>
         {inv.rows.map((row) => (
-          <li key={row.invitationId} className={s.pendingRow} data-testid="invitation-row">
+          <li
+            key={row.invitationId}
+            className={s.pendingRow}
+            data-testid="invitation-row"
+            data-kind={row.name ? 'name' : 'email'}
+          >
             {row.name ? (
               <div className={s.memberMain}>
                 <Avatar size={60} className={s.memberAvatar} src={row.profileImageUrl} />

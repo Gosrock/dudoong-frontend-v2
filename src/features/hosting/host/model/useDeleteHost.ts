@@ -23,8 +23,10 @@ export type DeleteHostResult = boolean | 'blocked';
  * 권한은 `can(role, 'deleteHost')`(마스터만). 설정 화면이 이미 Suspense로 읽은 viewer 키를 같이 읽는다.
  *
  * - `remove()`는 확인 창 계약(patterns §6): 성공 `true` — 내 호스트(GH-1) · 관심 호스트(GM-4) · 내 공연(GE-1 — 준비중 공연이 함께
- *   지워졌다) · GM-1(햄버거 호스트 줄)을 무효화하고 공연 준비 홈 호스트 탭으로 `replace`(지운 호스트로 돌아가지 않게).
- *   그 호스트 키(`['hosts', id]` 접두)는 다시 읽지 않고 낡은 값으로만 둔다 — 지금 화면이 다시 읽으면 404가 먼저 보인다
+ *   지워졌다) · GM-1(햄버거 호스트 줄)을 무효화한다. 그 호스트 키(`['hosts', id]` 접두)는 다시 읽지 않고 낡은 값으로만 둔다 — 지금 화면이
+ *   다시 읽으면 404가 먼저 보인다
+ * - `leave()` 공연 준비 홈 호스트 탭으로 `replace`(지운 호스트로 돌아가지 않게). **확인 창이 닫힌 뒤에** 부른다 — 창은 닫힐 때 자기
+ *   history 항목을 소비하므로(`openConfirm`이 `true`로 resolve된 뒤) 그 전에 옮기면 `history.back()`이 이동을 되돌린다
  * - `HOST_400_22`(확인 창 사이에 공연이 등록됨 등): viewer를 다시 읽고 `'blocked'`(창은 닫고 영역에 사유). 그 밖은 공용 토스트 + `false`
  */
 export function useDeleteHost(hostId: string) {
@@ -38,7 +40,6 @@ export function useDeleteHost(hostId: string) {
   const mutation = useMutation({
     ...deleteHostMutation(hostId),
     onSuccess: async () => {
-      router.replace(HOSTING_HOME_HOSTS_HREF);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['hosts', hostId], refetchType: 'none' }),
         queryClient.invalidateQueries({ queryKey: MY_HOSTS_KEY }),
@@ -72,6 +73,7 @@ export function useDeleteHost(hostId: string) {
     deletion,
     remove,
     deleting: mutation.isPending,
+    leave: () => router.replace(HOSTING_HOME_HOSTS_HREF),
     blockedMessage: DELETE_HOST_BLOCKED_MESSAGE,
   };
 }

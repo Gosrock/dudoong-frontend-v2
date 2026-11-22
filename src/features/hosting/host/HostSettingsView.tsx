@@ -29,7 +29,7 @@ import * as s from './HostManage.css';
 import * as v from './HostSettingsView.css';
 import { deleteHostConfirmDescription } from './model/host-delete-rules';
 import { HOST_IMAGE_SLOTS } from './model/host-settings-form';
-import { useDeleteHost } from './model/useDeleteHost';
+import { type DeleteHostResult, useDeleteHost } from './model/useDeleteHost';
 import { useHostSettings } from './model/useHostSettings';
 import { HostImageField } from './ui/HostImageField';
 
@@ -193,20 +193,25 @@ function DeleteHostSection({ hostId }: { hostId: string }) {
   if (deletion.kind === 'hidden') return null;
   const blocked = deletion.kind === 'blocked';
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletion.kind !== 'ready') return;
-    void openConfirm({
+    const outcome: { result: DeleteHostResult } = { result: false };
+    const closed = await openConfirm({
       intent: 'delete',
       title: '호스트를 삭제할까요?',
       description: deleteHostConfirmDescription(deletion.preparingEventCount),
       confirmLabel: '삭제하기',
       onConfirm: async () => {
-        const result = await del.remove();
-        if (result === true) toast('호스트를 삭제했습니다.');
-        // 막힘(`HOST_400_22`)은 창을 닫고 영역의 사유로 답한다
-        return result !== false;
+        outcome.result = await del.remove();
+        // 막힘(`HOST_400_22`)은 창을 닫고 영역의 사유로 답한다. 그 밖 실패(`false`)는 열린 채
+        return outcome.result !== false;
       },
     });
+    // 창이 history 항목을 소비한 뒤에 옮긴다(patterns §6)
+    if (closed && outcome.result === true) {
+      toast('호스트를 삭제했습니다.');
+      del.leave();
+    }
   };
 
   return (
@@ -216,7 +221,7 @@ function DeleteHostSection({ hostId }: { hostId: string }) {
         className={v.deleteButton}
         disabled={blocked || del.deleting}
         aria-describedby={blocked ? 'host-delete-blocked' : undefined}
-        onClick={confirmDelete}
+        onClick={() => void confirmDelete()}
       >
         <Txt typography="labelLgEmphasized" color="inherit">
           호스트 삭제하기

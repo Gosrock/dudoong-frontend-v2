@@ -12,6 +12,8 @@
 // 세션 흉내(plan P4a mock 3상태): 브라우저에서 아래 주소를 열면 쿠키와 dd:session을 세우고 ?redirect=로 돌아간다.
 //   /api/__mock/login  로그인 · /api/__mock/expire 만료(재발급 성공) · /api/__mock/expire?refresh=fail 만료(재발급 실패)
 //   /api/__mock/logout 비로그인. 공개 GET은 쿠키를 싣지 않으므로 계속 익명 값이다.
+//   /api/__mock/host-deletable?hostId=11&preparing=2 — 그 호스트를 마스터로 지울 수 있게(H-3 `deletable: true`, H-22 성공 — #348 B73).
+//   기본 고스락(11)은 등록한 공연이 있어 막힌다. dev 서버를 다시 띄우면 풀린다
 import './ts-import.mjs';
 
 import { spawn } from 'node:child_process';
@@ -23,6 +25,7 @@ import { http, HttpResponse } from 'msw';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { startMockBackend } = await import('../e2e/support/mock-backend.ts');
+const { hostSets } = await import('../src/api/__mocks__/host.handlers.ts');
 
 const MOCK_PORT = Number(process.env.MOCK_API_PORT ?? 4200);
 const APP_PORT = Number(process.env.PORT ?? 3000);
@@ -91,6 +94,14 @@ backend.use(
   http.get('*/api/__mock/logout', ({ request }) =>
     sessionPage(request, [cookie('accessToken', '', 0), cookie('refreshToken', '', 0)], 'clear'),
   ),
+  // 호스트 삭제 확인 창을 보려고 — 그 호스트를 지울 수 있게 한다(준비중 공연 n개)
+  http.get('*/api/__mock/host-deletable', ({ request }) => {
+    const url = new URL(request.url);
+    const hostId = Number(url.searchParams.get('hostId') ?? 11);
+    const preparing = Number(url.searchParams.get('preparing') ?? 0);
+    backend.use(...hostSets.deletable(hostId, preparing));
+    return sessionPage(request, [], 'keep');
+  }),
 );
 console.log(
   `[dev:mock] 가짜 백엔드 ${MOCK_ORIGIN}/api (세션 흉내: /api/__mock/login · /api/__mock/expire[?refresh=fail] · /api/__mock/logout, 모두 ?redirect=/경로)`,
