@@ -3,7 +3,7 @@ import { globalStyle, style } from '@vanilla-extract/css';
 import { media } from '@/ui/theme/breakpoints';
 import { vars } from '@/ui/theme/tokens.css';
 
-import { contactType, removeButton } from './CreateHostView.css';
+import { contactType, contactValue, removeButton } from './CreateHostView.css';
 
 /**
  * 호스트 홈 설정(GUI `1452:40541`) — 모바일은 상단 바 · 하단 [저장] 바가 화면 폭 가득이다(셸 본문 좌우 24를 되돌림 — ← 가 화면 끝에서 16,
@@ -40,6 +40,10 @@ export const contacts = style({
 globalStyle(`${contacts} ${contactType}${contactType}`, {
   '@media': { [media.desktop]: { flexBasis: 116 } },
 });
+// 값 칸 358 고정 — ✕가 없는 한 줄(연락처 1개 · `1496:12771`)도 358
+globalStyle(`${contacts} ${contactValue}${contactValue}`, {
+  '@media': { [media.desktop]: { flex: '0 1 358px' } },
+});
 globalStyle(`${contacts} ${removeButton}`, {
   '@media': { [media.desktop]: { marginLeft: -10, marginRight: -10 } },
 });
@@ -62,7 +66,10 @@ export const bottom = style([
   },
 ]);
 
-/** PC 바 안 좌우 여백 0 — [저장하기] 오른쪽 끝이 960 칸 끝(`1584:19829` 좌우 240 = 칸 밖). 위아래 24는 바 기본값 그대로 */
-globalStyle(`${bottom} > *`, {
+/**
+ * PC 바 안 좌우 여백 0 — [저장하기] 오른쪽 끝이 960 칸 끝(`1584:19829` 좌우 240 = 칸 밖). 위아래 24는 바 기본값 그대로.
+ * 세기를 올린다(`.bottom.bottom > *`) — 바 기본 여백(`EditorParts.css` `bottomBar`)과 같은 세기면 CSS 청크 순서에 따라 진다
+ */
+globalStyle(`${bottom}${bottom} > *`, {
   '@media': { [media.desktop]: { paddingLeft: 0, paddingRight: 0 } },
 });
