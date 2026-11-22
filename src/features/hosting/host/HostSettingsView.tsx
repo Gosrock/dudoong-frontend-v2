@@ -33,7 +33,8 @@ import { HostImageField } from './ui/HostImageField';
 /**
  * `/hosting/hosts/[hostId]/settings` 호스트 홈 설정(plan P10b V) — **GUI 근거**: 모바일 `741:31172` · `1452:40541` · `1452:42653` ·
  * `1524:13269` · `1524:13380` · 자르기 `1458:4961` · `1476:8399`(Design Sync #260 · #278), PC 1440 `1496:12683` · `1556:15393` ·
- * `1556:15548` · `1556:15687` · `1556:15762`(#294 — 가운데 960, 제목 줄 포함).
+ * `1556:15548` · `1556:15687` · `1556:15762`(#294 — 가운데 960, 제목 줄 포함) · 저장 바 `1584:19829`(#311 — 화면 폭 바 + Large [저장하기]) ·
+ * 연락처 여러 개 `1586:15515`(#312 — 유형 116 · 값 358 · ✕, 줄 사이 10).
  * GUI의 "호스트 삭제하기"(`741:31204` · `1551:104649` · `1556:15836`, #293)는 서버에 기능이 없어(DEC-013, Backend #274 §3 —
  * `DELETE /hosts/{id}` 405) 그리지 않는다.
  * 주소의 id가 숫자가 아니면 요청 없이 공용 404, 비멤버는 공용 403(호스팅 센터는 서버 조회가 없어 상태 코드는 200).
@@ -128,7 +129,7 @@ function HostSettings({ hostId }: { hostId: string }) {
           {contacts.canAdd && (
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               className={c.addButton}
               icon={<Icon name="add" />}
               onClick={contacts.add}
@@ -151,7 +152,9 @@ function HostSettings({ hostId }: { hostId: string }) {
         <div className={v.bottom}>
           <EditorBottomBar
             formId={formId}
-            saveLabel="저장"
+            // 모바일 "저장"(`1452:40543`) · PC "저장하기" Large 342×56(`1584:19831`, Design Sync #311)
+            saveLabel={{ mobile: '저장', desktop: '저장하기' }}
+            large
             // 칸 오류는 [저장]을 누른 뒤 보인다(attempted) — 바뀐 것이 있으면 누를 수 있게 둔다
             canSave={settings.dirty && !uploading && !settings.saving}
             saving={settings.saving}

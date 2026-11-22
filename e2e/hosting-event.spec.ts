@@ -196,9 +196,10 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
       'src',
       /\/event\/7001\/[0-9a-f-]{36}\.png$/,
     );
-    // 주소 칸 → 우편번호 창(가짜) → 고르면 좌표(가짜 Geocoder) → 지도 미리보기. 고르기 전에는 글자 없는 회색 칸(GUI 748:33351)
-    await expect(page.getByTestId('place-map')).toHaveText('');
+    // 주소 칸 → 우편번호 창(가짜) → 고르면 좌표(가짜 Geocoder) → 지도 미리보기. 고르기 전에는 돋보기 + 안내(GUI 1588:53077, #313)
+    await expect(page.getByTestId('place-map')).toHaveText('지도를 검색하면 지도가 보여요');
     await pickFakeAddress(page);
+    await expect(page.getByTestId('place-map-empty')).toHaveCount(0);
     await expect(page.getByRole('textbox', { name: '주소 검색' })).toHaveValue(
       '서울 마포구 어울마당로 35',
     );
@@ -288,10 +289,16 @@ test.describe('등록된 공연 수정', () => {
     await expect(page.getByRole('radio', { name: '티켓 없음' })).toBeDisabled();
     await page.getByLabel('공연 이름').fill('고스락 제37회 정기공연 (앵콜)');
     await page.getByRole('button', { name: '저장하기' }).click();
-    // 등록된 공연 저장 → 안내 팝업(예매자에게 알림이 가지 않는다)
-    const notice = page.getByRole('alertdialog', { name: '저장했어요' });
-    await expect(notice).toContainText('이미 예매한 관객에게는 바뀐 내용이 따로 알려지지 않아요');
-    await notice.getByRole('button', { name: '확인' }).click();
+    // 등록된 공연 저장 → 저장 전 확인(예매자에게 알림이 가지 않는다 — GUI 1595:2407, #319). [취소]면 저장하지 않는다
+    const confirm = page.getByRole('alertdialog', { name: '변경 내용을 저장할까요?' });
+    await expect(confirm).toContainText('이미 예매한 관객에게는 바뀐 내용이 따로 알려지지 않아요');
+    await confirm.getByRole('button', { name: '취소' }).click();
+    await expect(confirm).toBeHidden();
+    await expect(page.getByLabel('공연 이름')).toHaveValue('고스락 제37회 정기공연 (앵콜)');
+    await page.getByRole('button', { name: '저장하기' }).click();
+    await confirm.getByRole('button', { name: '저장하기' }).click();
+    await expect(confirm).toBeHidden();
+    await expect(page.getByText('저장했어요')).toBeVisible();
     await page.goto('/events/101');
     await expect(
       page.getByRole('heading', { level: 1, name: '고스락 제37회 정기공연 (앵콜)' }),

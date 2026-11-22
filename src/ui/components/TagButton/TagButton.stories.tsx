@@ -79,3 +79,22 @@ export const Max: Story = {
     await expect(series).not.toHaveAttribute('aria-disabled');
   },
 };
+
+/**
+ * 바깥에서 정한 가득 참(`full`) — 여러 묶음이 한 한도를 나눌 때(기본 정보 태그 분류별 묶음, 10개 합 — Design Sync #316 · #317).
+ * 고른 칩은 끌 수 있고, 안 고른 칩은 aria-disabled
+ */
+export const FullFromOutside: Story = {
+  args: { full: true, value: ['홍대'], columns: undefined },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    const hongdae = c.getByRole('button', { name: '홍대' });
+    const regular = c.getByRole('button', { name: '정기공연' });
+    await expect(regular).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.click(regular);
+    await expect(regular).toHaveAttribute('aria-pressed', 'false');
+    await expect(hongdae).not.toHaveAttribute('aria-disabled');
+    await userEvent.click(hongdae);
+    await expect(hongdae).toHaveAttribute('aria-pressed', 'false');
+  },
+};

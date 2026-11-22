@@ -82,6 +82,7 @@ export function EditorBottomBar({
   saving,
   formId,
   saveLabel = '저장하기',
+  large = false,
 }: {
   canPreview?: boolean;
   /** 없으면 [미리보기]를 그리지 않는다 */
@@ -90,8 +91,10 @@ export function EditorBottomBar({
   saving: boolean;
   /** 저장 버튼이 제출할 폼 */
   formId: string;
-  /** 저장 버튼 글자. 기본 "저장하기" */
-  saveLabel?: string;
+  /** 저장 버튼 글자. 기본 "저장하기". `{ mobile, desktop }`이면 폭마다 다른 글자(같은 DOM, CSS로 하나만 보인다) */
+  saveLabel?: string | { mobile: string; desktop: string };
+  /** PC 저장 버튼도 Large 342×56(호스트 홈 설정 `1584:19831`). 기본은 PC medium 229×46 */
+  large?: boolean;
 }) {
   return (
     <div className={s.bottomBar}>
@@ -113,8 +116,16 @@ export function EditorBottomBar({
           className={s.saveButton}
           disabled={!canSave}
           loading={saving}
+          data-large={large ? '' : undefined}
         >
-          {saveLabel}
+          {typeof saveLabel === 'string' ? (
+            saveLabel
+          ) : (
+            <>
+              <span className={s.mobileOnly}>{saveLabel.mobile}</span>
+              <span className={s.desktopOnly}>{saveLabel.desktop}</span>
+            </>
+          )}
         </Button>
       </div>
     </div>

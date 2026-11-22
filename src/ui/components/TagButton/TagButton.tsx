@@ -54,6 +54,10 @@ export type TagButtonGroupProps = {
   onChange: (value: string[]) => void;
   /** 최대 선택 수. 닿으면 나머지 칩은 aria-disabled(포커스는 남는다) */
   max?: number;
+  /**
+   * 바깥에서 정한 "가득 참" — 여러 묶음이 한 한도를 나눌 때(기본 정보 태그 분류별 묶음, 10개 합). 참이면 `max`와 같이 안 고른 칩을 막는다
+   */
+  full?: boolean;
   /** 열 수. 없으면 글자 길이대로 줄바꿈 */
   columns?: number;
   disabled?: boolean;
@@ -73,6 +77,7 @@ export function TagButtonGroup({
   value,
   onChange,
   max,
+  full: fullFromOutside = false,
   columns,
   disabled,
   ref,
@@ -80,7 +85,7 @@ export function TagButtonGroup({
   className,
   ...aria
 }: TagButtonGroupProps) {
-  const full = max != null && value.length >= max;
+  const full = fullFromOutside || (max != null && value.length >= max);
   const toggle = (v: string, on: boolean) => {
     const next = new Set(value);
     if (on) next.add(v);

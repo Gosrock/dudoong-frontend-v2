@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { server } from './src/api/__mocks__/server';
 import { resetErrorToast } from './src/test/error-toast';
@@ -29,6 +29,20 @@ if (typeof window !== 'undefined') {
   Element.prototype.releasePointerCapture ??= () => {};
   Element.prototype.hasPointerCapture ??= () => false;
 }
+
+/**
+ * 테스트 세계의 "오늘"(KST 2026-11-18 정오) — 가짜 백엔드 픽스처(`src/api/__mocks__/fixtures`)의 공연 · 판매 시각이 2026-11 기준
+ * 절대값이라, 실제 날짜가 지나면 결과가 바뀐다(2026-11-22: 공연 101 시작 11-21이 지나 E-11 취소가 `Event_400_29`, 공연준비 홈 목록에서
+ * 빠짐). `Date`만 가짜로 이 시각에서 시작해 실제 속도로 흐른다(`shouldAdvanceTime` — 시각 차이를 보는 테스트가 있다), 타이머는 진짜.
+ * 테스트마다 다시 걸고 끝나면 푼다. 자기 시각 · 가짜 타이머가 필요한 테스트는 그 안에서 `vi.useFakeTimers`를 다시 부르거나 규칙 함수에 `now`를 넘긴다
+ */
+export const TEST_NOW = new Date('2026-11-18T12:00:00+09:00');
+beforeEach(() => {
+  vi.useFakeTimers({ now: TEST_NOW, toFake: ['Date'], shouldAdvanceTime: true });
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 // 공용 에러 토스트 감시(src/test/error-toast.ts)

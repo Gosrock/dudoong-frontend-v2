@@ -13,7 +13,7 @@
  * 허용 출처(코드에서 부르는 곳):
  * - 카카오 JS SDK(공유) `t1.kakaocdn.net` — `kakao-sdk.ts` / 공유창·API `*.kakao.com`
  * - 카카오맵 SDK `dapi.kakao.com`(지오코더는 JSONP라 script) → 본체·타일 `*.daumcdn.net` — `kakao-geocoder.ts`
- * - 우편번호 `t1.daumcdn.net` 스크립트 + `*.daum.net`·`*.kakao.com` iframe — `daum-postcode.ts`
+ * - 우편번호 `t1.kakaocdn.net` 스크립트(2026-11-22 `t1.daumcdn.net`에서 옮김) + `*.daum.net`·`*.kakao.com` iframe — `daum-postcode.ts`
  * - 이미지: 섹션 본문·공지 본문이 임의 https 이미지를 가질 수 있어(sanitize가 http·https 허용) `https:` 전체
  * - S3 업로드(presigned PUT) `*.amazonaws.com`, 자산 도메인 `*.dudoong.com` — `src/api/upload.ts`
  * - zxing wasm은 자체 호스팅(`'self'`) + 인스턴스화에 `'wasm-unsafe-eval'` — `zxing-wasm.ts`
