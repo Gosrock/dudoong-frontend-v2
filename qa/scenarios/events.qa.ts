@@ -1,6 +1,8 @@
 import type { Page } from '@playwright/test';
 
 import { eventBrowseSets } from '../../src/api/__mocks__/event.handlers';
+import { liveListedEvents } from '../../src/api/__mocks__/fixtures/event';
+import { formatKstDateTime } from '../../src/api/shared/date';
 import { expect, scenario } from '../scenario';
 
 /**
@@ -14,6 +16,8 @@ const tagPanel = (page: Page) => page.getByRole('dialog', { name: '태그 고르
 const tagChip = (page: Page, name: string) =>
   tagPanel(page).getByRole('button', { name, exact: true });
 const here = (page: Page) => decodeURIComponent(new URL(page.url()).search);
+/** 지난 공연 뺀 목록 전체 장수 — 가짜 GP-2는 요청 시각으로 지난 공연을 가른다(`liveDisplayStatus`) */
+const LISTED = liveListedEvents(formatKstDateTime(new Date())).length;
 const cards = (page: Page) => page.getByRole('region', { name: '공연 목록' }).getByRole('link');
 
 /** 하이드레이션 경고를 모은다(완료 기준 V "하이드레이션 경고 0") */
@@ -198,10 +202,10 @@ scenario(
       { fullPage: false },
     );
     await step(
-      '끝까지 내리면 두 번째 페이지까지 14장',
+      `끝까지 내리면 두 번째 페이지까지 ${LISTED}장`,
       async () => {
         await page.mouse.wheel(0, 20000);
-        await expect(cards(page)).toHaveCount(14);
+        await expect(cards(page)).toHaveCount(LISTED);
         expect(mockApi.calls().some((c) => c.path.includes('page=1'))).toBe(true);
       },
       { fullPage: false },
@@ -490,7 +494,7 @@ scenario(
         await expect(async () => {
           await page.mouse.wheel(0, 20000);
           await expect(page.getByText('더 불러오지 못했어요.')).toHaveCount(0);
-          await expect(cards(page)).toHaveCount(14, { timeout: 1000 });
+          await expect(cards(page)).toHaveCount(LISTED, { timeout: 1000 });
         }).toPass();
         await expect(cards(page).filter({ hasText: '공연종료' })).toHaveCount(0);
       },

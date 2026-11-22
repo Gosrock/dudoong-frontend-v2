@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { type ReactNode, useEffect } from 'react';
 
 import { isSessionLost } from '@/api/errors';
 import { eventDetailQuery } from '@/api/event/queries';
@@ -12,6 +12,7 @@ import { eventHref } from '@/features/shared/routes';
 import { AsyncBoundary } from '@/ui/components/AsyncBoundary/AsyncBoundary';
 import { button } from '@/ui/components/Button/Button.css';
 import { ScreenLoader } from '@/ui/components/Loader/Loader';
+import { Divider } from '@/ui/primitives/Divider';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
@@ -19,12 +20,16 @@ import { colors } from '@/ui/theme/colors';
 import * as s from './CheckoutView.css';
 import type { CheckoutParams } from './model/checkout-params';
 import { useCheckoutData } from './model/useCheckout';
+import { CheckoutEventSummary } from './ui/CheckoutEventSummary';
 import { CheckoutForm } from './ui/CheckoutForm';
+
+/** 화면 소제목(GUI `567:9159` 등 Top app bar — Design Sync #349) */
+const PAGE_TITLE = '주문/결제';
 
 /**
  * 체크아웃(`/events/[eventId]/checkout?ticketItemId=&quantity=`) — GUI 근거(plan P7 V, gui-screens §0):
  * 모든 옵션 동일 `564:4156` · 유료옵션 `567:9316` · 무옵션 `567:9159` · 긴제목 `567:10452` · 개별 옵션 `567:8532` ·
- * 주문 확인(GUI 입금 확인) `567:9468` — B23으로 문구만 바꿈. 서버 기준으로 바꾼 것(plan P7 ①~④): 예매번호·티켓번호 줄 없음, 결제정보에 은행 줄, CTA "결제하기"·"신청하기",
+ * 입금 확인 `567:9468`(2026-11-22 Design Sync #353 — 설명 · [입금완료] · 입금은행). 2026-11-22 #349~#352: 소제목 "주문/결제" + 공연 요약 · 판매정보. 서버 기준으로 바꾼 것(plan P7 ①~④): 예매번호·티켓번호 줄 없음, 결제정보에 은행 줄, CTA "결제하기"·"신청하기",
  * 무료는 결제 블록(결제정보·결제금액·결제방식) 없이.
  */
 export function CheckoutView({
@@ -40,13 +45,22 @@ export function CheckoutView({
   const eventStartAt = event.data?.startAt ?? null;
   return (
     <>
-      <AudienceSubHeader title={eventName} fallbackHref={eventHref(eventId)} />
+      {/* 페이지 소제목 "주문/결제"(GUI `1952:49926` Top app bar — Design Sync #349). 공연 이름은 아래 요약이 보인다 */}
+      <AudienceSubHeader title={PAGE_TITLE} fallbackHref={eventHref(eventId)} />
       <main className={s.page}>
         <Txt as="h1" typography="headingMdEmphasized" className={s.title}>
-          {eventName ? `${eventName} 결제하기` : '결제하기'}
+          {PAGE_TITLE}
         </Txt>
         <AsyncBoundary holdOn={isSessionLost}>
           <CheckoutContent
+            summary={
+              event.data && (
+                <>
+                  <CheckoutEventSummary event={event.data} />
+                  <Divider variant="section" />
+                </>
+              )
+            }
             eventId={eventId}
             params={params}
             eventName={eventName}
@@ -59,11 +73,13 @@ export function CheckoutView({
 }
 
 function CheckoutContent({
+  summary,
   eventId,
   params,
   eventName,
   eventStartAt,
 }: {
+  summary: ReactNode;
   eventId: number;
   params: CheckoutParams | null;
   eventName: string;
@@ -94,6 +110,7 @@ function CheckoutContent({
   }
   return (
     <CheckoutForm
+      summary={summary}
       eventId={eventId}
       checkout={state.checkout}
       depositorName={state.depositorName}

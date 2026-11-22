@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
 import { server } from './src/api/__mocks__/server';
 import { resetErrorToast } from './src/test/error-toast';
+import { TEST_NOW } from './vitest.clock';
 
 // jsdom에 없는 브라우저 API — Radix Tooltip(늘 열린 말풍선, P4b-V 로그인)은 ResizeObserver를, ResponsiveOverlay는 matchMedia를,
 // 그 모바일 바텀시트(vaul)는 포인터 캡처를 쓴다(P4b-V 가입 오버레이). jsdom 환경(unit)에서만 채운다. matchMedia는 늘 모바일 폭
@@ -36,7 +37,8 @@ if (typeof window !== 'undefined') {
  * 빠짐). `Date`만 가짜로 이 시각에서 시작해 실제 속도로 흐른다(`shouldAdvanceTime` — 시각 차이를 보는 테스트가 있다), 타이머는 진짜.
  * 테스트마다 다시 걸고 끝나면 푼다. 자기 시각 · 가짜 타이머가 필요한 테스트는 그 안에서 `vi.useFakeTimers`를 다시 부르거나 규칙 함수에 `now`를 넘긴다
  */
-export const TEST_NOW = new Date('2026-11-18T12:00:00+09:00');
+// 값은 `vitest.clock.ts`(이 파일보다 먼저 도는 setup — 픽스처를 읽을 때도 이 시각)
+export { TEST_NOW };
 beforeEach(() => {
   vi.useFakeTimers({ now: TEST_NOW, toFake: ['Date'], shouldAdvanceTime: true });
 });

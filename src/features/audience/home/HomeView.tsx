@@ -4,7 +4,7 @@ import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 
-import { homeQuery } from '@/api/event/queries';
+import { homeRecentEventsQuery } from '@/api/event/queries';
 import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { eventHref } from '@/features/shared/routes';
 import { ConcertCard } from '@/ui/components/ConcertCard/ConcertCard';
@@ -21,14 +21,16 @@ import { LegalFooter } from './ui/LegalFooter';
 import { ScrollTopButton } from './ui/ScrollTopButton';
 
 /**
- * 공연홈(GP-1, GUI `759:22391` · PC 와이어 `626:19888`). 라우트가 `<Prefetch>`로 넘긴 캐시를 읽는다(`(public)`이라 Suspense 없음).
- * 히어로 → "더 많은 공연 둘러보기 ↗" 가로 캐러셀 → ↑. PC는 같은 순서에 본문 1200, 캐러셀은 화면 오른쪽 끝까지 흐른다.
+ * 공연홈(GUI `759:22391` · PC `1974:63985` 로그인 전 · `1960:2475` 로그인 후). 라우트가 `<Prefetch>`로 넘긴 캐시를 읽는다(`(public)`이라 Suspense 없음).
+ * 히어로 → "더 많은 공연 둘러보기 ↗" 근래 공연 6개(GP-2 지난 공연 포함 — Design Sync #356 · #357) → ↑.
+ * 모바일은 가로 캐러셀(GUI `759:22414`), PC는 본문 1280에 고정 격자(가로 스크롤 없음) — 1440~ 6칸(`1974:63993`) · 1024~1439 4칸에 앞 4개(`1989:33304`, #367). 끝난 공연 카드는 흐리게.
  * 맨 아래 푸터(GUI `1383:3429` — 저작권 · 사업자 정보 · 중개자 한 줄(약관 제3조③ · 제4조①) · 약관 링크 · SNS, Design Sync #205)는 `LegalFooter`.
  * 그 아래 "두둥 소개"(GUI `759:22549`)는 내용·목적지가 아직 없어 제목 + ↗ + 빈 파란 카드만 그린다(사용자 결정 2026-11-09).
  * 누를 곳이 없으니 링크·버튼이 아니다 — ↗와 카드는 장식(`aria-hidden`).
  */
 export function HomeView() {
-  const { data } = useSuspenseQuery(homeQuery());
+  const { data } = useSuspenseQuery(homeRecentEventsQuery());
+  const events = data.content;
   return (
     <>
       <main className={s.main}>
@@ -53,21 +55,26 @@ export function HomeView() {
         <section className={s.section} aria-label="다가오는 공연">
           <div className={s.sectionHead}>
             <Link href="/events" className={s.moreLink}>
-              <Txt as="h2" typography="headingMdEmphasized">
+              <Txt as="h2" typography="headingMdEmphasized" className={s.sectionTitle}>
                 더 많은 공연 둘러보기
               </Txt>
               {/* 바로가기 ↗ — DS ic_diagonal outline 24(GUI `1383:7786`, `text/primary-label`, Design Sync #205 — 옛 원형 → 버튼 대신) */}
               <Icon name="diagonal" size={24} />
             </Link>
           </div>
-          {data.events.length === 0 ? (
+          {events.length === 0 ? (
             <Txt as="p" typography="bodyMd" color={colors.textSecondary} className={s.empty}>
               예정된 공연이 없어요.
             </Txt>
           ) : (
             <ul className={s.carousel}>
-              {data.events.map((e) => (
-                <li key={e.eventId} className={s.carouselItem}>
+              {events.map((e) => (
+                // 진행 중 · 시작 전이 아닌(끝난) 공연은 흐리게(#356 — 누를 수는 있다)
+                <li
+                  key={e.eventId}
+                  className={`${s.carouselItem} ${e.displayStatus === 'PAST' ? s.pastItem : ''}`}
+                  data-past={e.displayStatus === 'PAST' || undefined}
+                >
                   <ConcertCard
                     href={eventHref(e.eventId)}
                     title={e.name ?? UNNAMED_EVENT}

@@ -13,6 +13,7 @@
 //   /api/__mock/login  로그인 · /api/__mock/expire 만료(재발급 성공) · /api/__mock/expire?refresh=fail 만료(재발급 실패)
 //   /api/__mock/logout 비로그인. 공개 GET은 쿠키를 싣지 않으므로 계속 익명 값이다.
 //   /api/__mock/host-deletable?hostId=11&preparing=2 — 그 호스트를 마스터로 지울 수 있게(H-3 `deletable: true`, H-22 성공 — #348 B73).
+//   /api/__mock/home-with-past — 공연홈 근래 공연에 끝난 공연 2개를 섞는다(흐린 카드 확인, #356).
 //   기본 고스락(11)은 등록한 공연이 있어 막힌다. dev 서버를 다시 띄우면 풀린다
 import './ts-import.mjs';
 
@@ -26,6 +27,7 @@ import { http, HttpResponse } from 'msw';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { startMockBackend } = await import('../e2e/support/mock-backend.ts');
 const { hostSets } = await import('../src/api/__mocks__/host.handlers.ts');
+const { eventBrowseSets } = await import('../src/api/__mocks__/event.handlers.ts');
 
 const MOCK_PORT = Number(process.env.MOCK_API_PORT ?? 4200);
 const APP_PORT = Number(process.env.PORT ?? 3000);
@@ -100,6 +102,11 @@ backend.use(
     const hostId = Number(url.searchParams.get('hostId') ?? 11);
     const preparing = Number(url.searchParams.get('preparing') ?? 0);
     backend.use(...hostSets.deletable(hostId, preparing));
+    return sessionPage(request, [], 'keep');
+  }),
+  // 공연홈 근래 공연에 끝난 공연을 섞는다(시작 전 1 + 지난 2 — 끝난 카드 흐림 #356 확인용). 되돌리려면 dev:mock을 다시 띄운다
+  http.get('*/api/__mock/home-with-past', ({ request }) => {
+    backend.use(...eventBrowseSets.homeWithPast);
     return sessionPage(request, [], 'keep');
   }),
 );

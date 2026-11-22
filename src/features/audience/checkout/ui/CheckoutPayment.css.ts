@@ -1,10 +1,16 @@
 import { style } from '@vanilla-extract/css';
 
+import { rowInline } from '@/ui/theme/row-inset.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /** 결제정보 첫 줄 아래 닉네임 안내(이슈 #106 §4) — InfoRow와 같은 좌우 24 */
 export const depositorHint = style({
-  padding: `${vars.space[2]} ${vars.space[5]} ${vars.space[3]}`,
+  padding: `${vars.space[2]} ${rowInline} ${vars.space[3]}`,
+});
+
+/** 결제방식 버튼 줄 — 위아래 16 · 좌우는 줄과 같게(모바일 24 · PC 왼쪽 열 0 — GUI `1999:3009`) */
+export const channelRow = style({
+  padding: `${vars.space[4]} ${rowInline}`,
 });
 
 /** 입금 확인 창 카드 묶음 — 카드 사이 16(GUI `567:9756` 묶음 간격 16) */

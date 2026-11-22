@@ -25,7 +25,7 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'jsdom',
-          setupFiles: ['./vitest.setup.ts'],
+          setupFiles: ['./vitest.clock.ts', './vitest.setup.ts'],
           include: ['src/**/*.test.{ts,tsx}', 'tools/**/*.test.mjs'],
         },
       },

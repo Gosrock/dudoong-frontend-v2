@@ -252,7 +252,7 @@ for (const [id, state, label, expected] of [
           expect(calls.filter((c) => c.status === 401 && !meCalls([c]).length)).toHaveLength(0);
           // 브라우저가 공연홈 데이터를 다시 부르지 않는다(서버 조회만)
           expect(
-            calls.filter((c) => c.path.startsWith('/api/v2/home')).map((c) => c.from),
+            calls.filter((c) => c.path.startsWith('/api/v2/events')).map((c) => c.from),
           ).not.toContain('browser');
         },
         { capture: false },

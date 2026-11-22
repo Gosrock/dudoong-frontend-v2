@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test';
 
 import { setMockSession } from '../../e2e/support/auth';
+import { events } from '../../src/api/__mocks__/fixtures/event';
 import { CHECKOUT_TICKET } from '../../src/api/__mocks__/fixtures/order';
 import { orderHandlers } from '../../src/api/__mocks__/order.handlers';
+import { formatKstDotDateWeekday } from '../../src/api/shared/date';
 import { checkoutHref } from '../../src/features/audience/checkout/model/checkout-params';
 import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
@@ -32,7 +34,7 @@ const HOST_CHECK = '(필수) 호스트에게 개인정보 제공 동의';
 /** 주문 확인 다이얼로그 — 입금 전 확인(두둥, #840 ③) 체크 → [주문 완료하기](B23 — 입금은 주문 뒤) */
 async function confirmDeposit(page: Page) {
   await confirmDialog(page).getByRole('checkbox', { name: NOTICE_CHECK }).click();
-  await confirmDialog(page).getByRole('button', { name: '주문 완료하기' }).click();
+  await confirmDialog(page).getByRole('button', { name: '입금완료' }).click();
 }
 
 async function fillPaidOptions(page: Page, answer: '예' | '아니오' = '예') {
@@ -57,7 +59,7 @@ scenario(
       '상세(P6)의 [티켓 구매하기]가 체크아웃으로. 모든 티켓 동일 옵션(기본 켜짐)이라 1번 티켓 아코디언에만 옵션 칸. 결제정보에 입금자명(닉네임)·입금은행·결제계좌(복사)·예금주, 예매번호·티켓번호 없음. 확인 다이얼로그 요약 금액 = 화면 총액. 주문은 입금 전에 만든다(B23 — 사용자 결정 2026-11-02): 완료 화면에 입금자명·계좌(복사)·입금할 금액. 완료 뒤 뒤로가기는 체크아웃이 아니다.',
     basis: [
       'plan P7 완료 기준 V(흐름 · 예매번호·티켓번호 없음 · 은행명)',
-      'GUI 564:4156 · 567:9468 · 939:27829',
+      'GUI 564:4156 · 567:9159 · 567:9468 · 939:27829(Design Sync #349~#354)',
       'tech-decisions §18·§19',
     ],
   },
@@ -68,20 +70,56 @@ scenario(
     await step(
       '상세에서 일반 예매 2매를 고르고 [티켓 구매하기]를 누르면 체크아웃이다',
       async () => {
-        if (!desktop) {
+        if (desktop) {
+          const area = page.getByRole('complementary', { name: '예매' });
+          await area
+            .getByRole('listitem')
+            .getByRole('button', { name: /일반 예매/ })
+            .click();
+          await area.getByRole('button', { name: '일반 예매 수량 늘리기' }).click();
+          await area.getByRole('button', { name: '티켓 구매하기' }).click();
+        } else {
+          // 모바일(#343~#347): 시트에서 고르고 [티켓 구매하기]로 닫음 → 아래 고른 티켓 줄에서 수량 → 하단 [티켓 구매하기]
+          await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
+          const sheet = page.getByRole('dialog', { name: '티켓 종류' });
+          await sheet
+            .getByRole('listitem')
+            .getByRole('button', { name: /일반 예매/ })
+            .click();
+          await sheet.getByRole('button', { name: '티켓 구매하기' }).click();
+          await expect(sheet).toBeHidden();
+          await page
+            .getByRole('group', { name: '고른 티켓' })
+            .getByRole('button', { name: '일반 예매 수량 늘리기' })
+            .click();
           await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
         }
-        const area = desktop
-          ? page.getByRole('complementary', { name: '예매' })
-          : page.getByRole('dialog', { name: '티켓 종류' });
-        await area
-          .getByRole('listitem')
-          .getByRole('button', { name: /일반 예매/ })
-          .click();
-        await area.getByRole('button', { name: '일반 예매 수량 늘리기' }).click();
-        await area.getByRole('button', { name: '티켓 구매하기' }).click();
         await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=2/);
         await expect(page.getByRole('button', { name: '결제하기' })).toBeVisible();
+        // 소제목 "주문/결제" + 공연 요약(포스터 · 이름 · 호스트 · 일자 · 시간 · 장소 — Design Sync #349)
+        await expect(page.getByRole('heading', { level: 1, name: '주문/결제' })).toBeAttached();
+        const summary = page.getByRole('region', { name: '공연 정보' });
+        await expect(summary.getByText('고스락 제37회 정기공연')).toBeVisible();
+        await expect(
+          summary.getByText(
+            formatKstDotDateWeekday(events.find((e) => e.eventId === 101)!.startAt!),
+          ),
+        ).toBeVisible();
+        await expect(summary.getByText('19:00 ~ 21:00 (120분)')).toBeVisible();
+        await expect(summary.getByText('홍대 롤링홀')).toBeVisible();
+        if (desktop) {
+          // PC 두 열(#363) — 오른쪽 최종 결제정보 패널에 총액과 [결제하기], 판매정보 패널에 두 동의
+          await page.setViewportSize({ width: 1440, height: 1024 });
+          const final = page.getByRole('region', { name: '최종 결제정보' });
+          await expect(final.getByTestId('checkout-amount')).toHaveText('30,000 원');
+          await expect(final.getByRole('button', { name: '결제하기' })).toBeVisible();
+          const sale = page.getByRole('region', { name: '판매정보' });
+          await expect(sale.getByRole('checkbox', { name: HOST_CHECK })).toBeVisible();
+          await expect(
+            sale.getByRole('checkbox', { name: /주문내용과 환불\/취소 규정/ }),
+          ).toBeVisible();
+          await expect(summary.getByText('#정기공연 #락밴드 #서울 #대학 동아리')).toBeVisible();
+        }
       },
     );
     await step(
@@ -105,7 +143,7 @@ scenario(
     );
     await step('결제정보에 입금자명·입금은행·결제계좌·예금주가 나온다', async () => {
       const info = page.getByRole('region', { name: '결제정보' });
-      await expect(info.getByText('아래 입금자명으로 입금해 주세요')).toBeVisible();
+      await expect(info.getByText('아래 입금자명으로 입금해주세요')).toBeVisible();
       await expect(info.getByText('입금은행')).toBeVisible();
       await expect(info.getByText('신한은행')).toBeVisible();
       await expect(info.getByText('110-123-456789')).toBeVisible();
@@ -126,23 +164,26 @@ scenario(
         await page.getByRole('button', { name: '결제하기' }).click();
         const dialog = confirmDialog(page);
         await expect(dialog).toBeVisible();
-        await expect(dialog.getByText(/주문이 호스트에게 전달되고 티켓이 잡혀요/)).toBeVisible();
+        await expect(
+          dialog.getByText(/아래 버튼을 누르면 즉시 호스트에게 주문이 전달됩니다/),
+        ).toBeVisible();
+        await expect(dialog.getByText('입금은행')).toBeVisible();
         await expect(dialog.getByText('신한은행')).toBeVisible();
         await expect(dialog.getByText('110-123-456789')).toBeVisible();
         await expect(dialog.getByText('50,000 원')).toBeVisible();
       },
     );
     await step(
-      '[주문 완료하기]를 누르면 주문 완료 화면(일러스트 · 주문 완료! · 입금 안내 · 두 버튼)이다',
+      '[입금완료]를 누르면 주문 완료 화면(일러스트 · 주문 접수 완료! · 입금 안내 · 두 버튼)이다',
       async () => {
-        // 입금 전 확인(③ — 2026-11-01 붙임) 전에는 [주문 완료하기]가 막혀 있다
-        await expect(
-          confirmDialog(page).getByRole('button', { name: '주문 완료하기' }),
-        ).toBeDisabled();
+        // 입금 전 확인(③ — 2026-11-01 붙임) 전에는 [입금완료]가 막혀 있다
+        await expect(confirmDialog(page).getByRole('button', { name: '입금완료' })).toBeDisabled();
         await confirmDeposit(page);
         await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
-        await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
-        await expect(page.getByText(/아래 계좌로 입금해 주세요/)).toBeVisible();
+        await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
+        await expect(
+          page.getByText('티켓 승인 여부는 티켓 페이지에서 확인 가능합니다!'),
+        ).toBeVisible();
         // B23 — 입금은 주문 뒤. 완료 화면이 계좌·금액을 안내한다(앞 화면은 Next 16이 숨긴 채 DOM에 남기므로 보이는 것만)
         const guide = page.getByTestId('deposit-guide');
         await expect(guide).toBeVisible();
@@ -335,7 +376,7 @@ scenario(
       await agree(page);
       await page.getByRole('button', { name: '결제하기' }).click();
       await confirmDeposit(page);
-      await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
       const link = page.getByTestId('toss-link');
       await expect(link).toBeVisible();
       await expect(link).toHaveAttribute(
@@ -375,9 +416,9 @@ scenario(
       await page.getByRole('textbox', { name: '응원하는 멤버' }).fill('보컬');
       await agree(page);
       await page.getByRole('button', { name: '신청하기' }).click();
-      await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
       await expect(
-        page.getByText('티켓 승인여부는 티켓 페이지에서 확인 가능합니다!'),
+        page.getByText('티켓 승인 여부는 티켓 페이지에서 확인 가능합니다!'),
       ).toBeVisible();
     });
   },
@@ -554,7 +595,7 @@ scenario(
     });
     await step('[다시 시도] → 같은 주문으로 완료 화면(주문은 하나)', async () => {
       await page.getByRole('button', { name: '다시 시도' }).click();
-      await expect(page.getByRole('heading', { name: '주문 완료!' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
       const posts = mockApi
         .calls()
         .filter((c) => c.method === 'POST' && c.path === '/api/v2/me/orders');
@@ -656,12 +697,17 @@ scenario(
 
 scenario(
   'CHK-20',
-  '주문 동의 칸 — 호스트 제공 동의는 하단 바 위(체크 전 막힘 · [자세히] 펼침), 두둥 입금 전 확인은 입금 확인 다이얼로그 안',
+  '주문 동의 칸 — 호스트 제공 동의는 판매정보 안(체크 전 막힘 · 항목 늘 펼침), 두둥 입금 전 확인은 입금 확인 다이얼로그 안',
   {
     kind: '정상',
     summary:
-      '디자인 없음(Q42) — DS Checkbox · Accordion으로만. ② 호스트 제공 동의(legal-copy B-1 원문, 두둥은 ", 입금자명·환불 계좌") — 미체크로 누르면 칸 아래 오류. ③ 입금 전 확인(A-6 ①~③) — 체크 전 [결제완료] 비활성. 무료는 ③이 없다(무료 승인형 시나리오 — 다이얼로그 없이 완료).',
-    basis: ['백엔드 #905 1-1', 'design-requests Q42 ②·③', 'legal-copy B-1 · A-6'],
+      'GUI 판매정보(`567:9159` — Design Sync #349): ② 호스트 제공 동의(legal-copy B-1 원문, 두둥은 ", 입금자명·환불 계좌") — 줄 오른쪽 체크 + 아래 회색 상자에 항목을 늘 펼침, 미체크로 누르면 줄 아래 오류. ③ 입금 전 확인(A-6 ①~③) — 체크 전 [입금완료] 비활성. 무료는 ③이 없다(무료 승인형 시나리오 — 다이얼로그 없이 완료).',
+    basis: [
+      '백엔드 #905 1-1',
+      'design-requests Q42 ②·③',
+      'legal-copy B-1 · A-6',
+      'Design Sync #349',
+    ],
   },
   async ({ page, step }) => {
     await setMockSession(page, 'loggedIn');
@@ -676,9 +722,12 @@ scenario(
       await expect(confirmDialog(page)).toBeHidden();
     });
     await step(
-      '[자세히]를 펼치면 제공받는 자 · 항목(두둥은 입금자명·환불 계좌) · 보유기간',
+      '판매정보에 제공받는 자 · 항목(두둥은 입금자명·환불 계좌) · 보유기간이 늘 보인다',
       async () => {
-        await page.getByRole('button', { name: '자세히' }).click();
+        const saleInfo = page.getByRole('region', { name: '판매정보' });
+        await expect(
+          saleInfo.getByText(/^제공받는 자: 고스락 제37회 정기공연의 호스트$/),
+        ).toBeVisible();
         await expect(page.getByText(/^항목: .*입금자명·환불 계좌$/)).toBeVisible();
         await expect(
           page.getByText('보유기간: 공연 종료 후 6개월 (두둥티켓 입금·환불 내역은 3년)'),
@@ -686,7 +735,7 @@ scenario(
       },
     );
     await step(
-      '체크하면 입금 확인 다이얼로그 — 입금 전 확인 전에는 [결제완료]가 막힌다',
+      '체크하면 입금 확인 다이얼로그 — 입금 전 확인 전에는 [입금완료]가 막힌다',
       async () => {
         await page.getByRole('checkbox', { name: HOST_CHECK }).click();
         await page.getByRole('button', { name: '결제하기' }).click();
@@ -695,13 +744,9 @@ scenario(
             '두둥티켓 대금은 호스트에게 직접 지급되며, 두둥은 대금을 받지 않습니다.',
           ),
         ).toBeVisible();
-        await expect(
-          confirmDialog(page).getByRole('button', { name: '주문 완료하기' }),
-        ).toBeDisabled();
+        await expect(confirmDialog(page).getByRole('button', { name: '입금완료' })).toBeDisabled();
         await confirmDialog(page).getByRole('checkbox', { name: NOTICE_CHECK }).click();
-        await expect(
-          confirmDialog(page).getByRole('button', { name: '주문 완료하기' }),
-        ).toBeEnabled();
+        await expect(confirmDialog(page).getByRole('button', { name: '입금완료' })).toBeEnabled();
       },
     );
   },
@@ -709,21 +754,37 @@ scenario(
 
 scenario(
   'CHK-21',
-  '하단 바 — 동의 줄 바로 위 중개자 문장',
+  '판매정보 — 취소·환불 규정 상자(처음부터 펼침) 끝에 중개자 문장 · 호스트 환불 기준 · 이용약관',
   {
     kind: '정상',
     summary:
-      '약관 제24조① · 제3조③ 예매 확인 화면 중개자 지위. 디자인 없음(Q151) — 작은 회색 글자 한 줄.',
-    basis: ['legal-copy A-5', 'v1-additions C-3', 'design-requests Q151'],
+      '약관 제24조① · 제3조③ 예매 확인 화면 중개자 지위. 2026-11-22 GUI(`1952:50161`, Design Sync #349)대로 규정 목록 아래(옛 하단 바 — Q151). 취소 기한 줄은 A-7 공통 행 그대로 + 공연 시작 일시.',
+    basis: ['legal-copy A-5 · A-7', 'v1-additions C-3', 'Design Sync #349'],
   },
-  async ({ page, step }) => {
+  async ({ page, step, testInfo }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto(
       checkoutHref(101, { ticketItemId: CHECKOUT_TICKET.paidNoOptions, quantity: 1 }),
     );
-    await step('동의 줄 위에 "두둥은 통신판매중개자로서 … 호스트에게 있습니다."', async () => {
+    await step('규정 상자에 "두둥은 통신판매중개자로서 … 호스트에게 있습니다."', async () => {
+      // 모바일은 판매정보 안 "DUDOONG 구매 및 환불/취소 규정" 줄, PC는 오른쪽 판매정보 패널 머리(#363) — 둘 다 처음부터 펼침
+      const desktop = testInfo.project.name === 'desktop';
+      const policy = page.getByRole('button', {
+        name: desktop ? '판매정보' : 'DUDOONG 구매 및 환불/취소 규정',
+      });
+      await expect(policy).toHaveAttribute('aria-expanded', 'true');
+      const saleInfo = page.getByRole('region', { name: '판매정보' });
+      await expect(saleInfo.getByText('공연 시작 전 까지')).toBeVisible();
+      await expect(saleInfo.getByRole('link', { name: '호스트 환불 기준' })).toHaveAttribute(
+        'href',
+        '/events/101',
+      );
+      await expect(saleInfo.getByRole('link', { name: '이용약관' })).toHaveAttribute(
+        'href',
+        '/meta/term',
+      );
       await expect(
-        page.getByText(
+        saleInfo.getByText(
           '두둥은 통신판매중개자로서 공연의 당사자가 아니며, 공연에 관한 의무와 책임은 호스트에게 있습니다.',
         ),
       ).toBeVisible();

@@ -1,11 +1,13 @@
 import type { Page } from '@playwright/test';
 
 import { KAKAO_SCRAP_UA } from '../../e2e/support/env';
+import { eventBrowseSets } from '../../src/api/__mocks__/event.handlers';
 import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 
 /**
- * 공연홈 `/` — P5a-V(2026-11-01): GUI `759:22391`(모바일 390) · PC 와이어 `626:19888`(1440). 히어로 → "더 많은 공연 둘러보기 →" 캐러셀 → ↑.
- * 근거: plan P0 산출물 A·B·P5a(완료 기준 V), tech-decisions §2·§31(상태 코드 표), api-contract GP-1.
+ * 공연홈 `/` — P5a-V(2026-11-01): GUI `759:22391`(모바일 390) · PC `1974:63985` · `1960:2475`(1440, Design Sync #356 · #357).
+ * 히어로 → "더 많은 공연 둘러보기 →" 근래 공연 6개(모바일 캐러셀 · PC 1440 6칸 · 1024 4칸, 끝난 공연은 흐리게) → ↑.
+ * 근거: plan P0 산출물 A·B·P5a(완료 기준 V), tech-decisions §2·§31(상태 코드 표), api-contract GP-2(지난 공연 포함 · 공연임박순).
  * 권한: 공개 화면이라 로그인 여부로 본문이 다르지 않다(헤더는 shell 시나리오).
  */
 
@@ -24,8 +26,8 @@ scenario(
   {
     kind: '정상',
     summary:
-      '서버가 <Prefetch>로 GP-1을 조회해 HTML에 넣고, 브라우저는 같은 쿼리를 캐시에서 읽어 다시 부르지 않는다.',
-    basis: ['plan P5a', 'tech-decisions §31', 'api-contract GP-1'],
+      '서버가 <Prefetch>로 GP-2(지난 공연 포함 · 6개 — 근래 공연, #356)를 조회해 HTML에 넣고, 브라우저는 같은 쿼리를 캐시에서 읽어 다시 부르지 않는다.',
+    basis: ['plan P5a', 'tech-decisions §31', 'api-contract GP-2', 'Design Sync #356 · #357'],
   },
   async ({ page, mockApi, step, note, testInfo }) => {
     const desktop = testInfo.project.name === 'desktop';
@@ -55,10 +57,10 @@ scenario(
       { fullPage: false },
     );
     await step(
-      'GP-1은 서버에서 한 번만 불리고 브라우저는 다시 부르지 않는다',
+      'GP-2(근래 공연)는 서버에서 한 번만 불리고 브라우저는 다시 부르지 않는다',
       async () => {
-        const calls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/home'));
-        await note(`받은 GP-1 호출: ${calls.map((c) => `${c.from} ${c.status}`).join(', ')}`);
+        const calls = mockApi.calls().filter((c) => c.path.startsWith('/api/v2/events'));
+        await note(`받은 GP-2 호출: ${calls.map((c) => `${c.from} ${c.status}`).join(', ')}`);
         expect(calls.map((c) => c.from)).toEqual(['server']);
       },
       { capture: false },
@@ -79,17 +81,36 @@ scenario(
   '"더 많은 공연 둘러보기 →"를 누르면 공연 리스트로 간다',
   {
     kind: '정상',
-    summary: '글자와 원형 화살표가 한 링크다(GUI 759:22411). 캐러셀은 가로로 넘긴다.',
-    basis: ['plan P5a', 'GUI 759:22411·759:22414'],
+    summary:
+      '글자와 화살표가 한 링크다(GUI 759:22411). 카드는 6장 — 모바일은 가로로 넘기고, PC는 고정 격자라 넘치지 않는다 — 1440 6칸(GUI 1974:63993, #356) · 1024 4칸에 앞 4장(GUI 1989:33304, #367).',
+    basis: ['plan P5a', 'GUI 759:22411·759:22414 · 1974:63993 · 1989:33304'],
   },
-  async ({ page, step }) => {
+  async ({ page, step, testInfo }) => {
+    const desktop = testInfo.project.name === 'desktop';
+    if (desktop) await page.setViewportSize({ width: 1440, height: 1024 });
     await step(
-      '캐러셀이 가로로 넘친다',
+      desktop
+        ? 'PC 1440은 카드 6장이 한 줄 6칸, 1024는 앞 4장(가로 스크롤 없음)'
+        : '캐러셀이 가로로 넘친다(6장)',
       async () => {
         await page.goto('/');
         const list = page.getByRole('region', { name: '다가오는 공연' }).getByRole('list');
+        await expect(list.getByRole('listitem')).toHaveCount(6);
         const overflow = await list.evaluate((el) => el.scrollWidth > el.clientWidth);
-        expect(overflow).toBe(true);
+        expect(overflow).toBe(!desktop);
+        if (desktop) {
+          const tops = await list
+            .getByRole('listitem')
+            .evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().top)));
+          expect(new Set(tops).size).toBe(1);
+        }
+        if (desktop) {
+          // 1024 ~ 1439는 4칸에 앞 4개만(#367 — GUI `1989:33304`)
+          await page.setViewportSize({ width: 1024, height: 900 });
+          await expect(list.getByRole('listitem').locator('visible=true')).toHaveCount(4);
+          expect(await list.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(false);
+          await page.setViewportSize({ width: 1440, height: 1024 });
+        }
       },
       { fullPage: false },
     );
@@ -110,8 +131,8 @@ scenario(
   {
     kind: '빈 상태',
     summary: '빈 배열 응답에서도 200으로 열리고 깨지지 않는다. 빈 상태 모양은 P5a-V에서 정한다.',
-    basis: ['api-contract GP-1', 'plan P5a'],
-    mocks: [http.get('*/api/v2/home', () => HttpResponse.json(envelope.ok({ events: [] })))],
+    basis: ['api-contract GP-2', 'plan P5a'],
+    mocks: [...eventBrowseSets.homeEmpty],
   },
   async ({ page, step }) => {
     await step('공연홈에 들어가면 200으로 열린다', async () => {
@@ -133,8 +154,10 @@ scenario(
       '(public)에는 Suspense가 없어 카카오 크롤러가 상태 코드를 그대로 받는다(잘못된 미리보기를 캐시하지 않게). 브라우저는 스트리밍이라 200이고 에러 화면이 그려진다. 에러 화면은 셸 안의 공용 화면(P4s-V `(audience)/error.tsx`)이다.',
     basis: ['tech-decisions §31 상태 코드 표', 'plan P0 산출물 B-3', 'patterns §11'],
     mocks: [
-      http.get('*/api/v2/home', () =>
-        HttpResponse.json(envelope.error(500, 'GLOBAL_500_1'), { status: 500 }),
+      http.get('*/api/v2/events', ({ request }) =>
+        new URL(request.url).searchParams.get('includePast') === 'true'
+          ? HttpResponse.json(envelope.error(500, 'GLOBAL_500_1'), { status: 500 })
+          : undefined,
       ),
     ],
   },
@@ -209,5 +232,37 @@ scenario(
         );
       },
     );
+  },
+);
+
+scenario(
+  'HOME-7',
+  '근래 공연에 끝난 공연이 섞이면 그 카드는 흐리다',
+  {
+    kind: '정상',
+    summary:
+      'Design Sync #356 · #357 — 근래 6개 중 진행 중 · 시작 전이 아닌(끝난) 공연은 불투명도를 낮춘다(값 0.4는 Figma에 없어 정함 🤖). 눌러서 상세로 갈 수는 있다.',
+    basis: ['GUI 1974:63985 · 1960:2475', 'api-contract GP-2 includePast'],
+    mocks: [...eventBrowseSets.homeWithPast],
+  },
+  async ({ page, step, testInfo }) => {
+    if (testInfo.project.name === 'desktop')
+      await page.setViewportSize({ width: 1440, height: 1024 });
+    await page.goto('/');
+    await step('시작 전 공연은 그대로, 지난 공연 두 장은 흐리다', async () => {
+      const list = page.getByRole('region', { name: '다가오는 공연' }).getByRole('list');
+      const items = list.getByRole('listitem');
+      await expect(items).toHaveCount(3);
+      const opacity = await items.evaluateAll((els) =>
+        els.map((el) => Number(getComputedStyle(el).opacity)),
+      );
+      expect(opacity[0]).toBe(1);
+      expect(opacity[1]).toBeLessThan(1);
+      expect(opacity[2]).toBeLessThan(1);
+      await expect(list.getByRole('link', { name: '고스락 제36회 정기공연' })).toHaveAttribute(
+        'href',
+        '/events/90',
+      );
+    });
   },
 );

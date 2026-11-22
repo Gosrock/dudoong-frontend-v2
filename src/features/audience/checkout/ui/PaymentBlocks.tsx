@@ -12,12 +12,10 @@ import { Divider } from '@/ui/primitives/Divider';
  */
 
 /**
- * 결제정보 머리 줄 안내. 체크아웃 GUI `564:4156`(Ready for dev) 원문은 "입금자명은 닉네임과 동일하게 해주세요"인데, 서버 정책은 입금자명을 주문마다
- * 1~20자로 따로 받는다(WorkBook DEC-022 #6 — 이슈 #274 §3). 지금 화면은 운영자 결정(#106 §4)대로 닉네임을 입금자명으로 보내므로
- * "닉네임과 같게"라는 정책처럼 읽히지 않게 아래 줄의 이름으로 입금하라고만 쓴다(🤖 — 입금자명 칸을 따로 둘지는 #274 질문).
+ * 결제정보 머리 줄 안내 — GUI `567:9159` · `567:9468` 글자 그대로(Design Sync #349 · #353, 2026-11-22 — 디자이너가 개발 문구로 맞춤).
  * 약관 근거 문구가 아니다(legal-copy A-12는 v1 참고 문구).
  */
-export const DEPOSITOR_NOTICE = '아래 입금자명으로 입금해 주세요';
+export const DEPOSITOR_NOTICE = '아래 입금자명으로 입금해주세요';
 
 type DepositAccount = {
   bankName: string | null;
@@ -32,19 +30,24 @@ const copyToast = (id: string) => ({
 
 /**
  * 입금 계좌 세 줄 — 입금은행 · 결제계좌[복사] · 예금주. 값이 없으면 "—".
- * 은행 줄은 GUI에 없지만 토스 송금·입금에 은행이 필요해 더했다(plan P7 ②).
+ * 은행 줄은 토스 송금·입금에 은행이 필요해 더했다(plan P7 ②). 체크아웃은 GUI 입금 확인 `567:9468`(Design Sync #353 "입금은행 추가")대로
+ * 결제계좌 → 입금은행 → 예금주(`bankAfterAccount`), 주문상세는 그대로 은행 먼저.
  */
 export function DepositAccountRows({
   account,
   toastId,
+  bankAfterAccount = false,
 }: {
   account: DepositAccount | null;
   /** 복사 토스트 id(`checkout:copy` · `order:copy`) */
   toastId: string;
+  /** 은행 줄을 계좌 줄 뒤에(GUI `567:9468`) */
+  bankAfterAccount?: boolean;
 }) {
+  const bank = <InfoRow label="입금은행" value={account?.bankName ?? '—'} />;
   return (
     <>
-      <InfoRow label="입금은행" value={account?.bankName ?? '—'} />
+      {!bankAfterAccount && bank}
       {account?.accountNumber ? (
         <InfoRow
           label="결제계좌"
@@ -53,6 +56,7 @@ export function DepositAccountRows({
       ) : (
         <InfoRow label="결제계좌" value="—" />
       )}
+      {bankAfterAccount && bank}
       <InfoRow label="예금주" value={account?.accountHolder ?? '—'} />
     </>
   );
@@ -65,6 +69,7 @@ export function AmountRows({
   total,
   format,
   totalTestId,
+  divider = true,
 }: {
   ticketAmount: number;
   optionAmount: number;
@@ -76,13 +81,15 @@ export function AmountRows({
     total: (n: number) => ReactNode;
   };
   totalTestId: string;
+  /** 총액 위 선(기본 있음) */
+  divider?: boolean;
 }) {
   return (
     <section aria-label="결제금액">
       <InfoRow hierarchy="first" label="결제금액" />
       <InfoRow label="티켓금액" value={format.ticket(ticketAmount)} />
       <InfoRow label="옵션금액" value={format.option(optionAmount)} />
-      <Divider inset={5} />
+      {divider && <Divider inset={5} />}
       {/* 총액 값 Label/lg-emphasized 보라(GUI `567:7913` — R1c) */}
       <InfoRow
         total

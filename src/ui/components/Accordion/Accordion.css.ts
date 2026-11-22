@@ -1,5 +1,6 @@
 import { style } from '@vanilla-extract/css';
 
+import { rowInline } from '../../theme/row-inset.css';
 import { vars } from '../../theme/tokens.css';
 import { typography } from '../../theme/typography.css';
 
@@ -11,7 +12,7 @@ export const trigger = style({
   gap: vars.space[4],
   width: '100%',
   minHeight: 48,
-  padding: `${vars.space[3]} ${vars.space[5]}`,
+  padding: `${vars.space[3]} ${rowInline}`,
   border: 'none',
   borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
   borderBottom: `1px solid ${vars.color.surface.defaultBorder}`,

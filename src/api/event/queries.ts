@@ -83,6 +83,30 @@ export const eventListQuery = (params?: EventListParams) => {
   });
 };
 
+/** 공연홈 "더 많은 공연 둘러보기"에 보일 카드 수(GUI `1974:63993` — Design Sync #356 · #357) */
+export const HOME_RECENT_EVENT_COUNT = 6;
+
+/**
+ * 공연홈 근래 공연(Design Sync #356 · #357 — "근래 6개, 진행 중이 아니면 흐리게"). GP-1은 끝난 공연을 주지 않아 GP-2 첫 페이지를
+ * 지난 공연 포함 · 공연임박순(`sort=UPCOMING`: 진행 중 → 시작 전 임박순 → 지난 공연 최근순)으로 6개만 받는다.
+ * 무한 목록이 아니라 `<Prefetch>`로 서버에서 넘긴다(키는 `eventListQuery`와 다르다 — 모양이 다르다)
+ */
+export const homeRecentEventsQuery = () => {
+  const p = normalizeEventListParams({ includePast: true, size: HOME_RECENT_EVENT_COUNT });
+  return queryOptions({
+    queryKey: ['events', 'home-recent', p],
+    staleTime: PREFETCHED_STALE_MS,
+    queryFn: ({ signal }) => {
+      const searchParams = new URLSearchParams({
+        includePast: 'true',
+        page: '0',
+        size: String(HOME_RECENT_EVENT_COUNT),
+      });
+      return api.get('events', EventListPageSchema, { public: true, searchParams, signal });
+    },
+  });
+};
+
 /** GP-3 공연 상세(공개). 준비중·삭제·없음은 404 → 서버 조회에서 `notFound()`. */
 export const eventDetailQuery = (eventId: string | number) =>
   queryOptions({
