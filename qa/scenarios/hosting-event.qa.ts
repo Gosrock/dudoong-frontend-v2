@@ -190,19 +190,19 @@ scenario(
         await expect(page.getByRole('dialog').locator('li')).toHaveCount(6);
       });
       await step(
-        '드로어를 닫고 제목 ▾를 누르면 이 공연의 화면 메뉴(대시보드 ✓) — 기본 정보로 간다(GUI 1880:34018)',
+        '드로어를 닫고 제목 ▾를 누르면 이 공연의 화면 메뉴(지금 화면 기본 정보 ✓) — 대시보드로 간다(GUI 1880:34018)',
         async () => {
           await page.keyboard.press('Escape');
           await expect(page.getByRole('dialog')).toHaveCount(0);
           await page.getByRole('button', { name: /공연 화면 바꾸기/ }).click();
           const menu = page.getByRole('menu');
           await expect(menu.getByRole('menuitem')).toHaveCount(6);
-          await expect(menu.getByRole('menuitem', { name: '대시보드' })).toHaveAttribute(
+          await expect(menu.getByRole('menuitem', { name: '기본 정보' })).toHaveAttribute(
             'aria-current',
             'page',
           );
-          await menu.getByRole('menuitem', { name: '기본 정보' }).click();
-          await expect(page).toHaveURL(/\/hosting\/events\/101\/info$/);
+          await menu.getByRole('menuitem', { name: '대시보드' }).click();
+          await expect(page).toHaveURL(/\/hosting\/events\/101\/dashboard$/);
         },
       );
     }
