@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
-import { AddHostMembersRequestSchema, type HostMember } from '@/api/host/schema';
+import type { HostMember } from '@/api/host/schema';
+import { CreateHostInvitationRequestSchema } from '@/api/host-invitation/schema';
 import type { HostRole } from '@/api/shared/common-schema';
 
 import {
   canAddInviteRow,
   canRemoveInviteRow,
   emptyInviteRow,
-  inviteFailureEmails,
+  INVITE_ERROR_MESSAGE,
   inviteRoleOptions,
   type InviteRow,
   inviteRowErrors,
-  inviteServerErrors,
   memberActionsOf,
   PERMISSION_GUIDE,
-  toAddMembersBody,
+  toInvitationBody,
 } from './member-rules';
 
 const member = (role: HostRole): Pick<HostMember, 'role'> => ({ role });
@@ -96,71 +96,25 @@ describe('초대 줄 — 칸 오류와 본문(PH-7 1~20명)', () => {
     );
   });
 
-  it('본문은 앞뒤 공백을 지우고 요청 스키마를 통과한다', () => {
-    const body = toAddMembersBody([
-      { email: ' guitar@example.com ', role: 'MANAGER' },
+  it('줄마다 H-16 본문 — 앞뒤 공백을 지우고 요청 스키마를 통과한다', () => {
+    const rows = [
+      { email: ' guitar@example.com ', role: 'MANAGER' as const },
+      { email: 'vocal@example.com', role: 'GUEST' as const },
+    ];
+    const bodies = rows.map(toInvitationBody);
+    expect(bodies).toEqual([
+      { email: 'guitar@example.com', role: 'MANAGER' },
       { email: 'vocal@example.com', role: 'GUEST' },
     ]);
-    expect(body).toEqual({
-      members: [
-        { email: 'guitar@example.com', role: 'MANAGER' },
-        { email: 'vocal@example.com', role: 'GUEST' },
-      ],
-    });
-    expect(AddHostMembersRequestSchema.parse(body)).toEqual(body);
+    bodies.forEach((body) => expect(CreateHostInvitationRequestSchema.parse(body)).toEqual(body));
   });
 });
 
-describe('초대 실패 → 줄 매핑(HOST_400_13·14·15·18, reason 끝 괄호의 이메일)', () => {
-  it.each([
-    ['가입되지 않은 이메일입니다. (a@x.com, b@y.com)', ['a@x.com', 'b@y.com']],
-    ['중복된 이메일이 있습니다. (a@x.com)', ['a@x.com']],
-    ['가입되지 않은 이메일입니다.', []],
-    ['', []],
-  ])('%j → %o', (reason, emails) => {
-    expect(inviteFailureEmails(reason)).toEqual(emails);
-  });
-
-  const sent: InviteRow[] = [
-    { email: 'Guitar@Example.com', role: 'GUEST' },
-    { email: 'nobody@example.com', role: 'GUEST' },
-    { email: 'drum@example.com', role: 'GUEST' },
-  ];
-
-  it.each([
-    [
-      'HOST_400_13',
-      '가입되지 않은 이메일입니다. (nobody@example.com)',
-      [null, '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요', null],
-    ],
-    [
-      'HOST_400_15',
-      '이미 호스트 멤버인 이메일입니다. (drum@example.com)',
-      [null, null, '이미 이 호스트의 멤버예요.'],
-    ],
-    // 중복 이메일은 서버가 소문자로 준다 — 대소문자를 무시하고 맞춘다
-    [
-      'HOST_400_14',
-      '중복된 이메일이 있습니다. (guitar@example.com)',
-      ['같은 이메일을 두 번 넣었어요', null, null],
-    ],
-    [
-      'HOST_400_18',
-      '같은 이메일로 가입된 계정이 여러 개입니다. (nobody@example.com)',
-      [
-        null,
-        '같은 이메일로 가입한 계정이 여러 개라 초대할 수 없어요.\n다른 이메일로 초대해 주세요.',
-        null,
-      ],
-    ],
-  ] as const)('%s → 해당 줄에만 사유', (code, reason, rowErrors) => {
-    expect(inviteServerErrors(code, reason, sent)).toEqual({ rows: rowErrors, form: null });
-  });
-
-  it('어느 줄에도 맞지 않으면(사유 모양이 바뀜) 폼 오류로 — 실패가 묻히지 않는다', () => {
-    expect(inviteServerErrors('HOST_400_13', '가입되지 않은 이메일입니다.', sent)).toEqual({
-      rows: [null, null, null],
-      form: '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
+describe('초대 실패 문구(H-16 — #348 B71)', () => {
+  it('화면이 줄에 다는 코드는 이미 멤버 · 발급 한도 둘뿐 — PH-7 코드(13 · 14 · 18)는 더 오지 않는다', () => {
+    expect(INVITE_ERROR_MESSAGE).toEqual({
+      HOST_400_15: '이미 이 호스트의 멤버예요.',
+      HOST_400_21: '오늘은 더 초대할 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
     });
   });
 });

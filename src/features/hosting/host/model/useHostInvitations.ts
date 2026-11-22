@@ -4,31 +4,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { isApiError } from '@/api/errors';
-import { handleError, handlersFrom } from '@/api/handle-error';
-import type { AssignableHostRole } from '@/api/host/schema';
-import {
-  cancelHostInvitationMutation,
-  createHostInvitationMutation,
-} from '@/api/host-invitation/mutations';
+import { handleError } from '@/api/handle-error';
+import { cancelHostInvitationMutation } from '@/api/host-invitation/mutations';
 import { hostInvitationsQuery } from '@/api/host-invitation/queries';
 import { type ActorRole, can } from '@/features/shared/permission/model/can';
 import { tryCatch } from '@/utils/try-catch';
 
-import {
-  canCreateInvitation,
-  CREATE_INVITATION_ERROR_MESSAGE,
-  hasPendingInvitation,
-  INVITATION_GONE_MESSAGE,
-  invitationRowsOf,
-  inviteUrlOf,
-} from './invitation-rules';
+import { hasPendingInvitation, INVITATION_GONE_MESSAGE, invitationRowsOf } from './invitation-rules';
 
 /** 초대 취소 결과 — 성공 `true` · 이미 없는 초대(`HOST_404_3`, 목록을 다시 읽음) `'missing'` · 그 밖 실패 `false` */
 export type CancelInvitationResult = boolean | 'missing';
 
 /**
  * 대기 중인 초대(H-17) · 취소(H-18) — 멤버 관리 화면의 "초대 대기" 목록. 매니저 이상만 부른다(`can(manageMembers)`).
- * 새 API(Api 2.5.7)라 운영 2.5.3은 404, 스테이징 DDL 전은 500이다 — 404는 목록을 숨기고(`hidden`), 그 밖 실패는 그 자리 `InlineError`.
+ * 모든 초대(가입한 이메일 포함 — B71)가 여기 들어온다. 서버에 API가 없으면(라우트 404) 목록을 숨기고(`hidden`), 그 밖 실패는 그 자리 `InlineError`.
  * 멤버 목록 화면은 죽지 않는다(useQuery — Suspense · 경계를 쓰지 않는다).
  */
 export function useHostInvitations(hostId: string, myRole: ActorRole | null) {
@@ -76,7 +65,7 @@ export function useHostInvitations(hostId: string, myRole: ActorRole | null) {
     status,
     retry: () => void query.refetch(),
     rows,
-    /** 이 이메일로 보낸 대기 초대가 있는지(새 링크를 만들면 옛 링크가 무효 — 초대 시트 안내) */
+    /** 이 이메일로 보낸 대기 초대가 있는지(다시 초대하면 옛 링크가 무효 — 초대 시트 안내 `1476:7459`) */
     hasPendingFor: (email: string) => hasPendingInvitation(query.data ?? [], email),
     cancel,
     pendingId,
@@ -103,59 +92,4 @@ function invitationsStatusOf(
   if (!enabled) return 'hidden';
   if (queryStatus !== 'error') return queryStatus;
   return isInvitationsApiMissing(error) ? 'hidden' : 'error';
-}
-
-/** 만든 링크 — 공유 주소 · 만료 · 메일을 이번에 보냈는지 */
-export type CreatedInviteLink = { url: string; expiresAt: string; mailSent: boolean | null };
-
-/**
- * 초대 링크 만들기(H-16). PH-7이 `HOST_400_13`(미가입)이면 초대 팝업이 같은 이메일 · 역할로 부른다.
- * 성공하면 대기 초대 목록(H-17)을 무효화한다. 실패: `HOST_400_15`(이미 멤버) · `HOST_400_21`(발급 한도)은 `error` 문구, 그 밖은 공용 토스트.
- * 링크 출처는 지금 창의 출처(`window.location.origin`)다 — 서버는 경로만 준다.
- */
-export function useCreateInviteLink(hostId: string, myRole: ActorRole | null | undefined) {
-  const queryClient = useQueryClient();
-  const [link, setLink] = useState<CreatedInviteLink | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const mutation = useMutation({
-    ...createHostInvitationMutation(hostId),
-    onSuccess: () =>
-      queryClient.invalidateQueries({
-        queryKey: hostInvitationsQuery(hostId).queryKey,
-        exact: true,
-      }),
-  });
-
-  const create = useCallback(
-    async (email: string, role: AssignableHostRole) => {
-      if (mutation.isPending || !canCreateInvitation(myRole, role)) return false;
-      setError(null);
-      const [created, e] = await tryCatch(mutation.mutateAsync({ email: email.trim(), role }));
-      if (e) {
-        handleError(
-          e,
-          handlersFrom(CREATE_INVITATION_ERROR_MESSAGE, (message) => setError(message)),
-        );
-        return false;
-      }
-      setLink({
-        url: inviteUrlOf(created, window.location.origin),
-        expiresAt: created.expiresAt,
-        mailSent: created.mailSent ?? null,
-      });
-      return true;
-    },
-    [mutation, myRole],
-  );
-
-  return {
-    create,
-    creating: mutation.isPending,
-    link,
-    error,
-    reset: () => {
-      setLink(null);
-      setError(null);
-    },
-  };
 }

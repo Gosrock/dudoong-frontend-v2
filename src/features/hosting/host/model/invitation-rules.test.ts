@@ -57,6 +57,33 @@ describe('초대 권한(can) — 매니저는 일반 초대만', () => {
   });
 });
 
+describe('대기 줄 이름(H-17 inviteeNickname — Api 2.5.16, #348 B71)', () => {
+  const base = { role: 'GUEST' as const, expiresAt: '2026.11.11 12:00' };
+  it('닉네임이 있으면 이름 · 프로필, 없거나(null · 필드 없음 · 공백) 이메일 줄', () => {
+    const rows = invitationRowsOf(
+      [
+        {
+          ...base,
+          invitationId: 1,
+          email: 'a@x.com',
+          inviteeNickname: '찬진2',
+          inviteeProfileImageUrl: 'https://img/1.png',
+        },
+        { ...base, invitationId: 2, email: 'b@x.com', inviteeNickname: null },
+        { ...base, invitationId: 3, email: 'c@x.com' },
+        { ...base, invitationId: 4, email: 'd@x.com', inviteeNickname: '  ' },
+      ],
+      'MASTER',
+    );
+    expect(rows.map((r) => [r.invitationId, r.name, r.profileImageUrl])).toEqual([
+      [1, '찬진2', 'https://img/1.png'],
+      [2, null, null],
+      [3, null, null],
+      [4, null, null],
+    ]);
+  });
+});
+
 describe('같은 이메일 대기 초대(H-16 재초대 — 옛 링크 무효 안내)', () => {
   const list = [{ email: 'pending-guest@example.com' }, { email: 'other@example.com' }];
   it('대소문자 · 앞뒤 공백을 가리지 않고 찾는다(서버는 소문자로 저장)', () => {
