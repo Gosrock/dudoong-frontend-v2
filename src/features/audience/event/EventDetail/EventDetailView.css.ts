@@ -1,7 +1,7 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
 import { HEADER_HEIGHT, TOP_BAR_HEIGHT } from '@/ui/theme/bars';
-import { media } from '@/ui/theme/breakpoints';
+import { breakpoints, media } from '@/ui/theme/breakpoints';
 import { colors } from '@/ui/theme/colors';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
@@ -310,16 +310,23 @@ export const dock = style({
   bottom: 0,
   zIndex: 10,
   marginInline: -MOBILE_GUTTER,
-  '@media': { [media.desktop]: { display: 'none' } },
+  // PC는 묶음을 풀어 맨 위로만 남는다(자기 화면 고정 자리 — 본문 오른쪽 끝). 바는 아래에서 숨긴다
+  '@media': { [media.desktop]: { display: 'contents' } },
 });
+
+const mobileOnlyMedia = `screen and (max-width: ${breakpoints.desktop - 1}px)`;
 
 /** 맨 위로(↑) — 묶음 바로 위 오른쪽 24(GUI `759:12838` · `1461:10613`). 공연홈 버튼의 화면 고정 자리를 이 묶음 기준으로 바꾼다 */
 export const scrollTop = style({
-  selectors: {
-    [`${dock} &`]: {
-      position: 'absolute',
-      right: MOBILE_GUTTER,
-      bottom: `calc(100% + ${vars.space[5]})`,
+  '@media': {
+    [mobileOnlyMedia]: {
+      selectors: {
+        [`${dock} &`]: {
+          position: 'absolute',
+          right: MOBILE_GUTTER,
+          bottom: `calc(100% + ${vars.space[5]})`,
+        },
+      },
     },
   },
 });
@@ -329,6 +336,7 @@ export const pickedBar = style({
   padding: `${vars.space[4]} ${MOBILE_GUTTER}px`,
   borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
   background: vars.color.background.normal,
+  '@media': { [media.desktop]: { display: 'none' } },
 });
 
 /** 하단 바 [문의][티켓 구매하기] — 흰 바탕 · 위 테두리 · 안쪽 16/24(GUI `759:14901`) + 안전 영역 */
@@ -337,6 +345,7 @@ export const bottomBar = style({
   paddingBottom: `calc(${vars.space[4]} + env(safe-area-inset-bottom))`,
   borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
   background: vars.color.background.normal,
+  '@media': { [media.desktop]: { display: 'none' } },
 });
 
 /** [문의 56][티켓 구매하기] — 화면 하단 바 사이 8(`759:14902`), 시트 버튼 줄 사이 12(`1948:25358`) */
@@ -344,12 +353,6 @@ export const buyButtons = style({ display: 'flex', gap: vars.space[2], width: '1
 export const buyButtonsSheet = style({ gap: vars.space[3] });
 /** [문의] 56 정사각 — 옆 [티켓 구매하기](폭 가득)에 밀려 줄지 않게(GUI `1989:28154` · `759:14902` 56×56) */
 export const contactButton = style({ flexShrink: 0 });
-
-/** PC 맨 위로 — 모바일은 하단 묶음 안 버튼(`scrollTop`)이 맡는다 */
-export const desktopScrollTop = style({
-  display: 'none',
-  '@media': { [media.desktop]: { display: 'inline-flex' } },
-});
 
 /** 주간 달력 묶음(GUI `1989:28119` — 머리 · 요일 줄 사이 16, 아래 구분선) */
 export const weekBox = style({

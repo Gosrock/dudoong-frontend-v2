@@ -281,18 +281,16 @@ export function EventDetailView({ eventId }: { eventId: string }) {
         </aside>
       </div>
 
-      {/* PC 맨 위로(GUI `1989:28156` — 본문 오른쪽 아래) */}
-      <ScrollTopButton className={s.desktopScrollTop} />
-
-      {/* 모바일 하단 고정 — 고른 티켓 줄(`759:22112`) + [문의][티켓 구매하기](`759:14901`) + 맨 위로. PC에서는 CSS로 숨긴다 */}
-      {(hasContacts || sellsTickets) && (
-        <div className={s.dock}>
-          <ScrollTopButton className={s.scrollTop} />
-          {sellsTickets && tickets.selected && (
-            <div className={s.pickedBar} aria-label="고른 티켓" role="group">
-              <PickedTicket selection={tickets} />
-            </div>
-          )}
+      {/* 모바일 하단 고정 — 고른 티켓 줄(`759:22112`) + [문의][티켓 구매하기](`759:14901`) + 맨 위로. PC에서는 바를 CSS로 숨기고
+          맨 위로(GUI `1989:28156`)만 화면 오른쪽 아래 고정으로 남긴다 — 버튼을 하나만 두어 가려 둔 FAB가 토스트 자리(`data-fab`)를 잡지 않게 */}
+      <div className={s.dock}>
+        <ScrollTopButton className={s.scrollTop} />
+        {sellsTickets && tickets.selected && (
+          <div className={s.pickedBar} aria-label="고른 티켓" role="group">
+            <PickedTicket selection={tickets} />
+          </div>
+        )}
+        {(hasContacts || sellsTickets) && (
           <div className={s.bottomBar}>
             <BuyButtons
               onContact={hasContacts ? openContacts : undefined}
@@ -301,8 +299,8 @@ export function EventDetailView({ eventId }: { eventId: string }) {
               buyHasPopup={!checkoutHref}
             />
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {sheet !== 'closed' && sellsTickets && (
         <TicketSheet

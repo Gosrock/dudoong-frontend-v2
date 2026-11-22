@@ -92,24 +92,28 @@ export const empty = style({
   background: vars.color.background.grey,
 });
 
-/** 호스트 아바타 줄(`1989:37165` — 위아래 8, 간격 16, 네 칸) */
+/**
+ * 호스트 아바타 줄(`1989:37165` — 위아래 8, 간격 16, 네 칸 74). 네 칸이 344라 본문 342(390 화면)보다 넓어 칸은 최대 74로
+ * 줄어들게 둔다(좁은 화면에서 드로어가 옆으로 넘치지 않게)
+ */
 export const hostRow = style([
   sprinkles({ listStyle: 'none' }),
   {
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 74px))',
     gap: vars.space[4],
     margin: 0,
     padding: `${vars.space[2]} 0`,
   },
 ]);
 
-/** 호스트 한 칸(`1047:31734` — 폭 74, 아바타 60 가운데, 아바타 ↔ 이름 4) */
+/** 호스트 한 칸(`1047:31734` — 폭 최대 74, 아바타 60 가운데, 아바타 ↔ 이름 4) */
 export const host = style({
   ...reset,
   flexDirection: 'column',
   alignItems: 'center',
   gap: vars.space[1],
-  width: 74,
+  width: '100%',
 });
 
 export const hostName = style({ maxWidth: '100%', textAlign: 'center' });
