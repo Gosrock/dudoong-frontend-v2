@@ -54,10 +54,9 @@ test.describe('체크아웃 → 주문 완료', () => {
 
     await expect(page).toHaveURL(/\/orders\/mock-order-[^/?]+\?created=1$/);
     await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
-    // B23 — 주문을 입금 전에 만들고, 완료 화면이 계좌·금액을 안내한다
-    await expect(page.getByTestId('deposit-guide').getByTestId('deposit-amount')).toHaveText(
-      '50,000원',
-    );
+    // Q252(사용자 결정 2026-11-22 "디자인대로") — 완료 화면에는 입금 안내(계좌 · 금액 · 토스)가 없다. 계좌 · 금액은 주문상세
+    await expect(page.getByTestId('deposit-guide')).toHaveCount(0);
+    await expect(page.getByTestId('toss-link')).toHaveCount(0);
     await expect(page.getByTestId('order-result')).toHaveAttribute(
       'data-kind',
       'AWAITING_DEPOSIT_APPROVAL',
@@ -77,14 +76,20 @@ test.describe('체크아웃 → 주문 완료', () => {
       'data-kind',
       'AWAITING_DEPOSIT_APPROVAL',
     );
-    // 새로고침(앱이 꺼진 뒤 다시 연 것과 같다)해도 계좌 안내가 남는다
-    await expect(page.getByTestId('deposit-guide')).toBeVisible();
+    // 새로고침해도 완료 화면에 입금 안내는 없다(Q252)
+    await expect(page.getByTestId('deposit-guide')).toHaveCount(0);
     const reads = mockApi.calls().filter((c) => c.path === `/api/v2/me${orderPath}`);
     expect(reads.map((c) => [c.from, c.status])).toEqual([['browser', 200]]);
 
     // 뒤로가기로 체크아웃에 돌아오지 않는다(replace)
     await page.goBack();
     await expect(page).not.toHaveURL(/\/checkout/);
+
+    // 입금할 길은 주문상세에 남는다 — 결제정보에 계좌 · 금액(Q252)
+    await page.goto(orderPath);
+    const paymentInfo = page.getByRole('region', { name: '결제정보' });
+    await expect(paymentInfo.getByText('110-123-456789')).toBeVisible();
+    await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
   });
 
   test('비로그인이면 로그인으로 가고, 돌아올 곳에 티켓·수량 쿼리가 남는다', async ({ page }) => {
