@@ -90,16 +90,18 @@ export const vars = createGlobalTheme(':root', {
       purpleSubtle: palette.purple[50],
     },
     /**
-     * 대시보드 `티켓 판매 정보` 도넛·범례 색(design-system §3, P13a-V). Figma가 변수 없이 직접 값 3개(#B6CCFF·#82D8AD·#FFD899 —
-     * "색상은 고정하려고")를 쓴다 — 팔레트에 같은 값이 없어 그대로 옮겼다. 4번째부터는 Figma에 없어 팔레트 옅은 색으로 이었다(Figma 코멘트)
+     * 대시보드 `티켓 판매 정보` 도넛·범례 색(design-system §3). GUI `티켓 판매 정보_색·범례 가이드`(`1904:2952`, Design Sync #331 —
+     * 2026-11-21)의 순서 그대로: 판매량 많은 티켓부터 1 하늘 · 2 민트 · 3 살구 · 4 옅은 보라 · 5 옅은 분홍 · 6 옅은 청록, 반복하지
+     * 않는다. `other` = 「기타」(7종 이상일 때 6번째부터 묶음) · 판매 0 티켓 점(60% 흐리게). 변수 없이 직접 값이라 그대로 옮겼다
      */
     chart: {
       1: '#b6ccff',
       2: '#82d8ad',
       3: '#ffd899',
-      4: palette.violet[100],
-      5: palette.pink[100],
-      6: palette.teal[100],
+      4: '#cdb9ff',
+      5: '#ffb9d3',
+      6: '#86d3da',
+      other: '#dddcda',
     },
     /** 오버레이 딤·그림자 */
     overlay: {
@@ -109,6 +111,9 @@ export const vars = createGlobalTheme(':root', {
       // 커버 이미지 딤(GUI 호스트 홈 "dimmed" — Neutral 900 30%, 변수 없는 값 · Design Sync #279, 2026-11-16)
       // FIGMA-CUSTOM: 커버 딤(gui 1522:13269 "dimmed") — 디자인 시스템 변수에 없는 색. DS 후보(디자인 시스템 `Background/dimmed` 옆 변수)
       coverDim: `color-mix(in srgb, ${palette.neutral[900]} 30%, transparent)`,
+      // 대시보드 카드 호버 · 눌림(GUI `1880:33697` · `1887:1876` — #000000 5% 겹침, 변수 없는 값 · Design Sync #322 · #328, 2026-11-21)
+      // FIGMA-CUSTOM: 카드 호버(gui 1887:1876 "대시보드_통계 카드_마우스 올림") — 디자인 시스템 변수에 없는 색. DS 후보(호버 겹침 변수)
+      cardHover: 'rgb(0 0 0 / 5%)',
     },
   },
   /** Space/1~10. 7~10은 데스크탑에서 커진다(Figma Component 컬렉션 Mobile/Desktop 모드). */

@@ -184,11 +184,9 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
     await expect(page).toHaveURL(/\/hosting\/events\/7001\/dashboard/);
     await expect(page.getByText('새로운 공연이 추가되었습니다!')).toBeVisible();
     await expect(menu(page)).toHaveText(['대시보드', '기본 정보', '상세 정보', '티켓 관리']);
-    await expect(page.getByTestId('checklist-progress')).toHaveText('1/3');
-    await expect(page.getByTestId('checklist-ticket')).toContainText(
-      '티켓 없는 공연이라 필요 없어요',
-    );
-    await expect(page.getByTestId('checklist-ticket')).toHaveAttribute('data-done', 'true');
+    // 티켓 없는 공연은 ③ 행이 없다(GUI 1929:6909 · 1913:39649 — #333 · #334)
+    await expect(page.getByTestId('checklist-progress')).toHaveText('0/2');
+    await expect(page.getByTestId('checklist-ticket')).toHaveCount(0);
     await expect(page.getByRole('button', { name: '공연 등록하기' })).toBeDisabled();
 
     // 기본 정보 — 포스터 · 장소(주소 → 좌표) · 문의처
@@ -237,7 +235,8 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
     // 대시보드 — ①이 찼다
     await goMenu(page, '대시보드');
     await expect(page.getByTestId('checklist-basic')).toHaveAttribute('data-done', 'true');
-    await expect(page.getByTestId('checklist-progress')).toHaveText('2/3');
+    // 티켓 없는 공연이라 ③ 줄이 없다 — 두 줄 중 하나
+    await expect(page.getByTestId('checklist-progress')).toHaveText('1/2');
 
     // 상세 정보 — 첫 탭 본문
     await goMenu(page, '상세 정보');
@@ -245,16 +244,14 @@ test.describe('만들기 → 기본 정보 → 섹션 → 등록 완주(티켓 �
     await page.getByRole('button', { name: '저장하기' }).click();
     await expect(page.getByText('저장했어요')).toBeVisible();
 
-    // 대시보드 — 다 채운 순간(이 화면이 본 canOpen false → true) → "등록 준비 완료" 팝업
+    // 대시보드 — 다 채우면 등록 준비 끝(GUI 1929:6663 — 팝업 없이 버튼이 켜진다)
     await goMenu(page, '대시보드');
-    const ready = page.getByRole('alertdialog', { name: '공연 등록 준비가 완료되었어요!' });
-    await expect(ready).toBeVisible();
-    await ready.getByRole('button', { name: '확인' }).click();
-    await expect(page.getByTestId('checklist-progress')).toHaveText('3/3');
-    // [공연 등록하기] → 확인 팝업 [등록] → 토스트
+    await expect(page.getByTestId('checklist-progress')).toHaveText('2/2');
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+    // [공연 등록하기] → 확인 팝업 [등록하기] → 토스트(GUI 1929:7633 · 1929:7691)
     await page.getByRole('button', { name: '공연 등록하기' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: '등록' }).click();
-    await expect(page.getByText('공연이 등록되었습니다.')).toBeVisible();
+    await page.getByRole('alertdialog').getByRole('button', { name: '등록하기' }).click();
+    await expect(page.getByText('공연을 등록했어요.')).toBeVisible();
     await expect(page.getByTestId('dashboard-registered')).toBeVisible();
     await expect(menu(page)).toHaveText([
       '대시보드',
@@ -375,7 +372,7 @@ test.describe('공연 삭제 — 준비중 카드 ⋮', () => {
 });
 
 test.describe('공연 취소 E-11(Api 2.5.8) — 대시보드 맨 아래', () => {
-  test('마스터: 사유 없이는 보내지 않고, 사유를 넣어 취소하면 "취소된 공연" 안내 · 결과', async ({
+  test('마스터: 사유 · 확인 체크 없이는 보내지 않고, 사유를 넣어 취소하면 "취소된 공연" 안내 · 결과', async ({
     page,
     mockApi,
   }) => {
@@ -385,20 +382,23 @@ test.describe('공연 취소 E-11(Api 2.5.8) — 대시보드 맨 아래', () =>
     await section.getByRole('button', { name: '공연 취소하기' }).click();
     const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
     await expect(dialog).toContainText('되돌릴 수 없어요');
-    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
-    await expect(dialog).toContainText('취소 사유를 입력해 주세요.');
+    // 사유 · 확인 체크가 없으면 [취소하기]가 꺼져 있다(GUI 1912:3581 체크 전)
+    const submit = dialog.getByRole('button', { name: '취소하기', exact: true });
+    await expect(submit).toBeDisabled();
+    await dialog.getByRole('checkbox').check();
+    await expect(submit).toBeDisabled();
     expect(mockApi.calls().filter((c) => c.method === 'POST')).toEqual([]);
 
     await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
-    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+    await submit.click();
     await expect(dialog).toHaveCount(0);
     const notice = page.getByTestId('event-canceled');
     await expect(notice).toContainText('취소된 공연이에요.');
-    await expect(notice).toContainText('취소 사유: 공연장 사정');
-    await expect(page.getByTestId('event-cancel-result')).toContainText('건을 거절하고');
+    await expect(notice).toContainText('사유: 공연장 사정');
+    await expect(page.getByTestId('event-cancel-result')).toContainText('건을 거절·취소했');
     await expect(section).toHaveCount(0);
-    // 남은 주문이 없으면 [남은 주문 다시 처리]를 숨긴다
-    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+    // 남은 주문이 없으면 [주문 처리하기]를 숨긴다
+    await expect(page.getByRole('button', { name: '주문 처리하기' })).toHaveCount(0);
     expect(
       mockApi
         .calls()
@@ -416,23 +416,30 @@ test.describe('공연 취소 E-11(Api 2.5.8) — 대시보드 맨 아래', () =>
     await page.getByTestId('event-cancel').getByRole('button', { name: '공연 취소하기' }).click();
     const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
     await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
-    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', { name: '취소하기', exact: true }).click();
     await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
 
     // 새로 열면 이 화면의 결과는 없다 — GE-3 cancelRemainingCount > 0 · cancelRetryable true로 버튼
     await page.reload();
     await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
-    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '주문 처리하기' })).toBeVisible();
+    await expect(page.getByTestId('event-cancel-result')).toContainText(
+      /처리하지 못한 주문이 \d+건 있어요\./,
+    );
     await expect(page.getByTestId('event-cancel-contact')).toHaveCount(0);
 
     // 정산 기록이 생기면(cancelRetryable false) 버튼 대신 안내
     setEventCancelScenario({ settled: [101] });
     await page.reload();
     await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
-    await expect(page.getByTestId('event-cancel-contact')).toContainText(
-      /처리하지 못한 주문 \d+건이 있어요\. 두둥 고객센터로 문의해 주세요\./,
+    await expect(page.getByTestId('event-cancel-result')).toContainText(
+      /처리하지 못한 주문이 \d+건 있어요\. 두둥 고객센터에 문의해 주세요\./,
     );
-    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+    await expect(
+      page.getByTestId('event-cancel-contact').getByRole('link', { name: '문의하기' }),
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: '주문 처리하기' })).toHaveCount(0);
   });
 
   test('2.5.9 GE-3 남은 수 0이면 새로 열어도 [다시 처리]가 없다', async ({ page }) => {
@@ -441,11 +448,12 @@ test.describe('공연 취소 E-11(Api 2.5.8) — 대시보드 맨 아래', () =>
     await page.getByTestId('event-cancel').getByRole('button', { name: '공연 취소하기' }).click();
     const dialog = page.getByRole('dialog', { name: '공연을 취소할까요?' });
     await dialog.getByRole('textbox', { name: '취소 사유' }).fill('공연장 사정');
-    await dialog.getByRole('button', { name: '공연 취소', exact: true }).click();
+    await dialog.getByRole('checkbox').check();
+    await dialog.getByRole('button', { name: '취소하기', exact: true }).click();
     await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
     await page.reload();
     await expect(page.getByTestId('event-canceled')).toContainText('취소된 공연이에요.');
-    await expect(page.getByRole('button', { name: '남은 주문 다시 처리' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '주문 처리하기' })).toHaveCount(0);
     await expect(page.getByTestId('event-cancel-contact')).toHaveCount(0);
   });
 

@@ -38,8 +38,23 @@ export const root = recipe({
       round: { borderRadius: vars.radius.full },
       square: { borderRadius: vars.radius[1] },
     },
+    /**
+     * 켜짐 색 — `default` 검정(DS `Box`) · `brand` 보라. FIGMA-CUSTOM: 공연 취소 확인 체크(gui 1913:37303 · 1913:37541 "Box" — 채움
+     * #633EE7 덮어쓰기, Design Sync #326 · #332) 커스텀 → 화면대로(R1) 변형을 더했다. DS 후보(`Box` 보라 켜짐)
+     */
+    tone: {
+      default: {},
+      brand: {
+        selectors: {
+          '&[data-state="checked"]': {
+            borderColor: vars.color.brand.primary,
+            background: vars.color.brand.primary,
+          },
+        },
+      },
+    },
   },
-  defaultVariants: { shape: 'round' },
+  defaultVariants: { shape: 'round', tone: 'default' },
 });
 
 export const indicator = style({ display: 'inline-flex' });

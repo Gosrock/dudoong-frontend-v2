@@ -4,6 +4,9 @@ import type { EventCancelResult } from '@/api/event/schema';
 
 import {
   canCancelEvent,
+  cancelConfirmNotice,
+  cancelContactMessage,
+  cancelLeftoverMessage,
   cancelReasonError,
   cancelRemainingState,
   cancelResultSummary,
@@ -60,10 +63,13 @@ const result = (patch: Partial<EventCancelResult>): EventCancelResult => ({
 describe('cancelResultSummary — remaining > 0 또는 failed > 0이면 다시 처리', () => {
   it('다 처리했으면 개수만', () => {
     expect(cancelResultSummary(result({ refused: 2, canceled: 3 }))).toEqual({
-      processed: '승인 대기 주문 2건을 거절하고, 승인된 주문 3건을 취소했어요.',
-      leftover: null,
+      processed: '주문 5건을 거절·취소했고, 환불 요청 3건이 생겼어요.',
+      leftCount: null,
       needsRetry: false,
     });
+    expect(cancelResultSummary(result({ refused: 2 })).processed).toBe(
+      '주문 2건을 거절·취소했어요.',
+    );
   });
 
   it('처리한 주문이 없으면 그렇게', () => {
@@ -77,7 +83,7 @@ describe('cancelResultSummary — remaining > 0 또는 failed > 0이면 다시 �
   ])('%s → 다시 처리', (_, patch, left) => {
     const s = cancelResultSummary(result({ refused: 1, ...patch }));
     expect(s.needsRetry).toBe(true);
-    expect(s.leftover).toContain(`${left}건`);
+    expect(s.leftCount).toBe(left);
   });
 });
 
@@ -108,5 +114,33 @@ describe('cancelRemainingState — GE-3 cancelRemainingCount · cancelRetryable(
     ['한쪽만 있음', { cancelRemainingCount: 3 }, { kind: 'unknown' }],
   ] as const)('%s', (_, event, expected) => {
     expect(cancelRemainingState(event)).toEqual(expected);
+  });
+});
+
+describe('취소 확인 · 안내 문구(GUI 1912:3581 · 1912:3661 · 1912:4037 — #326 · #332)', () => {
+  it.each([
+    [
+      null,
+      '남은 주문이 모두 거절·취소되고, 결제한 주문은 환불 요청이 생겨요. 취소하면 다시 되돌릴 수 없어요.',
+    ],
+    [
+      { pendingApprove: 4, approved: 8 },
+      '남은 주문 12건이 모두 거절·취소되고, 결제한 주문 8건은 환불 요청이 생겨요. 취소하면 다시 되돌릴 수 없어요.',
+    ],
+    [
+      { pendingApprove: 3, approved: 0 },
+      '남은 주문 3건이 모두 거절돼요. 취소하면 다시 되돌릴 수 없어요.',
+    ],
+    [{ pendingApprove: 0, approved: 0 }, '처리할 주문은 없어요. 취소하면 다시 되돌릴 수 없어요.'],
+  ])('확인 창 안내 %o', (orders, text) => {
+    expect(cancelConfirmNotice(orders)).toBe(text);
+  });
+
+  it('남은 주문 · 고객센터 안내', () => {
+    expect(cancelLeftoverMessage(3)).toBe('처리하지 못한 주문이 3건 있어요.');
+    expect(cancelLeftoverMessage(null)).toBe('처리하지 못한 주문이 있을 수 있어요.');
+    expect(cancelContactMessage(3)).toBe(
+      '처리하지 못한 주문이 3건 있어요. 두둥 고객센터에 문의해 주세요.',
+    );
   });
 });

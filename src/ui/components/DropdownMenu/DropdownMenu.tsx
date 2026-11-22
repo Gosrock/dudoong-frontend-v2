@@ -3,6 +3,7 @@
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import { Fragment, type ReactNode } from 'react';
 
+import { Icon } from '../../icons/Icon';
 import { dropdownSurface } from '../../theme/surface.css';
 import * as s from './DropdownMenu.css';
 
@@ -13,6 +14,8 @@ export type DropdownMenuItem = {
   /** 삭제처럼 되돌릴 수 없는 항목 — 글자를 위험 색으로 */
   danger?: boolean;
   icon?: ReactNode;
+  /** 지금 고른 항목 — 배경 + 오른쪽 ✓(DS `dropdown item` `selected=true`) */
+  selected?: boolean;
 };
 
 export type DropdownMenuProps = {
@@ -28,6 +31,11 @@ export type DropdownMenuProps = {
    * FIGMA-CUSTOM: DS `dropdown`에 없는 변형(2단계 후보, 2026-11-08 #191)
    */
   variant?: 'default' | 'card';
+  /**
+   * 항목 크기 — `default`(28h · Label/md) · `larger`(DS `dropdown item` `size=larger` — 29h · Heading/sm, 면 안쪽 12 · 16 · 항목 사이 8).
+   * GUI 대시보드 모바일 화면 메뉴(`1880:34018`, Design Sync #321)
+   */
+  size?: 'default' | 'larger';
   /** 제어형 — 트리거 밖에서 열고 닫을 때(탭을 눌러 여는 메뉴 등). 없으면 트리거가 연다 */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -46,6 +54,7 @@ export function DropdownMenu({
   side = 'bottom',
   align = 'end',
   variant = 'default',
+  size = 'default',
   open,
   onOpenChange,
   onCloseAutoFocus,
@@ -60,20 +69,31 @@ export function DropdownMenu({
           align={align}
           sideOffset={4}
           collisionPadding={16}
-          className={card ? s.cardContent : `${dropdownSurface} ${s.content}`}
+          className={
+            card
+              ? s.cardContent
+              : `${dropdownSurface} ${s.content} ${size === 'larger' ? s.contentLarger : ''}`
+          }
           onCloseAutoFocus={onCloseAutoFocus}
         >
           {items.map((item, i) => (
             <Fragment key={i}>
               {card && i > 0 && <RadixMenu.Separator className={s.cardSeparator} />}
               <RadixMenu.Item
-                className={card ? s.cardItem : s.item}
+                className={card ? s.cardItem : `${s.item} ${size === 'larger' ? s.itemLarger : ''}`}
                 disabled={item.disabled}
                 data-danger={item.danger ? 'true' : undefined}
+                data-selected={item.selected ? 'true' : undefined}
+                aria-current={item.selected ? 'page' : undefined}
                 onSelect={item.onSelect}
               >
                 {item.icon}
                 {item.label}
+                {item.selected && (
+                  <span className={s.selectedMark} aria-hidden>
+                    <Icon name="check" size={12} />
+                  </span>
+                )}
               </RadixMenu.Item>
             </Fragment>
           ))}

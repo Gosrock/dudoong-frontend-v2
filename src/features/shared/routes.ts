@@ -11,3 +11,9 @@ export const hostHref = (hostId: string | number) => `/hosts/${encodeURIComponen
 
 /** 주문상세 `/orders/[orderUuid]` */
 export const orderHref = (orderUuid: string) => `/orders/${encodeURIComponent(orderUuid)}`;
+
+/**
+ * 두둥 고객센터(카카오톡 채널) — 공연홈 푸터 SNS의 세 번째 주소(v1 운영 푸터 `feda26a`, design-requests Q221)와 같은 곳.
+ * 공연 취소 "처리 불가" [문의하기](GUI `1912:4037`, Design Sync #332 — 목적지는 Figma에 없어 🤖 Claude 판단 2026-11-22, Q166)
+ */
+export const SUPPORT_CHANNEL_URL = 'http://pf.kakao.com/_xiaLWxj';

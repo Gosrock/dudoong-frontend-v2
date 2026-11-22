@@ -1,30 +1,24 @@
 'use client';
 
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useSelectedLayoutSegment } from 'next/navigation';
+import { useRouter, useSelectedLayoutSegment } from 'next/navigation';
 import { overlay } from 'overlay-kit';
 import { Suspense } from 'react';
 
 import { eventDashboardQuery } from '@/api/dashboard/queries';
-import { myEventsQuery } from '@/api/event/queries';
 import type { EventMenuKey } from '@/features/hosting/shared/model/event-scope';
-import { eventChipOf, eventMetaLineOf } from '@/features/hosting/shared/model/home-cards';
+import { eventMetaLineOf } from '@/features/hosting/shared/model/home-cards';
 import type { useEventScope } from '@/features/hosting/shared/model/useEventScope';
 import { UNNAMED_EVENT } from '@/features/shared/event-labels';
 import { useShellMenu } from '@/features/shared/shell/model/useShellMenu';
 import { ShellBell } from '@/features/shared/shell/ShellParts';
-import { BottomSheet } from '@/ui/components/BottomSheet/BottomSheet';
-import { Button } from '@/ui/components/Button/Button';
-import { Chip } from '@/ui/components/Chip/Chip';
 import { Drawer } from '@/ui/components/Drawer/Drawer';
+import { DropdownMenu } from '@/ui/components/DropdownMenu/DropdownMenu';
 import { Header, HeaderIconButton } from '@/ui/components/Header/Header';
-import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { SidebarMenuItem } from '@/ui/components/SidebarMenu/SidebarMenu';
-import { UploadedImage } from '@/ui/components/UploadedImage/UploadedImage';
 import { Icon } from '@/ui/icons/Icon';
 import type { IconSpec } from '@/ui/icons/registry';
-import { Illustration } from '@/ui/illustrations/Illustration';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
@@ -78,35 +72,22 @@ function EventSidebarBody({
   const badge = useGuestsBadge(scope);
   return (
     <>
-      <Link href="/hosting" className={s.back} replace={Boolean(inOverlay)}>
-        <Icon name="chevron-left" />
-        <Txt typography="labelLg">내 공연</Txt>
-      </Link>
+      {/* GUI `사이드바_공연 정보`(`1861:2065`, Design Sync #335 — 2026-11-21): "← 내 공연" · 공연명 · 호스트 · D-n(포스터 카드 대신) */}
+      <div className={s.info} data-testid="event-card">
+        <Link href="/hosting" className={s.back} replace={Boolean(inOverlay)}>
+          <Icon name="backward" />
+          <Txt typography="labelMd">내 공연</Txt>
+        </Link>
+        <Flex direction="column" gap={1} style={{ minWidth: 0 }}>
+          <Txt typography="headingMd2Emphasized" color={colors.textInverse} lines={2}>
+            {event.name ?? UNNAMED_EVENT}
+          </Txt>
+          <Txt typography="bodyMd" color={colors.textSecondary} lines={1}>
+            {eventMetaLineOf(event)}
+          </Txt>
+        </Flex>
+      </div>
       <div className={s.cardAndMenu}>
-        <div className={s.card} data-testid="event-card">
-          {event.posterImageUrl ? (
-            // 업로드 포스터(업로드 출처면 `/_next/image` 최적화 — P15). 고정 48×68 → 1x · 2x
-            <UploadedImage
-              className={s.poster}
-              fallback={<Illustration name="poster-placeholder" width={48} className={s.poster} />}
-              src={event.posterImageUrl}
-              alt=""
-              width={48}
-              height={68}
-              decoding="async"
-            />
-          ) : (
-            <Illustration name="poster-placeholder" width={48} className={s.poster} />
-          )}
-          <Flex direction="column" gap={1} style={{ minWidth: 0 }}>
-            <Txt typography="headingSmEmphasized" color={colors.textInverse} lines={2}>
-              {event.name ?? UNNAMED_EVENT}
-            </Txt>
-            <Txt typography="bodyMd" color={colors.textSecondary} lines={1}>
-              {eventMetaLineOf(event)}
-            </Txt>
-          </Flex>
-        </div>
         <ul className={s.menu}>
           {scope.menu.map((m) => {
             const selected = m.key === active;
@@ -186,6 +167,7 @@ function ActiveMobileHeader({ scope }: { scope: Scope }) {
 }
 
 function EventMobileHeaderBody({ scope, active }: { scope: Scope; active: EventMenuKey | null }) {
+  const router = useRouter();
   const label = scope.menu.find((m) => m.key === active)?.label ?? '공연 관리';
   const name = scope.event.name ?? UNNAMED_EVENT;
   return (
@@ -194,8 +176,21 @@ function EventMobileHeaderBody({ scope, active }: { scope: Scope; active: EventM
       title={label}
       switcher={{
         subtitle: name,
-        'aria-label': `${label} — ${name}. 다른 공연으로 바꾸기`,
-        onClick: () => openEventSwitchSheet(scope.event.eventId),
+        'aria-label': `${label} — ${name}. 공연 화면 바꾸기`,
+        // GUI `대시보드_드롭다운 오픈`(`1880:34018`, Design Sync #321 — 2026-11-21): ▾는 이 공연의 화면 메뉴(DS `dropdown item`
+        // `size=larger`, 고른 화면 ✓). 전에는 디자인 없이 "다른 공연으로 바꾸기" 시트였다 — 다른 공연은 ☰ → "← 내 공연"으로
+        wrap: (button) => (
+          <DropdownMenu
+            trigger={button}
+            align="start"
+            size="larger"
+            items={scope.menu.map((m) => ({
+              label: m.label,
+              selected: m.key === active,
+              onSelect: () => router.push(m.href),
+            }))}
+          />
+        ),
       }}
       leading={
         <HeaderIconButton
@@ -228,95 +223,6 @@ function openEventMenuDrawer(scope: Scope, active: EventMenuKey | null) {
       </nav>
     </Drawer>
   ));
-}
-
-/** 제목 ▾ → 공연 전환 시트(디자인 없음, Q37 기본안). 내 공연(GE-1) 목록 — 고르면 그 공연의 대시보드로(시트 안 이동이라 `replace`) */
-function openEventSwitchSheet(currentEventId: number) {
-  overlay.open(({ isOpen, close, unmount }) => (
-    <BottomSheet
-      open={isOpen}
-      onOpenChange={(o) => !o && close()}
-      onExited={unmount}
-      title="공연 바꾸기"
-    >
-      <EventSwitchList currentEventId={currentEventId} onPick={close} />
-    </BottomSheet>
-  ));
-}
-
-function EventSwitchList({
-  currentEventId,
-  onPick,
-}: {
-  currentEventId: number;
-  onPick: () => void;
-}) {
-  const q = useInfiniteQuery(myEventsQuery());
-  if (q.status === 'pending') {
-    return (
-      <Txt typography="bodyMd" color={colors.textSecondary}>
-        불러오는 중
-      </Txt>
-    );
-  }
-  if (q.status === 'error') {
-    return (
-      <InlineError
-        layout="row"
-        message="공연 목록을 불러오지 못했어요."
-        onRetry={() => void q.refetch()}
-      />
-    );
-  }
-  const events = q.data.pages.flatMap((p) => p.content);
-  return (
-    <Flex direction="column" fullWidth>
-      <ul className={s.menu} aria-label="내 공연">
-        {events.map((e) => {
-          const chip = eventChipOf(e);
-          const current = e.eventId === currentEventId;
-          return (
-            <li key={e.eventId}>
-              <Link
-                href={`/hosting/events/${e.eventId}/dashboard`}
-                replace
-                className={s.switchRow}
-                aria-current={current ? 'page' : undefined}
-                onClick={current ? onPick : undefined}
-              >
-                <Flex direction="column" gap={1} style={{ flex: '1 1 auto', minWidth: 0 }}>
-                  <Txt typography={current ? 'labelLgEmphasized' : 'labelLg'} lines={1}>
-                    {e.name ?? UNNAMED_EVENT}
-                  </Txt>
-                  {e.hostName && (
-                    <Txt typography="bodySm" color={colors.textSecondary} lines={1}>
-                      {e.hostName}
-                    </Txt>
-                  )}
-                </Flex>
-                {chip && (
-                  <Chip color={chip.color} theme={chip.theme}>
-                    {chip.label}
-                  </Chip>
-                )}
-                {current && <Icon name="check" title="지금 공연" />}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {q.hasNextPage && (
-        <Button
-          variant="secondary"
-          size="sm"
-          loading={q.isFetchingNextPage}
-          onClick={() => void q.fetchNextPage()}
-        >
-          더 보기
-        </Button>
-      )}
-    </Flex>
-  );
 }
 
 /** 읽기 전용 안내(일반 멤버 · 끝난 공연) — 디자인 없음. 본문 위 회색 줄 */

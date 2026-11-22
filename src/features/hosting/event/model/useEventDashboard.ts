@@ -37,7 +37,7 @@ type RegisterErrorCode = keyof typeof REGISTER_ERROR_MESSAGE;
  *
  * - 체크리스트: GE-7은 체크리스트 모드에서만 부른다. 화면에 들어올 때마다 다시 읽는다(전역 `staleTime` 0) — 기본 정보·상세 정보를
  *   저장하고 돌아오면 새 값이 온다
- * - **다 채운 순간**(`justCompleted`): 이 화면이 본 `canOpen`이 `false`에서 `true`로 바뀐 직후 한 번(→ "등록 준비 완료" 모달, V).
+ * - **다 채운 순간**(`justCompleted`): 이 화면이 본 `canOpen`이 `false`에서 `true`로 바뀐 직후 한 번(전에는 "등록 준비 완료" 모달 — 2026-11-22 GUI 등록 흐름 `1929:6663`에 없어 V가 그리지 않는다, design-requests Q250. 되살릴 때를 위해 값은 남긴다).
  *   처음부터 `true`로 들어오면(새로고침 등) 알리지 않는다. `acknowledgeCompleted()`로 끈다(Claude 판단 — 기준을 바꾸려면 이 훅만)
  * - 등록(PE-8): 매니저 이상 + `canOpen`일 때만. 성공하면 GE-3·GE-1만 무효화하고(`invalidateAfterRegister`) GE-3이 다시 오면
  *   등록 후 모드로 바뀐다. `justRegistered` — "공연이 등록되었습니다." 토스트(`424:11427`, V)를 띄울 상태
@@ -134,12 +134,21 @@ export function useEventDashboard(eventId: string) {
       timeline: scheduleTimelineOf({
         openedAt: d.openedAt,
         startAt: scope.event.startAt,
+        endAt: scope.event.endAt,
         displayStatus: d.displayStatus,
+        canceledAt: scope.event.canceledAt ?? null,
       }),
       /** "QR 체크인 열기 →" */
       qrHref: eventHref(eventId, 'qr'),
     };
-  }, [eventId, mode, scope.event.startAt, statsQuery.data]);
+  }, [
+    eventId,
+    mode,
+    scope.event.startAt,
+    scope.event.endAt,
+    scope.event.canceledAt,
+    statsQuery.data,
+  ]);
 
   // ─── 만든 직후 ───
   const createdNotice = searchParams.get('created') === '1';
@@ -167,7 +176,7 @@ export function useEventDashboard(eventId: string) {
     progress: items ? checklistProgress(items) : null,
     /** 서버 `canOpen`(모든 항목 + 준비중 + 시작 전) */
     canOpen: checklist?.canOpen ?? false,
-    /** 다 채운 순간(→ "등록 준비 완료" 모달, V) */
+    /** 다 채운 순간 — 지금 V는 쓰지 않는다(Q250, 팝업을 되살릴 때 쓴다) */
     justCompleted,
     acknowledgeCompleted: () => setJustCompleted(false),
     /** [등록하기]를 보일지(매니저 이상만) / 누를 수 있는지 */

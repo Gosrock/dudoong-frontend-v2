@@ -54,10 +54,10 @@ scenario(
   {
     kind: '정상',
     summary:
-      '주문 건수(승인 대기 2 · 승인 완료 2 · 승인 거절 3 · 환불 요청 3), 판매 장수 · 총액, 입장 1/3(분모 = 발급 수). PC는 우측 일정 패널(주간 줄 + 단계).',
+      '주문 건수(승인 대기 2 · 승인 완료 2 · 승인 거절 3 · 환불 요청 3), 도넛 가운데 총 판매 매수 · 범례 N장 · 총액, 입장 1/3(분모 = 발급 수, 오른쪽 정렬). PC는 우측 일정 패널 v2(오늘 · 단계 타임라인).',
     basis: [
       'plan P13a 완료 기준 V(주문·티켓·판매금액)',
-      'GUI 669:2787 · 712:1646',
+      'GUI 669:2787 · 712:1646 · 1905:3535 · 1868:2240(Design Sync #321 · #327 · #335)',
       'gui-screens §2 · §3 대시보드 PC 본문',
     ],
   },
@@ -70,26 +70,24 @@ scenario(
       await expect(page.getByTestId('stat-refused')).toContainText('3건');
       await expect(page.getByTestId('stat-refundRequested')).toContainText('3건');
     });
-    await step(
-      '티켓 판매 정보에 티켓별 범례 · 판매 장수 · 총액, 입장 현황에 1/3이 보인다',
-      async () => {
-        const sales = page.getByTestId('sales');
-        await expect(sales.getByRole('list', { name: '티켓별 판매' })).toBeVisible();
-        await expect(sales).toContainText('판매 장수');
-        await expect(sales).toContainText('총액');
-        await expect(page.getByTestId('entrance')).toContainText('1/3');
-        await expect(page.getByRole('link', { name: 'QR 체크인 열기' })).toHaveAttribute(
-          'href',
-          '/hosting/events/101/qr',
-        );
-      },
-    );
+    await step('티켓 판매 정보에 티켓별 범례(N장) · 총액, 입장 현황에 1/3이 보인다', async () => {
+      const sales = page.getByTestId('sales');
+      await expect(sales.getByRole('list', { name: '티켓별 판매' })).toBeVisible();
+      await expect(sales.getByRole('list', { name: '티켓별 판매' })).toContainText(/\d+장/);
+      await expect(sales).toContainText('총액');
+      await expect(page.getByTestId('entrance')).toContainText('1/3');
+      await expect(page.getByRole('link', { name: 'QR 체크인 열기' })).toHaveAttribute(
+        'href',
+        '/hosting/events/101/qr',
+      );
+    });
     if (isDesktop(testInfo)) {
       await step(
-        'PC 우측 일정 패널에 주간 줄과 단계가 있다(등록일 없음 → 등록 칸 없음, Q43)',
+        'PC 우측 일정 패널에 "오늘 · M월 D일"과 단계가 있다(등록일 없음 → 등록 칸 없음, Q43)',
         async () => {
           const panel = page.getByRole('complementary', { name: '공연 일정' });
-          await expect(panel.getByRole('list', { name: '이번 주' }).locator('li')).toHaveCount(7);
+          await expect(panel).toContainText(/오늘 · \d+월 \d+일/);
+          await expect(panel.getByText('진행 중')).toBeVisible();
           await expect(page.getByTestId('timeline-registered')).toHaveCount(0);
           await expect(page.getByTestId('timeline-promotion')).toHaveAttribute(
             'data-state',
@@ -894,3 +892,79 @@ scenario.manual('HG-13', '스테이징에서 크리티컬 패스 실제 왕복 1
   basis: ['plan P13a 완료 기준 L(크리티컬 패스 — 스테이징 agent-browser 왕복, D2 뒤)'],
   how: 'D2 스테이징 첫 배포 뒤: 관객 계정으로 두둥 티켓 주문 → 호스트 계정으로 예매자 관리에서 승인 → 관객 티켓탭에 발급 확인(agent-browser).',
 });
+
+scenario(
+  'HG-22',
+  '대시보드 통계 불러오는 중 · 실패 — 카드 수치 스켈레톤, 실패면 문구 + [다시 시도]',
+  {
+    kind: '에러',
+    summary:
+      'GD-1을 기다리는 동안 통계 카드 4개는 이름 · 아이콘 그대로 수치만 스켈레톤(48×22). 실패하면 카드 자리에 "통계를 불러오지 못했어요." + [다시 시도]. 판매 · 입장 카드는 GD-1 값이라 그리지 않는다(🤖 Figma 코멘트 2018256081).',
+    basis: [
+      'GUI 1887:2127 · 1901:34559 불러오는 중 · 1887:2382 · 1913:36842 실패(Design Sync #323 · #324 · #329 · #330)',
+      'patterns §9 InlineError',
+    ],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('GD-1이 오기 전 — 카드 이름과 수치 스켈레톤', async () => {
+      await page.route(/\/api\/v2\/events\/101\/dashboard(\?|$)/, () => {
+        // 응답하지 않는다(불러오는 중 그대로)
+      });
+      await page.goto('/hosting/events/101/dashboard');
+      await expect(page.getByTestId('stat-pendingApprove')).toContainText('승인 대기');
+      await expect(page.getByTestId('stat-pendingApprove-loading')).toBeVisible();
+      await expect(page.getByTestId('sales')).toHaveCount(0);
+    });
+    await step('실패하면 문구 + [다시 시도]', async () => {
+      await page.unroute(/\/api\/v2\/events\/101\/dashboard(\?|$)/);
+      await page.route(/\/api\/v2\/events\/101\/dashboard(\?|$)/, (r) =>
+        r.fulfill({ status: 500, json: envelope.error(500, 'GLOBAL_500_1') }),
+      );
+      await page.goto('/hosting/events/101/dashboard');
+      const alert = page.getByRole('alert').filter({ hasText: '통계를 불러오지 못했어요.' });
+      await expect(alert.getByRole('button', { name: '다시 시도' })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByTestId('event-cancel')).toBeVisible();
+    });
+  },
+);
+
+scenario(
+  'HG-23',
+  '티켓 판매 도넛 · 범례 규칙 — 8종이면 상위 5개 + 「기타 (3종)」, 판매 0은 흐리게',
+  {
+    kind: '정상',
+    summary:
+      '판매량 많은 순서로 색 1~5, 나머지는 회색 「기타 (n종)」로 묶는다. 7종 미만이면 판매 0장 티켓은 범례 맨 아래 흐리게.',
+    basis: ['GUI 1904:2952 티켓 판매 정보_색·범례 가이드(Design Sync #331)'],
+  },
+  async ({ page, step, testInfo }) => {
+    await setUp(page, testInfo);
+    await step('8종 공연 — 범례 6줄(상위 5 + 기타 3종)', async () => {
+      await page.route(/\/api\/v2\/events\/101\/dashboard(\?|$)/, async (r) => {
+        const res = await r.fetch();
+        const body = await res.json();
+        const counts = [32, 24, 18, 12, 8, 2, 1, 0];
+        body.data.tickets.items = counts.map((soldCount, i) => ({
+          ticketItemId: 900 + i,
+          name: `티켓 ${i + 1}`,
+          payType: 'DUDOONG',
+          soldCount,
+          supplyCount: 100,
+          pendingApproveCount: 0,
+        }));
+        body.data.tickets.totalSoldCount = 97;
+        await r.fulfill({ response: res, json: body });
+      });
+      await page.goto('/hosting/events/101/dashboard');
+      const legend = page.getByTestId('sales').getByRole('list', { name: '티켓별 판매' });
+      await expect(legend.locator('li')).toHaveCount(6);
+      await expect(legend.locator('li').first()).toContainText('티켓 1');
+      await expect(legend.locator('li').last()).toContainText('기타 (3종)');
+      await expect(legend.locator('li').last()).toContainText('3장');
+      await expect(page.getByTestId('sales')).toContainText('97');
+    });
+  },
+);

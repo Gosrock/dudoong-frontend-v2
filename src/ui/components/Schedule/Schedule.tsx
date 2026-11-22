@@ -1,110 +1,109 @@
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
-import type { ReactNode } from 'react';
 
-import { Icon } from '../../icons/Icon';
-import { Illustration } from '../../illustrations/Illustration';
 import { Txt } from '../../primitives/Txt';
 import { colors } from '../../theme/colors';
+import { Chip } from '../Chip/Chip';
 import * as s from './Schedule.css';
 
-export type WeekDay = {
-  /** "SUN"~"SAT" */
-  weekday: string;
-  day: number;
-  state: 'past' | 'today' | 'future';
-  /** 스크린리더 날짜(예: "10월 5일 수요일") */
-  label: string;
+/**
+ * 단계 상태 — `past` 지남(회색) · `current` 지금(보라 고리 + 회색 상자 + "진행 중") · `upcoming` 앞으로(빈 고리) ·
+ * `canceled` 취소된 공연의 마지막 단계(회색 점 + 회색 상자, 배지 없음)
+ */
+export type ScheduleStepState = 'past' | 'current' | 'upcoming' | 'canceled';
+
+export type ScheduleTimelineStep = {
+  key: string;
+  title: string;
+  /** 날짜 줄(예: "1월 2일 ~ 1월 14일", "1월 15일 18:00"). 없으면 null */
+  date: string | null;
+  state: ScheduleStepState;
+};
+
+const STATE_LABEL: Record<ScheduleStepState, string> = {
+  past: '지남',
+  current: '진행 중',
+  upcoming: '예정',
+  canceled: '취소',
 };
 
 /**
- * 주간 줄 — 디자인 시스템 `날짜`(`605:1875`). "26년 10월" + 일~토 7칸. 지난 날 회색 · 오늘 보라 원 · 앞날 검정 굵게.
- * 어느 주를 그릴지(오늘이 든 주)는 화면이 정한다(design-requests Q39 — 기본안).
+ * FIGMA-CUSTOM: 일정 패널(gui 1868:2240 "일정 패널_v2") 화면 로컬 컴포넌트가 DS `일정 패널`을 대신함 → 화면대로(R1). DS 후보(v2를 DS로)
+ * 대시보드 우측 일정 패널 — GUI `일정 패널_v2`(`1868:2240`, Design Sync #335 · 2026-11-21 — 옛 DS `일정 패널` 주간 줄 + 단계 카드를
+ * 대신한다). 머리 "공연 일정 / 오늘 · M월 D일" + 세로 타임라인(왼쪽 레일 20: 점 + 선, 오른쪽 글자). 단계 · 상태는 화면이 정한다.
  */
-export function WeekStrip({ month, days }: { month: string; days: readonly WeekDay[] }) {
+export function SchedulePanel({
+  today,
+  steps,
+  title = '공연 일정',
+}: {
+  /** 오늘(예: "1월 8일") — 머리 둘째 줄 "오늘 · …" */
+  today: string;
+  steps: readonly ScheduleTimelineStep[];
+  title?: string;
+}) {
   return (
-    <div className={s.week}>
-      <Txt as="h2" typography="labelLgEmphasized">
-        {month}
-      </Txt>
-      <ol className={s.days} aria-label="이번 주">
-        {days.map((d) => (
-          <li
-            key={d.label}
-            className={`${s.day} ${s.dayState[d.state]}`}
-            aria-current={d.state === 'today' ? 'date' : undefined}
-          >
-            <span aria-hidden>
-              <Txt typography="labelSm">{d.weekday}</Txt>
-            </span>
-            <Txt typography="labelMd" className={s.date}>
-              <span aria-hidden>{d.day}</span>
-              <VisuallyHidden>{d.label}</VisuallyHidden>
-            </Txt>
-          </li>
+    <div className={s.panel}>
+      <div className={s.head}>
+        <Txt as="h2" typography="headingSmEmphasized">
+          {title}
+        </Txt>
+        <Txt as="p" typography="bodySm" color={colors.textSecondaryLabel}>
+          오늘 · {today}
+        </Txt>
+      </div>
+      <ol className={s.timeline} aria-label={title}>
+        {steps.map((step, i) => (
+          <ScheduleStep key={step.key} step={step} last={i === steps.length - 1} />
         ))}
       </ol>
     </div>
   );
 }
 
-export type ScheduleStepState = 'past' | 'current' | 'upcoming';
-
-const STATE_LABEL: Record<ScheduleStepState, string> = {
-  past: '지난 단계',
-  current: '지금 단계',
-  upcoming: '다음 단계',
-};
-
-/**
- * 공연 단계 한 칸 — 디자인 시스템 `일정`(`605:1848` — `지난 일정` / `현재 일정` / `미래 일정` / `미래일정_공연완료`).
- * 날짜 줄이 없으면(`dates` 비어 있음) `미래일정_공연완료` 모양이 된다. 현재 단계에는 `img_예매완료` 90이 붙는다.
- */
-export function ScheduleStep({
-  state,
-  title,
-  dates = [],
-  'data-testid': testId,
-}: {
-  state: ScheduleStepState;
-  title: string;
-  /** 날짜 줄(현재 단계의 기간은 두 줄) */
-  dates?: readonly ReactNode[];
-  'data-testid'?: string;
-}) {
+function ScheduleStep({ step, last }: { step: ScheduleTimelineStep; last: boolean }) {
+  const boxed = step.state === 'current' || step.state === 'canceled';
+  const titleColor =
+    step.state === 'past'
+      ? colors.textTertiaryLabel
+      : step.state === 'upcoming'
+        ? colors.textSecondaryLabel
+        : colors.textPrimaryLabel;
   return (
     <li
-      className={`${s.step} ${s.stepVariant[state]}`}
-      data-state={state}
-      data-testid={testId}
-      aria-current={state === 'current' ? 'step' : undefined}
+      className={`${s.step} ${boxed ? s.stepBoxed : ''}`}
+      data-state={step.state}
+      data-testid={`timeline-${step.key}`}
+      aria-current={step.state === 'current' ? 'step' : undefined}
     >
-      <span className={`${s.mark} ${s.markVariant[state]}`} aria-hidden>
-        {state !== 'upcoming' && <Icon name="check" size={12} />}
+      <span className={s.rail} aria-hidden>
+        <span className={`${s.dot} ${s.dotState[step.state]}`} />
+        {!last && <span className={`${s.line} ${s.lineState[step.state]}`} />}
       </span>
-      <span className={s.stepText}>
-        <Txt typography="labelLgEmphasized">
-          {title}
-          <VisuallyHidden> — {STATE_LABEL[state]}</VisuallyHidden>
-        </Txt>
-        {dates.length > 0 && (
+      <div className={boxed ? s.box : s.content}>
+        {step.state === 'current' && (
           <span>
-            {dates.map((line, i) => (
-              <Txt
-                key={i}
-                as="span"
-                typography="labelMd"
-                color={state === 'current' ? undefined : colors.textSecondaryLabel}
-                style={{ display: 'block' }}
-              >
-                {line}
-              </Txt>
-            ))}
+            <Chip color="violet" theme="fill" shape="round">
+              진행 중
+            </Chip>
           </span>
         )}
-      </span>
-      {state === 'current' && (
-        <Illustration name="booking-complete" width={90} className={s.stepIllustration} />
-      )}
+        <span className={s.texts}>
+          <Txt typography="labelMdEmphasized" color={titleColor}>
+            {step.title}
+            {step.state !== 'current' && (
+              <VisuallyHidden> ({STATE_LABEL[step.state]})</VisuallyHidden>
+            )}
+          </Txt>
+          {step.date && (
+            <Txt
+              typography={boxed ? 'labelXs' : 'labelSm'}
+              color={boxed ? colors.textSecondaryLabel : colors.textTertiaryLabel}
+            >
+              {step.date}
+            </Txt>
+          )}
+        </span>
+      </div>
     </li>
   );
 }

@@ -1,32 +1,38 @@
 import { globalStyle, style } from '@vanilla-extract/css';
 
+import { cardHover } from '../../theme/card-hover.css';
 import { vars } from '../../theme/tokens.css';
 
 /**
- * 디자인 시스템 `입장 현황`(`652:1902` `type=데스크탑` — 모바일도 같은 변형). 배경 #F7F7F6 · 모서리 20 · 패딩 20 · 20 · 4.
- * 제목 `Heading/md2 - emphasized` → 숫자 `Heading/lg-emphasized` + 막대(높이 10, 바탕 Neutral 200 · 채움 `brand/primary`, 모서리 24)
- * 위아래 8 · 간격 8 → "QR 체크인 열기" `Label/lg-emphasized` `brand/primary` + `ic/forward` 16(위아래 16).
+ * 디자인 시스템 `입장 현황`(`652:1902`) — GUI 인스턴스(`712:1646` · `669:2787`, Design Sync #321 · #327 — 2026-11-21) 값:
+ * 배경 #F7F7F6 · 모서리 20 · 패딩 16 · 24 · 4. 제목 `Heading/md2 - emphasized` → 숫자 `Heading/lg-emphasized` **오른쪽 정렬**
+ * + 막대(높이 10, 바탕 Neutral 200 · 채움 `brand/primary`, 모서리 24) 위아래 8 · 간격 8 → "QR 체크인 열기" `Label/lg-emphasized`
+ * `brand/primary` + `ic/forward` 16(위아래 16). 호버는 #000000 5% 겹침(`cardHover` — `1887:1876` · `1880:33697`).
  */
-export const card = style({
-  display: 'flex',
-  flexDirection: 'column',
-  minWidth: 0,
-  // 위 · 좌우 20 — DS `606:1922`, 화면 `767:37454` · `727:17817` 모두 20(토큰에 없는 값 그대로 — 분류표 H23, M-5 2026-11-08)
-  padding: `20px 20px ${vars.space[1]}`,
-  boxSizing: 'border-box',
-  borderRadius: vars.radius[6],
-  background: vars.color.surface.container,
-});
+export const card = style([
+  cardHover,
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    minWidth: 0,
+    padding: `${vars.space[4]} ${vars.space[5]} ${vars.space[1]}`,
+    boxSizing: 'border-box',
+    borderRadius: vars.radius[6],
+    background: vars.color.surface.container,
+  },
+]);
 
 export const figure = style({
   display: 'flex',
   flexDirection: 'column',
+  alignItems: 'flex-end',
   gap: vars.space[2],
   padding: `${vars.space[2]} 0`,
 });
 
 export const track = style({
   position: 'relative',
+  alignSelf: 'stretch',
   height: 10,
   overflow: 'hidden',
   borderRadius: vars.radius[7],

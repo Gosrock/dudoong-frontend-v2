@@ -74,3 +74,13 @@ export const Four: Story = {
     </ul>
   ),
 };
+
+/** 불러오는 중 — 수치 자리 스켈레톤 48×22(GUI `1887:2127` · `1901:34559`) */
+export const Loading: Story = {
+  args: { loading: true, 'data-testid': 'stat' },
+  play: async ({ canvasElement }) => {
+    const c = within(canvasElement);
+    await expect(c.getByTestId('stat-loading')).toBeInTheDocument();
+    await expect(c.queryByText(/건$/)).toBeNull();
+  },
+};

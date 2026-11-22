@@ -59,9 +59,9 @@ async function applyEventCanceled(qc: QueryClient, eventId: string, result: Even
  * 공연 취소(E-11, plan 이슈 #136 §7) — 공연 대시보드(등록 후) 아래 "공연 취소" 자리. 값 · 상태 · 동작만 돌려준다(오버레이 · 토스트는 V).
  *
  * - [공연 취소]: 마스터 + OPEN + 시작 전 + 아직 취소 안 됨(`canCancelEvent`). 사유는 간단한 폼(`useState` + 순수 함수, patterns §23)
- * - 결과(`result`): 이번 호출의 거절 · 취소 수와 남은 주문. `remaining > 0 || failed > 0`이면 [남은 주문 다시 처리](같은 API — 멱등)
+ * - 결과(`result`): 이번 호출의 거절 · 취소 수와 남은 주문. `remaining > 0 || failed > 0`이면 [주문 처리하기](같은 API — 멱등)
  * - 취소된 공연의 남은 주문(Api 2.5.9 GE-3 `cancelRemainingCount` · `cancelRetryable`, `cancelRemainingState`): 다시 부르면 통과하고
- *   남은 주문이 있을 때만 [남은 주문 다시 처리], 다시 불러도 안 되면(`false`) 버튼 대신 고객센터 안내(`contact`), 0이면 숨김.
+ *   남은 주문이 있을 때만 [주문 처리하기], 다시 불러도 안 되면(`false`) 버튼 대신 고객센터 안내(`contact`), 0이면 숨김.
  *   서버 값이 없으면(운영 2.5.3) 예전처럼 마스터에게 늘 보이고, 이 화면에서 처리한 결과가 "남은 주문 없음"이면 숨긴다
  * - E-11 응답 뒤에는 GE-3을 다시 읽는다(`applyEventCanceled`의 `['events', id]` 접두 무효화) — 처리 중에 연 값은 중간 값이라
  * - 에러(patterns §4-5 · §11): 403(마스터 아님) → GE-3 다시 읽기 + 안내, `Event_400_28`·`_29` → GE-3 다시 읽기 + 안내,
@@ -154,7 +154,7 @@ export function useEventCancel(eventId: string) {
 
   /**
    * [공연 취소] — 사유를 검사하고 보낸다. 취소했으면 `'canceled'`, 응답을 받지 못했으면 `'uncertain'`(둘 다 오버레이를 닫는다 —
-   * [남은 주문 다시 처리]는 대시보드에 있다), 그 밖의 실패는 `false`(열린 채)
+   * [주문 처리하기]는 대시보드에 있다), 그 밖의 실패는 `false`(열린 채)
    */
   const cancel = useCallback(async (): Promise<'canceled' | 'uncertain' | false> => {
     if (!canCancelEvent(event, role)) return false;
@@ -169,7 +169,7 @@ export function useEventCancel(eventId: string) {
   }, [event, reason, role, run]);
 
   /**
-   * [남은 주문 다시 처리] — 이미 취소된 공연이면 서버가 사유를 보지 않는다(멱등). 처음 사유를 그대로 보낸다. 응답을 못 받아
+   * [주문 처리하기] — 이미 취소된 공연이면 서버가 사유를 보지 않는다(멱등). 처음 사유를 그대로 보낸다. 응답을 못 받아
    * 취소됐는지 모를 때는 입력해 둔 사유를 보낸다(성공하면 칸을 비운다)
    */
   const retry = useCallback(async () => {
@@ -196,10 +196,14 @@ export function useEventCancel(eventId: string) {
     /** [공연 취소]를 보일지 */
     canCancel: canCancelEvent(event, role),
     /**
-     * [남은 주문 다시 처리]를 보일지 — 마스터 + 서버가 "다시 처리 가능 · 남은 주문 > 0"(2.5.9). 서버 값이 없으면(2.5.3) (취소된 공연
+     * [주문 처리하기]를 보일지 — 마스터 + 서버가 "다시 처리 가능 · 남은 주문 > 0"(2.5.9). 서버 값이 없으면(2.5.3) (취소된 공연
      * 또는 응답을 못 받음) + 마지막 결과가 "남은 것 없음"이 아님
      */
     canRetry,
+    /**
+     * [주문 처리하기] 옆 남은 주문 수 — GE-3 `cancelRemainingCount`(2.5.9), 없으면 이 화면의 마지막 결과. 모르면 null(수 없이 안내)
+     */
+    retryCount: remaining.kind === 'retry' ? remaining.count : (summary?.leftCount ?? null),
     /** 다시 처리할 수 없는 남은 주문 수(마스터 — 버튼 대신 고객센터 안내). 없으면 null */
     contactCount: isMaster && remaining.kind === 'contact' ? remaining.count : null,
     reason,

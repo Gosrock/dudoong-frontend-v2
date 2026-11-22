@@ -5,23 +5,22 @@ import {
   HIDE_EVENT_HEADER_ATTR,
 } from '@/features/hosting/shared/ui/event-scope-attrs';
 import { fixedBar } from '@/features/shared/shell/shell.css';
-import { sidebarTint } from '@/ui/components/SidebarMenu/SidebarMenu';
 import { TOP_BAR_HEIGHT } from '@/ui/theme/bars';
 import { media } from '@/ui/theme/breakpoints';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
 
 /**
- * 공연 사이드바(GUI Ready `727:23210`·`748:34006`·`767:39645` 안 `Frame 1707480221` 268×966) — 검정 면(`background.dark`),
- * 위 16 · 좌우 16, 항목 사이 12. 맨 아래 "공연 페이지 보기"는 바닥에 붙는다. PC에서만 보인다(1024~).
+ * 공연 사이드바(GUI `712:1646` 안 `Sidebar` 268×966 — Design Sync #327 · #335, 2026-11-21) — 검정 면(`background.dark`),
+ * 위 24 · 좌우 16, 묶음 사이 32(공연 정보 → 메뉴 → 공연 페이지 보기). 맨 아래 "공연 페이지 보기"는 바닥에 붙는다. PC에서만 보인다(1024~).
  */
 export const sidebar = style({
   display: 'flex',
   flexDirection: 'column',
-  gap: vars.space[3],
+  gap: vars.space[6],
   height: '100%',
   minHeight: '100%',
-  padding: `${vars.space[4]} ${vars.space[4]} 0`,
+  padding: `${vars.space[5]} ${vars.space[4]} 0`,
   boxSizing: 'border-box',
   background: vars.color.background.dark,
   color: vars.color.text.inverse,
@@ -47,12 +46,22 @@ export const desktopSidebar = style({
   },
 });
 
-/** "‹ 내 공연"(GUI `727:23216` 44h, 위아래 12, 아이콘 20 + 간격 4, `Label/lg` `text/tertiary-label`) */
+/**
+ * 공연 정보(GUI `사이드바_공연 정보` `1861:2065` 236×72) — 좌우 12, 간격 8: "← 내 공연"(`ic_backward` 16 + 간격 4, `Label/md`
+ * `text/tertiary-label`) → 공연명 `Heading/md2 - emphasized` 흰 글자 + 간격 4 + "호스트 · D-n" `Body/md` 회색
+ */
+export const info = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[2],
+  padding: `0 ${vars.space[3]}`,
+});
+
 export const back = style({
   display: 'flex',
   alignItems: 'center',
+  alignSelf: 'flex-start',
   gap: vars.space[1],
-  padding: `${vars.space[3]} 0`,
   color: vars.color.text.tertiaryLabel,
   textDecoration: 'none',
   borderRadius: vars.radius[2],
@@ -60,27 +69,7 @@ export const back = style({
     '&:hover': { color: vars.color.text.inverse },
   },
 });
-globalStyle(`${back} > svg`, { width: 20, height: 20, flexShrink: 0 });
-
-/** 공연 카드(GUI `Card list` `727:23220` 236×92 — 패딩 12, 모서리 16, 배경 #F7F7F6 10%) */
-export const card = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.space[3],
-  padding: vars.space[3],
-  borderRadius: vars.radius[5],
-  background: sidebarTint,
-});
-
-/** 포스터 48×68 모서리 8(`example poster` mobile을 줄인 것 — `img_포스터 준비중` 48×68 r8) */
-export const poster = style({
-  flexShrink: 0,
-  width: 48,
-  height: 68,
-  borderRadius: vars.radius[2],
-  objectFit: 'cover',
-  background: vars.color.surface.imageBg,
-});
+globalStyle(`${back} > svg`, { width: 16, height: 16, flexShrink: 0 });
 
 export const menu = style([
   sprinkles({ listStyle: 'none' }),
@@ -93,17 +82,17 @@ export const menu = style([
   },
 ]);
 
-/** 카드 → 메뉴 간격 16(GUI `Frame 1707480324` gap 16) */
+/** 메뉴 묶음(GUI `Frame 1707480324`) */
 export const cardAndMenu = style({ display: 'flex', flexDirection: 'column', gap: vars.space[4] });
 
-/** "공연 페이지 보기"(GUI `748:34032` 268×67 — 위아래 24 · 좌우 28, 아이콘 16 + 간격 12, `Label/lg` `text/tertiary-label`) */
+/** "공연 페이지 보기"(GUI `712:1646` 268×67 — 패딩 24, 아이콘 16 + 간격 12, `Label/lg` `text/tertiary-label`) */
 export const publicLink = style({
   display: 'flex',
   alignItems: 'center',
   gap: vars.space[3],
   marginTop: 'auto',
-  // 사이드바 좌우 16 + 12 = Figma 28
-  padding: `${vars.space[5]} ${vars.space[3]}`,
+  // 사이드바 좌우 16 + 8 = Figma 24(2026-11-21 — 전에는 28)
+  padding: `${vars.space[5]} ${vars.space[2]}`,
   color: vars.color.text.tertiaryLabel,
   textDecoration: 'none',
   selectors: {
@@ -126,18 +115,6 @@ globalStyle(`[${EVENT_SCOPE_ATTR}][${HIDE_EVENT_HEADER_ATTR}] .${mobileHeader}`,
 
 /** 드로어 안 사이드바 — 드로어 머리 줄 아래를 채운다 */
 export const drawerSidebar = style({ minHeight: '100%', borderRadius: vars.radius[4] });
-
-/** 공연 전환 시트의 줄 */
-export const switchRow = style({
-  display: 'flex',
-  alignItems: 'center',
-  gap: vars.space[3],
-  width: '100%',
-  padding: `${vars.space[3]} 0`,
-  color: vars.color.text.primaryLabel,
-  textDecoration: 'none',
-  borderRadius: vars.radius[2],
-});
 
 /** 읽기 전용 안내 줄(디자인 없음 — 본문 위, 회색 상자) */
 export const readOnly = style({

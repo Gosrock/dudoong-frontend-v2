@@ -6,7 +6,7 @@ describe('eventChipOf', () => {
   it('취소된 공연은 표시 상태가 UPCOMING이어도 D-n 대신 "취소됨"(이슈 #274 §1-1)', () => {
     expect(
       eventChipOf({ displayStatus: 'UPCOMING', dDay: 3, canceledAt: '2026.11.15 12:00' }),
-    ).toEqual({ label: '취소됨', color: 'grey', theme: 'fill' });
+    ).toEqual({ label: '취소됨', color: 'grey', theme: 'weak' });
   });
 
   it('취소 안 된 예정 공연은 D-n', () => {

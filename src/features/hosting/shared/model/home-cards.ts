@@ -33,7 +33,8 @@ export const roleChipOf = (role: HostRole): ChipLook | null => ROLE_CHIP[role];
 export function eventChipOf(
   event: Pick<MyEvent, 'displayStatus' | 'dDay' | 'canceledAt'>,
 ): ChipLook | null {
-  if (event.canceledAt) return { label: EVENT_CANCELED_LABEL, color: 'grey', theme: 'fill' };
+  // GUI 취소된 공연 포스터 칩(`1912:3661` · `1912:4466` — #EEEEED · #8E8D89 = grey weak, Design Sync #332 · Q124 닫음)
+  if (event.canceledAt) return { label: EVENT_CANCELED_LABEL, color: 'grey', theme: 'weak' };
   switch (event.displayStatus) {
     case 'PREPARING':
       return { label: '준비중', color: 'green', theme: 'weak' };

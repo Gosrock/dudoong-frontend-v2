@@ -102,3 +102,27 @@ export const Card: Story = {
     await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
   },
 };
+
+/** `size="larger"` + 고른 항목 ✓ — 대시보드 모바일 제목 ▾ 화면 메뉴(GUI `1880:34018`, DS `dropdown item` `size=larger`) */
+export const Larger: Story = {
+  args: {
+    size: 'larger',
+    align: 'start',
+    trigger: (
+      <button type="button" aria-label="공연 화면 바꾸기">
+        대시보드 ▾
+      </button>
+    ),
+    items: [
+      { label: '대시보드', selected: true, onSelect: fn() },
+      { label: '기본 정보', onSelect: fn() },
+      { label: '상세 정보', onSelect: fn() },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole('button', { name: '공연 화면 바꾸기' }));
+    const current = await screen.findByRole('menuitem', { name: '대시보드' });
+    await expect(current).toHaveAttribute('aria-current', 'page');
+    await userEvent.keyboard('{Escape}');
+  },
+};
