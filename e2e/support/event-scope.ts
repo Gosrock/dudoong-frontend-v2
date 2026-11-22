@@ -42,7 +42,8 @@ export async function routeEventSdks(page: Page) {
         Geocoder: class { addressSearch(a, cb) { cb([{ x: '${FAKE_COORDS.longitude}', y: '${FAKE_COORDS.latitude}' }], 'OK'); } } } } };`,
     }),
   );
-  await page.route('https://t1.daumcdn.net/**', (route) =>
+  // 우편번호 스크립트(`t1.kakaocdn.net` — 옛 `t1.daumcdn.net`도 같은 경로). 카카오 공유 SDK(`/kakao_js_sdk/`)는 건드리지 않는다
+  await page.route('**/mapjsapi/bundle/postcode/**', (route) =>
     route.fulfill({
       contentType: 'application/javascript',
       body: `window.daum = { Postcode: class { constructor(o) { this.o = o; }

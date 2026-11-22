@@ -338,6 +338,22 @@ scenario(
         expect(box?.x).toBe(240);
         expect(box?.width).toBe(960);
       });
+      await step(
+        'PC 하단 바 — 화면 폭 바 · [저장하기] Large 342×56 오른쪽 끝 1200(1584:19829, #311) · 연락처 10줄 116 + 358 + ✕(1586:15515, #312)',
+        async () => {
+          await page.goto(SETTINGS);
+          await page.setViewportSize({ width: 1440, height: 1024 });
+          const save = page.getByRole('button', { name: '저장하기' });
+          const s = await save.boundingBox();
+          expect([s?.x, s?.width, s?.height]).toEqual([858, 342, 56]);
+          const add = page.getByRole('button', { name: '문의처 추가' });
+          while (await add.isVisible()) await add.click();
+          await expect(page.getByTestId('contact-row')).toHaveCount(10);
+          const type = page.getByRole('combobox', { name: '연락처 유형 1', exact: true });
+          expect((await type.boundingBox())?.width).toBe(116);
+          await type.scrollIntoViewIfNeeded();
+        },
+      );
     }
   },
 );

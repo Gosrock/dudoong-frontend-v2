@@ -60,4 +60,17 @@ export const saveButton = style({
   '@media': {
     [media.desktop]: { flex: '0 0 auto', width: 229, height: 46, borderRadius: vars.radius[3] },
   },
+  selectors: {
+    // PC도 Large 342×56(호스트 홈 설정 `1584:19831`, Design Sync #311) — `large`
+    '&[data-large]': {
+      '@media': { [media.desktop]: { width: 342, height: 56, borderRadius: vars.radius[4] } },
+    },
+  },
+});
+
+/** 모바일에서만 · PC에서만 보이는 글자(같은 DOM — 저장 버튼 문구가 폭마다 다를 때) */
+export const mobileOnly = style({ '@media': { [media.desktop]: { display: 'none' } } });
+export const desktopOnly = style({
+  display: 'none',
+  '@media': { [media.desktop]: { display: 'inline' } },
 });

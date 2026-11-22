@@ -214,13 +214,13 @@ scenario(
   async ({ page, step, testInfo }) => {
     await setUp(page, testInfo);
     await step(
-      '기본 정보를 열면 [미리보기]·[저장하기]가 비활성, 지도 칸은 빈 회색 칸(GUI 748:33351)',
+      '기본 정보를 열면 [미리보기]·[저장하기]가 비활성, 지도 칸은 돋보기 + "지도를 검색하면 지도가 보여요"(GUI 1588:53077, #313)',
       async () => {
         await page.goto('/hosting/events/140/info');
         await expect(page.getByRole('button', { name: '미리보기' })).toBeDisabled();
         await expect(page.getByRole('button', { name: '저장하기' })).toBeDisabled();
         const map = page.getByTestId('place-map');
-        await expect(map).toHaveText('');
+        await expect(map).toHaveText('지도를 검색하면 지도가 보여요');
         expect((await map.boundingBox())?.height).toBe(147);
       },
     );
@@ -229,6 +229,21 @@ scenario(
       await expect(page.getByRole('img', { name: '포스터 미리보기' })).toBeVisible();
       await expect(page.getByRole('button', { name: '이미지 수정' })).toBeVisible();
     });
+    await step(
+      '주소 칸을 누르면 "주소 검색" 창 — 우편번호 서비스를 담는 칸(PC 모달 1592:16734 · 모바일 시트 1592:16559, #314 · #315)',
+      async () => {
+        await page.getByRole('button', { name: '주소 검색 열기' }).click();
+        const dialog = page.getByRole('dialog', { name: '주소 검색' });
+        await expect(dialog.getByTestId('postcode')).toBeVisible();
+        await expect(dialog.getByRole('button', { name: '닫기' })).toBeVisible();
+        // 여는 애니메이션(크기 0.97 → 1)이 끝난 값으로 잰다
+        await expect
+          .poll(async () => (await dialog.getByTestId('postcode').boundingBox())?.height)
+          .toBe(testInfo.project.name === 'desktop' ? 494 - 2 : 650 - 2);
+        await dialog.getByRole('button', { name: '닫기' }).click();
+        await expect(dialog).toBeHidden();
+      },
+    );
     await step('주소를 고르면 지도 칸이 그 좌표로 그려진다', async () => {
       await pickFakeAddress(page);
       await expect(page.getByRole('textbox', { name: '주소 검색' })).toHaveValue(
@@ -245,6 +260,24 @@ scenario(
       await expect(preview).toContainText('롤링홀 · 서울 마포구 어울마당로 35');
       await page.keyboard.press('Escape');
     });
+    await step(
+      '태그는 서버 분류별 묶음 — 공연구분 · 장르 · 장소 · 팀(1590:805 · 1590:832, #316 · #317)',
+      async () => {
+        const groups = page.getByTestId('tag-groups');
+        await groups.scrollIntoViewIfNeeded();
+        for (const name of ['공연구분', '장르', '장소', '팀']) {
+          await expect(groups.getByRole('group', { name, exact: true })).toBeVisible();
+        }
+        await groups
+          .getByRole('group', { name: '장르' })
+          .getByRole('button', { name: '락밴드' })
+          .click();
+        await expect(groups.getByRole('button', { name: '락밴드' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        );
+      },
+    );
     await step('[저장하기]를 누르면 "저장했어요" 토스트', async () => {
       await page.getByRole('button', { name: '저장하기' }).click();
       await expect(page.getByText('저장했어요')).toBeVisible();
@@ -254,13 +287,13 @@ scenario(
 
 scenario(
   'HE-5',
-  '등록된 공연의 기본 정보를 저장하면 안내 팝업, 티켓 여부는 잠겨 있다',
+  '등록된 공연의 기본 정보는 저장 전에 확인, 티켓 여부는 잠겨 있다',
   {
     kind: '정상',
     summary:
-      '서버는 예매자에게 알리지 않는다 — 저장 뒤 DS 팝업으로 알린다. 등록 후 티켓 여부 라디오는 비활성 + 안내.',
+      '서버는 예매자에게 알리지 않는다 — 저장 전 확인 창(GUI 1595:2407, Design Sync #319)으로 알리고, 저장하면 토스트. 등록 후 티켓 여부 라디오는 비활성 + 안내.',
     basis: [
-      'plan P11 완료 기준 V "등록된 공연을 저장하면 안내 팝업"',
+      'plan P11 완료 기준 V "등록된 공연을 저장하면 안내 팝업" → GUI 1595:2407 저장 전 확인(#319)',
       'api-contract §6 Event_400_18',
     ],
   },
@@ -271,12 +304,21 @@ scenario(
       await expect(page.getByRole('radio', { name: '티켓 없음' })).toBeDisabled();
       await expect(page.getByTestId('has-ticket-locked')).toBeVisible();
     });
-    await step('이름을 바꿔 저장하면 "이미 예매한 관객에게는…" 안내 팝업', async () => {
-      await page.getByLabel('공연 이름').fill('고스락 제37회 정기공연 (앵콜)');
-      await page.getByRole('button', { name: '저장하기' }).click();
-      await expect(page.getByRole('alertdialog', { name: '저장했어요' })).toContainText(
-        '이미 예매한 관객에게는 바뀐 내용이 따로 알려지지 않아요',
-      );
+    await step(
+      '이름을 바꿔 [저장하기]를 누르면 저장 전 확인 "변경 내용을 저장할까요?"(GUI 1595:2407, #319)',
+      async () => {
+        await page.getByLabel('공연 이름').fill('고스락 제37회 정기공연 (앵콜)');
+        await page.getByRole('button', { name: '저장하기' }).click();
+        await expect(
+          page.getByRole('alertdialog', { name: '변경 내용을 저장할까요?' }),
+        ).toContainText('이미 예매한 관객에게는 바뀐 내용이 따로 알려지지 않아요');
+      },
+    );
+    await step('확인 창의 [저장하기]로 저장하면 창이 닫히고 "저장했어요" 토스트', async () => {
+      const confirm = page.getByRole('alertdialog', { name: '변경 내용을 저장할까요?' });
+      await confirm.getByRole('button', { name: '저장하기' }).click();
+      await expect(confirm).toBeHidden();
+      await expect(page.getByText('저장했어요')).toBeVisible();
     });
   },
 );
@@ -559,7 +601,8 @@ scenario(
     });
     await step('주소를 새로 고른 공연(140) — 좌표를 못 찾아도 안내는 지도 칸 한 곳', async () => {
       await page.goto('/hosting/events/140/info');
-      await expect(page.getByTestId('place-map')).toHaveText('');
+      // 고르기 전은 지도 검색 전 안내(GUI 1588:53077, #313) — SDK 실패 안내가 아니다
+      await expect(page.getByTestId('place-map')).toHaveText('지도를 검색하면 지도가 보여요');
       await pickFakeAddress(page);
       const map = page.getByTestId('place-map');
       await expect(map.getByRole('status')).toHaveText('지도 서비스를 불러오지 못했어요.');

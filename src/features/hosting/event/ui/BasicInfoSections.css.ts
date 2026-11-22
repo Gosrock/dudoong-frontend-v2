@@ -124,13 +124,14 @@ export const removeButton = style({
   cursor: 'pointer',
 });
 
-/** 태그 — 모바일 4열(GUI 78 고정 → 칸 나눔), PC 7열(GUI `748:34645` 600 안 7칸) */
-export const tags = style({
-  selectors: {
-    '&&': {
-      '@media': { [media.desktop]: { gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' } },
-    },
-  },
+/** 태그 칩 줄 — 글자 폭대로 줄바꿈, 칸 · 줄 사이 10(GUI `1589:832` · `1589:976` itemSpacing 10 — 토큰에 없는 값 그대로) */
+export const tags = style({ selectors: { '&&': { gap: 10 } } });
+
+/** 모바일에서만 · PC에서만 보이는 글자(같은 DOM) */
+export const mobileOnly = style({ '@media': { [media.desktop]: { display: 'none' } } });
+export const desktopOnly = style({
+  display: 'none',
+  '@media': { [media.desktop]: { display: 'inline' } },
 });
 
 export const note = style({ margin: 0 });
