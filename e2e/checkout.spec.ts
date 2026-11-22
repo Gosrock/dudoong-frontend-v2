@@ -131,7 +131,10 @@ test.describe('체크아웃 → 주문 완료', () => {
       .getByRole('listitem')
       .getByRole('button', { name: /일반 예매/ })
       .click();
+    // 시트의 [티켓 구매하기]는 고른 티켓을 확정하며 시트를 닫는다(GUI `759:21918` → `759:22015`) — 그다음 하단 버튼이 체크아웃으로(#347)
     await sheet.getByRole('button', { name: '티켓 구매하기' }).click();
+    await expect(sheet).toBeHidden();
+    await page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true').click();
     await expect(page).toHaveURL(/\/events\/101\/checkout\?ticketItemId=501&quantity=1/);
     await expect(page.getByRole('button', { name: '결제하기' })).toBeVisible();
     // 숨은 화면(Activity) 안의 것까지 — getByRole은 숨은 요소를 세지 않아 속성으로 센다

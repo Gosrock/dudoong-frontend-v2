@@ -51,6 +51,30 @@ export const success = style([
   },
 ]);
 
+/**
+ * 경고 토스트(GUI 공연 상세 "다른 티켓 선택" `759:22289`): 연한 빨강 `status/warning-subtle` #feedec · 빨강 `status/warning` #e84230 ·
+ * 제목 `Heading/sm - emphasized` 16/700 · 설명 `Label/sm` 12/500 · 사이 8 · 안쪽 16 · 모서리 16 · 테두리 없음 · 그림자 drop · 왼쪽 정렬.
+ * `toast` 다음에 둬야 이긴다
+ */
+export const danger = style([
+  typography.headingSmEmphasized,
+  {
+    justifyContent: 'flex-start',
+    borderRadius: vars.radius[5],
+    border: 'none',
+    background: vars.color.status.warningSubtle,
+    color: vars.color.status.warning,
+    textAlign: 'left',
+    // 같은 무게의 `toast`(Body/lg)가 뒤에 정의돼 글자 무게 · 줄 높이를 덮는다 — 제목 값을 직접 둔다
+    fontWeight: 700,
+    lineHeight: '130%',
+    letterSpacing: '-0.04em',
+  },
+]);
+
+/** 토스트 둘째 줄(`description`) — `Label/sm` */
+export const description = style([typography.labelSm, { width: '100%', marginTop: vars.space[2] }]);
+
 /** sonner 600 이하 규칙(`[data-sonner-toaster] [data-sonner-toast]` — 폭 꽉 채움)보다 구체적이게 — 성공 토스트는 글자 폭(241, `908:21601`) */
 globalStyle(`[data-sonner-toaster] [data-sonner-toast].${success}`, {
   width: 'fit-content',
