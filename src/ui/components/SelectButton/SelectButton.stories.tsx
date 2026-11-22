@@ -62,3 +62,24 @@ export const Keyboard: Story = {
     await userEvent.keyboard('{/ArrowRight}');
   },
 };
+
+/**
+ * 읽기 전용 — 주문상세 옵션 답(GUI `1175:19046`: 고른 것 Default `1175:19192` · 나머지 disabled `1175:19193`, #348 B67).
+ * 눌러도 값이 바뀌지 않고 `onValueChange`를 부르지 않는다
+ */
+export const ReadOnly: Story = {
+  args: { value: 'yes', readOnly: true, 'aria-label': '뒤풀이 참석 답' },
+  play: async ({ canvasElement, args }) => {
+    const c = within(canvasElement);
+    const group = c.getByRole('radiogroup', { name: '뒤풀이 참석 답' });
+    await expect(group).toHaveAttribute('aria-readonly', 'true');
+    const yes = c.getByRole('radio', { name: '예' });
+    const no = c.getByRole('radio', { name: '아니오' });
+    await expect(yes).toHaveAttribute('aria-checked', 'true');
+    await expect(no).toBeDisabled();
+    await userEvent.click(yes);
+    await expect(args.onValueChange).not.toHaveBeenCalled();
+    // 고른 버튼도 Default 모양(보라 테두리가 아니다)
+    await expect(getComputedStyle(yes).borderColor).not.toBe('rgb(99, 62, 231)');
+  },
+};
