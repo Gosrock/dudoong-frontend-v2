@@ -56,8 +56,10 @@ const DRAWER_ITEMS = [
   { key: 'archive', label: '지난 관람 아카이빙', icon: 'archiving' },
 ] as const satisfies readonly { key: ShellLinkKey; label: string; icon: IconName }[];
 
-/** GUI 섹션 이름 "호스팅 센터"(`1047:31947`) — Ready 화면이 이긴다(Q131 닫음. 코드 다른 곳의 "공연 준비"는 그대로) */
-const DRAWER_HOSTING_LABEL = '호스팅 센터';
+/** GUI 섹션 이름 "공연 준비"(`1047:31947` — 2026-11-22 "호스팅 센터"에서 바뀜, Design Sync #369 · #370) */
+const DRAWER_HOSTING_LABEL = '공연 준비';
+/** 드로어 호스트 줄은 최대 4개(Design Sync #370 — GUI `1989:37165` 네 칸). 나머지는 "공연 준비 ↗"(공연준비 홈 호스트 탭)에서 본다 */
+const DRAWER_HOST_MAX = 4;
 /** GUI 빈 호스트 칸 글자(`1175:15424`, 마침표 없음). PC 아바타 메뉴는 `SHELL_HOSTS_EMPTY_TEXT` 그대로 */
 const DRAWER_HOSTS_EMPTY = '아직 두둥에서 호스트가 없어요';
 /** 새 호스트 · 새 공연 — DS `ic_add host`(`805:1168`) · `ic_add concert`(`805:1183`) */
@@ -68,10 +70,11 @@ const DRAWER_CREATE_ICON: Partial<Record<ShellLinkKey, ReactNode>> = {
 
 /**
  * 드로어 본문 — GUI 햄버거 `1047:19428`(로그인) · `1174:15071`(미로그인), Ready 2026-11-07.
- * 프로필(또는 [로그인 ›]) / 주문내역 · 관심 호스트 · 지난 관람 아카이빙 / 공연 둘러보기 ↗ / 호스팅 센터 ↗ + 호스트 줄(없으면 회색 칸)
+ * 프로필(또는 [로그인 ›]) / 주문내역 · 관심 호스트 · 지난 관람 아카이빙 / 공연 둘러보기 ↗ / 공연 준비 ↗ + 호스트 줄(최대 4, 없으면 회색 칸)
  * + 새 호스트 · 새 공연 만들기 / 공지사항 · 로그아웃.
  * 그리지 않는 것: "Buy me a coffee" 배너(`1175:15449` — 후원 링크 주소가 없다, Q181) · AD 칸(Q4 · Q131 — 광고 대기),
  * 미로그인 프레임의 로그아웃(익명에는 로그아웃이 없다, Q182). "공연 준비" 옆 말풍선은 GUI에서 빠졌다(Q184).
+ * 메뉴 줄 · 만들기 줄 글자는 GUI 글자 스타일 16 · 700 · 140%(`labelLgEmphasized`, 2026-11-22 판), 공지사항 · 로그아웃은 16 · 500.
  */
 export function ShellDrawerContent({
   onNavigateSame,
@@ -139,9 +142,7 @@ export function ShellDrawerContent({
               shellLink(item.key, loggedIn),
               <>
                 <Icon name={item.icon} />
-                <Txt typography="labelLg" className={s.itemLabel}>
-                  {item.label}
-                </Txt>
+                <Txt typography="labelLgEmphasized">{item.label}</Txt>
               </>,
             )}
           </li>
@@ -159,9 +160,7 @@ export function ShellDrawerContent({
             l,
             <>
               {DRAWER_CREATE_ICON[l.key]}
-              <Txt typography="labelLg" className={s.itemLabel}>
-                {l.label}
-              </Txt>
+              <Txt typography="labelLgEmphasized">{l.label}</Txt>
             </>,
           );
         })}
@@ -215,8 +214,9 @@ function ShortcutLabel({ label }: { label: string }) {
 }
 
 /**
- * 소속 호스트 아바타 줄(가로 스크롤, GUI `1047:31991` — 60 아바타 + 이름 2줄, 간격 16). 0개면 회색 칸 안내(`1175:15425`),
- * 10개 넘으면 "N개 더 보기"
+ * 소속 호스트 아바타 줄(GUI `1989:37165` — 칸 74 · 60 아바타 + 이름 2줄, 간격 16, 최대 4개 #370). 0개면 회색 칸 안내(`1175:15425`).
+ * 4개 넘을 때 "더 보기" 칸은 GUI에 없어 두지 않는다 — 🤖 Claude 판단(2026-11-22): "공연 준비 ↗"가 호스트 목록 입구.
+ * 되돌리려면 `hostRow.more` 칸을 다시 그린다
  */
 function HostRow({
   state,
@@ -241,7 +241,7 @@ function HostRow({
   }
   return (
     <ul className={s.hostRow} aria-label="내 호스트">
-      {hostRow.hosts.map((h) => (
+      {hostRow.hosts.slice(0, DRAWER_HOST_MAX).map((h) => (
         <li key={h.hostId}>
           <DrawerLink link={{ href: h.href }} className={s.host} onSame={onSame}>
             <Avatar size={60} src={h.profileImageUrl} />
@@ -251,18 +251,6 @@ function HostRow({
           </DrawerLink>
         </li>
       ))}
-      {hostRow.more && (
-        <li>
-          <DrawerLink link={{ href: hostRow.more.href }} className={s.host} onSame={onSame}>
-            <span className={s.moreCircle}>
-              <Icon name="more" />
-            </span>
-            <Txt typography="labelSm" lines={2} className={s.hostName}>
-              {hostRow.more.count}개 더 보기
-            </Txt>
-          </DrawerLink>
-        </li>
-      )}
     </ul>
   );
 }

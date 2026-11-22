@@ -19,15 +19,15 @@ const EVENT = '/events/101';
 
 scenario(
   'EVT-1',
-  '공연 상세가 모바일은 한 열 + 하단 고정 바, PC(1440)는 두 열 + 오른쪽 카드로 그려진다',
+  '공연 상세가 모바일은 한 열 + 하단 고정 바, PC(1440)는 8열 + 4열 예매 패널로 그려진다',
   {
     kind: '정상',
     summary:
-      '모바일(GUI `759:12772`): 포스터(머리 아래 고정) 위로 흰 판 — 제목 · 해시태그 · 일시/장소/호스트 · 티켓 카드(누르면 고름, GP-5) · 섹션 탭(스크롤하면 머리 아래 붙음, `1948:25129`). 모바일 하단 [문의][티켓 구매하기]는 PC에서 CSS로 숨고, PC는 와이어 두 열 — 주간 달력 + 티켓 옵션 + [공유][티켓 구매하기].',
+      '모바일(GUI `759:12772`): 포스터(머리 아래 고정) 위로 흰 판 — 제목 · 해시태그 · 일시/장소/호스트 · 티켓 카드(누르면 고름, GP-5) · 섹션 탭(스크롤하면 머리 아래 붙음, `1948:25129`). 모바일 하단 [문의][티켓 구매하기]는 PC에서 CSS로 숨고, PC(GUI `1989:28064`, #361)는 왼쪽 8열(포스터 2열 + 요약 표 · 그 아래 중개자 고지) · 오른쪽 4열 예매 패널(주간 달력 + 티켓 옵션 + [문의][티켓 구매하기]).',
     basis: [
       'plan P5b V 범위 · PC',
       'GUI 759:12772 · 1948:25129',
-      '와이어 640:1957',
+      'GUI 1989:28064 [WEB] 공연상세(Ready 2026-11-22, #361)',
       'patterns §1 같은 DOM',
     ],
   },
@@ -53,10 +53,18 @@ scenario(
     });
     if (desktop) {
       await step(
-        'PC는 오른쪽 카드에 주간 달력(공연일 강조)과 (고르기 전 잠긴) [티켓 구매하기]가 있고 하단 바는 없다',
+        'PC는 오른쪽 예매 패널(411)에 주간 달력(공연일 강조) · [문의] · (고르기 전 잠긴) [티켓 구매하기]가 있고 하단 바는 없다',
         async () => {
           const aside = page.getByRole('complementary', { name: '예매' });
           await expect(aside.getByText('2026년 11월')).toBeVisible();
+          // 12열 중 4열 — 1440에서 본문 1280 → 411(GUI `1989:28118`), 공유 버튼은 PC GUI에 없다
+          expect(Math.round((await aside.boundingBox())!.width)).toBe(411);
+          await expect(aside.getByRole('button', { name: '문의하기' })).toBeVisible();
+          await expect(aside.getByRole('button', { name: '공유하기' })).toHaveCount(0);
+          // 중개자 고지(legal-copy A-1)는 요약 표 아래(GUI "예매 안내 문구" 자리 `1989:28333`) — 탭보다 위
+          const notice = page.getByText(/두둥은 통신판매중개자로서/);
+          const tabs = page.getByRole('tablist', { name: '공연 안내' });
+          expect((await notice.boundingBox())!.y).toBeLessThan((await tabs.boundingBox())!.y);
           // 고르기 전에는 잠겨 있다 — 고르기·구매는 QA ticket-select(P6-V)
           await expect(aside.getByRole('button', { name: '티켓 구매하기' })).toBeDisabled();
           // 하단 바 버튼은 DOM에 있고 CSS로 숨는다(접근성 트리에서도 빠진다)
@@ -112,7 +120,7 @@ scenario(
 );
 
 const contactDialog = (page: import('@playwright/test').Page) =>
-  page.getByRole('dialog', { name: '고스락 연락처' });
+  page.getByRole('dialog', { name: '호스트 연락처' });
 
 scenario(
   'EVT-3',
@@ -314,8 +322,9 @@ scenario(
   {
     kind: '에러',
     summary:
-      '공유(모바일 포스터 위 · PC 정사각 버튼 — Q22 기본안)는 고르는 시트(이슈 #106 §7): [카카오톡](실패하면 주소 복사 + 토스트) · [링크 복사] · [다른 앱으로 공유](`navigator.share`가 있을 때만).',
+      '공유(모바일 포스터 위 — Q22 기본안. PC는 GUI `1989:28153`에 자리가 없어 뺐다, 2026-11-22 🤖 · Figma 코멘트)는 고르는 시트(이슈 #106 §7): [카카오톡](실패하면 주소 복사 + 토스트) · [링크 복사] · [다른 앱으로 공유](`navigator.share`가 있을 때만).',
     basis: ['patterns §14 카카오 공유', 'design-requests Q22 · Q83', '이슈 #106 §7'],
+    viewports: ['mobile'],
   },
   async ({ page, step }) => {
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);

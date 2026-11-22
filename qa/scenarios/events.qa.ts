@@ -6,7 +6,8 @@ import { formatKstDateTime } from '../../src/api/shared/date';
 import { expect, scenario } from '../scenario';
 
 /**
- * 공연 리스트 `/events`(P5a-V) — GUI `759:7895` 예매하기 · `759:11869` 태그선택(모바일 390), PC는 와이어 `640:1032`·`640:1425`(1440).
+ * 공연 리스트 `/events`(P5a-V) — GUI `759:7895` 예매하기 · `759:11869` 태그선택(모바일 390), PC는 GUI `1979:2257`(1024 · 4열) ·
+ * `1970:1939`(1440 · 6열, Design Sync #359 · #360 · #368).
  * 근거: plan P5a(V 범위 · 완료 기준 V), gui-screens §0·§1, patterns §12·§13, api-contract GP-2·GE-11.
  * 권한: 공개 화면이라 로그인 여부로 다른 것이 없다(헤더 오른쪽만 셸 몫 — shell 시나리오). 크롤러: `(app)` 화면이라 서버 조회가 없다(e2e `event-list.spec`).
  */
@@ -34,8 +35,13 @@ scenario(
   {
     kind: '정상',
     summary:
-      '검색칸 → [태그 ▾] · 지난공연보기 · 공연임박순 → 카드 격자(모바일 2열 · PC 4열). 헤더에는 검색 아이콘이 없다(GUI basic title (no search)). PC는 1440에서 와이어처럼 위 일러스트 + 가운데 검색칸.',
-    basis: ['plan P5a 완료 기준 V', 'GUI 759:7895', '와이어 640:1032', 'gui-screens §3'],
+      '검색칸 → [태그 ▾] · 지난공연보기 · 공연임박순 → 카드 격자(모바일 2열 · 1024~ 4열 · 1440~ 6열). 헤더에는 검색 아이콘이 없다(GUI basic title (no search)). PC는 위 일러스트 + 가운데 검색칸(격자 가운데 열 폭 — 1440에서 6열 중 4열).',
+    basis: [
+      'plan P5a 완료 기준 V',
+      'GUI 759:7895',
+      'GUI 1970:1939 · 1979:2257(#359 · #368)',
+      'gui-screens §3',
+    ],
   },
   async ({ page, step, note, testInfo }) => {
     const desktop = testInfo.project.name === 'desktop';
@@ -56,15 +62,15 @@ scenario(
       { fullPage: false },
     );
     await step(
-      '헤더에 검색 아이콘이 없고, 카드가 한 줄에 모바일 2장 · PC 4장',
+      '헤더에 검색 아이콘이 없고, 카드가 한 줄에 모바일 2장 · PC(1440) 6장',
       async () => {
         await expect(page.getByRole('link', { name: '공연 검색' })).toBeHidden();
         const tops = await cards(page).evaluateAll((els) =>
-          els.slice(0, 5).map((e) => Math.round(e.getBoundingClientRect().top)),
+          els.slice(0, 7).map((e) => Math.round(e.getBoundingClientRect().top)),
         );
         const perRow = tops.filter((t) => t === tops[0]).length;
         await note(`첫 줄 카드 수 ${perRow}`);
-        expect(perRow).toBe(desktop ? 4 : 2);
+        expect(perRow).toBe(desktop ? 6 : 2);
       },
       { capture: false },
     );
@@ -369,6 +375,41 @@ scenario(
 );
 
 scenario(
+  'EVL-9b',
+  '1024 폭에서는 4열 · 검색칸은 가운데 2열 폭',
+  {
+    kind: '반응형',
+    summary:
+      'GUI `1979:2257`(#368) — 1024 ~ 1439는 한 줄 4장(사이 폭은 🤖 — 4열), 검색칸 460(4열 중 가운데 2열), 좌우 40.',
+    basis: ['GUI 1979:2257 [WEB] 공연 둘러보기 - 기본 (1024 · 4개)'],
+    viewports: ['desktop'],
+  },
+  async ({ page, step, note }) => {
+    await step(
+      '1024 폭에서 첫 줄 카드 4장, 검색칸은 카드 두 장 + 사이 폭',
+      async () => {
+        await page.setViewportSize({ width: 1024, height: 1000 });
+        await page.goto('/events');
+        await expect(cards(page).first()).toBeVisible();
+        const boxes = await cards(page).evaluateAll((els) =>
+          els.slice(0, 5).map((e) => {
+            const r = e.getBoundingClientRect();
+            return { top: Math.round(r.top), width: r.width };
+          }),
+        );
+        const first = boxes[0]!;
+        const perRow = boxes.filter((b) => b.top === first.top).length;
+        await note(`첫 줄 카드 수 ${perRow}`);
+        expect(perRow).toBe(4);
+        const search = await page.getByRole('search').boundingBox();
+        expect(Math.round(search!.width)).toBe(Math.round(first.width * 2 + 24));
+      },
+      { fullPage: false },
+    );
+  },
+);
+
+scenario(
   'EVL-10',
   '카드를 누르면 공연 상세로 간다',
   {
@@ -396,7 +437,7 @@ scenario(
   {
     kind: '빈 상태',
     summary:
-      'GUI `1184:33829`(#158). 추천은 조건 없는 공연임박순 앞 6개(서버 추천 API 없음 — Q91 🤖), 모바일 2열 3줄 · PC는 한 줄 4장. 카드를 누르면 공연 상세.',
+      'GUI `1184:33829`(#158). 추천은 조건 없는 공연임박순 앞 6개(서버 추천 API 없음 — Q91 🤖), 모바일 2열 3줄 · PC 1440은 6열 한 줄 6장(1024 ~ 1439는 앞 4장). 카드를 누르면 공연 상세.',
     basis: ['GUI 1184:33829', 'GUI 1270:36348', 'design-requests Q91', 'Figma 코멘트 1184:33998'],
   },
   async ({ page, step, testInfo }) => {
@@ -406,9 +447,9 @@ scenario(
     await step('없는 검색어면 결과 없음 + 추천', async () => {
       await page.goto('/events?keyword=zzzz');
       await expect(page.getByText('검색된 공연이 없습니다.')).toBeVisible();
-      // 6장을 받고 PC는 앞 4장만 보인다(숨긴 칸은 접근성 트리에서도 빠진다)
+      // 6장을 받는다 — 1440은 6열이라 한 줄에 6장 모두(#359). 1024 ~ 1439 4열이면 앞 4장만(숨긴 칸은 접근성 트리에서도 빠진다)
       await expect(recommended.getByRole('listitem', { includeHidden: true })).toHaveCount(6);
-      await expect(recommended.getByRole('link')).toHaveCount(desktop ? 4 : 6);
+      await expect(recommended.getByRole('link')).toHaveCount(6);
       await expect(cards(page)).toHaveCount(0);
     });
     await step(
