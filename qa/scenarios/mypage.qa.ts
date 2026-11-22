@@ -170,11 +170,12 @@ scenario(
   {
     kind: '정상',
     summary:
-      'GUI `1047:32381` 구성(정렬 라벨 "최신순 ⌄" 고정 — #372, 서버 정렬 없음 B75). 상태 칩은 tag_v2 round, 상세와 같은 매핑(승인대기 · 승인완료 · 승인거절 + 환불 대기 · 주문취소완료 …).',
+      'GUI `1047:32381` 구성(정렬 라벨 "최신순" 글자만 고정 — ⌄ 없음 #381, 서버 정렬 없음 B75). 상태 칩은 tag_v2 round로 승인대기 · 승인완료 · 승인거절 3개만 — 취소 · 환불 주문 카드는 칩 없음, "환불 대기" / "환불 완료" 보조 칩 없음(#381, 2026-11-22 회의).',
     basis: [
       'plan P9 V 범위 주문내역',
       'GUI 1047:32381 주문내역(2026-11-07 Ready)',
       'P9-L order-status',
+      'Frontend #381 주문 카드 칩 3개',
     ],
   },
   async ({ page, step }) => {
@@ -183,15 +184,40 @@ scenario(
     await step('주문내역을 열면 "최신순"과 주문 카드가 보인다', async () => {
       await page.goto('/orders');
       await expect(page.getByText('최신순', { exact: true })).toBeVisible();
+      // 고를 것이 없어 ⌄ 없이 글자만(#381 결정 2) — 누를 수 있는 컨트롤도 아니다
+      const sort = page.getByText('최신순', { exact: true }).locator('..');
+      await expect(sort.locator('svg')).toHaveCount(0);
+      await expect(page.getByRole('button', { name: /최신순/ })).toHaveCount(0);
       await expect(page.getByTestId('order-row').first()).toBeVisible();
     });
-    await step('거절된 유료 주문 카드는 "승인거절" 옆에 "환불 대기"', async () => {
-      const row = page
-        .getByTestId('order-row')
-        .filter({ has: page.locator(`a[href="/orders/${P9_ORDER.refusedAmount}"]`) });
-      await row.scrollIntoViewIfNeeded();
-      await expect(row.getByTestId('order-status')).toHaveText(/승인거절.*환불 대기/);
-    });
+    const card = (uuid: string) =>
+      page.getByTestId('order-row').filter({ has: page.locator(`a[href="/orders/${uuid}"]`) });
+    await step(
+      '거절된 유료 주문(환불 요청) 카드는 "승인거절" 칩 하나 — "환불 대기" 보조 칩 없음',
+      async () => {
+        const row = card(P9_ORDER.refusedAmount);
+        await row.scrollIntoViewIfNeeded();
+        await expect(row.getByTestId('order-status')).toHaveText('승인거절');
+        await expect(row).not.toContainText('환불 대기');
+      },
+    );
+    await step(
+      '호스트 취소 · 사용자 취소(환불 요청 · 환불 완료) · 무료 취소 카드는 칩이 없다',
+      async () => {
+        for (const uuid of [
+          P9_ORDER.hostCanceled,
+          P9_ORDER.refundRequested,
+          P9_ORDER.refundCompleted,
+          P9_ORDER.canceledFree,
+        ]) {
+          const row = card(uuid);
+          await expect(row).toBeVisible();
+          await expect(row.getByTestId('order-status')).toHaveCount(0);
+          await expect(row).not.toContainText(/환불 대기|환불 완료|환불요청|환불완료|주문취소완료/);
+        }
+        await card(P9_ORDER.refundCompleted).scrollIntoViewIfNeeded();
+      },
+    );
     await step('승인완료 카드를 누르면 그 주문상세', async () => {
       await page.locator(`a[href="/orders/${P9_ORDER.approvedPaid}"]`).click();
       await expect(page).toHaveURL(detail(P9_ORDER.approvedPaid));
@@ -269,15 +295,16 @@ scenario(
       },
     );
     await step(
-      '옵션 답 — 주관식은 읽기 전용 칸, 예/아니오는 [예][아니오] 버튼(고른 것만 살아 있음 — GUI 1175:19046, #348 B67)',
+      '옵션 답 — 주관식은 읽기 전용 칸, 예/아니요는 [예][아니요] 버튼(고른 것만 살아 있음 — GUI 1175:19046, #348 B67, 글자는 서버 값 #378)',
       async () => {
         const answer = page.getByRole('textbox', { name: /답$/ }).first();
         await expect(answer).toHaveAttribute('readonly', '');
         const yesNo = page.getByRole('radiogroup', { name: '뒤풀이 참석 답' });
         await expect(yesNo).toHaveAttribute('aria-readonly', 'true');
         await expect(yesNo.getByRole('radio', { name: '예' })).toBeChecked();
-        // 서버 선택지 "아니요"는 표시만 디자인대로 "아니오"
-        await expect(yesNo.getByRole('radio', { name: '아니오' })).toBeDisabled();
+        // 버튼 글자는 서버 선택지 그대로 "아니요"(#378 — 디자인의 "아니오"로 바꾸지 않는다)
+        await expect(yesNo.getByRole('radio', { name: '아니요' })).toBeDisabled();
+        await expect(yesNo.getByRole('radio', { name: '아니오' })).toHaveCount(0);
         await expect(page.getByText('옵션 적용', { exact: true })).toBeVisible();
       },
     );

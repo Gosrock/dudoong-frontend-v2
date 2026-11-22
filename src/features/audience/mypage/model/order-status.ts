@@ -1,7 +1,8 @@
 import type { MyOrderStatus, RefundStatus } from '@/api/order/schema';
 
 /**
- * 사용자 주문 상태 5종 × `refundStatus` 3종 → 표시. **목록(G11/O-2)과 상세(G11/O-3)가 이 하나를 쓴다**(plan P9, patterns §20).
+ * 사용자 주문 상태 5종 × `refundStatus` 3종 → 표시. **주문 상세(G11/O-3)가 쓴다**(plan P9, patterns §20). 주문 카드(목록 O-2)는
+ * 같은 라벨에서 칩 3개만 고르는 `orderCardChip`을 쓴다(#381).
  * 라벨은 GUI 주문 카드 칩(`331:11519` — 승인대기·승인완료·승인거절)과 와이어 `128:2772`("주문취소완료")를 따른다.
  * 색은 의미(`tone`)만 정하고 실제 색은 V가 고른다.
  *
@@ -52,4 +53,21 @@ export function orderStatusView(
   if (status === 'REFUNDED') return { ...REFUNDED_VIEW[refundStatus], refund: null };
   const base = STATUS_VIEW[status ?? 'UNKNOWN'] ?? STATUS_VIEW.UNKNOWN;
   return { ...base, refund: REFUND_SUFFIX[refundStatus] ?? null };
+}
+
+/** 주문 카드(O-2)에 칩을 다는 상태 — GUI `1047:32381`에 그려진 3개뿐(#381, 2026-11-22 회의) */
+const CARD_CHIP_STATUSES = ['PENDING_APPROVE', 'APPROVED', 'REFUSED'] as const;
+type CardChipStatus = (typeof CARD_CHIP_STATUSES)[number];
+
+const isCardChipStatus = (status: MyOrderStatus | null): status is CardChipStatus =>
+  CARD_CHIP_STATUSES.includes(status as CardChipStatus);
+
+/**
+ * 주문 카드(목록 O-2) 상태 칩 — 승인대기 · 승인완료 · 승인거절만, 라벨 · 색은 상세(`orderStatusView`)와 같다.
+ * - `CANCELED` · `REFUNDED`(·`null` · 모르는 값)는 칩 없음(`null`) — 자세한 상태는 주문 상세에서 본다
+ * - "환불 대기" / "환불 완료" 보조 칩은 달지 않는다(`refund: null`) — 승인거절도 칩 하나(#381)
+ */
+export function orderCardChip(status: MyOrderStatus | null): OrderStatusView | null {
+  if (!isCardChipStatus(status)) return null;
+  return { ...STATUS_VIEW[status], refund: null };
 }

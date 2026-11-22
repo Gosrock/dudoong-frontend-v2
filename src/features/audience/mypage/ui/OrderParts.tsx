@@ -19,7 +19,7 @@ import * as p from './OrderParts.css';
 
 /**
  * 상태 칩(GUI `1047:32381` — `tag_v2` small · round · weak: 승인대기 cyan · 승인완료 green · 승인거절 red) + (거절·호스트 취소된 유료
- * 주문의) 환불 진행 보조 칩. 보조 칩은 GUI에 없다 — 지금 동작 그대로 둔다(🤖, 디자인 Q176)
+ * 주문의) 환불 진행 보조 칩. 보조 칩은 주문 상세(O-3)만 — 주문 카드는 `orderCardChip`이 `refund: null`을 준다(#381)
  */
 export function OrderStatusChips({ view }: { view: OrderStatusView }) {
   return (
@@ -64,6 +64,7 @@ type SummaryEvent = { eventId: number; name: string | null; posterImageUrl: stri
 /**
  * 주문 요약 카드(GUI `1047:32381` 카드 · `1175:19046` 요약 — 같은 `Card list`): 포스터 + 공연 이름 · 티켓 · 수량 / 총액 + 상태 칩.
  * 목록에서는 카드 전체가 링크라 공연 이름을 링크로 두지 않고(`linkEvent=false`), 상세에서는 공연 이름이 공연 상세 링크다.
+ * `statusView`가 `null`이면 칩을 그리지 않는다(목록의 취소 · 환불 주문 — #381).
  */
 export function OrderSummaryCard({
   event,
@@ -77,7 +78,7 @@ export function OrderSummaryCard({
   ticketName: string | null;
   quantity: number;
   amount: number;
-  statusView: OrderStatusView;
+  statusView: OrderStatusView | null;
   linkEvent: boolean;
 }) {
   const title = event ? (
@@ -114,7 +115,7 @@ export function OrderSummaryCard({
         </Flex>
         <Flex justify="space-between" align="center" wrap gap={2}>
           <Txt typography="headingMdEmphasized">{formatPrice(amount)}</Txt>
-          <OrderStatusChips view={statusView} />
+          {statusView && <OrderStatusChips view={statusView} />}
         </Flex>
       </Flex>
     </Flex>

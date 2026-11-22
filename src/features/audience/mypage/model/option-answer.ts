@@ -5,13 +5,11 @@ import type { OrderOptionAnswer } from '@/api/order/schema';
  * - 객관식(`YES_NO` · `MULTIPLE_CHOICE`)이고 답이 지금 선택지에 있으면 선택지 버튼(고른 것만 살아 있음)
  * - 주관식 · 옵션 삭제(`optionType` null) · 선택지 없음 · 답이 지금 선택지에 없음(주문 뒤 옵션이 바뀜 — 종류 · 선택지는 지금 옵션 기준)이면
  *   입력칸(읽기 전용, 빈 답은 "—")
- * 서버 `YES_NO` 선택지는 "예" · "아니요"인데 GUI(`1175:19046`)는 "아니오"라 표시만 디자인대로 바꾼다(#348 — "표시는 원하시는 대로")
+ * 버튼 글자는 서버 선택지 그대로 — `YES_NO`는 "예" · "아니요"(맞춤법 · 서버 값 기준, GUI `1175:19046`의 "아니오" 대신 — #378 백엔드 답)
  */
 export type OptionAnswerView =
   | { kind: 'choice'; value: string; choices: { value: string; label: string }[] }
   | { kind: 'text'; text: string };
-
-const YES_NO_LABEL: Record<string, string> = { 아니요: '아니오' };
 
 export function optionAnswerView(
   a: Pick<OrderOptionAnswer, 'optionType' | 'answer'> & { choices?: readonly string[] | null },
@@ -22,10 +20,7 @@ export function optionAnswerView(
     return {
       kind: 'choice',
       value: a.answer,
-      choices: choices.map((c) => ({
-        value: c,
-        label: a.optionType === 'YES_NO' ? (YES_NO_LABEL[c] ?? c) : c,
-      })),
+      choices: choices.map((c) => ({ value: c, label: c })),
     };
   }
   return { kind: 'text', text: a.answer?.trim() ? a.answer : '—' };

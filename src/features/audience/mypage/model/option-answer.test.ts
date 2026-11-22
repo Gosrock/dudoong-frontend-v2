@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { optionAnswerView } from './option-answer';
 
 describe('주문상세 옵션 답 표시(O-3 optionType · choices — #348 B67)', () => {
-  it('YES_NO — [예][아니오] 버튼, 서버 "아니요"는 표시만 "아니오"(GUI 1175:19046)', () => {
+  it('YES_NO — [예][아니요] 버튼, 글자는 서버 값 "아니요" 그대로(#378 — 디자인의 "아니오"로 바꾸지 않는다)', () => {
     expect(
       optionAnswerView({ optionType: 'YES_NO', choices: ['예', '아니요'], answer: '아니요' }),
     ).toEqual({
@@ -11,7 +11,7 @@ describe('주문상세 옵션 답 표시(O-3 optionType · choices — #348 B67)
       value: '아니요',
       choices: [
         { value: '예', label: '예' },
-        { value: '아니요', label: '아니오' },
+        { value: '아니요', label: '아니요' },
       ],
     });
   });

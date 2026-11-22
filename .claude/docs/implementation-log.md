@@ -4236,6 +4236,33 @@ Design Sync #349~#354 · #356 · #357(Tomato 2026-11-22 08:31~08:59Z) + 관제�
 
 **테스트**: e2e `checkout`(두둥 주문 — 완료 화면에 `deposit-guide` · `toss-link` 없음, 새로고침 뒤도 없음, 주문상세 결제정보에 계좌 · 금액 50,000원). QA `checkout` CHK-1(완료 화면 입금 안내 없음) · CHK-6(완료 화면엔 송금 링크 없음 → 주문상세에 [토스 앱에서 송금하기] 금액 = 총액) · CHK-7(수동 — 주문상세에서 송금).
 
+## 주문 카드 상태 칩 3개 · 옵션 답 "아니요"(2026-11-22, `fix-381-378` — Frontend #381 · #378)
+
+근거: Frontend #381(2026-11-22 회의 결정 — 주문 카드 O-2 칩), #378 백엔드 답(옵션 답 버튼 글자 · 알림 읽음 N-3).
+
+**L**
+- `order-status`: 주문 카드 전용 `orderCardChip(status)` — `PENDING_APPROVE` · `APPROVED` · `REFUSED`만 칩(라벨 · 색은 상세 `orderStatusView`의 같은 표에서), `CANCELED` · `REFUNDED` · `null` · 모르는 값은 `null`(칩 없음), 보조 칩(`refund`)은 늘 `null`. 주문 상세(O-3)는 `orderStatusView` 그대로(회의에서 다루지 않음 — 보조 칩 · 주문취소완료 · 환불요청 · 환불완료 유지).
+- `useMyOrders`: 행 필드 `statusView` → `chip`(`orderCardChip(o.status)`).
+- `option-answer`: `YES_NO` 버튼 글자를 서버 선택지 그대로("예" · "아니요") — "아니요" → "아니오" 바꿔 보이던 표를 뺌. 답이 `choices`에 없으면 입력칸 · 옵션 삭제(`null`)면 입력칸은 #348에서 이미 그렇다(확인).
+
+**V**
+- `OrderSummaryCard`: `statusView`가 `null`이면 칩 자리를 그리지 않는다(금액만). 상세 요약 카드는 그대로.
+
+**확인만(코드 변경 없음)**
+- #378 ①: 옵션 답 `optionType` · `choices`는 #358(BE-961)에서 이미 씀 — 내 주문 상세는 `SelectButton readOnly`, 호스트 주문 상세 · 발급 티켓(`hosting/guest` `OptionAnswers`)은 답 글자를 그대로(서버 "아니요"를 바꾸지 않음). 관객 선물 · 티켓 화면에는 옵션 답을 그리는 곳이 없다.
+- #378 ②: 알림 읽음 PN-3 `readAll` · `notificationIds`(100개씩)는 #379에서 씀, 응답 `unreadCount`로 벨 캐시(`useNotificationBell`)를 바로 채움(`useReadNotifications`).
+- #381 ③: 데스크탑 배치(가운데 열) 그대로.
+
+**#381 ② 정렬 라벨(관제탑 검토 뒤)**: #379가 #372 GUI대로 넣은 ⌄(chevron-down 12)를 뺌 — "최신순" 글자만. 누를 수 있는 메뉴가 아니고(O-2 정렬 없음 B75) 회의 결정이 "글자만". 공연 리스트 "공연임박순 ⌄"(사용자 지정 2026-11-08)와 알림함 "최신순 ⌄"(Q268)는 이 결정 범위 밖이라 그대로.
+
+**결정**
+- 🤖 Claude 판단 — 카드만 숨기지 않고 **매핑을 나눔**(`orderCardChip` 따로) / 근거: 카드와 상세가 보여 줄 칩 종류가 달라졌다(카드 3개 · 상세 그대로). UI에서 상태를 골라 숨기면 상태 규칙이 화면으로 샌다(plan §0 — 규칙은 model) / 되돌리려면 `useMyOrders`에서 `statusView: orderStatusView(o.status, o.refundStatus)`.
+- 체크아웃 옵션 입력의 [예][아니오](`checkout/ui/OptionFields` — 서버에 `YES`/`NO`로 보내는 입력)는 이 이슈 범위(주문 상세 · 호스트 주문 상세 · 발급 티켓 · 선물 상세) 밖이라 그대로 — 디자이너 답에 따라 맞출 수 있다.
+
+**Figma 코멘트(2026-11-22)**: `2018362242` 주문상세 `1175:19046` 옵션 답 버튼 — `[개발 · 서버 값]` 버튼 글자를 서버 값 "아니요"로 맞춤 알림.
+
+**테스트**: unit — `mypage-rules`(주문 카드 칩: 3상태 × refundStatus 4값 → 칩 하나 · 보조 칩 없음, `CANCELED` · `REFUNDED` · `UNKNOWN` · `null` → 없음) · `useOrders`(행마다 `chip` = `orderCardChip(상세 status)`, 호스트 취소 · 환불 요청 · 환불 완료 행은 칩 없음) · `option-answer`(YES_NO 글자 "아니요"). QA `mypage` MY-4(거절 유료 카드 "승인거절" 하나 · 취소 · 환불 4장 칩 없음) · 옵션 답 [아니요]. e2e `mypage` 그대로 통과.
+
 ## 모바일 티켓 시트 — 고르면 바로 닫힘(2026-11-22, `design-386` — Design Sync #386)
 
 근거: Design Sync #386(Design: 수정, Tomato) — 공연상세 - 티켓 구매하기 선택 `759:21725`(Ready for dev): "티켓 구매하기 선택 시 → 지금처럼 바텀시트 → 티켓 선택하면 바로 바텀시트 사라지고 티켓 구매하기 위쪽에 카운터 나타남". 지금 판 프레임은 시트 안에 목록뿐(버튼 줄 `1948:25358` 없음, 옛 시트 노드 `1948:39697`은 지워짐).

@@ -53,14 +53,13 @@ function OrderList() {
   return (
     <>
       <div className={p.toolbar}>
-        {/* DS SortButton(gui `1047:32385` — "최신순" + chevron-down 12, 간격 4). #372(2026-11-22)로 분류 → 정렬(최신순 / 오래된순)이 됐지만
-            O-2에 정렬 파라미터가 없어(B75) 최신순 하나 — 고정 라벨, 누를 수 없다(Q36 · design-system §3 · patterns §13).
-            ▾는 Figma대로 그린다(공연 리스트 `759:8031`과 같게 — 사용자 지정 근거 2026-11-08). "오래된순"은 서버 답 뒤 — Figma 코멘트 */}
+        {/* DS SortButton 자리(gui `1047:32385`). #372(2026-11-22)로 분류 → 정렬(최신순 / 오래된순)이 됐지만 O-2에 정렬 파라미터가
+            없어(B75) 최신순 하나 — 고정 라벨, 누를 수 없다(Q36 · design-system §3 · patterns §13). 고를 것이 없어 ⌄ 없이 글자만
+            (#381 결정 2), 2026-11-22 회의). "오래된순"은 서버 답 뒤 — Figma 코멘트 */}
         <span className={p.sort}>
           <Txt typography="labelMd" color={colors.textPrimaryLabel}>
             {list.sortLabel}
           </Txt>
-          <Icon name="chevron-down" size={12} />
         </span>
       </div>
       <ul className={s.list} aria-label="주문 목록">
@@ -79,7 +78,7 @@ function OrderList() {
                 ticketName={o.ticketName}
                 quantity={o.quantity}
                 amount={o.totalAmount}
-                statusView={o.statusView}
+                statusView={o.chip}
                 linkEvent={false}
               />
             </Link>
