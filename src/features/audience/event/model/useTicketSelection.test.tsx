@@ -197,6 +197,30 @@ describe('티켓 선택 — 1주문 1종류', () => {
   });
 });
 
+describe('티켓 선택 — select 결과(모바일 시트가 닫을지, #386)', () => {
+  it('새로 고르거나 이미 고른 티켓이면 true, 다른 티켓(1주문 1종류) · 매진은 false', async () => {
+    const { result } = await loaded();
+    let r = false;
+    act(() => {
+      r = result.current.select(502);
+    });
+    expect(r).toBe(false);
+    act(() => {
+      r = result.current.select(501);
+    });
+    expect(r).toBe(true);
+    act(() => {
+      r = result.current.select(501);
+    });
+    expect(r).toBe(true);
+    act(() => {
+      r = result.current.select(503);
+    });
+    expect(r).toBe(false);
+    expect(result.current.warning).toBe(true);
+  });
+});
+
 describe('티켓 선택 — 다시 읽은 GP-5에 맞춘다', () => {
   it('잔여가 줄면 수량이 새 상한으로 줄고, 매진되면 선택이 풀린다', async () => {
     const { result, queryClient } = await loaded();

@@ -348,9 +348,8 @@ export const bottomBar = style({
   '@media': { [media.desktop]: { display: 'none' } },
 });
 
-/** [문의 56][티켓 구매하기] — 화면 하단 바 사이 8(`759:14902`), 시트 버튼 줄 사이 12(`1948:25358`) */
+/** [문의 56][티켓 구매하기] — 화면 하단 바 사이 8(`759:14902`). 시트 버튼 줄(`1948:25358`)은 #386으로 없어졌다 */
 export const buyButtons = style({ display: 'flex', gap: vars.space[2], width: '100%' });
-export const buyButtonsSheet = style({ gap: vars.space[3] });
 /** [문의] 56 정사각 — 옆 [티켓 구매하기](폭 가득)에 밀려 줄지 않게(GUI `1989:28154` · `759:14902` 56×56) */
 export const contactButton = style({ flexShrink: 0 });
 

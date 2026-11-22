@@ -4063,7 +4063,7 @@ Design Sync #337 · #338 · #340 · #343~#347(Tomato 2026-11-22) — 공연 상�
 **`src/ui` 새 prop만**: `BottomSheet` `variant="rounded"` · `Toast` `tone: 'danger'` · `description` · `ScrollTopButton` `className`(features/audience/home). 기본값 그대로.
 
 **결정**
-- 🤖 Claude 판단 — 시트에서 줄을 누르면 고르기만 하고, 시트의 [티켓 구매하기]가 시트를 닫아 고른 티켓 줄을 띄운다 / 근거: `759:21918`(시트 안 회색 고른 줄 + 활성 버튼) → `759:22015`(시트 없음 + 수량 줄) 순서, 시트에는 수량이 없어 바로 결제하면 수량을 못 고른다 / 되돌리려면 `TicketSheet` `onBuy`를 결제 이동으로.
+- 🤖 Claude 판단 — 시트에서 줄을 누르면 고르기만 하고, 시트의 [티켓 구매하기]가 시트를 닫아 고른 티켓 줄을 띄운다 / 근거: `759:21918`(시트 안 회색 고른 줄 + 활성 버튼) → `759:22015`(시트 없음 + 수량 줄) 순서, 시트에는 수량이 없어 바로 결제하면 수량을 못 고른다 / 되돌리려면 `TicketSheet` `onBuy`를 결제 이동으로. **→ 2026-11-22 Design Sync #386으로 바뀜: 고르면 바로 닫힘, 시트 버튼 줄 없음(`design-386`)**
 - 🤖 Claude 판단 — 고르기 전 시트의 [티켓 구매하기]는 잠금(Figma는 활성 모양) / 근거: 고를 것이 없으면 할 일이 없다(Q66 PC와 같은 기본안) / 되돌리려면 `BuyButtons` `buyDisabled`. 코멘트 `2018321028`.
 - 🤖 Claude 판단 — 모바일 공유 버튼은 와이어 자리(포스터 오른쪽 위)에 남김(GUI에 없음, 코멘트 `2018318026`) / 되돌리려면 `posterShare`.
 - 🤖 Claude 판단 — 일시 줄 ⌄는 뺌(펼친 모습 없음, 코멘트 `2018318033`).
@@ -4262,3 +4262,19 @@ Design Sync #349~#354 · #356 · #357(Tomato 2026-11-22 08:31~08:59Z) + 관제�
 **Figma 코멘트(2026-11-22)**: `2018362242` 주문상세 `1175:19046` 옵션 답 버튼 — `[개발 · 서버 값]` 버튼 글자를 서버 값 "아니요"로 맞춤 알림.
 
 **테스트**: unit — `mypage-rules`(주문 카드 칩: 3상태 × refundStatus 4값 → 칩 하나 · 보조 칩 없음, `CANCELED` · `REFUNDED` · `UNKNOWN` · `null` → 없음) · `useOrders`(행마다 `chip` = `orderCardChip(상세 status)`, 호스트 취소 · 환불 요청 · 환불 완료 행은 칩 없음) · `option-answer`(YES_NO 글자 "아니요"). QA `mypage` MY-4(거절 유료 카드 "승인거절" 하나 · 취소 · 환불 4장 칩 없음) · 옵션 답 [아니요]. e2e `mypage` 그대로 통과.
+
+## 모바일 티켓 시트 — 고르면 바로 닫힘(2026-11-22, `design-386` — Design Sync #386)
+
+근거: Design Sync #386(Design: 수정, Tomato) — 공연상세 - 티켓 구매하기 선택 `759:21725`(Ready for dev): "티켓 구매하기 선택 시 → 지금처럼 바텀시트 → 티켓 선택하면 바로 바텀시트 사라지고 티켓 구매하기 위쪽에 카운터 나타남". 지금 판 프레임은 시트 안에 목록뿐(버튼 줄 `1948:25358` 없음, 옛 시트 노드 `1948:39697`은 지워짐).
+
+- `TicketSheet`: footer(`BuyButtons` [문의][티켓 구매하기]) 뺌. `TicketSelector onPicked` → `release()` 뒤 시트 닫기(곧바로 하단 [티켓 구매하기] push와 기록이 엇갈리지 않게 — 예전 `onBuy`와 같은 순서). `onContact` prop · 부모 `contactFromSheet` 지움. `BuyButtons inSheet` · `buyButtonsSheet` 지움.
+- `TicketSelector`: `onPicked?` — 줄을 눌러 그 티켓이 고른 상태가 될 때만 부른다.
+- `useTicketSelection.select`: 결과를 `boolean`으로 돌려준다(새로 골랐거나 이미 고른 티켓 `true`, 다른 티켓(1주문 1종류 경고) · 살 수 없는 줄 `false`). 규칙 자체는 그대로.
+- PC 오른쪽 패널은 그대로(`onPicked` 없음).
+
+**결정**
+- 🤖 Claude 판단 — 시트 버튼 줄 [문의][티켓 구매하기]도 뺐다 / 근거: #386 판 `759:21725`에 버튼 줄이 없다. [문의]는 시트를 닫은 뒤 하단 바에서 / 되돌리려면 `TicketSheet`에 `footer={<BuyButtons …/>}`(git 이력).
+- 🤖 Claude 판단 — 다른 티켓이 이미 골라져 있으면(1주문 1종류) 토스트만, 시트는 열린 채 / 근거: 선택이 바뀌지 않았으니 닫을 이유가 없다(실제로는 고른 티켓이 있으면 하단 버튼이 결제로 가 시트가 열리지 않는다) / 되돌리려면 `TicketSheet` `onPicked` 조건.
+- design-requests에 이 동작의 Q는 없었다 — #355의 판단은 이 문서 위 절(`gui-event-detail`) 🤖 줄이었고 거기에 "#386으로 바뀜"을 붙였다. Figma 코멘트 `2018321028`(1번 — 고르기 전 시트 버튼)에 답글 `2018377422`.
+
+**테스트**: unit `useTicketSelection`(select 결과 true/false). e2e `checkout`(시트 → 고르면 닫힘 → 하단 → 체크아웃, 시트 DOM 없음) · `a11y-keyboard`(모바일 Enter로 고르면 시트 닫힘 → 고른 티켓 줄 수량). QA `ticket-select` TKS-1(시트 버튼 줄 없음 · 고르면 닫힘) · TKS-1b(시트 안 [문의] 없음 → 닫고 하단 [문의]) · TKS-6, `checkout` CHK-1 · `integration` 모바일 흐름.

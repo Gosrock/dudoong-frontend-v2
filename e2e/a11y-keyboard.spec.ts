@@ -80,12 +80,11 @@ test('상세 → 티켓 선택 → 체크아웃 → 주문 완료를 키보드�
   const row = area.getByRole('listitem').getByRole('button', { name: /일반 예매/ });
   await tabTo(page, row);
   await page.keyboard.press('Enter');
-  await expect(row).toHaveAttribute('aria-pressed', 'true');
   let buy = area.getByRole('button', { name: '티켓 구매하기' });
-  if (!desktop) {
-    // 모바일 — 시트의 [티켓 구매하기]가 고른 티켓을 확정하며 시트를 닫고, 하단 바 위 고른 티켓 줄(GUI `759:22015`)에서 수량을 고른다
-    await tabTo(page, buy);
-    await page.keyboard.press('Enter');
+  if (desktop) {
+    await expect(row).toHaveAttribute('aria-pressed', 'true');
+  } else {
+    // 모바일 — 줄을 고르면 시트가 바로 닫히고(#386) 하단 바 위 고른 티켓 줄(GUI `759:22015`)에서 수량을 고른다
     await expect(area).toBeHidden();
     area = page.getByRole('group', { name: '고른 티켓' });
     buy = page.getByRole('button', { name: '티켓 구매하기' }).locator('visible=true');
