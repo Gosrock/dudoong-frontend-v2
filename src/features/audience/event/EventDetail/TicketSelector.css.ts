@@ -21,6 +21,25 @@ export const list = style([
   },
 ]);
 
+/** PC 예매 패널 목록 — 바깥 상자 없이 줄 사이 4(GUI `1989:28150`) */
+export const listPlain = style([
+  sprinkles({ listStyle: 'none' }),
+  {
+    margin: 0,
+    padding: 0,
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: vars.space[1],
+  },
+]);
+
+/** PC 고른 티켓 줄 — 위 구분선(`1989:28561`) 뒤 안쪽 16(GUI `1989:28562`) */
+export const pickedPlain = style({
+  padding: vars.space[4],
+  borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
+});
+
 export const row = style({
   display: 'flex',
   width: '100%',

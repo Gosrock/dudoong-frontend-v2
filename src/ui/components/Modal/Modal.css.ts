@@ -55,6 +55,9 @@ const sheetPanel = {
   background: vars.color.background.normal,
 };
 
+/** `sm` — 최대 310(GUI 공연 상세 PC 문의하기 `1989:28800` — 흰 판 · 안쪽 24 · 사이 24 · 모서리 16, 2026-11-22) */
+export const contentSmall = style({ ...sheetPanel, maxWidth: 310 });
+
 /** `md` — 최대 480(GUI 예매자 주문 상세 `1029:6888`, 2026-11-08) */
 export const contentMedium = style({ ...sheetPanel, maxWidth: 480 });
 

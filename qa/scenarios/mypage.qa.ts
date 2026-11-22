@@ -559,13 +559,13 @@ scenario(
 
 scenario(
   'MY-14',
-  '관심 호스트 — 정렬 라벨 · 최신공연순(다가오는 공연이 앞) · 배지(D-n · 공연종료), ♥를 누르면 목록에서 빠진다',
+  '관심 호스트 — 정렬 메뉴(최신공연순 · 최근저장순) · 배지(D-n · 공연종료), 호스트 영역은 호스트 홈, ♥를 누르면 목록에서 빠진다',
   {
     kind: '정상',
     summary:
-      'GUI `1175:20346` — 위 오른쪽 고정 라벨 "최신공연순"(와이어 때 상태 필터는 GUI에 없어 뺐다, 디자인 Q180). GM-4 sort=LATEST_EVENT(#348 B68) — 다가오는 공연의 시작이 가까운 호스트부터, 없는 호스트는 뒤. 배지는 tag_v2 round(예정 violet · 공연종료 grey). 해제는 PH-13 DELETE.',
+      'GUI `1175:20346`(Design Sync #371) — 위 오른쪽 [최신공연순 ▾] → 메뉴 최신공연순(LATEST_EVENT) · 최근저장순(FOLLOWED), 이름순은 서버 대기(와이어 때 상태 필터는 GUI에 없어 뺐다, 디자인 Q180). 최신공연순 — 다가오는 공연의 시작이 가까운 호스트부터, 없는 호스트는 뒤. 배지는 tag_v2 round(예정 violet · 공연종료 grey). 행(아바타 · 이름 · 대표 공연 · 배지)은 호스트 홈 링크 하나, ♥ 해제는 PH-13 DELETE.',
     basis: [
-      'GUI 1175:20346 관심호스트(2026-11-07 Ready)',
+      'GUI 1175:20346 관심호스트(annotation 정렬 3가지, #371)',
       'P9-L representativeBadge',
       'Frontend #348 B68',
     ],
@@ -574,8 +574,8 @@ scenario(
     reset();
     await setMockSession(page, 'loggedIn');
     await page.goto('/mypage/following');
-    await step('정렬 라벨 "최신공연순"과 호스트 행이 보이고, 필터는 없다', async () => {
-      await expect(page.getByText('최신공연순')).toBeVisible();
+    await step('정렬 [최신공연순 ▾]과 호스트 행이 보이고, 필터는 없다', async () => {
+      await expect(page.getByRole('button', { name: '정렬: 최신공연순' })).toBeVisible();
       await expect(page.getByTestId('following-host').first()).toBeVisible();
       await expect(page.getByRole('combobox', { name: '관심 호스트 필터' })).toHaveCount(0);
     });
@@ -589,9 +589,32 @@ scenario(
       expect(new URL(call!.path, 'http://x').searchParams.get('sort')).toBe('LATEST_EVENT');
       await expect(page.getByTestId('following-host').first()).toContainText('D-7');
     });
+    await step('호스트 행은 링크 하나 — 호스트 홈으로 간다(#371)', async () => {
+      const first = page.getByTestId('following-host').first();
+      await expect(first.getByRole('link')).toHaveCount(1);
+      await expect(first.getByRole('link')).toHaveAttribute('href', /^\/hosts\/\d+$/);
+    });
+    await step(
+      '정렬을 열면 두 줄(고른 줄 ✓), "최근저장순"을 고르면 sort=FOLLOWED로 다시 읽는다',
+      async () => {
+        await page.getByRole('button', { name: '정렬: 최신공연순' }).click();
+        const menu = page.getByRole('menu');
+        await expect(menu.getByRole('menuitem')).toHaveCount(2);
+        await menu.getByRole('menuitem', { name: '최근저장순' }).click();
+        await expect(page.getByRole('button', { name: '정렬: 최근저장순' })).toBeVisible();
+        await expect
+          .poll(() =>
+            mockApi
+              .calls()
+              .filter((c) => c.path.startsWith('/api/v2/me/following-hosts?'))
+              .map((c) => new URL(c.path, 'http://x').searchParams.get('sort')),
+          )
+          .toContain(null);
+      },
+    );
     await step('첫 호스트의 ♥를 누르면 목록에서 빠진다', async () => {
       const first = page.getByTestId('following-host').first();
-      const name = (await first.getByRole('link').nth(1).innerText()).trim();
+      const name = (await first.getByRole('link').innerText()).split('\n')[0]!.trim();
       await first.getByRole('button', { name: /관심 해제/ }).click();
       await expect(page.getByTestId('following-host').filter({ hasText: name })).toHaveCount(0);
     });

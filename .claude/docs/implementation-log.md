@@ -4115,3 +4115,30 @@ Design Sync #337 · #338 · #340 · #343~#347(Tomato 2026-11-22) — 공연 상�
 **범위 밖**: PC 확인 창 모양(`1556:15836` — ✕ · 꽉 찬 두 버튼)은 앱 공용 `openConfirm` PC 모양(오른쪽 작은 버튼)과 다르다 — 모든 PC 확인 창에 닿아 따로. 초대 수락 · 거절 셸 헤더(로고 · 검색 · 티켓)는 GUI `basic title`과 다르다(셸 몫).
 
 **테스트**: unit — `useHostMembers`(초대 8: H-16 줄마다 · 이미 멤버 줄만 남음 · 한도면 멈춤 · 5xx 줄 남음 · 멤버 그대로) · `invitation-rules`(이름 줄) · `member-rules` · `host-delete-rules` · `useHostInvitation`(거절 2) · `option-answer` · `can`(deleteHost) · `useMyPage`(최신공연순 순서 · sort 쿼리) · API(`host-invitation-api` #348 5 · `order/schema` 3). 스토리 `SelectButton/ReadOnly`. e2e `hosting-host`(초대 대기 · 호스트 삭제 4) · `host-invitation`(거절). QA `host-settings` HS-6 · HS-15 · HS-20 · HS-22 · `host-invitation` HI-1 · HI-6 · HI-7 · `mypage` MY-6 · MY-11 · MY-14.
+
+## 관객 PC GUI · 드로어 · 관심 호스트 — Design Sync #359~#362 · #366~#371(2026-11-22, `design-359-371`)
+
+근거(GUI Ready · 신규 화면, 2026-11-22 Tomato): 공연 둘러보기 PC `1970:1939`(#359) · `1974:63581`(#360) · `1979:2257` 1024(#368) · 공연홈 1024 `1989:33304`(#367) · 공연상세 PC `1989:28064`(#361) · 티켓 선택 `1989:28341`(#362) · 문의하기 `1989:28614`(#366) · 햄버거 `1047:19428`(#369 · #370) · 관심호스트 `1175:20346`(#371, annotation 정렬 3가지).
+
+**V**
+- 공연 리스트 PC: 본문 최대 1280 · 좌우 40(1024) / 80(1440~) · 위 24 · 아래 80 · 묶음 24 · 일러스트 139. 격자 1024~ 4열 · 1440~ 6열(간격 24). 검색칸은 격자 가운데 열 폭(4열 중 2 = 1024에서 460, 6열 중 4 = 1440에서 846). PC "지난공연보기"는 Toggle → 글자(`Label/md` 14), 모바일은 그대로(글자 12 → Toggle). 추천 묶음은 1440에서 6장 한 줄.
+- 맨 위로(↑, 공연 리스트 · 공연홈 · 공연 상세 공용 `ScrollTopButton`) PC 자리 — 본문 1280 오른쪽 끝(1024 40 · 1440 80, 옛 1200 기준 120).
+- 공연 상세 PC(12열): 왼쪽 8열 격자 — 포스터(2열, 1440 193 × 273 · 모서리 8)가 요약 표와 예매 안내 문구 두 줄에 걸치고, 요약은 제목(`Title`) → 표(`dl` — 이름 `Heading/sm - emphasized` · 값 `Heading/sm`, 줄 4 · 열 12, 호스트 값 = 호스트 홈 링크, 장소는 이름만) → 구분선(`surface/container`) + 중개자 고지 A-1. 그 아래 탭 · 본문 · 판매정보가 폭 가득. PC 탭 머리("공연소개") 없음. 오른쪽 4열 예매 패널 411 — 테두리 · 모서리 16 · 안쪽 24 · 사이 24: 주간 달력(머리 → 요일 `Label/md` 회색 · 날짜 `Label/md - emphasized`, 공연일은 요일 보라 + 보라 원 24) · "티켓 옵션"(`Heading/md - emphasized`) · 목록(바깥 상자 없이 줄 사이 4 — `TicketSelector` 새 prop `framed`) · 고른 티켓 줄(구분선 아래 안쪽 16) · [문의 56][티켓 구매하기](`BuyButtons` 재사용). 중개자 고지는 모바일 판매정보 아래 그대로 — 같은 DOM 하나를 PC CSS grid로 옮긴다(`noticePart`).
+- [문의] 56 정사각이 옆 버튼에 밀려 46으로 줄던 것(모바일 하단 바 · 시트도) — `contactButton` `flexShrink: 0`.
+- 문의하기 PC 모달: `Modal` 새 `size="sm"`(310 · 안쪽 24 · 사이 24 · 모서리 16), `ResponsiveOverlay` 새 prop `showModalTitle`(시트는 제목 숨김 그대로, 모달은 "호스트 연락처" + ✕ — `Label/lg-emphasized`). 읽어 주는 이름도 "호스트 연락처"로 하나.
+- 드로어: "호스팅 센터" → "공연 준비"(#369 · #370), 호스트 줄 최대 4칸(칸 74 · 아바타 60 가운데 · 이름 2줄, 가로 스크롤 · "N개 더 보기" 없음). 메뉴 · 만들기 줄 글자는 2026-11-22 판에서 글자 스타일 16 · 700이 걸려 `labelLgEmphasized`, 공지사항 · 로그아웃은 16 · 500 그대로.
+- 관심 호스트: [최신공연순 ▾] → DS dropdown(고른 줄 ✓) 최신공연순 `LATEST_EVENT` · 최근저장순 `FOLLOWED`(훅 `useFollowingHosts`에 `sort` 상태 — 기본 `LATEST_EVENT`, 바꾸면 새 키 첫 페이지부터). 행은 아바타 · 이름 · 대표 공연 · 배지 전체가 호스트 홈 링크 하나(대표 공연 → 공연 상세 링크는 뺌, #371), ♥는 링크 밖 형제 버튼.
+
+**결정**
+- 🤖 Claude 판단 — PC 공유 버튼 뺌(Q257, 코멘트 `2018339502`) / 근거: PC 버튼 줄이 [문의][티켓 구매하기]로 바뀜 / 되돌리려면 예매 패널 `BuyButtons` 앞에 공유 `Button`.
+- 🤖 Claude 판단 — "공연 기본정보" 묶음은 호스트 섹션 본문 예시로 봄(Q258, `2018339507`) / 근거: 값이 요약과 다르고 모바일 프레임에 없음 / 되돌리려면 탭 패널에 고정 묶음.
+- 🤖 Claude 판단 — 예매 안내 문구 자리에 legal-copy A-1 원문(Q259, `2018339510`) / 근거: 약관 근거 문구는 바꾸지 않는다 / 되돌리려면 `noticePart`(자리만).
+- 🤖 Claude 판단 — 요약 표 밑줄은 값(호스트 이름) · 일자 "(토)"(Q260, `2018339513`) / 되돌리려면 `desktopTable`.
+- 🤖 Claude 판단 — 달력 머리 글자 스타일 없음(20 · 600) → `Heading/md - emphasized`(FIGMA-CUSTOM, 코멘트 `2018339558`).
+- 🤖 Claude 판단 — 드로어 호스트 4개 넘으면 앞 4개만(Q261, `2018339560`) / 되돌리려면 `DRAWER_HOST_MAX` · `hostRow.more`.
+- 🤖 Claude 판단 — 정렬 메뉴 두 줄 · 라벨 "최신공연순"(프레임) · "최근저장순"(annotation), 이름순은 서버 대기(Q262, `2018339564`) / 되돌리려면 `FOLLOWING_SORT_OPTIONS`.
+- 🤖 Claude 판단 — 1024 ~ 1439 4열(Q263, `2018339569`) / 되돌리려면 `EventListView.css` `grid` · `search`.
+
+**사용자 대기(서버)**: 관심 호스트 "이름순(가-하, A-Z)" — GM-4 `sort`에 이름순 값이 없다(지금 `FOLLOWED` · `LATEST_EVENT`). 백엔드 이슈로.
+
+**범위 밖**: PC 상단 바(Figma `Top bar - web`에는 벨이 있고 "공연 준비하기"가 회색) · ConcertCard 제목 크기 · DS `tab` 크기는 셸 · DS 몫. QA SHELL-9(호스팅 대시보드 사이드바 y 57.8 ≠ 58)와 e2e `a11y` 호스팅 티켓 목록 대비는 main에서도 같다.

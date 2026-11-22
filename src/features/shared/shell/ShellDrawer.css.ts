@@ -28,12 +28,13 @@ const reset = {
 export const row = style({ ...reset, gap: vars.space[2], minHeight: 24, alignSelf: 'flex-start' });
 
 /**
- * 메뉴 글자 — GUI는 글자 스타일 없이 16 · 500 · 행간 120%(`1047:31794` 등). 가장 가까운 `labelLg`(16 · 400 · 120%)에 굵기만 500.
- * FIGMA-CUSTOM: 메뉴 글자(gui 1047:31794 "주문내역" 외) 스타일 없음 → labelLg + 굵기 500. Figma 코멘트 2026-11-07
+ * 공지사항 · 로그아웃 글자 — GUI는 글자 스타일 없이 16 · 500 · 행간 120%(`1047:32325`). 가장 가까운 `labelLg`(16 · 400 · 120%)에 굵기만 500.
+ * (메뉴 · 만들기 줄은 2026-11-22 판에서 글자 스타일 16 · 700이 걸려 `labelLgEmphasized`)
+ * FIGMA-CUSTOM: 메뉴 글자(gui 1047:32325 "공지사항" 외) 스타일 없음 → labelLg + 굵기 500. Figma 코멘트 2026-11-07
  */
 export const itemLabel = style({ fontWeight: 500 });
 
-/** "공연 둘러보기 ↗" · "호스팅 센터 ↗"(`1047:32312` — 20 굵게 + 아이콘, 간격 8) */
+/** "공연 둘러보기 ↗" · "공연 준비 ↗"(`1047:32312` — 20 굵게 + 아이콘, 간격 8) */
 export const shortcut = style({ ...reset, gap: vars.space[2], alignSelf: 'flex-start' });
 
 /** 프로필 줄(`1047:31889` — 위아래 12, 아바타 60 ↔ 글자 22) */
@@ -91,39 +92,31 @@ export const empty = style({
   background: vars.color.background.grey,
 });
 
-/** 호스트 아바타 줄(`1047:31991` — 위아래 8, 간격 16). 가로로 넘치면 스크롤 */
+/**
+ * 호스트 아바타 줄(`1989:37165` — 위아래 8, 간격 16, 네 칸 74). 네 칸이 344라 본문 342(390 화면)보다 넓어 칸은 최대 74로
+ * 줄어들게 둔다(좁은 화면에서 드로어가 옆으로 넘치지 않게)
+ */
 export const hostRow = style([
   sprinkles({ listStyle: 'none' }),
   {
-    display: 'flex',
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 74px))',
     gap: vars.space[4],
     margin: 0,
     padding: `${vars.space[2]} 0`,
-    overflowX: 'auto',
-    scrollbarWidth: 'none',
   },
 ]);
 
-/** 호스트 한 칸(`1047:31734` — 폭 60, 아바타 ↔ 이름 4) */
+/** 호스트 한 칸(`1047:31734` — 폭 최대 74, 아바타 60 가운데, 아바타 ↔ 이름 4) */
 export const host = style({
   ...reset,
   flexDirection: 'column',
-  alignItems: 'stretch',
+  alignItems: 'center',
   gap: vars.space[1],
-  width: 60,
+  width: '100%',
 });
 
 export const hostName = style({ maxWidth: '100%', textAlign: 'center' });
-
-export const moreCircle = style({
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  width: 60,
-  height: 60,
-  borderRadius: vars.radius.full,
-  border: `1px solid ${vars.color.surface.defaultBorder}`,
-});
 
 /** 새 호스트 · 새 공연 만들기(`1047:32204` — 두 칸 사이 43. 토큰에 없는 GUI 값 그대로, 좁으면 줄바꿈) */
 export const create = style({ columnGap: 43, rowGap: vars.space[4] });

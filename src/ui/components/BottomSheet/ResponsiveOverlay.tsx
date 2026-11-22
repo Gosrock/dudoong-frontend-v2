@@ -21,7 +21,9 @@ export type ResponsiveOverlayProps = {
   closeOnBack?: boolean;
   onExited?: () => void;
   /** PC 모달 크기(`Modal` `size`). 모바일 시트에는 영향 없음. 기본 `md` */
-  modalSize?: 'md' | 'lg';
+  modalSize?: 'sm' | 'md' | 'lg';
+  /** `hideTitle`이어도 PC 모달에는 제목을 보인다(모바일 시트만 숨김 — GUI 문의하기 PC `1989:28800`) */
+  showModalTitle?: boolean;
   /** 모바일 시트 모양(`BottomSheet` `variant`). PC 모달에는 영향 없음. 기본 `default` */
   sheetVariant?: BottomSheetVariant;
   /** 제목 크기(모달 · 시트 둘 다). 없으면 각자 기본 */
@@ -41,13 +43,19 @@ export function ResponsiveOverlay({
   closeOnBack = true,
   modalSize,
   sheetVariant,
+  showModalTitle = false,
   ...props
 }: ResponsiveOverlayProps) {
   const viewport = useMediaQueries();
   useCloseOnBack(props.open, () => props.onOpenChange(false), { enabled: closeOnBack });
   if (viewport === null) return null;
   return viewport === 'desktop' ? (
-    <Modal {...props} size={modalSize} closeOnBack={false} />
+    <Modal
+      {...props}
+      hideTitle={showModalTitle ? false : props.hideTitle}
+      size={modalSize}
+      closeOnBack={false}
+    />
   ) : (
     <BottomSheet {...props} variant={sheetVariant} closeOnBack={false} />
   );

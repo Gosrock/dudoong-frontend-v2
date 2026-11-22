@@ -55,7 +55,7 @@ export function EventListView() {
       <VisuallyHidden asChild>
         <h1>공연 둘러보기</h1>
       </VisuallyHidden>
-      <Illustration name="login" width={128} className={s.illustration} />
+      <Illustration name="login" width={139} className={s.illustration} />
 
       <form
         role="search"
@@ -89,7 +89,7 @@ export function EventListView() {
             <TagPanel tags={list.tags} onToggle={list.toggleTag} onReset={list.resetTags} />
           </Popover>
           <span className={s.pastToggle}>
-            <Txt typography="labelSm" color={colors.textPrimary}>
+            <Txt typography="labelSm" color={colors.textPrimary} className={s.pastToggleLabel}>
               <span id={pastLabelId}>지난공연보기</span>
             </Txt>
             <Toggle
