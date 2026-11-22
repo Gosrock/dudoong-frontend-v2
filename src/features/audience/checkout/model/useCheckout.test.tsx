@@ -24,7 +24,7 @@ import { createTestQueryClient } from '@/test/render';
 import { recordRequests } from '@/test/requests';
 import { toast } from '@/ui/components/Toast/Toast';
 
-import { orderTossLink } from '../ui/DepositGuide';
+import { orderTossLink } from '../ui/TossTransfer';
 import type { AnswerValue } from './option-form';
 import {
   keepsAttemptKey,

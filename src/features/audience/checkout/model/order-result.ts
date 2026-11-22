@@ -41,7 +41,7 @@ export const ORDER_RESULT_TITLE: Record<OrderResultKind, string> = {
 
 /**
  * 완료 안내 문구(P7-V). 승인 대기는 GUI `939:27829` 글자 그대로(2026-11-22 판 — 입금형도 같은 글자: 입금 확인 창 버튼이 [입금완료]로 바뀌어
- * 입금을 창에서 안내한다, #353). 입금형은 아래 계좌 · 토스 송금(`DepositGuide`)을 계속 둔다 — 창에서 입금하지 않았거나 토스로 보낼 때(🤖 B23 · Q97).
+ * 입금을 창에서 안내한다, #353). 완료 화면에 계좌 · 토스 송금은 없다 — 주문상세에서 본다(사용자 결정 2026-11-22 Q252).
  * 즉시 발급 · 그 밖은 GUI에 없어 정했다(디자인 없음 — Figma 코멘트)
  */
 export const ORDER_RESULT_MESSAGE: Record<OrderResultKind, string> = {

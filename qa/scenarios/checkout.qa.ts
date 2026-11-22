@@ -52,11 +52,11 @@ async function agree(page: Page) {
 
 scenario(
   'CHK-1',
-  '공연 상세에서 티켓 2매를 고르고 체크아웃에서 옵션·동의 뒤 [결제하기] → [주문 완료하기] → 주문 완료 화면에서 계좌·금액 안내(B23)',
+  '공연 상세에서 티켓 2매를 고르고 체크아웃에서 옵션·동의 뒤 [결제하기] → [주문 완료하기] → 주문 완료 화면(입금 안내 없음 — Q252)',
   {
     kind: '정상',
     summary:
-      '상세(P6)의 [티켓 구매하기]가 체크아웃으로. 모든 티켓 동일 옵션(기본 켜짐)이라 1번 티켓 아코디언에만 옵션 칸. 결제정보에 입금자명(닉네임)·입금은행·결제계좌(복사)·예금주, 예매번호·티켓번호 없음. 확인 다이얼로그 요약 금액 = 화면 총액. 주문은 입금 전에 만든다(B23 — 사용자 결정 2026-11-02): 완료 화면에 입금자명·계좌(복사)·입금할 금액. 완료 뒤 뒤로가기는 체크아웃이 아니다.',
+      '상세(P6)의 [티켓 구매하기]가 체크아웃으로. 모든 티켓 동일 옵션(기본 켜짐)이라 1번 티켓 아코디언에만 옵션 칸. 결제정보에 입금자명(닉네임)·입금은행·결제계좌(복사)·예금주, 예매번호·티켓번호 없음. 확인 다이얼로그 요약 금액 = 화면 총액. 주문은 입금 전에 만든다(B23 — 사용자 결정 2026-11-02). 완료 화면에는 입금 안내가 없다 — GUI대로(Q252 사용자 결정 2026-11-22), 계좌 · 금액은 주문상세. 완료 뒤 뒤로가기는 체크아웃이 아니다.',
     basis: [
       'plan P7 완료 기준 V(흐름 · 예매번호·티켓번호 없음 · 은행명)',
       'GUI 564:4156 · 567:9159 · 567:9468 · 939:27829(Design Sync #349~#354)',
@@ -174,7 +174,7 @@ scenario(
       },
     );
     await step(
-      '[입금완료]를 누르면 주문 완료 화면(일러스트 · 주문 접수 완료! · 입금 안내 · 두 버튼)이다',
+      '[입금완료]를 누르면 주문 완료 화면(일러스트 · 주문 접수 완료! · 두 버튼 — 입금 안내 없음, Q252)이다',
       async () => {
         // 입금 전 확인(③ — 2026-11-01 붙임) 전에는 [입금완료]가 막혀 있다
         await expect(confirmDialog(page).getByRole('button', { name: '입금완료' })).toBeDisabled();
@@ -184,11 +184,8 @@ scenario(
         await expect(
           page.getByText('티켓 승인 여부는 티켓 페이지에서 확인 가능합니다!'),
         ).toBeVisible();
-        // B23 — 입금은 주문 뒤. 완료 화면이 계좌·금액을 안내한다(앞 화면은 Next 16이 숨긴 채 DOM에 남기므로 보이는 것만)
-        const guide = page.getByTestId('deposit-guide');
-        await expect(guide).toBeVisible();
-        await expect(guide.getByText('110-123-456789')).toBeVisible();
-        await expect(guide.getByTestId('deposit-amount')).toHaveText('50,000원');
+        // Q252(사용자 결정 2026-11-22 "디자인대로") — 완료 화면에 입금 안내(계좌 · 금액 · 토스)는 없다. 계좌 · 금액은 주문상세(CHK-6)
+        await expect(page.getByTestId('deposit-guide')).toHaveCount(0);
         await expect(page.getByRole('link', { name: '주문내역' }).last()).toHaveAttribute(
           'href',
           '/orders',
@@ -351,11 +348,11 @@ scenario(
 
 scenario(
   'CHK-6',
-  '[토스간편송금]을 고르고 주문하면 완료 화면에 토스 앱 송금 링크(금액 = 총액)가 나온다',
+  '[토스간편송금]을 고르고 주문하면 완료 화면에는 송금 링크가 없고, 주문상세에 계좌와 토스 앱 송금 링크(금액 = 총액)가 나온다',
   {
     kind: '정상',
     summary:
-      'B23(2026-11-02) — 입금은 주문 뒤라 [토스 앱에서 송금하기]는 체크아웃이 아니라 주문 완료 화면(과 승인 대기 주문상세)에 있다. 링크(`supertoss://send`)의 금액은 화면 총액 = 서버 `totalAmount`. 은행 코드(`bankCode`)가 없는 계좌면 [토스간편송금]을 숨긴다(plan P7 L · B3). 버튼·안내는 디자인 없음(Figma 코멘트 567:8004 · Q97).',
+      'B23(2026-11-02) — 입금은 주문 뒤라 [토스 앱에서 송금하기]는 체크아웃이 아니라 승인 대기 주문상세에 있다(완료 화면의 입금 안내는 Q252 사용자 결정 2026-11-22 "디자인대로"로 뺐다). 링크(`supertoss://send`)의 금액은 화면 총액 = 서버 `totalAmount`. 은행 코드(`bankCode`)가 없는 계좌면 [토스간편송금]을 숨긴다(plan P7 L · B3). 버튼·안내는 디자인 없음(Figma 코멘트 567:8004 · Q97).',
     basis: [
       'plan P7 L 범위(토스 송금 링크)',
       'tech-decisions §19·§22',
@@ -372,25 +369,37 @@ scenario(
       await expect(page.getByTestId('toss-link')).toHaveCount(0);
       amount = (await page.getByTestId('checkout-amount').textContent())!.replace(/\D/g, '');
     });
-    await step('[결제하기] → [주문 완료하기] 뒤 완료 화면에 [토스 앱에서 송금하기]', async () => {
-      await agree(page);
-      await page.getByRole('button', { name: '결제하기' }).click();
-      await confirmDeposit(page);
-      await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
-      const link = page.getByTestId('toss-link');
-      await expect(link).toBeVisible();
-      await expect(link).toHaveAttribute(
-        'href',
-        new RegExp(`^supertoss://send\\?.*amount=${amount}`),
-      );
-    });
+    await step(
+      '[결제하기] → [입금완료] 뒤 완료 화면에는 송금 링크 · 계좌가 없다(Q252)',
+      async () => {
+        await agree(page);
+        await page.getByRole('button', { name: '결제하기' }).click();
+        await confirmDeposit(page);
+        await expect(page.getByRole('heading', { name: '주문 접수 완료!' })).toBeVisible();
+        await expect(page.getByTestId('toss-link')).toHaveCount(0);
+        await expect(page.getByTestId('deposit-guide')).toHaveCount(0);
+      },
+    );
+    await step(
+      '주문상세(같은 주문)에서 계좌와 [토스 앱에서 송금하기](금액 = 총액)를 본다',
+      async () => {
+        await page.goto(new URL(page.url()).pathname);
+        await expect(page.getByRole('region', { name: '결제정보' })).toBeVisible();
+        const link = page.getByTestId('toss-link');
+        await expect(link).toBeVisible();
+        await expect(link).toHaveAttribute(
+          'href',
+          new RegExp(`^supertoss://send\\?.*amount=${amount}`),
+        );
+      },
+    );
   },
 );
 
 scenario.manual('CHK-7', '토스 앱이 깔린 실기기에서 송금 링크가 열리고 은행명이 인식된다', {
   kind: '정상',
   basis: ['plan P7 완료 기준 V(토스 실기기)', 'backend-questions B3'],
-  how: 'D2 스테이징 배포 뒤 iPhone·Android 실기기에서 두둥 티켓 체크아웃 → [토스간편송금] → [토스 앱에서 송금하기]. 토스 송금 화면에 은행·계좌·금액(총액)이 채워지는지 본다. 은행이 비면 `bankCode` → 토스 은행 값 매핑을 정한다(payment.ts TODO B3).',
+  how: 'D2 스테이징 배포 뒤 iPhone·Android 실기기에서 두둥 티켓 체크아웃 → [토스간편송금] → 주문 뒤 주문상세의 [토스 앱에서 송금하기](Q252 — 완료 화면에는 없음). 토스 송금 화면에 은행·계좌·금액(총액)이 채워지는지 본다. 은행이 비면 `bankCode` → 토스 은행 값 매핑을 정한다(payment.ts TODO B3).',
 });
 
 scenario(

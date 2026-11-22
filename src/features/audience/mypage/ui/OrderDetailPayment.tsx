@@ -1,8 +1,8 @@
 'use client';
 
 import type { MyOrderDetail } from '@/api/order/schema';
-import { orderTossLink, TossTransferButton } from '@/features/audience/checkout/ui/DepositGuide';
 import { AmountRows, DepositAccountRows } from '@/features/audience/checkout/ui/PaymentBlocks';
+import { orderTossLink, TossTransferButton } from '@/features/audience/checkout/ui/TossTransfer';
 import { InfoRow } from '@/ui/components/InfoRow/InfoRow';
 import { formatPrice, formatWon } from '@/utils/money';
 
