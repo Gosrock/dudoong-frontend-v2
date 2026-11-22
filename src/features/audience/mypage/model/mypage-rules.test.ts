@@ -29,7 +29,7 @@ import {
   NOT_CANCELABLE_MESSAGE,
   REFUND_ACCOUNT_ERROR_TABLE,
 } from './order-errors';
-import { orderStatusView } from './order-status';
+import { orderCardChip, type OrderStatusView, orderStatusView } from './order-status';
 import { nicknameError } from './profile';
 import {
   refundAccountDefaults,
@@ -39,7 +39,7 @@ import {
 
 const order = (uuid: string) => p9SeededOrders[uuid]!;
 
-describe('주문 상태 5종 × refundStatus → 표시(목록·상세 공용 매핑 하나)', () => {
+describe('주문 상태 5종 × refundStatus → 주문 상세(O-3) 표시', () => {
   it.each<[MyOrderStatus | null, RefundStatus, string, string | null]>([
     ['PENDING_APPROVE', 'NONE', '승인대기', null],
     ['APPROVED', 'NONE', '승인완료', null],
@@ -66,6 +66,27 @@ describe('주문 상태 5종 × refundStatus → 표시(목록·상세 공용 �
         expect(orderStatusView(s, r).label).toBeTruthy();
       }
     }
+  });
+
+  describe('주문 카드(O-2) 칩 — 승인대기 · 승인완료 · 승인거절만, 취소 · 환불은 칩 없음, 보조 칩 없음(#381)', () => {
+    const REFUNDS: RefundStatus[] = ['NONE', 'REQUESTED', 'COMPLETED', 'UNKNOWN'];
+    it.each<[MyOrderStatus, string, OrderStatusView['tone']]>([
+      ['PENDING_APPROVE', '승인대기', 'waiting'],
+      ['APPROVED', '승인완료', 'positive'],
+      ['REFUSED', '승인거절', 'negative'],
+    ])('%s → "%s" 칩 하나(refundStatus와 상관없이 보조 칩 없음)', (status, label, tone) => {
+      for (const refund of REFUNDS) {
+        expect(orderCardChip(status)).toEqual({ label, tone, refund: null });
+        // 라벨 · 색은 상세와 같다
+        expect(orderStatusView(status, refund)).toMatchObject({ label, tone });
+      }
+    });
+    it.each<[MyOrderStatus | null]>([['CANCELED'], ['REFUNDED'], ['UNKNOWN'], [null]])(
+      '%s → 칩 없음',
+      (status) => {
+        expect(orderCardChip(status)).toBeNull();
+      },
+    );
   });
 });
 

@@ -4212,3 +4212,28 @@ Design Sync #349~#354 · #356 · #357(Tomato 2026-11-22 08:31~08:59Z) + 관제�
 **테스트**: unit — `notification-rules`(17종 창 · 이름 · 아이콘, `?tab=`, ids 읽음 · 100개 나누기) · `useNotification`(읽음 7 · 알림함 9: 창 나누기 · `?tab=host` · 열면 그 창만 PN-3 · `isNew` · 탭 빨간 점 · 창 바꾸면 그 창만 한 번 · 이동 경로 · 빈 상태). e2e `notifications`(창 15건 · 열면 ids 읽음 + 공지 바 · 호스트 창 · 두 창 다 보면 다시 와도 읽음). QA `notifications` NOTI-1~7 · `mypage`(주문내역 정렬 라벨 설명).
 
 **범위 밖**: 위 공지 띠(셸) · 벨 자리(셸 — 확인만, 읽음 뒤 빨간 점 꺼짐 확인).
+
+## 주문 카드 상태 칩 3개 · 옵션 답 "아니요"(2026-11-22, `fix-381-378` — Frontend #381 · #378)
+
+근거: Frontend #381(2026-11-22 회의 결정 — 주문 카드 O-2 칩), #378 백엔드 답(옵션 답 버튼 글자 · 알림 읽음 N-3).
+
+**L**
+- `order-status`: 주문 카드 전용 `orderCardChip(status)` — `PENDING_APPROVE` · `APPROVED` · `REFUSED`만 칩(라벨 · 색은 상세 `orderStatusView`의 같은 표에서), `CANCELED` · `REFUNDED` · `null` · 모르는 값은 `null`(칩 없음), 보조 칩(`refund`)은 늘 `null`. 주문 상세(O-3)는 `orderStatusView` 그대로(회의에서 다루지 않음 — 보조 칩 · 주문취소완료 · 환불요청 · 환불완료 유지).
+- `useMyOrders`: 행 필드 `statusView` → `chip`(`orderCardChip(o.status)`).
+- `option-answer`: `YES_NO` 버튼 글자를 서버 선택지 그대로("예" · "아니요") — "아니요" → "아니오" 바꿔 보이던 표를 뺌. 답이 `choices`에 없으면 입력칸 · 옵션 삭제(`null`)면 입력칸은 #348에서 이미 그렇다(확인).
+
+**V**
+- `OrderSummaryCard`: `statusView`가 `null`이면 칩 자리를 그리지 않는다(금액만). 상세 요약 카드는 그대로.
+
+**확인만(코드 변경 없음)**
+- #378 ①: 옵션 답 `optionType` · `choices`는 #358(BE-961)에서 이미 씀 — 내 주문 상세는 `SelectButton readOnly`, 호스트 주문 상세 · 발급 티켓(`hosting/guest` `OptionAnswers`)은 답 글자를 그대로(서버 "아니요"를 바꾸지 않음). 관객 선물 · 티켓 화면에는 옵션 답을 그리는 곳이 없다.
+- #378 ②: 알림 읽음 PN-3 `readAll` · `notificationIds`(100개씩)는 #379에서 씀, 응답 `unreadCount`로 벨 캐시(`useNotificationBell`)를 바로 채움(`useReadNotifications`).
+- #381 ②③: 정렬 라벨("최신순" + chevron-down 12, 누를 수 없음 — #372 GUI · Q268) · 데스크탑 배치(가운데 열) 그대로. 이슈 본문의 "⌄는 뺀 상태"는 지금 코드(#379 — #372 GUI대로 ⌄ 있음)와 다르다 — "지금대로"라 손대지 않음.
+
+**결정**
+- 🤖 Claude 판단 — 카드만 숨기지 않고 **매핑을 나눔**(`orderCardChip` 따로) / 근거: 카드와 상세가 보여 줄 칩 종류가 달라졌다(카드 3개 · 상세 그대로). UI에서 상태를 골라 숨기면 상태 규칙이 화면으로 샌다(plan §0 — 규칙은 model) / 되돌리려면 `useMyOrders`에서 `statusView: orderStatusView(o.status, o.refundStatus)`.
+- 체크아웃 옵션 입력의 [예][아니오](`checkout/ui/OptionFields` — 서버에 `YES`/`NO`로 보내는 입력)는 이 이슈 범위(주문 상세 · 호스트 주문 상세 · 발급 티켓 · 선물 상세) 밖이라 그대로 — 디자이너 답에 따라 맞출 수 있다.
+
+**Figma 코멘트(2026-11-22)**: `2018362242` 주문상세 `1175:19046` 옵션 답 버튼 — `[개발 · 서버 값]` 버튼 글자를 서버 값 "아니요"로 맞춤 알림.
+
+**테스트**: unit — `mypage-rules`(주문 카드 칩: 3상태 × refundStatus 4값 → 칩 하나 · 보조 칩 없음, `CANCELED` · `REFUNDED` · `UNKNOWN` · `null` → 없음) · `useOrders`(행마다 `chip` = `orderCardChip(상세 status)`, 호스트 취소 · 환불 요청 · 환불 완료 행은 칩 없음) · `option-answer`(YES_NO 글자 "아니요"). QA `mypage` MY-4(거절 유료 카드 "승인거절" 하나 · 취소 · 환불 4장 칩 없음) · 옵션 답 [아니요]. e2e `mypage` 그대로 통과.

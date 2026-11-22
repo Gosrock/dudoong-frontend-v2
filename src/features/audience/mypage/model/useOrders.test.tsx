@@ -18,7 +18,7 @@ import { recordRequests } from '@/test/requests';
 
 import { OrderDetailView } from '../OrderDetailView';
 import { GIFT_BLOCKS_CANCEL_MESSAGE } from './order-detail';
-import { orderStatusView } from './order-status';
+import { orderCardChip, orderStatusView } from './order-status';
 import { useMyOrders } from './useMyOrders';
 import { useCancelOrder, useOrderDetail, useRefundAccount } from './useOrderDetail';
 import { useOrderHostContacts } from './useOrderHostContacts';
@@ -58,7 +58,7 @@ const detailReads = async (sent: ReturnType<typeof recordRequests>, uuid: string
 const validAccount = { bankCode: '004', accountHolder: ' 두둥이 ', accountNumber: '123-456-7890' };
 
 describe('주문내역 — useMyOrders(G11/O-2)', () => {
-  it('첫 페이지를 쿠키와 함께 읽고, 행마다 상태 라벨이 주문상세(O-3)와 같은 매핑에서 나온다', async () => {
+  it('첫 페이지를 쿠키와 함께 읽고, 행마다 상태 칩이 주문상세(O-3) 상태에서 나온다 — 승인대기 · 승인완료 · 승인거절만(#381)', async () => {
     const sent = recordRequests();
     const { result, queryClient } = await renderReady(() => useMyOrders());
     const reqs = (await sent.list()).filter((r) => r.path === '/api/v2/me/orders');
@@ -67,9 +67,20 @@ describe('주문내역 — useMyOrders(G11/O-2)', () => {
     expect(result.current.sortLabel).toBe('최신순');
     for (const row of result.current.orders) {
       const detail = await queryClient.fetchQuery(myOrderQuery(row.orderUuid));
-      expect(row.statusView).toEqual(orderStatusView(detail.status, detail.refundStatus));
+      expect(row.chip).toEqual(orderCardChip(detail.status));
+      if (row.chip)
+        expect(row.chip.label).toBe(orderStatusView(detail.status, detail.refundStatus).label);
       expect(row.href).toBe(`/orders/${row.orderUuid}`);
     }
+    // 취소 · 환불 주문 카드는 칩이 없다
+    const noChip = result.current.orders.filter((o) => o.chip === null);
+    expect(noChip.map((o) => o.orderUuid)).toEqual(
+      expect.arrayContaining([
+        P9_ORDER.hostCanceled,
+        P9_ORDER.refundRequested,
+        P9_ORDER.refundCompleted,
+      ]),
+    );
   });
 
   it('삭제된 공연의 주문도 행으로 나오고 eventRemoved', async () => {

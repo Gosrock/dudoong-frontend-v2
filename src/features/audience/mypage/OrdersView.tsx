@@ -79,7 +79,7 @@ function OrderList() {
                 ticketName={o.ticketName}
                 quantity={o.quantity}
                 amount={o.totalAmount}
-                statusView={o.statusView}
+                statusView={o.chip}
                 linkEvent={false}
               />
             </Link>
