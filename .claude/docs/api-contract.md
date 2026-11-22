@@ -188,31 +188,41 @@ ID는 Swagger summary의 화면 ID에 메서드 접두(G/P/D)를 붙인 것이�
 |---|---|---|
 | GH-1 | GET `/me/hosts` | U |
 | PH-2 | POST `/hosts` | U |
-| GH-3 | GET `/hosts/{hostId}` | P |
-| PH-4 | PATCH `/hosts/{hostId}` | M+ |
+| GH-3 | GET `/hosts/{hostId}` — 삭제 값 `preparingEventCount` · `deletable` · `deleteBlockedReason` **2.5.16**(#348 B73, 활성 마스터만 값) | P |
+| PH-4 | PATCH `/hosts/{hostId}` — 응답에 GH-3과 같은 삭제 값(2.5.16) | M+ |
 | GH-6 | GET `/hosts/{hostId}/members` | G+ |
-| PH-7 | POST `/hosts/{hostId}/members` | M+ |
+| PH-7 | POST `/hosts/{hostId}/members` — **deprecated(2.5.16, #348 B71)**: 프론트는 부르지 않는다. 모든 초대는 H-16 | M+ |
 | PH-10 | PATCH `/hosts/{hostId}/members/{userId}/role` | MS |
 | DH-11 | DELETE `/hosts/{hostId}/members/{userId}` | M+ |
 | PH-12 | POST `/hosts/{hostId}/transfer-master` | MS |
 | PH-13 | PUT · DELETE `/hosts/{hostId}/follow` | U |
 | GH-14 | GET `/hosts/{hostId}/events` | P |
 | PH-15 | POST `/hosts/{hostId}/images` | M+ |
-| H-16 | POST `/hosts/{hostId}/invitations` `{email, role}` — **2.5.7** | M+ (매니저는 GUEST만 — 403 `HOST_400_11`) |
-| H-17 | GET `/hosts/{hostId}/invitations` — 2.5.7 | M+ |
+| H-16 | POST `/hosts/{hostId}/invitations` `{email, role}` — **2.5.7**, 가입한 이메일도 이것으로(**2.5.16** — #348 B71) | M+ (매니저는 GUEST만 — 403 `HOST_400_11`) |
+| H-17 | GET `/hosts/{hostId}/invitations` — 2.5.7, `inviteeNickname` · `inviteeProfileImageUrl` **2.5.16** | M+ |
 | H-18 | DELETE `/hosts/{hostId}/invitations/{invitationId}` — 2.5.7 | M+ (매니저는 GUEST 초대만) |
 | H-19 | GET `/host-invitations/{token}` — 2.5.7 | U |
 | H-20 | POST `/host-invitations/{token}/accept` — 2.5.7 | U |
+| H-21 | POST `/host-invitations/{token}/reject` — **2.5.16**(#348 B72) | U |
+| H-22 | DELETE `/hosts/{hostId}` — **2.5.16**(#348 B73) | 활성 MS(아니면 403) |
 
 GH-14 = 최근 생성 순(id 내림차순 — `V2ReadHostEventsUseCase` `Sort.by(DESC, "id")` @fe423ed4). 공연 시작일 순이 아니다. **Api 2.5.15**(백엔드 #955 · PR #959 — 이슈 #274 §1-1): 항목에 `canceledAt: "yyyy.MM.dd HH:mm" | null`, 취소된 공연은 `dDay`가 null(`status`·`displayStatus`는 그대로 — 취소돼도 OPEN · UPCOMING일 수 있다). 프론트는 `canceledAt`으로 "취소됨"을 판정한다(zod `optional`).
 
 **공연 취소 E-11**(Api **2.5.8**, 백엔드 #932 — 이슈 #136 §7, B33①. 운영 2.5.3에는 없음 — 404). 마스터만(`@HostRolesAllowed(MASTER)`, SUPER_ADMIN 통과), **등록(OPEN) · 시작 전**만(준비중 `Event_400_28` → DE-9 삭제, 시작 · 정산중 · 지난 공연 `Event_400_29`, 사유 앞뒤 공백 제외 1~100자 `Event_400_31`). **새 상태 값이 없다** — `status`는 OPEN 그대로이고 `canceledAt`(+ `cancelReason`)이 있으면 취소된 공연. 표시 뒤 남은 주문을 오래된 순으로 한 번에 최대 100건(비동기 큐가 차면 더 일찍 멈춤): 승인 대기 → 거절(기타, "공연 취소: {사유}"), 승인 → 호스트 취소(입장 · 선물 티켓이 있어도, 입장한 티켓도 철회), 결제 금액이 있으면 환불 요청. `remaining`(실패 포함)·`failed`가 있으면 **같은 API를 다시**(멱등 — 이미 취소된 공연이면 표시 · 사유 검사를 건너뛰고 시작 시각이 지나도 된다). 취소 뒤: 새 주문 · 장바구니 · 승인 · 결제 확정 · 선물 보내기/받기 `Event_400_30`, 홈 · 목록 · 검색(지난 공연 포함) · 관심 호스트 대표 공연 · 비멤버 호스트 공개 공연 · 리마인더에서 빠짐, GP-3 · GE-3은 열리고 `canceledAt` · `cancelReason`(**Api 2.5.9** — GE-3 · PE-4 응답에 `cancelRemainingCount: number | null` = 아직 처리하지 못한 주문 수(E-11 `remaining`과 같은 조건 — 승인 대기 · 승인 · 결제 완료) · `cancelRetryable: boolean | null` = 지금 E-11을 다시 부르면 통과하는지(지난 공연 CLOSED이거나 정산 기록이 생기면 false — 다시 불러도 `Event_400_29`). 취소 안 된 공연이면 둘 다 null, 운영 2.5.3에는 없음 — 백엔드 #940 B44 · 이슈 #150), GE-1 카드에 `canceledAt`, GP-5 `isPurchasable=false`. 관객 알림은 기존 주문 거절 · 취소 알림(전용 알림 없음). 프론트: 새 필드는 zod `optional`, 시간 제한 60초(`CANCEL_EVENT_TIMEOUT_MS`).
 
-**미가입자 초대 링크 H-16~H-20**(Api **2.5.7**, 백엔드 #933 — 이슈 #136 §8, B33②. 스테이징 DDL V024 뒤에만 동작 — 그 전 500, 운영 2.5.3은 없음 — 404). PH-7은 그대로이고, 프론트는 PH-7이 `HOST_400_13`(미가입)일 때만 H-16을 부른다.
+**호스트 초대 H-16~H-21**(Api **2.5.7**, 백엔드 #933 — 이슈 #136 §8, B33②). **Api 2.5.16(백엔드 #961 → Frontend #348, 스테이징 · 운영 배포 2026-11-22 Deploy #126 — DEC-015 폐기 · DEC-042)부터 모든 멤버 초대는 H-16**(가입한 이메일도 — 상대가 수락해야 멤버, 그때까지 H-17 대기). PH-7 즉시 추가는 deprecated — 프론트는 부르지 않는다. 여러 명은 이메일마다 H-16(묶음 API 없음, 호스트 24시간 20건 `HOST_400_21`). 앱 안 초대 알림은 없고 메일만(토큰 원문을 저장하지 않아 알림에 링크가 없다). 화면: 보내면 토스트 "초대장을 보냈어요", 링크 복사 화면은 없다.
 - H-16 응답 `{invitationId, token, inviteUrlPath, expiresAt, mailSent}` — `inviteUrlPath`는 경로만(`/host-invitations/{token}`), origin은 프론트가 붙인다. 토큰은 base64url 43자 · 1회용 · 7일, 이 응답에서만 받는다. 같은 이메일에 대기 초대가 있으면 새 링크로 바꾼다(옛 링크 무효). `mailSent=false` = 같은 이메일 10분 안 재초대(메일 재발송 안 함). 이미 멤버인 계정의 이메일 `HOST_400_15`, 발급 한도(호스트 24시간 20건 · 초대한 사람 50건) `HOST_400_21`. 서버가 링크 메일을 보내지만 실패해도 발급은 성공 → 화면은 [링크 복사]
 - H-17 대기 초대 `[{invitationId, email(소문자), role, inviterUserId, expiresAt}]`(만료 · 수락 · 취소 제외, 토큰 없음, `@PrivacyAccess(LIST)`). H-18 응답 = 남은 대기 초대, 없는 초대 404 `HOST_404_3`
+- **H-17 `inviteeNickname: string | null` · `inviteeProfileImageUrl: string | null`(2.5.16)**: 초대 이메일로 가입한 계정이 하나일 때 그 닉네임 · 프로필. 미가입이거나 같은 이메일 계정이 여럿이면 null. 닉네임이 있으면 대기 줄을 아바타 + 이름(GUI `1476:7882`), 없으면 이메일 줄
+- **H-21 거절(2.5.16)** `POST /host-invitations/{token}/reject`(로그인, 본문 없음) → `{hostId, hostName: string | null}`. 거절한 링크는 다시 쓸 수 없고 H-17에서 빠진다. 이미 멤버인 사람이 거절해도 200(멤버십 그대로). 오류는 H-20과 같다(`HOST_404_3` · `HOST_400_20` 사용됨(수락 · 거절) · `HOST_400_19`). H-19도 거절된 링크면 `HOST_400_20`. 초대한 사람에게 알림 없음
 - H-19 `{hostId, hostName, hostProfileImageUrl, role, maskedEmail, expiresAt, alreadyMember}`. H-20 `{hostId, role, alreadyMember}` — `role`은 **내 역할**(이미 멤버였으면 기존 역할 — 초대한 역할과 다를 수 있다). 이메일 일치는 보지 않는다(링크 소지가 자격). 에러: 없음 · 취소 · 옛 링크 `HOST_404_3`, 사용됨 `HOST_400_20`, 만료 `HOST_400_19`
-- 새 응답 필드 `mailSent` · `hostProfileImageUrl` · `inviterUserId`는 zod `optional`
+- 새 응답 필드 `mailSent` · `hostProfileImageUrl` · `inviterUserId`는 zod `optional` · 2.5.16 필드(`inviteeNickname` · `inviteeProfileImageUrl`)도 `nullable().optional()`
+
+**호스트 삭제 H-22**(Api **2.5.16**, 백엔드 #961 → Frontend #348 B73 · Design Sync #293, DEC-013 폐기). `DELETE /hosts/{hostId}` — 활성 마스터만(아니면 403, SUPER_ADMIN도 프론트는 열지 않는다 — `can(deleteHost)`). 응답 `{hostId, deletedEventCount}`. **준비중이 아닌 공연**(등록 · 정산중 · 종료, 취소된 공연 포함)이 하나라도 있으면 400 `HOST_400_22` "등록한 공연이 있는 호스트는 삭제할 수 없습니다.". 준비중 공연은 함께 삭제(다른 멤버가 있어도 삭제됨). 확인 창 값은 GH-3 · PH-4 응답의 `preparingEventCount: number | null` · `deletable: boolean | null` · `deleteBlockedReason: string | null`(지금은 `"HOST_400_22"`만) — 활성 마스터에게만 값, 그 밖 null. 삭제 뒤 그 호스트의 GH-3 · GH-14 등 404, GH-1 · GM-4에서 빠진다. 화면: 0개 `1549:15221` · n개 `1551:104649`, 토스트 "호스트를 삭제했습니다." + 공연 준비 홈(`/hosting?tab=hosts`, replace)
+
+**주문 상세 옵션 답 · 선물 메모**(Api **2.5.16**, #348 B67): `optionAnswers[]`에 `optionType: "SUBJECTIVE" | "YES_NO" | "MULTIPLE_CHOICE" | null`(옵션 삭제면 null) · `choices: string[] | null`(`YES_NO`는 `["예","아니요"]`, 객관식은 등록된 선택지, 주관식 null) — **지금 옵션 기준**(주문 때 값 아님). O-3 · R-2 · I-2 · T-2 · 선물 응답 모두 같은 형식. O-3 `issuedTickets[].giftMemo: string | null` — 선물 대기(PENDING) · 완료(SENT) 티켓만. 화면은 객관식을 [예][아니오] 버튼(서버 "아니요"는 표시만 "아니오"), 답이 지금 선택지에 없으면 입력칸으로. 모두 zod `nullable().optional()`
+
+**관심 호스트 정렬**(Api **2.5.16**, #348 B68): GM-4 `sort=FOLLOWED`(기본 — 최근 팔로우 순) · `LATEST_EVENT`(다가오는 공연(진행 중 · 예정, 취소 제외)의 시작이 가까운 호스트부터, 없는 호스트는 뒤에서 최근 팔로우 순). `status` 필터 · 페이지와 함께. 화면 라벨 "최신공연순"이라 `LATEST_EVENT`로 읽는다
 
 ### 공연 준비
 
@@ -288,7 +298,7 @@ GE-1 `sort`(Api **2.5.7**, 백엔드 #930 · #935 — B32): `SCHEDULE` = ① 다
 | G11/O-0 | GET `/events/{eventId}/ticket-items/{ticketItemId}/checkout` | U |
 | P11/O-1 | POST `/me/orders` | U |
 | G11/O-2 | GET `/me/orders` | U |
-| G11/O-3 | GET `/me/orders/{orderUuid}` | U |
+| G11/O-3 | GET `/me/orders/{orderUuid}` — `optionAnswers[].optionType` · `choices`, `issuedTickets[].giftMemo` **2.5.16**(#348 B67) | U |
 | P11/O-4 | POST `/me/orders/{orderUuid}/cancel` | U |
 | P11/O-5 | PUT `/me/orders/{orderUuid}/refund-account` | U |
 
@@ -315,7 +325,7 @@ GE-1 `sort`(Api **2.5.7**, 백엔드 #930 · #935 — B32): `SCHEDULE` = ① 다
 | GM-1 | GET `/me` | U |
 | PM-2 | PATCH `/me` | U |
 | PM-3 | POST `/me/images` | U |
-| GM-4 | GET `/me/following-hosts` (`status=ALL\|ACTIVE\|ENDED`) | U |
+| GM-4 | GET `/me/following-hosts` (`status=ALL\|ACTIVE\|ENDED`, `sort=FOLLOWED\|LATEST_EVENT` — **2.5.16**, #348 B68) | U |
 | GM-5 | GET `/me/archive` (`year`) | U |
 | GN-1 | GET `/me/notifications` | U |
 | GN-2 | GET `/me/notifications/unread-count` | U |

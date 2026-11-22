@@ -138,7 +138,15 @@ export const NEW_APPROVED_ORDER_UUID = 'mock-order-tickets-a';
 // ─── 시드 ────────────────────────────────────────────────────
 
 const OPTION_ANSWERS = [
-  { optionName: '뒤풀이 참석', description: null, answer: '예', additionalPrice: 10000 },
+  {
+    optionName: '뒤풀이 참석',
+    description: null,
+    answer: '예',
+    additionalPrice: 10000,
+    // Api 2.5.16(#348 B67) — T-2에도 같은 필드
+    optionType: 'YES_NO' as const,
+    choices: ['예', '아니요'],
+  },
 ];
 
 function seed() {

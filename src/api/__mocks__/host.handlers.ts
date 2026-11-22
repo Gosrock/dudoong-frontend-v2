@@ -19,12 +19,15 @@ import { mockNow } from './event-store';
 import type { MockEvent } from './fixtures/event';
 import { events, preparingEvents } from './fixtures/event';
 import { hosts, mockUsers, viewerOf } from './fixtures/host';
+import { hostEventsOf } from './fixtures/hosting';
 import { me } from './fixtures/me';
 import {
   addStoredMembers,
+  deleteStoredHost,
   editHostProfile,
   invitationById,
   invitationByToken,
+  isHostDeleted,
   issueInvitation,
   membersOf,
   mockUserRoleIn,
@@ -77,6 +80,7 @@ const HOST_BAD_REQUEST = {
   HOST_400_16: '연락처 형식이 올바르지 않습니다.',
   HOST_400_17: '이 호스트에 업로드한 이미지가 아닙니다.',
   HOST_400_18: '같은 이메일로 가입된 계정이 여러 개입니다.',
+  HOST_400_22: '등록한 공연이 있는 호스트는 삭제할 수 없습니다.',
 } as const;
 type HostBadRequestCode = keyof typeof HOST_BAD_REQUEST;
 const badRequest = (request: Request, code: HostBadRequestCode, emails?: string[]) =>
@@ -106,14 +110,23 @@ const invitationGone = (request: Request) =>
 export const MOCK_INVITE_LIMIT_EMAIL = 'limit@example.com';
 const INVITE_VALID_DAYS = 7;
 
-/** H-17 응답 한 줄 — 토큰은 주지 않는다 */
-const toInvitation = (i: StoredInvitation) => ({
-  invitationId: i.invitationId,
-  email: i.email,
-  role: i.role,
-  inviterUserId: i.inviterUserId,
-  expiresAt: i.expiresAt,
-});
+/**
+ * H-17 응답 한 줄 — 토큰은 주지 않는다. 초대 이메일로 가입한 계정이 하나면 그 닉네임 · 프로필(Api 2.5.16 — #348 B71),
+ * 미가입 · 같은 이메일 계정이 여럿이면 null
+ */
+const toInvitation = (i: StoredInvitation) => {
+  const accounts = mockUsers.filter((u) => u.email.toLowerCase() === i.email);
+  const account = accounts.length === 1 ? accounts[0]! : null;
+  return {
+    invitationId: i.invitationId,
+    email: i.email,
+    role: i.role,
+    inviterUserId: i.inviterUserId,
+    expiresAt: i.expiresAt,
+    inviteeNickname: account?.name ?? null,
+    inviteeProfileImageUrl: account?.profileImageUrl ?? null,
+  };
+};
 
 /** `PrivacyMasker.maskEmail` 흉내 — 앞 두 글자만 */
 const maskEmail = (email: string) => {
@@ -121,11 +134,13 @@ const maskEmail = (email: string) => {
   return `${local.slice(0, 2)}***@${domain}`;
 };
 
-/** H-19 · H-20 공통 — 없음 · 취소(404) → 사용됨(400_20) → 만료(400_19) */
+/** H-19 · H-20 · H-21 공통 — 없음 · 취소(404) → 사용됨(수락 · 거절, 400_20) → 만료(400_19) */
 function readInvitation(request: Request, token: unknown) {
   const found = typeof token === 'string' ? invitationByToken(token) : undefined;
   if (!found || found.state === 'CANCELED') return { response: invitationGone(request) };
-  if (found.state === 'ACCEPTED') return { response: invitationError(request, 'HOST_400_20') };
+  if (found.state === 'ACCEPTED' || found.state === 'REJECTED') {
+    return { response: invitationError(request, 'HOST_400_20') };
+  }
   if (found.state === 'EXPIRED' || found.expiresAt <= mockNow()) {
     return { response: invitationError(request, 'HOST_400_19') };
   }
@@ -251,7 +266,22 @@ const toHostEvent = (e: MockEvent): HostEvent => ({
 });
 
 /** 로그인 사용자가 이 호스트에서 보는 역할·팔로우 기본값(관점을 바꾸는 세트가 덮는다) */
-type ViewerOverride = { myRole?: HostRole | null; isFollowing?: boolean };
+type ViewerOverride = {
+  myRole?: HostRole | null;
+  isFollowing?: boolean;
+  /** 호스트 삭제 확인 값 — 공연 저장소로 셈한 값 대신(QA · e2e, `hostSets.deletable`) */
+  deletion?: { preparingEventCount: number; deletable: boolean };
+};
+
+/**
+ * H-22 · H-3 삭제 값(#348 B73) — 준비중이 아닌 공연(등록 · 정산중 · 종료 · 취소 포함, 삭제 제외)이 하나라도 있으면 막힌다.
+ * 준비중 공연은 함께 지운다
+ */
+function deletionOf(hostId: number) {
+  const list = hostEventsOf(hostId).filter((e) => e.status !== 'DELETED');
+  const preparing = list.filter((e) => e.status === 'PREPARING').length;
+  return { preparingEventCount: preparing, deletable: preparing === list.length };
+}
 
 /**
  * 호스트 핸들러 묶음을 만든다. 팔로우 상태는 묶음마다 따로 갖는다 — 기본 목록은 모듈에 하나,
@@ -272,18 +302,23 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
     const isFollowing =
       follows.get(host.hostId) ??
       (forced?.isFollowing !== undefined ? forced.isFollowing : base.isFollowing);
+    // 삭제 확인 값은 활성 마스터에게만(그 밖 null — #348 B73)
+    const deletion = myRole === 'MASTER' ? (forced?.deletion ?? deletionOf(host.hostId)) : null;
     // 공개 값의 followerCount는 mock 사용자를 빼고 센 수다
     return {
       ...base,
       myRole,
       isFollowing,
       followerCount: host.followerCount + (isFollowing ? 1 : 0),
+      preparingEventCount: deletion?.preparingEventCount ?? null,
+      deletable: deletion?.deletable ?? null,
+      deleteBlockedReason: deletion && !deletion.deletable ? 'HOST_400_22' : null,
     };
   }
 
   const findHost = (raw: unknown) => {
     const id = readId(raw);
-    const found = id === null ? undefined : hosts.find((h) => h.hostId === id);
+    const found = id === null || isHostDeleted(id) ? undefined : hosts.find((h) => h.hostId === id);
     return { id, host: found && withHostEdits(found) };
   };
 
@@ -530,6 +565,28 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       return ok({ hostId: host.hostId, role: invitation.role, alreadyMember: false });
     }),
 
+    // H-21 초대 거절(로그인, #348 B72) — 링크는 다시 쓸 수 없고 대기에서 빠진다. 이미 멤버여도 200, 멤버십은 그대로
+    http.post('*/api/v2/host-invitations/:token/reject', ({ request, params, cookies }) => {
+      const denied = requireAuth(request, cookies);
+      if (denied) return denied;
+      const read = readInvitation(request, params.token);
+      if (read.response) return read.response;
+      const { invitation } = read;
+      const host = findHost(String(invitation.hostId)).host!;
+      setInvitationState(invitation.invitationId, 'REJECTED');
+      return ok({ hostId: host.hostId, hostName: host.name });
+    }),
+
+    // H-22 호스트 삭제(활성 마스터만, #348 B73) — 준비중이 아닌 공연이 있으면 HOST_400_22
+    http.delete('*/api/v2/hosts/:hostId', ({ request, params, cookies }) => {
+      const g = guard(request, cookies, params.hostId, 'MASTER');
+      if (g.response) return g.response;
+      const v = viewer(g.host);
+      if (v.deletable === false) return badRequest(request, 'HOST_400_22');
+      deleteStoredHost(g.id);
+      return ok({ hostId: g.id, deletedEventCount: v.preparingEventCount ?? 0 });
+    }),
+
     http.put('*/api/v2/hosts/:hostId/follow', ({ request, params, cookies }) =>
       setFollow(request, cookies, params.hostId, true),
     ),
@@ -566,6 +623,20 @@ export const hostSets = {
    */
   viewAs: (hostId: number, viewerState: ViewerOverride) =>
     buildHostHandlers({ hostId, ...viewerState }).handlers,
+  /**
+   * 마스터로 보는 이 호스트를 지울 수 있게(H-3 `deletable: true` + 준비중 공연 n개, H-22 성공 — #348 B73). 기본 고스락(11)은
+   * 등록한 공연이 있어 막힌다
+   */
+  deletable: (hostId: number, preparingEventCount = 0) =>
+    buildHostHandlers({
+      hostId,
+      myRole: 'MASTER',
+      deletion: { preparingEventCount, deletable: true },
+    }).handlers,
+  /** H-22가 언제나 이 상태로 실패(경쟁 — 확인 창 사이에 공연이 등록됨 등) */
+  deleteFails: (hostId: number) => [
+    http.delete(`*/api/v2/hosts/${hostId}`, ({ request }) => badRequest(request, 'HOST_400_22')),
+  ],
   /** 호스트 공연이 하나도 없음(GH-14 빈 페이지) */
   noEvents: (hostId: number) => [
     http.get(`*/api/v2/hosts/${hostId}/events`, () => ok(paginate([], 0, 10))),

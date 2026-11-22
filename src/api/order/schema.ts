@@ -4,7 +4,11 @@ import { EventDisplayStatusSchema } from '../event/schema';
 import { AGREEMENT_VERSION_MAX } from '../shared/agreement';
 import { openEnum } from '../shared/open-enum';
 import { pageSchema } from '../shared/page';
-import { PublicTicketItemSchema, TicketPayTypeSchema } from '../ticket-item/schema';
+import {
+  PublicTicketItemSchema,
+  TicketOptionTypeSchema,
+  TicketPayTypeSchema,
+} from '../ticket-item/schema';
 import { MAX_ORDER_QUANTITY } from './price';
 
 /**
@@ -122,13 +126,21 @@ export const OrderPaymentSchema = z.object({
   account: AccountSchema.nullable(),
 });
 
-/** 옵션 답. 네/아니오 답은 서버가 `예`·`아니요`로 저장해 그 글자로 온다 */
+/**
+ * 옵션 답. 네/아니오 답은 서버가 `예`·`아니요`로 저장해 그 글자로 온다. O-3 · R-2 · I-2 · T-2 · 선물 응답이 같은 모양이다.
+ * `optionType` · `choices`는 Api 2.5.16(#348 B67) — **지금 옵션 기준**(주문 때 값이 아님). 2.5.15 이하는 필드 없음
+ */
 export const OrderOptionAnswerSchema = z.object({
   optionName: z.string().nullable(),
   description: z.string().nullable(),
   answer: z.string().nullable(),
   additionalPrice: z.number().int(),
+  /** 옵션 종류. 옵션이 삭제됐으면 null */
+  optionType: TicketOptionTypeSchema.nullable().optional(),
+  /** 선택지 — `YES_NO`는 `["예","아니요"]`, `MULTIPLE_CHOICE`는 등록된 선택지, `SUBJECTIVE`는 null */
+  choices: z.array(z.string()).nullable().optional(),
 });
+export type OrderOptionAnswer = z.infer<typeof OrderOptionAnswerSchema>;
 
 export const OrderLineSchema = z.object({
   quantity: z.number().int(),
@@ -156,6 +168,8 @@ export const OrderIssuedTicketSchema = z.object({
   giftState: OrderGiftStateSchema,
   isGiftExpired: z.boolean(),
   giftId: z.number().int().nullable(),
+  /** 선물할 때 쓴 메모(Api 2.5.16 — #348 B67). 선물 대기(PENDING) · 완료(SENT) 티켓만 값, 아니면 null. "선물메모" 줄 */
+  giftMemo: z.string().nullable().optional(),
 });
 
 /** G11/O-3 내 주문 상세. P11/O-1(생성)·P11/O-4(취소) 응답도 같다 */

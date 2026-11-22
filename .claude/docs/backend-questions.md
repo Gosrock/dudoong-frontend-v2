@@ -49,16 +49,15 @@
 
 ---
 
-### B71~B73. 디자인에 있는데 서버에 없는 기능(2026-11-17, Backend #961 — 사용자 지시)
+### B71~B73 · B67 · B68 — **답 받음(Frontend #348, Api 2.5.16 스테이징 · 운영 배포 2026-11-22 Deploy #126)** · 반영 `BE-961`
 
-- **B71. 모든 멤버 초대를 승인 방식으로** — 디자이너 회의 결정(Figma 2026-11-16 `2008671606` · `2008671610`): 가입한 이메일도 수락 필요 · 초대 대기(H-17)에 표시. 지금 H-7은 즉시 추가(DEC-015). H-16 하나로 보내도 되는지 + H-17에 닉네임 · 프로필 이미지 요청.
-- **B72. 초대 거절** — 디자이너 결정(`2008671614`) · GUI `1470:5877` · `1470:5905` · `img_초대장_decline`. `POST /api/v2/host-invitations/{token}/decline` + `DECLINED` 상태 요청.
-- **B73. 호스트 삭제** — Design Sync #293(`1549:15221` · `1551:104649` · `1556:15836`). DEC-013 재검토 · `DELETE /api/v2/hosts/{id}` · 막는 조건 · `preparingEventCount` 요청.
+운영 결정 **DEC-042 — DEC-015(초대 즉시 추가) · DEC-013(호스트 삭제 없음) 폐기**. 답과 반영 위치는 `api-contract.md`(H-16 · H-17 · H-21 · H-22 · GH-3/PH-4 · O-3 · GM-4 줄과 "호스트 초대" · "호스트 삭제" · "주문 상세 옵션 답" · "관심 호스트 정렬" 절), `implementation-log.md` "BE-961".
 
-### B67~B68. 주문상세 · 관심 호스트 GUI 반영 중 나온 것(2026-11-07, `p9-gui-orders`) — **보냄(2026-11-17, Backend #961)**
-
-- **B67. 주문상세(O-3) 옵션 답 종류 · 선물 메모** — GUI(`1175:19046` · `1175:19358`, 2026-11-07 Ready)가 객관식 답을 [예][아니오] 버튼으로, 주관식을 입력칸으로 그리고, 선물 중인 티켓에 "선물메모"(선물할 때 쓴 메모) 줄을 그린다. O-3 `optionAnswers`는 `optionName · description · answer · additionalPrice`뿐이라 옵션 종류(`YES_NO` · `SUBJECTIVE` · …)와 선택지를 알 수 없고, `issuedTickets`에 선물 메모가 없다(메모는 PG-1 · GG-7에만). ① `optionAnswers[].optionType`(+ 객관식이면 선택지) ② `issuedTickets[].giftMemo`(보낸 사람 본인에게만)를 O-3에 더할 수 있는지. **답이 없으면**: 모든 답을 읽기 전용 입력칸, 선물메모 줄 없음(디자인 Q177).
-- **B68. 관심 호스트(GM-4) 정렬 기준** — GUI 관심호스트(`1175:20346`)가 위에 "최신공연순"을 단다. GM-4가 지금 어떤 순서로 주는지(팔로우한 순 · 대표 공연 날짜 순 등) 확인하고, "최신공연순"(대표 공연이 가까운 순 또는 최근 등록 순 — 디자인 확인 Q180)과 다르면 그 정렬을 둘 수 있는지. **답이 없으면**: 라벨 "최신공연순" 그대로, 순서는 서버 그대로.
+- **B71** 모든 초대 H-16(가입한 이메일도), PH-7 deprecated. H-17 `inviteeNickname` · `inviteeProfileImageUrl`(nullable). 묶음 API 없음 — 이메일마다 H-16. 알림은 메일만
+- **B72** H-21 `POST /host-invitations/{token}/reject` → `{hostId, hostName}`. 오류는 H-20과 같다
+- **B73** H-22 `DELETE /hosts/{hostId}` → `{hostId, deletedEventCount}`, `HOST_400_22`. GH-3 · PH-4 `preparingEventCount` · `deletable` · `deleteBlockedReason`(마스터만 값)
+- **B67** `optionAnswers[].optionType` · `choices`(지금 옵션 기준), O-3 `issuedTickets[].giftMemo`
+- **B68** GM-4 `sort=LATEST_EVENT`
 
 ### B66. 예매자 관리 선물 상태 GUI 반영 중 나온 것(2026-11-07, `design-160-161`) — **전달함 Backend #949(2026-11-07)**
 
