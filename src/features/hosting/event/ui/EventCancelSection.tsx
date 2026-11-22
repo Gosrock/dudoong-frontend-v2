@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { EVENT_CANCEL_REASON_MAX } from '@/api/event/schema';
+import { formatKstDotDate, formatKstTime } from '@/api/shared/date';
 import { SUPPORT_CHANNEL_URL } from '@/features/shared/routes';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
 import { Button } from '@/ui/components/Button/Button';
@@ -28,6 +29,9 @@ import { useEventCancel } from '../model/useEventCancel';
 import * as s from './EventCancelSection.css';
 
 type EventCancel = ReturnType<typeof useEventCancel>;
+
+/** 취소 일시 "2026.01.10 14:30"(GUI `1912:3661` "날짜: …") — 날짜 유틸로(patterns §9) */
+const canceledAtLabel = (at: string) => `${formatKstDotDate(at)} ${formatKstTime(at)}`;
 
 /*
  * 공연 취소 E-11(Api 2.5.8 — 이슈 #136 §7). GUI Ready(Design Sync #326 · #332, 2026-11-21 — 전에는 디자인이 없어 DS로만 그렸다, Q122~Q124):
@@ -56,7 +60,7 @@ export function CanceledEventNotice({ cancel }: { cancel: EventCancel }) {
       )}
       {cancel.canceled && (cancel.canceledAt || cancel.cancelReason) && (
         <Txt as="p" typography="labelMd" color={colors.textSecondaryLabel} className={s.lines}>
-          {cancel.canceledAt && <>날짜: {cancel.canceledAt}</>}
+          {cancel.canceledAt && <>날짜: {canceledAtLabel(cancel.canceledAt)}</>}
           {cancel.canceledAt && cancel.cancelReason && <br />}
           {cancel.cancelReason && <>사유: {cancel.cancelReason}</>}
         </Txt>
@@ -160,7 +164,7 @@ export function EventCancelSection({
           {CANCEL_SECTION_NOTICE}
         </Txt>
         <div className={s.textButtonRow}>
-          {/* 화면이 직접 그린 빨간 글자 버튼(gui 1912:3126 "공연 취소하기") — 화면대로(R1) */}
+          {/* FIGMA-CUSTOM: [공연 취소하기](gui 1912:3126 "공연 취소하기") 화면이 직접 그린 빨간 글자 버튼 → 커스텀 EventCancelSection.css.ts. DS 후보(글자 버튼) */}
           <button type="button" className={s.textButton} onClick={() => setOpen(true)}>
             <Txt typography="labelMdEmphasized" color={colors.textDangerLabel}>
               공연 취소하기

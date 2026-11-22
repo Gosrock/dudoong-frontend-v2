@@ -7,6 +7,7 @@ import { vars } from '@/ui/theme/tokens.css';
  * 취소된 공연 안내(GUI `취소 안내` `1912:3661` · 모바일 `1912:4466`, Design Sync #326 · #332) — #FEEDEC(`brand/accent-subtle`) ·
  * 모서리 20 · 패딩 16 · 간격 8. 자리 · 좌우 여백은 대시보드가 정한다(머리 묶음 안)
  */
+// FIGMA-CUSTOM: 취소된 공연 안내(gui 1913:36515 "취소 안내") 화면이 직접 그린 분홍 상자 → 커스텀 EventCancelSection.css.ts. DS 후보(안내 상자)
 export const canceledBox = style({
   display: 'flex',
   flexDirection: 'column',
@@ -77,6 +78,7 @@ export const textButton = style({
 });
 
 /** 확인 창 분홍 안내(GUI `안내` 432×64 — #FEEDEC · 모서리 12 · 패딩 12, `Body/md` 빨강) */
+// FIGMA-CUSTOM: 취소 확인 안내(gui 1913:36824 "안내") 화면이 직접 그린 분홍 상자 → 커스텀 EventCancelSection.css.ts. DS 후보(안내 상자)
 export const warnBox = style({
   margin: 0,
   padding: vars.space[3],
