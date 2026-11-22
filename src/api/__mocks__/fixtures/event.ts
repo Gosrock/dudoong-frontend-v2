@@ -8,8 +8,19 @@ import type {
   Tag,
   TagGroup,
 } from '../../event/schema';
+import { formatKstDateTime } from '../../shared/date';
 import type { PublicTicketItem } from '../../ticket-item/schema';
 import { MOCK_IMAGE_ORIGIN } from '../respond';
+
+/**
+ * 지금(KST)부터 `days`일 뒤 날짜의 `time` — `'yyyy.MM.dd HH:mm'`. 모듈을 읽을 때 한 번 정한다.
+ * dev:mock · e2e · QA(가짜 백엔드)는 실제 시각이라 "시작 전 공연"이 날짜가 지나도 시작 전으로 남는다(2026-11-22 — 101이 11-21에 지나
+ * 구매 · 판매 상태가 어긋남). vitest는 `vitest.clock`의 TEST_NOW(2026-11-18 12:00)라 값이 예전 절대값과 같다(101 → 2026.11.21 19:00).
+ */
+export function kstDaysFromNow(days: number, time: string) {
+  const date = formatKstDateTime(new Date(Date.now() + days * 24 * 60 * 60 * 1000)).slice(0, 10);
+  return `${date} ${time}`;
+}
 
 /**
  * 공연 fixture. 값은 운영 응답 모양을 따랐다(2026-10-17 운영 GP-1·GP-2·GP-3·GP-5·GE-5 확인).
@@ -203,8 +214,9 @@ export const events: MockEvent[] = [
     eventId: 101,
     name: '고스락 제37회 정기공연',
     posterImageUrl: poster(101),
-    startAt: '2026.11.21 19:00',
-    endAt: '2026.11.21 21:00',
+    // 지금 + 3일(vitest TEST_NOW 기준 2026.11.21 19:00) — 늘 시작 전이게
+    startAt: kstDaysFromNow(3, '19:00'),
+    endAt: kstDaysFromNow(3, '21:00'),
     place: {
       name: '홍대 롤링홀',
       address: '서울 마포구 어울마당로 35',

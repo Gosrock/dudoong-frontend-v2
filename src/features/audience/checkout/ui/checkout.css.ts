@@ -26,7 +26,30 @@ export const agreementList = style([
   },
 ]);
 
-/** [자세히] 펼친 항목 — Accordion 행과 같은 좌우 24 */
-export const agreementDetailBody = style({
-  padding: `${vars.space[3]} ${vars.space[5]} ${vars.space[4]} calc(${vars.space[5]} + ${vars.space[5]})`,
+/**
+ * 판매정보 회색 상자(GUI `1952:49360` · `1952:50156` — 채움 `surface/container` 변수 · 안쪽 24 · 줄 사이 16). 직접 그린 상자
+ * FIGMA-CUSTOM: 판매정보 회색 상자(gui 1952:49360 · 1952:50156 직접 그린 상자) → Figma대로 커스텀. DS 후보 없음(옵션 응답 상자 `optionBox`와 같은 판)
+ */
+export const grayBox = style({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: vars.space[4],
+  padding: vars.space[5],
+  background: vars.color.surface.container,
 });
+
+/** 회색 상자 안 번호 목록 — `Body/sm` 13 · `text/secondary-label`(GUI `1952:49362` · `1952:50161`, 항목 사이 간격 없음) */
+export const bodyList = style([
+  typography.bodySm,
+  {
+    margin: 0,
+    paddingInlineStart: vars.space[5],
+    color: vars.color.text.secondaryLabel,
+  },
+]);
+
+/** 회색 상자 안 문단 — 목록과 같은 글자 */
+export const bodyText = style([
+  typography.bodySm,
+  { margin: 0, color: vars.color.text.secondaryLabel },
+]);

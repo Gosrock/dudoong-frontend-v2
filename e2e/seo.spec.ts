@@ -4,6 +4,11 @@ import { events } from '@/api/__mocks__/fixtures/event';
 import { MOCK_ORIGIN } from './support/env';
 import { expect, test } from './support/fixtures';
 
+const isoDay101 = events
+  .find((e) => e.eventId === 101)!
+  .startAt!.slice(0, 10)
+  .replaceAll('.', '-');
+
 /**
  * 검색·AI 노출 기반(이슈 #8) — `robots.txt`, `sitemap.xml`, 공연 상세 JSON-LD. 크롤러는 JS를 실행하지 않으므로
  * 브라우저 없이 응답 본문만 본다.
@@ -93,8 +98,9 @@ test.describe('공연 상세 JSON-LD', () => {
       '@context': 'https://schema.org',
       '@type': 'Event',
       name: '고스락 제37회 정기공연',
-      startDate: '2026-11-21T19:00:00+09:00',
-      endDate: '2026-11-21T21:00:00+09:00',
+      // 101 시작은 지금 + 3일 19:00(fixture `kstDaysFromNow`)
+      startDate: `${isoDay101}T19:00:00+09:00`,
+      endDate: `${isoDay101}T21:00:00+09:00`,
       eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
       eventStatus: 'https://schema.org/EventScheduled',
       location: { '@type': 'Place', name: '홍대 롤링홀' },

@@ -3,11 +3,15 @@ import { style } from '@vanilla-extract/css';
 import { media } from '@/ui/theme/breakpoints';
 import { sprinkles } from '@/ui/theme/sprinkles.css';
 import { vars } from '@/ui/theme/tokens.css';
+import { typographySpecs } from '@/ui/theme/typography.css';
 
-/** PC 본문 폭(figma-structure 공연홈 PC "본문 1200", 와이어 `626:19888` — 1440에서 좌우 120) */
-export const CONTENT_MAX = 1200;
-/** 본문 왼쪽 끝 — 모바일 24(GUI `759:22410` 좌우 24), PC는 1200 본문의 왼쪽(캐러셀은 이 선에서 시작해 화면 오른쪽 끝까지 흐른다) */
-const edge = `max(${vars.space[5]}, calc((100% - ${CONTENT_MAX}px) / 2))`;
+/** PC 본문 폭(GUI `1974:63988` "본문 영역 (최대 1280)" · 좌우 여백 최소 80 — Design Sync #356 · #357. 옛 와이어 `626:19888`은 1200) */
+export const CONTENT_MAX = 1280;
+/** 본문 왼쪽 끝 — 모바일 24(GUI `759:22410` 좌우 24) */
+const edge = vars.space[5];
+/** PC 본문 왼쪽 끝 — 1280 본문의 왼쪽, 좁으면 80(GUI `1974:63987` 좌우 80) */
+// space[9]는 PC에서 80(모바일 64 — 쓰지 않음)
+const edgeDesktop = `max(${vars.space[9]}, calc((100% - ${CONTENT_MAX}px) / 2))`;
 
 /**
  * 마지막 섹션(두둥 소개) ↔ 푸터 — GUI `759:22572` 아래 안쪽 32 + 푸터 `1383:3429`까지 41(토큰 40으로) = 72.
@@ -49,16 +53,31 @@ export const section = style({
   flexDirection: 'column',
   gap: vars.space[4],
   paddingTop: vars.space[6],
-  '@media': { [media.desktop]: { gap: vars.space[5], paddingTop: vars.space[8] } },
+  // PC 본문 위 48(GUI `1974:63987` 위 안쪽 48 — space[7]은 PC 48)
+  '@media': { [media.desktop]: { gap: vars.space[5], paddingTop: vars.space[7] } },
 });
 
-export const sectionHead = style({ paddingInline: edge });
+/** 섹션 제목 — 모바일 `Heading/md - emphasized` 20, PC 24/700(GUI `1974:63991` — `Heading/lg - emphasized` 크기) */
+export const sectionTitle = style({
+  '@media': {
+    [media.desktop]: {
+      fontSize: typographySpecs.headingLgEmphasized.size,
+      fontWeight: typographySpecs.headingLgEmphasized.weight,
+    },
+  },
+});
 
-/** "더 많은 공연 둘러보기 ↗" — 글자 + ic_diagonal(GUI `759:22411` 간격 12)이 한 링크 */
+export const sectionHead = style({
+  paddingInline: edge,
+  '@media': { [media.desktop]: { paddingInline: edgeDesktop } },
+});
+
+/** "더 많은 공연 둘러보기 ↗" — 글자 + ic_diagonal(GUI `759:22411` 간격 12, PC `1974:63990` 8)이 한 링크 */
 export const moreLink = style({
   display: 'inline-flex',
   alignItems: 'center',
   gap: vars.space[3],
+  '@media': { [media.desktop]: { gap: vars.space[2] } },
   color: vars.color.text.primary,
   textDecoration: 'none',
   borderRadius: vars.radius[2],
@@ -67,7 +86,10 @@ export const moreLink = style({
   },
 });
 
-/** 가로 캐러셀(GUI `759:22414` 카드 163 · 간격 16, 와이어 PC 카드 282 · 간격 24) */
+/**
+ * 모바일 가로 캐러셀(GUI `759:22414` 카드 163 · 간격 16). PC는 6칸 고정 격자(GUI `1974:63993` 1280 · 간격 24 · 카드 193 — 가로 스크롤 없음,
+ * Design Sync #356). 1024~1279도 6칸(🤖 — PC 그림은 1440 하나)
+ */
 export const carousel = style([
   sprinkles({ listStyle: 'none' }),
   {
@@ -82,19 +104,36 @@ export const carousel = style([
     scrollPaddingInline: edge,
     scrollbarWidth: 'none',
     selectors: { '&::-webkit-scrollbar': { display: 'none' } },
-    '@media': { [media.desktop]: { gap: vars.space[5] } },
+    '@media': {
+      [media.desktop]: {
+        display: 'grid',
+        gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+        gap: vars.space[5],
+        paddingInline: edgeDesktop,
+        overflowX: 'visible',
+        scrollSnapType: 'none',
+      },
+    },
   },
 ]);
 
 export const carouselItem = style({
   flex: '0 0 163px',
+  minWidth: 0,
   scrollSnapAlign: 'start',
-  '@media': { [media.desktop]: { flexBasis: 282 } },
 });
 
-export const empty = style({ paddingInline: edge });
+/**
+ * 끝난 공연 카드 — 흐리게(#356 "진행 중인 공연이 아닌 경우 오퍼시티 낮춰서"). 값은 Figma에 없어 0.4(🤖 — 비활성 표시와 같은 정도, 디자인 없음 코멘트)
+ */
+export const pastItem = style({ opacity: 0.4 });
 
-/** 두둥 소개(GUI `759:22549` — 위 섹션과 간격 32(`759:22572` itemSpacing), 제목 ↔ 카드 16, 좌우 24 · PC 본문 1200) */
+export const empty = style({
+  paddingInline: edge,
+  '@media': { [media.desktop]: { paddingInline: edgeDesktop } },
+});
+
+/** 두둥 소개(GUI `759:22549` — 위 섹션과 간격 32(`759:22572` itemSpacing), 제목 ↔ 카드 16, 좌우 24 · PC 본문 1280 · 좌우 80) */
 export const intro = style({
   display: 'flex',
   flexDirection: 'column',
@@ -104,7 +143,14 @@ export const intro = style({
   marginInline: 'auto',
   paddingTop: vars.space[6],
   paddingInline: vars.space[5],
-  '@media': { [media.desktop]: { gap: vars.space[5], paddingTop: vars.space[8] } },
+  '@media': {
+    [media.desktop]: {
+      maxWidth: `calc(${CONTENT_MAX}px + ${vars.space[9]} * 2)`,
+      gap: vars.space[5],
+      paddingTop: vars.space[8],
+      paddingInline: vars.space[9],
+    },
+  },
 });
 
 /** "두둥 소개" + ↗(GUI `759:22544` 간격 12) — 링크가 아니다 */

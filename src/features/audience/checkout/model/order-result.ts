@@ -29,12 +29,24 @@ export function orderResultKind(order: Pick<MyOrderDetail, 'status' | 'payment'>
 }
 
 /**
- * 완료 안내 문구(P7-V). 무료 승인 대기는 GUI `939:27829` 글자 그대로, 즉시 발급·그 밖은 GUI에 없어 정했다(디자인 없음 — Figma 코멘트).
- * 입금 대기는 B23(주문 먼저 → 입금, 2026-11-02)으로 "입금해 주세요"로 바꾸고 아래에 계좌·금액(`DepositGuide`)을 둔다 — 🤖 Claude 판단, Q97
+ * 완료 제목(Design Sync #354, GUI `939:27829` 2026-11-22): 곧바로 승인되지 않는 주문(승인 대기 — 입금형 · 무료 승인형)은 "주문 접수 완료!",
+ * 즉시 발급은 "주문 완료!". 그 밖(새로고침 사이 거절·취소 등)도 "주문 완료!"(주문은 만들어졌다 — 🤖 GUI 없음)
+ */
+export const ORDER_RESULT_TITLE: Record<OrderResultKind, string> = {
+  AWAITING_DEPOSIT_APPROVAL: '주문 접수 완료!',
+  AWAITING_APPROVAL: '주문 접수 완료!',
+  ISSUED: '주문 완료!',
+  OTHER: '주문 완료!',
+};
+
+/**
+ * 완료 안내 문구(P7-V). 승인 대기는 GUI `939:27829` 글자 그대로(2026-11-22 판 — 입금형도 같은 글자: 입금 확인 창 버튼이 [입금완료]로 바뀌어
+ * 입금을 창에서 안내한다, #353). 입금형은 아래 계좌 · 토스 송금(`DepositGuide`)을 계속 둔다 — 창에서 입금하지 않았거나 토스로 보낼 때(🤖 B23 · Q97).
+ * 즉시 발급 · 그 밖은 GUI에 없어 정했다(디자인 없음 — Figma 코멘트)
  */
 export const ORDER_RESULT_MESSAGE: Record<OrderResultKind, string> = {
-  AWAITING_DEPOSIT_APPROVAL: '아래 계좌로 입금해 주세요. 호스트가 입금을 확인하면 티켓이 발급돼요.',
-  AWAITING_APPROVAL: '티켓 승인여부는 티켓 페이지에서 확인 가능합니다!',
+  AWAITING_DEPOSIT_APPROVAL: '티켓 승인 여부는 티켓 페이지에서 확인 가능합니다!',
+  AWAITING_APPROVAL: '티켓 승인 여부는 티켓 페이지에서 확인 가능합니다!',
   ISSUED: '티켓이 발급됐어요. 티켓 페이지에서 확인해 주세요!',
   OTHER: '주문 상태는 주문내역에서 확인해 주세요.',
 };

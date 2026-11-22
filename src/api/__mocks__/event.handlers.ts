@@ -123,12 +123,42 @@ export const eventHandlers = [
   }),
 ];
 
+/** 공연홈 근래 공연 요청(`homeRecentEventsQuery` — `includePast=true&page=0&size=6`)인지 */
+function isHomeRecentRequest(request: Request) {
+  const q = new URL(request.url).searchParams;
+  return (
+    q.get('includePast') === 'true' &&
+    q.get('size') === '6' &&
+    !q.get('keyword') &&
+    !q.get('tagIds')
+  );
+}
+
 /** 공연홈·공연 리스트(P5a) 시나리오 세트. 기본 목록 앞에 끼운다(`server.use(...)` / e2e `mockApi.use(...)`) */
 export const eventBrowseSets = {
-  /** GP-1 공연 없음 */
-  homeEmpty: [http.get('*/api/v2/home', () => ok({ events: [] }))],
-  /** GP-1 5xx(서버 조회 → 크롤러 500) */
-  homeServerError: [http.get('*/api/v2/home', ({ request }) => errors.serverError(request))],
+  /** 공연홈 근래 공연(GP-2 지난 공연 포함 — Design Sync #356) 없음. 공연 리스트(지난 공연 빼고)는 그대로 */
+  homeEmpty: [
+    http.get('*/api/v2/events', ({ request }) =>
+      isHomeRecentRequest(request) ? ok(paginate([], 0, 6)) : undefined,
+    ),
+  ],
+  /** 공연홈 근래 공연 5xx(서버 조회 → 크롤러 500) */
+  homeServerError: [
+    http.get('*/api/v2/events', ({ request }) =>
+      isHomeRecentRequest(request) ? errors.serverError(request) : undefined,
+    ),
+  ],
+  /** 공연홈 근래 공연에 끝난 공연이 섞임 — 시작 전 1(101) + 지난 공연 2(90 · 91). 끝난 카드는 흐리게(#356) */
+  homeWithPast: [
+    http.get('*/api/v2/events', ({ request }) => {
+      if (!isHomeRecentRequest(request)) return undefined;
+      const picked = [101, 90, 91]
+        .map((id) => events.find((e) => e.eventId === id))
+        .filter((e) => e !== undefined)
+        .map(toListItem);
+      return ok(paginate(picked, 0, 6));
+    }),
+  ],
   /** GP-2 결과 없음(필터와 무관) */
   listEmpty: [http.get('*/api/v2/events', () => ok(paginate([], 0, 10)))],
   /** GP-2 두 번째 페이지부터 5xx */

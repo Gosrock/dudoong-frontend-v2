@@ -3,8 +3,9 @@ import { http } from 'msw';
 
 import { eventDetailHandlers } from '@/api/__mocks__/event-detail.handlers';
 import { saveStoredEvent, storedEvent } from '@/api/__mocks__/event-store';
-import { MISSING_EVENT_ID } from '@/api/__mocks__/fixtures/event';
+import { events, MISSING_EVENT_ID } from '@/api/__mocks__/fixtures/event';
 import { resetHostingStore } from '@/api/__mocks__/hosting.handlers';
+import { formatKstDotDate, kstParts } from '@/api/shared/date';
 
 import { setMockSession } from './support/auth';
 import { KAKAO_SCRAP_UA, MOCK_ORIGIN } from './support/env';
@@ -36,8 +37,10 @@ test.describe('공연 상세 — 카카오 크롤러 계약', () => {
     const head = headOf(await res.text());
     expect(head).toContain('<title>고스락 제37회 정기공연 | 두둥</title>');
     expect(meta(head, 'og:title')).toBe('고스락 제37회 정기공연');
+    // 101 시작은 지금 + 3일 19:00(fixture `kstDaysFromNow`)
+    const startAt = events.find((e) => e.eventId === 101)!.startAt!;
     expect(meta(head, 'og:description')).toBe(
-      '2026.11.21 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
+      `${formatKstDotDate(startAt)} (${kstParts(startAt).weekday}) 19:00 (120분) · 홍대 롤링홀 · 고스락`,
     );
     expect(meta(head, 'og:image')).toBe('https://image.mock.dudoong.test/event/101/poster.jpeg');
     expect(meta(head, 'og:url')).toBe(`${MOCK_ORIGIN}/events/101`);
@@ -109,7 +112,16 @@ test.describe('공연 상세 — 브라우저', () => {
       page.getByRole('heading', { level: 1, name: '고스락 제37회 정기공연' }),
     ).toBeVisible();
     // 일시는 모바일 아이콘 행(한 줄)·PC 정보 표(일자) 중 화면 크기에 맞는 하나만 보인다(같은 DOM, CSS — patterns §1)
-    await expect(page.getByText(/^2026\.11\.21 \(토\)/).filter({ visible: true })).toHaveCount(1);
+    const start101 = events.find((e) => e.eventId === 101)!.startAt!;
+    await expect(
+      page
+        .getByText(
+          new RegExp(
+            `^${formatKstDotDate(start101).replaceAll('.', '\\.')} \\(${kstParts(start101).weekday}\\)`,
+          ),
+        )
+        .filter({ visible: true }),
+    ).toHaveCount(1);
     // 섹션은 탭으로 그린다(P5b-V)
     await expect(sectionTab(page, '세트리스트')).toBeVisible();
 

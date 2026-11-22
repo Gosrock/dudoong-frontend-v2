@@ -1,4 +1,4 @@
-import { homeQuery } from '@/api/event/queries';
+import { homeRecentEventsQuery } from '@/api/event/queries';
 import { Prefetch } from '@/api/server/Prefetch';
 import { HomeView } from '@/features/audience/home/HomeView';
 import { KartriderPreload } from '@/ui/theme/KartriderPreload';
@@ -7,12 +7,12 @@ import { KartriderPreload } from '@/ui/theme/KartriderPreload';
 export const instant = false;
 
 /**
- * 공연홈(GP-1). 서버가 토큰 없이 조회해 HTML에 넣고(`<Prefetch>`), 화면은 브라우저 캐시에서 읽는다.
+ * 공연홈(GP-2 근래 6개 — Design Sync #356 · #357, 옛 GP-1). 서버가 토큰 없이 조회해 HTML에 넣고(`<Prefetch>`), 화면은 브라우저 캐시에서 읽는다.
  * 5xx는 throw → 크롤러 500(잘못된 미리보기를 캐시하지 않게).
  */
 export default function HomePage() {
   return (
-    <Prefetch queries={[homeQuery()]}>
+    <Prefetch queries={[homeRecentEventsQuery()]}>
       <KartriderPreload />
       <HomeView />
     </Prefetch>

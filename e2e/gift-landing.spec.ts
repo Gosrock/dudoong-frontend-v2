@@ -1,5 +1,6 @@
 import type { Page } from '@playwright/test';
 
+import { events } from '@/api/__mocks__/fixtures/event';
 import {
   GIFT_TOKEN,
   MISSING_GIFT_TOKEN,
@@ -33,7 +34,9 @@ test.describe('선물 랜딩 — 서버 조회와 OG', () => {
     expect(res.status()).toBe(200);
     const head = headOf(await res.text());
     expect(meta(head, 'og:title')).toBe('고스락 제37회 정기공연 티켓 선물');
-    expect(meta(head, 'og:description')).toBe('2026.11.21 19:00 · 홍대 롤링홀 · 일반 예매');
+    // 101 시작은 지금 + 3일 19:00(fixture `kstDaysFromNow`)
+    const startAt = events.find((e) => e.eventId === 101)!.startAt!;
+    expect(meta(head, 'og:description')).toBe(`${startAt} · 홍대 롤링홀 · 일반 예매`);
     expect(meta(head, 'og:image')).toBe('https://image.mock.dudoong.test/event/101/poster.jpeg');
     expect(meta(head, 'robots')).toBe('noindex, nofollow');
     expect(head).not.toContain('김*수');
