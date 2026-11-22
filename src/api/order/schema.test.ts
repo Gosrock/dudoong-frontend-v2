@@ -329,11 +329,15 @@ describe('O-3 optionAnswers optionType · choices, issuedTickets giftMemo(Api 2.
     expect(
       OrderOptionAnswerSchema.parse({ ...base, optionType: 'YES_NO', choices: ['예', '아니요'] }),
     ).toMatchObject({ optionType: 'YES_NO', choices: ['예', '아니요'] });
-    expect(OrderOptionAnswerSchema.parse({ ...base, optionType: null, choices: null })).toMatchObject({
+    expect(
+      OrderOptionAnswerSchema.parse({ ...base, optionType: null, choices: null }),
+    ).toMatchObject({
       optionType: null,
       choices: null,
     });
-    expect(OrderOptionAnswerSchema.parse({ ...base, optionType: 'RATING' }).optionType).toBe('UNKNOWN');
+    expect(OrderOptionAnswerSchema.parse({ ...base, optionType: 'RATING' }).optionType).toBe(
+      'UNKNOWN',
+    );
   });
   it('선물 대기 · 완료 티켓은 giftMemo, 그 밖은 null(mock 주문)', () => {
     const tickets = Object.values(p9SeededOrders)

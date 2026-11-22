@@ -469,13 +469,17 @@ test.describe('멤버 관리 — 초대 대기', () => {
     ).toEqual([['/api/v2/hosts/11/invitations', 200]]);
   });
 
-  test('이름 줄(가입한 계정이 하나) — 아바타 + 닉네임 + 역할, [취소]는 이메일로 부른다', async ({ page }) => {
+  test('이름 줄(가입한 계정이 하나) — 아바타 + 닉네임 + 역할, [취소]는 이메일로 부른다', async ({
+    page,
+  }) => {
     await setMockSession(page, 'loggedIn');
     await page.goto('/hosting/hosts/11/members');
     const named = page.getByTestId('invitation-row').filter({ hasText: '두둥이' });
     await expect(named).toHaveAttribute('data-kind', 'name');
     await expect(named).toContainText('매니저');
-    await expect(named.getByRole('button', { name: 'dudoong@example.com 초대 취소' })).toBeVisible();
+    await expect(
+      named.getByRole('button', { name: 'dudoong@example.com 초대 취소' }),
+    ).toBeVisible();
   });
 
   test('발급 한도(HOST_400_21)면 칸 아래 사유, 시트는 열린 채(GUI 1476:7242)', async ({ page }) => {

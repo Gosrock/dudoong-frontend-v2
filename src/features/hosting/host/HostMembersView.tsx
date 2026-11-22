@@ -370,7 +370,8 @@ function PermissionGuideSheet({
 /**
  * 초대 시트 설명(`1469:5793` 외 — Design Sync #283 · #284). Figma 그대로 — 모든 초대가 상대 수락 뒤 멤버가 된다(B71 · #348, DEC-042)
  */
-const INVITE_DESCRIPTION = '카카오톡에 가입한 이메일로 적어주세요.\n상대방 승인 후 멤버로 추가돼요.';
+const INVITE_DESCRIPTION =
+  '카카오톡에 가입한 이메일로 적어주세요.\n상대방 승인 후 멤버로 추가돼요.';
 
 /**
  * 초대 시트(`1422:1911` · 매니저 `1423:4341` · 역할 열림 `1467:5001`, PC 모달 `1496:11298`) — 이메일 + 역할(기본 "일반", 매니저는
@@ -396,8 +397,7 @@ function InviteSheet({
   const invitations = useHostInvitations(hostId, myRole);
   const errorId = useId();
   const row = inviteForm.rows[0]!;
-  const error =
-    inviteForm.serverErrors[0] ?? (inviteForm.attempted ? inviteForm.errors[0] : null);
+  const error = inviteForm.serverErrors[0] ?? (inviteForm.attempted ? inviteForm.errors[0] : null);
   const formId = 'host-invite-form';
   const busy = inviteForm.submitting;
   const reinvite = !error && invitations.hasPendingFor(row.email);

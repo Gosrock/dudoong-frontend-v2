@@ -268,16 +268,19 @@ scenario(
         await expect(page.getByTestId('order-amount')).toHaveText('50,000원');
       },
     );
-    await step('옵션 답 — 주관식은 읽기 전용 칸, 예/아니오는 [예][아니오] 버튼(고른 것만 살아 있음 — GUI 1175:19046, #348 B67)', async () => {
-      const answer = page.getByRole('textbox', { name: /답$/ }).first();
-      await expect(answer).toHaveAttribute('readonly', '');
-      const yesNo = page.getByRole('radiogroup', { name: '뒤풀이 참석 답' });
-      await expect(yesNo).toHaveAttribute('aria-readonly', 'true');
-      await expect(yesNo.getByRole('radio', { name: '예' })).toBeChecked();
-      // 서버 선택지 "아니요"는 표시만 디자인대로 "아니오"
-      await expect(yesNo.getByRole('radio', { name: '아니오' })).toBeDisabled();
-      await expect(page.getByText('옵션 적용', { exact: true })).toBeVisible();
-    });
+    await step(
+      '옵션 답 — 주관식은 읽기 전용 칸, 예/아니오는 [예][아니오] 버튼(고른 것만 살아 있음 — GUI 1175:19046, #348 B67)',
+      async () => {
+        const answer = page.getByRole('textbox', { name: /답$/ }).first();
+        await expect(answer).toHaveAttribute('readonly', '');
+        const yesNo = page.getByRole('radiogroup', { name: '뒤풀이 참석 답' });
+        await expect(yesNo).toHaveAttribute('aria-readonly', 'true');
+        await expect(yesNo.getByRole('radio', { name: '예' })).toBeChecked();
+        // 서버 선택지 "아니요"는 표시만 디자인대로 "아니오"
+        await expect(yesNo.getByRole('radio', { name: '아니오' })).toBeDisabled();
+        await expect(page.getByText('옵션 적용', { exact: true })).toBeVisible();
+      },
+    );
     // 승인 전 취소 안내(⑤-b, 백엔드 #897 확정 문구) — 개정 약관 제27조③ 2026-11-07 시행
     await step('아래 예매취소 안내에 승인 전 취소 문구(⑤-b)가 있다', async () => {
       const notice = page.getByRole('region', { name: '예매취소 안내' });
@@ -442,7 +445,12 @@ scenario(
     kind: '정상',
     summary:
       'patterns §20 조건에 맞는 주문만 [주문취소] 자리에 "선물을 먼저 취소하거나 돌려받아 주세요". 선물 중 티켓에는 선물할 때 쓴 메모(O-3 giftMemo — #348 B67, GUI 1175:19358).',
-    basis: ['plan P9 완료 기준 L 선물 안내 조건', '와이어 498:703', 'GUI 1175:19358', 'Frontend #348 B67'],
+    basis: [
+      'plan P9 완료 기준 L 선물 안내 조건',
+      '와이어 498:703',
+      'GUI 1175:19358',
+      'Frontend #348 B67',
+    ],
   },
   async ({ page, step }) => {
     reset();
@@ -556,7 +564,11 @@ scenario(
     kind: '정상',
     summary:
       'GUI `1175:20346` — 위 오른쪽 고정 라벨 "최신공연순"(와이어 때 상태 필터는 GUI에 없어 뺐다, 디자인 Q180). GM-4 sort=LATEST_EVENT(#348 B68) — 다가오는 공연의 시작이 가까운 호스트부터, 없는 호스트는 뒤. 배지는 tag_v2 round(예정 violet · 공연종료 grey). 해제는 PH-13 DELETE.',
-    basis: ['GUI 1175:20346 관심호스트(2026-11-07 Ready)', 'P9-L representativeBadge', 'Frontend #348 B68'],
+    basis: [
+      'GUI 1175:20346 관심호스트(2026-11-07 Ready)',
+      'P9-L representativeBadge',
+      'Frontend #348 B68',
+    ],
   },
   async ({ page, mockApi, step }) => {
     reset();

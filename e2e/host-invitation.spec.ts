@@ -150,7 +150,9 @@ test.describe('거절', () => {
       .getByRole('button', { name: '거절하기' })
       .click();
     await expect(page.getByRole('heading', { name: '초대를 거절했어요' })).toBeVisible();
-    await expect(page.getByText('다시 참여하려면 호스트에게 새 초대를 요청해 주세요.')).toBeVisible();
+    await expect(
+      page.getByText('다시 참여하려면 호스트에게 새 초대를 요청해 주세요.'),
+    ).toBeVisible();
     await expect(page.getByRole('link', { name: '호스트 홈으로 가기' })).toHaveAttribute(
       'href',
       '/hosts/12',

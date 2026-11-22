@@ -3,14 +3,22 @@ import { describe, expect, it } from 'vitest';
 import { deleteHostConfirmDescription, hostDeletionOf } from './host-delete-rules';
 
 describe('호스트 삭제 영역(H-3 값 — #348 B73)', () => {
-  const values = (deletable: boolean | null | undefined, preparingEventCount: number | null = 0) => ({
+  const values = (
+    deletable: boolean | null | undefined,
+    preparingEventCount: number | null = 0,
+  ) => ({
     deletable,
     preparingEventCount,
     deleteBlockedReason: deletable === false ? 'HOST_400_22' : null,
   });
 
   it.each([
-    ['마스터 · 지울 수 있음 · 준비중 0', values(true, 0), true, { kind: 'ready', preparingEventCount: 0 }],
+    [
+      '마스터 · 지울 수 있음 · 준비중 0',
+      values(true, 0),
+      true,
+      { kind: 'ready', preparingEventCount: 0 },
+    ],
     ['마스터 · 준비중 2개', values(true, 2), true, { kind: 'ready', preparingEventCount: 2 }],
     ['마스터 · 등록한 공연 있음', values(false, 1), true, { kind: 'blocked' }],
     ['마스터가 아님(can false)', values(true, 0), false, { kind: 'hidden' }],

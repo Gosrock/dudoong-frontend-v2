@@ -174,20 +174,23 @@ scenario(
     resetHostMockState();
     await setMockSession(page, 'loggedIn');
     await page.setViewportSize({ width: 1440, height: 1024 });
-    await step('정보 상자 345 가운데 · [거절하기] [수락하기] 줄은 상자 바로 아래(68), 같은 폭으로 345를 채운다', async () => {
-      await page.goto(`/host-invitations/${TOKEN}`);
-      const info = page.getByRole('definition').first().locator('xpath=ancestor::dl');
-      const box = (await info.boundingBox())!;
-      expect(box.width).toBe(345);
-      expect(Math.round(box.x + box.width / 2)).toBe(720);
-      const accept = (await page.getByRole('button', { name: '수락하기' }).boundingBox())!;
-      const reject = (await page.getByRole('button', { name: '거절하기' }).boundingBox())!;
-      expect(Math.round(accept.y - (box.y + box.height))).toBe(68);
-      expect(reject.y).toBe(accept.y);
-      expect(Math.round(reject.width)).toBe(Math.round(accept.width));
-      expect(Math.round(reject.x)).toBe(Math.round(box.x));
-      expect(Math.round(accept.x + accept.width)).toBe(Math.round(box.x + box.width));
-    });
+    await step(
+      '정보 상자 345 가운데 · [거절하기] [수락하기] 줄은 상자 바로 아래(68), 같은 폭으로 345를 채운다',
+      async () => {
+        await page.goto(`/host-invitations/${TOKEN}`);
+        const info = page.getByRole('definition').first().locator('xpath=ancestor::dl');
+        const box = (await info.boundingBox())!;
+        expect(box.width).toBe(345);
+        expect(Math.round(box.x + box.width / 2)).toBe(720);
+        const accept = (await page.getByRole('button', { name: '수락하기' }).boundingBox())!;
+        const reject = (await page.getByRole('button', { name: '거절하기' }).boundingBox())!;
+        expect(Math.round(accept.y - (box.y + box.height))).toBe(68);
+        expect(reject.y).toBe(accept.y);
+        expect(Math.round(reject.width)).toBe(Math.round(accept.width));
+        expect(Math.round(reject.x)).toBe(Math.round(box.x));
+        expect(Math.round(accept.x + accept.width)).toBe(Math.round(box.x + box.width));
+      },
+    );
     await step('만료된 초대 — 가운데 결과 화면', async () => {
       await page.goto(`/host-invitations/${MOCK_INVITE_TOKEN.expired}`);
       await expect(page.getByRole('heading', { name: '만료된 초대장이에요' })).toBeVisible();
@@ -203,7 +206,11 @@ scenario(
     kind: '정상',
     summary:
       'H-21(로그인, #348 B72 · Api 2.5.16). 확인 창 1470:5877(취소 · Primary [거절하기]), 완료 1470:5905(DS img_초대장_decline · 호스트 홈으로). 거절한 링크는 다시 쓸 수 없다(HOST_400_20 — "이미 사용된 초대장이에요").',
-    basis: ['Figma 2008671614 · GUI 1470:5877 · 1470:5905', 'Frontend #348 B72', 'patterns §6 확인 창 계약'],
+    basis: [
+      'Figma 2008671614 · GUI 1470:5877 · 1470:5905',
+      'Frontend #348 B72',
+      'patterns §6 확인 창 계약',
+    ],
   },
   async ({ page, step }) => {
     resetHostMockState();

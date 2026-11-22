@@ -25,7 +25,8 @@ export function hostDeletionOf(
   allowed: boolean,
   raceBlocked = false,
 ): HostDeletion {
-  if (!allowed || host.deletable === null || host.deletable === undefined) return { kind: 'hidden' };
+  if (!allowed || host.deletable === null || host.deletable === undefined)
+    return { kind: 'hidden' };
   if (!host.deletable || raceBlocked) return { kind: 'blocked' };
   return { kind: 'ready', preparingEventCount: host.preparingEventCount ?? 0 };
 }

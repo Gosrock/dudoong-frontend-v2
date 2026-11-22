@@ -303,8 +303,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
       follows.get(host.hostId) ??
       (forced?.isFollowing !== undefined ? forced.isFollowing : base.isFollowing);
     // 삭제 확인 값은 활성 마스터에게만(그 밖 null — #348 B73)
-    const deletion =
-      myRole === 'MASTER' ? (forced?.deletion ?? deletionOf(host.hostId)) : null;
+    const deletion = myRole === 'MASTER' ? (forced?.deletion ?? deletionOf(host.hostId)) : null;
     // 공개 값의 followerCount는 mock 사용자를 빼고 센 수다
     return {
       ...base,
@@ -319,8 +318,7 @@ function buildHostHandlers(override?: { hostId: number } & ViewerOverride) {
 
   const findHost = (raw: unknown) => {
     const id = readId(raw);
-    const found =
-      id === null || isHostDeleted(id) ? undefined : hosts.find((h) => h.hostId === id);
+    const found = id === null || isHostDeleted(id) ? undefined : hosts.find((h) => h.hostId === id);
     return { id, host: found && withHostEdits(found) };
   };
 

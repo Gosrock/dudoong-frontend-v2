@@ -170,18 +170,17 @@ describe('#348 — H-16 가입한 이메일 · H-17 닉네임 · H-21 거절 · 
       hostId: 12,
       hostName: '소음공작소',
     });
-    expect(await codeOf(call(rejectHostInvitationMutation(MOCK_INVITE_TOKEN.valid), undefined))).toEqual([
-      400,
-      'HOST_400_20',
-    ]);
-    expect(await codeOf(call(acceptHostInvitationMutation(MOCK_INVITE_TOKEN.valid), undefined))).toEqual([
-      400,
-      'HOST_400_20',
-    ]);
-    expect(await codeOf(new QueryClient().fetchQuery(hostInvitationLandingQuery(MOCK_INVITE_TOKEN.valid)))).toEqual([
-      400,
-      'HOST_400_20',
-    ]);
+    expect(
+      await codeOf(call(rejectHostInvitationMutation(MOCK_INVITE_TOKEN.valid), undefined)),
+    ).toEqual([400, 'HOST_400_20']);
+    expect(
+      await codeOf(call(acceptHostInvitationMutation(MOCK_INVITE_TOKEN.valid), undefined)),
+    ).toEqual([400, 'HOST_400_20']);
+    expect(
+      await codeOf(
+        new QueryClient().fetchQuery(hostInvitationLandingQuery(MOCK_INVITE_TOKEN.valid)),
+      ),
+    ).toEqual([400, 'HOST_400_20']);
   });
 
   it.each([
@@ -222,7 +221,10 @@ describe('#348 — H-16 가입한 이메일 · H-17 닉네임 · H-21 거절 · 
       hostId: 12,
       deletedEventCount: 2,
     });
-    expect(await codeOf(new QueryClient().fetchQuery(hostViewerQuery(12)))).toEqual([404, 'Host_404_1']);
+    expect(await codeOf(new QueryClient().fetchQuery(hostViewerQuery(12)))).toEqual([
+      404,
+      'Host_404_1',
+    ]);
     expect(await following()).not.toContain(12);
     const mine = await new QueryClient().fetchInfiniteQuery(myHostsQuery());
     expect(mine.pages[0]!.content.some((h) => h.hostId === 12)).toBe(false);

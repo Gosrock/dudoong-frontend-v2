@@ -10,7 +10,11 @@ import { hostInvitationsQuery } from '@/api/host-invitation/queries';
 import { type ActorRole, can } from '@/features/shared/permission/model/can';
 import { tryCatch } from '@/utils/try-catch';
 
-import { hasPendingInvitation, INVITATION_GONE_MESSAGE, invitationRowsOf } from './invitation-rules';
+import {
+  hasPendingInvitation,
+  INVITATION_GONE_MESSAGE,
+  invitationRowsOf,
+} from './invitation-rules';
 
 /** 초대 취소 결과 — 성공 `true` · 이미 없는 초대(`HOST_404_3`, 목록을 다시 읽음) `'missing'` · 그 밖 실패 `false` */
 export type CancelInvitationResult = boolean | 'missing';
