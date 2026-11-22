@@ -65,7 +65,8 @@ export function TicketSelector({
 
       {showPicked && selected && (
         <div className={framed ? undefined : s.pickedPlain}>
-          <PickedTicket selection={selection} />
+          {/* PC 예매 패널에는 A-4 안내를 그리지 않는다 — 사용자 지시 2026-11-22(입금 전 고지는 체크아웃 A-6) */}
+          <PickedTicket selection={selection} showNotice={false} />
         </div>
       )}
     </Flex>
@@ -75,9 +76,17 @@ export function TicketSelector({
 /**
  * 고른 티켓 줄(GUI `759:22112` "공연상세 - 티켓 선택"): 왼쪽 이름(`Heading/sm - emphasized`) 아래 수량(DS `numbering` − 1 +),
  * 오른쪽 ✕(선택 취소 — 회색 24) 아래 금액(`Label/lg-emphasized`). 모바일은 하단 바 위, PC는 오른쪽 카드 목록 아래.
- * 두둥 티켓이면 아래에 legal-copy A-4 안내(디자인 없음 — 와이어 P6-V 자리 그대로).
+ * 두둥 티켓이면 아래에 legal-copy A-4 안내(디자인 없음 — 와이어 P6-V 자리 그대로) — 모바일 하단 고른 티켓 줄만.
+ * PC 예매 패널은 `showNotice={false}`(사용자 지시 2026-11-22 — 입금 전 고지는 체크아웃 입금 확인 창 A-6).
  */
-export function PickedTicket({ selection }: { selection: TicketSelection }) {
+export function PickedTicket({
+  selection,
+  showNotice = true,
+}: {
+  selection: TicketSelection;
+  /** legal-copy A-4 두둥 티켓 안내. PC 예매 패널은 false(사용자 지시 2026-11-22) */
+  showNotice?: boolean;
+}) {
   const { selected } = selection;
   if (!selected) return null;
   const name = selected.ticket.name ?? '티켓';
@@ -110,14 +119,14 @@ export function PickedTicket({ selection }: { selection: TicketSelection }) {
           </Txt>
         </Flex>
       </Flex>
-      {selected.ticket.payType === 'DUDOONG' && <DudoongTicketNotice />}
+      {showNotice && selected.ticket.payType === 'DUDOONG' && <DudoongTicketNotice />}
     </Flex>
   );
 }
 
 /**
  * 두둥 티켓 안내 — legal-copy A-4 원문 그대로(약관 제29조②). GUI에 자리가 없어 고른 티켓 줄 아래 회색 글로 둔다
- * (P6-V 🤖 판단 유지). 문구를 바꾸거나 빼지 않는다 — 정본은 legal-copy A-4.
+ * (P6-V 🤖 판단 유지). 문구를 바꾸거나 빼지 않는다 — 정본은 legal-copy A-4. PC 예매 패널에서만 뺀다(사용자 지시 2026-11-22).
  */
 const DUDOONG_TICKET_NOTICE = [
   '호스트 계좌로 입금하면, 호스트가 확인한 뒤 티켓이 발급돼요.',

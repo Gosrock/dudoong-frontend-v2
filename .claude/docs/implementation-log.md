@@ -4212,3 +4212,14 @@ Design Sync #349~#354 · #356 · #357(Tomato 2026-11-22 08:31~08:59Z) + 관제�
 **테스트**: unit — `notification-rules`(17종 창 · 이름 · 아이콘, `?tab=`, ids 읽음 · 100개 나누기) · `useNotification`(읽음 7 · 알림함 9: 창 나누기 · `?tab=host` · 열면 그 창만 PN-3 · `isNew` · 탭 빨간 점 · 창 바꾸면 그 창만 한 번 · 이동 경로 · 빈 상태). e2e `notifications`(창 15건 · 열면 ids 읽음 + 공지 바 · 호스트 창 · 두 창 다 보면 다시 와도 읽음). QA `notifications` NOTI-1~7 · `mypage`(주문내역 정렬 라벨 설명).
 
 **범위 밖**: 위 공지 띠(셸) · 벨 자리(셸 — 확인만, 읽음 뒤 빨간 점 꺼짐 확인).
+
+## 공연 상세 PC 오른쪽 패널에서 두둥 티켓 안내(A-4) 뺌 — 사용자 지시(2026-11-22, `fix-a4-pc`)
+
+근거: 사용자 지시(2026-11-22, 관제탑 대화) "공연상세페이지 우측패널 저 문구 지워" — 대상은 legal-copy A-4(티켓 선택, 제29조②) 3줄. 약관 근거 문구를 빼는 일이라 CLAUDE.md 규칙의 예외 — **사용자 직접 지시**.
+
+- 범위: PC(1024~) 오른쪽 예매 패널만. 모바일 하단 고른 티켓 줄(시트를 닫은 뒤)은 그대로.
+- 구현: `PickedTicket`에 `showNotice`(기본 true). PC 카드를 그리는 `TicketSelector showPicked`가 `showNotice={false}`로 넘긴다 — 서버와 클라이언트가 같은 DOM(patterns §1), 화면 크기 JS 분기 없음. 모바일은 `EventDetailView` dock의 `PickedTicket`(기본값)이라 안내가 남는다.
+- 입금 전 고지(제29조②)는 체크아웃 주문 확인 창 A-6 고지 ①~③(`CheckoutAgreements`)에 그대로 있음을 확인. 동의 문구가 아니라 `AGREEMENT_VERSION`은 그대로.
+- legal-copy A-4 행에 한 줄.
+
+**테스트**: QA `ticket-select` TKS-3(PC 1440)에 "두둥 티켓을 골라도 패널에 A-4 안내 없음" 단계를 더함. TKS-1(모바일 고른 티켓 줄 A-4 3줄)은 그대로. e2e에는 이 문구를 찾는 단계 없음.
