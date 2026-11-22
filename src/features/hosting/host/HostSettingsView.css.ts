@@ -73,3 +73,33 @@ export const bottom = style([
 globalStyle(`${bottom}${bottom} > *`, {
   '@media': { [media.desktop]: { paddingLeft: 0, paddingRight: 0 } },
 });
+
+/**
+ * "호스트 삭제하기" 영역(`741:31204`) — 위 1px 선(모바일은 화면 폭 가득, PC는 960 칸 — `1556:15836`) 아래 빨간 글자 버튼.
+ * FIGMA-CUSTOM: 화면이 직접 그린 글자 버튼(DS Button에 글자만 있는 Warning 변형이 없다) → 커스텀 HostSettingsView.css.ts
+ */
+export const deleteSection = style([
+  bleed,
+  {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: vars.space[2],
+    marginTop: vars.space[8],
+    padding: `${vars.space[6]} 24px`,
+    borderTop: `1px solid ${vars.color.surface.defaultBorder}`,
+    '@media': { [media.desktop]: { paddingLeft: 0, paddingRight: 0 } },
+  },
+]);
+
+export const deleteButton = style({
+  padding: 0,
+  border: 0,
+  background: 'none',
+  color: vars.color.text.dangerLabel,
+  cursor: 'pointer',
+  selectors: {
+    '&:disabled': { cursor: 'not-allowed', color: vars.color.interaction.disabledText },
+    '&:focus-visible': { outline: `2px solid ${vars.color.brand.primary}`, outlineOffset: 2 },
+  },
+});
