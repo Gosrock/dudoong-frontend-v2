@@ -20,7 +20,7 @@ import { OrderSummaryCard } from './ui/OrderParts';
 
 /**
  * `/orders` 주문내역 — GUI `1047:32381` 주문내역(2026-11-07 Ready, 모바일 390). PC 프레임은 없어 PC는 와이어 때 가운데 열 그대로.
- * 정렬 라벨 "최신순"(SortButton) / 카드: 주문 날짜 + [상세내역 ›] / 포스터 · 공연 이름 · 티켓 · 수량 · 금액 · 상태 칩. 카드 전체가 주문상세 링크.
+ * 정렬 라벨 "최신순 ▾"(SortButton, #372 — 서버 정렬 하나라 고정) / 카드: 주문 날짜 + [상세내역 ›] / 포스터 · 공연 이름 · 티켓 · 수량 · 금액 · 상태 칩. 카드 전체가 주문상세 링크.
  * 무한 목록 하단은 공용 `LoadMoreSentinel`.
  */
 export function OrdersView() {
@@ -53,11 +53,15 @@ function OrderList() {
   return (
     <>
       <div className={p.toolbar}>
-        {/* DS SortButton(gui `1047:32385`) — 서버 정렬이 최신순 하나라 고정 라벨, 누를 수 없다(Q36 · design-system §3 · patterns §13).
-            Figma의 ▾(chevron-down 12)는 누를 수 있어 보이지 않게 그리지 않는다(공연 리스트 "공연임박순"과 같게) */}
-        <Txt typography="labelMd" color={colors.textPrimaryLabel}>
-          {list.sortLabel}
-        </Txt>
+        {/* DS SortButton(gui `1047:32385` — "최신순" + chevron-down 12, 간격 4). #372(2026-11-22)로 분류 → 정렬(최신순 / 오래된순)이 됐지만
+            O-2에 정렬 파라미터가 없어(B75) 최신순 하나 — 고정 라벨, 누를 수 없다(Q36 · design-system §3 · patterns §13).
+            ▾는 Figma대로 그린다(공연 리스트 `759:8031`과 같게 — 사용자 지정 근거 2026-11-08). "오래된순"은 서버 답 뒤 — Figma 코멘트 */}
+        <span className={p.sort}>
+          <Txt typography="labelMd" color={colors.textPrimaryLabel}>
+            {list.sortLabel}
+          </Txt>
+          <Icon name="chevron-down" size={12} />
+        </span>
       </div>
       <ul className={s.list} aria-label="주문 목록">
         {list.orders.map((o) => (
