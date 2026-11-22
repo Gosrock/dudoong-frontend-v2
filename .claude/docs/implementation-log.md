@@ -4038,3 +4038,39 @@ Design Sync #321~#335(디자이너 2026-11-21 08:14~17:25Z) — 대상은 GUI �
 **범위 밖**: 취소 사유 `TextArea` 글자 수가 칸 아래(Figma는 칸 안 오른쪽 아래 — 공용 컴포넌트) · 모바일 시트 머리(Figma ✕, 우리 공용 `BottomSheet` ⌄) · 호스트 홈(관객) 카드 "취소됨" 칩은 별도 규칙(grey fill 그대로) · mock 공연 101 "초대권 -1장"(취소 뒤 mock 재고 계산).
 
 **테스트**: unit `src/features` · `src/api` 131 파일 2671 통과(main #336 날짜 고정 위). e2e 대시보드 관련 9 spec 270 통과 · 실패 20 — 실패는 a11y 사이드바 색 예외 쌍(고침, `#5f5e5a #0a0a09`)과 공연 101 시작일(2026.11.21)이 지난 날짜 탓(취소 3 · 티켓 2, main도 같음). 101을 임시로 2027.02.20에 두고(커밋 안 함) 취소 · 등록 완주 · 대시보드 a11y 16/0, QA `hosting-event` 32/0. QA `hosting-guests` 41/0(새 HG-22 · HG-23). 그대로 날짜면 QA `hosting-event` HE-12 · HE-14 날짜로 실패.
+
+## BE-961 — 백엔드 #961 답 반영(초대 승인 방식 · 초대 거절 · 호스트 삭제 · 주문상세 옵션 · 관심 호스트 정렬, 2026-11-22)
+
+브랜치 `be-961`. 근거: Frontend #348(백엔드 답 — DEC-015 · DEC-013 폐기, DEC-042), Api **2.5.16** 스테이징 · 운영 배포(2026-11-22 17:06 KST, Deploy #126). GUI Ready: 초대 시트 `1422:1911` · 대기 `1452:56710` · `1452:57010` · `1476:7882` · 수락 `1427:4596` · 거절 `1470:5877` · `1470:5905` · 호스트 삭제 `1549:15221` · `1551:104649` · `1556:15836`(Design Sync #293) · 주문상세 `1175:19046` · `1175:19358` · 관심 호스트 `1175:20346`. Figma 코멘트 `2008671606` · `2008671610` · `2008671614`(디자이너 결정).
+
+**L**
+- 스키마(모두 `nullable().optional()` — 2.5.15 이하와도 깨지지 않게): H-17 `inviteeNickname` · `inviteeProfileImageUrl`, H-21 `HostInvitationRejectSchema`, GH-3 · PH-4 viewer `preparingEventCount` · `deletable` · `deleteBlockedReason`, H-22 `DeleteHostResponseSchema`, `OrderOptionAnswerSchema` `optionType`(`TicketOptionTypeSchema` 열린 enum) · `choices`(O-3 · R-2 · I-2 · T-2 · 선물이 같은 스키마), O-3 `issuedTickets[].giftMemo`, GM-4 `FOLLOWING_HOST_SORTS`.
+- API: `rejectHostInvitationMutation`(H-21) · `deleteHostMutation`(H-22) · `followingHostsQuery({ sort })`(`FOLLOWED`면 보내지 않음). PH-7 `addHostMembersMutation`은 `@deprecated`(화면은 부르지 않는다 — 백엔드가 옮긴 뒤 지운다고 함).
+- `useInviteMembers` — 줄마다 차례로 H-16(묶음 API 없음). 성공한 줄은 폼에서 빠지고, `HOST_400_15`는 그 줄 사유 + 다음 줄 계속, `HOST_400_21` · 표에 없는 실패(공용 토스트)는 남은 줄을 보내지 않는다. 하나라도 보냈으면 H-17 무효화. 멤버 목록(GH-6)은 건드리지 않는다(수락 전).
+- `useCreateInviteLink` · 미가입(`unregistered`) 흐름 · PH-7 실패 매핑(`inviteServerErrors` · `inviteFailureEmails` · `toAddMembersBody`)을 지웠다 — 모든 초대가 H-16이라 미가입 오류가 없다. `invitationRowsOf`에 `name` · `profileImageUrl`.
+- `useHostInvitation` — `reject()`(확인 창 계약: 성공 `rejected` · 쓸 수 없는 초대는 `invalid`로 바꾸고 `true` · 그 밖 공용 토스트 + `false`).
+- `useDeleteHost` + `host-delete-rules`(`hostDeletionOf` — hidden · blocked · ready, `deleteHostConfirmDescription`). 성공하면 GH-1 · GM-4 · GE-1 · GM-1 무효화, 그 호스트 키는 `refetchType: 'none'`(지금 화면이 404를 먼저 보지 않게). `leave()`는 **확인 창이 닫힌 뒤**(창이 자기 history 항목을 소비한 뒤 — patterns §6) — ego-browser에서 `onSuccess`의 `replace`가 창의 `history.back()`에 되돌려지는 것을 보고 옮겼다.
+- 권한: `can()`에 `deleteHost: 'MASTER'`(SUPER_ADMIN 막음 — "활성 마스터만"). 권한 안내 시트에는 행을 넣지 않음(GUI 시트에 없다).
+- mock: H-17 닉네임(이메일 계정이 하나일 때) · H-21(`REJECTED` → 사용됨) · H-22(`HOST_400_22` · 지운 호스트는 GH-3 404 · GH-1 · GM-4에서 빠짐) · `hostSets.deletable` · `deleteFails` · O-3 `optionType` · `choices` · `giftMemo` · GM-4 `sort=LATEST_EVENT`. dev:mock에 `/api/__mock/host-deletable?hostId=&preparing=` 스위치(삭제 확인 창을 브라우저로 보려고).
+
+**V**
+- 초대 시트: 설명 Figma 그대로 "상대방 승인 후 멤버로 추가돼요." · 성공 토스트 "초대장을 보냈어요" · 이미 멤버 · 한도 사유 · 대기 초대가 있는 이메일을 적으면 분홍 안내(`1476:7459`, 보내기 전). 회색 링크 상자 · 링크 만듦 시트를 지웠다.
+- 초대 대기: 닉네임이 있으면 아바타 60 + 이름 + 역할(`1476:7882` — 멤버 행 모양, 선 없음), 없으면 이메일 줄(이메일 줄끼리만 선).
+- 초대 수락: [거절하기](Secondary) [수락하기] 나란히 · 확인 창(Primary [거절하기]) · 거절 완료(DS `img_초대장_decline` — `invitation-decline.svg`, 같은 REST SVG 내보내기).
+- 호스트 설정: 맨 아래 위 선 + 빨간 글자 "호스트 삭제하기"(`FIGMA-CUSTOM` — DS Button에 글자만 있는 Warning 변형 없음), 막히면 비활성 + 회색 사유, 확인 창 Warning, 토스트 "호스트를 삭제했습니다." + `/hosting?tab=hosts`(replace).
+- 주문상세: 객관식 답은 `SelectButton` 새 prop `readOnly`(고른 것 Default · 나머지 disabled, 값 안 바뀜), 서버 "아니요" → 표시 "아니오". 선물 중 티켓에 "선물메모" 줄.
+- 관심 호스트: 목록을 `sort=LATEST_EVENT`로 읽는다(라벨 그대로).
+
+**결정**
+- 🤖 Claude 판단 — 초대 뒤 링크 복사 화면을 없앰(토스트만) / 근거: 디자이너 결정 "현재 GUI 가이드대로"(`2009908266`) · 대기 장면 `1452:56710`이 토스트로 끝남, 미가입 · 링크 프레임(`1427:4143` · `1427:4357`)은 미가입 오류가 있어야 나오는 장면 / 되돌리려면 `InviteSheet` 성공 분기에서 H-16 응답 `inviteUrlPath`로 링크 시트(git 기록 `useCreateInviteLink`).
+- 🤖 Claude 판단 — 한도(`HOST_400_21`) 문구 "오늘은 더 초대할 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요." / 근거: GUI `1476:7242` 앞 문장 "가입되지 않은 이메일이에요. 초대 링크를 보내야 하는데,"는 미가입 전제라 더 맞지 않음 / 되돌리려면 `INVITE_ERROR_MESSAGE.HOST_400_21`.
+- 🤖 Claude 판단 — 다시 초대 안내(`1476:7459`)를 회색 상자 대신 칸 아래 바로, 이메일을 적는 즉시 / 근거: 상자가 미가입 흐름에만 있었다 / 되돌리려면 `InviteSheet` `reinvite`.
+- 🤖 Claude 판단 — 이름 줄에는 만료일을 보이지 않음(GUI `1476:7882`대로 이름 + 역할만) / 되돌리려면 `PendingInvitations` 이름 분기.
+- 🤖 Claude 판단 — 호스트 삭제 막힘 상태(디자인 없음): 버튼 비활성 + 회색 사유 "등록한 공연이 있는 호스트는 삭제할 수 없어요." / 근거: H-3 `deletable`이 미리 알려 준다, 서버 문구를 화면 말투로 / 되돌리려면 `DeleteHostSection` · `DELETE_HOST_BLOCKED_MESSAGE`.
+- 🤖 Claude 판단 — 확인 창 설명은 모바일 순서 하나("준비중 공연 n개도 함께 삭제돼요. 삭제한 호스트는 되돌릴 수 없어요.") / 근거: PC `1556:15836`은 두 문장 순서가 반대지만 같은 DOM / 되돌리려면 `deleteHostConfirmDescription`.
+- 🤖 Claude 판단 — 삭제 뒤 공연 준비 홈은 호스트 탭(`/hosting?tab=hosts`) / 근거: #293 "공연 준비 홈 이동", 지운 것이 호스트 / 되돌리려면 `useDeleteHost.leave`.
+- 🤖 Claude 판단 — 답이 지금 선택지에 없으면(주문 뒤 옵션이 바뀜) 입력칸 / 근거: 종류 · 선택지는 지금 옵션 기준(#348) — 고른 버튼 없이 그리면 답이 사라진다 / 되돌리려면 `optionAnswerView`.
+
+**범위 밖**: PC 확인 창 모양(`1556:15836` — ✕ · 꽉 찬 두 버튼)은 앱 공용 `openConfirm` PC 모양(오른쪽 작은 버튼)과 다르다 — 모든 PC 확인 창에 닿아 따로. 초대 수락 · 거절 셸 헤더(로고 · 검색 · 티켓)는 GUI `basic title`과 다르다(셸 몫).
+
+**테스트**: unit — `useHostMembers`(초대 8: H-16 줄마다 · 이미 멤버 줄만 남음 · 한도면 멈춤 · 5xx 줄 남음 · 멤버 그대로) · `invitation-rules`(이름 줄) · `member-rules` · `host-delete-rules` · `useHostInvitation`(거절 2) · `option-answer` · `can`(deleteHost) · `useMyPage`(최신공연순 순서 · sort 쿼리) · API(`host-invitation-api` #348 5 · `order/schema` 3). 스토리 `SelectButton/ReadOnly`. e2e `hosting-host`(초대 대기 · 호스트 삭제 4) · `host-invitation`(거절). QA `host-settings` HS-6 · HS-15 · HS-20 · HS-22 · `host-invitation` HI-1 · HI-6 · HI-7 · `mypage` MY-6 · MY-11 · MY-14.
