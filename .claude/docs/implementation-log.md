@@ -4142,3 +4142,36 @@ Design Sync #337 · #338 · #340 · #343~#347(Tomato 2026-11-22) — 공연 상�
 **사용자 대기(서버)**: 관심 호스트 "이름순(가-하, A-Z)" — GM-4 `sort`에 이름순 값이 없다(지금 `FOLLOWED` · `LATEST_EVENT`). 백엔드 이슈로.
 
 **범위 밖**: PC 상단 바(Figma `Top bar - web`에는 벨이 있고 "공연 준비하기"가 회색) · ConcertCard 제목 크기 · DS `tab` 크기는 셸 · DS 몫. QA SHELL-9(호스팅 대시보드 사이드바 y 57.8 ≠ 58)와 e2e `a11y` 호스팅 티켓 목록 대비는 main에서도 같다.
+
+## 알림함 관객 · 호스트 창 · 주문내역 정렬 — 와이어 → GUI(2026-11-22, `gui-notifications` — Design Sync #375 · #376 · #372)
+
+근거(GUI Ready, 2026-11-22 Tomato, 페이지 `331:9383`, 모바일 390): 알림함 - 관객 `1047:4070`(#375 — 창 분리 · 정렬 최신/오래된 · 창 열면 새 알림 읽음) · 알림함 - 호스트 `2025:1471`(#376) · 주문내역 `1047:32381`(#372 — 분류 → 정렬). PC 프레임 없음.
+
+서버 계약(백엔드 `dev` 2.5.16 코드로 확인): GN-1은 `page` · `size`만(창 · 정렬 없음), O-2는 `status` · `page` · `size`만(정렬 없음), `NotificationType` 17종 그대로(관심 호스트 알림 없음). PN-3 `notificationIds` 100개 이하 · `readAll`. → 클라이언트에서 안전한 것만: 창은 받은 `type`으로, 읽음은 ids로. 나머지는 B75(초안).
+
+**L**
+- `notification-kind`: 카테고리 · "호스트 ·" 라벨을 없애고 `type` → 창(`audience` · `host`) · 알림 이름 · 아이콘. 호스트 창 = `ORDER_PENDING_APPROVE` · `ORDER_REFUND_REQUESTED` · `ORDER_CANCELED_BY_USER` · `REFUND_ACCOUNT_CHANGED` + `HOST_MEMBER_ADDED`(받는 사람은 본인이지만 GUI 호스트 창에 있음 — 이동 규칙 `notificationAudience`는 그대로). 행 본문은 서버 `body`(비면 `title`). 주소 `?tab=host`(관객은 기본 — `parseNotificationTab` · `notificationTabSearch`, 얕은 `replaceState`).
+- `useReadNotifications`: 읽음 대상에 ids 배열, `readSeen(ids)` — 100개씩 나눠 조용히(실패 토스트 없음, 행만 되돌림).
+- `useNotificationInbox`: 지금 창의 행만, 창을 열면(또 다음 페이지에서 안 읽은 행이 오면) 그 창의 안 읽은 행을 `readSeen`(같은 id는 한 번만). 열 때 안 읽음이던 행은 `isNew`로 이번 방문 동안 진하게. 다른 창 빨간 점 = 불러온 행 중 그 창에 안 읽은 것. 빈 창은 다음 페이지가 없을 때만. `sortLabel` "최신순" 고정. [모두 읽음](`readAll`)은 화면에서 뺌(훅에는 남김 — 벨 등 다른 곳에서 쓸 수 있게).
+
+**V**
+- 알림함: `main`(모바일 폭 가득 · PC 640 가운데 + h1) / 창 줄(위아래 12 · 좌우 24): DS `Tabs`(md) [관객][호스트] + 다른 창 새 알림이면 DS `Badge` small(탭 글자 오른쪽 위, 스크린리더 " · 새 알림") … "최신순" `Label/md` + chevron-down 12(누를 수 없음) / 행(위아래 16 + 구분선 묶음 4 · 좌우 24 · 사이 8): `ic_*` 24 + 이름 `Heading/sm - emphasized` … 상대 시간 `Heading/sm` `interaction/inactive` / 본문 `Body/lg`. 읽은 줄은 글자 · 아이콘 `interaction/inactive`. 아이콘 관객 창 filled(선물 · 티켓 · 시계), 호스트 창 outline(주문 상세 · 사람), 모르는 타입 벨.
+- 주문내역: 정렬 라벨에 chevron-down 12(간격 4) — 공연 리스트 "공연임박순"과 같은 고정 라벨.
+
+**결정**
+- 🤖 Claude 판단 — 창 구분을 `type`으로(서버 필드 없음) / 근거: GUI 두 프레임의 알림 종류 · 백엔드 `NotificationType` 수신자 주석 / 되돌리려면 `KINDS[].tab`(서버 `box`가 오면 GN-1 파라미터로).
+- 🤖 Claude 판단 — "창 열면 모든 새 알림 읽음"을 **그 창만**(PN-3 ids)으로 / 근거: GUI 두 프레임 모두 다른 창 탭에 빨간 점이 남아 있음 — `readAll`이면 다른 창 점이 사라진다 / 되돌리려면 `useNotificationInbox`에서 `readAll()`.
+- 🤖 Claude 판단 — 읽음 처리한 줄을 이번 방문 동안 진하게(Q266) / 근거: 열자마자 흐려지면 무엇이 새것이었는지 못 본다 / 되돌리려면 `seen` 빼고 `isNew = !isRead`.
+- 🤖 Claude 판단 — 그려지지 않은 11종 이름(Q264, 코멘트 `2018351486`) / 되돌리려면 `KINDS[].label`.
+- 🤖 Claude 판단 — 읽은 줄 opacity 0.3 → `interaction/inactive` 색(Q265) / 근거: 시간 글자가 #EAE9E8로 사라짐 · 대비 검사(`a11y` 대기 목록 색) / 되돌리려면 `row` `[data-new="false"]`.
+- 🤖 Claude 판단 — 정렬 "최신순 ⌄" 고정(Q268, 코멘트 `2018351473` · `2018351476`) / 근거: 서버 정렬 없음(B75), 공연 리스트 선례(사용자 지정 2026-11-08) / 되돌리려면 DS dropdown(관심 호스트 `FollowingHostsView`처럼).
+- 🤖 Claude 판단 — 빈 창 · PC 가운데 640 · [모두 읽음] 없앰(Q267, 코멘트 `2018351490`).
+- 관심 호스트 새 공연 알림은 그리지 않음(서버 없음 — Q269, 코멘트 `2018351481`, B75-4).
+
+**Figma 코멘트(2026-11-22, `-impl`)**: `1047:4204` [개발 · 디자인 없음] 알림함 정렬 "오래된순" · `1047:32385` 주문내역 정렬 "오래된순" · `1172:14983` "관심 호스트" 새 공연 알림 · `1047:4330` 그려지지 않은 알림 종류의 이름 · 읽은 줄 색 · `1047:4341` 알림함 빈 창 · PC.
+
+**사용자 대기(서버)**: B75 — GN-1 창(`box`) · 창별 안 읽은 수 · 정렬, O-2 정렬, 관심 호스트 새 공연 알림. 관제탑이 백엔드 이슈로.
+
+**테스트**: unit — `notification-rules`(17종 창 · 이름 · 아이콘, `?tab=`, ids 읽음 · 100개 나누기) · `useNotification`(읽음 7 · 알림함 9: 창 나누기 · `?tab=host` · 열면 그 창만 PN-3 · `isNew` · 탭 빨간 점 · 창 바꾸면 그 창만 한 번 · 이동 경로 · 빈 상태). e2e `notifications`(창 15건 · 열면 ids 읽음 + 공지 바 · 호스트 창 · 두 창 다 보면 다시 와도 읽음). QA `notifications` NOTI-1~7 · `mypage`(주문내역 정렬 라벨 설명).
+
+**범위 밖**: 위 공지 띠(셸) · 벨 자리(셸 — 확인만, 읽음 뒤 빨간 점 꺼짐 확인).
