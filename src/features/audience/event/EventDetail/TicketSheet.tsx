@@ -58,8 +58,9 @@ export function TicketSheet({
           inSheet
           onContact={onContact && (() => void release().then(onContact))}
           buyDisabled={!selection.checkoutHref}
-          // 고른 티켓을 확정 — 시트를 닫으면 하단 바 위 고른 티켓 줄이 보인다(`759:22015`)
-          onBuy={() => onOpenChange(false)}
+          // 고른 티켓을 확정 — 시트를 닫으면 하단 바 위 고른 티켓 줄이 보인다(`759:22015`). 기록 항목을 먼저 소비한 뒤 닫아
+          // 곧바로 하단 [티켓 구매하기](push)를 눌러도 닫힘의 `history.back()`과 엇갈리지 않는다(useCloseOnBack release)
+          onBuy={() => void release().then(() => onOpenChange(false))}
         />
       }
     >

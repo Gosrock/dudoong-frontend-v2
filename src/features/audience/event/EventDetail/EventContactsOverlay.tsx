@@ -17,7 +17,7 @@ import {
 import { hostHref } from '@/features/shared/routes';
 import { Avatar } from '@/ui/components/Avatar/Avatar';
 import { ResponsiveOverlay } from '@/ui/components/BottomSheet/ResponsiveOverlay';
-import { Button } from '@/ui/components/Button/Button';
+import { InlineError } from '@/ui/components/InlineError/InlineError';
 import { Icon } from '@/ui/icons/Icon';
 import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
@@ -87,14 +87,8 @@ function EventContactsBody({
         </Flex>
 
         {contacts.status === 'error' ? (
-          <Flex direction="column" align="center" gap={3} fullWidth>
-            <Txt typography="bodyMd" color={colors.textSecondary}>
-              연락처를 불러오지 못했어요.
-            </Txt>
-            <Button variant="secondary" size="sm" onClick={contacts.retry}>
-              다시 시도
-            </Button>
-          </Flex>
+          // "불러오지 못했어요"는 공용 `InlineError`(patterns §9)
+          <InlineError message="연락처를 불러오지 못했어요." onRetry={contacts.retry} />
         ) : (
           <ul
             className={s.icons}
