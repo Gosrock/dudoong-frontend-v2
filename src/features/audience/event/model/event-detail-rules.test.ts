@@ -141,14 +141,14 @@ describe('OG 메타데이터', () => {
   it('제목·설명(일시·장소·호스트)·포스터·URL을 넣는다', () => {
     expect(eventMetadata(event101, url)).toEqual({
       title: '고스락 제37회 정기공연',
-      description: '2026.11.21 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
+      description: '2027.02.20 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
       alternates: { canonical: url },
       openGraph: {
         type: 'website',
         siteName: '두둥',
         locale: 'ko_KR',
         title: '고스락 제37회 정기공연',
-        description: '2026.11.21 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
+        description: '2027.02.20 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
         url,
         images: [{ url: event101.posterImageUrl, alt: '고스락 제37회 정기공연' }],
       },
@@ -194,7 +194,7 @@ describe('카카오 공유 내용', () => {
       objectType: 'feed',
       content: {
         title: '고스락 제37회 정기공연',
-        description: '2026.11.21 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
+        description: '2027.02.20 (토) 19:00 (120분) · 홍대 롤링홀 · 고스락',
         imageUrl: event101.posterImageUrl,
         link: { mobileWebUrl: url, webUrl: url },
       },

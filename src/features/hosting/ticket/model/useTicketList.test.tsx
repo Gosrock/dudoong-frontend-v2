@@ -34,7 +34,7 @@ afterEach(() => {
   resetHostingStore();
 });
 
-/** 칩 판정 기준 — fixture 공연 101(2026.11.21 19:00)보다 앞 */
+/** 칩 판정 기준 — fixture 공연 101(2027.02.20 19:00)보다 앞 */
 const NOW = () => new Date('2026-10-29T03:00:00Z');
 
 function setup(eventId: string) {

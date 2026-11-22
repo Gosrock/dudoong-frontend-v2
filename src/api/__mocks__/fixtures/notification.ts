@@ -70,7 +70,7 @@ function seed(): MockNotification[] {
       title: '1시간 뒤에 시작됩니다!',
       body: `'${EVENT_101}' 공연이 1시간 뒤에 시작됩니다!`,
       target: { type: 'EVENT', targetId: '101', eventId: 101 },
-      extra: { eventName: EVENT_101, hostName: '고스락', startAt: '2026.11.21 18:00' },
+      extra: { eventName: EVENT_101, hostName: '고스락', startAt: '2027.02.20 18:00' },
       isRead: false,
     },
     {
@@ -122,9 +122,9 @@ function seed(): MockNotification[] {
       notificationId: 118,
       type: 'EVENT_REMINDER_D1',
       title: '공연까지 D-1 남았습니다',
-      body: `'${EVENT_101}' 공연까지 D-1 남았습니다. 2026.11.21 18:00 시작`,
+      body: `'${EVENT_101}' 공연까지 D-1 남았습니다. 2027.02.20 18:00 시작`,
       target: { type: 'EVENT', targetId: '101', eventId: 101 },
-      extra: { eventName: EVENT_101, hostName: '고스락', startAt: '2026.11.21 18:00' },
+      extra: { eventName: EVENT_101, hostName: '고스락', startAt: '2027.02.20 18:00' },
       isRead: true,
     },
     {

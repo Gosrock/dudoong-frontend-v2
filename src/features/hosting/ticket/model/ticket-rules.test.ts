@@ -76,7 +76,7 @@ const option = (over: Partial<TicketOptionManage> = {}): TicketOptionManage => (
 });
 
 const NOW = '2026.10.29 12:00';
-const EVENT_START = '2026.11.21 19:00';
+const EVENT_START = '2027.02.20 19:00';
 
 describe('잠금 · ⋮ 메뉴(isSold || hasPendingOrders)', () => {
   it.each([
@@ -313,7 +313,7 @@ describe('티켓 폼 — 칸 검사', () => {
     ],
     [
       '종료가 공연 시작 뒤',
-      { salePeriod: true, saleEndDate: '2026-11-21', saleEndTime: '19:01' },
+      { salePeriod: true, saleEndDate: '2027-02-20', saleEndTime: '19:01' },
       'saleEnd',
     ],
     [
@@ -341,7 +341,7 @@ describe('티켓 폼 — 칸 검사', () => {
   it('종료 = 공연 시작은 된다(종료 ≤ 공연 시작)', () => {
     expect(
       validateTicketForm(
-        filled({ salePeriod: true, saleEndDate: '2026-11-21', saleEndTime: '19:00' }),
+        filled({ salePeriod: true, saleEndDate: '2027-02-20', saleEndTime: '19:00' }),
         ctx,
       ),
     ).toEqual({});
