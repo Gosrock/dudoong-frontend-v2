@@ -128,3 +128,38 @@ test.describe('수락', () => {
     });
   }
 });
+
+/** 거절(H-21 — Api 2.5.16, #348 B72). GUI `1427:4596` [거절하기] · 확인 `1470:5877` · 완료 `1470:5905` */
+test.describe('거절', () => {
+  test('[거절하기] → 확인 창 → H-21 → "초대를 거절했어요" · [호스트 홈으로 가기], 같은 링크는 이미 사용됨', async ({
+    page,
+    mockApi,
+  }) => {
+    await setMockSession(page, 'loggedIn');
+    await page.goto(`/host-invitations/${TOKEN}`);
+    await page.getByRole('button', { name: '거절하기' }).click();
+    const confirm = page.getByRole('alertdialog', { name: '초대를 거절할까요?' });
+    await expect(confirm).toContainText('거절하면 이 초대 링크는 다시 쓸 수 없어요.');
+    // [취소]는 아무것도 보내지 않는다
+    await confirm.getByRole('button', { name: '취소' }).click();
+    await expect(confirm).toHaveCount(0);
+    expect(mockApi.calls().filter((c) => c.method === 'POST')).toEqual([]);
+    await page.getByRole('button', { name: '거절하기' }).click();
+    await page
+      .getByRole('alertdialog', { name: '초대를 거절할까요?' })
+      .getByRole('button', { name: '거절하기' })
+      .click();
+    await expect(page.getByRole('heading', { name: '초대를 거절했어요' })).toBeVisible();
+    await expect(page.getByText('다시 참여하려면 호스트에게 새 초대를 요청해 주세요.')).toBeVisible();
+    await expect(page.getByRole('link', { name: '호스트 홈으로 가기' })).toHaveAttribute(
+      'href',
+      '/hosts/12',
+    );
+    const posts = mockApi.calls().filter((c) => c.method === 'POST');
+    expect(posts.map((c) => [c.path.replace(TOKEN, '{token}'), c.status])).toEqual([
+      ['/api/v2/host-invitations/{token}/reject', 200],
+    ]);
+    await page.goto(`/host-invitations/${TOKEN}`);
+    await expect(page.getByRole('heading', { name: '이미 사용된 초대장이에요' })).toBeVisible();
+  });
+});

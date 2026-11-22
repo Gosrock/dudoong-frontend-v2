@@ -6,7 +6,7 @@ import { envelope, expect, http, HttpResponse, scenario } from '../scenario';
 /**
  * 호스트 초대 수락 `/host-invitations/{token}`(H-19 · H-20 — 이슈 #136 §8, B33② · 백엔드 #933, Api 2.5.7).
  * 근거: **GUI**(모바일 Ready, Design Sync #267 — 초대 `1427:4596` · 수락 완료 `1427:4638` · 만료 `1427:4701` · 사용됨 `1427:4746` ·
- * 없음 `1427:4791` · 이미 멤버 `1427:4836`). 결과 화면은 DS `Empty state` medium + `img_초대장`(#239). 거절은 서버 없음 — 화면에 없다.
+ * 없음 `1427:4791` · 이미 멤버 `1427:4836`). 결과 화면은 DS `Empty state` medium + `img_초대장`(#239). 거절(H-21 — #348 B72, Api 2.5.16)은 확인 `1470:5877` · 완료 `1470:5905`(HI-7).
  * 토큰 보호: 진입 직후 주소에서 지운다(`/host-invitations`), 로그인으로 갈 때만 탭 저장소에, Referer 없음(메타).
  *
  * 범주 검토
@@ -23,7 +23,7 @@ scenario(
   {
     kind: '정상',
     summary:
-      'H-19로 "‘소음공작소’에서 일반 멤버로 초대했어요" + 이메일(가림) · 만료일. [거절하기]는 없다(서버 없음). 수락(H-20)하면 "‘소음공작소’의 멤버가 됐어요!" + [호스트 홈으로 가기]. 주소에는 토큰이 없다.',
+      'H-19로 "‘소음공작소’에서 일반 멤버로 초대했어요" + 이메일(가림) · 만료일 + [거절하기] [수락하기](1427:4596). 수락(H-20)하면 "‘소음공작소’의 멤버가 됐어요!" + [호스트 홈으로 가기]. 주소에는 토큰이 없다.',
     basis: ['GUI 1427:4596 · 1427:4638(#267)', '이슈 #136 §8', 'api-contract H-19 · H-20'],
   },
   async ({ page, step }) => {
@@ -37,7 +37,7 @@ scenario(
       ).toBeVisible();
       await expect(page.getByText('ne***@example.com')).toBeVisible();
       await expect(page.getByText('2099년 1월 1일')).toBeVisible();
-      await expect(page.getByRole('button', { name: '거절하기' })).toHaveCount(0);
+      await expect(page.getByRole('button', { name: '거절하기' })).toBeVisible();
     });
     await step('[수락하기] → "‘소음공작소’의 멤버가 됐어요!" + [호스트 홈으로 가기]', async () => {
       await page.getByRole('button', { name: '수락하기' }).click();
@@ -166,7 +166,7 @@ scenario(
   {
     kind: '반응형',
     summary:
-      'GUI 1496:13112 — 초대 내용(아바타 · 문구 · 정보 상자 345)과 버튼 줄이 사이 32로 붙어 화면 가운데. 만료(1496:13198)는 모바일과 같은 Empty state 가운데. [거절하기]는 서버가 없어 그리지 않는다(Q233).',
+      'GUI 1496:13112 — 초대 내용(아바타 · 문구 · 정보 상자 345)과 버튼 줄이 사이 32로 붙어 화면 가운데. 만료(1496:13198)는 모바일과 같은 Empty state 가운데. 버튼 줄은 [거절하기] [수락하기] 둘이 345를 나눈다(#348 B72 — 1427:4596).',
     basis: ['Design Sync #299', 'patterns §1 반응형(1024부터 PC)'],
     viewports: ['desktop'],
   },
@@ -174,20 +174,57 @@ scenario(
     resetHostMockState();
     await setMockSession(page, 'loggedIn');
     await page.setViewportSize({ width: 1440, height: 1024 });
-    await step('정보 상자 345 가운데 · [수락하기]는 상자 바로 아래(68)', async () => {
+    await step('정보 상자 345 가운데 · [거절하기] [수락하기] 줄은 상자 바로 아래(68), 같은 폭으로 345를 채운다', async () => {
       await page.goto(`/host-invitations/${TOKEN}`);
       const info = page.getByRole('definition').first().locator('xpath=ancestor::dl');
       const box = (await info.boundingBox())!;
       expect(box.width).toBe(345);
       expect(Math.round(box.x + box.width / 2)).toBe(720);
       const accept = (await page.getByRole('button', { name: '수락하기' }).boundingBox())!;
-      expect(accept.width).toBe(345);
+      const reject = (await page.getByRole('button', { name: '거절하기' }).boundingBox())!;
       expect(Math.round(accept.y - (box.y + box.height))).toBe(68);
+      expect(reject.y).toBe(accept.y);
+      expect(Math.round(reject.width)).toBe(Math.round(accept.width));
+      expect(Math.round(reject.x)).toBe(Math.round(box.x));
+      expect(Math.round(accept.x + accept.width)).toBe(Math.round(box.x + box.width));
     });
     await step('만료된 초대 — 가운데 결과 화면', async () => {
       await page.goto(`/host-invitations/${MOCK_INVITE_TOKEN.expired}`);
       await expect(page.getByRole('heading', { name: '만료된 초대장이에요' })).toBeVisible();
       await expect(page.getByRole('link', { name: '두둥 홈으로 가기' })).toBeVisible();
+    });
+  },
+);
+
+scenario(
+  'HI-7',
+  '거절 — [거절하기] → "초대를 거절할까요?" → [거절하기] → "초대를 거절했어요" · [호스트 홈으로 가기]',
+  {
+    kind: '정상',
+    summary:
+      'H-21(로그인, #348 B72 · Api 2.5.16). 확인 창 1470:5877(취소 · Primary [거절하기]), 완료 1470:5905(DS img_초대장_decline · 호스트 홈으로). 거절한 링크는 다시 쓸 수 없다(HOST_400_20 — "이미 사용된 초대장이에요").',
+    basis: ['Figma 2008671614 · GUI 1470:5877 · 1470:5905', 'Frontend #348 B72', 'patterns §6 확인 창 계약'],
+  },
+  async ({ page, step }) => {
+    resetHostMockState();
+    await setMockSession(page, 'loggedIn');
+    const confirm = page.getByRole('alertdialog', { name: '초대를 거절할까요?' });
+    await step('[거절하기] → 확인 창', async () => {
+      await page.goto(`/host-invitations/${TOKEN}`);
+      await page.getByRole('button', { name: '거절하기' }).click();
+      await expect(confirm).toContainText('거절하면 이 초대 링크는 다시 쓸 수 없어요.');
+    });
+    await step('[거절하기] → "초대를 거절했어요" + [호스트 홈으로 가기]', async () => {
+      await confirm.getByRole('button', { name: '거절하기' }).click();
+      await expect(page.getByRole('heading', { name: '초대를 거절했어요' })).toBeVisible();
+      await expect(page.getByRole('link', { name: '호스트 홈으로 가기' })).toHaveAttribute(
+        'href',
+        '/hosts/12',
+      );
+    });
+    await step('같은 링크를 다시 열면 "이미 사용된 초대장이에요"', async () => {
+      await page.goto(`/host-invitations/${TOKEN}`);
+      await expect(page.getByRole('heading', { name: '이미 사용된 초대장이에요' })).toBeVisible();
     });
   },
 );

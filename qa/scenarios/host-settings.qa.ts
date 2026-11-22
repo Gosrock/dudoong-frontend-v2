@@ -434,15 +434,15 @@ scenario(
 
 scenario(
   'HS-6',
-  '초대 — 가입되지 않은 이메일이면 그 줄에 사유, 고쳐서 다시 내면 추가되고 닫힌다',
+  '초대 — 가입한 이메일도 초대장(H-16) · "상대방 승인 후 멤버로 추가돼요." — 멤버는 그대로, "초대 대기"에 이름 줄',
   {
-    kind: '에러',
+    kind: '정상',
     summary:
-      'GUI 초대 시트 1422:1911(이메일 1칸 + 역할(기본 "일반") + [초대하기]). 설명 첫 줄 "카카오톡에 가입한 이메일로 적어주세요."(#283), 둘째 줄은 "가입한 이메일은 바로 멤버로 추가돼요."(서버는 즉시 멤버 — Figma "상대방 승인 후"와 다름 🤖 Q229). 실패 사유는 HOST_400_13 → 줄 아래 사유(1427:4143).',
+      'GUI 초대 시트 1422:1911(이메일 1칸 + 역할(기본 "일반") + [초대하기]) · 설명 "카카오톡에 가입한 이메일로 적어주세요. / 상대방 승인 후 멤버로 추가돼요."(#283 — Figma 그대로). 모든 초대가 H-16(#348 B71, DEC-015 폐기) — 보내면 시트가 닫히고 토스트 "초대장을 보냈어요"(1452:56710), 수락 전이라 멤버 수는 그대로이고 "초대 대기"에 계정 닉네임 줄(1476:7882).',
     basis: [
-      'plan P10b V 범위 · 완료 기준 V "초대 실패 줄 표시"',
-      'patterns §24 P10b HOST_400_13~15 · 18',
-      '와이어 503:32779',
+      'Frontend #348 B71 · Figma 2008671606 · 2008671610',
+      'plan P10b V 범위',
+      'api-contract H-16 · H-17',
     ],
   },
   async ({ page, step }) => {
@@ -450,34 +450,28 @@ scenario(
     await setMockSession(page, 'loggedIn');
     const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
     await step(
-      '[+ 멤버 초대하기]를 누르면 초대 팝업 — 이메일이 비면 [초대하기] 비활성',
+      '[+ 멤버 초대하기]를 누르면 초대 팝업 — 설명 두 줄, 이메일이 비면 [초대하기] 비활성',
       async () => {
         await page.goto(MEMBERS);
         await page.getByRole('button', { name: '멤버 초대하기' }).click();
-        // 설명 두 줄(#283 · #284 — 카카오톡 안내는 설명 첫 줄로 옮겨짐), 팝업의 설명으로 읽힌다
         await expect(dialog).toHaveAccessibleDescription(
-          /카카오톡에 가입한 이메일로 적어주세요\.\s*가입한 이메일은 바로 멤버로 추가돼요\./,
+          /카카오톡에 가입한 이메일로 적어주세요\.\s*상대방 승인 후 멤버로 추가돼요\./,
         );
         await expect(dialog.getByLabel('역할')).toHaveText('일반');
         await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
       },
     );
-    await step(
-      '가입되지 않은 이메일로 초대하면 칸 아래 미가입 안내와 다음 행동(#106)',
-      async () => {
-        await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
-        await dialog.getByRole('button', { name: '초대하기' }).click();
-        await expect(dialog.getByRole('alert')).toHaveText(
-          '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
-        );
-      },
-    );
-    await step('가입한 이메일로 고쳐 다시 내면 팝업이 닫히고 목록에 5명 + 토스트', async () => {
+    await step('가입한 이메일(guitar@)로 [초대하기] → 팝업 닫힘 · "초대장을 보냈어요"', async () => {
       await dialog.getByLabel('초대할 이메일').fill('guitar@example.com');
       await dialog.getByRole('button', { name: '초대하기' }).click();
       await expect(dialog).toHaveCount(0);
-      await expect(page.getByTestId('member-row')).toHaveCount(5);
-      await expect(page.getByText('멤버를 초대했어요')).toBeVisible();
+      await expect(page.getByText('초대장을 보냈어요')).toBeVisible();
+    });
+    await step('멤버는 4명 그대로, "초대 대기"에 아바타 + "박기타" + 일반 줄', async () => {
+      await expect(page.getByTestId('member-row')).toHaveCount(4);
+      const named = page.getByTestId('invitation-row').filter({ hasText: '박기타' });
+      await expect(named).toHaveAttribute('data-kind', 'name');
+      await expect(named).toContainText('일반');
     });
   },
 );
@@ -724,56 +718,34 @@ scenario(
   },
 );
 
-// ─── 미가입자 초대 링크(H-16~H-18, B33② · 백엔드 #933 — Api 2.5.7). GUI 1427:4143 · 1427:4357 · 1452:57010(#263 · #266) ───
+// ─── 초대 대기(H-16~H-18 — 모든 초대 승인 방식 #348 B71 · Api 2.5.16). GUI 1452:56710 · 1452:57010 · 1476:7882 ───
 
 scenario(
   'HS-15',
-  '초대 — 가입되지 않은 이메일이면 [초대 링크 만들기] → 링크 · 만료일 · [링크 복사하기], 닫으면 "초대 대기"에 생긴다',
+  '초대 — 가입하지 않은 이메일도 같은 초대장 — "초대 대기"에 이메일 · "역할 · 만료까지" 줄(이름 없음)',
   {
     kind: '정상',
     summary:
-      'PH-7이 HOST_400_13이면 같은 이메일 · 역할로 H-16. 링크는 지금 출처 + 서버 경로(/host-invitations/{token}). 메일이 안 갈 수 있어 링크를 직접 전한다(백엔드 #928). GUI 시트 1427:4357(회색 상자에 링크 한 줄 · 만료일 + [링크 복사하기], ✕로 닫음).',
-    basis: [
-      '이슈 #136 §8',
-      'backend-questions B33②',
-      'api-contract H-16 · H-17',
-      'patterns §9 copyText',
-    ],
+      'H-16은 가입하지 않은 이메일도 받는다. H-17 inviteeNickname이 null이면 이메일 줄(1452:57010 — 이메일 + "역할 · 만료까지" + [취소]). 링크 만들기 · 복사 화면(1427:4357)은 이 흐름에서 생기지 않는다.',
+    basis: ['Frontend #348 B71', 'api-contract H-16 · H-17'],
   },
   async ({ page, step }) => {
     reset();
-    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await setMockSession(page, 'loggedIn');
     const dialog = page.getByRole('dialog', { name: '멤버 초대하기' });
-    await step('미가입 이메일로 [초대하기] → 칸 아래 안내 + [초대 링크 만들기]', async () => {
+    await step('미가입 이메일(nobody@)로 [초대하기] → 닫힘 · 토스트', async () => {
       await page.goto(MEMBERS);
       await page.getByRole('button', { name: '멤버 초대하기' }).click();
       await dialog.getByLabel('초대할 이메일').fill('nobody@example.com');
       await dialog.getByRole('button', { name: '초대하기' }).click();
-      await expect(dialog.getByRole('alert')).toHaveText(
-        '가입되지 않은 이메일이에요. 초대 링크를 만들어 보낼 수 있어요',
-      );
-      await expect(dialog.getByRole('button', { name: '초대 링크 만들기' })).toBeVisible();
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByText('초대장을 보냈어요')).toBeVisible();
     });
-    const done = page.getByRole('dialog', { name: '초대 링크를 만들었어요' });
-    await step('[초대 링크 만들기] → 링크(지금 출처) · 만료 안내', async () => {
-      await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
-      await expect(done.getByTestId('invite-link').locator('p')).toHaveText(
-        new RegExp(`^${new URL(page.url()).origin}/host-invitations/`),
-      );
-      await expect(done.getByTestId('invite-link')).toContainText(
-        /만료일: \d{4}년 \d{1,2}월 \d{1,2}일/,
-      );
-    });
-    await step('[링크 복사하기] → 토스트', async () => {
-      await done.getByRole('button', { name: '링크 복사하기' }).click();
-      await expect(page.getByText('링크를 클립보드에 복사했어요.')).toBeVisible();
-    });
-    await step('✕로 닫으면 "초대 대기"에 그 이메일', async () => {
-      await done.getByRole('button', { name: '닫기' }).first().click();
-      await expect(
-        page.getByTestId('invitation-row').filter({ hasText: 'nobody@example.com' }),
-      ).toHaveCount(1);
+    await step('"초대 대기" 끝에 nobody@ 이메일 줄', async () => {
+      const last = page.getByTestId('invitation-row').last();
+      await expect(last).toHaveAttribute('data-kind', 'email');
+      await expect(last).toContainText('nobody@example.com');
+      await expect(last).toContainText(/일반 · \d{4}\.\d{2}\.\d{2} \d{2}:\d{2}까지/);
     });
   },
 );
@@ -845,15 +817,16 @@ scenario(
 
 scenario(
   'HS-20',
-  '초대 시트 오류별 — 이미 멤버 · 같은 이메일 계정 여러 개 · 다시 초대 안내 · 링크 한도',
+  '초대 시트 오류별 — 이미 멤버 · 다시 초대 안내 · 초대 한도',
   {
     kind: '에러',
     summary:
-      'GUI 1476:6806(HOST_400_15) · 1476:7024(HOST_400_18 두 줄) · 1476:7459(미가입인데 같은 이메일 대기 초대가 있으면 회색 상자 안 분홍 안내 — H-16이 옛 링크를 무효로 만든다) · 1476:7242(H-16 HOST_400_21 — 사유만, 상자 없음). 모두 칸 아래 사유(간격 8) · [초대하기] 비활성.',
+      'GUI 1476:6806(HOST_400_15) · 1476:7459(같은 이메일 대기 초대가 있으면 분홍 안내 — H-16이 옛 링크를 무효로 만든다) · 1476:7242(H-16 HOST_400_21 — 문구는 "가입되지 않은 이메일이에요." 앞 문장을 뺐다 🤖, 모든 초대가 H-16이라). 칸 아래 사유(간격 8) · [초대하기] 비활성. 같은 이메일 계정 여러 개(1476:7024, PH-7 HOST_400_18)는 H-16에서 나지 않는다.',
     basis: [
       'Design Sync #286 · #289',
+      'Frontend #348 B71',
       'api-contract H-16(같은 이메일 대기 초대는 새 링크로 바꾼다 · 발급 한도)',
-      'error-codes HOST_400_15 · 18 · 21',
+      'error-codes HOST_400_15 · 21',
     ],
   },
   async ({ page, step }) => {
@@ -873,26 +846,19 @@ scenario(
       await expect(dialog.getByRole('alert')).toHaveText('이미 이 호스트의 멤버예요.');
       await expect(dialog.getByRole('button', { name: '초대하기' })).toBeDisabled();
     });
-    await step('같은 이메일 계정 여러 개(twin@) — 두 줄 사유', async () => {
-      await submit('twin@example.com');
-      await expect(dialog.getByRole('alert')).toHaveText(
-        '같은 이메일로 가입한 계정이 여러 개라 초대할 수 없어요.\n다른 이메일로 초대해 주세요.',
-      );
-    });
-    await step('대기 초대가 있는 미가입 이메일 — 상자 안 "이미 보낸 초대가 있어요"', async () => {
-      await submit('pending-guest@example.com');
+    await step('대기 초대가 있는 이메일을 적으면 "이미 보낸 초대가 있어요"(보내기 전)', async () => {
+      await email.fill('pending-guest@example.com');
       await expect(dialog.getByTestId('invite-reinvite-notice')).toHaveText(
         '이미 보낸 초대가 있어요. 다시 초대하면 이전 링크는 쓸 수 없게 돼요.',
       );
     });
-    await step('링크 한도(limit@) — [초대 링크 만들기] 뒤 사유만, 상자 없음', async () => {
+    await step('초대 한도(limit@) — 칸 아래 사유, 팝업은 열린 채', async () => {
       await submit('limit@example.com');
       await expect(dialog.getByTestId('invite-reinvite-notice')).toHaveCount(0);
-      await dialog.getByRole('button', { name: '초대 링크 만들기' }).click();
       await expect(dialog.getByRole('alert')).toHaveText(
-        '가입되지 않은 이메일이에요. 초대 링크를 보내야 하는데, 오늘은 더 만들 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
+        '오늘은 더 초대할 수 없어요 (최대 하루 20건). 나중에 다시 시도해 주세요.',
       );
-      await expect(dialog.getByTestId('invite-link-offer')).toHaveCount(0);
+      await expect(page.getByTestId('invitation-row')).toHaveCount(3);
     });
   },
 );
@@ -935,6 +901,47 @@ scenario(
       await expect(dialog).toBeVisible();
       // 열림 애니메이션(크기 변화)이 끝난 뒤의 폭
       await expect.poll(async () => (await dialog.boundingBox())?.width).toBe(480);
+    });
+  },
+);
+
+// ─── 호스트 삭제(H-22 — Api 2.5.16, #348 B73 · Design Sync #293). GUI 741:31204 · 1549:15221 · 1551:104649 · 1556:15836 ───
+
+scenario(
+  'HS-22',
+  '호스트 삭제 — 등록한 공연이 있으면 막힘, 준비중 공연 2개면 확인 창 n개 안내 → 토스트 · 공연 준비 홈',
+  {
+    kind: '정상',
+    summary:
+      '설정 맨 아래 "호스트 삭제하기"(위 선 + 빨간 글자). 마스터에게만(can deleteHost + H-3 deletable). 막히면(deletable false — HOST_400_22) 버튼 비활성 + 사유 🤖. 확인 창 Warning [삭제하기] — 0개 1549:15221, n개 1551:104649. 성공 토스트 "호스트를 삭제했습니다." + 공연 준비 홈(#293 본문).',
+    basis: ['Design Sync #293', 'Frontend #348 B73', 'api-contract H-3 · H-22', 'patterns §6 확인 창 계약'],
+  },
+  async ({ page, mockApi, step }) => {
+    reset();
+    await setMockSession(page, 'loggedIn');
+    const section = page.getByTestId('host-delete');
+    await step('고스락(등록한 공연 있음) — [호스트 삭제하기] 비활성 + 사유', async () => {
+      await page.goto(SETTINGS);
+      await section.scrollIntoViewIfNeeded();
+      await expect(section.getByRole('button', { name: '호스트 삭제하기' })).toBeDisabled();
+      await expect(section).toContainText('등록한 공연이 있는 호스트는 삭제할 수 없어요.');
+    });
+    await step('지울 수 있고 준비중 공연 2개 — 확인 창 "준비중 공연 2개도 함께 삭제돼요."', async () => {
+      mockApi.use(...hostSets.deletable(11, 2));
+      await page.reload();
+      await section.scrollIntoViewIfNeeded();
+      await section.getByRole('button', { name: '호스트 삭제하기' }).click();
+      await expect(page.getByRole('alertdialog', { name: '호스트를 삭제할까요?' })).toContainText(
+        '준비중 공연 2개도 함께 삭제돼요. 삭제한 호스트는 되돌릴 수 없어요.',
+      );
+    });
+    await step('[삭제하기] → 토스트 · 공연 준비 홈 호스트 탭', async () => {
+      await page
+        .getByRole('alertdialog', { name: '호스트를 삭제할까요?' })
+        .getByRole('button', { name: '삭제하기' })
+        .click();
+      await expect(page).toHaveURL('/hosting?tab=hosts');
+      await expect(page.getByText('호스트를 삭제했습니다.')).toBeVisible();
     });
   },
 );
