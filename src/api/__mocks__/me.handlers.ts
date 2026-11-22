@@ -9,7 +9,6 @@ import {
 } from '../me/schema';
 import { findPublicEvent } from './fixtures/event';
 import { hosts } from './fixtures/host';
-import { isHostDeleted } from './host-store';
 import { me } from './fixtures/me';
 import {
   archiveEvents,
@@ -17,6 +16,7 @@ import {
   followingHosts,
   matchesFollowingFilter,
 } from './fixtures/mypage';
+import { isHostDeleted } from './host-store';
 import {
   errors,
   fail,

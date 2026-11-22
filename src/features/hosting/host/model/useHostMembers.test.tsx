@@ -55,7 +55,6 @@ function setup(hostId = '11') {
 
 type Members = ReturnType<typeof setup>['result'];
 const loaded = (result: Members) => waitFor(() => expect(result.current).not.toBeNull());
-const lastMutation = (qc: QueryClient) => qc.getMutationCache().getAll().at(-1)!;
 const writes = async (sent: ReturnType<typeof recordRequests>) =>
   (await sent.list()).filter((r) => r.method !== 'GET');
 /** 이름 → [역할, 역할 변경 대상, 삭제, 양도] */

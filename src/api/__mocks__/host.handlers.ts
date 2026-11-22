@@ -18,8 +18,8 @@ import { formatKstDateTime } from '../shared/date';
 import { mockNow } from './event-store';
 import type { MockEvent } from './fixtures/event';
 import { events, preparingEvents } from './fixtures/event';
-import { hostEventsOf } from './fixtures/hosting';
 import { hosts, mockUsers, viewerOf } from './fixtures/host';
+import { hostEventsOf } from './fixtures/hosting';
 import { me } from './fixtures/me';
 import {
   addStoredMembers,

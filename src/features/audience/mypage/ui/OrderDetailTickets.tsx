@@ -14,8 +14,8 @@ import { Flex } from '@/ui/primitives/Flex';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
 
-import { issuedTicketStateLabel } from '../model/order-card';
 import { optionAnswerView } from '../model/option-answer';
+import { issuedTicketStateLabel } from '../model/order-card';
 import type { OrderDetailState } from '../model/useOrderDetail';
 import * as p from './OrderDetail.css';
 

@@ -7,8 +7,8 @@ import { pageInfinite, type PageParams } from '../shared/page';
 import {
   ArchiveSchema,
   type FollowingHostFilter,
-  type FollowingHostSort,
   FollowingHostPageSchema,
+  type FollowingHostSort,
   type Me,
   MeSchema,
 } from './schema';

@@ -228,23 +228,7 @@ export const inviteEmail = style({ flex: 1, minWidth: 0 });
 export const inviteRole = style({ flex: '0 0 116px' });
 
 /**
- * 회색 안내 상자(`초대 링크 안내` · `초대 링크` · 권한 표 없음) — 모서리 12 · 안쪽 16 · `surface/container`.
- * FIGMA-CUSTOM: 화면이 직접 그린 상자(채움 변수) → 커스텀 HostMembers.css.ts. 같은 상자가 초대 수락(`1427:4625`)에도 있다 — DS 후보(design-system §3)
- */
-export const greyBox = style({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'flex-start',
-  gap: vars.space[2],
-  padding: vars.space[4],
-  borderRadius: vars.radius[4],
-  background: vars.color.surface.container,
-});
-
-export const linkBox = style([greyBox, { gap: vars.space[1], alignItems: 'stretch' }]);
-
-/**
- * 회색 상자 안 분홍 안내(`1476:7673` "이전 링크 무효 안내") — 꽉 찬 폭 · 안쪽 16 · 모서리 12 · `status/warning-subtle`(Coral-red 50).
+ * 분홍 안내(`1476:7673` "이전 링크 무효 안내" — 모든 초대 승인 방식(#348) 뒤로는 칸 아래 바로) — 꽉 찬 폭 · 안쪽 16 · 모서리 12 · `status/warning-subtle`(Coral-red 50).
  * FIGMA-CUSTOM: 화면이 직접 그린 상자(채움 변수) → 커스텀 HostMembers.css.ts. DS 후보(design-system §3 — 회색 안내 상자와 같은 모양)
  */
 export const dangerBox = style({
@@ -253,14 +237,6 @@ export const dangerBox = style({
   padding: vars.space[4],
   borderRadius: vars.radius[4],
   background: vars.color.status.warningSubtle,
-});
-
-/** 링크 주소 한 줄 말줄임 */
-export const linkUrl = style({
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-  margin: 0,
 });
 
 // ─── 권한 안내 표(`1452:54461`) ─────────────────────────────

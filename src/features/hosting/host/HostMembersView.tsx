@@ -7,7 +7,6 @@ import { useId, useState } from 'react';
 
 import type { AssignableHostRole } from '@/api/host/schema';
 import type { HostRole } from '@/api/shared/common-schema';
-import { formatKstKoreanDate } from '@/api/shared/date';
 import { HostingForbidden, HostingNotFound } from '@/features/hosting/access/HostingAccessRejected';
 import { HostingBoundary } from '@/features/hosting/access/HostingBoundary';
 import { HOST_ROLE_LABEL } from '@/features/hosting/shared/model/host-role';
@@ -28,16 +27,11 @@ import { toast } from '@/ui/components/Toast/Toast';
 import { Icon } from '@/ui/icons/Icon';
 import { Txt } from '@/ui/primitives/Txt';
 import { colors } from '@/ui/theme/colors';
-import { copyText } from '@/utils/copy-text';
 
 import * as page from './HostManage.css';
 import * as s from './HostMembers.css';
 import { type PermissionGuideRow } from './model/member-rules';
-import {
-  type CancelInvitationResult,
-  useCreateInviteLink,
-  useHostInvitations,
-} from './model/useHostInvitations';
+import { type CancelInvitationResult, useHostInvitations } from './model/useHostInvitations';
 import { type MemberActionResult, useHostMembers } from './model/useHostMembers';
 import { useInviteMembers } from './model/useInviteMembers';
 
@@ -59,8 +53,8 @@ const ROLE_COLOR: Record<HostRole, string> = {
  * `/hosting/hosts/[hostId]/members` 멤버 관리 — **GUI 근거**(모바일 2026-11-15 Design Sync #263~#266 · #268 · #269, 11-16 #282~#289):
  * 목록 `1421:755`(마스터) · `1452:54924`(매니저) · `1452:56114`(일반), ⋮ 메뉴 `1422:918`, 권한 변경 `1422:1121` · `1452:42791`,
  * 마스터 양도 `1422:1395`, 멤버 삭제 `1422:1695`, 권한 안내 시트 `1452:54461`, 초대 시트 `1422:1911` · `1423:4341` · `1467:5001`,
- * 미가입 이메일 `1427:4143`, 링크 만듦 `1427:4357` · `1427:4566`, 이미 멤버 `1476:6806`, 초대 대기 `1452:56710` · `1452:57010`,
- * 초대 취소 `1476:7882` · `1476:8144`. PC(1024~, #296~#298): `1496:9302` · `1496:9535` · `1496:12051` 등 — 본문 960 가운데 ·
+ * 이미 멤버 `1476:6806`, 초대 대기 `1452:56710` · `1452:57010`, 초대 취소 `1476:7882` · `1476:8144`(모든 초대 승인 방식 — #348 B71;
+ * 미가입 이메일 · 링크 만들기 `1427:4143` · `1427:4357` · `1427:4566`은 이 흐름에서 생기지 않는다). PC(1024~, #296~#298): `1496:9302` · `1496:9535` · `1496:12051` 등 — 본문 960 가운데 ·
  * 머리 줄 오른쪽 [+ 멤버 초대하기](FAB 대신) · 아바타 40. 같은 DOM이고 무엇이 보일지는 CSS가 정한다.
  * 메뉴 항목·초대 역할·FAB는 `can()`(`memberActionsOf` · `canInvite`)이 정한다 — 역할 문자열을 여기서 비교하지 않는다.
  * 주소의 id가 숫자가 아니면 요청 없이 공용 404, 비멤버는 공용 403.
@@ -374,18 +368,16 @@ function PermissionGuideSheet({
 }
 
 /**
- * 초대 시트 설명(`1469:5793` 외 — Design Sync #283 · #284). 첫 줄은 Figma 그대로(초대는 두둥 계정 = 카카오 계정 이메일로 찾는다).
- * 둘째 줄 Figma "상대방 승인 후 멤버로 추가돼요."는 서버와 달라(PH-7은 바로 멤버 — DEC-015, 승인은 초대 링크만) 바꾼다 🤖(Q229)
+ * 초대 시트 설명(`1469:5793` 외 — Design Sync #283 · #284). Figma 그대로 — 모든 초대가 상대 수락 뒤 멤버가 된다(B71 · #348, DEC-042)
  */
-const INVITE_DESCRIPTION =
-  '카카오톡에 가입한 이메일로 적어주세요.\n가입한 이메일은 바로 멤버로 추가돼요.';
+const INVITE_DESCRIPTION = '카카오톡에 가입한 이메일로 적어주세요.\n상대방 승인 후 멤버로 추가돼요.';
 
 /**
  * 초대 시트(`1422:1911` · 매니저 `1423:4341` · 역할 열림 `1467:5001`, PC 모달 `1496:11298`) — 이메일 + 역할(기본 "일반", 매니저는
- * "일반" 고정) + [초대하기]. 가입한 이메일은 PH-7로 바로 멤버가 된다.
- * 줄 아래 빨간 사유(간격 8): 미가입(`HOST_400_13` — 아래 회색 상자 [초대 링크 만들기](H-16, `1427:4143`), 이미 보낸 초대가 있으면 상자 안
- * 분홍 안내 `1476:7459`) · 이미 멤버(`HOST_400_15`, `1476:6806`) · 같은 이메일 계정 여러 개(`HOST_400_18`, `1476:7024`) ·
- * 링크 한도(H-16 `HOST_400_21`, `1476:7242` — 상자 대신 사유만). 만든 뒤에는 링크 · 만료일 · [링크 복사하기](`1427:4357` · `1427:4566`)
+ * "일반" 고정) + [초대하기]. **모든 초대는 H-16**(가입한 이메일도 — #348 B71): 보내면 시트를 닫고 토스트 "초대장을 보냈어요"(`1452:56710`),
+ * 줄은 "초대 대기"에 생긴다. 미가입 이메일 · 링크 만들기 장면(`1427:4143` · `1427:4357` · `1427:4566`)은 이 흐름에서 생기지 않는다.
+ * 줄 아래 빨간 사유(간격 8): 이미 멤버(`HOST_400_15`, `1476:6806`) · 초대 한도(`HOST_400_21`, `1476:7242`). 같은 이메일에 대기 초대가 있으면
+ * 분홍 안내(`1476:7459` — 다시 초대하면 이전 링크는 무효)
  */
 function InviteSheet({
   open,
@@ -401,67 +393,14 @@ function InviteSheet({
   myRole: ActorRole | null;
 }) {
   const inviteForm = useInviteMembers(hostId, myRole);
-  const inviteLink = useCreateInviteLink(hostId, myRole);
   const invitations = useHostInvitations(hostId, myRole);
   const errorId = useId();
   const row = inviteForm.rows[0]!;
-  const unregistered = inviteForm.unregistered;
-  // 링크 발급 실패(한도 · 이미 멤버)는 미가입 사유 자리를 대신한다(`1476:7242` — 회색 상자 없이 사유만). 칸을 고치면 미가입과 함께 사라진다
-  const linkError = unregistered ? inviteLink.error : null;
   const error =
-    linkError ??
-    inviteForm.serverErrors[0] ??
-    (inviteForm.attempted ? inviteForm.errors[0] : null) ??
-    inviteForm.formError;
+    inviteForm.serverErrors[0] ?? (inviteForm.attempted ? inviteForm.errors[0] : null);
   const formId = 'host-invite-form';
-  const busy = inviteForm.submitting || inviteLink.creating;
-
-  if (inviteLink.link) {
-    const { link } = inviteLink;
-    return (
-      <ResponsiveOverlay
-        open={open}
-        onOpenChange={(o) => !o && onClose()}
-        onExited={onExited}
-        sheetVariant="flat"
-        titleSize="md2"
-        descriptionStyle="body"
-        title="초대 링크를 만들었어요"
-        // 만든 직후 · 복사 뒤 같은 문구(`1427:4357` · `1427:4566`, 디자이너 답 2026-11-15 — Q232 닫음). 10분 안 재초대(메일 안 보냄)도
-        // 처음 보낸 메일이 있어 같은 말로 둔다
-        description="초대 메일도 보냈지만, 메일이 가지 않을 수 있으니 링크를 직접 전해 주세요."
-        footer={
-          <Button
-            size="lg"
-            fullWidth
-            icon={<Icon name="link" />}
-            onClick={() =>
-              void copyText(link.url).then((ok) =>
-                toast(
-                  ok
-                    ? '링크를 클립보드에 복사했어요.'
-                    : '복사하지 못했어요. 링크를 길게 눌러 복사해 주세요',
-                ),
-              )
-            }
-          >
-            링크 복사하기
-          </Button>
-        }
-      >
-        <div className={s.linkBox} data-testid="invite-link">
-          <p className={s.linkUrl}>
-            <Txt typography="labelMd" color={colors.textSecondaryLabel}>
-              {link.url}
-            </Txt>
-          </p>
-          <Txt typography="labelSm" color={colors.textTertiaryLabel}>
-            만료일: {formatKstKoreanDate(link.expiresAt, { weekday: false })}
-          </Txt>
-        </div>
-      </ResponsiveOverlay>
-    );
-  }
+  const busy = inviteForm.submitting;
+  const reinvite = !error && invitations.hasPendingFor(row.email);
 
   return (
     <ResponsiveOverlay
@@ -480,13 +419,8 @@ function InviteSheet({
           form={formId}
           size="lg"
           fullWidth
-          // 서버가 막은 이메일(미가입 · 이미 멤버)은 고치기 전까지 다시 보내지 않는다(`1427:4143` · `1476:6806` — [초대하기] 비활성)
-          disabled={
-            !row.email.trim() ||
-            inviteLink.creating ||
-            Boolean(inviteForm.serverErrors[0]) ||
-            Boolean(unregistered)
-          }
+          // 서버가 막은 이메일(이미 멤버 · 한도)은 고치기 전까지 다시 보내지 않는다(`1476:6806` — [초대하기] 비활성)
+          disabled={!row.email.trim() || Boolean(inviteForm.serverErrors[0])}
           loading={inviteForm.submitting}
         >
           초대하기
@@ -500,15 +434,14 @@ function InviteSheet({
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          inviteLink.reset();
           void inviteForm.submit().then((ok) => {
             if (!ok) return;
             onClose();
-            toast('멤버를 초대했어요.');
+            toast('초대장을 보냈어요');
           });
         }}
       >
-        {/* 칸 줄 + 사유(`1427:4143` `Frame 1707480467` — 간격 8) */}
+        {/* 칸 줄 + 사유(`1476:6806` — 간격 8) */}
         <div className={s.inviteField}>
           <div className={s.inviteRow} data-testid="invite-row">
             <Input
@@ -541,29 +474,13 @@ function InviteSheet({
             </p>
           )}
         </div>
-        {unregistered && !linkError && (
-          <div className={s.greyBox} data-testid="invite-link-offer">
-            <Txt typography="labelSm" color={colors.textTertiaryLabel}>
-              초대 링크를 만들면 이 이메일로 링크를 보내요. 링크는 7일 동안 한 번만 쓸 수 있어요.
+        {reinvite && (
+          // GUI `1476:7459` "이전 링크 무효 안내" — 분홍 상자. 같은 이메일 대기 초대는 다시 보내면 무효가 된다(H-16)
+          <p className={s.dangerBox} data-testid="invite-reinvite-notice">
+            <Txt typography="labelSm" color={colors.textDangerLabel}>
+              이미 보낸 초대가 있어요. 다시 초대하면 이전 링크는 쓸 수 없게 돼요.
             </Txt>
-            {invitations.hasPendingFor(unregistered.email) && (
-              // GUI `1476:7459` "이전 링크 무효 안내" — 분홍 상자. 같은 이메일 대기 초대는 새 링크가 무효로 만든다(H-16)
-              <p className={s.dangerBox} data-testid="invite-reinvite-notice">
-                <Txt typography="labelSm" color={colors.textDangerLabel}>
-                  이미 보낸 초대가 있어요. 다시 초대하면 이전 링크는 쓸 수 없게 돼요.
-                </Txt>
-              </p>
-            )}
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={inviteLink.creating}
-              disabled={inviteForm.submitting}
-              onClick={() => void inviteLink.create(unregistered.email, unregistered.role)}
-            >
-              초대 링크 만들기
-            </Button>
-          </div>
+          </p>
         )}
       </form>
     </ResponsiveOverlay>
@@ -571,8 +488,9 @@ function InviteSheet({
 }
 
 /**
- * "초대 대기"(H-17, `1452:56710` · `1452:57010`) — 매니저 이상. 줄(GUI `초대 대기 행` `1468:5362`)마다 이메일 · "역할 · 만료까지"와
- * [취소](H-18, 매니저는 일반 초대만 — `can()`). 링크(토큰)는 다시 받을 수 없어 목록에 없다.
+ * "초대 대기"(H-17, `1452:56710` · `1452:57010`) — 매니저 이상. 모든 초대(가입한 이메일 포함 — #348 B71)가 수락 · 거절 · 만료 전까지 있다.
+ * 줄마다 [취소](H-18, 매니저는 일반 초대만 — `can()`). 초대 이메일로 가입한 계정의 닉네임이 있으면 아바타 + 이름 + 역할(`1476:7882` 첫 줄 —
+ * 멤버 행과 같은 모양), 없으면 이메일 + "역할 · 만료까지"(`초대 대기 행` `1468:5362`). 링크(토큰)는 다시 받을 수 없어 목록에 없다.
  * 서버에 API가 없으면(운영 2.5.3 404) 숨기고, 그 밖 실패는 이 자리만 `InlineError`.
  */
 function PendingInvitations({ hostId, myRole }: { hostId: string; myRole: ActorRole | null }) {
@@ -613,18 +531,33 @@ function PendingInvitations({ hostId, myRole }: { hostId: string; myRole: ActorR
       <ul aria-label="초대 대기 목록" className={s.pendingList}>
         {inv.rows.map((row) => (
           <li key={row.invitationId} className={s.pendingRow} data-testid="invitation-row">
-            <div className={s.memberText}>
-              <Txt typography="headingSm" lines={1}>
-                {row.email}
-              </Txt>
-              <Txt typography="labelMd" color={colors.textSecondaryLabel}>
-                {row.roleLabel} · {row.expiresAt}까지
-              </Txt>
-            </div>
+            {row.name ? (
+              <div className={s.memberMain}>
+                <Avatar size={60} className={s.memberAvatar} src={row.profileImageUrl} />
+                <div className={s.memberText}>
+                  <Txt typography="headingSmEmphasized" lines={1}>
+                    {row.name}
+                  </Txt>
+                  <Txt typography="bodySm" color={colors.textSecondaryLabel}>
+                    {row.roleLabel}
+                  </Txt>
+                </div>
+              </div>
+            ) : (
+              <div className={s.memberText}>
+                <Txt typography="headingSm" lines={1}>
+                  {row.email}
+                </Txt>
+                <Txt typography="labelMd" color={colors.textSecondaryLabel}>
+                  {row.roleLabel} · {row.expiresAt}까지
+                </Txt>
+              </div>
+            )}
             {row.cancelable && (
               <Button
                 variant="secondary"
                 size="sm"
+                // 이름 줄도 이메일로 부른다 — 같은 닉네임이 여럿일 수 있다
                 aria-label={`${row.email} 초대 취소`}
                 disabled={inv.pendingId !== null}
                 onClick={() => cancel(row.invitationId)}
