@@ -48,3 +48,22 @@ export const Keyboard: Story = {
     await expect(args.onCheckedChange).toHaveBeenLastCalledWith(false);
   },
 };
+
+/** Figma `Size=18`(2026-11-28, Design Sync #390 · #391) — 트랙 34×18 · 손잡이 14 · 안쪽 2 */
+export const Size18: Story = {
+  render: (args) => (
+    <Flex gap={3} align="center">
+      <Toggle {...args} aria-label="18 꺼짐" size={18} />
+      <Toggle {...args} aria-label="18 켜짐" size={18} defaultChecked />
+      <Toggle {...args} aria-label="18 켜짐 disabled" size={18} disabled defaultChecked />
+    </Flex>
+  ),
+  play: async ({ canvasElement }) => {
+    const sw = within(canvasElement).getByRole('switch', { name: '18 꺼짐' });
+    const box = sw.getBoundingClientRect();
+    await expect([box.width, box.height]).toEqual([34, 18]);
+  },
+};
+
+/** 화면별 크기 — 모바일 18 · 데스크탑(≥ 1024) 24(공연 리스트 "지난공연보기") */
+export const Responsive: Story = { args: { size: { mobile: 18, desktop: 24 } } };

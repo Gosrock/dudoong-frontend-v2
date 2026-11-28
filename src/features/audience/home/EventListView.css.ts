@@ -61,7 +61,7 @@ export const filters = style({
 export const filtersStart = style({ display: 'flex', alignItems: 'center', gap: vars.space[4] });
 
 /**
- * "지난공연보기" + Toggle(GUI `759:8027` 간격 8 — 모바일은 글자 12 → Toggle).
+ * "지난공연보기" + Toggle(GUI `759:8027` 간격 8 — 모바일은 글자 12 → Toggle Size=18, 2026-11-28 #390 · #391).
  * PC는 Toggle → 글자 14(`labelMd`, GUI `1970:2068` · `1979:2268`)
  */
 export const pastToggle = style({
