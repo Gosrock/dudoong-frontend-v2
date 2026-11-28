@@ -75,6 +75,16 @@ scenario(
       { capture: false },
     );
     await step(
+      '지난공연보기 토글 크기 — 모바일 34×18(DS Toggle Size=18, #390 · #391) · PC 45×24(Size=24)',
+      async () => {
+        const box = await page.getByRole('switch', { name: '지난공연보기' }).boundingBox();
+        const size = [Math.round(box?.width ?? 0), Math.round(box?.height ?? 0)];
+        await note(`토글 ${size.join('×')}`);
+        expect(size).toEqual(desktop ? [45, 24] : [34, 18]);
+      },
+      { capture: false },
+    );
+    await step(
       '하이드레이션 경고가 없다',
       async () => {
         await note(`하이드레이션 메시지 ${hydration.length}건`);

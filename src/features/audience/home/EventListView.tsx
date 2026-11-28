@@ -92,7 +92,9 @@ export function EventListView() {
             <Txt typography="labelSm" color={colors.textPrimary} className={s.pastToggleLabel}>
               <span id={pastLabelId}>지난공연보기</span>
             </Txt>
+            {/* DS Toggle Size=18(모바일 GUI `759:8030` · `939:34052` · `759:11882`, Design Sync #390 · #391) · PC Size=24(`1970:2069` · `1979:2269`) */}
             <Toggle
+              size={{ mobile: 18, desktop: 24 }}
               aria-labelledby={pastLabelId}
               checked={list.filter.includePast}
               onCheckedChange={list.setIncludePast}
